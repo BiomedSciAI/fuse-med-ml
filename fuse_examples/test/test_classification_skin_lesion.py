@@ -25,7 +25,7 @@ import shutil
 from fuse_examples.classification.skin_lesion.runner import TRAIN_COMMON_PARAMS, \
     INFER_COMMON_PARAMS, ANALYZE_COMMON_PARAMS, run_train, run_analyze, run_infer
 
-from FuseDev.fuse.utils.utils_gpu import FuseUtilsGPU
+from fuse.utils.utils_gpu import FuseUtilsGPU
 
 
 class ClassificationSkinLesionTestCase(unittest.TestCase):

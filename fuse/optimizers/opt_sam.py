@@ -26,13 +26,29 @@ Created on June 30, 2021
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+from typing import Dict
 
 import torch
 
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
+from fuse.managers.callbacks.callback_base import FuseCallback
+from fuse.managers.manager_state import FuseManagerState
 
 
 class SAM(torch.optim.Optimizer):
+    """
+    SAM optimizer - see https://github.com/davda54/sam/blob/main/sam.py
+    To use in FuseMedML:
+    Create the optimizer and add FuseCallbackSamOpt() to the list of callbacks:.
+    Examples:
+    base_optimizer = torch.optim.SGD
+    optimizer = SAM(model.parameters(), base_optimizer,
+                    lr=lr,
+                    momentum=momentum,
+                    weight_decay=weight_decay)
+    callbacks.append(FuseCallbackSamOpt())
+
+    """
     def __init__(self, params, base_optimizer, rho=0.05, **kwargs):
         assert rho >= 0.0, f"Invalid rho, should be non-negative: {rho}"
 

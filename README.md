@@ -20,7 +20,7 @@ FuseMedML punctilious software design provides many advantages, making it a grea
   However, components in the pipeline kept decoupled, allowing a user to re-implement a component to get the required behavior.
 * **Encourage sharing** - 
 
-  Sharing is a powerful tool. To encourage sharing, FuseMedML design enables to implement a generic components which can be easily used in Plug & Play manner.
+  Sharing is a powerful tool. To encourage sharing, FuseMedML design enables to implement generic components which can be easily used in Plug & Play manner.
 * **Common easy to use generic components and examples** - 
 
   Such as: Caching, Augmentor, Visualizer, Sampler/Balancer, Metrics, Losses, etc.
