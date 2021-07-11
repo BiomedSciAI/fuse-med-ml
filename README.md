@@ -59,7 +59,7 @@ $ pip install -e .
 We use the Slack workspace at fusemedml.slack.com for informal communication.
 We encourage you to ask questions regarding FuseMedML that don't necessarily merit opening an issue on Github.
 
-[**Use this invite link to join causallib on Slack**](https://join.slack.com/t/newworkspace-i3g4445/shared_invite/zt-sr0hcb9f-E~SLYbG9bE5fn8iq5OE0ww).
+[**Use this invite link to join FuseMedML on Slack**](https://join.slack.com/t/newworkspace-i3g4445/shared_invite/zt-sr0hcb9f-E~SLYbG9bE5fn8iq5OE0ww).
 
 IBMers can also join a slack channel on IBM Research organization:
 [**#fusers**](https://ibm-research.slack.com/archives/C0176S37QNP) .
