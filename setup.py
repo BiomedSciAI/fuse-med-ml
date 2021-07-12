@@ -17,13 +17,13 @@ with open(os.path.join(HERE, 'requirements.txt'), 'r') as fh:
         if not line.startswith('#'):
             requirements.append(line.strip())
 
-setup(name='fuse',
-      version='0.0.1',
+setup(name='fuse-med-ml',
+      version='0.1.1',
       description='Open-source PyTorch based framework designed to facilitate deep learning R&D in medical imaging',
       long_description=long_description,
       long_description_content_type="text/markdown",
-      url='TBD',
-      author='Moshe Raboh',
+      url='https://github.com/IBM/fuse-med-ml/',
+      author='IBM Research Haifa Labs - Machine Learning for Healthcare and Life Sciences',
       author_email='moshiko.raboh@ibm.com',
       packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
       license='LICENSE.txt',

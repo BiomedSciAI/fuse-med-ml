@@ -31,7 +31,7 @@ FuseMedML punctilious software design provides many advantages, making it a grea
 # Installation
 The best way of installing `FuseMedML` is by using `pip`:
 ```bash
-$ pip install fuse_med_ml
+$ pip install fuse-med-ml
 ```
  FuseMedML supports Python 3.6 or later and PyTorch 1.5 or later. Full dependencies list can be found in [**requirements.txt**](requirements.txt).
  
