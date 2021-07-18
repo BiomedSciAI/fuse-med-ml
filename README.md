@@ -5,29 +5,40 @@
 <img src="fuse/doc/FuseMedML-logo.png" alt="drawing" width="30%"/>
 
 # What is FuseMedML?
-FuseMedML is an **open-source PyTorch based framework designed to facilitate deep learning R&D in medical imaging**.
-FuseMedML provides entire built-in pipeline, from data processing through train and inference to analyze and visualize.
-
+FuseMedML is an **open-source PyTorch-based framework designed to enhance collaboration and to facilitate deep learning R&D in medical imaging**.
 # Why use FuseMedML?
-FuseMedML punctilious software design provides many advantages, making it a great framework for deep-learning research and development in medical imaging:
+Successful deep learning R&D must rely on knowledge and experiments accumulated on a wide variety of projects developed by different people and teams. Even though many of those experiments in the medical field shares lots in common, collaboration and code reuse are challenging tasks.
+
+FuseMedML is a great collaboration framework that will allow to rerun an experiment or reuse some of the capabilities originally written for a different project with minimum effort. 
+Using FuseMedML, you will be able to write generic components which are decoupled from other components, the structure of the data, and the model output.  This kind of component can be easily shared between projects in a plug & play manner and therefore encourage sharing and collaboration significantly.
+
+A software design achieving those goals, provides many advantages, making it, in general, a great framework for deep-learning research and development in medical imaging:
 * **Rapid development** -
 
-  Requires implementing only minimal scope of code to get up and running pipeline.
-  Common generic implementation of most components in pipeline is provided and only specific components such as data extractor expected to be implemented by the user.
+  Requires implementing only minimal scope of code to get up and running a fully-featured pipeline, including caching, augmentation, monitoring, logging, and many more. 
+  Common generic implementation of most components in the pipeline is provided and only specific components such as data extractor are expected to be implemented by the user.
 * **Flexible, customizable, and scalable** -
 
-  The default implementation of modules and components suits for many common cases, 
+  The default implementation of modules and components suits many common cases. 
   However, components in the pipeline kept decoupled, allowing a user to re-implement a component to get the required behavior.
-* **Encourage sharing** - 
+* **Encourage sharing and collaboration** - 
 
-  Sharing is a powerful tool. To encourage sharing, FuseMedML design enables to implement generic components which can be easily used in Plug & Play manner.
-* **Common easy to use generic components and examples** - 
+  Sharing is a powerful tool and therefore it is FuseMedML's main goal.
+* **Collection of common, easy to use, generic components and capabilities** - 
 
-  Such as: Caching, Augmentor, Visualizer, Sampler/Balancer, Metrics, Losses, etc.
+  FuseMedML already comes with a large collection of components that will grow with each new project.
+  Examples: Monitoring, crash recovery, caching, augmentation, visualization, data sampling/balancing, metrics, losses, etc.
+* **Standardized evaluation** - 
+
+  The evaluation methods and code are completely shared and therefore contribute to a standardized evaluation.
 * **Medical Imaging Expertise** - 
 
-  The pre-implemented components implemented by a group of medical-imaging researchers and tackles many of the challenges in this field.   
+  The pre-implemented components implemented by a group of medical-imaging researchers and tackle many of the challenges in this field.   
+* **Comaptibilty with alternative frameworks**
 
+    Most code components developed in alternative frameworks are compatible with FuseMedML and can still be used.
+    
+    Many other popular GitHub projects, such as the implementation of a PyTorch model, can be used as complementary projects to FuseMedML
 # Installation
 The best way of installing `FuseMedML` is by using `pip`:
 ```bash
@@ -48,12 +59,12 @@ $ pip install -e .
 
 ## Examples
 * classification
-    * [**MNIST**](fuse_examples/classification/mnist/)  - a simple example, including training, inference and evaluation over [MNIST dataset](http://yann.lecun.com/exdb/mnist)
+    * [**MNIST**](fuse_examples/classification/mnist/)  - a simple example, including training, inference and evaluation over [MNIST dataset](http://yann.lecun.com/exdb/mnist/)
     * [**Skin Lesion**](fuse_examples/classification/skin_lesion/) - skin lesion classification , including training, inference and evaluation over the public dataset introduced in [ISIC challenge](https://challenge.isic-archive.com/landing/2017)
     * [**Prostate Gleason Classifiaction**](fuse_examples/classification/prostate_x/) - lesions classification of Gleason score in prostate over the public dataset introduced in [SPIE-AAPM-NCI PROSTATEx challenge](https://wiki.cancerimagingarchive.net/display/Public/SPIE-AAPM-NCI+PROSTATEx+Challenges#23691656d4622c5ad5884bdb876d6d441994da38)
 
 ## Walkthrough template
-* [**Walkthrough Template**](fuse/templates/walkthrough_template.py) - the template includes several TODO notes, marking the minimal scope of code required to get up and running pipeline. The template also includes useful explanation and tips.
+* [**Walkthrough Template**](fuse/templates/walkthrough_template.py) - the template includes several TODO notes, marking the minimal scope of code required to get up and running pipeline. The template also includes useful explanations and tips.
 
 ## Community support
 We use the Slack workspace at fusemedml.slack.com for informal communication.
