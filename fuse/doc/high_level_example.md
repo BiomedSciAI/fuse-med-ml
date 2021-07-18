@@ -51,6 +51,7 @@ Given those processors the format of the sample would be:
 
 
 ## Train dataset & dataloader
+```python
 augmentor = FuseAugmentor(...)
 train_dataset = FuseDatasetDefault(cache_dest='/path/to/cache_dir',
                                    data_source=train_data_source,
