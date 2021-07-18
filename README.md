@@ -15,7 +15,7 @@ Using FuseMedML, you will be able to write generic components which are decouple
 A software design achieving those goals, provides many advantages, making it, in general, a great framework for deep-learning research and development in medical imaging:
 * **Rapid development** -
 
-  Requires implementing only minimal scope of code to get up and running a fully-featured pipeline, including caching, augmentation, monitoring, logging, and many more. 
+  Requires implementing only minimal scope of code to get up and running fully-featured pipeline, including caching, augmentation, monitoring, logging, and many more. 
   Common generic implementation of most components in the pipeline is provided and only specific components such as data extractor are expected to be implemented by the user.
 * **Flexible, customizable, and scalable** -
 
@@ -23,10 +23,10 @@ A software design achieving those goals, provides many advantages, making it, in
   However, components in the pipeline kept decoupled, allowing a user to re-implement a component to get the required behavior.
 * **Encourage sharing and collaboration** - 
 
-  Sharing is a powerful tool and therefore it is FuseMedML's main goal.
+  Sharing and collobration are powerful tools and therefore they are FuseMedML's main goals.
 * **Collection of common, easy to use, generic components and capabilities** - 
 
-  FuseMedML already comes with a large collection of components that will grow with each new project.
+  FuseMedML comes with a large collection of components that will grow with each new project.
   Examples: Monitoring, crash recovery, caching, augmentation, visualization, data sampling/balancing, metrics, losses, etc.
 * **Standardized evaluation** - 
 
