@@ -49,11 +49,11 @@ An alternative, allowing to edit the source code, would be to download the repo 
 $ pip install -e .
 ```
 
-# Ready to get going?
+# Ready to get started?
 ## FuseMedML from the ground up
-[**User Guide**](fuse/doc/user_guide.md) - including detailed explanation about FuseMedML modules, structure, concept. etc.
+[**User Guide**](fuse/doc/user_guide.md) - including detailed explanation about FuseMedML modules, structure, concept, and more.
 
-[**High Level Code Example**](fuse/doc/high_level_example.md) - example for binary classifier for mammography with an auxiliary segmentation loss and clinical data
+[**High Level Code Example**](fuse/doc/high_level_example.md) - example of binary classifier for mammography with an auxiliary segmentation loss and clinical data
 
 ## Examples
 * classification
@@ -62,7 +62,7 @@ $ pip install -e .
     * [**Prostate Gleason Classifiaction**](fuse_examples/classification/prostate_x/) - lesions classification of Gleason score in prostate over the public dataset introduced in [SPIE-AAPM-NCI PROSTATEx challenge](https://wiki.cancerimagingarchive.net/display/Public/SPIE-AAPM-NCI+PROSTATEx+Challenges#23691656d4622c5ad5884bdb876d6d441994da38)
 
 ## Walkthrough template
-* [**Walkthrough Template**](fuse/templates/walkthrough_template.py) - the template includes several TODO notes, marking the minimal scope of code required to get up and running pipeline. The template also includes useful explanations and tips.
+* [**Walkthrough Template**](fuse/templates/walkthrough_template.py) - includes several TODO notes, marking the minimal scope of code required to get your pipeline up and running. The template also includes useful explanations and tips.
 
 ## Community support
 We use the Slack workspace at fusemedml.slack.com for informal communication.
@@ -72,4 +72,5 @@ We encourage you to ask questions regarding FuseMedML that don't necessarily mer
 
 IBMers can also join a Slack channel in the IBM Research organization: 
 [**#fusers**](https://ibm-research.slack.com/archives/C0176S37QNP) .
+
 
