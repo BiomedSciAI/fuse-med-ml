@@ -7,44 +7,42 @@
 # What is FuseMedML?
 FuseMedML is an **open-source PyTorch-based framework designed to enhance collaboration and to facilitate deep learning R&D in medical imaging**.
 # Why use FuseMedML?
-Successful deep learning R&D must rely on knowledge and experiments accumulated on a wide variety of projects developed by different people and teams. Even though many of those experiments in the medical field shares lots in common, collaboration and code reuse are challenging tasks.
+Successful deep learning R&D must rely on knowledge and experiments, accumulated over a wide variety of projects, and developed by different people and teams.
 
-FuseMedML is a great collaboration framework that will allow to rerun an experiment or reuse some of the capabilities originally written for a different project with minimum effort. 
-Using FuseMedML, you will be able to write generic components which are decoupled from other components, the structure of the data, and the model output.  This kind of component can be easily shared between projects in a plug & play manner and therefore encourage sharing and collaboration significantly.
+FuseMedML is an outstanding collaboration framework that allows you to rerun an experiment or reuse some of the capabilities originally written for different projects—all with minimal effort.\
+Using FuseMedML, you can write generic components that can be easily shared between projects in a plug & play manner, making sharing and collaboration easier than ever before.
 
-A software design achieving those goals, provides many advantages, making it, in general, a great framework for deep-learning research and development in medical imaging:
+The framework’s unique software design provides many advantages, making it an ideal framework for deep-learning research and development in medical imaging:
+
 * **Rapid development** -
 
-  Requires implementing only minimal scope of code to get up and running fully-featured pipeline, including caching, augmentation, monitoring, logging, and many more. 
-  Common generic implementation of most components in the pipeline is provided and only specific components such as data extractor are expected to be implemented by the user.
+  With just minimal code implementation, you can get a fully-featured pipeline up and running, including caching, augmentation, monitoring, logging, and more. A common generic implementation is provided for most components in the pipeline and all you need to do is implement specific components such as data extractors.
 * **Flexible, customizable, and scalable** -
 
-  The default implementation of modules and components suits many common cases. 
-  However, components in the pipeline kept decoupled, allowing a user to re-implement a component to get the required behavior.
+  The default implementation of modules and components suits many common cases. If needed,  thanks to the fact that the components in the pipeline are decoupled, you can re-implement any component to achieve the required behavior.
 * **Encourage sharing and collaboration** - 
 
-  Sharing and collobration are powerful tools and therefore they are FuseMedML's main goals.
+  Using FuseMedML, you will be able to write/use generic components that are decoupled from other components, the structure of the data, and the model output. These kinds of components can help drive powerful sharing and collaboration.
 * **Collection of common, easy to use, generic components and capabilities** - 
 
-  FuseMedML comes with a large collection of components that will grow with each new project.
-  Examples: Monitoring, crash recovery, caching, augmentation, visualization, data sampling/balancing, metrics, losses, etc.
+  FuseMedML comes with a large collection of components that grow with each new project.
+  Examples include: Monitoring, crash recovery, caching, augmentation, visualization, data sampling/balancing, metrics, losses, multi-tasking, multi-modalities, multi-processing, etc.
 * **Standardized evaluation** - 
 
-  The evaluation methods and code are completely shared and therefore contribute to a standardized evaluation.
-* **Medical Imaging Expertise** - 
+  All evaluation methods and code are completely shared and in that way contribute to a standardized evaluation.
+* **Medical imaging expertise** - 
 
-  The pre-implemented components implemented by a group of medical-imaging researchers and tackle many of the challenges in this field.   
-* **Comaptibilty with alternative frameworks**
+  The pre-implemented components were created by a group of medical-imaging researchers, specifically to tackle many of the challenges in this field.
+* **Compatibility with alternative frameworks**
 
-    Most code components developed in alternative frameworks are compatible with FuseMedML and can still be used.
-    
-    Many other popular GitHub projects, such as the implementation of a PyTorch model, can be used as complementary projects to FuseMedML
+  FuseMedML is compatible with most code components developed in alternative frameworks.\
+  You can also use many other popular GitHub projects in complement with FuseMedML, such as Git repository that includes a PyTorch model.
 # Installation
-The best way of installing `FuseMedML` is by using `pip`:
+The best way to install `FuseMedML` is using `pip`:
 ```bash
 $ pip install fuse-med-ml
 ```
- FuseMedML supports Python 3.6 or later and PyTorch 1.5 or later. Full dependencies list can be found in [**requirements.txt**](requirements.txt).
+ FuseMedML supports Python 3.6 or later and PyTorch 1.5 or later. A full list of dependencies can be found in [**requirements.txt**](requirements.txt).
  
 An alternative, allowing to edit the source code, would be to download the repo and install it using:
 ```bash
@@ -72,7 +70,6 @@ We encourage you to ask questions regarding FuseMedML that don't necessarily mer
 
 [**Use this invite link to join FuseMedML on Slack**](https://join.slack.com/t/newworkspace-i3g4445/shared_invite/zt-sr0hcb9f-E~SLYbG9bE5fn8iq5OE0ww).
 
-IBMers can also join a slack channel on IBM Research organization:
+IBMers can also join a Slack channel in the IBM Research organization: 
 [**#fusers**](https://ibm-research.slack.com/archives/C0176S37QNP) .
-
 
