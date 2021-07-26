@@ -18,7 +18,7 @@ with open(os.path.join(HERE, 'requirements.txt'), 'r') as fh:
             requirements.append(line.strip())
 
 setup(name='fuse-med-ml',
-      version='0.1.2',
+      version='0.1.3',
       description='Open-source PyTorch based framework designed to facilitate deep learning R&D in medical imaging',
       long_description=long_description,
       long_description_content_type="text/markdown",
