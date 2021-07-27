@@ -42,7 +42,7 @@ The best way to install `FuseMedML` is using `pip`:
 ```bash
 $ pip install fuse-med-ml
 ```
- FuseMedML supports Python 3.6 or later and PyTorch 1.5 or later. A full list of dependencies can be found in [**requirements.txt**](requirements.txt).
+ FuseMedML supports Python 3.6 or later and PyTorch 1.5 or later. A full list of dependencies can be found in [**requirements.txt**](https://github.com/IBM/fuse-med-ml/tree/master/requirements.txt).
  
 An alternative, allowing to edit the source code, would be to download the repo and install it using:
 ```bash
