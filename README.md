@@ -42,7 +42,7 @@ The best way to install `FuseMedML` is using `pip`:
 ```bash
 $ pip install fuse-med-ml
 ```
- FuseMedML supports Python 3.6 or later and PyTorch 1.5 or later. A full list of dependencies can be found in [**requirements.txt**](requirements.txt).
+ FuseMedML supports Python 3.6 or later and PyTorch 1.5 or later. A full list of dependencies can be found in [**requirements.txt**](https://github.com/IBM/fuse-med-ml/tree/master/requirements.txt).
  
 An alternative, allowing to edit the source code, would be to download the repo and install it using:
 ```bash
@@ -51,18 +51,18 @@ $ pip install -e .
 
 # Ready to get started?
 ## FuseMedML from the ground up
-[**User Guide**](fuse/doc/user_guide.md) - including detailed explanation about FuseMedML modules, structure, concept, and more.
+[**User Guide**](https://github.com/IBM/fuse-med-ml/tree/master/fuse/doc/user_guide.md) - including detailed explanation about FuseMedML modules, structure, concept, and more.
 
-[**High Level Code Example**](fuse/doc/high_level_example.md) - example of binary classifier for mammography with an auxiliary segmentation loss and clinical data
+[**High Level Code Example**](https://github.com/IBM/fuse-med-ml/tree/master/fuse/doc/high_level_example.md) - example of binary classifier for mammography with an auxiliary segmentation loss and clinical data
 
 ## Examples
 * classification
-    * [**MNIST**](fuse_examples/classification/mnist/)  - a simple example, including training, inference and evaluation over [MNIST dataset](http://yann.lecun.com/exdb/mnist/)
-    * [**Skin Lesion**](fuse_examples/classification/skin_lesion/) - skin lesion classification , including training, inference and evaluation over the public dataset introduced in [ISIC challenge](https://challenge.isic-archive.com/landing/2017)
-    * [**Prostate Gleason Classifiaction**](fuse_examples/classification/prostate_x/) - lesions classification of Gleason score in prostate over the public dataset introduced in [SPIE-AAPM-NCI PROSTATEx challenge](https://wiki.cancerimagingarchive.net/display/Public/SPIE-AAPM-NCI+PROSTATEx+Challenges#23691656d4622c5ad5884bdb876d6d441994da38)
+    * [**MNIST**](https://github.com/IBM/fuse-med-ml/tree/master/fuse_examples/classification/mnist/)  - a simple example, including training, inference and evaluation over [MNIST dataset](http://yann.lecun.com/exdb/mnist/)
+    * [**Skin Lesion**](https://github.com/IBM/fuse-med-ml/tree/master/fuse_examples/classification/skin_lesion/) - skin lesion classification , including training, inference and evaluation over the public dataset introduced in [ISIC challenge](https://challenge.isic-archive.com/landing/2017)
+    * [**Prostate Gleason Classifiaction**](https://github.com/IBM/fuse-med-ml/tree/master/fuse_examples/classification/prostate_x/) - lesions classification of Gleason score in prostate over the public dataset introduced in [SPIE-AAPM-NCI PROSTATEx challenge](https://wiki.cancerimagingarchive.net/display/Public/SPIE-AAPM-NCI+PROSTATEx+Challenges#23691656d4622c5ad5884bdb876d6d441994da38)
 
 ## Walkthrough template
-* [**Walkthrough Template**](fuse/templates/walkthrough_template.py) - includes several TODO notes, marking the minimal scope of code required to get your pipeline up and running. The template also includes useful explanations and tips.
+* [**Walkthrough Template**](https://github.com/IBM/fuse-med-ml/tree/master/fuse/templates/walkthrough_template.py) - includes several TODO notes, marking the minimal scope of code required to get your pipeline up and running. The template also includes useful explanations and tips.
 
 ## Community support
 We use the Slack workspace at fusemedml.slack.com for informal communication.
