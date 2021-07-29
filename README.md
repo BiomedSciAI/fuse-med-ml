@@ -37,6 +37,19 @@ The framework’s unique software design provides many advantages, making it an 
 
   FuseMedML is compatible with most code components developed in alternative frameworks.\
   You can also use many other popular GitHub projects in complement with FuseMedML, such as Git repository that includes a PyTorch model.
+# Citation
+If you use FuseMedML in scientific context, please consider citing us:
+```bibtex
+@misc{https://doi.org/10.5281/zenodo.5146491,
+  doi = {10.5281/ZENODO.5146491},
+  url = {https://zenodo.org/record/5146491},
+  author = {IBM Research,  Haifa},
+  title = {FuseMedML: https://github.com/IBM/fuse-med-ml},
+  publisher = {Zenodo},
+  year = {2021},
+  copyright = {Apache License 2.0}
+}
+```
 # Installation
 The best way to install `FuseMedML` is using `pip`:
 ```bash
