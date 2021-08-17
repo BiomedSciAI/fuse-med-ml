@@ -21,8 +21,8 @@ from typing import Dict, List, Tuple, Callable
 import numpy as np
 import pandas as pd
 
-from Fuse.metrics.metric_base import FuseMetricBase
-from Fuse.metrics.metrics_toolbox import FuseMetricsToolBox
+from fuse.metrics.metric_base import FuseMetricBase
+from fuse.metrics.metrics_toolbox import FuseMetricsToolBox
 
 
 class FuseMetricPredictionBreakdown(FuseMetricBase):
