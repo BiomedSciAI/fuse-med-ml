@@ -22,7 +22,7 @@ from typing import Optional, Union, Dict, Sequence
 import numpy as np
 
 from fuse.metrics.metric_base import FuseMetricBase
-from Fuse.utils.utils_image_processing import FuseUtilsImageProcessing
+from fuse.utils.utils_image_processing import FuseUtilsImageProcessing
 
 
 class FuseMetricScoreMap(FuseMetricBase):

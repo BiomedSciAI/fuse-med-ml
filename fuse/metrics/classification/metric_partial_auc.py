@@ -24,7 +24,7 @@ from typing import Dict, Optional, Callable, List
 import numpy as np
 import sklearn.metrics
 
-from Fuse.metrics.metric_base import FuseMetricBase
+from fuse.metrics.metric_base import FuseMetricBase
 
 
 class FuseMetricPartialAUC(FuseMetricBase):

@@ -23,8 +23,8 @@ import numpy as np
 import sklearn.metrics
 from typing import Dict, Optional, Callable, Union, List, Tuple
 
-from Fuse.metrics.metric_base import FuseMetricBase
-from Fuse.metrics.metrics_toolbox import FuseMetricsToolBox
+from fuse.metrics.metric_base import FuseMetricBase
+from fuse.metrics.metrics_toolbox import FuseMetricsToolBox
 
 
 class FuseMetricConfusionMatrix(FuseMetricBase):
