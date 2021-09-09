@@ -55,7 +55,7 @@ class BinaryDiceLoss(nn.Module):
         Returns:            Loss tensor according to arg reduction
         Raise:              Exception if unexpected reduction
         '''
-        super(BinaryDiceLoss, self).__init__()
+        super().__init__()
         self.p = power
         self.reduction = reduction
         self.eps = eps

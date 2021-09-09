@@ -810,7 +810,8 @@ class FuseManagerDefault:
         prev_lr = self.get_current_learning_rate()
 
         # take total_loss from train_results
-        self.state.lr_scheduler.step(np.mean(FuseUtilsHierarchicalDict.get(train_results, 'losses.total_loss')))
+        results = {"train": train_results, "validation": validation_results}
+        self.state.lr_scheduler.step(np.mean(FuseUtilsHierarchicalDict.get(results, self.state.train_params['lr_sch_target'])))
 
         curr_lr = self.get_current_learning_rate()
 
@@ -1014,6 +1015,7 @@ class FuseManagerDefault:
             set_default('num_epochs', 100)
             set_default('gap_between_saving_epochs', 5)
             set_default('start_saving_epochs', 80)
+            set_default('lr_sch_target', 'train.losses.total_loss')
 
         return full_config
 

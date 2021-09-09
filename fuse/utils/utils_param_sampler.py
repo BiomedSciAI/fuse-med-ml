@@ -19,13 +19,19 @@ Created on June 30, 2021
 
 import secrets
 from abc import ABC, abstractmethod
+from random import Random
 from typing import Any, Sequence, List, Tuple
 
 import torch
 from torch import Tensor
 
+import os
+
 secretsGenerator = secrets.SystemRandom()
 
+def set_seed(seed: int):
+    global secretsGenerator
+    secretsGenerator = Random(seed)
 
 class FuseUtilsParamSamplerBase(ABC):
     """

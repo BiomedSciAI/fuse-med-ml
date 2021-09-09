@@ -16,6 +16,7 @@ limitations under the License.
 Created on June 30, 2021
 
 """
+import torch
 
 """
 Fuse miscellaneous utils
@@ -121,6 +122,35 @@ class FuseUtilsMisc:
                 res += f', length={len(value)}'
             res += '\n'
         return res
+
+    @staticmethod
+    def set_seed(seed: int, deterministic_mode: bool = True) -> torch.Generator:
+        """
+        Fix a seed and set PyTorch mode to deterministic to reproduce results
+        :param seed: seed to use
+        :param deterministic_mode: set PyTorch deterministic mode
+        :return: Random generator to be used when creating Dataloader
+        """
+        torch.manual_seed(seed)
+        torch.use_deterministic_algorithms(deterministic_mode)
+        dataloader_rand_gen = torch.Generator()
+        dataloader_rand_gen.manual_seed(seed)
+
+        import random
+        random.seed(seed)
+
+        import numpy as np
+        np.random.seed(seed)
+
+        from fuse.utils.utils_param_sampler import set_seed as param_set_seed
+        param_set_seed(seed)
+
+        return dataloader_rand_gen
+
+    @staticmethod
+    def seed_worker_init(worker_id: int):
+        worker_seed = torch.initial_seed() % 2 ** 32
+        FuseUtilsMisc.set_seed(worker_seed)
 
 
 def time_display(seconds, granularity=3):

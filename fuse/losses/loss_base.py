@@ -29,6 +29,8 @@ class FuseLossBase(torch.nn.Module):
                  pred_name: str = None,
                  target_name: str = None,
                  weight: float = 1.0, ) -> None:
+        super().__init__()
         self.pred_name = pred_name
         self.target_name = target_name
         self.weight = weight
+
