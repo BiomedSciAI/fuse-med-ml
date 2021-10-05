@@ -49,10 +49,15 @@ class FuseMetricBase(ABC):
                                     e.g., weights_name='data.metadata.weight':
                                             collect data from batch_dict['data.metadata.weight'] into self.collected_data['weights'] array
         """
-        additional_collect.update({'pred_name': pred_name, 'target_name': target_name})
+        collect_keys = {}
+        collect_keys.update(additional_collect)
+        if pred_name is not None:
+            collect_keys['pred_name'] = pred_name, 
+        if target_name is not None:
+            collect_keys['target_name'] = target_name
         self.key_to_collect: dict = {}
         self.collected_data: Dict[str, list] = {}
-        for name_arg, key in additional_collect.items():
+        for name_arg, key in collect_keys.items():
             if key is None:  # if user did not pass values for key
                 continue
             assert name_arg.endswith('_name')
@@ -104,11 +109,15 @@ class FuseMetricBase(ABC):
     # backward comparability: keep the main collected data in lists
     @property
     def epoch_preds(self):
-        return self.collected_data['pred']
+        if 'pred' in self.collected_data:
+            return self.collected_data['pred']
+        return None
     @property
     def epoch_targets(self):
-        return self.collected_data['target']
-
+        if "target" in self.collected_data:
+            return self.collected_data['target']
+        return None
+    
     def add_key_to_collect(self, name, key) -> None:
         """
         Utility function to add keys that should be collected on collect().

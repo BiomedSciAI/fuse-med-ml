@@ -811,7 +811,7 @@ class FuseManagerDefault:
 
         # take total_loss from train_results
         results = {"train": train_results, "validation": validation_results}
-        self.state.lr_scheduler.step(np.mean(FuseUtilsHierarchicalDict.get(results, self.state.train_params['lr_sch_target'])))
+        self.state.lr_scheduler.step(np.mean(FuseUtilsHierarchicalDict.get(results, self.state.lr_sch_target)))
 
         curr_lr = self.get_current_learning_rate()
 
@@ -853,6 +853,7 @@ class FuseManagerDefault:
             self.state.start_saving_epochs: int = full_config['start_saving_epochs']
             self.state.gap_between_saving_epochs: int = full_config['gap_between_saving_epochs']
             self.state.end_epoch: int = self.state.num_epochs
+            self.state.lr_sch_target: str = full_config['lr_sch_target']
 
             self.state.num_models_to_save = 1 if isinstance(self.state.best_epoch_source, dict) else len(self.state.best_epoch_source)
             self.state.best_epoch = [0 for _ in range(self.state.num_models_to_save)]
