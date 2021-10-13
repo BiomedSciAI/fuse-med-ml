@@ -5,7 +5,9 @@
 <img src="fuse/doc/FuseMedML-logo.png" alt="drawing" width="30%"/>
 
 # What is FuseMedML?
-FuseMedML is an open-source PyTorch-based framework designed to **enhance collaboration, facilitate deep learning R&D and share expertise in medical imaging and Multimodal data**.
+FuseMedML is an open-source python-based framework designed to enhance collaboration and accelerate discoveries in **F**used **M**edical data through advanced **M**achine **L**earning technologies. Initial version is PyTorch-based and focuses on deep learning on medical imaging and digital pathology.
+
+
 # Why use FuseMedML?
 Successful deep learning R&D must rely on knowledge and experiments, accumulated over a wide variety of projects, and developed by different people and teams.
 
