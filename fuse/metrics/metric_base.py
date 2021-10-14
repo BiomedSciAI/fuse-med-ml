@@ -52,7 +52,7 @@ class FuseMetricBase(ABC):
         collect_keys = {}
         collect_keys.update(additional_collect)
         if pred_name is not None:
-            collect_keys['pred_name'] = pred_name, 
+            collect_keys['pred_name'] = pred_name
         if target_name is not None:
             collect_keys['target_name'] = target_name
         self.key_to_collect: dict = {}
