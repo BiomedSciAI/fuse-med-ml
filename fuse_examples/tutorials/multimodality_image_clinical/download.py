@@ -141,7 +141,7 @@ def download_and_extract_isic(root_data: str = 'data', golden_only: bool = False
         lgr.info('\nExtract ISIC-2019 training input ... (this may take a few minutes)')
 
         url = 'https://isic-challenge-data.s3.amazonaws.com/2019/ISIC_2019_Training_Input.zip'
-        #wget.download(url, ".")
+        wget.download(url, ".")
         
         if golden_only:
             members=[os.path.join("ISIC_2019_Training_Input", m + ".jpg") for m in GOLDEN_MEMBERS]    
