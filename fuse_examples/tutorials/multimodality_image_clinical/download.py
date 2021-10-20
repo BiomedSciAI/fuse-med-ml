@@ -22,6 +22,7 @@ import requests
 import zipfile
 import io
 import wget
+from zipfile import ZipFile
 
 import logging
 
@@ -140,13 +141,15 @@ def download_and_extract_isic(root_data: str = 'data', golden_only: bool = False
         lgr.info('\nExtract ISIC-2019 training input ... (this may take a few minutes)')
 
         url = 'https://isic-challenge-data.s3.amazonaws.com/2019/ISIC_2019_Training_Input.zip'
-        r = requests.get(url)
-        z = zipfile.ZipFile(io.BytesIO(r.content))
-
+        #wget.download(url, ".")
+        
         if golden_only:
-            z.extractall(os.path.join(root_data, 'ISIC2019'), members=GOLDEN_MEMBERS)    
+            members=[os.path.join("ISIC_2019_Training_Input", m + ".jpg") for m in GOLDEN_MEMBERS]    
         else:
-            z.extractall(os.path.join(root_data, 'ISIC2019'))
+            members = None
+        with ZipFile("ISIC_2019_Training_Input.zip", 'r') as zipObj:
+            # Extract all the contents of zip file in current directory
+            zipObj.extractall(path=path, members=members)
 
         lgr.info('Extracting ISIC-2019 training input: done')
 
