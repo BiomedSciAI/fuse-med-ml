@@ -13,6 +13,7 @@ from fuse.data.processor.processor_csv import FuseProcessorCSV
 from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerUniform as Uniform
 from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerRandInt as RandInt
 from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerRandBool as RandBool
+from fuse_examples.tutorials.multimodality_image_clinical.download import download_and_extract_isic
 from torch.utils.data.dataloader import DataLoader
 
 sys.path.append(".")
@@ -147,6 +148,7 @@ ANATOM_SITE_INDEX = {
 }
 
 if __name__ == "__main__":
+    download_and_extract_isic(golden_only=True)
     tt, tt2 = isic_2019_dataset(reset_cache=True, size=400)
     tt.dataset.summary(["data.gt.gt_global.tensor"])
     tt.dataset.visualize_augmentation(0)

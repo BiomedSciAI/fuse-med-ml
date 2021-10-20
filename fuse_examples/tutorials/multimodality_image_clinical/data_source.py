@@ -55,6 +55,7 @@ class FuseSkinDataSource(FuseDataSourceBase):
         if size is not None:
             all_samples = all_samples[-1 * size:]
         all_samples = np.array(all_samples)
+        #print(all_samples)
 
         # Extract entities
         # ----------------
