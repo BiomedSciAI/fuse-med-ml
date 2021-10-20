@@ -24,9 +24,9 @@ input_processors = {
 # Ground truth extractors
 # =======================
 ground_truth_processors = {
-    'global': FuseMGGroundTruthProcessorGlobalLabelTask(task=Task(MG_Biopsy_Neg_or_Normal(),
+    'classification': FuseMGGroundTruthProcessorGlobalLabelTask(task=Task(MG_Biopsy_Neg_or_Normal(),
                                                                      MG_Biopsy_Pos()),
-    'local': FuseMGGroundTruthProcessorSegmentation(contours_desc=[{'biopsy': ['positive']}])
+    'segmentation': FuseMGGroundTruthProcessorSegmentation(contours_desc=[{'biopsy': ['positive']}])
 }
 ```
 
@@ -60,7 +60,7 @@ train_dataset = FuseDatasetDefault(cache_dest='/path/to/cache_dir',
                                    augmentor=augmentor)
 
 train_dataloader = DataLoader(dataset=train_dataset,
-                              batch_sampler=FuseSamplerBalancedBatch(balanced_class_name='data.gt.gt_global.tensor'),
+                              batch_sampler=FuseSamplerBalancedBatch(balanced_class_name='data.gt.classification'),
                               num_workers=4)
 
 ```
@@ -71,12 +71,12 @@ In this example we will define a model with heads: classification and auxiliary 
 # Multi-headed model, with clinical data appended to classification head
 # ======================================================================
 model = FuseModelDefault(
-    conv_inputs=(('data.input.input_image.tensor', 1),),
+    conv_inputs=(('data.input.image', 1),),
     backbone=FuseBackboneInceptionResnetV2(),
     heads=[
         FuseHeadGlobalPoolingClassifier(head_name='classifier',
                                         conv_inputs=[('model.backbone_features', 384)],
-                                        post_concat_inputs=[('data.input.input_clinical_data_vector.tensor')],
+                                        post_concat_inputs=[('data.input.clinical_data')],
                                         num_classes=2),
 
         FuseHeadDenseSegmentation(head_name='segmentation',

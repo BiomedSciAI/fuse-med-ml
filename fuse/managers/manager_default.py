@@ -331,9 +331,9 @@ class FuseManagerDefault:
             self.logger.info(f'Manager - debug mode - override dataloader num_workers to {override_num_workers}', {'color': 'red'})
 
         # prepare to use on GPUs
-        self.state.net.to(self.state.device)
+        self.state.net = self.state.net.to(self.state.device)
         self.state.net = nn.DataParallel(self.state.net)
-
+   
         # TODO move losses to device as well
         total_param = sum(p.numel() for p in self.state.net.parameters())
         trainable_param = sum(p.numel() for p in self.state.net.parameters() if p.requires_grad)
@@ -445,7 +445,7 @@ class FuseManagerDefault:
                 raise Exception(f"Cannot visualize without either net or infer_processor")
 
             # prepare net
-            self.state.net.to(device)
+            self.state.net = self.state.net.to(device)
             self.state.net = nn.DataParallel(self.state.net)
 
         if descriptors is None:
@@ -586,7 +586,7 @@ class FuseManagerDefault:
                                      batch_size=batch_size, num_workers=num_workers, collate_fn=infer_dataset.collate_fn)
 
         # prepare net
-        self.state.net.to(self.state.device)
+        self.state.net = self.state.net.to(self.state.device)
         self.state.net = nn.DataParallel(self.state.net)
 
         # we are ready to run inference

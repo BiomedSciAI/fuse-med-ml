@@ -583,7 +583,7 @@ class FuseDatasetDefault(FuseDatasetBase):
         self.samples_description = new_samples_desc
 
     #### VISUALISE
-    def visualize(self, index: Optional[int] = None, descriptor: Optional[Hashable] = None, block: bool = True):
+    def visualize(self, index: Optional[int] = None, descriptor: Optional[Hashable] = None, block: bool = True, **kwargs):
         """
         visualize sample
         :param index: sample index, only one of index/descriptor can be provided
@@ -600,7 +600,7 @@ class FuseDatasetDefault(FuseDatasetBase):
             lgr.warning('Cannot visualize - visualizer was not provided')
             return
 
-        batch_dict = self.getitem(index)
+        batch_dict = self.getitem(index, **kwargs)
 
         self.visualizer.visualize(batch_dict, block)
 

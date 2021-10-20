@@ -26,6 +26,7 @@ import os
 import pickle
 import traceback
 from multiprocessing import Manager
+import multiprocessing
 from typing import Hashable, Any, List
 import torch
 torch.multiprocessing.set_sharing_strategy('file_system')
@@ -44,6 +45,7 @@ class FuseCacheFiles(FuseCacheBase):
         super().__init__()
 
         self._cache_file_dir = cache_file_dir
+        self._save_cache_index = 100
 
         # create dir if not already exist
         FuseUtilsFile.create_dir(cache_file_dir)
@@ -72,6 +74,7 @@ class FuseCacheFiles(FuseCacheBase):
                 with gzip.open(self._cache_file_name, 'rb') as cache_index_file:
                     self._cache_index = pickle.load(cache_index_file)
             self._cache_list = list(self._cache_index.keys())
+            self._cache_size = len(self._cache_list)
 
             # load mode for backward compatibility
             try:
@@ -122,7 +125,10 @@ class FuseCacheFiles(FuseCacheBase):
         if not self._cache_enable:
             raise Exception('First start caching using function start_caching()')
 
-        self._cache_list.append(key)
+        with self._cache_lock:
+            index = self._cache_size.value
+            self._cache_list.append(key)
+            self._cache_size.value = index + 1
 
         # if value is none, just update cache index
         if value is None:
@@ -131,7 +137,6 @@ class FuseCacheFiles(FuseCacheBase):
         if self.single_file:
             self._cache_index[key] = value
         else:
-            index = self._cache_list.index(key)
             value_file_name = str(index).zfill(10) + '.pkl.gz'
             value_abs_file_name = os.path.join(self._cache_file_dir, value_file_name)
             self._cache_index[key] = value_file_name
@@ -145,14 +150,15 @@ class FuseCacheFiles(FuseCacheBase):
                 pickle.dump(value, value_file)
 
             # store the cache index - just for a case of crashing
-            try:
-                with FuseUtilsAtomicFileWriter(filename=self._cache_file_name) as cache_index_file:
-                    pickle.dump(dict(self._cache_index), cache_index_file)
-            except:
-                # do not trow error- just print warning
-                lgr = logging.getLogger('Fuse')
-                track = traceback.format_exc()
-                lgr.warning(track)
+            if index % self._save_cache_index == 0:
+                try:
+                    with FuseUtilsAtomicFileWriter(filename=self._cache_file_name) as cache_index_file:
+                        pickle.dump(dict(self._cache_index), cache_index_file)
+                except:
+                    # do not trow error- just print warning
+                    lgr = logging.getLogger('Fuse')
+                    track = traceback.format_exc()
+                    lgr.warning(track)
 
     def save(self) -> None:
         """
@@ -167,6 +173,8 @@ class FuseCacheFiles(FuseCacheBase):
         # move back to simple data structures
         self._cache_index = dict(self._cache_index)
         self._cache_list = list(self._cache_list)
+        self._cache_size = len(self._cache_list)
+        self._cache_lock = None
 
     def exist(self) -> bool:
         """
@@ -185,6 +193,7 @@ class FuseCacheFiles(FuseCacheBase):
         self._cache_enable = False
         self._cache_index = {}
         self._cache_list = []
+        self._cache_size = 0
         self._cache_index_mtime = -1
 
     def get_all_keys(self, include_none: bool = False) -> List[Hashable]:
@@ -209,3 +218,5 @@ class FuseCacheFiles(FuseCacheBase):
                 cache_index[k] = v
             self._cache_index = cache_index
             self._cache_list = manager.list(self._cache_list)
+            self._cache_size = manager.Value("i", len(self._cache_list))
+            self._cache_lock = manager.Lock()

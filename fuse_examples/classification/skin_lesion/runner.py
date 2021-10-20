@@ -62,6 +62,7 @@ from fuse.data.dataset.dataset_default import FuseDatasetDefault
 from fuse.models.model_default import FuseModelDefault
 from fuse.models.backbones.backbone_resnet import FuseBackboneResnet
 from fuse.models.heads.head_global_pooling_classifier import FuseHeadGlobalPoolingClassifier
+from fuse.models.backbones.backbone_inception_resnet_v2 import FuseBackboneInceptionResnetV2
 
 from fuse.losses.loss_default import FuseLossDefault
 
@@ -78,7 +79,6 @@ from fuse.managers.manager_default import FuseManagerDefault
 from fuse_examples.classification.skin_lesion.data_source import FuseSkinDataSource
 from fuse_examples.classification.skin_lesion.input_processor import FuseSkinInputProcessor
 from fuse_examples.classification.skin_lesion.ground_truth_processor import FuseSkinGroundTruthProcessor
-from fuse_examples.classification.skin_lesion.inception import InceptionResnetV2
 from fuse_examples.classification.skin_lesion.download import download_and_extract_isic
 
 
@@ -304,12 +304,11 @@ def run_train(paths: dict, train_common_params: dict):
     model = FuseModelDefault(
         conv_inputs=(('data.input.input_0', 1),),
         backbone={'Resnet18': FuseBackboneResnet(pretrained=True, in_channels=3, name='resnet18'),
-                  'InceptionResnetV2': InceptionResnetV2()}['InceptionResnetV2'],
+                  'InceptionResnetV2': FuseBackboneInceptionResnetV2(input_channels_num=3, logical_units_num=43)}['InceptionResnetV2'],
         heads=[
             FuseHeadGlobalPoolingClassifier(head_name='head_0',
                                             dropout_rate=0.5,
                                             conv_inputs=[('model.backbone_features', 1536)],
-                                            post_concat_inputs=None,
                                             num_classes=2,
                                             pooling="avg"),
         ]
