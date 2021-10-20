@@ -149,7 +149,7 @@ def download_and_extract_isic(root_data: str = 'data', golden_only: bool = False
             members = None
         with ZipFile("ISIC_2019_Training_Input.zip", 'r') as zipObj:
             # Extract all the contents of zip file in current directory
-            zipObj.extractall(path=path, members=members)
+            zipObj.extractall(path=os.path.join(root_data, 'ISIC2019'), members=members)
 
         lgr.info('Extracting ISIC-2019 training input: done')
 
