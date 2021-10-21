@@ -1,6 +1,7 @@
 [![Open Source](https://badges.frapsoft.com/os/v1/open-source.svg)](https://opensource.org/)
 [![PyPI version](https://badge.fury.io/py/fuse-med-ml.svg)](https://badge.fury.io/py/fuse-med-ml)
 [![Slack channel](https://img.shields.io/badge/support-slack-slack.svg?logo=slack)](https://join.slack.com/t/newworkspace-i3g4445/shared_invite/zt-sr0hcb9f-E~SLYbG9bE5fn8iq5OE0ww)
+[![Downloads](https://pepy.tech/badge/fuse-med-ml)](https://pepy.tech/project/fuse-med-ml)
 
 <img src="fuse/doc/FuseMedML-logo.png" alt="drawing" width="30%"/>
 
