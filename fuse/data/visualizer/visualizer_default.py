@@ -26,6 +26,7 @@ from fuse.data.visualizer.visualizer_base import FuseVisualizerBase
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 from fuse.utils.utils_logger import log_object_input_state
 from fuse.utils.utils_image_processing import FuseUtilsImageProcessing
+import torch
 
 
 class FuseVisualizerDefault(FuseVisualizerBase):
@@ -35,7 +36,8 @@ class FuseVisualizerDefault(FuseVisualizerBase):
 
     def __init__(self, image_name: str, mask_name: Optional[str] = None,
                  label_name: Optional[str] = None, metadata_names: Iterable[str] = tuple(),
-                 pred_name: Optional[str] = None):
+                 pred_name: Optional[str] = None,
+                 gray_scale: bool = True):
         """
         :param image_name: hierarchical key name of the image in batch_dict
         :param mask_name:  hierarchical key name of the mask (gt map) in batch_dict.
@@ -45,6 +47,7 @@ class FuseVisualizerDefault(FuseVisualizerBase):
         :param metadata_names: list of hierarchical key name of the metadata - will be printed for every sample
         :param pred_name: hierarchical key name of the prediction in batch_dict.
                            Optional, won't be displayed if not specified.
+        :param gray_scale: If True, each channel will be displayed as gray scale image. Otherwise, assuming 3 channels and RGB image either normalize to [0-1] or to [0-255]
         """
         # log object input state
         log_object_input_state(self, locals())
@@ -56,6 +59,7 @@ class FuseVisualizerDefault(FuseVisualizerBase):
         self.metadata_pointers = metadata_names
         self.pred_name = pred_name
         self.matching_function = FuseUtilsImageProcessing.match_img_to_input
+        self._gray_scale = gray_scale
 
     def extract_data(self, sample: dict) -> Tuple[Any, Any, Any, Any, Any]:
         """
@@ -108,27 +112,47 @@ class FuseVisualizerDefault(FuseVisualizerBase):
             pred_mask = self.matching_function(pred_mask, image)
 
         # visualize
-        num_channels = image.shape[0]
+        if self._gray_scale:
+            num_channels = image.shape[0]
 
-        if pred_mask is not None:
-            fig, ax = plt.subplots(num_channels, pred_mask.shape[0]+1, squeeze=False)
+            if pred_mask is not None:
+                fig, ax = plt.subplots(num_channels, pred_mask.shape[0]+1, squeeze=False)
+            else:
+                fig, ax = plt.subplots(num_channels, 1, squeeze=False)
+
+            for channel_idx in range(num_channels):
+                ax[channel_idx, 0].title.set_text('image (ch %d) (lbl %s)' % (channel_idx, str(label)))
+
+                ax[channel_idx, 0].imshow(image[channel_idx].squeeze(), cmap='gray')
+                if mask is not None:
+                    ax[channel_idx, 0].imshow(mask[channel_idx], alpha=0.3)
+
+                if pred_mask is not None:
+                    for c_id in range(pred_mask.shape[0]):
+                        max_prob = pred_mask[c_id].max()
+                        ax[channel_idx, c_id+1].title.set_text('image (ch %d) (max prob %s)' % (channel_idx, str(max_prob)))
+
+                        ax[channel_idx, c_id+1].imshow(image[channel_idx].squeeze(), cmap='gray')
+                        ax[channel_idx, c_id+1].imshow(pred_mask[c_id], alpha=0.3)
         else:
-            fig, ax = plt.subplots(num_channels, 1, squeeze=False)
+            if pred_mask is not None:
+                fig, ax = plt.subplots(1, pred_mask.shape[0]+1, squeeze=False)
+            else:
+                fig, ax = plt.subplots(1, 1, squeeze=False)
 
-        for channel_idx in range(num_channels):
-            ax[channel_idx, 0].title.set_text('image (ch %d) (lbl %s)' % (channel_idx, str(label)))
+            ax[0, 0].title.set_text('image (lbl %s)' % (str(label)))
 
-            ax[channel_idx, 0].imshow(image[channel_idx].squeeze(), cmap='gray')
+            image = image.permute((1,2,0))  # assuming torch dimension order [C, H, W] and conver to [H, W, C]
+            image = torch.clip(image, 0.0, 1.0)  # assuming range is [0-1] and clip values that might be a bit out of range
+            ax[0, 0].imshow(image)
             if mask is not None:
-                ax[channel_idx, 0].imshow(mask[channel_idx], alpha=0.3)
+                ax[0, 0].imshow(mask, alpha=0.3)
 
             if pred_mask is not None:
                 for c_id in range(pred_mask.shape[0]):
                     max_prob = pred_mask[c_id].max()
-                    ax[channel_idx, c_id+1].title.set_text('image (ch %d) (max prob %s)' % (channel_idx, str(max_prob)))
-
-                    ax[channel_idx, c_id+1].imshow(image[channel_idx].squeeze(), cmap='gray')
-                    ax[channel_idx, c_id+1].imshow(pred_mask[c_id], alpha=0.3)
+                    ax[0, c_id+1].title.set_text('image(max prob %s)' % (str(max_prob)))
+                    ax[0, c_id+1].imshow(pred_mask[c_id], cmap='gray')
 
         lgr = logging.getLogger('Fuse')
         lgr.info('------------------------------------------')
@@ -136,8 +160,12 @@ class FuseVisualizerDefault(FuseVisualizerBase):
         lgr.info('image label = ' + str(label))
         lgr.info('------------------------------------------')
 
-        mng = plt.get_current_fig_manager()
-        mng.resize(*mng.window.maxsize())
+        try:
+            mng = plt.get_current_fig_manager()
+            mng.resize(*mng.window.maxsize())
+        except:
+            pass
+        
         fig.tight_layout()
         plt.show(block=block)
 
@@ -150,25 +178,44 @@ class FuseVisualizerDefault(FuseVisualizerBase):
         :return: None
         """
         # extract data
-        orig_image, orig_mask, orig_label, orig_metadata = self.extract_data(orig_sample)
-        aug_image, aug_mask, aug_label, aug_metadata = self.extract_data(aug_sample)
+        orig_image, orig_mask, orig_label, orig_metadata, pred_mask = self.extract_data(orig_sample)
+        aug_image, aug_mask, aug_label, aug_metadata, pred_mask = self.extract_data(aug_sample)
 
         # visualize
-        num_channels = orig_image.shape[0]
+        if self._gray_scale:
+            num_channels = orig_image.shape[0]
 
-        fig, ax = plt.subplots(num_channels, 2, squeeze=False)
-        for channel_idx in range(num_channels):
+            fig, ax = plt.subplots(num_channels, 2, squeeze=False)
+            for channel_idx in range(num_channels):
+                # orig
+                ax[channel_idx, 0].title.set_text('image (ch %d) (lbl %s)' % (channel_idx, str(orig_label)))
+                ax[channel_idx, 0].imshow(orig_image[channel_idx].squeeze(), cmap='gray')
+                if (orig_mask is not None) and (None not in orig_mask):
+                    ax[channel_idx, 0].imshow(orig_mask, alpha=0.3)
+
+                # augmented
+                ax[channel_idx, 1].title.set_text('image (ch %d) (lbl %s)' % (channel_idx, str(aug_label)))
+                ax[channel_idx, 1].imshow(aug_image[channel_idx].squeeze(), cmap='gray')
+                if (aug_mask is not None) and (None not in aug_mask):
+                    ax[channel_idx, 1].imshow(aug_mask, alpha=0.3)
+        else:
+            fig, ax = plt.subplots(1, 2, squeeze=False)
             # orig
-            ax[channel_idx, 0].title.set_text('image (ch %d) (lbl %s)' % (channel_idx, str(orig_label)))
-            ax[channel_idx, 0].imshow(orig_image[channel_idx].squeeze(), cmap='gray')
+            ax[0, 0].title.set_text('image (lbl %s)' % (str(orig_label)))
+            orig_image = orig_image.permute((1,2,0))  # assuming torch dimension order [C, H, W] and conver to [H, W, C]
+            orig_image = torch.clip(orig_image, 0.0, 1.0)  # assuming range is [0-1] and clip values that might be a bit out of range
+            ax[0, 0].imshow(orig_image)
             if (orig_mask is not None) and (None not in orig_mask):
-                ax[channel_idx, 0].imshow(orig_mask, alpha=0.3)
+                ax[0, 0].imshow(orig_mask, alpha=0.3)
 
             # augmented
-            ax[channel_idx, 1].title.set_text('image (ch %d) (lbl %s)' % (channel_idx, str(aug_label)))
-            ax[channel_idx, 1].imshow(aug_image[channel_idx].squeeze(), cmap='gray')
+            ax[0, 1].title.set_text('image (lbl %s)' % (str(aug_label)))
+            aug_image = aug_image.permute((1,2,0))  # assuming torch dimension order [C, H, W] and conver to [H, W, C]
+            aug_image = torch.clip(aug_image, 0.0, 1.0)  # assuming range is [0-1] and clip values that might be a bit out of range
+            ax[0, 1].imshow(aug_image)
             if (aug_mask is not None) and (None not in aug_mask):
-                ax[channel_idx, 1].imshow(aug_mask, alpha=0.3)
+                ax[1].imshow(aug_mask, alpha=0.3)
+
         lgr = logging.getLogger('Fuse')
         lgr.info('------------------------------------------')
         lgr.info("original")
@@ -179,7 +226,11 @@ class FuseVisualizerDefault(FuseVisualizerBase):
         lgr.info('image label = ' + str(aug_label))
         lgr.info('------------------------------------------')
 
-        mng = plt.get_current_fig_manager()
-        mng.resize(*mng.window.maxsize())
+        try:
+            mng = plt.get_current_fig_manager()
+            mng.resize(*mng.window.maxsize())
+        except:
+            pass
+
         fig.tight_layout()
         plt.show(block=block)

@@ -32,9 +32,9 @@ class FuseModelDefault(torch.nn.Module):
     """
 
     def __init__(self,
-                 conv_inputs: Tuple[Tuple[str, int], ...] = (('data.input.input_0.tensor', 1),),
-                 backbone: torch.nn.Module = FuseBackboneInceptionResnetV2(),
-                 heads: Sequence[torch.nn.Module] = (FuseHeadGlobalPoolingClassifier(),)
+                 conv_inputs: Tuple[Tuple[str, int], ...],
+                 backbone: torch.nn.Module,
+                 heads: Sequence[torch.nn.Module]
                  ) -> None:
         """
         Default Fuse model - convolutional neural network with multiple heads

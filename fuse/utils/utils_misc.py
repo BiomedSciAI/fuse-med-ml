@@ -24,11 +24,13 @@ Fuse miscellaneous utils
 import logging
 import sys
 import time
+from IPython import get_ipython
 from collections import Iterable
 from threading import Lock
-from typing import List, Union, Sequence, Optional, Hashable, Any
-import numpy as np
 
+from typing import List, Union, Sequence, Optional, Hashable, Any
+
+import numpy as np
 import pandas as pd
 from torch import Tensor
 
@@ -57,6 +59,10 @@ class FuseUtilsMisc:
         :param default: default answer in case the user type enter. if set to none the question will be asked again.
         :return: the answer
         """
+        # can't prompt for answer in notebooks, assume yes
+        if FuseUtilsMisc.in_ipynb():
+            return True
+        
         valid = {"yes": True, "y": True, "ye": True,
                  "no": False, "n": False}
         if default is None:
@@ -151,6 +157,17 @@ class FuseUtilsMisc:
     def seed_worker_init(worker_id: int):
         worker_seed = torch.initial_seed() % 2 ** 32
         FuseUtilsMisc.set_seed(worker_seed)
+
+    @staticmethod
+    def in_ipynb():
+        try:
+            ip = get_ipython()
+            if ip is None:
+                return False
+            else:
+                return True
+        except NameError:
+            return False
 
 
 def time_display(seconds, granularity=3):

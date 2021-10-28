@@ -17,9 +17,11 @@ Created on June 30, 2021
 
 """
 
-from typing import Callable
+import logging
+from typing import Callable, Optional
 
 import torch
+from torch.hub import load_state_dict_from_url
 import torch.nn as nn
 
 
@@ -245,15 +247,17 @@ class FuseBackboneInceptionResnetV2(nn.Module):
     def __init__(self,
                  logical_units_num: int = 14,
                  intra_block_cut_level: int = 384,
-                 input_channels_num: int = 1) -> None:
+                 input_channels_num: int = 1,
+                 pretrained_weights_url: Optional[str] = 'http://data.lip6.fr/cadene/pretrainedmodels/inceptionresnetv2-520b38e4.pth') -> None:
 
         super().__init__()
         self.logical_units_num = logical_units_num
         self.intra_block_cut_level = intra_block_cut_level
         self.input_channels_num = input_channels_num
 
+
         # Modules
-        self.conv2d_1a = BasicConv2d(input_channels_num, 32, kernel_size=3, stride=2)
+        self.conv2d_1a = BasicConv2d(3, 32, kernel_size=3, stride=2)
         self.conv2d_2a = BasicConv2d(32, 32, kernel_size=3, stride=1)
         self.conv2d_2b = BasicConv2d(32, 64, kernel_size=3, stride=1, padding=1)
         self.maxpool_3a = nn.MaxPool2d(3, stride=2)
@@ -296,6 +300,21 @@ class FuseBackboneInceptionResnetV2(nn.Module):
         if self.logical_units_num >= 43:
             self.conv2d_7b = BasicConv2d(2080, 1536, kernel_size=1, stride=1)
             self.feature_depth = 1536
+
+        # load pretrained parameters if required
+        if pretrained_weights_url is not None:
+            try:
+                state_dict = load_state_dict_from_url(pretrained_weights_url)
+                self.load_state_dict(state_dict, strict=False)
+            except AttributeError:
+                logger = logging.getLogger('Fuse')
+                logger.info('Invalid URL for InceptionResnetV2 pretrained weights')
+
+        # recreate the first conv with the required number of input parameters
+        if input_channels_num != 3:
+            self.conv2d_1a = BasicConv2d(input_channels_num, 32, kernel_size=3, stride=2)
+        
+
 
     def features(self, input_tensor):
         x = self.conv2d_1a(input_tensor)

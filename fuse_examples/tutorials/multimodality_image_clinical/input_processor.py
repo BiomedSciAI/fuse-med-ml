@@ -16,6 +16,7 @@ limitations under the License.
 Created on June 30, 2021
 
 """
+import os
 import numpy as np
 import skimage
 import skimage.io as io
@@ -53,7 +54,7 @@ class FuseSkinInputProcessor(FuseProcessorBase):
                  inner_image_desc,
                  *args, **kwargs):
         try:
-            img_path = self.input_data + str(inner_image_desc) + '.jpg'
+            img_path = os.path.join(self.input_data, str(inner_image_desc) + '.jpg')
 
             # read image
             inner_image = skimage.io.imread(img_path)

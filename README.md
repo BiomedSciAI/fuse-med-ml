@@ -1,18 +1,19 @@
 [![Open Source](https://badges.frapsoft.com/os/v1/open-source.svg)](https://opensource.org/)
 [![PyPI version](https://badge.fury.io/py/fuse-med-ml.svg)](https://badge.fury.io/py/fuse-med-ml)
-[![Slack channel](https://img.shields.io/badge/support-slack-slack.svg?logo=slack)](https://join.slack.com/t/newworkspace-i3g4445/shared_invite/zt-sr0hcb9f-E~SLYbG9bE5fn8iq5OE0ww)
+[![Slack channel](https://img.shields.io/badge/support-slack-slack.svg?logo=slack)](https://join.slack.com/t/fusemedml/shared_invite/zt-xr1jaj29-h7IMsSc0Lq4qpVNxW97Phw)
+[![Downloads](https://pepy.tech/badge/fuse-med-ml)](https://pepy.tech/project/fuse-med-ml)
 
 <img src="fuse/doc/FuseMedML-logo.png" alt="drawing" width="30%"/>
 
 # What is FuseMedML?
-FuseMedML is an open-source python-based framework designed to enhance collaboration and accelerate discoveries in **F**used **M**edical data through advanced **M**achine **L**earning technologies. Initial version is PyTorch-based and focuses on deep learning on medical imaging and digital pathology.
+FuseMedML is an open-source python-based framework designed to enhance collaboration and accelerate discoveries in **F**used **M**edical data through advanced **M**achine **L**earning technologies. Initial version is PyTorch-based and focuses on deep learning on medical imaging.
 
 
 # Why use FuseMedML?
 Successful deep learning R&D must rely on knowledge and experiments, accumulated over a wide variety of projects, and developed by different people and teams.
 
 FuseMedML is an outstanding collaboration framework that allows you to rerun an experiment or reuse some of the capabilities originally written for different projects—all with minimal effort.\
-Using FuseMedML, you can write generic components that can be easily shared between projects in a plug & play manner, making sharing and collaboration easier than ever before.
+Using FuseMedML, you can write generic components that can be easily shared between projects in a plug & play manner, simplfying sharing and collaboration.
 
 The framework’s unique software design provides many advantages, making it an ideal framework for deep-learning research and development in medical imaging:
 
@@ -83,7 +84,7 @@ $ pip install -e .
 We use the Slack workspace at fusemedml.slack.com for informal communication.
 We encourage you to ask questions regarding FuseMedML that don't necessarily merit opening an issue on Github.
 
-[**Use this invite link to join FuseMedML on Slack**](https://join.slack.com/t/newworkspace-i3g4445/shared_invite/zt-sr0hcb9f-E~SLYbG9bE5fn8iq5OE0ww).
+[**Use this invite link to join FuseMedML on Slack**](https://join.slack.com/t/fusemedml/shared_invite/zt-xr1jaj29-h7IMsSc0Lq4qpVNxW97Phw).
 
 IBMers can also join a Slack channel in the IBM Research organization: 
 [**#fusers**](https://ibm-research.slack.com/archives/C0176S37QNP) .
