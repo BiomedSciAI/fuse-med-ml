@@ -174,9 +174,11 @@ class FuseMetricsToolBox:
         :return:
         """
         for cls, cls_name in enumerate(class_names):
+            if cls_name is None:
+                continue
             fpr, tpr, _ = sklearn.metrics.roc_curve(targets, np.array(predictions)[:, cls], sample_weight=samples_weight, pos_label=cls)
             auc = sklearn.metrics.auc(fpr, tpr)
-            plt.plot(fpr, tpr, label=f'{cls_name}({auc:0.2f})')
+            plt.plot(fpr, tpr, label=f'{cls_name}(auc={auc:0.2f})')
 
         plt.title("ROC curve")
         plt.xlabel('FPR')

@@ -1,0 +1,2 @@
+Task1-AUC,Task1-AUC-CI,Task2-AUC,Task2-AUC-CI,Task2-AUC-BVsRest,Task2-AUC-BVsRest-CI,Task2-AUC-LRVsRest,Task2-AUC-LRVsRest-CI,Task2-AUC-IRVsRest,Task2-AUC-IRVsRest-CI,Task2-AUC-HRVsRest,Task2-AUC-HRVsRest-CI,Task2-AUC-VHRVsRest,Task2-AUC-VHRVsRest-CI
+0.60,[0.41-0.79],0.50,[0.50-0.50],0.56,[0.50-0.62],0.44,[0.38-0.50],0.50,[0.50-0.50],0.50,[0.50-0.50],0.50,[0.50-0.50]
