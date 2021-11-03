@@ -50,7 +50,7 @@ class FuseAnalyzerDefault:
         """
         analyze predictions specified in a dataframe.
         Typically, but not a must, two dataframes will be provided in dataframes - one including the predictions one the targets
-        Each sample will be composed from the values specified in all dataframes, the key will for each values will be <dataframe key>.<column in dataframe>
+        Each sample will be composed from the values specified in all dataframes_dict, the key will for each values will be <dataframe key>.<column in dataframe>
         Processing the sample values is possible using post_processing function that gets samples_dict and returns modified sample_dict.
         
         :param samples_descr_source: will run the evaluation on the specified list of sample descriptors. Supported values:

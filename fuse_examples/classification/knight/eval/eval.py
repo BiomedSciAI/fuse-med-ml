@@ -156,10 +156,10 @@ def eval(prediction_filename: str, target_filename: str, output_dir: str, sample
     target_df = target_df.set_index(TARGET_SAMPLE_DESC_NAME, drop=False)
     analyzer = FuseAnalyzerDefault()
     results = analyzer.analyze_prediction_dataframe(sample_descr=samples_descr_source, 
-                                                               dataframes={'pred': pred_df, 'target': target_df}, 
-                                                               post_processing=post_processing,
-                                                               metrics=metrics, 
-                                                               output_filename=None)
+                                                    dataframes_dict={'pred': pred_df, 'target': target_df}, 
+                                                    post_processing=post_processing,
+                                                    metrics=metrics, 
+                                                    output_filename=None)
 
     # output
     return decode_results(results, output_dir=output_dir)
@@ -169,8 +169,7 @@ if __name__ == "__main__":
     """
     Rum evaluation:
     Usage: python eval.py <target_filename> <prediction_filename> <output dir>
-    Run Example (set the working dir to fuse-med-ml/fuse_examples/classification/eval/knight/): python eval.py example_targets.csv example_predictions.csv ./example_output_dir
+    Run dummy example (set the working dir to fuse-med-ml/fuse_examples/classification/knight/eval): python eval.py example_targets.csv example_predictions.csv ./example_output_dir
     """
-    sys.argv = ["", "example_targets.csv", "example_predictions.csv", "./example_output_dir"]
     assert len(sys.argv) == 4, f'Error: expecting 3 input arguments, but got {len(sys.argv)-1}. Usage: python eval.py <target_filename> <prediction_filename> <output dir>'
     eval(target_filename=sys.argv[1], prediction_filename=sys.argv[2], output_dir=sys.argv[3])
