@@ -17,12 +17,12 @@ from fuse_examples.tutorials.multimodality_image_clinical.download import downlo
 from torch.utils.data.dataloader import DataLoader
 
 sys.path.append(".")
-from input_processor import FuseSkinInputProcessor
-from ground_truth_processor import FuseSkinGroundTruthProcessor
-from data_source import FuseSkinDataSource
+from .input_processor import FuseSkinInputProcessor
+from .ground_truth_processor import FuseSkinGroundTruthProcessor
+from .data_source import FuseSkinDataSource
 
-def isic_2019_dataset(size: int = None, reset_cache: bool = False, post_cache_processing_func: Optional[Callable] = None):
-    data_dir = "data"
+def isic_2019_dataset(data_dir: str = 'data', size: int = None, reset_cache: bool = False, post_cache_processing_func: Optional[Callable] = None):
+    #data_dir = "data"
     cache_dir = "cache"
     augmentation_pipeline = [
         [
