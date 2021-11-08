@@ -109,7 +109,7 @@ def decode_results(results: dict, output_dir: str) -> Tuple[OrderedDict, str]:
     results_text += "".join([f" {results_table[f'Task1-{column}']} {results_table[f'Task1-{column}-CI']} |" for column in table_columns])
     
 
-    results_text += "## BSS\n"
+    results_text += "\n## BSS\n"
     results_text += f"BSS: {results_table['Task1-BSS']} {results_table['Task1-BSS-CI']}\n"
    
     ## task 2
@@ -125,7 +125,7 @@ def decode_results(results: dict, output_dir: str) -> Tuple[OrderedDict, str]:
     results_text += "\n|"
     results_text += "".join([f" {results_table[f'Task2-{column}']} {results_table[f'Task2-{column}-CI']} |" for column in table_columns])
     
-    results_text += "## BSS\n"
+    results_text += "\n## BSS\n"
     results_text += f"BSS: {results_table['Task2-BSS']} {results_table['Task2-BSS-CI']}\n"
    
 
