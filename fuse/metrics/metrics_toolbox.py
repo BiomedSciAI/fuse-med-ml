@@ -30,7 +30,7 @@ class FuseMetricsToolBox:
     Common utils for metrics
     """
     @staticmethod
-    def convert_probabilities_to_class(prediction: Union[List[np.ndarray], np.ndarray], thresholds: List[Tuple] = None) -> np.array:
+    def convert_probabilities_to_class(prediction: Union[List[np.ndarray], np.ndarray], thresholds: Optional[List[Tuple]] = None) -> np.array:
         """
         convert probabilities to class prediction, threshold per class
         :param prediction: either list of numpy arrays of shape [NUM_CLASSES] or numpy array of shape [N, NUM_CLASSES]

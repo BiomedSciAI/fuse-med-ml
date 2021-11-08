@@ -146,7 +146,7 @@ class FuseMetricConfidenceInterval(FuseMetricBase):
                 sampled_vals = [sample[key] for sample in boot_results]
                 ci_results[key] = _compute_stats(orig_val, sampled_vals)
         elif isinstance(original_sample_results, float):
-            ci_results[key] = _compute_stats(original_sample_results, boot_results)
+            ci_results = _compute_stats(original_sample_results, boot_results)
 
         return ci_results
 

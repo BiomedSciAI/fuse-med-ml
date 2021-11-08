@@ -30,13 +30,14 @@ class FuseMetricConfusion(FuseMetricBase):
 
     """
     def __init__(self, pred_name: str, target_name: str, filter_func: Optional[Callable] = None, class_names:List = None,
-                 operation_point:Optional[Union[float, List[Tuple], Callable]] = None,
+                 pred_type: str = "probabilities", operation_point:Optional[Union[float, List[Tuple], Callable]] = None,
                  metrics:Sequence[str] = ('sensitivity',), sum_weights:List = None, **kwargs):
         """
         :param pred_name:       batch_dict key for predicted output (e.g., class probabilities after softmax)
         :param target_name:     batch_dict key for target (e.g., ground truth label)
         :param filter_func: function that filters batch_dict/ The function gets ans input batch_dict and returns filtered batch_dict
         :param class_names:     Optional - name for each class otherwise the class index will be used.
+        :param pred_type:     Either "probabilities" for probability score per class or "class_predictions" for a label prediction
         :param operation_point: Optional - few possible options:
                                     (1) None - the predicted class will be selected using argmax
                                     (2) float - binary classification, single threshold for the positive class/
@@ -52,34 +53,43 @@ class FuseMetricConfusion(FuseMetricBase):
         self._operation_point = operation_point
         self._metrics = metrics
         self._sum_weights = sum_weights
+        self._pred_type = pred_type
+
+        # verify
+        assert pred_type in ["probabilities", "class_predictions"]
 
     def process(self) -> Dict[str, float]:
         """
         Calculates the confusion metrics
         :return: dictionary including per class in one vs all manner and a macro avg for each class included in metrics
-
         """
-        # find operation points
-        if isinstance(self._operation_point, Callable):
-            class_thresholds = self._operation_point(self.epoch_preds, self.epoch_targets)
-        elif isinstance(self._operation_point, float):
-            class_thresholds = [(1, self._operation_point), (0, 0.0)]
-        else:
-            class_thresholds = self._operation_point
+        if self._pred_type == "probabilities":
+            # find operation points
+            if isinstance(self._operation_point, Callable):
+                class_thresholds = self._operation_point(self.epoch_preds, self.epoch_targets)
+            elif isinstance(self._operation_point, float):
+                class_thresholds = [(1, self._operation_point), (0, 0.0)]
+            else:
+                class_thresholds = self._operation_point
+
+            # convert probabilities to class predictions
+            epoch_class_preds = FuseMetricsToolBox.convert_probabilities_to_class(self.epoch_preds, class_thresholds)
+
+            # set class names if not provided by the user
+            class_names = FuseMetricsToolBox.get_class_names(self.epoch_preds[0].shape[-1], self._class_names)
+
+        else: # class_predictions
+            assert self._class_names is not None, "When pred_type='class_predictions', class_names must be specified"
+            class_names = self._class_names
+            epoch_class_preds = np.array(self.epoch_preds)
 
         agg_results = {}
-
+        
         # if no samples, return 'N/A'
         if len(self.epoch_preds) == 0:
             for metric_name in self._metrics:
                 agg_results[metric_name + '_macro_avg'] = 'N/A'
             return agg_results
-
-        # convert probabilities to class predictions
-        epoch_class_preds = FuseMetricsToolBox.convert_probabilities_to_class(self.epoch_preds, class_thresholds)
-
-        # set class names if not provided by the user
-        class_names = FuseMetricsToolBox.get_class_names(self.epoch_preds[0].shape[-1], self._class_names)
 
         # set weight per class if not provided by the user
         if self._sum_weights is None:

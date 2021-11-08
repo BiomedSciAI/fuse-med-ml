@@ -1,10 +1,10 @@
-
 import sys
 import os
 from typing import List, Tuple, Union
 from collections import OrderedDict
 
 import csv
+from fuse.metrics.classification.metric_bss import FuseMetricMultiClassBSS
 import pandas as pd
 import numpy as np
 
@@ -14,20 +14,20 @@ from fuse.utils.utils_file import FuseUtilsFile
 from fuse.analyzer.analyzer_default import FuseAnalyzerDefault
 
 from fuse.metrics.metric_confidence_interval import FuseMetricConfidenceInterval
-from fuse.metrics.classification.metric_auc import FuseMetricAUC
+from fuse.metrics.classification.metric_confusion import FuseMetricConfusion
 from fuse.metrics.classification.metric_roc_curve import FuseMetricROCCurve
 from pandas.core.frame import DataFrame
 
 
 ## Constants
 # Constants that defines the expected format of the prediction and target files and list the classes for task 1 and task @
-EXPECTED_TASK1_PRED_KEYS = {'case_id', 'NoAT-score', 'CanAT-score'}
-EXPECTED_TASK2_PRED_KEYS = {'case_id', 'B-score', 'LR-score', 'IR-score', 'HR-score', 'VHR-score'}
-EXPECTED_TARGET_KEYS = {'case_id', 'Task1-target', 'Task2-target'}
-PRED_SAMPLE_DESC_NAME = "case_id"
-TARGET_SAMPLE_DESC_NAME = "case_id"
-TASK1_CLASS_NAMES = ("NoAT", "CanAT") # must be aligned with task1 targets
-TASK2_CLASS_NAMES = ("B", "LR", "IR", "HR", "VHR") # must be aligned with task2 targets
+EXPECTED_TASK1_PRED_KEYS = {'image_name', 'predicted_label', 'Noncancerous-score', 'Precancerous-score', 'Cancerous-score'}
+EXPECTED_TASK2_PRED_KEYS = {'image_name', 'predicted_label', 'PB-score', 'UDH-score', 'FEA-score', 'ADH-score', 'DCIS-score', 'IC-score'}
+EXPECTED_TARGET_KEYS = {'image_name', 'Task1-target', 'Task2-target'}
+PRED_SAMPLE_DESC_NAME = "image_name"
+TARGET_SAMPLE_DESC_NAME = "image_name"
+TASK1_CLASS_NAMES = ("Noncancerous", "Precancerous", "Cancerous") # must be aligned with task1 targets
+TASK2_CLASS_NAMES = ("PB", "UDH", "FEA", "ADH", "DCIS", "IC") # must be aligned with task2 targets
 
 
 
@@ -75,31 +75,49 @@ def decode_results(results: dict, output_dir: str) -> Tuple[OrderedDict, str]:
     results_table = OrderedDict()
     # Table
     ## task1
-    results_table['Task1-AUC'] = f"{FuseUtilsHierarchicalDict.get(results, 'task1_auc.macro_avg.org'):.2f}"
-    results_table['Task1-AUC-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, 'task1_auc.macro_avg.conf_lower'):.2f}-{FuseUtilsHierarchicalDict.get(results, 'task1_auc.macro_avg.conf_upper'):.2f}]"
-    
+    results_table['Task1-F1'] = f"{FuseUtilsHierarchicalDict.get(results, 'task1_f1.f1_macro_avg.org'):.2f}"
+    results_table['Task1-F1-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, 'task1_f1.f1_macro_avg.conf_lower'):.2f}-{FuseUtilsHierarchicalDict.get(results, 'task1_f1.f1_macro_avg.conf_upper'):.2f}]"
+    for cls_name in TASK1_CLASS_NAMES:
+        results_table[f'Task1-F1-{cls_name}VsRest'] = f"{FuseUtilsHierarchicalDict.get(results, f'task1_f1.f1_{cls_name}.org'):.2f}"
+        results_table[f'Task1-F1-{cls_name}VsRest-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, f'task1_f1.f1_{cls_name}.conf_lower'):.2f}-{FuseUtilsHierarchicalDict.get(results, f'task1_f1.f1_{cls_name}.conf_upper'):.2f}]"
+    results_table['Task1-BSS'] = f"{FuseUtilsHierarchicalDict.get(results, 'task1_bss.org'):.2f}"
+    results_table['Task1-BSS-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, 'task1_bss.conf_lower'):.2f}-{FuseUtilsHierarchicalDict.get(results, 'task1_bss.conf_upper'):.2f}]"
+
     ## task2
-    results_table['Task2-AUC'] = f"{FuseUtilsHierarchicalDict.get(results, 'task2_auc.macro_avg.org'):.2f}"
-    results_table['Task2-AUC-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, 'task2_auc.macro_avg.conf_lower'):.2f}-{FuseUtilsHierarchicalDict.get(results, 'task2_auc.macro_avg.conf_upper'):.2f}]"
+    results_table['Task2-F1'] = f"{FuseUtilsHierarchicalDict.get(results, 'task2_f1.f1_macro_avg.org'):.2f}"
+    results_table['Task2-F1-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, 'task2_f1.f1_macro_avg.conf_lower'):.2f}-{FuseUtilsHierarchicalDict.get(results, 'task2_f1.f1_macro_avg.conf_upper'):.2f}]"
     for cls_name in TASK2_CLASS_NAMES:
-        results_table[f'Task2-AUC-{cls_name}VsRest'] = f"{FuseUtilsHierarchicalDict.get(results, f'task2_auc.{cls_name}.org'):.2f}"
-        results_table[f'Task2-AUC-{cls_name}VsRest-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, f'task2_auc.{cls_name}.conf_lower'):.2f}-{FuseUtilsHierarchicalDict.get(results, f'task2_auc.{cls_name}.conf_upper'):.2f}]"
+        results_table[f'Task2-F1-{cls_name}VsRest'] = f"{FuseUtilsHierarchicalDict.get(results, f'task2_f1.f1_{cls_name}.org'):.2f}"
+        results_table[f'Task2-F1-{cls_name}VsRest-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, f'task2_f1.f1_{cls_name}.conf_lower'):.2f}-{FuseUtilsHierarchicalDict.get(results, f'task2_f1.f1_{cls_name}.conf_upper'):.2f}]"
+    results_table['Task2-BSS'] = f"{FuseUtilsHierarchicalDict.get(results, 'task2_bss.org'):.2f}"
+    results_table['Task2-BSS-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, 'task2_bss.conf_lower'):.2f}-{FuseUtilsHierarchicalDict.get(results, 'task2_bss.conf_upper'):.2f}]"
 
 
     # mark down text
     results_text = ""
     ## task 1
-    results_text += "# Task 1 - adjuvant treatment candidacy classification\n"
-    results_text += f"AUC: {results_table['Task1-AUC']} {results_table['Task1-AUC-CI']}\n"
-    results_text += "## ROC Curve\n"
-    results_text += f'<br/>\n<img src="task1_roc.png" alt="drawing" width="20%"/>\n<br/>\n'
+    results_text += "# Task 1 - 3-class WSI classification\n"
+    results_text += f"F1: {results_table['Task1-F1']} {results_table['Task1-F1-CI']}\n"
+   
+    results_text += "## Multi-Class F1\n"
+    table_columns = ["F1"] + [f"F1-{cls_name}VsRest" for cls_name in TASK1_CLASS_NAMES]
+    results_text += "\n|"
+    results_text += "".join([f" {column} |" for column in table_columns])
+    results_text += "\n|"
+    results_text += "".join([f" ------ |" for column in table_columns])
+    results_text += "\n|"
+    results_text += "".join([f" {results_table[f'Task1-{column}']} {results_table[f'Task1-{column}-CI']} |" for column in table_columns])
     
+
+    results_text += "## BSS\n"
+    results_text += f"BSS: {results_table['Task1-BSS']} {results_table['Task1-BSS-CI']}\n"
+   
     ## task 2
-    results_text += "\n# Task 2 - risk categories classification\n"
-    results_text += f"AUC: {results_table['Task2-AUC']} {results_table['Task2-AUC-CI']}\n"
+    results_text += "\n# Task 2 - 6-class WSI classification\n"
+    results_text += f"F1: {results_table['Task2-F1']} {results_table['Task2-F1-CI']}\n"
     
-    results_text += "## Multi-Class AUC\n"
-    table_columns = ["AUC"] + [f"AUC-{cls_name}VsRest" for cls_name in TASK2_CLASS_NAMES]
+    results_text += "## Multi-Class F1\n"
+    table_columns = ["F1"] + [f"F1-{cls_name}VsRest" for cls_name in TASK2_CLASS_NAMES]
     results_text += "\n|"
     results_text += "".join([f" {column} |" for column in table_columns])
     results_text += "\n|"
@@ -107,9 +125,9 @@ def decode_results(results: dict, output_dir: str) -> Tuple[OrderedDict, str]:
     results_text += "\n|"
     results_text += "".join([f" {results_table[f'Task2-{column}']} {results_table[f'Task2-{column}-CI']} |" for column in table_columns])
     
-    results_text += "\n## ROC Curve\n"
-    results_text += f'<br/>\n<img src="task2_roc.png" alt="drawing" width="20%"/>\n<br/>\n'
-
+    results_text += "## BSS\n"
+    results_text += f"BSS: {results_table['Task2-BSS']} {results_table['Task2-BSS-CI']}\n"
+   
 
     # save files
     with open(os.path.join(output_dir, "results.md"), "w") as output_file:
@@ -127,7 +145,7 @@ def eval(task1_prediction_filename: str, task2_prediction_filename: str, target_
     Load the prediction and target files, evaluate the predictions and save the results into files.
     :param task1_prediction_filename: path to a prediction csv file for task1. Expecting the columns listed in EXPECTED_TASK1_PRED_KEYS to exist (including the header) 
     :param task2_prediction_filename: path to a prediction csv file for task2. Expecting the columns listed in EXPECTED_TASK2_PRED_KEYS to exist (including the header) 
-    :param target_filename: path to a prediction csv file. Expecting the columns listed in TARGET_SAMPLE_DESC_NAME to exist
+    :param target_filename: path to a prediction csv file. Expecting the columns listed in EXPECTED_TARGET_KEYS to exist
     :param output_dir: path to directory to save the output files
     :param samples_descr_source: will run the evaluation on the specified list of sample descriptors. Supported values:
                                  * "task1_pred" to evaluate all the samples specified in task1 prediction file.
@@ -137,14 +155,25 @@ def eval(task1_prediction_filename: str, task2_prediction_filename: str, target_
     :return: ordered dict summarizing the results and markdown text
     """
     FuseUtilsFile.create_or_reset_dir(output_dir, force_reset=True)
+
     # metrics to evaluate
     metrics = {
         # task 1
-        "task1_auc": FuseMetricConfidenceInterval(FuseMetricAUC(pred_name='task1_pred.array', target_name='target.Task1-target', class_names=TASK1_CLASS_NAMES), stratum_name="target.Task1-target"),
-        "task1_roc_curve": FuseMetricROCCurve(pred_name='task1_pred.array', target_name='target.Task1-target', class_names=[None, ""], output_filename=os.path.join(output_dir, "task1_roc.png")),
+        "task1_f1": FuseMetricConfidenceInterval(
+            FuseMetricConfusion(pred_name='task1_pred.predicted_label', target_name='target.Task1-target', class_names=TASK1_CLASS_NAMES, metrics=("f1",), pred_type='class_predictions'), 
+            stratum_name="target.Task1-target"),
+        "task1_bss": FuseMetricConfidenceInterval(
+            FuseMetricMultiClassBSS(pred_name='task1_pred.array', target_name='target.Task1-target'), 
+            stratum_name="target.Task1-target"),
         # task 2
-        "task2_auc": FuseMetricConfidenceInterval(FuseMetricAUC(pred_name='task2_pred.array', target_name='target.Task2-target', class_names=TASK2_CLASS_NAMES), stratum_name="target.Task2-target"),
-        "task2_roc_curve": FuseMetricROCCurve(pred_name='task2_pred.array', target_name='target.Task2-target', class_names=TASK2_CLASS_NAMES, output_filename=os.path.join(output_dir, "task2_roc.png")),
+        "task2_f1": FuseMetricConfidenceInterval(
+            FuseMetricConfusion(pred_name='task2_pred.predicted_label', target_name='target.Task2-target', class_names=TASK2_CLASS_NAMES, metrics=("f1",), pred_type='class_predictions'), 
+            stratum_name="target.Task2-target"),
+        "task2_bss": FuseMetricConfidenceInterval(
+            FuseMetricMultiClassBSS(pred_name='task2_pred.array', target_name='target.Task2-target'), 
+            stratum_name="target.Task2-target"),
+        
+
     }
     
     # read files
@@ -178,8 +207,9 @@ def eval(task1_prediction_filename: str, task2_prediction_filename: str, target_
 if __name__ == "__main__":
     """
     Rum evaluation:
-    Usage: python eval.py <target_filename> <task1 prediction_filename> <task1 prediction_filename> <output dir>
-    Run dummy example (set the working dir to fuse-med-ml/fuse_examples/classification/knight/eval): python eval.py example_targets.csv example_task1_predictions.csv example_task2_predictions.csv ./example_output_dir
+    Usage: python eval.py <target_filename> <task1_prediction_filename> <task2_prediction_filename> <output dir>
+    Run dummy example (set the working dir to fuse-med-ml/fuse_examples/classification/bright/eval): python eval.py example_targets.csv example_task1_predictions.csv example_task2_predictions.csv ./example_output_dir
     """
+    sys.argv = ["", "example_targets.csv" ,"example_task1_predictions.csv" ,"example_task2_predictions.csv", "./example_output_dir"]
     assert len(sys.argv) == 5, f'Error: expecting 4 input arguments, but got {len(sys.argv)-1}. Usage: python eval.py <target_filename> <task1_prediction_filename> <task2_prediction_filename> <output dir>'
     eval(target_filename=sys.argv[1], task1_prediction_filename=sys.argv[2], task2_prediction_filename=sys.argv[3], output_dir=sys.argv[4])
