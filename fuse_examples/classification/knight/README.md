@@ -43,13 +43,22 @@ The challenge consists of three tasks: (1) binary patient classification as per 
 Kidney Classification (KiC) dataset. Details can be found in [challenge website]()
 
 ## Evaluation
-The participants should submit a .csv file containing a row with class scores for each patient in the test set. The rows must adhere to the following scheme:
+The participants should submit a .csv file per task containing a row with class scores for each patient in the test set. The rows must adhere to the following scheme:
 
-\[case_id,Task1-NoAT-score,Task1-CanAT-score,Task2-B-score,Task2-LR-score,Task2-IR-score,Task2-HR-score,Task2-VHR-score\]
+**Task 1 Prediction File:**
+\[case_id,NoAT-score,CanAT-score\]
+
+See [example prediction file]("[eval/example_task1_predictions.csv](https://github.com/IBM/fuse-med-ml/blob/master/fuse_examples/classification/knight/eval/example/example_task1_predictions.csv)")
+
+**Task 2 Prediction File:**
+\[case_id,B-score,LR-score,IR-score,HR-score,VHR-score\]
+
+See [example prediction file]("[eval/example_task1_predictions.csv](https://github.com/IBM/fuse-med-ml/blob/master/fuse_examples/classification/knight/eval/example/example_task2_predictions.csv)")
 
 Where “case_id" represents the sample (e.g. 00000) and all scores represent the probability of a patient to belong to a class.
 
 The evaluation script together with a dummy prediction file can be found in `fuse-med-ml/fuse_examples/classification/knight/eval`
+
 More details can be found in [challenge website]()
 
 ## Baseline Implementation

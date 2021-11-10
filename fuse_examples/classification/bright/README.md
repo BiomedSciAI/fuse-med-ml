@@ -41,11 +41,13 @@ The participants should submit a .csv file per task containing a row with a fina
 
 **Task 1 Prediction File:**
 \[image_name,predicted_label,Noncancerous-score,Precancerous-score,Cancerous-score\]
-See [example prediction file]("eval/example_task1_predictions.csv")
+
+See [example prediction file]("[eval/example_task1_predictions.csv](https://github.com/IBM/fuse-med-ml/blob/master/fuse_examples/classification/bright/eval/example/example_task1_predictions.csv)")
 
 **Task 2 Prediction File:**
 \[image_name,predicted_label,PB-score,UDH-score,FEA-score,ADH-score,DCIS-score,IC-score\]
-See [example prediction file]("eval/example_task2_predictions.csv")
+
+See [example prediction file]("https://github.com/IBM/fuse-med-ml/blob/master/fuse_examples/classification/bright/eval/example/example_task2_predictions.csv")
 
 Where “image_name" represents the sample (e.g. BRACS_264) and all scores represent the probability of a patient to belong to a class.
 
@@ -55,8 +57,8 @@ More details can be found in [challenge website]()
 ### Baseline
 As an additional example, we also include the validation prediction files and validation target file of the challenge baseline implementation:
  
-See [validation baseline prediction file for task 1]("eval/baseline/validation_baseline_task1_predictions.csv")
+See [validation baseline prediction file for task 1]("https://github.com/IBM/fuse-med-ml/blob/master/fuse_examples/classification/bright/eval/baseline/validation_baseline_task1_predictions.csv")
 
-See [validation baseline prediction file for task 2]("eval/baseline/validation_baseline_task2_predictions.csv")
+See [validation baseline prediction file for task 2]("https://github.com/IBM/fuse-med-ml/blob/master/fuse_examples/classification/bright/eval/baseline/validation_baseline_task2_predictions.csv)
 
-See [validation targets file]("eval/validation_targets.csv")
+See [validation targets file]("https://github.com/IBM/fuse-med-ml/blob/master/fuse_examples/classification/bright/eval/validation_targets.csv")
