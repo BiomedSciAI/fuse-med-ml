@@ -49,7 +49,7 @@ The participants should submit a .csv file containing a row with class scores fo
 
 Where “case_id" represents the sample (e.g. 00000) and all scores represent the probability of a patient to belong to a class.
 
-The evaluation code together with a dummy prediction file can be found in `fuse-med-ml/fuse_examples/classification/knight/eval`
+The evaluation script together with a dummy prediction file can be found in `fuse-med-ml/fuse_examples/classification/knight/eval`
 More details can be found in [challenge website]()
 
 ## Baseline Implementation

@@ -75,22 +75,22 @@ def decode_results(results: dict, output_dir: str) -> Tuple[OrderedDict, str]:
     results_table = OrderedDict()
     # Table
     ## task1
-    results_table['Task1-F1'] = f"{FuseUtilsHierarchicalDict.get(results, 'task1_f1.f1_macro_avg.org'):.2f}"
-    results_table['Task1-F1-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, 'task1_f1.f1_macro_avg.conf_lower'):.2f}-{FuseUtilsHierarchicalDict.get(results, 'task1_f1.f1_macro_avg.conf_upper'):.2f}]"
+    results_table['Task1-F1'] = f"{FuseUtilsHierarchicalDict.get(results, 'task1_f1.f1_macro_avg.org'):.3f}"
+    results_table['Task1-F1-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, 'task1_f1.f1_macro_avg.conf_lower'):.3f}-{FuseUtilsHierarchicalDict.get(results, 'task1_f1.f1_macro_avg.conf_upper'):.3f}]"
     for cls_name in TASK1_CLASS_NAMES:
-        results_table[f'Task1-F1-{cls_name}VsRest'] = f"{FuseUtilsHierarchicalDict.get(results, f'task1_f1.f1_{cls_name}.org'):.2f}"
-        results_table[f'Task1-F1-{cls_name}VsRest-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, f'task1_f1.f1_{cls_name}.conf_lower'):.2f}-{FuseUtilsHierarchicalDict.get(results, f'task1_f1.f1_{cls_name}.conf_upper'):.2f}]"
-    results_table['Task1-BSS'] = f"{FuseUtilsHierarchicalDict.get(results, 'task1_bss.org'):.2f}"
-    results_table['Task1-BSS-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, 'task1_bss.conf_lower'):.2f}-{FuseUtilsHierarchicalDict.get(results, 'task1_bss.conf_upper'):.2f}]"
+        results_table[f'Task1-F1-{cls_name}VsRest'] = f"{FuseUtilsHierarchicalDict.get(results, f'task1_f1.f1_{cls_name}.org'):.3f}"
+        results_table[f'Task1-F1-{cls_name}VsRest-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, f'task1_f1.f1_{cls_name}.conf_lower'):.3f}-{FuseUtilsHierarchicalDict.get(results, f'task1_f1.f1_{cls_name}.conf_upper'):.3f}]"
+    results_table['Task1-BSS'] = f"{FuseUtilsHierarchicalDict.get(results, 'task1_bss.org'):.3f}"
+    results_table['Task1-BSS-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, 'task1_bss.conf_lower'):.3f}-{FuseUtilsHierarchicalDict.get(results, 'task1_bss.conf_upper'):.3f}]"
 
     ## task2
-    results_table['Task2-F1'] = f"{FuseUtilsHierarchicalDict.get(results, 'task2_f1.f1_macro_avg.org'):.2f}"
-    results_table['Task2-F1-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, 'task2_f1.f1_macro_avg.conf_lower'):.2f}-{FuseUtilsHierarchicalDict.get(results, 'task2_f1.f1_macro_avg.conf_upper'):.2f}]"
+    results_table['Task2-F1'] = f"{FuseUtilsHierarchicalDict.get(results, 'task2_f1.f1_macro_avg.org'):.3f}"
+    results_table['Task2-F1-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, 'task2_f1.f1_macro_avg.conf_lower'):.3f}-{FuseUtilsHierarchicalDict.get(results, 'task2_f1.f1_macro_avg.conf_upper'):.3f}]"
     for cls_name in TASK2_CLASS_NAMES:
-        results_table[f'Task2-F1-{cls_name}VsRest'] = f"{FuseUtilsHierarchicalDict.get(results, f'task2_f1.f1_{cls_name}.org'):.2f}"
-        results_table[f'Task2-F1-{cls_name}VsRest-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, f'task2_f1.f1_{cls_name}.conf_lower'):.2f}-{FuseUtilsHierarchicalDict.get(results, f'task2_f1.f1_{cls_name}.conf_upper'):.2f}]"
-    results_table['Task2-BSS'] = f"{FuseUtilsHierarchicalDict.get(results, 'task2_bss.org'):.2f}"
-    results_table['Task2-BSS-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, 'task2_bss.conf_lower'):.2f}-{FuseUtilsHierarchicalDict.get(results, 'task2_bss.conf_upper'):.2f}]"
+        results_table[f'Task2-F1-{cls_name}VsRest'] = f"{FuseUtilsHierarchicalDict.get(results, f'task2_f1.f1_{cls_name}.org'):.3f}"
+        results_table[f'Task2-F1-{cls_name}VsRest-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, f'task2_f1.f1_{cls_name}.conf_lower'):.3f}-{FuseUtilsHierarchicalDict.get(results, f'task2_f1.f1_{cls_name}.conf_upper'):.3f}]"
+    results_table['Task2-BSS'] = f"{FuseUtilsHierarchicalDict.get(results, 'task2_bss.org'):.3f}"
+    results_table['Task2-BSS-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, 'task2_bss.conf_lower'):.3f}-{FuseUtilsHierarchicalDict.get(results, 'task2_bss.conf_upper'):.3f}]"
 
 
     # mark down text
@@ -208,8 +208,8 @@ if __name__ == "__main__":
     """
     Rum evaluation:
     Usage: python eval.py <target_filename> <task1_prediction_filename> <task2_prediction_filename> <output dir>
-    Run dummy example (set the working dir to fuse-med-ml/fuse_examples/classification/bright/eval): python eval.py example_targets.csv example_task1_predictions.csv example_task2_predictions.csv ./example_output_dir
+    Run dummy example (set the working dir to fuse-med-ml/fuse_examples/classification/bright/eval): python eval.py example/example_targets.csv example/example_task1_predictions.csv example/example_task2_predictions.csv example/results
+    Run baseline (set the working dir to fuse-med-ml/fuse_examples/classification/bright/eval): python eval.py validation_targets.csv baseline/validation_baseline_task1_predictions.csv baseline/validation_baseline_task2_predictions.csv baseline/validation_results
     """
-    sys.argv = ["", "example_targets.csv" ,"example_task1_predictions.csv" ,"example_task2_predictions.csv", "./example_output_dir"]
     assert len(sys.argv) == 5, f'Error: expecting 4 input arguments, but got {len(sys.argv)-1}. Usage: python eval.py <target_filename> <task1_prediction_filename> <task2_prediction_filename> <output dir>'
     eval(target_filename=sys.argv[1], task1_prediction_filename=sys.argv[2], task2_prediction_filename=sys.argv[3], output_dir=sys.argv[4])

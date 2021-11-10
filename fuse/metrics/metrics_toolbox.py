@@ -113,6 +113,7 @@ class FuseMetricsToolBox:
     def confusion_metrics(prediction: np.array, cls_ind:int, target:np.array, metrics:Sequence[str] = tuple(), class_weight: Any = None)->Tuple[float]:
         """
         Compute confusion metrics
+        Assuming that there are positive cases and negative cases in targets 
         :param prediction: class predictions
         :param cls_ind: the class to compute the metrics for in one vs all manner
         :param target: the target classes
@@ -139,7 +140,10 @@ class FuseMetricsToolBox:
             elif metric in ['specificity', 'selectivity', 'tnr']:
                 res[metric] = res['tn'] / (res['tn'] + res['fp'])
             elif metric in ['precision', 'ppv']:
-                res[metric] = res['tp'] / (res['tp'] + res['fp'])
+                if res['tp'] + res['fp'] != 0:
+                    res[metric] = res['tp'] / (res['tp'] + res['fp'])
+                else:
+                    res[metric] = 0
             elif metric in ['f1']:
                 res[metric] = 2 * res['tp'] / (2 * res['tp'] + res['fp'] + res['fn'])
             else:

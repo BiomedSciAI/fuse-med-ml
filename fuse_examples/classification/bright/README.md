@@ -47,7 +47,16 @@ See [example prediction file]("eval/example_task1_predictions.csv")
 \[image_name,predicted_label,PB-score,UDH-score,FEA-score,ADH-score,DCIS-score,IC-score\]
 See [example prediction file]("eval/example_task2_predictions.csv")
 
-Where “image_name" represents the sample (e.g. TBD) and all scores represent the probability of a patient to belong to a class.
+Where “image_name" represents the sample (e.g. BRACS_264) and all scores represent the probability of a patient to belong to a class.
 
-The evaluation code together with a dummy prediction files can be found in `fuse-med-ml/fuse_examples/classification/bright/eval`
+The evaluation script together with a dummy prediction files can be found in `fuse-med-ml/fuse_examples/classification/bright/eval`
 More details can be found in [challenge website]()
+
+### Baseline
+As an additional example, we also include the validation prediction files and validation target file of the challenge baseline implementation:
+ 
+See [validation baseline prediction file for task 1]("eval/baseline/validation_baseline_task1_predictions.csv")
+
+See [validation baseline prediction file for task 2]("eval/baseline/validation_baseline_task2_predictions.csv")
+
+See [validation targets file]("eval/validation_targets.csv")
