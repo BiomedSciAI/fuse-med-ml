@@ -71,11 +71,15 @@ python eval.py example/example_targets.csv example/example_task1_predictions.csv
 ### Baseline
 As an additional example, we also include the validation prediction files and validation target file of the challenge baseline implementation:
  
-See [validation baseline prediction file for task 1]("https://github.com/IBM/fuse-med-ml/blob/master/fuse_examples/classification/bright/eval/baseline/validation_baseline_task1_predictions.csv")
+ 
+See [validation baseline prediction file for task 1](https://github.com/IBM/fuse-med-ml/blob/master/fuse_examples/classification/bright/eval/baseline/validation_baseline_task1_predictions.csv)
 
-See [validation baseline prediction file for task 2]("https://github.com/IBM/fuse-med-ml/blob/master/fuse_examples/classification/bright/eval/baseline/validation_baseline_task2_predictions.csv)
 
-See [validation targets file]("https://github.com/IBM/fuse-med-ml/blob/master/fuse_examples/classification/bright/eval/validation_targets.csv")
+See [validation baseline prediction file for task 2](https://github.com/IBM/fuse-med-ml/blob/master/fuse_examples/classification/bright/eval/baseline/validation_baseline_task2_predictions.csv)
+
+
+See [validation targets file](https://github.com/IBM/fuse-med-ml/blob/master/fuse_examples/classification/bright/eval/validation_targets.csv)
+
 
 
 <br/>
