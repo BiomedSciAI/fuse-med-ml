@@ -61,5 +61,19 @@ The evaluation script together with a dummy prediction file can be found in `fus
 
 More details can be found in [challenge website]()
 
+<br/>
+
+To run the evaluation script:
+
+```
+cd fuse-med-ml/fuse_examples/classification/knight/eval
+python eval.py <target_filename> <task1 prediction_filename> <task1 prediction_filename> <output dir>
+```
+To evaluate the dummy example predictions and targets
+```
+cd fuse-med-ml/fuse_examples/classification/knight/eval 
+python eval.py example/example_targets.csv example/example_task1_predictions.csv example/example_task2_predictions.csv example/results
+```    
+
 ## Baseline Implementation
 TBD

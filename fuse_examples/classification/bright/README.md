@@ -54,6 +54,20 @@ Where “image_name" represents the sample (e.g. BRACS_264) and all scores repre
 The evaluation script together with a dummy prediction files can be found in `fuse-med-ml/fuse_examples/classification/bright/eval`
 More details can be found in [challenge website]()
 
+
+<br/>
+
+To run the evaluation script:
+```
+cd fuse-med-ml/fuse_examples/classification/knight/eval
+python eval.py <target_filename> <task1 prediction_filename> <task1 prediction_filename> <output dir>
+```
+To evaluate the dummy example predictions and targets
+```
+cd fuse-med-ml/fuse_examples/classification/knight/eval 
+python eval.py example/example_targets.csv example/example_task1_predictions.csv example/example_task2_predictions.csv example/results
+```    
+
 ### Baseline
 As an additional example, we also include the validation prediction files and validation target file of the challenge baseline implementation:
  
@@ -62,3 +76,12 @@ See [validation baseline prediction file for task 1]("https://github.com/IBM/fus
 See [validation baseline prediction file for task 2]("https://github.com/IBM/fuse-med-ml/blob/master/fuse_examples/classification/bright/eval/baseline/validation_baseline_task2_predictions.csv)
 
 See [validation targets file]("https://github.com/IBM/fuse-med-ml/blob/master/fuse_examples/classification/bright/eval/validation_targets.csv")
+
+
+<br/>
+
+To evaluate the baseline predictions over the validation set:
+```
+cd fuse-med-ml/fuse_examples/classification/knight/eval
+python eval.py validation_targets.csv baseline/validation_baseline_task1_predictions.csv baseline/validation_baseline_task2_predictions.csv baseline/validation_results
+```
