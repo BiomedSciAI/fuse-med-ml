@@ -1,6 +1,6 @@
 # [ISBI 2022](https://biomedicalimaging.org/2022/) KNIGHT Challenge: Kidney clinical Notes and Imaging to Guide and Help personalize Treatment and biomarkers discovery
 
-[**Challenge Website**]()
+[**Challenge Website**](https://research.ibm.com/haifa/Workshops/KNIGHT)
 
 **Keywords: Radiology, KiTS, CT, Renal Cancer, Accelerated Discovery**
 
@@ -59,7 +59,7 @@ Where “case_id" represents the sample (e.g. 00000) and all scores represent th
 
 The evaluation script together with a dummy prediction file can be found in `fuse-med-ml/fuse_examples/classification/knight/eval`
 
-More details can be found in [challenge website]()
+More details can be found in [challenge website](https://research.ibm.com/haifa/Workshops/KNIGHT)
 
 <br/>
 
