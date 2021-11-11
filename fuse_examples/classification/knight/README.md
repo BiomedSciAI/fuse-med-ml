@@ -48,12 +48,12 @@ The participants should submit a .csv file per task containing a row with class 
 **Task 1 Prediction File:**
 \[case_id,NoAT-score,CanAT-score\]
 
-See [example prediction file]("[eval/example_task1_predictions.csv](https://github.com/IBM/fuse-med-ml/blob/master/fuse_examples/classification/knight/eval/example/example_task1_predictions.csv)")
+See [example prediction file for task 1](https://github.com/IBM/fuse-med-ml/blob/master/fuse_examples/classification/knight/eval/example/example_task1_predictions.csv)
 
 **Task 2 Prediction File:**
 \[case_id,B-score,LR-score,IR-score,HR-score,VHR-score\]
 
-See [example prediction file]("[eval/example_task1_predictions.csv](https://github.com/IBM/fuse-med-ml/blob/master/fuse_examples/classification/knight/eval/example/example_task2_predictions.csv)")
+See [example prediction file for task 2](https://github.com/IBM/fuse-med-ml/blob/master/fuse_examples/classification/knight/eval/example/example_task2_predictions.csv)
 
 Where “case_id" represents the sample (e.g. 00000) and all scores represent the probability of a patient to belong to a class.
 
