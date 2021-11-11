@@ -1,6 +1,6 @@
 # [ISBI 2022](https://biomedicalimaging.org/2022/) BRIGHT Challenge: BReast tumor Image classification on Gigapixel HisTopathological images
 
-[**Challenge Website**]()
+[**Challenge Website**](https://research.ibm.com/haifa/Workshops/BRIGHT)
 
 **Keywords: Computational Pathology, WSI-Classification, Atypias, Breast tumor Subtyping**
 
@@ -52,7 +52,7 @@ See [example prediction file]("https://github.com/IBM/fuse-med-ml/blob/master/fu
 Where “image_name" represents the sample (e.g. BRACS_264) and all scores represent the probability of a patient to belong to a class.
 
 The evaluation script together with a dummy prediction files can be found in `fuse-med-ml/fuse_examples/classification/bright/eval`
-More details can be found in [challenge website]()
+More details can be found in [challenge website](https://research.ibm.com/haifa/Workshops/BRIGHT)
 
 
 <br/>
