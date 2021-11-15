@@ -24,6 +24,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
+from fuse.models.heads.common import ClassifierMLP
 
 
 class FuseHead3dClassifier(nn.Module):
@@ -35,7 +36,10 @@ class FuseHead3dClassifier(nn.Module):
                  conv_inputs: Sequence[Tuple[str, int]] = (('model.backbone_features', 512),),
                  dropout_rate: float = 0.1,
                  num_classes: int = 3,
-                 append_features: Optional[Tuple[str, int]] = None
+                 append_features: Optional[Tuple[str, int]] = None,
+                 layers_description: Sequence[int] = (256,), 
+                 append_layers_description: Sequence[int] = tuple(),
+                 append_dropout_rate: float = 0.0,
                  ) -> None:
         """
         Create simple 3D context model
@@ -45,7 +49,9 @@ class FuseHead3dClassifier(nn.Module):
         :param num_classes: number of output classes
         :param append_features: Sequence of tuples, each indication features name in batch_dict and size of features (channels).
                                 Those are global features that appended after the global max pooling operation
-
+        :param layers_description:          Layers description for the classifier module - sequence of hidden layers sizes (Not used currently)
+        :param append_layers_description: Layers description for the tabular data, before the concatination with the features extracted from the image - sequence of hidden layers sizes
+        :param append_dropout_rate: Dropout rate for tabular layers
         """
         super().__init__()
         # save input params
@@ -59,8 +65,15 @@ class FuseHead3dClassifier(nn.Module):
 
         # calc appended feature size if used
         if self.append_features is not None:
-            global_features_size = sum([features[1] for features in self.append_features])
-            self.features_size += global_features_size
+            if len(append_layers_description) == 0:
+                self.features_size += sum([post_concat_input[1] for post_concat_input in append_features])
+                self.append_features_module = nn.Identity()
+            else:
+                self.features_size += append_layers_description[-1]
+                self.append_features_module = ClassifierMLP(in_ch=sum([post_concat_input[1] for post_concat_input in append_features]),
+                                                    num_classes=None,
+                                                    layers_description=append_layers_description,
+                                                    dropout_rate=append_dropout_rate)                
 
         self.conv_classifier_3d = nn.Sequential(
             nn.Conv3d(self.features_size, 256, kernel_size=1),
@@ -70,7 +83,7 @@ class FuseHead3dClassifier(nn.Module):
         )
 
         self.do = nn.Dropout3d(p=self.dropout_rate)
-
+    
     def forward(self, batch_dict: Dict) -> Dict:
         """
         Forward pass
@@ -90,6 +103,7 @@ class FuseHead3dClassifier(nn.Module):
         if self.append_features is not None:
             features = torch.cat(
                 [FuseUtilsHierarchicalDict.get(batch_dict, features[0]).reshape(-1, features[1]) for features in self.append_features], dim=1)
+            features = self.append_features_module(features)
             features = features.reshape(features.shape + (1,1,1))
             if self.conv_inputs is not None:
                 global_features = torch.cat((global_features, features), dim=1)
