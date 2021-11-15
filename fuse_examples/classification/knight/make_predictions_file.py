@@ -90,12 +90,12 @@ if __name__ == "__main__":
     """
     if len(sys.argv) == 1:
         # no arguments - set arguments inline - see details in function make_predictions_file
-        model_dir = "/projects/msieve_dev3/usr/moshikor/git_repos/FuseExtension/KNIGHT/20211115-141920"
+        model_dir = ""
         checkpoint = "best"
-        data_path = "/projects/msieve_dev3/usr/moshikor/data/kits21"
-        cache_path = "/projects/msieve_dev3/usr/moshikor/data/kits21/cache"
-        split = "../../../../FuseExtension/KNIGHT/splits_final.pkl"
-        output_filename = "baseline/validation_predictions.csv"
+        data_path = ""
+        cache_path = ""
+        split = "baseline/splits_final.pkl"
+        output_filename = "validation_predictions.csv"
         predictions_key_name = "model.output.head_0"
     else:
         # get arguments from sys.argv

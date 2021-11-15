@@ -82,10 +82,10 @@ if __name__ == "__main__":
     """
     if len(sys.argv) == 1:
         # no arguments - set arguments inline - see details in function make_targets_file
-        data_path = "/projects/msieve_dev3/usr/moshikor/data/kits21"
-        cache_path = "/projects/msieve_dev3/usr/moshikor/data/kits21/cache"
-        split = "../../../../FuseExtension/KNIGHT/splits_final.pkl"
-        output_filename = "baseline/validation_targets.csv"
+        data_path = ""
+        cache_path = ""
+        split = "baseline/splits_final.pkl"
+        output_filename = "validation_targets.csv"
     else:
         # get arguments from sys.argv
         assert len(sys.argv) == 8, "Error: expecting 8 arguments. Usage: python make_predictions_file <model_dir> <checkpint> <data_path> <cache_path> <split_path> <output_filename> <predictions_key_name>. See details in function make_predictions_file."
