@@ -309,8 +309,10 @@ class FuseDatasetDefault(FuseDatasetBase):
 
         # if key not specified return the all sample
         if key is None:
-            assert index != -1, 'get all samples is not supported when key = None'
-            return self.getitem(index)
+            if index is None:
+                return [self.getitem(index, apply_augmentation=False) for index in trange(len(self))]
+            else:
+                return self.getitem(index)
 
         # if use cache
         if use_cache:

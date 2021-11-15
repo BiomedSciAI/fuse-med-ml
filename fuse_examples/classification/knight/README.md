@@ -76,4 +76,32 @@ python eval.py example/example_targets.csv example/example_task1_predictions.csv
 ```    
 
 ## Baseline Implementation
+
+### **Data**
 TBD
+
+### **Model**
+TBD
+
+### **Implementation Details**
+TBD
+
+### **Make targets file for evaluation**
+'fuse-med-ml/fuse_examples/classification/knight/make_targets_file.py' is a script that makes a targets file for the evaluation script. 
+
+Targets file is a csv file that holds just the labels for both tasks. This files is one of the inputs of the evaluation script.
+
+The script extracts the labels from the PyTorch dataset included in baseline implementation.
+
+The baseline implementation is using specific train/validation split, You can either use the same train/validation split or set a different split.
+
+The script including additional details and documentation can be found in: 'fuse-med-ml/fuse_examples/classification/knight/make_targets_file.py'  
+
+### **Make predictions file for evaluation**
+'fuse-med-ml/fuse_examples/classification/knight/make_predictions_file.py' is a script that automatically makes predictions files for any model trained using FuseMedML.
+
+Predictions file is a csv file that include prediction score per class and should adhere a format specified in evaluation section.
+
+The script including additional details and documentation can be found in: 'fuse-med-ml/fuse_examples/classification/knight/make_predictions_file.py'  
+
+
