@@ -76,7 +76,7 @@ def make_targets_file(data_path: str,
 
 if __name__ == "__main__":
     """
-    Automaitically make targets file in the requested format
+    Automaitically make targets file (csv files that holds just the labels for tasks) in the requested format
     Usage: python make_predictions_file <data_path> <cache_path> <split> <output_filename> 
     See details in function make_predictions_file.
     """

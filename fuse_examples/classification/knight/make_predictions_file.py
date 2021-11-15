@@ -37,7 +37,8 @@ def make_predictions_file(model_dir: str,
                           cache_path: Optional[str], 
                           split: Union[str, dict],
                           output_filename: str, 
-                          predictions_name: str="model.output.head_0"):
+                          predictions_name: str,
+                          task_num: int):
     """
     Automaitically make prediction files in the requested format - given path to model dir create by FuseMedML during training
     :param model_dir: path to model dir create by FuseMedML during training
@@ -45,7 +46,8 @@ def make_predictions_file(model_dir: str,
     :param cache_path: Optional - path to the cache folder. If none, it will pre-processes the data again
     :param split: either path to pickled dictionary or the actual dictionary specifing the split between train and validation. the dictionary maps "train" to list of sample descriptors and "val" to list of sample descriptions 
     :param output_filename: filename of the output csv file
-    :param predictions_name: the key in batch_dict of the model predictions 
+    :param predictions_name: the key in batch_dict of the model predictions
+    :param task_num: either 1 or 2 (task 1 or task 2) 
     """
     # Logger
     fuse_logger_start(console_verbose_level=logging.INFO)
@@ -73,7 +75,13 @@ def make_predictions_file(model_dir: str,
 
     
     # Convert to required format
-    predictions_score_names = [f"{cls_name}-score" for cls_name in TASK1_CLASS_NAMES]
+    if task_num == 1:
+        class_names = TASK1_CLASS_NAMES
+    elif task_num == 2:
+        class_names = TASK2_CLASS_NAMES
+    else:
+        raise Exception(f"Unexpected task num {task_num}")
+    predictions_score_names = [f"{cls_name}-score" for cls_name in class_names]
     predictions_df[predictions_score_names] = pd.DataFrame(predictions_df[predictions_name].tolist(), index=predictions_df.index)
     predictions_df.reset_index(inplace=True)
     predictions_df.rename({"descriptor": "case_id"}, axis=1, inplace=True)
@@ -85,7 +93,7 @@ def make_predictions_file(model_dir: str,
 if __name__ == "__main__":
     """
     Automaitically make prediction files in the requested format - given path to model dir create by FuseMedML during training
-    Usage: python make_predictions_file <model_dir> <checkpint> <data_path> <cache_path> <split_path> <output_filename> <predictions_key_name>. 
+    Usage: python make_predictions_file <model_dir> <checkpint> <data_path> <cache_path> <split_path> <output_filename> <predictions_key_name> <task_num>. 
     See details in function make_predictions_file.
     """
     if len(sys.argv) == 1:
@@ -97,6 +105,7 @@ if __name__ == "__main__":
         split = "baseline/splits_final.pkl"
         output_filename = "validation_predictions.csv"
         predictions_key_name = "model.output.head_0"
+        task_num = 1 # 1 or 2
     else:
         # get arguments from sys.argv
         assert len(sys.argv) == 8, "Error: expecting 8 arguments. Usage: python make_predictions_file <model_dir> <checkpint> <data_path> <cache_path> <split_path> <output_filename> <predictions_key_name>. See details in function make_predictions_file."
@@ -107,5 +116,6 @@ if __name__ == "__main__":
         split = sys.argv[5]
         output_filename = sys.argv[6]
         predictions_key_name = sys.argv[7]
+        task_num = sys.argv[8]
 
-    make_predictions_file(model_dir=model_dir, checkpoint=checkpoint, data_path=data_path, cache_path=cache_path, split=split, output_filename=output_filename, predictions_key_name=predictions_key_name)
+    make_predictions_file(model_dir=model_dir, checkpoint=checkpoint, data_path=data_path, cache_path=cache_path, split=split, output_filename=output_filename, predictions_key_name=predictions_key_name, task_num=task_num)

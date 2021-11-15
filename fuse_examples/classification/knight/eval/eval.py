@@ -229,7 +229,7 @@ def eval(task1_prediction_filename: str, task2_prediction_filename: str, target_
 if __name__ == "__main__":
     """
     Run evaluation:
-    Usage: python eval.py <target_filename> <task1 prediction_filename> <task1 prediction_filename> <output dir>
+    Usage: python eval.py <target_filename> <task1 prediction_filename> <task2 prediction_filename> <output dir>
     See details in function eval()
     Run dummy example (set the working dir to fuse-med-ml/fuse_examples/classification/knight/eval): python eval.py example/example_targets.csv example/example_task1_predictions.csv example/example_task2_predictions.csv example/results
     """
