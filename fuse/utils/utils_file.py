@@ -25,6 +25,7 @@ import logging
 import os
 import shutil
 from typing import Iterable
+import pandas as pd
 
 from fuse.utils.utils_misc import FuseUtilsMisc
 
@@ -97,3 +98,45 @@ class FuseUtilsFile:
         """
         FuseUtilsFile.create_dir(dir_path)
         FuseUtilsFile.remove_dir_content(dir_path, ignore_files, force_reset)
+
+    @staticmethod
+    def save_dataframe(df: pd.DataFrame, filename: str, **kwargs) -> None:
+        """
+        Save dataframe into a file. The file format inferred from filename suffix
+        Supported types: "csv", "hd5", "hdf5", "pickle", "pkl", "gz", "xslx", "md"
+        :param filename: path to the output file
+        """
+        file_type = filename.split(".")[-1]
+
+        assert file_type in ["csv", "hd5", "hdf5", "hdf", "pickle", "pkl", "gz", "xslx", "md"], f"file type {file_type} not supported"
+        if file_type in ["pickle", "pkl", "gz"]:
+            df.to_pickle(filename, **kwargs)
+        elif file_type == "csv":
+            df.to_csv(filename, **kwargs)
+        elif file_type in ["hd5", "hdf5", "hdf"]:
+            df.to_hdf(filename, **kwargs)
+        elif file_type == "xslx":
+            df.to_excel(filename, **kwargs)
+        elif file_type == "md":
+            df.to_markdown(filename, **kwargs)
+
+    @staticmethod
+    def read_dataframe(filename: str) -> pd.DataFrame:
+        """
+        Read dataframe from a file. The file format inferred from filename suffix
+        Supported types: "csv", "hd5", "hdf5", "pickle", "pkl", "gz", "xslx"
+        :param filename: path to the output file
+        """
+        file_type = filename.split(".")[-1]
+
+        assert file_type in ["csv", "hd5", "hdf5", "hdf", "pickle", "pkl", "gz", "xslx"], f"file type {file_type} not supported"
+        if file_type in ["pickle", "pkl", "gz"]:
+            df  = pd.read_pickle(filename)
+        elif file_type == "csv":
+            df = pd.read_csv(filename)
+        elif file_type in ["hd5", "hdf5", "hdf"]:
+            df = pd.read_hdf(filename)
+        elif file_type == "xslx":
+            df = pd.read_excel(filename)
+        
+        return df
