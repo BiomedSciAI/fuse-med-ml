@@ -20,7 +20,7 @@ Created on June 30, 2021
 import logging
 import os
 import traceback
-from typing import Dict, Optional
+from typing import Callable, Dict, Hashable, Optional, Sequence, Union
 
 import pandas as pd
 from torch.utils.data import DataLoader
@@ -44,6 +44,46 @@ class FuseAnalyzerDefault:
 
     def __init__(self):
         pass
+
+    def analyze_prediction_dataframe(self, sample_descr: Union[Sequence[Hashable], str], dataframes_dict: Dict[str, pd.DataFrame], post_processing: Callable, 
+                                     metrics: Dict[str, FuseMetricBase], output_filename: Optional[str] = None) -> Dict:
+        """
+        analyze predictions specified in a dataframe.
+        Typically, but not a must, two dataframes will be provided in dataframes - one including the predictions one the targets
+        Each sample will be composed from the values specified in all dataframes_dict, the key will for each values will be <dataframe key>.<column in dataframe>
+        Processing the sample values is possible using post_processing function that gets samples_dict and returns modified sample_dict.
+        
+        :param samples_descr_source: will run the evaluation on the specified list of sample descriptors. Supported values:
+                                 * dataframe name -  to evaluate all the samples specified in the specified dataframe.
+                                 * list of samples descriptors to define the samples explicitly
+        :param dataframes_dict: pairs of dataframe name and dataframe. The sample_descr column should be marked as the index using 'df = df.set_index(<column name>, drop=False)'
+        :param post_processing: a callable getting a dict with all the values of a sample to post process it before evaluation
+        :param metrics: metrics to compute. pairs of metric name and a metric
+        :param output_filename: specify a filename to save a pickled dataframe including the results.
+        :return: dataframe including the results
+        """
+        processors = {name: FuseProcessorDataFrame(df, sample_desc_column=df.index.name) for name, df in dataframes_dict.items()}
+        
+        if not isinstance(sample_descr, str):
+            data_source = FuseDataSourceFromList(sample_descr)
+        else:
+            sample_ids = processors[sample_descr].get_samples_descriptors()
+            data_source = FuseDataSourceFromList(sample_ids)
+
+        # verify all samples are represented in all dataframes
+        # create dataset
+        dataset = FuseDatasetDefault(cache_dest=None,
+                                     data_source=data_source,
+                                     input_processors=None,
+                                     gt_processors=None,
+                                     processors=processors,
+                                     post_processing_func=post_processing,
+                                     data_key_prefix=None)
+        dataset.create()
+
+        return self.analyze_generic(dataset, None, metrics, output_filename, key_sample_desc="descriptor")
+
+
 
     def analyze(self, gt_processors: Dict[str, FuseProcessorBase], metrics: Dict[str, FuseMetricBase],
                 data: Optional[pd.DataFrame] = None, data_pickle_filename: Optional[str] = None,
@@ -77,7 +117,7 @@ class FuseAnalyzerDefault:
 
     def analyze_generic(self, dataset: FuseDatasetBase, infer_processor: FuseProcessorBase, metrics: Dict[str, FuseMetricBase],
                         output_filename: Optional[str] = None, output_file_mode: str = 'w', print_results: bool = True,
-                        num_workers: int = 4, batch_size: int = 2) -> Dict:
+                        num_workers: int = 4, batch_size: int = 2, key_sample_desc: str="data.descriptor", ) -> Dict:
         """
         analyze all the samples in the dataset.
         :param dataset: dataset object - does not need to include the 'input' data.
@@ -113,7 +153,7 @@ class FuseAnalyzerDefault:
         data_iter = iter(dataloader)
         for _ in trange(len(dataloader)):
             batch_dict = next(data_iter)
-            self.analyze_batch(batch_dict, infer_processor, metrics)
+            self.analyze_batch(batch_dict, infer_processor, metrics, key_sample_desc)
 
         # metric process
         metrics_results = {metric_name: metric.process() for metric_name, metric in metrics.items()}
@@ -133,19 +173,21 @@ class FuseAnalyzerDefault:
         return metrics_results
 
     def analyze_batch(self, batch_dict: dict, infer_processor: FuseProcessorBase,
-                      metrics: Dict[str, FuseMetricBase]) -> None:
+                      metrics: Dict[str, FuseMetricBase], key_sample_desc: str) -> None:
         """
         Static function analyzing batch of samples
         For details about the input parameters can be found in FuseAnalyzerDefault.analyze_generic()
         """
         try:
             # get the sample descriptor of the sample
-            sample_descriptors = FuseUtilsHierarchicalDict.get(batch_dict, 'data.descriptor')
-            # get the infer data
-            infer_batch_data = [infer_processor(descr) for descr in sample_descriptors]
-            # add infer data to batch_dict
-            for key in infer_batch_data[0]:
-                FuseUtilsHierarchicalDict.set(batch_dict, key, [infer_sample_data[key] for infer_sample_data in infer_batch_data])
+            sample_descriptors = FuseUtilsHierarchicalDict.get(batch_dict, key_sample_desc)
+
+            if infer_processor is not None:
+                # get the infer data
+                infer_batch_data = [infer_processor(descr) for descr in sample_descriptors]
+                # add infer data to batch_dict
+                for key in infer_batch_data[0]:
+                    FuseUtilsHierarchicalDict.set(batch_dict, key, [infer_sample_data[key] for infer_sample_data in infer_batch_data])
 
             # metric collect operation
             for metric in metrics.values():

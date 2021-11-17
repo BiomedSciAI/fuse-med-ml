@@ -56,7 +56,8 @@ class FuseDatasetDefault(FuseDatasetBase):
                  cache_dest: Optional[Union[str, int]] = None, augmentor: Optional[FuseAugmentorBase] = None,
                  visualizer: Optional[FuseVisualizerBase] = None, post_processing_func=None,
                  statistic_keys: Optional[List[str]] = None,
-                 filter_keys: Optional[List[str]] = None):
+                 filter_keys: Optional[List[str]] = None,
+                 data_key_prefix: Optional[str] = 'data'):
         """
         :param data_source:     objects provides the list of object description
         :param input_processors:dictionary of all the input data processors
@@ -72,6 +73,7 @@ class FuseDatasetDefault(FuseDatasetBase):
                Called as last step (after augmentation)
         :param statistic_keys: Optional. list of statistic keys to output in default self.summary() implementation
         :param filter_keys: Optional. list of keys to remove from the sample dictionary when getting an item
+        :param data_key_prefix: every key added to sample_dict by the dataset will be prepended with this prefix to get unique name.
         """
         # log object input state
         log_object_input_state(self, locals())
@@ -99,6 +101,7 @@ class FuseDatasetDefault(FuseDatasetBase):
         self.post_processing_func = post_processing_func
         self.statistic_keys = statistic_keys or []
         self.filter_keys = filter_keys or []
+        self.data_key_prefix = data_key_prefix
         # initial values
         # map sample running index to sample description (mush be hashable)
         self.samples_description = []
@@ -179,7 +182,7 @@ class FuseDatasetDefault(FuseDatasetBase):
         :return: the original sample
         """
         sample_description = self.samples_description[index]
-        sample = self.getitem_without_augmentation_static(self.processors, sample_description)
+        sample = self.getitem_without_augmentation_static(self.processors, sample_description, data_key_prefix=self.data_key_prefix)
         # make sure sample was loaded correctly
         if sample is None:
             msg = f'Failed to load data sample_desc={sample_description}, skipping is only possible when caching is enabled'
@@ -188,7 +191,7 @@ class FuseDatasetDefault(FuseDatasetBase):
         return sample
 
     @staticmethod
-    def getitem_without_augmentation_static(processors: Union[Dict[str, FuseProcessorBase], FuseProcessorBase], descr: Hashable) -> Any:
+    def getitem_without_augmentation_static(processors: Union[Dict[str, FuseProcessorBase], FuseProcessorBase], descr: Hashable, data_key_prefix: Optional[str]) -> Any:
         """
         Get the original item, just before applying the augmentation.
         The returned value will be stored in cache
@@ -212,8 +215,11 @@ class FuseDatasetDefault(FuseDatasetBase):
         """
         lgr = logging.getLogger('Fuse')
         sample_data = {}
-        sample = {'data': sample_data}
-
+        if data_key_prefix is not None:
+            sample = {data_key_prefix : sample_data}
+        else:
+            sample = sample_data
+        
         # extract the sample description to be used by the processors
         sample_data['descriptor'] = descr
         # process data
@@ -303,8 +309,10 @@ class FuseDatasetDefault(FuseDatasetBase):
 
         # if key not specified return the all sample
         if key is None:
-            assert index != -1, 'get all samples is not supported when key = None'
-            return self.getitem(index)
+            if index is None:
+                return [self.getitem(index, apply_augmentation=False) for index in trange(len(self))]
+            else:
+                return self.getitem(index)
 
         # if use cache
         if use_cache:
@@ -468,7 +476,7 @@ class FuseDatasetDefault(FuseDatasetBase):
                     the_pool = ThreadPool if self.pool_type == 'thread' else Pool
                     pool = the_pool(processes=num_workers, initializer=worker_init_func, initargs=worker_init_args)
                     for _ in tqdm(pool.imap_unordered(func=self._cache_sample,
-                                                      iterable=[(self.processors, desc, self.cache) for desc in descriptors_to_cache]),
+                                                      iterable=[(self.processors, desc, self.cache, self.data_key_prefix) for desc in descriptors_to_cache]),
                                   total=len(descriptors_to_cache), smoothing=0.1):
                         pass
                     pool.close()
@@ -560,8 +568,8 @@ class FuseDatasetDefault(FuseDatasetBase):
         :param args: tuple of processors, sample descriptor and cache object
         :return: None
         """
-        processors, desc, cache = args
-        sample = FuseDatasetDefault.getitem_without_augmentation_static(processors, desc)
+        processors, desc, cache, data_key_prefix = args
+        sample = FuseDatasetDefault.getitem_without_augmentation_static(processors, desc, data_key_prefix=data_key_prefix)
         cache[desc] = sample
 
     #### Filtering
@@ -582,7 +590,7 @@ class FuseDatasetDefault(FuseDatasetBase):
 
         self.samples_description = new_samples_desc
 
-    #### VISUALISE
+    #### VISUALIZE
     def visualize(self, index: Optional[int] = None, descriptor: Optional[Hashable] = None, block: bool = True, **kwargs):
         """
         visualize sample
@@ -716,7 +724,10 @@ class FuseDatasetDefault(FuseDatasetBase):
         :return: hierarchical dict including the collect data
         """
         sample_data = {}
-        samples = {'data': sample_data}
+        if self.data_key_prefix:
+            samples = {self.data_key_prefix: sample_data}
+        else:
+            samples = sample_data
 
         # in case of multi processors, collect data of the ones implementing get_all() method
         if not isinstance(self.processors, FuseProcessorBase):
