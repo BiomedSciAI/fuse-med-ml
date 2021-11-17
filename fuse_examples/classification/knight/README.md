@@ -75,16 +75,47 @@ cd fuse-med-ml/fuse_examples/classification/knight/eval
 python eval.py example/example_targets.csv example/example_task1_predictions.csv example/example_task2_predictions.csv example/results
 ```    
 
-## Baseline Implementation
+## KNIGHT FuseMedML Baseline Implementation
+This example demonstrates a basic classification pipeline for the KNIGHT challenge Kidney Classification (KiC) dataset. We utilize the FuseMedML library for all stages in the pipeline including data preprocessing, feature extraction, network training and metrics calculation.
+In this example, we extract features from the CT volumes using a 3D ResNet-18 backbone, concatenate them with available clinical features processed by a smaller fully connected network, and classify the combined features into two risk groups as defined in the 1st task of the KNIGHT challenge. 
 
-### **Data**
-TBD
+### Steps to run the code
+0. As a preliminary step, make sure you install [FuseMedML](https://github.com/IBM/fuse-med-ml) according to the [installation instructions](https://github.com/IBM/fuse-med-ml#installation). In order to understand the basics of the library in high level, please read as a minimum this [user guide](https://github.com/IBM/fuse-med-ml/blob/master/fuse/doc/user_guide.md).  
+You can also access more documentation including code examples and tutorials from the [FuseMedML Github page](https://github.com/IBM/fuse-med-ml).
+1. Download the KNIGHT database from the official [KNIGHT database repository](https://github.com/neheller/KNIGHT). The KNIGHT database is strongly based on the [KiTS21 database](https://github.com/neheller/kits21). In KiTS21 the task was semantic segmentation, and there are segmentation annotations for it. You might want to benefit from them in your approach to the KNIGHT challenge and you may access them by cloning the official [KiTS21 database repository](https://github.com/neheller/kits21). But you won't need them for this example.  
+2. ```cd``` into ```KNIGHT``` and run ```python knight/scripts/get_imaging.py``` to download the imaging.
+3. Set the environment variable ```KNIGHT_DATA``` to your local path to the cloned KNIGHT database repository (which should now contain the imaging and clinical data under ```knight/data```).  
+Additionally, set the environment variable ```KNIGHT_CACHE``` to the path where you want to store cached data. Lastly, set the ```KNIGHT_RESULTS``` environment variable to the location where you want to store your trained models.
 
-### **Model**
-TBD
+4. Now you can run the ```fuse_baseline.py``` script which trains and evaluates our baseline model. In the top of the script, are some parameters that you can change.  
+The ```use_data``` dictionary sets whether to use only clinical data, only imaging, or both. We encourage you to develop a solution which utilizes and benefits from both. The "clinical only" mode trains much faster and requires significantly less resources, as expected.   
+The ```resize_to``` parameter sets a common size to which we resize the input volumes.  
+**Important Note:** Once you run ```fuse_baseline.py``` for the first time, it will perform caching of the data and store the cached data in your ```KNIGHT_CACHE``` folder. The next time you run ```fuse_baseline.py```, it will skip this process, and use the existing, already cached data. You need to be aware of this, because if you want to modify anything related to the data (for example, the ```resize_to``` parameter), then you will need to manually delete the contents of ```KNIGHT_CACHE``` folder, to allow the caching process to take place again with the new parameters.
 
-### **Implementation Details**
-TBD
+5. While running the ```fuse_baseline.py``` script, you can monitor your model training using an instance of Tensor Board, for which the ```logdir``` param is set to your ```KNIGHT_RESULTS``` directory.  
+
+### Implementation details
+In this example we perform some basic preprocessing on the imaging data. We downsize the images by a factor of 2 in the X and Y dimensions (to 256), which is only meant for efficiency and not necessarily recommended. Additionally we resize in the Z dimension to 110, the median number of slices. We clip the voxel values to [-62, 310] (corresponds to 0.5 and 99.5 percentile in the foreground regions). Then, we subtract 104.9 and divide by 75.3 (corresponds to mean and std in the foreground regions, respectively). We also normalize the clinical features according to their approximate expected maximum value.   
+
+We used two 32GB V-100 GPUs for running this baseline and reporting the results below. 
+However, we did manage to train an "Imaging + Clinical" model with comparable results on a single 12GB GPU by reducing the batch size to 2 and changing the ```resize_to``` parameter to ```(256, 256, 64)```.
+
+### Results
+Running the code with the parameters currently set in ```fuse_baseline.py``` gave the following best epoch validation AUC results:
+
+Clinical data only | Imaging only | Imaging + Clinical
+:---:|:---:| :---:
+0.87 | 0.71 | 0.85
+
+### Limitations
+Our goal in this example is to provide easy to follow code that can help you get started with the KNIGHT challenge using FuseMedML. We encourage you to experiment with, improve, or change completely any step in the proposed pipeline. We also encourage you to learn about [solutions to the KiTS19 and KiTS21 challenges](https://kits21.kits-challenge.org/results), to gain useful insight into working with this imaging data, towards a related, but different task. 
+
+Here are some of the things we knowingly avoided for the sake of simplicity:
+1. We use most but not all of the available clinical features, and we simplify some of those that we do use. For example, we use a simplified binary version of the "comorbidities" feature which only cares whether or not a patient has any comorbidity. In practice the data contains more specific information, which you may want to use. 
+
+2. We didn't make any use of the segmentation labels that are given in the KiTS database. You can use them in any way to improve your preprocessing, data sampling or model training. Note that the segmentations won't be available for the test cases.
+
+3. We didn't resample the images with respect to their spacing, but only resized to a common voxel size. Addressing the trade-off between input patch size (limited by the GPU memory) and the amount of contextual information that it contains (controlled by a possible resampling procedure) can be important. You may want to resample the volumes to a common spacing, and you may want (or be forced to, due to GPU memory constraints), to train on smaller cropped patches, with some logic which "prefers" foreground patches.
 
 ### **Make targets file for evaluation**
 'fuse-med-ml/fuse_examples/classification/knight/make_targets_file.py' is a script that makes a targets file for the evaluation script. 
