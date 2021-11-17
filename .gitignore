@@ -29,3 +29,4 @@ lib64
 **/*.log
 Result
 __pycache__
+fuse_examples/classification/knight/*.csv
