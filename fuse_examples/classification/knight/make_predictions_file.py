@@ -28,8 +28,7 @@ from fuse.utils.utils_file import FuseUtilsFile
 from fuse.managers.manager_default import FuseManagerDefault
 
 from fuse_examples.classification.knight.eval.eval import TASK1_CLASS_NAMES, TASK2_CLASS_NAMES 
-
-from KNIGHT.dataset import knight_dataset
+from knight.dataset import knight_dataset
 
 def make_predictions_file(model_dir: str, 
                           checkpoint: str, 
@@ -63,7 +62,7 @@ def make_predictions_file(model_dir: str,
             # For this example, we use split 0 out of the the available cross validation splits
             split = split[0]
    
-    _, validation_dl  = knight_dataset(data_path, cache_path, split, reset_cache=False, batch_size=2)
+    _, validation_dl, _, _  = knight_dataset(data_path, cache_path, split, reset_cache=False, batch_size=2)
 
     # Manager for inference
     manager = FuseManagerDefault()
