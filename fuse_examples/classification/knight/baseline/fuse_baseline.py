@@ -3,7 +3,7 @@ import os
 import sys
 # add parent directory to path, so that 'knight' folder is treated as a module
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
-from knight.dataset import knight_dataset
+from baseline.dataset import knight_dataset
 import pandas as pd
 from fuse.models.model_default import FuseModelDefault
 from fuse.models.backbones.backbone_resnet_3d import FuseBackboneResnet3D
