@@ -32,3 +32,4 @@ __pycache__
 fuse_examples/classification/knight/*.csv
 fuse_examples/classification/knight/clinical_data/*
 fuse_examples/classification/knight/model_dir
+.gitignore.save
