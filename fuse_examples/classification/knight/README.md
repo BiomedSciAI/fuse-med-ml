@@ -1,11 +1,11 @@
-# [ISBI 2022](https://biomedicalimaging.org/2022/) KNIGHT Challenge: Kidney clinical Notes and Imaging to Guide and Help personalize Treatment and biomarkers discovery
+# [ISBI 2022](https://biomedicalimaging.org/2022/) KNIGHT Challenge: **K**idney clinical **N**otes and **I**maging to **G**uide and **H**elp personalize **T**reatment and biomarkers discovery
 
 [**Challenge Website**](https://research.ibm.com/haifa/Workshops/KNIGHT)
 
 **Keywords: Radiology, KiTS, CT, Renal Cancer, Accelerated Discovery**
 
 ## Setup
-The code shared for the challenge implemented using FuseMedML framework which requires simple installation.
+The code we share for the challenge is implemented using the FuseMedML framework which is simple to install.
 
 [![Github repo](https://img.shields.io/static/v1?label=GitHub&message=FuseMedML&color=brightgreen)](https://github.com/IBM/fuse-med-ml)
 
@@ -18,7 +18,7 @@ The code shared for the challenge implemented using FuseMedML framework which re
 
 FuseMedML is an open-source python-based framework designed to enhance collaboration and accelerate discoveries in Fused Medical data through advanced Machine Learning technologies. 
 
-Initial version is PyTorch-based and focuses on deep learning on medical imaging.
+The current version is PyTorch-based and focuses on deep learning for medical imaging.
 
 ```
 git clone https://github.com/IBM/fuse-med-ml.git
@@ -27,8 +27,7 @@ pip install -e .
 ```
 
 ## Abstract
-The aim of the KNIGHT challenge is to facilitate the development of Artificial Intelligence (AI) models for automatic preoperative prediction of risk class for patients with renal
-masses identified in clinical Computed Tomography (CT) imaging of the kidneys. 
+The aim of the KNIGHT challenge is to facilitate the development of Artificial Intelligence (AI) models for automatic preoperative prediction of risk class for patients with renal masses identified in clinical Computed Tomography (CT) imaging of the kidneys. 
 
 The dataset, we name the Kidney Classification (KiC) dataset, is based on the 2021 Kidney and Kidney Tumor Segmentation challenge (KiTS) and extended to include additional CT phases and clinical information, as well as risk classification labels, deducted from postoperative pathology results.
 
@@ -40,7 +39,7 @@ These groups can be divided into two classes based on the follow-up treatment.
 The challenge consists of three tasks: (1) binary patient classification as per the follow-up treatment, (2) fine-grained classification into five risk groups and (3) discovery of prognostic biomarkers.
 
 ## Data
-Kidney Classification (KiC) dataset. Details can be found in [challenge website]()
+Kidney Classification (KiC) dataset. Details can be found in [challenge website](https://research.ibm.com/haifa/Workshops/KNIGHT)
 
 ## Evaluation
 The participants should submit a .csv file per task containing a row with class scores for each patient in the test set. The rows must adhere to the following scheme:
@@ -55,7 +54,7 @@ See [example prediction file for task 1](https://github.com/IBM/fuse-med-ml/blob
 
 See [example prediction file for task 2](https://github.com/IBM/fuse-med-ml/blob/master/fuse_examples/classification/knight/eval/example/example_task2_predictions.csv)
 
-Where “case_id" represents the sample (e.g. 00000) and all scores represent the probability of a patient to belong to a class.
+Here, "case_id" represents the sample (e.g. 00000) and all scores represent the probability of a patient to belong to a class.
 
 The evaluation script together with a dummy prediction file can be found in `fuse-med-ml/fuse_examples/classification/knight/eval`
 
@@ -63,13 +62,16 @@ More details can be found in [challenge website](https://research.ibm.com/haifa/
 
 <br/>
 
-To run the evaluation script:
+To run the evaluation script use the following command:
 
 ```
 cd fuse-med-ml/fuse_examples/classification/knight/eval
-python eval.py <target_filename> <task1 prediction_filename> <task1 prediction_filename> <output dir>
+python eval.py <target_filename> <task1_prediction_filename> <task2_prediction_filename> <output dir>
 ```
-To evaluate the dummy example predictions and targets
+
+If you only want to evaluate Task 1, you may pass an empty string in place of ```<task2_prediction_filename>```, and vice-versa.
+
+As an example, this command will evaluate the dummy example predictions and targets:
 ```
 cd fuse-med-ml/fuse_examples/classification/knight/eval 
 python eval.py example/example_targets.csv example/example_task1_predictions.csv example/example_task2_predictions.csv example/results
