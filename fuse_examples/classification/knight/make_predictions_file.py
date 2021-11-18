@@ -99,12 +99,12 @@ if __name__ == "__main__":
     """
     if len(sys.argv) == 1:
         # no arguments - set arguments inline - see details in function make_predictions_file
-        model_dir = "/data/usr/goalex/data/KNIGHT_results/clinical_only"
+        model_dir = ""
         checkpoint = "best"
-        data_path = "/projects/msieve/MedicalSieve/PatientData/KNIGHT/"
-        cache_path = "/data/usr/goalex/data/KNIGHT_cache"
-        split = "/projects/msieve_dev3/usr/goalex/code/MedicalAnalytics/FuseExtension/knight/splits_final.pkl"
-        output_filename = "/projects/msieve_dev3/usr/goalex/tmp/validation_predictions.csv"
+        data_path = ""
+        cache_path = ""
+        split = "baseline/splits_final.pkl"
+        output_filename = "validation_predictions.csv"
         predictions_key_name = "model.output.head_0"
         task_num = 1 # 1 or 2
     else:
