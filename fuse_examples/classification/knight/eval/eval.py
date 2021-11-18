@@ -168,7 +168,7 @@ def eval(task1_prediction_filename: str, task2_prediction_filename: str, target_
                                  * list to define the samples explicitly
     :return: ordered dict summarizing the results and markdown text
     """
-    FuseUtilsFile.create_or_reset_dir(output_dir, force_reset=True)
+    FuseUtilsFile.create_dir(output_dir)
     
     # eval task1, task2 or both
     task1 = task1_prediction_filename is not None and task1_prediction_filename != ""

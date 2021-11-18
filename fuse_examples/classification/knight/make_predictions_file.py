@@ -20,6 +20,8 @@ Created on June 30, 2021
 import sys
 import logging
 import os
+# add parent directory to path, so that 'knight' folder is treated as a module
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 from typing import Optional, Union
 import pandas as pd
 
@@ -28,8 +30,7 @@ from fuse.utils.utils_file import FuseUtilsFile
 from fuse.managers.manager_default import FuseManagerDefault
 
 from fuse_examples.classification.knight.eval.eval import TASK1_CLASS_NAMES, TASK2_CLASS_NAMES 
-
-from KNIGHT.dataset import knight_dataset
+from knight.dataset import knight_dataset
 
 def make_predictions_file(model_dir: str, 
                           checkpoint: str, 
@@ -37,7 +38,7 @@ def make_predictions_file(model_dir: str,
                           cache_path: Optional[str], 
                           split: Union[str, dict],
                           output_filename: str, 
-                          predictions_name: str,
+                          predictions_key_name: str,
                           task_num: int):
     """
     Automaitically make prediction files in the requested format - given path to model dir create by FuseMedML during training
@@ -46,7 +47,7 @@ def make_predictions_file(model_dir: str,
     :param cache_path: Optional - path to the cache folder. If none, it will pre-processes the data again
     :param split: either path to pickled dictionary or the actual dictionary specifing the split between train and validation. the dictionary maps "train" to list of sample descriptors and "val" to list of sample descriptions 
     :param output_filename: filename of the output csv file
-    :param predictions_name: the key in batch_dict of the model predictions
+    :param predictions_key_name: the key in batch_dict of the model predictions
     :param task_num: either 1 or 2 (task 1 or task 2) 
     """
     # Logger
@@ -63,14 +64,14 @@ def make_predictions_file(model_dir: str,
             # For this example, we use split 0 out of the the available cross validation splits
             split = split[0]
    
-    _, validation_dl  = knight_dataset(data_path, cache_path, split, reset_cache=False, batch_size=2)
+    _, validation_dl, _, _  = knight_dataset(data_path, cache_path, split, reset_cache=False, batch_size=2)
 
     # Manager for inference
     manager = FuseManagerDefault()
     predictions_df = manager.infer(data_loader=validation_dl,
                   input_model_dir=model_dir,
                   checkpoint=checkpoint,
-                  output_columns=[predictions_name],
+                  output_columns=[predictions_key_name],
                   output_file_name=None)
 
     
@@ -82,7 +83,7 @@ def make_predictions_file(model_dir: str,
     else:
         raise Exception(f"Unexpected task num {task_num}")
     predictions_score_names = [f"{cls_name}-score" for cls_name in class_names]
-    predictions_df[predictions_score_names] = pd.DataFrame(predictions_df[predictions_name].tolist(), index=predictions_df.index)
+    predictions_df[predictions_score_names] = pd.DataFrame(predictions_df[predictions_key_name].tolist(), index=predictions_df.index)
     predictions_df.reset_index(inplace=True)
     predictions_df.rename({"descriptor": "case_id"}, axis=1, inplace=True)
     predictions_df = predictions_df[["case_id"] + predictions_score_names]

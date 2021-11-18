@@ -20,6 +20,8 @@ Created on June 30, 2021
 import sys
 import logging
 import os
+# add parent directory to path, so that 'knight' folder is treated as a module
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 from typing import Optional, Union
 import pandas as pd
 
@@ -27,7 +29,7 @@ from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.utils_file import FuseUtilsFile
 from fuse.data.utils.export import DatasetExport
 
-from KNIGHT.dataset import knight_dataset
+from knight.dataset import knight_dataset
 
 
 def make_targets_file(data_path: str,
@@ -55,7 +57,7 @@ def make_targets_file(data_path: str,
             # For this example, we use split 0 out of the the available cross validation splits
             split = split[0]
    
-    _, validation_dl  = knight_dataset(data_path, cache_path, split, reset_cache=False)
+    _, validation_dl, _, _  = knight_dataset(data_path, cache_path, split, reset_cache=False)
 
     # Export targets
     targets_df = DatasetExport.export_to_dataframe(validation_dl.dataset, ["data.descriptor", "data.gt.gt_global.task_1_label", "data.gt.gt_global.task_2_label"])
