@@ -29,7 +29,7 @@ lib64
 **/*.log
 Result
 __pycache__
-fuse_examples/classification/knight/*.csv
-fuse_examples/classification/knight/clinical_data/*
-fuse_examples/classification/knight/model_dir
+fuse_examples/classification/knight/baseline/*.csv
+fuse_examples/classification/knight/baseline/clinical_data/*
+fuse_examples/classification/knight/baseline/model_dir
 .gitignore.save

@@ -29,7 +29,7 @@ from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.utils_file import FuseUtilsFile
 from fuse.data.utils.export import DatasetExport
 
-from knight.dataset import knight_dataset
+from baseline.dataset import knight_dataset
 
 
 def make_targets_file(data_path: str,
