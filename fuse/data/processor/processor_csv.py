@@ -57,11 +57,10 @@ class FuseProcessorCSV(FuseProcessorBase):
         # convert to dictionary - assumes there is only one item with the requested descriptor
         sample_data = items.to_dict('records')[0]
         for key in sample_data.keys():
-            if 'output' in key:
-                if isinstance(sample_data[key], str):
-                    tuple_data = sample_data[key]
-                    if tuple_data.startswith('[') and tuple_data.endswith(']'):
-                        sample_data[key] = ast.literal_eval(tuple_data.replace(" ", ","))
+            if 'output' in key and isinstance(sample_data[key], str):
+                tuple_data = sample_data[key]
+                if tuple_data.startswith('[') and tuple_data.endswith(']'):
+                    sample_data[key] = ast.literal_eval(tuple_data.replace(" ", ","))
         # convert to tensor
         if self.columns_to_tensor is not None:
             if isinstance(self.columns_to_tensor, list):
@@ -83,8 +82,7 @@ class FuseProcessorCSV(FuseProcessorBase):
         if key not in sample:
             lgr = logging.getLogger('Fuse')
             lgr.error(f'Column {key} does not exit in dataframe, it is ignored and not converted to {tensor_dtype}')
+        elif isinstance(sample[key], Tensor):
+            sample[key] = sample[key]
         else:
-            if isinstance(sample[key], Tensor):
-                sample[key] = sample[key]
-            else:
-                sample[key] = torch.tensor(sample[key], dtype=tensor_dtype)
+            sample[key] = torch.tensor(sample[key], dtype=tensor_dtype)
