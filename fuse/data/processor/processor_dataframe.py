@@ -122,8 +122,7 @@ class FuseProcessorDataFrame(FuseProcessorBase):
         if key not in sample:
             lgr = logging.getLogger('Fuse')
             lgr.error(f'Column {key} does not exit in dataframe, it is ignored and not converted to {tensor_dtype}')
+        elif isinstance(sample[key], Tensor):
+            sample[key] = sample[key]
         else:
-            if isinstance(sample[key], Tensor):
-                sample[key] = sample[key]
-            else:
-                sample[key] = torch.tensor(sample[key], dtype=tensor_dtype)
+            sample[key] = torch.tensor(sample[key], dtype=tensor_dtype)

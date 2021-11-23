@@ -62,6 +62,4 @@ class FuseAugmentorBase(ABC):
         :return:
         """
         augmentation_desc = self.get_random_augmentation_desc()
-        sample_aug = self.apply_augmentation(sample, augmentation_desc)
-
-        return sample_aug
+        return self.apply_augmentation(sample, augmentation_desc)

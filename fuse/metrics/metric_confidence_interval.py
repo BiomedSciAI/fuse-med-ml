@@ -91,7 +91,6 @@ class FuseMetricConfidenceInterval(FuseMetricBase):
         :return: None
         """
         self._metric.reset()
-        pass
 
     def collect(self,
                 batch_dict: Dict) -> None:
@@ -100,7 +99,6 @@ class FuseMetricConfidenceInterval(FuseMetricBase):
         :param batch_dict:
         """
         self._metric.collect(batch_dict)
-        pass
 
     def process(self) -> Dict[str, float]:
         """
