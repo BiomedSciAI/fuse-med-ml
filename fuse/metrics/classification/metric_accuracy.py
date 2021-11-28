@@ -68,8 +68,7 @@ class FuseMetricAccuracy(FuseMetricBase):
                 accurate += weight
             weight_sum += weight
 
-        accuracy = float(accurate) / weight_sum
-        return accuracy
+        return float(accurate) / weight_sum
 
 
 if __name__ == '__main__':

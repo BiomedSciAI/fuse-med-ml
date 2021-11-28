@@ -110,10 +110,10 @@ class FuseSamplerBalancedBatch(Sampler):
         # debug - simple batch
         batch_mode = FuseUtilsDebug().get_setting('sampler_batch_mode')
         if batch_mode == 'simple':
-            num_avail_bcls = 0
-            for bcls_num_samples in self.balanced_class_sizes:
-                if bcls_num_samples != 0:
-                    num_avail_bcls += 1
+            num_avail_bcls = sum(
+                bcls_num_samples != 0
+                for bcls_num_samples in self.balanced_class_sizes
+            )
 
             self.balanced_class_weights = None
             self.balanced_class_probs = [1.0/num_avail_bcls if bcls_num_samples != 0 else 0.0 for bcls_num_samples in self.balanced_class_sizes]
@@ -130,11 +130,18 @@ class FuseSamplerBalancedBatch(Sampler):
 
         # make sure that size != 0 for all balanced classes
         for cls_size in enumerate(self.balanced_class_sizes):
-            if (self.balanced_class_weights is not None and self.balanced_class_weights != 0) or (
-                    self.balanced_class_probs is not None and self.balanced_class_probs != 0.0):
-                if cls_size == 0:
-                    msg = f'Every balanced class must include at least one sample (num of samples per balanced class{self.balanced_class_sizes})'
-                    raise Exception(msg)
+            if (
+                (
+                    self.balanced_class_weights is not None
+                    and self.balanced_class_weights != 0
+                )
+                or (
+                    self.balanced_class_probs is not None
+                    and self.balanced_class_probs != 0.0
+                )
+            ) and cls_size == 0:
+                msg = f'Every balanced class must include at least one sample (num of samples per balanced class{self.balanced_class_sizes})'
+                raise Exception(msg)
 
         # Shuffle balanced class indices
         for indices in self.balanced_class_indices:
@@ -161,7 +168,7 @@ class FuseSamplerBalancedBatch(Sampler):
         self.sample_pointer = 0
 
     def __iter__(self) -> np.ndarray:
-        for batch_idx in range(self.num_batches):
+        for _ in range(self.num_batches):
             yield self._make_batch()
 
     def __len__(self) -> int:

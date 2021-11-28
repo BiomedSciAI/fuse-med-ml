@@ -88,8 +88,6 @@ class FuseMetricBase(ABC):
                 values = values.detach().cpu().numpy()
             self.collected_data[name].extend(values)
 
-        pass
-
     def process(self) -> Union[float, Dict[str, float], str]:
         """
         Triggered after each epoch - calculates epoch metrics
@@ -104,7 +102,6 @@ class FuseMetricBase(ABC):
         """
         for key in self.collected_data.keys():
             self.collected_data.update({key: []})
-        pass
 
     # backward comparability: keep the main collected data in lists
     @property
@@ -112,21 +109,21 @@ class FuseMetricBase(ABC):
         if 'pred' in self.collected_data:
             return self.collected_data['pred']
         return None
+
     @property
     def epoch_targets(self):
         if "target" in self.collected_data:
             return self.collected_data['target']
         return None
-    
+
     def add_key_to_collect(self, name, key) -> None:
         """
         Utility function to add keys that should be collected on collect().
         Can be used after the initialization of the class, and before collect() was called (or after reset()).
         :return:  None
         """
-        if name in self.key_to_collect:
-            if self.key_to_collect[name] != key:
-                logging.getLogger('Fuse').debug(f"Replacing key in batch_dict for {name}: was {self.key_to_collect[name]} now {key}")
+        if name in self.key_to_collect and self.key_to_collect[name] != key:
+            logging.getLogger('Fuse').debug(
+                f"Replacing key in batch_dict for {name}: was {self.key_to_collect[name]} now {key}")
         self.key_to_collect.update({name: key})
         self.collected_data.update({name: []})
-        pass
