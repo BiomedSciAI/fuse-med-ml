@@ -119,7 +119,7 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
     }
  
     gt_processors = {
-        'gt_global': KiCClinicalProcessor(json_filename=os.path.join(data_dir, 'knight', 'data', 'knight.json'), columns_to_tensor={'task_1_label':torch.long})
+        'gt_global': KiCClinicalProcessor(json_filename=os.path.join(data_dir, 'knight', 'data', 'knight.json'), columns_to_tensor={'task_1_label':torch.long, 'task_2_label':torch.long})
     }
 
     # Create data augmentation (optional)
