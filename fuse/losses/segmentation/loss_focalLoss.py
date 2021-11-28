@@ -134,7 +134,4 @@ class FuseFocalLoss(FuseLossBase):
         if targets.dtype != torch.int64:
             targets = targets.type(torch.int64).to(targets.device)
 
-        loss_obj = self.callable(preds, targets) * self.weight
-
-        return loss_obj
-
+        return self.callable(preds, targets) * self.weight

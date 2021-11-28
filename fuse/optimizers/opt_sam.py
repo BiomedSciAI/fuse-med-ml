@@ -89,7 +89,7 @@ class SAM(torch.optim.Optimizer):
 
     def _grad_norm(self):
         shared_device = self.param_groups[0]["params"][0].device  # put everything on the same device, in case of model parallelism
-        norm = torch.norm(
+        return torch.norm(
             torch.stack([
                 p.grad.norm(p=2).to(shared_device)
                 for group in self.param_groups for p in group["params"]
@@ -97,7 +97,6 @@ class SAM(torch.optim.Optimizer):
             ]),
             p=2
         )
-        return norm
 
 
 class FuseCallbackSamOpt(FuseCallback):
