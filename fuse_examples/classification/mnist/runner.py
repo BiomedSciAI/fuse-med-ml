@@ -318,6 +318,7 @@ def run_analyze(paths: dict, analyze_common_params: dict):
 ######################################
 if __name__ == "__main__":
     # allocate gpus
+    # To use cpu - set NUM_GPUS to 0
     NUM_GPUS = 1
     if NUM_GPUS == 0:
         TRAIN_COMMON_PARAMS['manager.train_params']['device'] = 'cpu' 
