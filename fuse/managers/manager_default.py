@@ -162,7 +162,11 @@ class FuseManagerDefault:
             self.logger.debug(f"Saved object to file {file_path}", {'color': 'green'})
             pass
 
-        _torch_save(self.state.net.module, 'net')
+        if self.state.device != 'cpu':
+            _torch_save(self.state.net.module, 'net')
+        else:
+            _torch_save(self.state.net, 'net')
+        
         _torch_save(self.state.metrics, 'metrics')
         _torch_save(self.state.losses, 'losses')
         _torch_save(self.callbacks, 'callbacks')
@@ -332,7 +336,8 @@ class FuseManagerDefault:
 
         # prepare to use on GPUs
         self.state.net = self.state.net.to(self.state.device)
-        self.state.net = nn.DataParallel(self.state.net)
+        if self.state.device != 'cpu':
+            self.state.net = nn.DataParallel(self.state.net)
    
         # TODO move losses to device as well
         total_param = sum(p.numel() for p in self.state.net.parameters())
@@ -372,7 +377,11 @@ class FuseManagerDefault:
             else:
                 validation_results = None
 
-            epoch_checkpoint = FuseCheckpoint(self.state.net.module.state_dict(), self.state.current_epoch, self.get_current_learning_rate())
+            if self.state.device != 'cpu':
+                state_dict = self.state.net.module.state_dict()
+            else:
+                state_dict = self.state.net.state_dict()
+            epoch_checkpoint = FuseCheckpoint(state_dict, self.state.current_epoch, self.get_current_learning_rate())
 
             # if this is the best epoch yet
             for i in range(self.state.num_models_to_save):
@@ -446,7 +455,8 @@ class FuseManagerDefault:
 
             # prepare net
             self.state.net = self.state.net.to(device)
-            self.state.net = nn.DataParallel(self.state.net)
+            if self.state.device != 'cpu':
+                self.state.net = nn.DataParallel(self.state.net)
 
         if descriptors is None:
             descriptors = range(len(dataset))
@@ -587,7 +597,8 @@ class FuseManagerDefault:
 
         # prepare net
         self.state.net = self.state.net.to(self.state.device)
-        self.state.net = nn.DataParallel(self.state.net)
+        if self.state.device != 'cpu':
+            self.state.net = nn.DataParallel(self.state.net)
 
         # we are ready to run inference
         self.handle_epoch('infer', 0, data_loader)
