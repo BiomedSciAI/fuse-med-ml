@@ -30,11 +30,11 @@ import time
 # allocate gpus
 # uncomment if you want to use specific gpus instead of automatically looking for free ones
 task_num = 2 # 1 or 2
-force_gpus = [7] # specify the GPU indices you want to use
-use_data = {'imaging': False, 'clinical': True} 
+force_gpus = [0,1] # specify the GPU indices you want to use
+use_data = {'imaging': True, 'clinical': True} 
 num_epochs = 100
 batch_size = 8
-resize_to = (256, 256, 50) # 110
+resize_to = (256, 256, 110) 
 learning_rate = 1e-4 if use_data['clinical'] else 1e-5
 print_and_visualize = True
 
@@ -77,7 +77,7 @@ FuseUtilsGPU.choose_and_enable_multiple_gpus(len(force_gpus), force_gpus=force_g
 ##############################################################################
 
 train_dl, valid_dl, _, _ = knight_dataset(data_dir=data_path, cache_dir=cache_path, split=split, \
-            reset_cache=False, rand_gen=rand_gen, batch_size=batch_size, resize_to=resize_to)
+            reset_cache=False, rand_gen=rand_gen, batch_size=batch_size, resize_to=resize_to, task_num=task_num)
 
 ## Simple data visualizations/analysis:
 ##############################################################################
