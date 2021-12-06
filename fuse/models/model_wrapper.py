@@ -97,6 +97,7 @@ class FuseModelWrapper(torch.nn.Module):
     
 if __name__ == '__main__':
     from torchvision.models.googlenet import BasicConv2d
+    from torchvision.models.googlenet import GoogLeNet
     import torchvision.models as models
     import torch
     import os
@@ -106,15 +107,15 @@ if __name__ == '__main__':
     DEVICE = 'cpu'  # 'cuda'
     DATAPARALLEL = False  # True
 
-    googlemet_model = models.googlenet.GoogLeNet()
-    googlemet_model.conv1 = BasicConv2d(1, 64, kernel_size=7, stride=2, padding=3)
+    googlenet_model = GoogLeNet()
+    googlenet_model.conv1 = BasicConv2d(1, 64, kernel_size=7, stride=2, padding=3)
 
     def convert_googlenet_outputs(output):
         return output.logits
 
     model = FuseModelWrapper(
         model_inputs=['data.input.input_0.tensor'],
-        model=googlemet_model,
+        model=googlenet_model,
         post_forward_processing_function=convert_googlenet_outputs,
         model_outputs=['google.output.logits']
     )
