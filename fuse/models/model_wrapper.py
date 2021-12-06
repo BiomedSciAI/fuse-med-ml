@@ -54,11 +54,11 @@ class FuseModelWrapper(torch.nn.Module):
         super().__init__()
         self.model_inputs = model_inputs
         self.model = model
-        self.add_module('wrapped_model', self.model)
         self.pre_forward_processing_function = pre_forward_processing_function
         self.post_forward_processing_function = post_forward_processing_function
         self.model_outputs = model_outputs
 
+    
     def forward(self,
                 batch_dict: Dict) -> Dict:
         # convert input to the model's expected input
@@ -83,7 +83,18 @@ class FuseModelWrapper(torch.nn.Module):
 
         return batch_dict['model']
 
+    def state_dict(self, *args, **kwargs):
+        """
+        Set model parameters directly. The prefix "model." is not required.
+        """
+        return self.model.state_dict(*args, **kwargs)
 
+    def load_state_dict(self, *args, **kwargs):
+        """
+        Extract model parameters to remove the extra "model." prefix
+        """
+        return self.model.load_state_dict(*args, **kwargs)
+    
 if __name__ == '__main__':
     from torchvision.models.googlenet import BasicConv2d
     import torchvision.models as models
