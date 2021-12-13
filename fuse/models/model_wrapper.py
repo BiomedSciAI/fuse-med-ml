@@ -54,11 +54,11 @@ class FuseModelWrapper(torch.nn.Module):
         super().__init__()
         self.model_inputs = model_inputs
         self.model = model
-        self.add_module('wrapped_model', self.model)
         self.pre_forward_processing_function = pre_forward_processing_function
         self.post_forward_processing_function = post_forward_processing_function
         self.model_outputs = model_outputs
 
+    
     def forward(self,
                 batch_dict: Dict) -> Dict:
         # convert input to the model's expected input
@@ -83,9 +83,21 @@ class FuseModelWrapper(torch.nn.Module):
 
         return batch_dict['model']
 
+    def state_dict(self, *args, **kwargs):
+        """
+        Set model parameters directly. The prefix "model." is not required.
+        """
+        return self.model.state_dict(*args, **kwargs)
 
+    def load_state_dict(self, *args, **kwargs):
+        """
+        Extract model parameters to remove the extra "model." prefix
+        """
+        return self.model.load_state_dict(*args, **kwargs)
+    
 if __name__ == '__main__':
     from torchvision.models.googlenet import BasicConv2d
+    from torchvision.models.googlenet import GoogLeNet
     import torchvision.models as models
     import torch
     import os
@@ -95,15 +107,15 @@ if __name__ == '__main__':
     DEVICE = 'cpu'  # 'cuda'
     DATAPARALLEL = False  # True
 
-    googlemet_model = models.googlenet.GoogLeNet()
-    googlemet_model.conv1 = BasicConv2d(1, 64, kernel_size=7, stride=2, padding=3)
+    googlenet_model = GoogLeNet()
+    googlenet_model.conv1 = BasicConv2d(1, 64, kernel_size=7, stride=2, padding=3)
 
     def convert_googlenet_outputs(output):
         return output.logits
 
     model = FuseModelWrapper(
         model_inputs=['data.input.input_0.tensor'],
-        model=googlemet_model,
+        model=googlenet_model,
         post_forward_processing_function=convert_googlenet_outputs,
         model_outputs=['google.output.logits']
     )
