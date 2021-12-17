@@ -62,8 +62,10 @@ def create_knight_clinical(original_file, processed_file=None):
             df.loc[index, 'task_2_label'] = 2
         elif patient['aua_risk_group']=='high_risk':
             df.loc[index, 'task_2_label'] = 3
-        else:
+        elif patient['aua_risk_group']=='very_high_risk':
             df.loc[index, 'task_2_label'] = 4
+        else:
+            ValueError('Wrong risk class')
 
         # former classification - deprecated
         #if patient['pathology_t_stage'] in ['3', '4']:    # 1:'3','4'  0:'0','1a','1b','2a','2b'

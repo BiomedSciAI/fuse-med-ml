@@ -40,6 +40,7 @@ class FuseHead3dClassifier(nn.Module):
                  layers_description: Sequence[int] = (256,), 
                  append_layers_description: Sequence[int] = tuple(),
                  append_dropout_rate: float = 0.0,
+                 fused_dropout_rate: float = 0.0,
                  ) -> None:
         """
         Create simple 3D context model
@@ -78,7 +79,7 @@ class FuseHead3dClassifier(nn.Module):
         self.conv_classifier_3d = nn.Sequential(
             nn.Conv3d(self.features_size, 256, kernel_size=1),
             nn.ReLU(),
-            nn.Dropout3d(p=self.dropout_rate),
+            nn.Dropout3d(p=fused_dropout_rate), 
             nn.Conv3d(256, self.num_classes, kernel_size=1),
         )
 

@@ -71,7 +71,14 @@ def prepare_clinical(sample_dict: dict) -> dict:
 
 def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict = None, \
     reset_cache: bool = False, post_cache_processing_func: Optional[Callable] = None, \
-        rand_gen = None, batch_size=8, resize_to=(256,256,110)):
+        rand_gen = None, batch_size=8, resize_to=(256,256,110), task_num=1):
+    if task_num == 1:
+        target_name='data.gt.gt_global.task_1_label'
+        num_classes = 2
+    elif task_num == 2:
+        target_name='data.gt.gt_global.task_2_label'
+        num_classes = 5
+
     augmentation_pipeline = [
         [
             ("data.input.image",),
@@ -119,7 +126,7 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
     }
  
     gt_processors = {
-        'gt_global': KiCClinicalProcessor(json_filename=os.path.join(data_dir, 'knight', 'data', 'knight.json'), columns_to_tensor={'task_1_label':torch.long})
+        'gt_global': KiCClinicalProcessor(json_filename=os.path.join(data_dir, 'knight', 'data', 'knight.json'), columns_to_tensor={'task_1_label':torch.long, 'task_2_label':torch.long})
     }
 
     # Create data augmentation (optional)
@@ -127,7 +134,7 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
         augmentation_pipeline=augmentation_pipeline)
 
     # Create visualizer (optional)
-    visualizer = Fuse3DVisualizerDefault(image_name = 'data.input.image', label_name='data.gt.gt_global.task_1_label')
+    visualizer = Fuse3DVisualizerDefault(image_name = 'data.input.image', label_name=target_name)
     # Create dataset
     train_dataset = FuseDatasetDefault(cache_dest=cache_dir,
                                        data_source=train_data_source,
@@ -145,9 +152,10 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
     ## Create sampler
     print(f'- Create sampler:')
     sampler = FuseSamplerBalancedBatch(dataset=train_dataset,
-                                       balanced_class_name='data.gt.gt_global.task_1_label',
-                                       num_balanced_classes=2,
+                                       balanced_class_name=target_name,
+                                       num_balanced_classes=num_classes,
                                        batch_size=batch_size,
+                                       balanced_class_probs=[1.0/num_classes]*num_classes if task_num==2 else None,
                                        use_dataset_cache=False) # we don't want to use_dataset_cache here since it's more 
                                                                 # costly to read all cached data then simply the CSV file 
                                                                 # which contains the labels
