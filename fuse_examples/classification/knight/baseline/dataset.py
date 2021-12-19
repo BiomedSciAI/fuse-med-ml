@@ -70,14 +70,9 @@ def prepare_clinical(sample_dict: dict) -> dict:
     return sample_dict
 
 def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict = None, \
-    reset_cache: bool = False, post_cache_processing_func: Optional[Callable] = None, \
-        rand_gen = None, batch_size=8, resize_to=(256,256,110), task_num=1):
-    if task_num == 1:
-        target_name='data.gt.gt_global.task_1_label'
-        num_classes = 2
-    elif task_num == 2:
-        target_name='data.gt.gt_global.task_2_label'
-        num_classes = 5
+        reset_cache: bool = False, post_cache_processing_func: Optional[Callable] = None, \
+        rand_gen = None, batch_size=8, resize_to=(256,256,110), task_num=1, \
+        target_name='data.gt.gt_global.task_1_label', num_classes=2):
 
     augmentation_pipeline = [
         [

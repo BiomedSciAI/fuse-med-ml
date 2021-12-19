@@ -89,7 +89,8 @@ FuseUtilsGPU.choose_and_enable_multiple_gpus(len(force_gpus), force_gpus=force_g
 ##############################################################################
 
 train_dl, valid_dl, _, _ = knight_dataset(data_dir=data_path, cache_dir=cache_path, split=split, \
-            reset_cache=False, rand_gen=rand_gen, batch_size=batch_size, resize_to=resize_to, task_num=task_num)
+            reset_cache=False, rand_gen=rand_gen, batch_size=batch_size, resize_to=resize_to, \
+            task_num=task_num, target_name=target_name, num_classes=num_classes)
 
 ## Simple data visualizations/analysis:
 ##############################################################################
