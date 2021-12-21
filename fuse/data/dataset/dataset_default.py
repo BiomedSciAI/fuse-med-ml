@@ -483,7 +483,7 @@ class FuseDatasetDefault(FuseDatasetBase):
                     pool.join()
                 else:
                     for desc in tqdm(descriptors_to_cache):
-                        self._cache_sample((self.processors, desc, self.cache))
+                        self._cache_sample((self.processors, desc, self.cache, self.data_key_prefix))
 
                 # save and move back to read mode
                 self.cache.save()
