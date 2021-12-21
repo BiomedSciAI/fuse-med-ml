@@ -105,9 +105,21 @@ However, we did manage to train an "Imaging + Clinical" model with comparable re
 ### Results
 Running the code with the parameters currently set in ```fuse_baseline.py``` gave the following best epoch validation AUC results:
 
+#### Task 1: binary classification
 Clinical data only | Imaging only | Imaging + Clinical
 :---:|:---:| :---:
 0.87 | 0.71 | 0.85
+
+#### Task 2: 5-class classification
+Clinical data only | Imaging only | Imaging + Clinical
+:---:|:---:| :---:
+0.82 | 0.68 | 0.80
+
+The per-class AUC for the Imaging + Clinical model is:
+
+Benign | Low Risk | Intermediate Risk | High Risk | Very High Risk
+:---:|:---:|:---: |:---:|:---:
+0.87 | 0.85 | 0.66|0.91|0.72
 
 ### Limitations
 Our goal in this example is to provide easy to follow code that can help you get started with the KNIGHT challenge using FuseMedML. We encourage you to experiment with, improve, or change completely any step in the proposed pipeline. We also encourage you to learn about [solutions to the KiTS19 and KiTS21 challenges](https://kits21.kits-challenge.org/results), to gain useful insight into working with this imaging data, towards a related, but different task. 
