@@ -69,7 +69,7 @@ def isic_2019_dataset(data_dir: str = 'data', size: int = None, reset_cache: boo
         augmentation_pipeline=augmentation_pipeline)
 
     # Create visualizer (optional)
-    visualiser = FuseVisualizerDefault(image_name='data.input.image', label_name='data.gt.gt_global.tensor', metadata_names=["data.input.clinical"], gray_scale=False)
+    visualizer = FuseVisualizerDefault(image_name='data.input.image', label_name='data.gt.gt_global.tensor', metadata_names=["data.input.clinical"], gray_scale=False)
 
     # Create dataset
     train_dataset = FuseDatasetDefault(cache_dest=cache_dir,
@@ -78,7 +78,7 @@ def isic_2019_dataset(data_dir: str = 'data', size: int = None, reset_cache: boo
                                        gt_processors=gt_processors,
                                        post_processing_func=post_cache_processing_func,
                                        augmentor=augmentor,
-                                       visualizer=visualiser)
+                                       visualizer=visualizer)
 
     print(f'- Load and cache data:')
     train_dataset.create(reset_cache=reset_cache)
@@ -118,7 +118,7 @@ def isic_2019_dataset(data_dir: str = 'data', size: int = None, reset_cache: boo
                                             input_processors=input_processors,
                                             gt_processors=gt_processors,
                                             post_processing_func=post_cache_processing_func,
-                                            visualizer=visualiser)
+                                            visualizer=visualizer)
 
     print(f'- Load and cache data:')
     validation_dataset.create(pool_type='thread')  # use ThreadPool to create this dataset, to avoid cv2 problems in multithreading
