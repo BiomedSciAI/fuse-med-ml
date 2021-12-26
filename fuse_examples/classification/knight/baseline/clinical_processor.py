@@ -25,8 +25,6 @@ import logging
 from typing import Hashable, List, Optional, Dict, Union
 from torch import Tensor
 import torch
-from .utils import create_knight_clinical
-import json
 
 class KiCClinicalProcessor(FuseProcessorBase):
     """
@@ -45,12 +43,8 @@ class KiCClinicalProcessor(FuseProcessorBase):
                         When None (default) no columns are converted.
         """
         self.json_filename = json_filename
-        #self.data = create_knight_clinical(json_filename)
         self.data = pd.read_json(json_filename)
-        #with open(json_filename) as f:
-        #    self.data = json.load(f)
         self.columns_to_tensor = columns_to_tensor
-        #self.sample_desc_column = "SubjectId"
         self.sample_desc_column = 'case_id'
         self.selected_column_names = ['case_id', 'age_at_nephrectomy', 'body_mass_index', 'gender', 'comorbidities', \
                                       'smoking_history', 'radiographic_size', 'last_preop_egfr', 'aua_risk_group']
