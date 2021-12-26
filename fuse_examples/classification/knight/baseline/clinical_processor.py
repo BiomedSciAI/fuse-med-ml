@@ -47,44 +47,40 @@ class KiCClinicalProcessor(FuseProcessorBase):
         self.selected_column_names = ['case_id', 'age_at_nephrectomy', 'body_mass_index', 'gender', 'comorbidities', \
                                       'smoking_history', 'radiographic_size', 'last_preop_egfr']
 
+        # extract only specified columns (in case not specified, extract all)
+        self.data = self.data[self.selected_column_names]
+
+        # convert to dictionary: {index -> {column -> value}}
+        self.data = self.data.set_index(self.sample_desc_column)
+        self.data = self.data.to_dict(orient='index')
     def __call__(self, sample_desc: Hashable):
         """
         See base class
         """
         # locate the required item
-        items = self.data.loc[self.data[self.sample_desc_column] == str(sample_desc)]
-        # keep only selected columns
-        items = items[self.selected_column_names]
+        sample_data = self.data[sample_desc].copy()
         # process fields
-        if items.gender.iloc[0] == 'male':
-            items.gender.iloc[0] = 0
+        if sample_data['gender'] == 'male':
+            sample_data['gender'] = 0
         else:
-            items.gender.iloc[0] = 1
+            sample_data['gender'] = 1
         comorbidities = 0
-        for key, value in items.comorbidities.iloc[0].items():
+        for key, value in sample_data['comorbidities'].items():
             if value:
                 comorbidities = 1
-        items.comorbidities.iloc[0] = comorbidities
-        if items.smoking_history.iloc[0] == 'never_smoked': 
-            items.smoking_history.iloc[0] = 0
-        elif items.smoking_history.iloc[0] == 'previous_smoker':
-            items.smoking_history.iloc[0] = 1
-        elif items.smoking_history.iloc[0] == 'current_smoker':
-            items.smoking_history.iloc[0] = 2
+        sample_data['comorbidities'] = comorbidities
+        if sample_data['smoking_history'] == 'never_smoked': 
+            sample_data['smoking_history'] = 0
+        elif sample_data['smoking_history'] == 'previous_smoker':
+            sample_data['smoking_history'] = 1
+        elif sample_data['smoking_history'] == 'current_smoker':
+            sample_data['smoking_history'] = 2
 
-        if items.last_preop_egfr.iloc[0]['value'] == '>=90':
-            items.last_preop_egfr.iloc[0] = 90
+        if sample_data['last_preop_egfr']['value'] == '>=90':
+            sample_data['last_preop_egfr'] = 90
         else:
-            items.last_preop_egfr.iloc[0] = items.last_preop_egfr.iloc[0]['value']
+            sample_data['last_preop_egfr'] = sample_data['last_preop_egfr']['value']
     
-        # convert to dictionary - assumes there is only one item with the requested descriptor
-        sample_data = items.to_dict('records')[0]
-        for key in sample_data.keys():
-            if 'output' in key:
-                if isinstance(sample_data[key], str):
-                    tuple_data = sample_data[key]
-                    if tuple_data.startswith('[') and tuple_data.endswith(']'):
-                        sample_data[key] = ast.literal_eval(tuple_data.replace(" ", ","))
         # convert to tensor
         if self.columns_to_tensor is not None:
             if isinstance(self.columns_to_tensor, list):
@@ -130,44 +126,42 @@ class KiCGTProcessor(FuseProcessorBase):
         self.data = pd.read_json(json_filename)
         self.columns_to_tensor = columns_to_tensor
         self.sample_desc_column = 'case_id'
-        self.selected_column_names = ['aua_risk_group']
+        self.selected_column_names = ['case_id', 'aua_risk_group']
+
+        # extract only specified columns (in case not specified, extract all)
+        self.data = self.data[self.selected_column_names]
+
+        # convert to dictionary: {index -> {column -> value}}
+        self.data = self.data.set_index(self.sample_desc_column)
+        self.data = self.data.to_dict(orient='index')
 
     def __call__(self, sample_desc: Hashable):
         """
         See base class
         """
         # locate the required item
-        items = self.data.loc[self.data[self.sample_desc_column] == str(sample_desc)]
-        # keep only selected columns
-        items = items[self.selected_column_names]
+        sample_data = self.data[sample_desc].copy()
         # process fields
         # Task 1 labels:
-        if items.aua_risk_group.iloc[0] in ['high_risk', 'very_high_risk']:    # 1:'3','4'  0:'0','1a','1b','2a','2b'
-            items['task_1_label'] = 1 # CanAT
+        if sample_data['aua_risk_group'] in ['high_risk', 'very_high_risk']:    # 1:'3','4'  0:'0','1a','1b','2a','2b'
+            sample_data['task_1_label'] = 1 # CanAT
         else:
-            items['task_1_label'] = 0 # NoAT
+            sample_data['task_1_label'] = 0 # NoAT
 
         # Task 2 labels:
-        if items.aua_risk_group.iloc[0] == 'benign':
-            items['task_2_label'] = 0 
-        elif items.aua_risk_group.iloc[0] == 'low_risk':
-            items['task_2_label'] = 1
-        elif items.aua_risk_group.iloc[0] == 'intermediate_risk':
-            items['task_2_label'] = 2
-        elif items.aua_risk_group.iloc[0] == 'high_risk':
-            items['task_2_label'] = 3
-        elif items.aua_risk_group.iloc[0] == 'very_high_risk':
-            items['task_2_label'] = 4
+        if sample_data['aua_risk_group'] == 'benign':
+            sample_data['task_2_label'] = 0 
+        elif sample_data['aua_risk_group'] == 'low_risk':
+            sample_data['task_2_label'] = 1
+        elif sample_data['aua_risk_group'] == 'intermediate_risk':
+            sample_data['task_2_label'] = 2
+        elif sample_data['aua_risk_group'] == 'high_risk':
+            sample_data['task_2_label'] = 3
+        elif sample_data['aua_risk_group'] == 'very_high_risk':
+            sample_data['task_2_label'] = 4
         else:
             ValueError('Wrong risk class')
-        # convert to dictionary - assumes there is only one item with the requested descriptor
-        sample_data = items.to_dict('records')[0]
-        for key in sample_data.keys():
-            if 'output' in key:
-                if isinstance(sample_data[key], str):
-                    tuple_data = sample_data[key]
-                    if tuple_data.startswith('[') and tuple_data.endswith(']'):
-                        sample_data[key] = ast.literal_eval(tuple_data.replace(" ", ","))
+        
         # convert to tensor
         if self.columns_to_tensor is not None:
             if isinstance(self.columns_to_tensor, list):
