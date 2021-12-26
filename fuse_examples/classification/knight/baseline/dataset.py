@@ -22,7 +22,7 @@ from fuse.data.data_source.data_source_default import FuseDataSourceDefault
 from fuse.data.augmentor.augmentor_toolbox import rotation_in_3d, squeeze_3d_to_2d, unsqueeze_2d_to_3d
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 import torch
-from .clinical_processor import KiCClinicalProcessor
+from .clinical_processor import KiCClinicalProcessor, KiCGTProcessor
 
 def prepare_clinical(sample_dict: dict) -> dict:
     age = FuseUtilsHierarchicalDict.get(sample_dict, 'data.input.clinical.age_at_nephrectomy')
@@ -121,7 +121,7 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
     }
  
     gt_processors = {
-        'gt_global': KiCClinicalProcessor(json_filename=os.path.join(data_dir, 'knight', 'data', 'knight.json'), columns_to_tensor={'task_1_label':torch.long, 'task_2_label':torch.long})
+        'gt_global': KiCGTProcessor(json_filename=os.path.join(data_dir, 'knight', 'data', 'knight.json'), columns_to_tensor={'task_1_label':torch.long, 'task_2_label':torch.long})
     }
 
     # Create data augmentation (optional)
