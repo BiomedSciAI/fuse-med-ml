@@ -25,13 +25,13 @@ import torch
 from .clinical_processor import KiCClinicalProcessor
 
 def prepare_clinical(sample_dict: dict) -> dict:
-    age = FuseUtilsHierarchicalDict.get(sample_dict, 'data.input.clinical.age')
+    age = FuseUtilsHierarchicalDict.get(sample_dict, 'data.input.clinical.age_at_nephrectomy')
     if age!=None and age > 0 and age < 120:
         age = torch.tensor(age / 120.0).reshape(-1)
     else:
         age = torch.tensor(-1.0).reshape(-1)
     
-    bmi = FuseUtilsHierarchicalDict.get(sample_dict, 'data.input.clinical.bmi')
+    bmi = FuseUtilsHierarchicalDict.get(sample_dict, 'data.input.clinical.body_mass_index')
     if bmi!=None and bmi > 10 and bmi < 100:
         bmi = torch.tensor(bmi / 50.0).reshape(-1)
     else:
@@ -43,13 +43,13 @@ def prepare_clinical(sample_dict: dict) -> dict:
     else:
         radiographic_size = torch.tensor(-1.0).reshape(-1)
     
-    preop_egfr = FuseUtilsHierarchicalDict.get(sample_dict, 'data.input.clinical.preop_egfr')
+    preop_egfr = FuseUtilsHierarchicalDict.get(sample_dict, 'data.input.clinical.last_preop_egfr')
     if preop_egfr!=None and preop_egfr > 0 and preop_egfr < 200:
         preop_egfr = torch.tensor(preop_egfr / 90.0).reshape(-1)
     else:
         preop_egfr = torch.tensor(-1.0).reshape(-1)
     # turn categorical features into one hot vectors
-    gender = FuseUtilsHierarchicalDict.get(sample_dict, 'data.input.clinical.gender_num')
+    gender = FuseUtilsHierarchicalDict.get(sample_dict, 'data.input.clinical.gender')
     gender_one_hot = torch.zeros(len(GENDER_INDEX))
     if gender in GENDER_INDEX.values():
         gender_one_hot[gender] = 1
