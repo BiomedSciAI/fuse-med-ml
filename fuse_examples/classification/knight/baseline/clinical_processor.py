@@ -25,7 +25,6 @@ import logging
 from typing import Hashable, List, Optional, Dict, Union
 from torch import Tensor
 import torch
-from .utils import create_knight_clinical
 
 class KiCClinicalProcessor(FuseProcessorBase):
     """
@@ -44,9 +43,11 @@ class KiCClinicalProcessor(FuseProcessorBase):
                         When None (default) no columns are converted.
         """
         self.json_filename = json_filename
-        self.data = create_knight_clinical(json_filename)
+        self.data = pd.read_json(json_filename)
         self.columns_to_tensor = columns_to_tensor
-        self.sample_desc_column = "SubjectId"
+        self.sample_desc_column = 'case_id'
+        self.selected_column_names = ['case_id', 'age_at_nephrectomy', 'body_mass_index', 'gender', 'comorbidities', \
+                                      'smoking_history', 'radiographic_size', 'last_preop_egfr', 'aua_risk_group']
 
     def __call__(self, sample_desc: Hashable):
         """
@@ -54,6 +55,49 @@ class KiCClinicalProcessor(FuseProcessorBase):
         """
         # locate the required item
         items = self.data.loc[self.data[self.sample_desc_column] == str(sample_desc)]
+        # keep only selected columns
+        items = items[self.selected_column_names]
+        # process fields
+        if items.gender.iloc[0] == 'male':
+            items.gender.iloc[0] = 0
+        else:
+            items.gender.iloc[0] = 1
+        comorbidities = 0
+        for key, value in items.comorbidities.iloc[0].items():
+            if value:
+                comorbidities = 1
+        items.comorbidities.iloc[0] = comorbidities
+        if items.smoking_history.iloc[0] == 'never_smoked': 
+            items.smoking_history.iloc[0] = 0
+        elif items.smoking_history.iloc[0] == 'previous_smoker':
+            items.smoking_history.iloc[0] = 1
+        elif items.smoking_history.iloc[0] == 'current_smoker':
+            items.smoking_history.iloc[0] = 2
+
+        if items.last_preop_egfr.iloc[0]['value'] == '>=90':
+            items.last_preop_egfr.iloc[0] = 90
+        else:
+            items.last_preop_egfr.iloc[0] = items.last_preop_egfr.iloc[0]['value']
+
+        # Task 1 labels:
+        if items.aua_risk_group.iloc[0] in ['high_risk', 'very_high_risk']:    # 1:'3','4'  0:'0','1a','1b','2a','2b'
+            items['task_1_label'] = 1 # CanAT
+        else:
+            items['task_1_label'] = 0 # NoAT
+
+        # Task 2 labels:
+        if items.aua_risk_group.iloc[0] == 'benign':
+            items['task_2_label'] = 0 
+        elif items.aua_risk_group.iloc[0] == 'low_risk':
+            items['task_2_label'] = 1
+        elif items.aua_risk_group.iloc[0] == 'intermediate_risk':
+            items['task_2_label'] = 2
+        elif items.aua_risk_group.iloc[0] == 'high_risk':
+            items['task_2_label'] = 3
+        elif items.aua_risk_group.iloc[0] == 'very_high_risk':
+            items['task_2_label'] = 4
+        else:
+            ValueError('Wrong risk class')
         # convert to dictionary - assumes there is only one item with the requested descriptor
         sample_data = items.to_dict('records')[0]
         for key in sample_data.keys():
