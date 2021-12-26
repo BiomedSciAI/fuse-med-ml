@@ -29,8 +29,6 @@ import torch
 class KiCClinicalProcessor(FuseProcessorBase):
     """
     Processor reading KiC clinical data.
-    We read the json file with clinical data, convert to dataframe and read the relevant fields and then 
-    follow closely the existing FuseProcessorCSV processor from fuse.data.processor.processor_csv
     """
 
     def __init__(self, json_filename: str, columns_to_tensor: Optional[Union[List[str], Dict[str, torch.dtype]]] = None):
@@ -47,7 +45,7 @@ class KiCClinicalProcessor(FuseProcessorBase):
         self.columns_to_tensor = columns_to_tensor
         self.sample_desc_column = 'case_id'
         self.selected_column_names = ['case_id', 'age_at_nephrectomy', 'body_mass_index', 'gender', 'comorbidities', \
-                                      'smoking_history', 'radiographic_size', 'last_preop_egfr', 'aua_risk_group']
+                                      'smoking_history', 'radiographic_size', 'last_preop_egfr']
 
     def __call__(self, sample_desc: Hashable):
         """
@@ -78,7 +76,71 @@ class KiCClinicalProcessor(FuseProcessorBase):
             items.last_preop_egfr.iloc[0] = 90
         else:
             items.last_preop_egfr.iloc[0] = items.last_preop_egfr.iloc[0]['value']
+    
+        # convert to dictionary - assumes there is only one item with the requested descriptor
+        sample_data = items.to_dict('records')[0]
+        for key in sample_data.keys():
+            if 'output' in key:
+                if isinstance(sample_data[key], str):
+                    tuple_data = sample_data[key]
+                    if tuple_data.startswith('[') and tuple_data.endswith(']'):
+                        sample_data[key] = ast.literal_eval(tuple_data.replace(" ", ","))
+        # convert to tensor
+        if self.columns_to_tensor is not None:
+            if isinstance(self.columns_to_tensor, list):
+                for col in self.columns_to_tensor:
+                    self.convert_to_tensor(sample_data, col)
+            elif isinstance(self.columns_to_tensor, dict):
+                for col, tensor_dtype in self.columns_to_tensor.items():
+                    self.convert_to_tensor(sample_data, col, tensor_dtype)
+        return sample_data
 
+    @staticmethod
+    def convert_to_tensor(sample: dict, key: str, tensor_dtype: Optional[str] = None) -> None:
+        """
+        Convert value to tensor, use tensor_dtype to specify non-default type/
+        :param sample: sample dictionary
+        :param key: key of item in sample dict to convert
+        :param tensor_dtype: Optional, None for default,.
+        """
+        if key not in sample:
+            lgr = logging.getLogger('Fuse')
+            lgr.error(f'Column {key} does not exit in dataframe, it is ignored and not converted to {tensor_dtype}')
+        else:
+            if isinstance(sample[key], Tensor):
+                sample[key] = sample[key]
+            else:
+                sample[key] = torch.tensor(sample[key], dtype=tensor_dtype)
+
+class KiCGTProcessor(FuseProcessorBase):
+    """
+    Processor reading KiC ground truth data.
+    """
+
+    def __init__(self, json_filename: str, columns_to_tensor: Optional[Union[List[str], Dict[str, torch.dtype]]] = None):
+        """
+        Processor reading data from csv file.
+        :param json_filename: path to the csv file
+        :param columns_to_tensor: columns in data that should be converted into pytorch.tensor.
+                        when list, all columns specified are transforms into tensors (type is decided by torch).
+                        when dictionary, then each column is converted into the specified dtype.
+                        When None (default) no columns are converted.
+        """
+        self.json_filename = json_filename
+        self.data = pd.read_json(json_filename)
+        self.columns_to_tensor = columns_to_tensor
+        self.sample_desc_column = 'case_id'
+        self.selected_column_names = ['aua_risk_group']
+
+    def __call__(self, sample_desc: Hashable):
+        """
+        See base class
+        """
+        # locate the required item
+        items = self.data.loc[self.data[self.sample_desc_column] == str(sample_desc)]
+        # keep only selected columns
+        items = items[self.selected_column_names]
+        # process fields
         # Task 1 labels:
         if items.aua_risk_group.iloc[0] in ['high_risk', 'very_high_risk']:    # 1:'3','4'  0:'0','1a','1b','2a','2b'
             items['task_1_label'] = 1 # CanAT
