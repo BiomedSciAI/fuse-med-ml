@@ -20,7 +20,6 @@ from torch.utils.data.dataloader import DataLoader
 from fuse.metrics.classification.metric_roc_curve import FuseMetricROCCurve
 from fuse.metrics.classification.metric_auc import FuseMetricAUC
 from fuse.analyzer.analyzer_default import FuseAnalyzerDefault
-
 from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
 from fuse.losses.loss_default import FuseLossDefault
 from fuse.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
@@ -31,37 +30,42 @@ from fuse.managers.manager_default import FuseManagerDefault
 from fuse.utils.utils_gpu import FuseUtilsGPU
 from fuse.utils.utils_logger import fuse_logger_start
 
+from fuse.models.heads.head_1d_classifier import FuseHead1dClassifier
 
-from fuse_examples.classification.prostate_x.dataset import prostate_x_dataset
 from fuse_examples.classification.prostate_x.backbone_3d_multichannel import Fuse_model_3d_multichannel,ResNet
 from fuse_examples.classification.prostate_x.patient_data_source import FuseProstateXDataSourcePatient
-from fuse_examples.classification.prostate_x.tasks import FuseProstateXTask
-from fuse.models.heads.head_1d_classifier import FuseHead1dClassifier
+
+
+
+from fuse_examples.classification.duke_breast_cancer.dataset import duke_breast_cancer_dataset
+from fuse_examples.classification.duke_breast_cancer.tasks import FuseTask
 
 
 ##########################################
 # Output Paths
 # ##########################################
 
-# TODO: path to save model
-root_path  ='.'
-# TODO: path for prostateX data
-# Download instructions can be found in README
-# load data from:
-# https://wiki.cancerimagingarchive.net/display/Public/SPIE-AAPM-NCI+PROSTATEx+Challenges#23691656d4622c5ad5884bdb876d6d441994da38
-root_data = './PatientData/ProstateX/manifest-A3Y4AE4o5818678569166032044/'
+# # TODO: path to save model
+root_path = '.'
 
+
+# TODO: path for duke data
+# Download instructions can be found in README
+root_data = './Data/Duke-Breast-Cancer-MRI/manifest-1607053360376/'
 
 PATHS = {'force_reset_model_dir': False,
          # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
          'model_dir': root_path + '/my_model/',
          'cache_dir': root_path + '/my_cache/',
          'inference_dir': root_path + '/my_model/inference/',
-         'analyze_dir': root_path +  '/my_model/analyze/',
+         'analyze_dir': root_path + '/my_model/analyze/',
          'data_dir':root_path,
-         'prostate_data_path' : root_data,
-         'ktrans_path': root_data + 'ProstateXKtrains-train-fixed/',
+         'data_path' : root_data + 'Duke-Breast-Cancer-MRI',
+         'metadata_path': root_data + 'metadata.csv',
+         'ktrans_path': '',
          }
+
+
 #################################
 # Train Template
 #################################
@@ -72,16 +76,13 @@ PATHS = {'force_reset_model_dir': False,
 # Data
 # ============
 TRAIN_COMMON_PARAMS = {}
-TRAIN_COMMON_PARAMS['db_name'] = 'prostate_x'
-TRAIN_COMMON_PARAMS['db_version'] = 29062021
-TRAIN_COMMON_PARAMS['fold_no'] = 5
+TRAIN_COMMON_PARAMS['db_name'] = 'DUKE'
+TRAIN_COMMON_PARAMS['partition_version'] = '11102021TumorSize'
+TRAIN_COMMON_PARAMS['fold_no'] = 0
 TRAIN_COMMON_PARAMS['data.batch_size'] = 50
 TRAIN_COMMON_PARAMS['data.train_num_workers'] = 10
 TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 10
-# add misalignment to segmentation
-TRAIN_COMMON_PARAMS['data.aug.mask_misalignment'] = True
-# add misalignment to phase registration
-TRAIN_COMMON_PARAMS['data.aug.phase_misalignment'] = True
+
 
 # ===============
 # Manager - Train
@@ -91,7 +92,7 @@ TRAIN_COMMON_PARAMS['manager.train_params'] = {
     'num_epochs': 150,
     'virtual_batch_size': 1,  # number of batches in one virtual batch
     'start_saving_epochs': 120,  # first epoch to start saving checkpoints from
-    'gap_between_saving_epochs': 5,  # number of epochs between saved checkpoint
+    'gap_between_saving_epochs': 1,  # number of epochs between saved checkpoint
 }
 TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = [
     {
@@ -100,22 +101,40 @@ TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = [
         'on_equal_values': 'better',
         # can be either better/worse - whether to consider best epoch when values are equal
     },
-
 ]
 TRAIN_COMMON_PARAMS['manager.learning_rate'] = 1e-5
-TRAIN_COMMON_PARAMS['manager.weight_decay'] = 1e-4
+TRAIN_COMMON_PARAMS['manager.weight_decay'] = 1e-3
 TRAIN_COMMON_PARAMS['manager.dropout'] = 0.5
 TRAIN_COMMON_PARAMS['manager.momentum'] = 0.9
-TRAIN_COMMON_PARAMS['manager.resume_checkpoint_filename'] = None  # if not None, will try to load the checkpoint
+TRAIN_COMMON_PARAMS['manager.resume_checkpoint_filename'] = None
 
-TRAIN_COMMON_PARAMS['num_backbone_features'] = 512
-TRAIN_COMMON_PARAMS['task'] = FuseProstateXTask('ClinSig', 0)
+TRAIN_COMMON_PARAMS['num_backbone_features_imaging'] = 512
+
+# in order to add relevant tabular feature uncomment:
+# num_backbone_features_clinical, post_concat_inputs,post_concat_model
+TRAIN_COMMON_PARAMS['num_backbone_features_clinical'] = None#256
+TRAIN_COMMON_PARAMS['post_concat_inputs'] = None#[('data.clinical_features',9),]
+TRAIN_COMMON_PARAMS['post_concat_model'] = None#(256,256)
+
+if TRAIN_COMMON_PARAMS['num_backbone_features_clinical'] is None:
+    TRAIN_COMMON_PARAMS['num_backbone_features'] = TRAIN_COMMON_PARAMS['num_backbone_features_imaging']
+else:
+    TRAIN_COMMON_PARAMS['num_backbone_features'] = \
+            TRAIN_COMMON_PARAMS['num_backbone_features_imaging']+TRAIN_COMMON_PARAMS['num_backbone_features_clinical']
+
+# classification_task:
+# supported tasks are: 'Staging Tumor Size','Histology Type','is High Tumor Grade Total','PCR'
+
+TRAIN_COMMON_PARAMS['classification_task'] = 'Staging Tumor Size'
+TRAIN_COMMON_PARAMS['task'] = FuseTask(TRAIN_COMMON_PARAMS['classification_task'], 0)
 TRAIN_COMMON_PARAMS['class_num'] = TRAIN_COMMON_PARAMS['task'].num_classes()
 
 # backbone parameters
 TRAIN_COMMON_PARAMS['backbone_model_dict'] = \
-    {'input_channels_num': 5,
+    {'input_channels_num': 1,
      }
+
+
 
 def train_template(paths: dict, train_common_params: dict):
     # ==============================================================================
@@ -129,17 +148,15 @@ def train_template(paths: dict, train_common_params: dict):
     lgr.info(f'model_dir={paths["model_dir"]}', {'color': 'magenta'})
     lgr.info(f'cache_dir={paths["cache_dir"]}', {'color': 'magenta'})
 
-    # ==============================================================================
-    # Data
-    # ==============================================================================
-    train_dataset, validation_dataset = prostate_x_dataset(paths,train_common_params,lgr)
+    #Data
+    train_dataset,validation_dataset = duke_breast_cancer_dataset(paths, train_common_params, lgr)
 
     ## Create dataloader
     lgr.info(f'- Create sampler:')
 
     sampler = FuseSamplerBalancedBatch(dataset=train_dataset,
                                        balanced_class_name='data.ground_truth',
-                                       num_balanced_classes=train_common_params['task'].num_classes(),
+                                       num_balanced_classes=train_common_params['class_num'],
                                        batch_size=train_common_params['data.batch_size'],
                                        balanced_class_weights=
                                        [int(train_common_params['data.batch_size']/train_common_params['class_num'])] * train_common_params['class_num'],
@@ -170,10 +187,13 @@ def train_template(paths: dict, train_common_params: dict):
     model = Fuse_model_3d_multichannel(
         conv_inputs=(('data.input', 1),),
         backbone= ResNet(ch_num=TRAIN_COMMON_PARAMS['backbone_model_dict']['input_channels_num']),
+        # since backbone resnet contains pooling and fc, the feature output is 1D,
+        # hence we use FuseHead1dClassifier as classification head
         heads=[
-        FuseHead1dClassifier(head_name='ClinSig',
+        FuseHead1dClassifier(head_name='isLargeTumorSize',
                                         conv_inputs=[('model.backbone_features',  train_common_params['num_backbone_features'])],
-                                        post_concat_inputs=None,
+                                        post_concat_inputs = train_common_params['post_concat_inputs'],
+                                        post_concat_model = train_common_params['post_concat_model'],
                                         dropout_rate=0.25,
                                         shared_classifier_head=None,
                                         layers_description=None,
@@ -189,7 +209,7 @@ def train_template(paths: dict, train_common_params: dict):
     lgr.info('Losses: CrossEntropy', {'attrs': 'bold'})
 
     losses = {
-            'cls_loss': FuseLossDefault(pred_name='model.logits.ClinSig',
+            'cls_loss': FuseLossDefault(pred_name='model.logits.isLargeTumorSize',
                                         target_name='data.ground_truth',
                                         callable=F.cross_entropy, weight=1.0),
         }
@@ -202,12 +222,12 @@ def train_template(paths: dict, train_common_params: dict):
 
     metrics = {
 
-        'auc': FuseMetricAUC(pred_name='model.output.ClinSig', target_name='data.ground_truth',
+        'auc': FuseMetricAUC(pred_name='model.output.isLargeTumorSize', target_name='data.ground_truth',
                                 class_names=train_common_params['task'].class_names()),
     }
 
 
-    # =====================================================================================
+    ()# =====================================================================================
     #  Callbacks
     # =====================================================================================
     callbacks = [
@@ -227,7 +247,7 @@ def train_template(paths: dict, train_common_params: dict):
     optimizer = optim.Adam(model.parameters(),
                            lr=train_common_params['manager.learning_rate'],
                            weight_decay=train_common_params['manager.weight_decay'])
-
+    #
     # create scheduler
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, verbose=True)
 
@@ -260,9 +280,9 @@ def train_template(paths: dict, train_common_params: dict):
 # Inference Common Params
 ######################################
 INFER_COMMON_PARAMS = {}
-INFER_COMMON_PARAMS['db_version'] = 29062021
-INFER_COMMON_PARAMS['db_name'] = 'prostate_x'
-INFER_COMMON_PARAMS['fold_no'] = 0
+INFER_COMMON_PARAMS['partition_version'] = '11102021TumorSize'
+INFER_COMMON_PARAMS['db_name'] = 'DUKE'
+INFER_COMMON_PARAMS['fold_no'] = 4
 INFER_COMMON_PARAMS['infer_filename'] = os.path.join(PATHS['inference_dir'], 'validation_set_infer.pickle.gz')
 INFER_COMMON_PARAMS['checkpoint'] = 'best' # Fuse TIP: possible values are 'best', 'last' or epoch_index.
 
@@ -279,8 +299,8 @@ def infer_template(paths: dict, infer_common_params: dict):
     #### create infer datasource
 
     ## Create data source:
-    infer_data_source = FuseProstateXDataSourcePatient(PATHS['dataset_dir'],'validation',
-                                                       db_ver=infer_common_params['db_version'],
+    infer_data_source = FuseProstateXDataSourcePatient(paths['dataset_dir'],'validation',
+                                                       db_ver=infer_common_params['partition_version'],
                                                        db_name = infer_common_params['db_name'],
                                                        fold_no=infer_common_params['fold_no'])
     lgr.info(f'db_name={infer_common_params["db_name"]}', {'color': 'magenta'})
@@ -288,7 +308,7 @@ def infer_template(paths: dict, infer_common_params: dict):
     #### Manager for inference
     manager = FuseManagerDefault()
     # extract just the global classification per sample and save to a file
-    output_columns = ['model.output.ClinSig','data.ground_truth']
+    output_columns = ['model.output.isLargeTumorSize','data.ground_truth']
     manager.infer(data_source=infer_data_source,
                   input_model_dir=paths['model_dir'],
                   checkpoint=infer_common_params['checkpoint'],
@@ -301,7 +321,7 @@ def infer_template(paths: dict, infer_common_params: dict):
 ######################################
 ANALYZE_COMMON_PARAMS = {}
 ANALYZE_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
-ANALYZE_COMMON_PARAMS['output_filename'] = os.path.join(PATHS['analyze_dir'], 'all_metrics')
+ANALYZE_COMMON_PARAMS['output_filename'] = os.path.join(PATHS['analyze_dir'], 'all_metrics_DCE_T0_fold4')
 ######################################
 # Analyze Template
 ######################################
@@ -316,9 +336,9 @@ def analyze_template(paths: dict, analyze_common_params: dict):
 
     # metrics
     metrics = {
-        'roc': FuseMetricROCCurve(pred_name='model.output.ClinSig', target_name='data.ground_truth',
+        'roc': FuseMetricROCCurve(pred_name='model.output.isLargeTumorSize', target_name='data.ground_truth',
                                   output_filename=os.path.join(paths['inference_dir'], 'roc_curve.png')),
-        'auc': FuseMetricAUC(pred_name='model.output.ClinSig', target_name='data.ground_truth')
+        'auc': FuseMetricAUC(pred_name='model.output.isLargeTumorSize', target_name='data.ground_truth')
     }
 
     # create analyzer
@@ -326,7 +346,7 @@ def analyze_template(paths: dict, analyze_common_params: dict):
 
     # run
     results = analyzer.analyze(gt_processors={},
-                     data_pickle_filename=os.path.join(PATHS["inference_dir"], analyze_common_params["infer_filename"]),
+                     data_pickle_filename=os.path.join(paths["inference_dir"], analyze_common_params["infer_filename"]),
                      metrics=metrics,
                      output_filename=analyze_common_params['output_filename'])
 
@@ -344,7 +364,7 @@ if __name__ == "__main__":
     force_gpus = None  # [0]
     FuseUtilsGPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
-    RUNNING_MODES = ['train','infer', 'analyze']  # Options: 'train', 'infer', 'analyze'
+    RUNNING_MODES = ['train']  # Options: 'train', 'infer', 'analyze'
 
     if 'train' in RUNNING_MODES:
         train_template(paths=PATHS, train_common_params=TRAIN_COMMON_PARAMS)

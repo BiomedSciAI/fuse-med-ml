@@ -18,16 +18,15 @@ import SimpleITK as sitk
 import numpy as np
 import torch
 import logging
+import cv2
 from scipy.ndimage.morphology import binary_dilation
-
 from fuse.data.processor.processor_base import FuseProcessorBase
-
-from fuse_examples.classification.prostate_x.data_utils import FuseProstateXUtilsData
-# from fuse_examples.classification.prostate_x.processor_dicom_mri import FuseDicomMRIProcessor
 from fuse.data.processor.processor_dicom_mri import FuseDicomMRIProcessor
 
+from fuse_examples.classification.prostate_x.data_utils import FuseProstateXUtilsData
 
-class FuseProstateXPatchProcessor(FuseProcessorBase):
+
+class FusePatchProcessor(FuseProcessorBase):
     """
     This processor crops the lesion volume from within 4D MRI volume base on
     lesion location as appears in the database.
@@ -50,6 +49,7 @@ class FuseProstateXPatchProcessor(FuseProcessorBase):
                  fold_no : int = None,
                  lsn_shape: Tuple[int, int, int] = (16, 120, 120),
                  lsn_spacing: Tuple[float, float, float] = (3, 0.5, 0.5),
+                 longtd_inx: int = 0,
                  ):
         """
         :param vol_processor - extracts 4D tensor from path to MRI dicoms
@@ -72,12 +72,12 @@ class FuseProstateXPatchProcessor(FuseProcessorBase):
         self.db_name = db_name
         self.db_ver = db_version
         self.fold_no=fold_no
-        self.prostate_data_path = os.path.join(self.data_path,'PROSTATEx/')
-
+        self.prostate_data_path = self.data_path
+        self.longtd_inx = longtd_inx
 
 
     # ========================================================================
-    def create_resample(self,vol_ref:sitk.sitkFloat32, interpolation: str, size:Tuple[int,int,int], spacing: Tuple[float,float,float]):
+    def create_resample(self,vol_ref:sitk.sitkFloat32, interpolation: str, size:tuple, spacing: tuple):
         """
         create_resample create resample operator
         :param vol_ref: sitk vol to use as a ref
@@ -171,6 +171,92 @@ class FuseProstateXPatchProcessor(FuseProcessorBase):
 
 
     # ========================================================================
+    def crop_lesion_vol_mask_based(self,vol:sitk.sitkFloat32, position:tuple, ref:sitk.sitkFloat32, size:Tuple[int,int,int]=(160, 160, 32),
+                        spacing:Tuple[int,int,int]=(1, 1, 3), mask_inx = -1,is_use_mask=True):
+        """
+        crop_lesion_vol crop tensor around position
+        :param vol: vol to crop
+        :param position: point to crop around
+        :param ref: reference volume
+        :param size: size in pixels to crop
+        :param spacing: spacing to resample the col
+        :param center_slice: z coordinates of position
+        :param mask_inx: channel index in which mask is located default: last channel
+        :param is_use_mask: use mask to define crop bounding box
+        :return: cropped volume
+        """
+
+        margin = [20,20,0]
+        vol_np = sitk.GetArrayFromImage(vol)
+        if is_use_mask:
+
+            mask = sitk.GetArrayFromImage(vol)[:,:,:,mask_inx]
+            mask_bool = np.zeros(mask.shape).astype(int)
+            mask_bool[mask>0.01]=1
+            mask_final = sitk.GetImageFromArray(mask_bool)
+            mask_final.CopyInformation(ref)
+
+            lsif = sitk.LabelShapeStatisticsImageFilter()
+            lsif.Execute(mask_final)
+            bounding_box = np.array(lsif.GetBoundingBox(1))
+            vol_np[:, :, :, mask_inx] = mask_bool
+        else:
+            bounding_box = np.array([int(position[0]) - int(size[0] / 2),
+                           int(position[1]) - int(size[1] / 2),
+                           int(position[2]) - int(size[2] / 2),
+                           size[0],
+                           size[1],
+                           size[2]
+                           ])
+        # in z use a fixed number of slices,based on position
+        bounding_box[-1] = size[2]
+        bounding_box[2] = int(position[2]) - int(size[2]/2)
+
+        bounding_box_size = bounding_box[3:5][np.argmax(bounding_box[3:5])]
+        dshift = bounding_box[3:5] - bounding_box_size
+        dshift = np.append(dshift,0)
+
+        ijk_min_bound = np.maximum(bounding_box[0:3]+dshift - margin,0)
+        ijk_max_bound = np.maximum(bounding_box[0:3]+dshift+[bounding_box_size,bounding_box_size,bounding_box[-1]] + margin,0)
+
+
+
+        vol_np_cropped = vol_np[ijk_min_bound[2]:ijk_max_bound[2],ijk_min_bound[1]:ijk_max_bound[1],ijk_min_bound[0]:ijk_max_bound[0],:]
+        vol_np_resized = np.zeros((size[2],size[0],size[1],vol_np_cropped.shape[-1]))
+        for si in range(vol_np_cropped.shape[0]):
+            for ci in range(vol_np_cropped.shape[-1]):
+                vol_np_resized[si,:,:,ci] = cv2.resize(vol_np_cropped[si, :,:, ci], (size[0],size[1]), interpolation=cv2.INTER_AREA)
+
+        img = sitk.GetImageFromArray(vol_np_resized)
+        mask = sitk.GetImageFromArray(vol_np_resized[:,:,:,mask_inx])
+
+        return img, mask
+
+
+    def get_zeros_vol(self,vol):
+        if vol.GetNumberOfComponentsPerPixel()>1:
+            ref_zeros_vol = sitk.VectorIndexSelectionCast(vol,0)
+        else:
+            ref_zeros_vol = vol
+        zeros_vol = np.zeros_like(sitk.GetArrayFromImage(ref_zeros_vol))
+        zeros_vol = sitk.GetImageFromArray(zeros_vol)
+        zeros_vol.CopyInformation(ref_zeros_vol)
+        return zeros_vol
+
+    def extract_mask_from_annotation(self,vol_ref,bbox_coords):
+        xstart = bbox_coords[0]
+        ystart = bbox_coords[1]
+        zstart = bbox_coords[2]
+        xsize = bbox_coords[3]
+        ysize = bbox_coords[4]
+        zsize = bbox_coords[5]
+
+        mask = self.get_zeros_vol(vol_ref)
+        mask_np = sitk.GetArrayFromImage(mask)
+        mask_np[zstart:zstart+zsize,ystart:ystart+ysize,xstart:xstart+xsize] = 1.0
+        return mask_np
+
+    # ========================================================================
     def __call__(self,
                  sample_desc,
                  *args, **kwargs):
@@ -182,7 +268,7 @@ class FuseProstateXPatchProcessor(FuseProcessorBase):
         samples = []
 
         # decode descriptor
-        patient_id= sample_desc
+        patient_id = sample_desc
 
         # ========================================================================
         # get db - lesions
@@ -201,8 +287,7 @@ class FuseProstateXPatchProcessor(FuseProcessorBase):
         # all seq paths for a certain patient
 
 
-        patient_directories = os.listdir(os.path.join(self.prostate_data_path, patient_id))
-        patient_directories = patient_directories[0]
+        patient_directories = os.path.join(os.path.join(self.prostate_data_path, patient_id),patient['ser_name_T'+str(self.longtd_inx)].values[0][2:-2])
         images_path = os.path.join(self.prostate_data_path, patient_id, patient_directories)
 
         # ========================================================================
@@ -214,22 +299,45 @@ class FuseProstateXPatchProcessor(FuseProcessorBase):
 
         for index, row in patient.iterrows():
             #read original position
-            pos_orig = np.array(np.fromstring(row.values[1], dtype=np.float32, sep=' '))
+            pos_orig = np.fromstring(row['centroid_T'+str(self.longtd_inx)][1:-1], dtype=np.float32, sep=',')
+
             # transform to pixel coordinate in ref coords
             pos_vol = np.array(vol_ref.TransformPhysicalPointToContinuousIndex(pos_orig.astype(np.float64)))
+
+            vol_4d_tmp = sitk.GetArrayFromImage(vol_4D)
+            if sum(sum(sum(vol_4d_tmp[:,:,:,-1])))==0:
+                bbox_coords = np.fromstring(row['bbox_T' +str(self.longtd_inx)][1:-1],dtype = np.int32,sep=',')
+                mask = self.extract_mask_from_annotation(vol_ref,bbox_coords)
+                vol_4d_tmp[:,:,:,-1] = mask
+                vol_4d_new = sitk.GetImageFromArray(vol_4d_tmp)
+                vol_4D = vol_4d_new
+
+
+
+                # crop lesion vol - resized to lsn_shape
+            vol_cropped_orig, mask_cropped_orig = self.crop_lesion_vol_mask_based(
+                    vol_4D, pos_vol, vol_ref,
+                    size=(2*self.lsn_shape[2], 2*self.lsn_shape[1], self.lsn_shape[0]),
+                    spacing=(self.lsn_spacing[2], self.lsn_spacing[1], self.lsn_spacing[0]), mask_inx=-1,is_use_mask=False)
+
             # crop lesion vol
-            vol_cropped, mask_cropped = self.crop_lesion_vol(
-                vol_4D, pos_vol,vol_ref ,center_slice=pos_vol[2],
+            vol_cropped, mask_cropped = self.crop_lesion_vol_mask_based(
+                vol_4D, pos_vol,vol_ref ,
                 size=(self.lsn_shape[2], self.lsn_shape[1], self.lsn_shape[0]),
-                spacing=(self.lsn_spacing[2], self.lsn_spacing[1], self.lsn_spacing[0]))
+                spacing=(self.lsn_spacing[2], self.lsn_spacing[1], self.lsn_spacing[0]), mask_inx = -1,is_use_mask=True)
+
 
             vol_cropped_tmp = sitk.GetArrayFromImage(vol_cropped)
+            vol_cropped_orig_tmp = sitk.GetArrayFromImage(vol_cropped_orig)
             if len(vol_cropped_tmp.shape)<4:
                 # fix dimensions in case of one seq
                 vol_cropped_tmp = vol_cropped_tmp[:,:,:,np.newaxis]
                 vol = np.moveaxis(vol_cropped_tmp, 3, 0)
+                vol_cropped_orig_tmp = vol_cropped_orig_tmp[:, :, :, np.newaxis]
+                vol_orig = np.moveaxis(vol_cropped_orig_tmp, 3, 0)
             else:
                 vol = np.moveaxis(sitk.GetArrayFromImage(vol_cropped), 3, 0)
+                vol_orig = np.moveaxis(sitk.GetArrayFromImage(vol_cropped_orig), 3, 0)
 
             if np.isnan(vol).any():
                 input[np.isnan(input)] = 0
@@ -238,15 +346,17 @@ class FuseProstateXPatchProcessor(FuseProcessorBase):
             vol_tensor = torch.from_numpy(vol).type(torch.FloatTensor)
             mask_tensor = torch.from_numpy(mask).unsqueeze(0).type(torch.FloatTensor)
 
+            mask_orig = sitk.GetArrayFromImage(mask_cropped_orig)
+            vol_tensor_orig = torch.from_numpy(vol_orig).type(torch.FloatTensor)
+            mask_tensor_orig = torch.from_numpy(mask_orig).unsqueeze(0).type(torch.FloatTensor)
+
             # sample
             sample = {
                 'patient_num': patient_id,
-                'lesion_num': row['fid'],
                 'input': vol_tensor,
+                'input_orig': vol_tensor_orig,
                 'input_lesion_mask': mask_tensor,
-                'ggg': row['ggg'],
-                'zone': row['zone'],
-                'ClinSig': row['ClinSig'],
+                'add_data':row,
 
             }
 
@@ -258,36 +368,34 @@ class FuseProstateXPatchProcessor(FuseProcessorBase):
 
 
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-    import pandas as pd
+    from fuse_examples.classification.duke_breast_cancer.dataset import process_mri_series
 
-    path_to_db = '/gpfs/haifa/projects/m/msieve_dev3/usr/Tal/my_research/virtual_biopsy/prostate/experiments/V4/'
-    dataset = 'prostate_x'
-    if dataset=='prostate_x':
-    # for ProstateX
-        path_to_dataset = '/projects/msieve/MedicalSieve/PatientData/ProstateX/manifest-A3Y4AE4o5818678569166032044/'
-        prostate_data_path = path_to_dataset
-        Ktrain_data_path = path_to_dataset + '/ProstateXKtrains-train-fixed/'
-        sample = ('29062021', 'train', 'ProstateX-0148', 'pred')
+    path_to_db = '.'
+    root_data = '/gpfs/haifa/projects/m/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI/manifest-1607053360376/'
 
-        a = FuseProstateXPatchProcessor(vol_processor=FuseDicomMRIProcessor(reference_inx=0),path_to_db = path_to_db,
-                                        data_path=prostate_data_path,ktrans_data_path=Ktrain_data_path,
-                                        db_name=dataset,fold_no=1,lsn_shape=(13, 74, 74))
-        samples = a.__call__(sample)
-        l_seq = pd.read_csv('/gpfs/haifa/projects/m/msieve_dev3/usr/Tal/my_research/virtual_biopsy/prostate/prostate_x/metadata.csv')
-        for sample_id in list(l_seq['Subject ID'].unique()):
-            # sample_id = 'ACRIN-6698-760011'
-            sample = ('29062021', 'validation', sample_id, 'pred')
-            samples = a.__call__(sample)
-            if len(samples)==0:
-                sample = ('29062021', 'train', sample_id, 'pred')
-                samples = a.__call__(sample)
+    seq_dict,SER_INX_TO_USE,exp_patients = process_mri_series(root_data+'/metadata.csv')
+    mri_vol_processor = FuseDicomMRIProcessor(seq_dict=seq_dict,
+                                              seq_to_use=['DCE_mix_ph1',
+                                                          'DCE_mix_ph2',
+                                                          'DCE_mix_ph3',
+                                                          'DCE_mix_ph4',
+                                                          'DCE_mix',
+                                                          'DCE_mix_ph',
+                                                          'MASK'],
+                                              subseq_to_use=['DCE_mix_ph2', 'MASK'],
+                                              ser_inx_to_use=SER_INX_TO_USE,
+                                              exp_patients=exp_patients,
+                                              reference_inx=0,
+                                              use_order_indicator=False)
 
-            path2save = '/gpfs/haifa/projects/m/msieve_dev3/usr/Tal/my_research/virtual_biopsy/prostate/prostate_x/data_visualization/'
-            fix, ax = plt.subplots(nrows=5, ncols=13, sharex=True, sharey=True)
-            for idx in range(5):
-                for jdx in range(13):
-                    ll = samples[0]['input'].cpu().detach().numpy()[idx, jdx, :, :]
-                    ax[idx, jdx].imshow(ll, cmap='gray')
-            fix.suptitle(sample_id)
-            fix.savefig(path2save + sample_id + '.jpg')
+    a = FusePatchProcessor(vol_processor=mri_vol_processor,
+                           path_to_db=path_to_db,
+                           data_path=root_data + 'Duke-Breast-Cancer-MRI',
+                           ktrans_data_path='',
+                           db_name='DUKE',db_version='11102021TumorSize',
+                           fold_no=0, lsn_shape=(9, 100, 100), lsn_spacing=(1, 0.5, 0.5))
+
+
+
+    sample = 'Breast_MRI_900'
+    samples = a.__call__(sample)
