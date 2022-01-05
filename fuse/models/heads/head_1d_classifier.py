@@ -25,8 +25,14 @@ from typing import Dict, Tuple, Sequence, Optional
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 
 class ClassifierLinear(nn.Module):
-    def __init__(self, in_ch, num_classes, layers_description=(256,), dropout_rate=0.1):
+    def __init__(self,
+                 in_ch: Sequence[int] = (256,),
+                 num_classes: float = 2,
+                 layers_description: Sequence[int] = (256,),
+                 dropout_rate: float = 0.1,):
+
         super(ClassifierLinear, self).__init__()
+
         layer_list = []
         if layers_description is not None:
             layer_list.append(nn.Linear(in_ch, layers_description[0]))
@@ -51,6 +57,32 @@ class ClassifierLinear(nn.Module):
         x = self.classifier(x)
         return x
 
+class LinearLayers(nn.Module):
+    def __init__(self,
+                 in_ch: Sequence[int] = (256,),
+                 layers_description: Sequence[int] = (256,),
+                 dropout_rate: float = 0.1,):
+
+        super(LinearLayers, self).__init__()
+        layer_list = []
+        layer_list.append(nn.Linear(in_ch, layers_description[0]))
+        layer_list.append(nn.ReLU())
+        if dropout_rate is not None and dropout_rate > 0:
+            layer_list.append(nn.Dropout(p=dropout_rate))
+        last_layer_size = layers_description[0]
+        if len(layers_description)>1:
+            for curr_layer_size in layers_description[1:]:
+                layer_list.append(nn.Linear(last_layer_size, curr_layer_size))
+                layer_list.append(nn.ReLU())
+                if dropout_rate is not None and dropout_rate > 0:
+                    layer_list.append(nn.Dropout(p=dropout_rate))
+                last_layer_size = curr_layer_size
+
+        self.classifier = nn.Sequential(*layer_list)
+
+    def forward(self, x):
+        x = self.classifier(x)
+        return x
 
 class FuseHead1dClassifier(nn.Module):
     def __init__(self,
@@ -58,9 +90,11 @@ class FuseHead1dClassifier(nn.Module):
                  conv_inputs: Sequence[Tuple[str, int]] = (('model.backbone_features', 193),),
                  num_classes: int = 2,
                  post_concat_inputs: Optional[Sequence[Tuple[str, int]]] = None,
+                 post_concat_model: Optional[Sequence[int]] = None,
                  layers_description: Sequence[int] = (256,),
                  dropout_rate: float = 0.1,
                  shared_classifier_head: Optional[torch.nn.Module] = None,
+
                  ) -> None:
         """
         Classifier head 1d.
@@ -73,6 +107,7 @@ class FuseHead1dClassifier(nn.Module):
                                             If multiple inputs are used, they are concatenated on the channel axis
         :param num_classes:                 Number of output classes (per feature map location)
         :param post_concat_inputs:          Additional vector (one dimensional) inputs, concatenated just before the classifier module
+        :param post_concat_model            Layers description for the post_concat_inputs module - sequence of hidden layers sizes
         :param layers_description:          Layers description for the classifier module - sequence of hidden layers sizes
         :param dropout_rate:                Dropout rate for classifier module layers
         :param shared_classifier_head:      Optional reference for external torch.nn.Module classifier
@@ -83,10 +118,23 @@ class FuseHead1dClassifier(nn.Module):
         self.head_name = head_name
         self.conv_inputs = conv_inputs
         self.post_concat_inputs = post_concat_inputs
+        self.post_concat_model = post_concat_model
 
         feature_depth = sum([conv_input[1] for conv_input in self.conv_inputs])
-        if post_concat_inputs is not None:
+
+        if (post_concat_inputs is not None) and (self.post_concat_model is None):
+            ## concat post_concat_input directly to conv_input,
             feature_depth += sum([post_concat_input[1] for post_concat_input in post_concat_inputs])
+
+        elif self.post_concat_model is not None:
+            # concat post_concat_input features from classifier_post_concat_model to conv_input
+            features_depth_post_concat = sum([post_concat_input[1] for post_concat_input in post_concat_inputs])
+            self.classifier_post_concat_model = LinearLayers(in_ch=features_depth_post_concat,
+                                                           layers_description=self.post_concat_model,
+                                                           dropout_rate=dropout_rate)
+
+
+
 
         if shared_classifier_head is not None:
             self.classifier_head_module = shared_classifier_head
@@ -101,6 +149,7 @@ class FuseHead1dClassifier(nn.Module):
 
     def forward(self,
                 batch_dict: Dict) -> Dict:
+
         conv_input = torch.cat([FuseUtilsHierarchicalDict.get(batch_dict, conv_input[0]) for conv_input in self.conv_inputs])
 
         res = conv_input
@@ -109,7 +158,13 @@ class FuseHead1dClassifier(nn.Module):
         if self.post_concat_inputs is not None:
             post_concat_input = torch.cat(
                 [FuseUtilsHierarchicalDict.get(batch_dict, post_concat_input[0]) for post_concat_input in self.post_concat_inputs])
-            res = torch.cat([res, post_concat_input])
+            if self.post_concat_model is None:
+                # concat post_concat_input directly to conv_input
+                res = torch.cat([res, post_concat_input],dim=1)
+            else:
+                # concat post_concat_input features from classifier_post_concat_model to conv_input
+                post_concat_input_feat = self.classifier_post_concat_model(post_concat_input)
+                res = torch.cat([res, post_concat_input_feat], dim=1)
 
         logits = self.classifier_head_module(res)  # --> res.shape = [batch_size, 2, 1, 1]
         if len(logits.shape) > 2:

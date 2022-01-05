@@ -1,20 +1,15 @@
 """
 (C) Copyright 2021 IBM Corp.
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
    http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
 Created on June 30, 2021
-
 """
 
 from typing import Sequence, Dict, Tuple
@@ -25,7 +20,7 @@ import torch.nn as nn
 
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 import numpy as np
-from fuse_examples.classification.prostate_x.head_1d_classifier import FuseHead1dClassifier
+from fuse.models.heads.head_1d_classifier import FuseHead1dClassifier
 
 
 # 3x3 convolution
@@ -72,7 +67,7 @@ class ResidualBlock(torch.nn.Module):
 class ResNet(torch.nn.Module):
     def __init__(self,
                  conv_inputs:Tuple[Tuple[str, int], ...] = (('data.input', 1),),
-                 ch_num: None = None,
+                 ch_num: int = None,
                  ) -> None:
 
         super(ResNet, self).__init__()
@@ -84,9 +79,9 @@ class ResNet(torch.nn.Module):
         in_features = [self.in_channels ,48,112,240,496]
         self.conv_inputs = conv_inputs
         if self.ch_num is None:
-            self.conv = conv3x3(5, 16)
+            self.conv = conv3x3(1, 16)
         else:
-            self.conv = conv3x3(len(self.ch_num), 16)
+            self.conv = conv3x3(self.ch_num, 16)
 
 
         self.bn = nn.BatchNorm3d(16)
@@ -130,10 +125,6 @@ class ResNet(torch.nn.Module):
             conv_input = torch.cat([tmp_tensor.unsqueeze_(0) if len(tmp_tensor.shape)<max_tensor_dim else tmp_tensor for tmp_tensor in tensors_list], 1)
         else:
             conv_input = torch.cat([FuseUtilsHierarchicalDict.get(batch_dict, conv_input[0]) for conv_input in self.conv_inputs], 1)
-
-        if (self.ch_num is not None):
-            if (conv_input.shape[0]>len(self.ch_num)):
-                conv_input = conv_input[:,self.ch_num, :, :, :]
 
 
         if len(conv_input.shape)<4:
@@ -213,7 +204,6 @@ class Fuse_model_3d_multichannel(torch.nn.Module):
 
         features = self.backbone(batch_dict)
         FuseUtilsHierarchicalDict.set(batch_dict, 'model.backbone_features', features)
-        FuseUtilsHierarchicalDict.set(batch_dict, 'model.backbone_features', features)
 
         for head in self.heads:
             batch_dict = head.forward(batch_dict)
@@ -252,7 +242,7 @@ if __name__ == '__main__':
     import gzip
     import pickle
 
-    real_data_example = '/gpfs/haifa/projects/m/msieve_dev3/usr/Tal/fus_sessions/prostate/ProstateX_runs/V2/cache_prostate_x_size=74x74x13_spacing=0.5x0.5X3_fold0/0000000001.pkl.gz'
+    real_data_example = '/gpfs/haifa/projects/m/msieve_dev3/usr/Tal/fus_sessions/prostate/ProstateX_runs/V4/cache_fold4_T2_DWI_ADC_Ktrans/0000000001.pkl.gz'
     with gzip.open(real_data_example, 'rb') as pickle_file:
         dummy_data = pickle.load(pickle_file)
         clinical_data = torch.rand([1]).to(DEVICE)
