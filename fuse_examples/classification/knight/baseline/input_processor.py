@@ -52,7 +52,10 @@ class KiTSBasicInputProcessor(FuseProcessorBase):
                  inner_image_desc,
                  *args, **kwargs):
         try:
-            img_path = os.path.join(self.input_data, 'knight', 'data', str(inner_image_desc), 'imaging.nii.gz')
+            if self.input_data.endswith('images'):
+                img_path = os.path.join(self.input_data, str(inner_image_desc) + '.nii.gz')
+            else:
+                img_path = os.path.join(self.input_data, str(inner_image_desc), 'imaging.nii.gz')
 
             # read image
             data_itk = sitk.ReadImage(img_path)

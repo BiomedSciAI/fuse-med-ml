@@ -89,7 +89,7 @@ def main():
     ## FuseMedML dataset preparation
     ##############################################################################
 
-    train_dl, valid_dl, _, _ = knight_dataset(data_dir=data_path, cache_dir=cache_path, split=split, \
+    train_dl, valid_dl, _, _, _, _ = knight_dataset(data_dir=data_path, cache_dir=cache_path, split=split, \
                 reset_cache=False, rand_gen=rand_gen, batch_size=batch_size, resize_to=resize_to, \
                 task_num=task_num, target_name=target_name, num_classes=num_classes)
 

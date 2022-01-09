@@ -111,17 +111,23 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
         ],
     ]
     
-    train_data_source = FuseDataSourceDefault(list(split['train']))
+    if 'train' in split:
+        train_data_source = FuseDataSourceDefault(list(split['train']))
+        image_dir = os.path.join(data_dir, 'knight', 'data')
+        json_filepath = os.path.join(image_dir, 'knight.json')
+    else: # split can contain BOTH 'train' and 'val', or JUST 'test'
+        image_dir = os.path.join(data_dir, 'images')
+        json_filepath = os.path.join(data_dir, 'knight_test.json')
 
     # we use the same processor for the clinical data and ground truth, since both are in the .csv file
     # need to make sure to discard the label column from the data when using it as input
     input_processors = {
-        'image': KiTSBasicInputProcessor(input_data=data_dir, resize_to=resize_to),
-        'clinical': KiCClinicalProcessor(json_filename=os.path.join(data_dir, 'knight', 'data', 'knight.json'))
+        'image': KiTSBasicInputProcessor(input_data=image_dir, resize_to=resize_to),
+        'clinical': KiCClinicalProcessor(json_filename=json_filepath)
     }
  
     gt_processors = {
-        'gt_global': KiCGTProcessor(json_filename=os.path.join(data_dir, 'knight', 'data', 'knight.json'), columns_to_tensor={'task_1_label':torch.long, 'task_2_label':torch.long})
+        'gt_global': KiCGTProcessor(json_filename=json_filepath, columns_to_tensor={'task_1_label':torch.long, 'task_2_label':torch.long})
     }
 
     # Create data augmentation (optional)
@@ -131,70 +137,102 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
     # Create visualizer (optional)
     visualizer = Fuse3DVisualizerDefault(image_name = 'data.input.image', label_name=target_name)
     # Create dataset
-    train_dataset = FuseDatasetDefault(cache_dest=cache_dir,
-                                       data_source=train_data_source,
-                                       input_processors=input_processors,
-                                       gt_processors=gt_processors,
-                                       post_processing_func=prepare_clinical,
-                                       augmentor=augmentor,
-                                       visualizer=visualizer)
+    if 'train' in split:
+        train_dataset = FuseDatasetDefault(cache_dest=cache_dir,
+                                        data_source=train_data_source,
+                                        input_processors=input_processors,
+                                        gt_processors=gt_processors,
+                                        post_processing_func=prepare_clinical,
+                                        augmentor=augmentor,
+                                        visualizer=visualizer)
 
-    print(f'- Load and cache data:')
-    train_dataset.create(reset_cache=reset_cache)
+        print(f'- Load and cache data:')
+        train_dataset.create(reset_cache=reset_cache)
     
-    print(f'- Load and cache data: Done')
+        print(f'- Load and cache data: Done')
 
-    ## Create sampler
-    print(f'- Create sampler:')
-    sampler = FuseSamplerBalancedBatch(dataset=train_dataset,
-                                       balanced_class_name=target_name,
-                                       num_balanced_classes=num_classes,
-                                       batch_size=batch_size,
-                                       balanced_class_probs=[1.0/num_classes]*num_classes if task_num==2 else None,
-                                       use_dataset_cache=False) # we don't want to use_dataset_cache here since it's more 
-                                                                # costly to read all cached data then simply the CSV file 
-                                                                # which contains the labels
+        ## Create sampler
+        print(f'- Create sampler:')
+        sampler = FuseSamplerBalancedBatch(dataset=train_dataset,
+                                        balanced_class_name=target_name,
+                                        num_balanced_classes=num_classes,
+                                        batch_size=batch_size,
+                                        balanced_class_probs=[1.0/num_classes]*num_classes if task_num==2 else None,
+                                        use_dataset_cache=False) # we don't want to use_dataset_cache here since it's more 
+                                                                    # costly to read all cached data then simply the CSV file 
+                                                                    # which contains the labels
 
-    print(f'- Create sampler: Done')
+        print(f'- Create sampler: Done')
 
-    ## Create dataloader
-    train_dataloader = DataLoader(dataset=train_dataset,
-                                  shuffle=False, drop_last=False,
-                                  batch_sampler=sampler, collate_fn=train_dataset.collate_fn,
-                                  num_workers=8, generator=rand_gen)
-    print(f'Train Data: Done', {'attrs': 'bold'})
+        ## Create dataloader
+        train_dataloader = DataLoader(dataset=train_dataset,
+                                    shuffle=False, drop_last=False,
+                                    batch_sampler=sampler, collate_fn=train_dataset.collate_fn,
+                                    num_workers=8, generator=rand_gen)
+        print(f'Train Data: Done', {'attrs': 'bold'})
 
-    #### Validation data
-    print(f'Validation Data:', {'attrs': 'bold'})
+        #### Validation data
+        print(f'Validation Data:', {'attrs': 'bold'})
 
-    ## Create data source
-    validation_data_source = FuseDataSourceDefault(list(split['val']))
+        ## Create data source
+        validation_data_source = FuseDataSourceDefault(list(split['val']))
 
 
-    ## Create dataset
-    validation_dataset = FuseDatasetDefault(cache_dest=cache_dir,
-                                            data_source=validation_data_source,
-                                            input_processors=input_processors,
-                                            gt_processors=gt_processors,
-                                            post_processing_func=prepare_clinical,
-                                            visualizer=visualizer)
+        ## Create dataset
+        validation_dataset = FuseDatasetDefault(cache_dest=cache_dir,
+                                                data_source=validation_data_source,
+                                                input_processors=input_processors,
+                                                gt_processors=gt_processors,
+                                                post_processing_func=prepare_clinical,
+                                                visualizer=visualizer)
 
-    print(f'- Load and cache data:')
-    validation_dataset.create(pool_type='thread')  # use ThreadPool to create this dataset, to avoid cv2 problems in multithreading
-    print(f'- Load and cache data: Done')
+        print(f'- Load and cache data:')
+        validation_dataset.create(pool_type='thread')  # use ThreadPool to create this dataset, to avoid cv2 problems in multithreading
+        print(f'- Load and cache data: Done')
 
-    ## Create dataloader
-    validation_dataloader = DataLoader(dataset=validation_dataset,
-                                       shuffle=False,
-                                       drop_last=False,
-                                       batch_sampler=None,
-                                       batch_size=batch_size,
-                                       num_workers=8,
-                                       collate_fn=validation_dataset.collate_fn,
-                                       generator=rand_gen)
-    print(f'Validation Data: Done', {'attrs': 'bold'})
+        ## Create dataloader
+        validation_dataloader = DataLoader(dataset=validation_dataset,
+                                        shuffle=False,
+                                        drop_last=False,
+                                        batch_sampler=None,
+                                        batch_size=batch_size,
+                                        num_workers=8,
+                                        collate_fn=validation_dataset.collate_fn,
+                                        generator=rand_gen)
+        print(f'Validation Data: Done', {'attrs': 'bold'})
+        test_dataloader = test_dataset = None
+    else: # test only
+        #### Test data
+        print(f'Test Data:', {'attrs': 'bold'})
 
-    return train_dataloader, validation_dataloader, train_dataset, validation_dataset
+        ## Create data source
+        test_data_source = FuseDataSourceDefault(list(split['test']))
+
+        ## Create dataset
+        test_dataset = FuseDatasetDefault(cache_dest=cache_dir,
+                                                data_source=test_data_source,
+                                                input_processors=input_processors,
+                                                gt_processors=gt_processors,
+                                                post_processing_func=prepare_clinical,
+                                                visualizer=visualizer)
+
+        print(f'- Load and cache data:')
+        test_dataset.create(pool_type='thread')  # use ThreadPool to create this dataset, to avoid cv2 problems in multithreading
+        print(f'- Load and cache data: Done')
+
+        ## Create dataloader
+        validation_dataloader = DataLoader(dataset=test_dataset,
+                                        shuffle=False,
+                                        drop_last=False,
+                                        batch_sampler=None,
+                                        batch_size=batch_size,
+                                        num_workers=8,
+                                        collate_fn=test_dataset.collate_fn,
+                                        generator=rand_gen)
+        print(f'Test Data: Done', {'attrs': 'bold'})
+        train_dataloader = train_dataset = validation_dataloader = validation_dataset = None
+    return train_dataloader, validation_dataloader, test_dataloader, \
+            train_dataset, validation_dataset, test_dataset
 
 
 GENDER_INDEX = {
