@@ -212,7 +212,7 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
         test_dataset = FuseDatasetDefault(cache_dest=cache_dir,
                                                 data_source=test_data_source,
                                                 input_processors=input_processors,
-                                                gt_processors=gt_processors,
+                                                gt_processors=None,
                                                 post_processing_func=prepare_clinical,
                                                 visualizer=visualizer)
 
@@ -221,7 +221,7 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
         print(f'- Load and cache data: Done')
 
         ## Create dataloader
-        validation_dataloader = DataLoader(dataset=test_dataset,
+        test_dataloader = DataLoader(dataset=test_dataset,
                                         shuffle=False,
                                         drop_last=False,
                                         batch_sampler=None,
