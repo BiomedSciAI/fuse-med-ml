@@ -31,7 +31,6 @@ from fuse.utils.utils_gpu import FuseUtilsGPU
 from fuse.utils.utils_logger import fuse_logger_start
 
 from fuse.models.heads.head_1d_classifier import FuseHead1dClassifier
-
 from fuse_examples.classification.prostate_x.backbone_3d_multichannel import Fuse_model_3d_multichannel,ResNet
 from fuse_examples.classification.prostate_x.patient_data_source import FuseProstateXDataSourcePatient
 
@@ -51,12 +50,12 @@ root_path = '.'
 
 # TODO: path for duke data
 # Download instructions can be found in README
-root_data = './Data/Duke-Breast-Cancer-MRI/manifest-1607053360376/'
+root_data = '/gpfs/haifa/projects/m/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI/manifest-1607053360376/'
 
 PATHS = {'force_reset_model_dir': False,
          # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
-         'model_dir': root_path + '/my_model/',
-         'cache_dir': root_path + '/my_cache/',
+         'model_dir': '/projects/msieve_dev3/usr/Tal/fus_sessions/duke_recurrence' + '/my_model/',
+         'cache_dir': '/projects/msieve_dev3/usr/Tal/fus_sessions/duke_recurrence' + '/my_cache/',
          'inference_dir': root_path + '/my_model/inference/',
          'analyze_dir': root_path + '/my_model/analyze/',
          'data_dir':root_path,
@@ -77,12 +76,13 @@ PATHS = {'force_reset_model_dir': False,
 # ============
 TRAIN_COMMON_PARAMS = {}
 TRAIN_COMMON_PARAMS['db_name'] = 'DUKE'
-TRAIN_COMMON_PARAMS['partition_version'] = '11102021TumorSize'
+TRAIN_COMMON_PARAMS['partition_version'] = '10012022Recurrence'#'11102021TumorSize'
 TRAIN_COMMON_PARAMS['fold_no'] = 0
 TRAIN_COMMON_PARAMS['data.batch_size'] = 50
-TRAIN_COMMON_PARAMS['data.train_num_workers'] = 10
-TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 10
+TRAIN_COMMON_PARAMS['data.train_num_workers'] = 1
+TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 1
 
+TRAIN_COMMON_PARAMS['patch_type'] = 'breast'
 
 # ===============
 # Manager - Train
@@ -123,9 +123,9 @@ else:
             TRAIN_COMMON_PARAMS['num_backbone_features_imaging']+TRAIN_COMMON_PARAMS['num_backbone_features_clinical']
 
 # classification_task:
-# supported tasks are: 'Staging Tumor Size','Histology Type','is High Tumor Grade Total','PCR'
+# supported tasks are: 'Staging Tumor Size','Histology Type','is High Tumor Grade Total','PCR'.'Recurrence'
 
-TRAIN_COMMON_PARAMS['classification_task'] = 'Staging Tumor Size'
+TRAIN_COMMON_PARAMS['classification_task'] = 'Recurrence'#'Staging Tumor Size'
 TRAIN_COMMON_PARAMS['task'] = FuseTask(TRAIN_COMMON_PARAMS['classification_task'], 0)
 TRAIN_COMMON_PARAMS['class_num'] = TRAIN_COMMON_PARAMS['task'].num_classes()
 

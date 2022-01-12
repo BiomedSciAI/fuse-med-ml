@@ -58,11 +58,12 @@ pcr_SCORE_VER_0 = [['HIGH'], ['LOW']],
 tumor_size_VER_0 = [['HIGH'], ['LOW']],
 tumor_grade_VER_0 = [['HIGH'], ['LOW']],
 histotype_VER_0 = [['HIGH'], ['LOW']],
+recurrence_VER_0 = [['HIGH'], ['LOW']],
 FuseTask.register('ispCR', 0, pcr_SCORE_VER_0, ['HIGH','LOW'])
 FuseTask.register('Histology Type', 0, histotype_VER_0, ['HIGH','LOW'])
 FuseTask.register('is High Tumor Grade Total', 0, tumor_grade_VER_0, ['HIGH','LOW'])
 FuseTask.register('Staging Tumor Size', 0, tumor_size_VER_0, ['HIGH','LOW'])
-
+FuseTask.register('Recurrence', 0, recurrence_VER_0, ['HIGH','LOW'])
 if __name__ == '__main__':
     mp_task = FuseTask('gleason_score', 0)
     print(mp_task.name())
