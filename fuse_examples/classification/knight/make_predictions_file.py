@@ -63,12 +63,21 @@ def make_predictions_file(model_dir: str,
         if isinstance(split, list):
             # For this example, we use split 0 out of the the available cross validation splits
             split = split[0]
+    if split is None: # test mode
+        json_filepath = os.path.join(data_path, 'knight_test.json')
+        data = pd.read_json(json_filepath)
+        split = {'test': list(data.case_id)}
    
-    _, validation_dl, _, _  = knight_dataset(data_path, cache_path, split, reset_cache=False, batch_size=2)
+    _, validation_dl, test_dl, _, _, _ = knight_dataset(data_path, cache_path, split, reset_cache=False, batch_size=2)
+
+    if 'test' in split:
+        dl = test_dl
+    else:
+        dl = validation_dl
 
     # Manager for inference
     manager = FuseManagerDefault()
-    predictions_df = manager.infer(data_loader=validation_dl,
+    predictions_df = manager.infer(data_loader=dl,
                   input_model_dir=model_dir,
                   checkpoint=checkpoint,
                   output_columns=[predictions_key_name],
