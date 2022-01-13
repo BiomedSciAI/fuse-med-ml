@@ -96,6 +96,10 @@ The ```resize_to``` parameter sets a common size to which we resize the input vo
 
 5. While running the ```fuse_baseline.py``` script, you can monitor your model training using an instance of Tensor Board, for which the ```logdir``` param is set to your ```KNIGHT_RESULTS``` directory.  
 
+### Test inference instructions
+The test data (without labels) will be sent to challenge participants soon.  
+In order to run a trained baseline model on it, run ```make_targets_file.py``` with the ```model_dir``` argument set to your trained model directory, ```data_path``` set to the test data path, and ```split``` set to ```None```.  
+
 ### Implementation details
 In this example we perform some basic preprocessing on the imaging data. We downsize the images by a factor of 2 in the X and Y dimensions (to 256), which is only meant for efficiency and not necessarily recommended. Additionally we resize in the Z dimension to 110, the median number of slices. We clip the voxel values to [-62, 310] (corresponds to 0.5 and 99.5 percentile in the foreground regions). Then, we subtract 104.9 and divide by 75.3 (corresponds to mean and std in the foreground regions, respectively). We also normalize the clinical features according to their approximate expected maximum value.   
 
