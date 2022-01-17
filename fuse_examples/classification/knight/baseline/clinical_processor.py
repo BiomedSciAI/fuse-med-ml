@@ -76,11 +76,14 @@ class KiCClinicalProcessor(FuseProcessorBase):
         elif sample_data['smoking_history'] == 'current_smoker':
             sample_data['smoking_history'] = 2
 
-        if sample_data['last_preop_egfr']['value'] == '>=90':
-            sample_data['last_preop_egfr'] = 90
+        if sample_data['last_preop_egfr'] is None:
+            sample_data['last_preop_egfr'] = -1 
         else:
-            sample_data['last_preop_egfr'] = sample_data['last_preop_egfr']['value']
-    
+            if sample_data['last_preop_egfr']['value'] == '>=90':
+                sample_data['last_preop_egfr'] = 90
+            else:
+                sample_data['last_preop_egfr'] = sample_data['last_preop_egfr']['value']
+        
         # convert to tensor
         if self.columns_to_tensor is not None:
             if isinstance(self.columns_to_tensor, list):
