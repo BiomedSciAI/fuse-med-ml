@@ -115,19 +115,18 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
         train_data_source = FuseDataSourceDefault(list(split['train']))
         image_dir = os.path.join(data_dir, 'knight', 'data')
         json_filepath = os.path.join(image_dir, 'knight.json')
+        gt_processors = {
+            'gt_global': KiCGTProcessor(json_filename=json_filepath, columns_to_tensor={'task_1_label':torch.long, 'task_2_label':torch.long})
+        }
     else: # split can contain BOTH 'train' and 'val', or JUST 'test'
         image_dir = os.path.join(data_dir, 'images')
-        json_filepath = os.path.join(data_dir, 'knight_test.json')
+        json_filepath = os.path.join(data_dir, 'features.json')
 
     # we use the same processor for the clinical data and ground truth, since both are in the .csv file
     # need to make sure to discard the label column from the data when using it as input
     input_processors = {
         'image': KiTSBasicInputProcessor(input_data=image_dir, resize_to=resize_to),
         'clinical': KiCClinicalProcessor(json_filename=json_filepath)
-    }
- 
-    gt_processors = {
-        'gt_global': KiCGTProcessor(json_filename=json_filepath, columns_to_tensor={'task_1_label':torch.long, 'task_2_label':torch.long})
     }
 
     # Create data augmentation (optional)
@@ -212,7 +211,7 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
         test_dataset = FuseDatasetDefault(cache_dest=cache_dir,
                                                 data_source=test_data_source,
                                                 input_processors=input_processors,
-                                                gt_processors=None,
+                                                gt_processors={},
                                                 post_processing_func=prepare_clinical,
                                                 visualizer=visualizer)
 
