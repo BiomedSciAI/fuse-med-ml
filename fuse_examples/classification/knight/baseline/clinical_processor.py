@@ -116,7 +116,7 @@ class KiCGTProcessor(FuseProcessorBase):
     Processor reading KiC ground truth data.
     """
 
-    def __init__(self, json_filename: str, columns_to_tensor: Optional[Union[List[str], Dict[str, torch.dtype]]] = None):
+    def __init__(self, json_filename: str, columns_to_tensor: Optional[Union[List[str], Dict[str, torch.dtype]]] = None, test_labels=False):
         """
         Processor reading data from csv file.
         :param json_filename: path to the csv file
@@ -126,17 +126,24 @@ class KiCGTProcessor(FuseProcessorBase):
                         When None (default) no columns are converted.
         """
         self.json_filename = json_filename
-        self.data = pd.read_json(json_filename)
+        if not test_labels:
+            self.data = pd.read_json(json_filename)
+        else:
+            # handle test label file format:
+            label_data = pd.read_json(json_filename, typ='series')
+            label_data = label_data.to_dict()
+            self.data = pd.DataFrame(columns=["case_id", "aua_risk_group"])
+            self.data["case_id"] = label_data.keys()
+            self.data["aua_risk_group"] = label_data.values()
         self.columns_to_tensor = columns_to_tensor
         self.sample_desc_column = 'case_id'
         self.selected_column_names = ['case_id', 'aua_risk_group']
-
         # extract only specified columns (in case not specified, extract all)
         self.data = self.data[self.selected_column_names]
-
         # convert to dictionary: {index -> {column -> value}}
         self.data = self.data.set_index(self.sample_desc_column)
         self.data = self.data.to_dict(orient='index')
+        
 
     def __call__(self, sample_desc: Hashable):
         """

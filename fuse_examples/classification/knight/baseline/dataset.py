@@ -72,7 +72,7 @@ def prepare_clinical(sample_dict: dict) -> dict:
 def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict = None, \
         reset_cache: bool = False, post_cache_processing_func: Optional[Callable] = None, \
         rand_gen = None, batch_size=8, resize_to=(256,256,110), task_num=1, \
-        target_name='data.gt.gt_global.task_1_label', num_classes=2):
+        target_name='data.gt.gt_global.task_1_label', num_classes=2, test_labels=False):
 
     augmentation_pipeline = [
         [
@@ -121,7 +121,13 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
     else: # split can contain BOTH 'train' and 'val', or JUST 'test'
         image_dir = os.path.join(data_dir, 'images')
         json_filepath = os.path.join(data_dir, 'features.json')
-
+        if test_labels:
+            json_labels_filepath = os.path.join(data_dir, 'knight_test_labels.json') 
+            gt_processors = {
+                'gt_global': KiCGTProcessor(json_filename=json_labels_filepath, columns_to_tensor={'task_1_label':torch.long, 'task_2_label':torch.long}, test_labels=True)
+            }
+        else:
+            gt_processors = {}
     # we use the same processor for the clinical data and ground truth, since both are in the .csv file
     # need to make sure to discard the label column from the data when using it as input
     input_processors = {
@@ -211,7 +217,7 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
         test_dataset = FuseDatasetDefault(cache_dest=cache_dir,
                                                 data_source=test_data_source,
                                                 input_processors=input_processors,
-                                                gt_processors={},
+                                                gt_processors=gt_processors,
                                                 post_processing_func=prepare_clinical,
                                                 visualizer=visualizer)
 
