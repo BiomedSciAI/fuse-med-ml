@@ -60,7 +60,7 @@ class KiCClinicalProcessor(FuseProcessorBase):
         # locate the required item
         sample_data = self.data[sample_desc].copy()
         # process fields
-        if sample_data['gender'] == 'male':
+        if sample_data['gender'].lower() == 'male':
             sample_data['gender'] = 0
         else:
             sample_data['gender'] = 1
