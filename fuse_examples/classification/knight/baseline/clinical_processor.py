@@ -77,9 +77,11 @@ class KiCClinicalProcessor(FuseProcessorBase):
             sample_data['smoking_history'] = 2
 
         if sample_data['last_preop_egfr'] is None:
-            sample_data['last_preop_egfr'] = -1 
+            sample_data['last_preop_egfr'] = -1
         else:
-            if sample_data['last_preop_egfr']['value'] in ('>=90', '>90'):
+            if sample_data['last_preop_egfr']['value'] is None:
+                sample_data['last_preop_egfr'] = -1
+            elif sample_data['last_preop_egfr']['value'] in ('>=90', '>90'):
                 sample_data['last_preop_egfr'] = 90
             else:
                 sample_data['last_preop_egfr'] = sample_data['last_preop_egfr']['value']
