@@ -77,15 +77,18 @@ class KiCClinicalProcessor(FuseProcessorBase):
             sample_data['smoking_history'] = 2
 
         if sample_data['last_preop_egfr'] is None:
-            sample_data['last_preop_egfr'] = -1
+            sample_data['last_preop_egfr'] = 77 # this is the median value on the training set
         else:
             if sample_data['last_preop_egfr']['value'] is None:
-                sample_data['last_preop_egfr'] = -1
+                sample_data['last_preop_egfr'] = 77 # this is the median value on the training set
             elif sample_data['last_preop_egfr']['value'] in ('>=90', '>90'):
                 sample_data['last_preop_egfr'] = 90
             else:
                 sample_data['last_preop_egfr'] = sample_data['last_preop_egfr']['value']
         
+        if sample_data['radiographic_size'] is None:
+            sample_data['radiographic_size'] = 4.1 # this is the median value on the training set
+            
         # convert to tensor
         if self.columns_to_tensor is not None:
             if isinstance(self.columns_to_tensor, list):
