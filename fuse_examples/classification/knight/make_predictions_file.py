@@ -64,7 +64,7 @@ def make_predictions_file(model_dir: str,
             # For this example, we use split 0 out of the the available cross validation splits
             split = split[0]
     if split is None: # test mode
-        json_filepath = os.path.join(data_path, 'knight_test.json')
+        json_filepath = os.path.join(data_path, 'features.json')
         data = pd.read_json(json_filepath)
         split = {'test': list(data.case_id)}
    
