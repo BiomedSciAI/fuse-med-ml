@@ -32,7 +32,7 @@ class FuseDataSourceToolbox():
     def print_folds_stat(db: pd.DataFrame, nfolds: int, key_columns: np.ndarray):
         """
         Print fold statistics
-       :param db:                 Dictionary which contains the fold patition
+       :param db:                 dataframe which contains the fold patition
        :param nfolds:             Number of folds to divide the data
        :param key_columns:        keys for which balancing is forced
        """
@@ -41,8 +41,7 @@ class FuseDataSourceToolbox():
             for key in key_columns:
                 print('----------fold' + str(f))
                 print('key: ' + key)
-                print(db['data_fold' + str(f)][key].value_counts())
-
+                print(db[db['fold'] == f][key].value_counts())
     @staticmethod
     def balanced_division(df : pd.DataFrame, no_mixture_id : str, key_columns: np.ndarray, nfolds : int, seed : int=1357,
                           excluded_samples: np.ndarray=[], print_flag : bool =False, debug_mode : bool=False) -> pd.DataFrame: 
@@ -108,24 +107,11 @@ class FuseDataSourceToolbox():
             fold_df = df[df[no_mixture_id].isin(db_samples['data_fold' + str(f)])].copy()
             fold_df['fold'] = f
             db['data_fold' + str(f)] = fold_df
-        if print_flag is True:
-            FuseDataSourceToolbox.print_folds_stat(db, nfolds, key_columns)
         folds = pd.concat(db, ignore_index=True)
+        if print_flag is True:
+            FuseDataSourceToolbox.print_folds_stat(folds, nfolds, key_columns)
         # remove labels used for creating the partition to folds
         if not debug_mode :
             folds.drop(id_level_labels+record_labels, axis=1, inplace=True)
         return folds 
 
-
-if __name__ == "__main__":
-    data_dir = '/projects/msieve3/CMMD'
-    input_source = os.path.join(data_dir, 'files_combined.csv')
-    input_df = pd.read_csv(input_source, index_col=0)
-    input_df = input_df[input_df['classification'].notna()]
-    input_df['file'] = input_df['file'].apply(
-        lambda x: x.replace('/gpfs/haifa/projects/m/msieve3', '/projects/msieve3'))
-    input_df['view'] = input_df['view'].apply(
-        lambda x: x.replace('medio-lateral oblique', 'MLO') if x == 'medio-lateral oblique'
-        else x.replace('cranio-caudal', 'CC'))
-    folds = FuseDataSourceToolbox.balanced_division(input_df, 'ID1', ['classification', 'subtype'], 5)
-    folds.to_csv('/gpfs/haifa/projects/m/msieve3/CMMD/data_fold_sub.csv')

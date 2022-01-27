@@ -20,8 +20,6 @@ import os
 from fuse.utils.utils_debug import FuseUtilsDebug
 from fuse.utils.utils_gpu import FuseUtilsGPU
 
-os.environ['skip_broker'] = '1'
-
 import logging
 
 import torch.optim as optim
@@ -45,8 +43,7 @@ from fuse.managers.callbacks.callback_metric_statistics import FuseMetricStatist
 from fuse.managers.callbacks.callback_time_statistics import FuseTimeStatisticsCallback
 from fuse.managers.manager_default import FuseManagerDefault
 
-#from fuse_examples.classification.MG_CMMD.dataset import CMMD_2021_dataset
-from fuse_examples.classification.MG_CMMD.dataset_folds import CMMD_2021_dataset
+from fuse_examples.classification.MG_CMMD.dataset import CMMD_2021_dataset
 from fuse.models.backbones.backbone_inception_resnet_v2 import FuseBackboneInceptionResnetV2
 
 
@@ -81,7 +78,7 @@ INFER_COMMON_PARAMS['data.train_num_workers'] = TRAIN_COMMON_PARAMS['data.train_
 # Manager - Train
 # ===============
 NUM_GPUS = 2
-TRAIN_COMMON_PARAMS['data.batch_size'] = 2 * NUM_GPUS
+TRAIN_COMMON_PARAMS['data.batch_size'] = 2 *NUM_GPUS
 TRAIN_COMMON_PARAMS['manager.train_params'] = {
     'num_gpus': NUM_GPUS,
     'num_epochs': 100,
@@ -169,7 +166,6 @@ def run_train(paths: dict, train_common_params: dict, reset_cache: bool):
                                             dropout_rate=0.5,
                                             conv_inputs=[('model.backbone_features', 384)],
                                             layers_description=(256,),
-                                            post_concat_inputs=None,
                                             num_classes=2,
                                             pooling="avg"),
         ]
