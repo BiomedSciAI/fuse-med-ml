@@ -123,7 +123,7 @@ def CMMD_2021_dataset(data_dir: str, cache_dir: str = 'cache', reset_cache: bool
 
     test_data_source = FuseDataSourceFolds(input_source_gt,None,'test','ID1',[target],False,[4],5,partition_file_path)
 
-    test_dataset =  FuseDataSourceFolds(input_source=input_source_gt,
+    test_dataset_source =  FuseDataSourceFolds(input_source=input_source_gt,
                                             input_df=None,
                                             phase='test',
                                             no_mixture_id='ID1',
@@ -132,6 +132,13 @@ def CMMD_2021_dataset(data_dir: str, cache_dir: str = 'cache', reset_cache: bool
                                             folds=[4],
                                             num_folds=5,
                                             partition_file_name=partition_file_path)
+    test_dataset = FuseDatasetDefault(cache_dest=cache_dir,
+                                            data_source=test_dataset_source,
+                                            input_processors=input_processors,
+                                            gt_processors=gt_processors,
+                                            post_processing_func=post_cache_processing_func,
+                                            augmentor=None,
+                                            visualizer=visualiser)
 
     lgr.info(f'- Load and cache data:')
     validation_dataset.create(
