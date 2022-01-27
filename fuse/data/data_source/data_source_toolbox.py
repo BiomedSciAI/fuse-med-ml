@@ -36,12 +36,13 @@ class FuseDataSourceToolbox():
        :param nfolds:             Number of folds to divide the data
        :param key_columns:        keys for which balancing is forced
        """
-
+        result =''
         for f in range(nfolds):
             for key in key_columns:
-                print('----------fold' + str(f))
-                print('key: ' + key)
-                print(db[db['fold'] == f][key].value_counts())
+                result += '----------fold' + str(f) +'\n'
+                result += 'key: ' + key +'\n'
+                result += db[db['fold'] == f][key].value_counts().to_string()+'\n'
+        return result
     @staticmethod
     def balanced_division(df : pd.DataFrame, no_mixture_id : str, key_columns: np.ndarray, nfolds : int, seed : int=1357,
                           excluded_samples: np.ndarray=[], print_flag : bool =False, debug_mode : bool=False) -> pd.DataFrame: 

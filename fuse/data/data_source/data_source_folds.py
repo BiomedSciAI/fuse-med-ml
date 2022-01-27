@@ -53,13 +53,14 @@ class FuseDataSourceFolds(FuseDataSourceBase):
                                    If train = False, train/val indices are loaded
         :param phase:              specifies if we are in train/validation/test/all phase
         """
+        self.nfolds = num_folds
+        self.key_columns = balance_keys
         if reset_partition_file is True and phase not in ['train','all']:
             raise Exception("Sorry, it is possible to reset partition file only in train / all phase")
         if reset_partition_file is True or not os.path.isfile(partition_file_name):
             # Load csv file
              # ----------------------
-             self.nfolds = num_folds
-             self.key_columns = balance_keys
+
              if input_source is not None :
                 input_df = pd.read_csv(input_source)
                 self.folds_df = FuseDataSourceToolbox.balanced_division(df = input_df ,
