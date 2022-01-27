@@ -120,10 +120,9 @@ def CMMD_2021_dataset(data_dir: str, cache_dir: str = 'cache', reset_cache: bool
                                             post_processing_func=post_cache_processing_func,
                                             augmentor=None,
                                             visualizer=visualiser)
+    validation_dataset.create( pool_type='thread')  # use ThreadPool to create this dataset, to avoid cv2 problems in multithreading
 
-    test_data_source = FuseDataSourceFolds(input_source_gt,None,'test','ID1',[target],False,[4],5,partition_file_path)
-
-    test_dataset_source =  FuseDataSourceFolds(input_source=input_source_gt,
+    test_data_source =  FuseDataSourceFolds(input_source=input_source_gt,
                                             input_df=None,
                                             phase='test',
                                             no_mixture_id='ID1',
@@ -133,16 +132,17 @@ def CMMD_2021_dataset(data_dir: str, cache_dir: str = 'cache', reset_cache: bool
                                             num_folds=5,
                                             partition_file_name=partition_file_path)
     test_dataset = FuseDatasetDefault(cache_dest=cache_dir,
-                                            data_source=test_dataset_source,
+                                            data_source=test_data_source,
                                             input_processors=input_processors,
                                             gt_processors=gt_processors,
                                             post_processing_func=post_cache_processing_func,
                                             augmentor=None,
                                             visualizer=visualiser)
+    
+    test_dataset.create( pool_type='thread')  # use ThreadPool to create this dataset, to avoid cv2 problems in multithreading
 
     lgr.info(f'- Load and cache data:')
-    validation_dataset.create(
-        pool_type='thread')  # use ThreadPool to create this dataset, to avoid cv2 problems in multithreading
+
     lgr.info(f'- Load and cache data: Done')
 
     return train_dataset, validation_dataset, test_dataset
@@ -175,41 +175,3 @@ def merge_clinical_data_with_dicom_tags(root_path: str, target: str) -> str:
     merged_clinical_data.to_csv(combined_file_path)
     return combined_file_path
 
-
-if __name__ == "__main__":
-    # Path to save model
-    root = ''
-    # Path to store the data
-    root_data = '/gpfs/haifa/projects/m/msieve3/CMMD/'
-    # Name of the experiment
-    experiment = 'InceptionResnetV2_2017_test'
-    # Path to cache data
-    cache_path = 'examples/'
-    # Name of the cached data folder
-    experiment_cache = 'CMMD_'
-    paths = {'data_dir': root_data,
-             'model_dir': os.path.join(root, experiment, 'model_dir'),
-             'force_reset_model_dir': True,
-             # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
-             'cache_dir': None,  # os.path.join(cache_path, experiment_cache + '_cache_dir'),
-             'inference_dir': os.path.join(root, experiment, 'infer_dir')}
-    # ==============================================================================
-    # Logger
-    # ==============================================================================
-    fuse_logger_start(output_path=paths['model_dir'], console_verbose_level=logging.INFO)
-    lgr = logging.getLogger('Fuse')
-
-    # Download data
-    # TBD
-
-    lgr.info('\nFuse Train', {'attrs': ['bold', 'underline']})
-
-    lgr.info(f'model_dir={paths["model_dir"]}', {'color': 'magenta'})
-    lgr.info(f'cache_dir={paths["cache_dir"]}', {'color': 'magenta'})
-
-    #### Train Data
-    lgr.info(f'Train Data:', {'attrs': 'bold'})
-    tt, tt2 = CMMD_2021_dataset(paths['data_dir'], reset_cache=True)
-    # print(tt.summary(["data.gt.classification"]))
-    tt.visualize_augmentation(0)
-    print("dataset unit test done!")

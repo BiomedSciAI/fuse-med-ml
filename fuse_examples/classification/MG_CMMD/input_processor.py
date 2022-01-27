@@ -117,7 +117,6 @@ def find_breast_aabb(img : np.ndarray, dark_area_threshold : int = 10, blocks_nu
         # expected to have at least background and one object. TODO: consider reporting error and returning AABB of the full image.
         print('Warning: could not crop properly! fallbacking to full image')
         return 0,0,img.shape[0]-1,img.shape[1]-1
-        #raise Exception('expected 2 regions')
 
 
     for i,r in enumerate(regions):
