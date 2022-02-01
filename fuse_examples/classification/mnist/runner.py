@@ -28,7 +28,7 @@ import torchvision.models as models
 from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms
 
-from fuse.analyzer.analyzer_default import FuseAnalyzerDefault
+from fuse.eval.evaluator import EvaluatorDefault 
 from fuse.data.dataset.dataset_wrapper import FuseDatasetWrapper
 from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
 from fuse.losses.loss_default import FuseLossDefault
@@ -36,9 +36,7 @@ from fuse.managers.callbacks.callback_metric_statistics import FuseMetricStatist
 from fuse.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
 from fuse.managers.callbacks.callback_time_statistics import FuseTimeStatisticsCallback
 from fuse.managers.manager_default import FuseManagerDefault
-from fuse.metrics.classification.metric_accuracy import FuseMetricAccuracy
-from fuse.metrics.classification.metric_auc import FuseMetricAUC
-from fuse.metrics.classification.metric_roc_curve import FuseMetricROCCurve
+from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
 from fuse.models.model_wrapper import FuseModelWrapper
 from fuse.utils.utils_debug import FuseUtilsDebug
 from fuse.utils.utils_gpu import FuseUtilsGPU
@@ -189,7 +187,7 @@ def run_train(paths: dict, train_params: dict):
     # Metrics
     # ====================================================================================
     metrics = {
-        'accuracy': FuseMetricAccuracy(pred_name='model.output.classification', target_name='data.label')
+        'accuracy': MetricAccuracy(pred='model.output.classification', target='data.label')
     }
 
     # =====================================================================================
@@ -282,33 +280,32 @@ def run_infer(paths: dict, infer_common_params: dict):
 ######################################
 ANALYZE_COMMON_PARAMS = {}
 ANALYZE_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
-ANALYZE_COMMON_PARAMS['output_filename'] = os.path.join(PATHS['analyze_dir'], 'all_metrics')
 
 
 ######################################
 # Analyze Template
 ######################################
-def run_analyze(paths: dict, analyze_common_params: dict):
+def run_eval(paths: dict, analyze_common_params: dict):
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Analyze', {'attrs': ['bold', 'underline']})
 
     # metrics
     metrics = {
-        'accuracy': FuseMetricAccuracy(pred_name='model.output.classification', target_name='data.label'),
-        'roc': FuseMetricROCCurve(pred_name='model.output.classification', target_name='data.label', output_filename=os.path.join(paths['inference_dir'], 'roc_curve.png')),
-        'auc': FuseMetricAUC(pred_name='model.output.classification', target_name='data.label')
+        'accuracy': MetricAccuracy(pred='model.output.classification', target='data.label'),
+        'roc': MetricROCCurve(pred='model.output.classification', target='data.label', output_filename=os.path.join(paths['inference_dir'], 'roc_curve.png')),
+        'auc': MetricAUCROC(pred='model.output.classification', target='data.label')
     }
 
     # create analyzer
-    analyzer = FuseAnalyzerDefault()
+    analyzer = EvaluatorDefault()
 
     # run
     # FIXME: simplify analyze interface for this case
-    results = analyzer.analyze(gt_processors={},
-                     data_pickle_filename=os.path.join(paths["inference_dir"], analyze_common_params["infer_filename"]),
+    results = analyzer.eval(ids=None,
+                     data=os.path.join(paths["inference_dir"], analyze_common_params["infer_filename"]),
                      metrics=metrics,
-                     output_filename=analyze_common_params['output_filename'])
+                     output_dir=analyze_common_params['output_dir'])
 
     return results
 
@@ -337,4 +334,4 @@ if __name__ == "__main__":
 
     # analyze
     if 'analyze' in RUNNING_MODES:
-        run_analyze(paths=PATHS, analyze_common_params=ANALYZE_COMMON_PARAMS)
+        run_eval(paths=PATHS, analyze_common_params=ANALYZE_COMMON_PARAMS)

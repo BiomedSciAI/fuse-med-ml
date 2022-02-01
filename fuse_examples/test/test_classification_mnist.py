@@ -23,7 +23,7 @@ import unittest
 import os
 
 from fuse.utils.utils_gpu import FuseUtilsGPU
-from fuse_examples.classification.mnist.runner import TRAIN_COMMON_PARAMS, run_train, run_infer, run_analyze, INFER_COMMON_PARAMS, \
+from fuse_examples.classification.mnist.runner import TRAIN_COMMON_PARAMS, run_train, run_infer, run_eval, INFER_COMMON_PARAMS, \
     ANALYZE_COMMON_PARAMS
 
 
@@ -53,7 +53,7 @@ class ClassificationMnistTestCase(unittest.TestCase):
             self.train_common_params['manager.train_params']['device'] = 'cpu'
         run_train(self.paths, self.train_common_params)
         run_infer(self.paths, self.infer_common_params)
-        results = run_analyze(self.paths, self.analyze_common_params)
+        results = run_eval(self.paths, self.analyze_common_params)
 
         threshold = 0.98
         self.assertGreaterEqual(results['auc']['macro_avg'], threshold)
