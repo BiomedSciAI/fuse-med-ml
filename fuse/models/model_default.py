@@ -60,7 +60,7 @@ class FuseModelDefault(torch.nn.Module):
 
     def forward(self,
                 batch_dict: Dict) -> Dict:
-        if self.conv_input is not None:
+        if self.conv_inputs is not None:
             conv_input = torch.cat([FuseUtilsHierarchicalDict.get(batch_dict, conv_input[0]) for conv_input in self.conv_inputs], 1)
             backbone_features = self.backbone.forward(conv_input)
         else:
