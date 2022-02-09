@@ -26,7 +26,7 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data.dataloader import DataLoader
 
 from fuse.losses.loss_base import FuseLossBase
-from fuse.metrics.metric_base import FuseMetricBase
+from fuse.eval import MetricBase
 
 
 class FuseManagerState:
@@ -39,7 +39,7 @@ class FuseManagerState:
         self.output_model_dir: str
 
         self.net: nn.Module
-        self.metrics: Dict[str, FuseMetricBase] = {}
+        self.metrics: Dict[str, MetricBase] = {}
         self.losses: Dict[str, FuseLossBase] = {}
         self.optimizer: Optimizer
         self.lr_scheduler: Any

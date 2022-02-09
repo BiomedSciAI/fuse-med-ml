@@ -20,8 +20,7 @@ from __future__ import annotations
 
 import copy
 import types
-from typing import Any, MappingView, Union, List
-from _collections_abc import dict_items, dict_keys, dict_values
+from typing import Any, Union, List
 
 class NDict(dict):
     """N(ested)Dict - wraps a python dict, and allows to access nested elements via '.' separated key desc
@@ -57,24 +56,21 @@ class NDict(dict):
 
     """
     
-    def __init__(self, d: Union[dict, tuple, types.GeneratorType, NDict, None]=None, verbouse: bool =False):        
+    def __init__(self, d: Union[dict, tuple, types.GeneratorType, NDict, None]=None):        
         """
-        :param d: the data with which to populate the nested dictionary, in case of NDict it acts as a copy constructor, 
+        :param d: the data with which to populate the nested dictionary, in case of NDict it acts as view constructor, 
             otherwise we just set all the keys and values using the setitem function
-        :param verbouse: set to true if you want verbouse key not found exceptions
         """
-        self._stored = dict()
-        self.verbouse=verbouse
-        if type(d) is tuple :
-            d = dict(d)
-        elif isinstance(d, types.GeneratorType):
-            d = dict(d)
 
-        if type(d) is dict:
+        self._stored = dict()
+        
+        if d is None:
+            self._stored = {}
+        elif isinstance(d, NDict):
+            self._stored = d._stored
+        else:    
             for k,d in d.items():
                 self[k] = d
-        elif type(d) is NDict:
-            self._stored = copy.deepcopy(d._stored)
     
         
     def items(self):
@@ -164,10 +160,7 @@ class NDict(dict):
             if not isinstance(value, dict):
                 raise NestedKeyError(key, self)
             value = value.get(sub_key)
-        
-        if isinstance(value, dict):
-            value = NDict(value)
-            
+
         return value
 
     def __setitem__(self, key: str, value: Any):

@@ -93,3 +93,29 @@ class CollateToBatchList(Callable):
                 value = sample[key]
             collected_values.append(value)
         return collected_values, has_error
+
+def uncollate(batch: Dict) -> List[Dict]:
+    """
+    Reverse collate method
+    Gets a batch_dict and convert it back to list of samples
+    """
+    samples = []
+    if not isinstance(batch, NDict):
+        batch = NDict
+    keys = batch.keypaths()
+    
+    # empty batch
+    if not keys:
+        return samples
+    
+    batch_size = len(batch[keys[0]])
+    for sample_index in range(batch_size):
+        sample = NDict()
+        for key in keys:
+            try:
+                sample[key] = batch[key][sample_index]
+            except TypeError:
+                pass
+            samples.append(sample)
+
+    return samples

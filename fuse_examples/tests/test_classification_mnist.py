@@ -24,7 +24,7 @@ import os
 
 from fuse.utils.utils_gpu import FuseUtilsGPU
 from fuse_examples.classification.mnist.runner import TRAIN_COMMON_PARAMS, run_train, run_infer, run_eval, INFER_COMMON_PARAMS, \
-    ANALYZE_COMMON_PARAMS
+    EVAL_COMMON_PARAMS
 
 
 class ClassificationMnistTestCase(unittest.TestCase):
@@ -38,14 +38,14 @@ class ClassificationMnistTestCase(unittest.TestCase):
             'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
             'cache_dir': os.path.join(self.root, 'mnist/cache_dir'),
             'inference_dir': os.path.join(self.root, 'mnist/infer_dir'),
-            'analyze_dir': os.path.join(self.root, 'mnist/analyze_dir')}
+            'eval_dir': os.path.join(self.root, 'mnist/analyze_dir')}
 
 
         self.train_common_params = TRAIN_COMMON_PARAMS
 
         self.infer_common_params = INFER_COMMON_PARAMS
 
-        self.analyze_common_params = ANALYZE_COMMON_PARAMS
+        self.analyze_common_params = EVAL_COMMON_PARAMS
 
     def test_template(self):
         num_gpus_allocated = FuseUtilsGPU.choose_and_enable_multiple_gpus(1, use_cpu_if_fail=True)
@@ -56,7 +56,7 @@ class ClassificationMnistTestCase(unittest.TestCase):
         results = run_eval(self.paths, self.analyze_common_params)
 
         threshold = 0.98
-        self.assertGreaterEqual(results['auc']['macro_avg'], threshold)
+        self.assertGreaterEqual(results['metrics.auc.macro_avg'], threshold)
 
     def tearDown(self):
         # Delete temporary directories

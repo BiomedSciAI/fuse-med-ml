@@ -59,7 +59,7 @@ PATHS = {'model_dir': os.path.join(ROOT, 'mnist/model_dir'),
          'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
          'cache_dir': os.path.join(ROOT, 'mnist/cache_dir'),
          'inference_dir': os.path.join(ROOT, 'mnist/infer_dir'),
-         'analyze_dir': os.path.join(ROOT, 'mnist/analyze_dir')}
+         'eval_dir': os.path.join(ROOT, 'mnist/eval_dir')}
 
 ##########################################
 # Train Common Params
@@ -278,34 +278,34 @@ def run_infer(paths: dict, infer_common_params: dict):
 ######################################
 # Analyze Common Params
 ######################################
-ANALYZE_COMMON_PARAMS = {}
-ANALYZE_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
+EVAL_COMMON_PARAMS = {}
+EVAL_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
 
 
 ######################################
 # Analyze Template
 ######################################
-def run_eval(paths: dict, analyze_common_params: dict):
+def run_eval(paths: dict, eval_common_params: dict):
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Analyze', {'attrs': ['bold', 'underline']})
 
     # metrics
+    class_names = [str(i) for i in range(10)]
     metrics = {
         'accuracy': MetricAccuracy(pred='model.output.classification', target='data.label'),
-        'roc': MetricROCCurve(pred='model.output.classification', target='data.label', output_filename=os.path.join(paths['inference_dir'], 'roc_curve.png')),
-        'auc': MetricAUCROC(pred='model.output.classification', target='data.label')
+        'roc': MetricROCCurve(pred='model.output.classification', target='data.label', class_names=class_names, output_filename=os.path.join(paths['inference_dir'], 'roc_curve.png')),
+        'auc': MetricAUCROC(pred='model.output.classification', target='data.label', class_names=class_names)
     }
 
-    # create analyzer
-    analyzer = EvaluatorDefault()
+    # create evaluator
+    evaluator = EvaluatorDefault()
 
     # run
-    # FIXME: simplify analyze interface for this case
-    results = analyzer.eval(ids=None,
-                     data=os.path.join(paths["inference_dir"], analyze_common_params["infer_filename"]),
+    results = evaluator.eval(ids=None,
+                     data=os.path.join(paths["inference_dir"], eval_common_params["infer_filename"]),
                      metrics=metrics,
-                     output_dir=analyze_common_params['output_dir'])
+                     output_dir=paths['eval_dir'])
 
     return results
 
@@ -323,7 +323,7 @@ if __name__ == "__main__":
     force_gpus = None  # [0]
     FuseUtilsGPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
-    RUNNING_MODES = ['train', 'infer', 'analyze']  # Options: 'train', 'infer', 'analyze'
+    RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
     # train
     if 'train' in RUNNING_MODES:
         run_train(paths=PATHS, train_params=TRAIN_COMMON_PARAMS)
@@ -332,6 +332,6 @@ if __name__ == "__main__":
     if 'infer' in RUNNING_MODES:
         run_infer(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS)
 
-    # analyze
-    if 'analyze' in RUNNING_MODES:
-        run_eval(paths=PATHS, analyze_common_params=ANALYZE_COMMON_PARAMS)
+    # eval
+    if 'eval' in RUNNING_MODES:
+        run_eval(paths=PATHS, eval_common_params=EVAL_COMMON_PARAMS)

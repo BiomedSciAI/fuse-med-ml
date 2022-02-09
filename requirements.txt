@@ -15,3 +15,5 @@ wget
 tensorboard
 opencv-python<=4.3.0.36 
 ipython
+pydicom
+h5py

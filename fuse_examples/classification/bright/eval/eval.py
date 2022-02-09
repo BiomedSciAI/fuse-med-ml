@@ -1,21 +1,20 @@
+import pathlib
 import sys
 import os
 from typing import List, Tuple, Union
 from collections import OrderedDict
 
 import csv
-from fuse.metrics.classification.metric_bss import FuseMetricMultiClassBSS
+from fuse.utils.ndict import NDict
 import pandas as pd
 import numpy as np
 
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 from fuse.utils.utils_file import FuseUtilsFile
 
-from fuse.analyzer.analyzer_default import FuseAnalyzerDefault
-
-from fuse.metrics.metric_confidence_interval import FuseMetricConfidenceInterval
-from fuse.metrics.classification.metric_confusion import FuseMetricConfusion
-from fuse.metrics.classification.metric_roc_curve import FuseMetricROCCurve
+from fuse.eval.evaluator import EvaluatorDefault
+from fuse.eval.metrics.classification.metrics_classification_common import MetricBSS, MetricConfusion, MetricROCCurve
+from fuse.eval.metrics.metrics_common import CI
 from pandas.core.frame import DataFrame
 
 
@@ -31,7 +30,7 @@ TASK2_CLASS_NAMES = ("PB", "UDH", "FEA", "ADH", "DCIS", "IC") # must be aligned 
 
 
 
-def post_processing(sample_dict: dict) -> dict:
+def process(sample_dict: dict) -> dict:
     """
     post caching processing. Will group together to an array the per class scores and verify it sums up to 1.0
     :param sample_dict: a dictionary that contais all the extracted values of a single sample
@@ -72,23 +71,24 @@ def decode_results(results: dict, output_dir: str) -> Tuple[OrderedDict, str]:
     :param output_dir: path to an output directory
     :return: ordered dict summarizing the results and markdown text
     """
+    results = NDict(results["metrics"])
     results_table = OrderedDict()
     # Table
     ## task1
-    results_table['Task1-F1'] = f"{FuseUtilsHierarchicalDict.get(results, 'task1_f1.f1_macro_avg.org'):.3f}"
-    results_table['Task1-F1-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, 'task1_f1.f1_macro_avg.conf_lower'):.3f}-{FuseUtilsHierarchicalDict.get(results, 'task1_f1.f1_macro_avg.conf_upper'):.3f}]"
+    results_table['Task1-F1'] = f"{FuseUtilsHierarchicalDict.get(results, 'task1_f1.f1.macro_avg.org'):.3f}"
+    results_table['Task1-F1-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, 'task1_f1.f1.macro_avg.conf_lower'):.3f}-{FuseUtilsHierarchicalDict.get(results, 'task1_f1.f1.macro_avg.conf_upper'):.3f}]"
     for cls_name in TASK1_CLASS_NAMES:
-        results_table[f'Task1-F1-{cls_name}VsRest'] = f"{FuseUtilsHierarchicalDict.get(results, f'task1_f1.f1_{cls_name}.org'):.3f}"
-        results_table[f'Task1-F1-{cls_name}VsRest-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, f'task1_f1.f1_{cls_name}.conf_lower'):.3f}-{FuseUtilsHierarchicalDict.get(results, f'task1_f1.f1_{cls_name}.conf_upper'):.3f}]"
+        results_table[f'Task1-F1-{cls_name}VsRest'] = f"{FuseUtilsHierarchicalDict.get(results, f'task1_f1.f1.{cls_name}.org'):.3f}"
+        results_table[f'Task1-F1-{cls_name}VsRest-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, f'task1_f1.f1.{cls_name}.conf_lower'):.3f}-{FuseUtilsHierarchicalDict.get(results, f'task1_f1.f1.{cls_name}.conf_upper'):.3f}]"
     results_table['Task1-BSS'] = f"{FuseUtilsHierarchicalDict.get(results, 'task1_bss.org'):.3f}"
     results_table['Task1-BSS-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, 'task1_bss.conf_lower'):.3f}-{FuseUtilsHierarchicalDict.get(results, 'task1_bss.conf_upper'):.3f}]"
 
     ## task2
-    results_table['Task2-F1'] = f"{FuseUtilsHierarchicalDict.get(results, 'task2_f1.f1_macro_avg.org'):.3f}"
-    results_table['Task2-F1-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, 'task2_f1.f1_macro_avg.conf_lower'):.3f}-{FuseUtilsHierarchicalDict.get(results, 'task2_f1.f1_macro_avg.conf_upper'):.3f}]"
+    results_table['Task2-F1'] = f"{FuseUtilsHierarchicalDict.get(results, 'task2_f1.f1.macro_avg.org'):.3f}"
+    results_table['Task2-F1-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, 'task2_f1.f1.macro_avg.conf_lower'):.3f}-{FuseUtilsHierarchicalDict.get(results, 'task2_f1.f1.macro_avg.conf_upper'):.3f}]"
     for cls_name in TASK2_CLASS_NAMES:
-        results_table[f'Task2-F1-{cls_name}VsRest'] = f"{FuseUtilsHierarchicalDict.get(results, f'task2_f1.f1_{cls_name}.org'):.3f}"
-        results_table[f'Task2-F1-{cls_name}VsRest-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, f'task2_f1.f1_{cls_name}.conf_lower'):.3f}-{FuseUtilsHierarchicalDict.get(results, f'task2_f1.f1_{cls_name}.conf_upper'):.3f}]"
+        results_table[f'Task2-F1-{cls_name}VsRest'] = f"{FuseUtilsHierarchicalDict.get(results, f'task2_f1.f1.{cls_name}.org'):.3f}"
+        results_table[f'Task2-F1-{cls_name}VsRest-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, f'task2_f1.f1.{cls_name}.conf_lower'):.3f}-{FuseUtilsHierarchicalDict.get(results, f'task2_f1.f1.{cls_name}.conf_upper'):.3f}]"
     results_table['Task2-BSS'] = f"{FuseUtilsHierarchicalDict.get(results, 'task2_bss.org'):.3f}"
     results_table['Task2-BSS-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, 'task2_bss.conf_lower'):.3f}-{FuseUtilsHierarchicalDict.get(results, 'task2_bss.conf_upper'):.3f}]"
 
@@ -159,19 +159,19 @@ def eval(task1_prediction_filename: str, task2_prediction_filename: str, target_
     # metrics to evaluate
     metrics = {
         # task 1
-        "task1_f1": FuseMetricConfidenceInterval(
-            FuseMetricConfusion(pred_name='task1_pred.predicted_label', target_name='target.Task1-target', class_names=TASK1_CLASS_NAMES, metrics=("f1",), pred_type='class_predictions'), 
-            stratum_name="target.Task1-target"),
-        "task1_bss": FuseMetricConfidenceInterval(
-            FuseMetricMultiClassBSS(pred_name='task1_pred.array', target_name='target.Task1-target'), 
-            stratum_name="target.Task1-target"),
+        "task1_f1": CI(
+            MetricConfusion(pred='task1_pred.predicted_label', target='target.Task1-target', class_names=TASK1_CLASS_NAMES, metrics=("f1",), operation_point=None, pre_collect_process_func=process), 
+            stratum="target.Task1-target"),
+        "task1_bss": CI(
+            MetricBSS(pred='task1_pred.array', target='target.Task1-target', pre_collect_process_func=process), 
+            stratum="target.Task1-target"),
         # task 2
-        "task2_f1": FuseMetricConfidenceInterval(
-            FuseMetricConfusion(pred_name='task2_pred.predicted_label', target_name='target.Task2-target', class_names=TASK2_CLASS_NAMES, metrics=("f1",), pred_type='class_predictions'), 
-            stratum_name="target.Task2-target"),
-        "task2_bss": FuseMetricConfidenceInterval(
-            FuseMetricMultiClassBSS(pred_name='task2_pred.array', target_name='target.Task2-target'), 
-            stratum_name="target.Task2-target"),
+        "task2_f1": CI(
+            MetricConfusion(pred='task2_pred.predicted_label', target='target.Task2-target', class_names=TASK2_CLASS_NAMES, metrics=("f1",), operation_point=None, pre_collect_process_func=process), 
+            stratum="target.Task2-target"),
+        "task2_bss": CI(
+            MetricBSS(pred='task2_pred.array', target='target.Task2-target', pre_collect_process_func=process), 
+            stratum="target.Task2-target"),
         
 
     }
@@ -190,15 +190,14 @@ def eval(task1_prediction_filename: str, task2_prediction_filename: str, target_
         f'Expecting target file {os.path.abspath(target_filename)} to include also the following keys: {EXPECTED_TARGET_KEYS - set(target_df.keys())}'
 
     # analyze
-    task1_pred_df = task1_pred_df.set_index(PRED_SAMPLE_DESC_NAME, drop=False)
-    task2_pred_df = task2_pred_df.set_index(PRED_SAMPLE_DESC_NAME, drop=False)
-    target_df = target_df.set_index(TARGET_SAMPLE_DESC_NAME, drop=False)
-    analyzer = FuseAnalyzerDefault()
-    results = analyzer.analyze_prediction_dataframe(sample_descr=samples_descr_source, 
-                                                    dataframes_dict={'task1_pred': task1_pred_df, 'task2_pred': task2_pred_df, 'target': target_df}, 
-                                                    post_processing=post_processing,
-                                                    metrics=metrics, 
-                                                    output_filename=None)
+    task1_pred_df["id"] = task1_pred_df["image_name"]
+    task2_pred_df["id"] = task2_pred_df["image_name"]
+    target_df["id"] = target_df["image_name"]
+    evaluator = EvaluatorDefault()
+    results = evaluator.eval(ids=list(target_df["id"]), 
+                                 data={'task1_pred': task1_pred_df, 'task2_pred': task2_pred_df, 'target': target_df}, 
+                                 metrics=metrics, 
+                                 output_dir=None)
 
     # output
     return decode_results(results, output_dir=output_dir)
@@ -211,5 +210,14 @@ if __name__ == "__main__":
     Run dummy example (set the working dir to fuse-med-ml/fuse_examples/classification/bright/eval): python eval.py example/example_targets.csv example/example_task1_predictions.csv example/example_task2_predictions.csv example/results
     Run baseline (set the working dir to fuse-med-ml/fuse_examples/classification/bright/eval): python eval.py validation_targets.csv baseline/validation_baseline_task1_predictions.csv baseline/validation_baseline_task2_predictions.csv baseline/validation_results
     """
-    assert len(sys.argv) == 5, f'Error: expecting 4 input arguments, but got {len(sys.argv)-1}. Usage: python eval.py <target_filename> <task1_prediction_filename> <task2_prediction_filename> <output dir>'
-    eval(target_filename=sys.argv[1], task1_prediction_filename=sys.argv[2], task2_prediction_filename=sys.argv[3], output_dir=sys.argv[4])
+    
+    if len(sys.argv) == 1:
+        dir_path = pathlib.Path(__file__).parent.resolve()
+        target_filename = os.path.join(dir_path, "validation_targets.csv")
+        task1_prediction_filename = os.path.join(dir_path, "baseline/validation_baseline_task1_predictions.csv")
+        task2_prediction_filename = os.path.join(dir_path, "baseline/validation_baseline_task2_predictions.csv")
+        output_dir = os.path.join(dir_path, "baseline/validation_results")
+        eval(target_filename=target_filename, task1_prediction_filename=task1_prediction_filename, task2_prediction_filename=task2_prediction_filename, output_dir=output_dir)
+    else:
+        assert len(sys.argv) == 5, f'Error: expecting 4 input arguments, but got {len(sys.argv)-1}. Usage: python eval.py <target_filename> <task1_prediction_filename> <task2_prediction_filename> <output dir>'
+        eval(target_filename=sys.argv[1], task1_prediction_filename=sys.argv[2], task2_prediction_filename=sys.argv[3], output_dir=sys.argv[4])
