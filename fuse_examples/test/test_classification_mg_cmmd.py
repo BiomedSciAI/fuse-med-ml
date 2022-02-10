@@ -48,6 +48,7 @@ class ClassificationMGCmmdTestCase(unittest.TestCase):
 
         self.paths = {'data_dir': self.ROOT_DATA,
                       'model_dir': os.path.join(self.ROOT, EXPERIMENT, 'model_dir'),
+                      'data_misc_dir' : os.path.join(self.ROOT, 'data_misc'),
                       'force_reset_model_dir': True,
                       'cache_dir': os.path.join(self.CACHE_PATH, EXPERIMENT_CACHE + '_cache_dir'),
                       'inference_dir': os.path.join(self.ROOT, EXPERIMENT, 'infer_dir'),
@@ -63,7 +64,7 @@ class ClassificationMGCmmdTestCase(unittest.TestCase):
         if num_gpus_allocated == 0:
             self.train_common_params['manager.train_params']['device'] = 'cpu'
 
-        run_train(self.paths, self.train_common_params, reset_cache=False)
+        run_train(self.paths, self.train_common_params, reset_cache=True)
         run_infer(self.paths, self.infer_common_params)
         results = run_analyze(self.paths, self.analyze_common_params)
 
