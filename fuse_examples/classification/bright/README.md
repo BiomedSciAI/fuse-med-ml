@@ -86,6 +86,6 @@ See [validation targets file](https://github.com/IBM/fuse-med-ml/blob/master/fus
 
 To evaluate the baseline predictions over the validation set:
 ```
-cd fuse-med-ml/fuse_examples/classification/knight/eval
+cd fuse-med-ml/fuse_examples/classification/bright/eval
 python eval.py validation_targets.csv baseline/validation_baseline_task1_predictions.csv baseline/validation_baseline_task2_predictions.csv baseline/validation_results
 ```
