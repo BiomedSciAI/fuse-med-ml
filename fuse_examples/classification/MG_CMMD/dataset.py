@@ -28,6 +28,7 @@ def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache
     """
     Creates Fuse Dataset object for training, validation and test
     :param data_dir:                    dataset root path
+    :param data_misc_dir                path to save misc files to be used later
     :param cache_dir:                   Optional, name of the cache folder
     :param reset_cache:                 Optional,specifies if we want to clear the cache first
     :param post_cache_processing_func:  Optional, function run post cache processing
@@ -57,7 +58,6 @@ def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache
     ]
 
     lgr = logging.getLogger('Fuse')
-    training_data = os.path.join(data_dir, 'CMMD/')
     target = 'classification'
     input_source_gt = merge_clinical_data_with_dicom_tags(data_dir, data_misc_dir, target)
 
@@ -148,26 +148,27 @@ def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache
     return train_dataset, validation_dataset, test_dataset
 
 
-def merge_clinical_data_with_dicom_tags(root_path: str, data_misc_dir:str, target: str) -> str:
+def merge_clinical_data_with_dicom_tags(data_dir: str, data_misc_dir:str, target: str) -> str:
     """
     Creates a csv file that contains label for each image ( instead of patient as in dataset given file)
     by reading metadata ( breast side and view ) from the dicom files and merging it with the input csv
     If the csv already exists , it will skip the creation proccess
-    :param root_path    :       dataset root path
+    :param data_dir                     dataset root path
+    :param data_misc_dir                path to save misc files to be used later
     :return: the new csv file path
     """
-    input_source = root_path + '/CMMD_clinicaldata_revision.csv'
-    combined_file_path = data_misc_dir + '/files_combined.csv'
+    input_source = os.path.join(data_dir, 'CMMD_clinicaldata_revision.csv')
+    combined_file_path = os.path.join(data_misc_dir, 'files_combined.csv')
     if os.path.isfile(combined_file_path):
         return combined_file_path
     Path(data_misc_dir).mkdir(parents=True, exist_ok=True)
     clinical_data = pd.read_csv(input_source)
     scans = []
-    for patient in os.listdir(root_path + '/CMMD/'):
-        path = root_path + '/CMMD/' + patient
+    for patient in os.listdir(os.path.join(data_dir,'CMMD')):
+        path = os.path.join(data_dir, 'CMMD', patient)
         for dicom_file in glob.glob(os.path.join(path, '**/*.dcm'), recursive=True):
-            file = dicom_file[len(root_path):] if dicom_file.startswith(root_path) else ''
-            dcm = pydicom.dcmread(root_path+file)
+            file = dicom_file[len(data_dir) + 1:] if dicom_file.startswith(data_dir) else ''
+            dcm = pydicom.dcmread(os.path.join(data_dir, file))
             scans.append({'ID1': patient, 'LeftRight': dcm[0x00200062].value, 'file': file,
                           'view': dcm[0x00540220].value.pop(0)[0x00080104].value})
     dicom_tags = pd.DataFrame(scans)

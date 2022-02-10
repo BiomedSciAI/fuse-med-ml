@@ -336,6 +336,7 @@ if __name__ == "__main__":
     experiment_cache = 'CMMD_'
     paths = {'data_dir': root_data,
              'model_dir': os.path.join(root, experiment, 'model_dir_transfer'),
+             'data_misc_dir' : os.path.join(root, 'data_misc'),
              'force_reset_model_dir': True,
              # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
              'cache_dir': os.path.join(cache_path, experiment_cache + '_cache_dir'),

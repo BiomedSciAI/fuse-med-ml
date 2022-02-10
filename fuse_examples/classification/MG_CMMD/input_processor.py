@@ -60,6 +60,7 @@ class FuseMGInputProcessor(FuseProcessorBase):
                  *args, **kwargs):
 
         image_full_path = self.input_data + inner_image_desc
+        image_full_path = os.path.join(self.input_data, inner_image_desc)
         inner_image = FuseProcessorsImageToolBox.read_dicom_image_to_numpy(image_full_path)
 
         inner_image = standardize_breast_image(inner_image, self.normalized_target_range)
