@@ -4,6 +4,7 @@ import logging
 import pandas as pd
 import pydicom
 import os, glob
+from pathlib import Path
 
 from fuse.data.visualizer.visualizer_default import FuseVisualizerDefault
 from fuse.data.augmentor.augmentor_default import FuseAugmentorDefault
@@ -22,7 +23,7 @@ from fuse.data.data_source.data_source_folds import FuseDataSourceFolds
 from typing import Tuple
 
 
-def CMMD_2021_dataset(data_dir: str, cache_dir: str = 'cache', reset_cache: bool = False,
+def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache', reset_cache: bool = False,
                       post_cache_processing_func: Optional[Callable] = None) -> Tuple[FuseDatasetDefault, FuseDatasetDefault]:
     """
     Creates Fuse Dataset object for training, validation and test
@@ -57,11 +58,10 @@ def CMMD_2021_dataset(data_dir: str, cache_dir: str = 'cache', reset_cache: bool
 
     lgr = logging.getLogger('Fuse')
     training_data = os.path.join(data_dir, 'CMMD/')
-    partition_file = "train_val_split.pickle"
     target = 'classification'
-    input_source_gt = merge_clinical_data_with_dicom_tags(data_dir, target)
+    input_source_gt = merge_clinical_data_with_dicom_tags(data_dir, data_misc_dir, target)
 
-    partition_file_path = os.path.join(data_dir, 'data_fold_new.csv')
+    partition_file_path = os.path.join(data_misc_dir, 'data_fold_new.csv')
     train_data_source = FuseDataSourceFolds(input_source=input_source_gt,
                                             input_df=None,
                                             phase='train',
@@ -75,7 +75,7 @@ def CMMD_2021_dataset(data_dir: str, cache_dir: str = 'cache', reset_cache: bool
 
     # Create data processors:
     input_processors = {
-        'image': FuseMGInputProcessor(input_data=training_data)
+        'image': FuseMGInputProcessor(input_data=data_dir)
     }
     gt_processors = {
         'classification': FuseMGGroundTruthProcessor(input_data=input_source_gt)
@@ -148,7 +148,7 @@ def CMMD_2021_dataset(data_dir: str, cache_dir: str = 'cache', reset_cache: bool
     return train_dataset, validation_dataset, test_dataset
 
 
-def merge_clinical_data_with_dicom_tags(root_path: str, target: str) -> str:
+def merge_clinical_data_with_dicom_tags(root_path: str, data_misc_dir:str, target: str) -> str:
     """
     Creates a csv file that contains label for each image ( instead of patient as in dataset given file)
     by reading metadata ( breast side and view ) from the dicom files and merging it with the input csv
@@ -157,16 +157,17 @@ def merge_clinical_data_with_dicom_tags(root_path: str, target: str) -> str:
     :return: the new csv file path
     """
     input_source = root_path + '/CMMD_clinicaldata_revision.csv'
-    combined_file_path = root_path + '/files_combined.csv'
+    combined_file_path = data_misc_dir + '/files_combined.csv'
     if os.path.isfile(combined_file_path):
         return combined_file_path
+    Path(data_misc_dir).mkdir(parents=True, exist_ok=True)
     clinical_data = pd.read_csv(input_source)
     scans = []
-    for patient in os.listdir(root_path + 'CMMD/'):
-        path = root_path + 'CMMD/' + patient
+    for patient in os.listdir(root_path + '/CMMD/'):
+        path = root_path + '/CMMD/' + patient
         for dicom_file in glob.glob(os.path.join(path, '**/*.dcm'), recursive=True):
-            file = os.path.join(path, dicom_file)
-            dcm = pydicom.dcmread(file)
+            file = dicom_file[len(root_path):] if dicom_file.startswith(root_path) else ''
+            dcm = pydicom.dcmread(root_path+file)
             scans.append({'ID1': patient, 'LeftRight': dcm[0x00200062].value, 'file': file,
                           'view': dcm[0x00540220].value.pop(0)[0x00080104].value})
     dicom_tags = pd.DataFrame(scans)

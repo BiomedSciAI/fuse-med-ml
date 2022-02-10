@@ -17,6 +17,7 @@ Created on June 30, 2021
 
 """
 import numpy as np
+import os
 from skimage import measure
 import torch
 from typing import Optional, Tuple
@@ -58,7 +59,8 @@ class FuseMGInputProcessor(FuseProcessorBase):
                  inner_image_desc,
                  *args, **kwargs):
 
-        inner_image = FuseProcessorsImageToolBox.read_dicom_image_to_numpy(inner_image_desc)
+        image_full_path = self.input_data + inner_image_desc
+        inner_image = FuseProcessorsImageToolBox.read_dicom_image_to_numpy(image_full_path)
 
         inner_image = standardize_breast_image(inner_image, self.normalized_target_range)
 

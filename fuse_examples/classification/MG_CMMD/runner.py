@@ -118,7 +118,7 @@ def run_train(paths: dict, train_common_params: dict, reset_cache: bool):
 
     #### Train Data
     lgr.info(f'Train Data:', {'attrs': 'bold'})
-    train_dataset, validation_dataset , _ = CMMD_2021_dataset(paths['data_dir'],reset_cache=reset_cache)
+    train_dataset, validation_dataset , _ = CMMD_2021_dataset(paths['data_dir'], paths['data_misc_dir'], reset_cache=reset_cache)
 
     ## Create sampler
     lgr.info(f'- Create sampler:')
