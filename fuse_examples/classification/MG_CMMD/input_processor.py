@@ -59,7 +59,6 @@ class FuseMGInputProcessor(FuseProcessorBase):
                  inner_image_desc,
                  *args, **kwargs):
 
-        image_full_path = self.input_data + inner_image_desc
         image_full_path = os.path.join(self.input_data, inner_image_desc)
         inner_image = FuseProcessorsImageToolBox.read_dicom_image_to_numpy(image_full_path)
 

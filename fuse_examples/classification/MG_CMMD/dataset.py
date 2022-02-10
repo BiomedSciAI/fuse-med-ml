@@ -6,6 +6,7 @@ import pydicom
 import os, glob
 from pathlib import Path
 
+
 from fuse.data.visualizer.visualizer_default import FuseVisualizerDefault
 from fuse.data.augmentor.augmentor_default import FuseAugmentorDefault
 from fuse.data.augmentor.augmentor_toolbox import aug_op_color, aug_op_gaussian, aug_op_affine
