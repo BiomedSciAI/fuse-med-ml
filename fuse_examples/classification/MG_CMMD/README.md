@@ -1,7 +1,7 @@
 # The Chinese Mammography Database (CMMD) with Fuse
 **Introduction**
 
-The project presents lesions classification of lesion in breast.
+The project presents classification of lesion in breast.
 It demonstrates the use of FuseMedML for classification of 2D lesions extracted from Mammography.
 In this example, we present a binary classification between benign lesions and malignant lesions .
 
