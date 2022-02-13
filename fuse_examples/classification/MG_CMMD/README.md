@@ -59,4 +59,4 @@ Put on the following in the main folder  -
 
 **Results**
 
-For the binaryclassification, the average result is AUC of 0.75; 
+For the binary classification, the average result is AUC of 0.75; 
