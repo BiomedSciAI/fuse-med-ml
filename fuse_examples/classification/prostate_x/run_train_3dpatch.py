@@ -50,7 +50,7 @@ root_path  ='.'
 # Download instructions can be found in README
 # load data from:
 # https://wiki.cancerimagingarchive.net/display/Public/SPIE-AAPM-NCI+PROSTATEx+Challenges#23691656d4622c5ad5884bdb876d6d441994da38
-root_data = '/projects/msieve/MedicalSieve/PatientData/ProstateX/manifest-A3Y4AE4o5818678569166032044/' #'./PatientData/ProstateX/manifest-A3Y4AE4o5818678569166032044/'
+root_data = 'PatientData/ProstateX/manifest-A3Y4AE4o5818678569166032044/'
 
 
 PATHS = {'force_reset_model_dir': False,

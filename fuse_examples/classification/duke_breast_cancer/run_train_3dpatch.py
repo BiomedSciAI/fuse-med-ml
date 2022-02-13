@@ -53,7 +53,7 @@ root_path = '.'
 
 # TODO: path for duke data
 # Download instructions can be found in README
-root_data = '/projects/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI/manifest-1607053360376'
+root_data = 'Duke-Breast-Cancer-MRI/manifest-1607053360376'
 
 PATHS = {'force_reset_model_dir': False,
          # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
