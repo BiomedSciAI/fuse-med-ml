@@ -64,6 +64,3 @@ Put on the following in the main folder  -
 * Run:
     python3 runner.py   
 
-**Results**
-
-For the binary classification, the average result is AUC of 0.75; 
