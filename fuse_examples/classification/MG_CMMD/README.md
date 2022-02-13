@@ -46,8 +46,11 @@ The training set was composed of 3 folds , validation set from 1 fold and test s
 **MODEL TRAINING**
 
 Put on the following in the main folder  - 
+
     1. CMMD_clinicaldata_revision.csv which is a converted version of CMMD_clinicaldata_revision.xlsx 
+    
     2. folder named CMMD which is the downloaded data folder
+    
 * In runner.py:
     - fill in the code with paths that are labeled as TODO
     - specify NUM_GPUS to run
