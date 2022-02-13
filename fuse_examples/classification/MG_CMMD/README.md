@@ -10,9 +10,11 @@ In this example, we present a binary classification between benign lesions and m
 
 The Chinese Mammography Database (CMMD) has been published by The Cancer Imaging Archive (TCIA) in 2021. 
 We used the public Chinese Mammography Database (CMMD) dataset:
+
 https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId%3D70230508&hl=en&gl=il&strip=1&vwsrc=0
 
 To download the data one should install the NBIA data retriever application, instructions located under:
+
 https://wiki.cancerimagingarchive.net/display/NBIA/Downloading+TCIA+Images#DownloadingTCIAImages-InstallingtheNBIADataRetriever
 
 It includes 3,728 mammography studies from 1,775 patients, acquired between 2012
