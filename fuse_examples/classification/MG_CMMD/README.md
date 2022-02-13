@@ -24,6 +24,7 @@ Dataset authors also provided age and finding type (calcification,mass or both) 
 Several classification tasks were explored using this dataset. In this example we present a binary classification between benign lesions and malignant lesions .
 
 **Data Citation**
+
 Cui, Chunyan; Li Li; Cai, Hongmin; Fan, Zhihao; Zhang, Ling; Dan, Tingting; Li, Jiao; Wang, Jinghua. (2021) The Chinese Mammography Database (CMMD): An online mammography database with biopsy confirmed types for machine diagnosis of breast. The Cancer Imaging Archive. DOI: https://doi.org/10.7937/tcia.eqde-4b16
 
 
