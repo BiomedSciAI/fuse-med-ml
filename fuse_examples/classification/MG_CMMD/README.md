@@ -11,6 +11,7 @@ The Chinese Mammography Database (CMMD) has been published by The Cancer Imaging
 Archive (TCIA) in 2021. 
 We used the public Duke-Breast-Cancer-MRI dataset:
 https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId%3D70230508&hl=en&gl=il&strip=1&vwsrc=0
+
 To download the data one should install the NBIA data retriever application, instructions located under:
 https://wiki.cancerimagingarchive.net/display/NBIA/Downloading+TCIA+Images#DownloadingTCIAImages-InstallingtheNBIADataRetriever
 
