@@ -21,6 +21,7 @@ It includes 3,728 mammography studies from 1,775 patients, acquired between 2012
 and 2016, in various Chinese institutions (including Sun Yat-sen University Cancer Center and Nanhai Hospital of Southern Medical University in Foshan).
 Dataset images are accompanied by biopsy-proven breast-level benign and malignant labels. 
 Dataset authors also provided age and finding type (calcification,mass or both) for all patients as well as immunohistochemical markers for 749 patients with invasive carcinoma.
+Each patient might provide up to 4 possible Mammography screenings ; Breast side can be either right or left and view can be either be medio-lateral oblique (MLO) or craniocaudal (CC) .
 
 Several classification tasks were explored using this dataset. In this example we present a binary classification between benign lesions and malignant lesions .
 
