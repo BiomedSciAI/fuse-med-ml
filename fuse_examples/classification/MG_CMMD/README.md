@@ -7,6 +7,7 @@ In this example, we present a binary classification between benign lesions and m
 
   
 **Dataset**
+
 The Chinese Mammography Database (CMMD) has been published by The Cancer Imaging
 Archive (TCIA) in 2021. 
 We used the public Duke-Breast-Cancer-MRI dataset:
@@ -23,6 +24,7 @@ Dataset authors also provided age and finding type (calcification,mass or both) 
 Several classification tasks were explored using this dataset. In this example we present a binary classification between benign lesions and malignant lesions .
 
 **Pre-processing**
+
 The pre-processing is preformed using input_processor.py.
 The input_processor.py extracts the relevant breast area from the mammography scan, standardize it to appear to the left and resize it to fit a standard GPU memory.
 
@@ -42,6 +44,7 @@ The training set was composed of 3 folds , validation set from 1 fold and test s
 
 
 **MODEL TRAINING**
+
 Put on the following in the main folder  - 
     1. CMMD_clinicaldata_revision.csv which is a converted version of CMMD_clinicaldata_revision.xlsx 
     2. folder named CMMD which is the downloaded data folder
