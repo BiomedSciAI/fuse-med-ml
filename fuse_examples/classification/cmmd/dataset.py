@@ -17,8 +17,8 @@ from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerRandInt as RandI
 from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerRandBool as RandBool
 from fuse.utils.utils_logger import fuse_logger_start
 
-from fuse_examples.classification.MG_CMMD.input_processor import FuseMGInputProcessor
-from fuse_examples.classification.MG_CMMD.ground_truth_processor import FuseMGGroundTruthProcessor
+from fuse_examples.classification.cmmd.input_processor import FuseMGInputProcessor
+from fuse_examples.classification.cmmd.ground_truth_processor import FuseMGGroundTruthProcessor
 from fuse.data.data_source.data_source_folds import FuseDataSourceFolds
 
 from typing import Tuple

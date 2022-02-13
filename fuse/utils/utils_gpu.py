@@ -43,6 +43,7 @@ class FuseUtilsGPU():
         devices = [str(x) for x in list_of_gpu_ids]
         allow_visible_gpus_str = ','.join(devices)
         os.environ["CUDA_VISIBLE_DEVICES"] = allow_visible_gpus_str
+        print(f"os.environ['CUDA_VISIBLE_DEVICES'] = {allow_visible_gpus_str}")
 
     @classmethod
     def choose_and_enable_multiple_gpus(cls, num_gpus_needed: int, force_gpus: Optional[List[int]] = None, use_cpu_if_fail: bool = False) -> int:

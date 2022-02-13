@@ -16,8 +16,8 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from fuse_examples.classification.MG_CMMD.runner import TRAIN_COMMON_PARAMS, \
-    INFER_COMMON_PARAMS, ANALYZE_COMMON_PARAMS, run_train, run_analyze, run_infer
+from fuse_examples.classification.cmmd.runner import TRAIN_COMMON_PARAMS, \
+    INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS, run_train, run_eval, run_infer
 
 import unittest
 import os
@@ -52,11 +52,11 @@ class ClassificationMGCmmdTestCase(unittest.TestCase):
                       'force_reset_model_dir': True,
                       'cache_dir': os.path.join(self.CACHE_PATH, EXPERIMENT_CACHE + '_cache_dir'),
                       'inference_dir': os.path.join(self.ROOT, EXPERIMENT, 'infer_dir'),
-                      'analyze_dir': os.path.join(self.ROOT, EXPERIMENT, 'analyze_dir')}
+                      'eval_dir': os.path.join(self.ROOT, EXPERIMENT, 'eval_dir')}
 
         self.infer_common_params = INFER_COMMON_PARAMS
 
-        self.analyze_common_params = ANALYZE_COMMON_PARAMS
+        self.eval_common_params = EVAL_COMMON_PARAMS
 
     def test_runner(self):
         self.assertIsNot(os.path.isdir(self.ROOT_DATA),False)
@@ -66,10 +66,10 @@ class ClassificationMGCmmdTestCase(unittest.TestCase):
 
         run_train(self.paths, self.train_common_params, reset_cache=True)
         run_infer(self.paths, self.infer_common_params)
-        results = run_analyze(self.paths, self.analyze_common_params)
+        results = run_eval(self.paths, self.eval_common_params)
 
         threshold = 0.6
-        self.assertGreaterEqual(results['auc']['macro_avg'], threshold)
+        self.assertGreaterEqual(results['metrics.auc'], threshold)
 
     def tearDown(self):
         # Delete temporary directories

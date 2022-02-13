@@ -35,20 +35,18 @@ from fuse.models.heads.head_global_pooling_classifier import FuseHeadGlobalPooli
 
 from fuse.losses.loss_default import FuseLossDefault
 
-from fuse.metrics.classification.metric_auc import FuseMetricAUC
-from fuse.metrics.classification.metric_accuracy import FuseMetricAccuracy
+from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy, MetricROCCurve
 
 from fuse.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
 from fuse.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
 from fuse.managers.callbacks.callback_time_statistics import FuseTimeStatisticsCallback
 from fuse.managers.manager_default import FuseManagerDefault
 
-from fuse_examples.classification.MG_CMMD.dataset import CMMD_2021_dataset
+from fuse_examples.classification.cmmd.dataset import CMMD_2021_dataset
 from fuse.models.backbones.backbone_inception_resnet_v2 import FuseBackboneInceptionResnetV2
 
 
-from fuse.analyzer.analyzer_default import FuseAnalyzerDefault
-from fuse.metrics.classification.metric_roc_curve import FuseMetricROCCurve
+from fuse.eval.evaluator import EvaluatorDefault
 ##########################################
 # Debug modes
 ##########################################
@@ -77,8 +75,8 @@ INFER_COMMON_PARAMS['data.train_num_workers'] = TRAIN_COMMON_PARAMS['data.train_
 # ===============
 # Manager - Train
 # ===============
-NUM_GPUS = 2
-TRAIN_COMMON_PARAMS['data.batch_size'] = 2 *NUM_GPUS
+NUM_GPUS = 1
+TRAIN_COMMON_PARAMS['data.batch_size'] = 2 * NUM_GPUS
 TRAIN_COMMON_PARAMS['manager.train_params'] = {
     'num_gpus': NUM_GPUS,
     'num_epochs': 100,
@@ -90,7 +88,7 @@ TRAIN_COMMON_PARAMS['manager.train_params'] = {
 # best_epoch_source
 # if an epoch values are the best so far, the epoch is saved as a checkpoint.
 TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = {
-    'source': 'metrics.auc.macro_avg',  # can be any key from losses or metrics dictionaries
+    'source': 'metrics.auc',  # can be any key from losses or metrics dictionaries
     'optimization': 'max',  # can be either min/max
     'on_equal_values': 'better',
     # can be either better/worse - whether to consider best epoch when values are equal
@@ -186,8 +184,8 @@ def run_train(paths: dict, train_common_params: dict, reset_cache: bool):
     # Metrics
     # ====================================================================================
     metrics = {
-        'auc': FuseMetricAUC(pred_name='model.output.head_0', target_name='data.gt.classification'),
-        'accuracy': FuseMetricAccuracy(pred_name='model.output.head_0', target_name='data.gt.classification')
+        'auc': MetricAUCROC(pred='model.output.head_0', target='data.gt.classification'),
+        'accuracy': MetricAccuracy(pred='model.output.head_0', target='data.gt.classification')
     }
 
     # =====================================================================================
@@ -248,7 +246,7 @@ def run_infer(paths: dict, infer_common_params: dict):
     lgr.info(f'infer_filename={os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])}', {'color': 'magenta'})
 
     # Create data source:
-    _, _ , test_dataset = CMMD_2021_dataset(paths['data_dir'])
+    _, _ , test_dataset = CMMD_2021_dataset(paths['data_dir'], paths['data_misc_dir'], paths['cache_dir'])
 
 
     ## Create dataloader
@@ -271,37 +269,35 @@ def run_infer(paths: dict, infer_common_params: dict):
     ######################################
 # Analyze Common Params
 ######################################
-ANALYZE_COMMON_PARAMS = {}
-ANALYZE_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
-ANALYZE_COMMON_PARAMS['output_filename'] = 'all_metrics.txt'
-ANALYZE_COMMON_PARAMS['num_workers'] = 4
-ANALYZE_COMMON_PARAMS['batch_size'] = 8
+EVAL_COMMON_PARAMS = {}
+EVAL_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
+EVAL_COMMON_PARAMS['num_workers'] = 4
+EVAL_COMMON_PARAMS['batch_size'] = 8
 
 
 ######################################
 # Analyze Template
 ######################################
-def run_analyze(paths: dict, analyze_common_params: dict):
+def run_eval(paths: dict, eval_common_params: dict):
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
-    lgr.info('Fuse Analyze', {'attrs': ['bold', 'underline']})
+    lgr.info('Fuse Eval', {'attrs': ['bold', 'underline']})
 
      # metrics
     metrics = {
-        'accuracy': FuseMetricAccuracy(pred_name='model.output.classification', target_name='data.gt.classification'),
-        'roc': FuseMetricROCCurve(pred_name='model.output.classification', target_name='data.gt.classification', output_filename=os.path.join(paths['inference_dir'], 'roc_curve.png')),
-        'auc': FuseMetricAUC(pred_name='model.output.classification', target_name='data.gt.classification')
+        'accuracy': MetricAccuracy(pred='model.output.head_0', target='data.gt.classification'),
+        'roc': MetricROCCurve(pred='model.output.head_0', target='data.gt.classification', output_filename=os.path.join(paths['inference_dir'], 'roc_curve.png')),
+        'auc': MetricAUCROC(pred='model.output.head_0', target='data.gt.classification')
     }
 
-    # create analyzer
-    analyzer = FuseAnalyzerDefault()
+    # create evaluator
+    evaluator = EvaluatorDefault()
 
     # run
-    # FIXME: simplify analyze interface for this case
-    results = analyzer.analyze(gt_processors={},
-                     data_pickle_filename=os.path.join(paths["inference_dir"], analyze_common_params["infer_filename"]),
+    results = evaluator.eval(ids=None,
+                     data=os.path.join(paths["inference_dir"], eval_common_params["infer_filename"]),
                      metrics=metrics,
-                     output_filename=analyze_common_params['output_filename'])
+                     output_dir=paths['eval_dir'])
 
     return results
 ######################################
@@ -317,13 +313,13 @@ if __name__ == "__main__":
     force_gpus = None  # [0]
     FuseUtilsGPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
-    RUNNING_MODES = ['train', 'infer', 'analyze']  # Options: 'train', 'infer', 'analyze'
+    RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
     # Path to save model
     root = ''
     # Path to the stored CMMD dataset location
     # dataset should be download from https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508
     # download requires NBIA data retriever https://wiki.cancerimagingarchive.net/display/NBIA/Downloading+TCIA+Images
-    # put on the folliwing in the main folder  - 
+    # put on the following in the main folder  - 
     # 1. CMMD_clinicaldata_revision.csv which is a converted version of CMMD_clinicaldata_revision.xlsx 
     # 2. folder named CMMD which is the downloaded data folder
     root_data = None #TODO: add path to the data folder
@@ -340,7 +336,8 @@ if __name__ == "__main__":
              'force_reset_model_dir': True,
              # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
              'cache_dir': os.path.join(cache_path, experiment_cache + '_cache_dir'),
-             'inference_dir': os.path.join(root, experiment, 'infer_dir')}
+             'inference_dir': os.path.join(root, experiment, 'infer_dir'),
+             'eval_dir': os.path.join(root, experiment, 'eval_dir')}
     # train
     if 'train' in RUNNING_MODES:
         run_train(paths=paths, train_common_params=TRAIN_COMMON_PARAMS, reset_cache=False)
@@ -349,6 +346,6 @@ if __name__ == "__main__":
     if 'infer' in RUNNING_MODES:
         run_infer(paths=paths, infer_common_params=INFER_COMMON_PARAMS)
     #
-    # analyze
-    if 'analyze' in RUNNING_MODES:
-        run_analyze(paths=paths, analyze_common_params=ANALYZE_COMMON_PARAMS)
+    # eval
+    if 'eval' in RUNNING_MODES:
+        run_eval(paths=paths, eval_common_params=EVAL_COMMON_PARAMS)
