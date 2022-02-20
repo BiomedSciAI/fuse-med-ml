@@ -76,8 +76,8 @@ TRAIN_COMMON_PARAMS['db_name'] = 'prostate_x'
 TRAIN_COMMON_PARAMS['db_version'] = 29062021
 TRAIN_COMMON_PARAMS['fold_no'] = 5
 TRAIN_COMMON_PARAMS['data.batch_size'] = 50
-TRAIN_COMMON_PARAMS['data.train_num_workers'] = 10
-TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 10
+TRAIN_COMMON_PARAMS['data.train_num_workers'] = 0
+TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 0
 # add misalignment to segmentation
 TRAIN_COMMON_PARAMS['data.aug.mask_misalignment'] = True
 # add misalignment to phase registration
