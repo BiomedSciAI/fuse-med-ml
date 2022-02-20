@@ -50,9 +50,6 @@ class FusePatchProcessor(FuseProcessorBase):
                  lsn_shape: Tuple[int, int, int] = (16, 120, 120),
                  lsn_spacing: Tuple[float, float, float] = (3, 0.5, 0.5),
                  longtd_inx: int = 0,
-                 # lesion/breast
-                 patch_type: str = 'breast',
-
                  ):
         """
         :param vol_processor - extracts 4D tensor from path to MRI dicoms
@@ -77,7 +74,7 @@ class FusePatchProcessor(FuseProcessorBase):
         self.fold_no=fold_no
         self.prostate_data_path = self.data_path
         self.longtd_inx = longtd_inx
-        self.patch_type = patch_type
+
 
     # ========================================================================
     def create_resample(self,vol_ref:sitk.sitkFloat32, interpolation: str, size:tuple, spacing: tuple):
@@ -259,60 +256,6 @@ class FusePatchProcessor(FuseProcessorBase):
         mask_np[zstart:zstart+zsize,ystart:ystart+ysize,xstart:xstart+xsize] = 1.0
         return mask_np
 
-    def crop_breast_based_lesion_coord(self,vol:sitk.sitkFloat32,position:Tuple[float,float,float]):
-        mask_shape = vol.GetSize()
-        if position[0] < mask_shape[0] / 2:
-            cropped_coords = [0, int(mask_shape[0] / 2)]
-        else:
-            cropped_coords = [int(mask_shape[0] / 2) + 1, -1]
-        vol_np = sitk.GetArrayFromImage(vol)
-        vol_cropped = sitk.GetImageFromArray(vol_np[:, :, cropped_coords[0]:cropped_coords[1], :])
-        return(vol_cropped)
-
-    def  detect_horizontal_body_edge(self, volume:sitk.sitkFloat32, use_last_slice_as_baseline=False):
-        """
-        detect a horizontal line that separates the body (on the bottom) from the breast (on top).
-        It is done by detecting the highest intensity area in the first slice, where only the body is visible.
-        :param volume: 4d tensor (numpy array)
-        :return: an integer that represent the horizontal line.
-        """
-        volume_np = sitk.GetArrayFromImage(volume)
-        if use_last_slice_as_baseline:
-            baseline_slice = volume_np[-1, :, :, :].copy()
-        else:
-            baseline_slice = volume_np[0, :, :, :].copy()
-
-        background_mean = np.mean(baseline_slice[:10, :, :])
-        baseline_slice = baseline_slice - background_mean
-        h = baseline_slice.shape[0]
-        w = baseline_slice.shape[1]
-        window_w = 64
-        window_h = 16
-
-        highest_point = 0
-        highest_point_val = np.NINF
-
-        for i in range(h - window_h):
-            for j in range(w - window_w):
-                window = baseline_slice[i: window_h + i, j: window_w + j, 0]
-                window_val = np.abs(np.mean(window))
-
-                if window_val > highest_point_val:
-                    highest_point_val = window_val
-                    highest_point = i
-
-        body_edge = highest_point + window_h
-        return body_edge
-
-    def crop_body_based_lesion_coord(self, vol:sitk.sitkFloat32,position:Tuple[float,float,float]):
-        body_edge = self.detect_horizontal_body_edge(vol)
-        if position[1] < body_edge:
-            cropped_coords = [0,body_edge]
-        else:
-            cropped_coords = [body_edge + 1, -1]
-        vol_np = sitk.GetArrayFromImage(vol)
-        vol_cropped = sitk.GetImageFromArray(vol_np[:, cropped_coords[0]:cropped_coords[1],:, :])
-        return vol_cropped
     # ========================================================================
     def __call__(self,
                  sample_desc,
@@ -369,46 +312,19 @@ class FusePatchProcessor(FuseProcessorBase):
                 vol_4d_new = sitk.GetImageFromArray(vol_4d_tmp)
                 vol_4D = vol_4d_new
 
-            print(self.patch_type)
-            # crop left right breast based on bbox location
-            if self.patch_type == 'breast':
-                n_slices= self.lsn_shape[0]
-                size = (self.lsn_shape[1],self.lsn_shape[2],self.lsn_shape[0])
-
-                vol_4D_body_cropped = self.crop_body_based_lesion_coord(vol_4D,pos_vol)
-                vol_4D_side_cropped = self.crop_breast_based_lesion_coord(vol_4D_body_cropped, pos_vol)
-                z_pos = [int(pos_vol[2])-n_slices//2,int(pos_vol[2])+n_slices//2+1]
-                vol_np_cropped = sitk.GetArrayFromImage(vol_4D_side_cropped)[z_pos[0]:z_pos[1],:,:,:]
-                vol_np_resized_orig = np.zeros((size[2],256, 256, vol_np_cropped.shape[-1]))
-                for si in range(vol_np_cropped.shape[0]):
-                    for ci in range(vol_np_cropped.shape[-1]):
-                        vol_np_resized_orig[si, :, :, ci] = cv2.resize(vol_np_cropped[si, :, :, ci], (256, 256),
-                                                                  interpolation=cv2.INTER_AREA)
-                vol_cropped_orig = sitk.GetImageFromArray(vol_np_resized_orig)
-                mask_cropped_orig = sitk.GetImageFromArray(vol_np_resized_orig[:,:,:,-1])
-
-                # resize to common size - default(256,256)
-                vol_np_resized = np.zeros((size[2], size[0], size[1], vol_np_cropped.shape[-1]))
-                for si in range(vol_np_cropped.shape[0]):
-                    for ci in range(vol_np_cropped.shape[-1]):
-                        vol_np_resized[si, :, :, ci] = cv2.resize(vol_np_cropped[si, :, :, ci], (size[0], size[1]),
-                                                                  interpolation=cv2.INTER_AREA)
-                mask_cropped = sitk.GetImageFromArray(vol_np_resized[:,:,:,-1])
-                vol_cropped = sitk.GetImageFromArray(vol_np_resized)
 
 
-            if self.patch_type == 'lesion':
                 # crop lesion vol - resized to lsn_shape
-                vol_cropped_orig, mask_cropped_orig = self.crop_lesion_vol_mask_based(
-                        vol_4D, pos_vol, vol_ref,
-                        size=(2*self.lsn_shape[2], 2*self.lsn_shape[1], self.lsn_shape[0]),
-                        spacing=(self.lsn_spacing[2], self.lsn_spacing[1], self.lsn_spacing[0]), mask_inx=-1,is_use_mask=False)
+            vol_cropped_orig, mask_cropped_orig = self.crop_lesion_vol_mask_based(
+                    vol_4D, pos_vol, vol_ref,
+                    size=(2*self.lsn_shape[2], 2*self.lsn_shape[1], self.lsn_shape[0]),
+                    spacing=(self.lsn_spacing[2], self.lsn_spacing[1], self.lsn_spacing[0]), mask_inx=-1,is_use_mask=False)
 
-                # crop lesion vol
-                vol_cropped, mask_cropped = self.crop_lesion_vol_mask_based(
-                    vol_4D, pos_vol,vol_ref ,
-                    size=(self.lsn_shape[2], self.lsn_shape[1], self.lsn_shape[0]),
-                    spacing=(self.lsn_spacing[2], self.lsn_spacing[1], self.lsn_spacing[0]), mask_inx = -1,is_use_mask=True)
+            # crop lesion vol
+            vol_cropped, mask_cropped = self.crop_lesion_vol_mask_based(
+                vol_4D, pos_vol,vol_ref ,
+                size=(self.lsn_shape[2], self.lsn_shape[1], self.lsn_shape[0]),
+                spacing=(self.lsn_spacing[2], self.lsn_spacing[1], self.lsn_spacing[0]), mask_inx = -1,is_use_mask=True)
 
 
             vol_cropped_tmp = sitk.GetArrayFromImage(vol_cropped)
@@ -457,7 +373,7 @@ if __name__ == "__main__":
     path_to_db = '.'
     root_data = '/gpfs/haifa/projects/m/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI/manifest-1607053360376/'
 
-    seq_dict,SER_INX_TO_USE,exp_patients, seq_to_use, subseq_to_use = process_mri_series(root_data+'/metadata.csv')
+    seq_dict,SER_INX_TO_USE,exp_patients = process_mri_series(root_data+'/metadata.csv')
     mri_vol_processor = FuseDicomMRIProcessor(seq_dict=seq_dict,
                                               seq_to_use=['DCE_mix_ph1',
                                                           'DCE_mix_ph2',

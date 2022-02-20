@@ -97,12 +97,7 @@ def post_processing(batch_dict: Dict, label: str, is_concat_features_to_input: b
         label_tensor = torch.tensor(grade, dtype = torch.int64)
         FuseUtilsHierarchicalDict.set(batch_dict, 'data.ground_truth', label_tensor)
 
-    if mylabel == 'Recurrence':
-        features_to_use = []
-        grade = clinical_features['Recurrence'] + 0
 
-        label_tensor = torch.tensor(grade, dtype = torch.int64)
-        FuseUtilsHierarchicalDict.set(batch_dict, 'data.ground_truth', label_tensor)
 
 
     # add clinical

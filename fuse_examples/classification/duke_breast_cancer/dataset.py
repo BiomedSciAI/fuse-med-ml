@@ -81,7 +81,7 @@ def duke_breast_cancer_dataset(paths,train_common_params,lgr):
     ## Create data processors:
     image_processing_args = {
         'patch_xy': 100,
-        'patch_z': 5,
+        'patch_z': 9,
     }
 
     ## Create data processor
@@ -107,7 +107,6 @@ def duke_breast_cancer_dataset(paths,train_common_params,lgr):
         lsn_shape=(image_processing_args['patch_z'],
                    image_processing_args['patch_xy'],
                    image_processing_args['patch_xy']),
-        patch_type = train_common_params['patch_type']
     )
 
     train_post_processor = partial(post_processing, label=train_common_params['classification_task'])
