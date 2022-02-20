@@ -51,16 +51,36 @@ def make_targets_file(data_path: str,
 
     # Data
     # read train/val splits file.
-    if isinstance(split, str): 
+    # use validation set if split specified, otherwise assume testset
+    if isinstance(split, str):
+        is_validation_set = True
+    else:
+        assert split is None, f"Error: unexpected split format {split}"
+        is_validation_set = False
+
+    if is_validation_set: 
         split=pd.read_pickle(split)
         if isinstance(split, list):
             # For this example, we use split 0 out of the the available cross validation splits
             split = split[0]
-   
-    _, validation_dl, _, _  = knight_dataset(data_path, cache_path, split, reset_cache=False)
+    else: # test mode
+        # if this function is ran in test mode, then presumably the user has the test labels
+        # for test purposes, the test labels file isn't shared with participants:
+        json_labels_filepath = os.path.join(data_path, 'knight_test_labels.json')
+        if not os.path.isfile(json_labels_filepath): 
+            ValueError("No test labels file found")
+        labels = pd.read_json(json_labels_filepath, typ='series')
+        split = {'test': list(labels.keys())}
+
+    
+    _, validation_dl, test_dl, _, _, _  = knight_dataset(data_path, cache_path, split, reset_cache=False, only_labels=True)
 
     # Export targets
-    targets_df = DatasetExport.export_to_dataframe(validation_dl.dataset, ["data.descriptor", "data.gt.gt_global.task_1_label", "data.gt.gt_global.task_2_label"])
+    if is_validation_set:
+        targets_df = DatasetExport.export_to_dataframe(validation_dl.dataset, ["data.descriptor", "data.gt.gt_global.task_1_label", "data.gt.gt_global.task_2_label"])
+    else: # test set
+        targets_df = DatasetExport.export_to_dataframe(test_dl.dataset, ["data.descriptor", "data.gt.gt_global.task_1_label", "data.gt.gt_global.task_2_label"])
+        
     # to int and rename keys
     targets_df["data.gt.gt_global.task_1_label"] = targets_df["data.gt.gt_global.task_1_label"].transform(int)
     targets_df["data.gt.gt_global.task_2_label"] = targets_df["data.gt.gt_global.task_2_label"].transform(int)
