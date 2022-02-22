@@ -129,7 +129,7 @@ class FuseCacheFiles(FuseCacheBase):
             index = self._cache_size
             self._cache_list.append(key)
             self._cache_size = index + 1
-    else:
+        else:
             with self._cache_lock:
                 index = self._cache_size.value
                 self._cache_list.append(key)

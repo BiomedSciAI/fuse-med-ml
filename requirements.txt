@@ -13,5 +13,6 @@ torchvision>=0.8.1
 SimpleITK>=1.2.0
 wget
 tensorboard
-opencv-python<=4.3.0.36 
+opencv-python<=4.3.0.36
+ipython
 

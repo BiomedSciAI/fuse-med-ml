@@ -21,7 +21,7 @@ import sys
 import logging
 import os
 # add parent directory to path, so that 'knight' folder is treated as a module
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from typing import Optional, Union
 import pandas as pd
 
