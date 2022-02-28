@@ -161,7 +161,7 @@ def duke_breast_cancer_dataset(paths,train_common_params,lgr):
                                          )
 
     lgr.info(f'- Load and cache data:')
-    train_dataset.create()
+    train_dataset.create(num_workers=0)
 
     train_dataset.filter('data.filter', [True])
     lgr.info(f'- Load and cache data: Done')
@@ -190,7 +190,7 @@ def duke_breast_cancer_dataset(paths,train_common_params,lgr):
 
     lgr.info(f'- Load and cache data:')
 
-    validation_dataset.create()
+    validation_dataset.create(num_workers=0)
     lgr.info(f'Data - task caching and filtering:', {'attrs': 'bold'})
 
     validation_dataset.filter('data.filter', [True])
