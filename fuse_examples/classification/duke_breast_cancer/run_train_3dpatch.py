@@ -17,6 +17,8 @@ import os
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
+import pathlib
+from fuse.data.dataset.dataset_base import FuseDatasetBase
 from fuse.metrics.classification.metric_roc_curve import FuseMetricROCCurve
 from fuse.metrics.classification.metric_auc import FuseMetricAUC
 from fuse.analyzer.analyzer_default import FuseAnalyzerDefault
@@ -52,7 +54,6 @@ root_path = '.'
 # TODO: path for duke data
 # Download instructions can be found in README
 root_data = './Data/Duke-Breast-Cancer-MRI/manifest-1607053360376/'
-
 PATHS = {'force_reset_model_dir': False,
          # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
          'model_dir': root_path + '/my_model/',
@@ -282,7 +283,7 @@ def train_template(paths: dict, train_common_params: dict):
 INFER_COMMON_PARAMS = {}
 INFER_COMMON_PARAMS['partition_version'] = '11102021TumorSize'
 INFER_COMMON_PARAMS['db_name'] = 'DUKE'
-INFER_COMMON_PARAMS['fold_no'] = 4
+INFER_COMMON_PARAMS['fold_no'] = 0
 INFER_COMMON_PARAMS['infer_filename'] = os.path.join(PATHS['inference_dir'], 'validation_set_infer.pickle.gz')
 INFER_COMMON_PARAMS['checkpoint'] = 'best' # Fuse TIP: possible values are 'best', 'last' or epoch_index.
 
@@ -299,29 +300,40 @@ def infer_template(paths: dict, infer_common_params: dict):
     #### create infer datasource
 
     ## Create data source:
-    infer_data_source = FuseProstateXDataSourcePatient(paths['dataset_dir'],'validation',
+    infer_data_source = FuseProstateXDataSourcePatient(paths['data_dir'],'validation',
                                                        db_ver=infer_common_params['partition_version'],
                                                        db_name = infer_common_params['db_name'],
                                                        fold_no=infer_common_params['fold_no'])
+
+
     lgr.info(f'db_name={infer_common_params["db_name"]}', {'color': 'magenta'})
+    ### load dataset
+    data_set_filename = os.path.join(paths["model_dir"], "inference_dataset.pth")
+    dataset = FuseDatasetBase.load(filename=data_set_filename, override_datasource=infer_data_source, override_cache_dest=paths["cache_dir"], num_workers=0)
+    dataloader  = DataLoader(dataset=dataset,
+                                       shuffle=False,
+                                       drop_last=False,
+                                       batch_size=50,
+                                       num_workers=5,
+                                       collate_fn=dataset.collate_fn)
+
 
     #### Manager for inference
     manager = FuseManagerDefault()
     # extract just the global classification per sample and save to a file
     output_columns = ['model.output.isLargeTumorSize','data.ground_truth']
-    manager.infer(data_source=infer_data_source,
+    manager.infer(data_loader=dataloader,
                   input_model_dir=paths['model_dir'],
                   checkpoint=infer_common_params['checkpoint'],
                   output_columns=output_columns,
-                  output_file_name=infer_common_params['infer_filename'],)
-                  # overwritecachedesk=paths['cache_dir'])
+                  output_file_name = infer_common_params['infer_filename'])
 
 ######################################
 # Analyze Common Params
 ######################################
 ANALYZE_COMMON_PARAMS = {}
 ANALYZE_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
-ANALYZE_COMMON_PARAMS['output_filename'] = os.path.join(PATHS['analyze_dir'], 'all_metrics_DCE_T0_fold4')
+ANALYZE_COMMON_PARAMS['output_filename'] = os.path.join(PATHS['analyze_dir'], 'all_metrics_DCE_T0_fold0')
 ######################################
 # Analyze Template
 ######################################
@@ -346,7 +358,7 @@ def analyze_template(paths: dict, analyze_common_params: dict):
 
     # run
     results = analyzer.analyze(gt_processors={},
-                     data_pickle_filename=os.path.join(paths["inference_dir"], analyze_common_params["infer_filename"]),
+                     data_pickle_filename=analyze_common_params["infer_filename"],
                      metrics=metrics,
                      output_filename=analyze_common_params['output_filename'])
 
@@ -364,7 +376,7 @@ if __name__ == "__main__":
     force_gpus = None  # [0]
     FuseUtilsGPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
-    RUNNING_MODES = ['train']  # Options: 'train', 'infer', 'analyze'
+    RUNNING_MODES = ['train', 'infer', 'analyze']  # Options: 'train', 'infer', 'analyze'
 
     if 'train' in RUNNING_MODES:
         train_template(paths=PATHS, train_common_params=TRAIN_COMMON_PARAMS)
