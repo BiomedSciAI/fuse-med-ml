@@ -81,8 +81,8 @@ TRAIN_COMMON_PARAMS['db_name'] = 'DUKE'
 TRAIN_COMMON_PARAMS['partition_version'] = '11102021TumorSize'
 TRAIN_COMMON_PARAMS['fold_no'] = 0
 TRAIN_COMMON_PARAMS['data.batch_size'] = 50
-TRAIN_COMMON_PARAMS['data.train_num_workers'] = 0
-TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 0
+TRAIN_COMMON_PARAMS['data.train_num_workers'] = 8
+TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 8
 
 
 # ===============
@@ -376,7 +376,7 @@ if __name__ == "__main__":
     force_gpus = None  # [0]
     FuseUtilsGPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
-    RUNNING_MODES = ['train', 'infer', 'analyze']  # Options: 'train', 'infer', 'analyze'
+    RUNNING_MODES = ['train','infer', 'analyze']  # Options: 'train', 'infer', 'analyze'
 
     if 'train' in RUNNING_MODES:
         train_template(paths=PATHS, train_common_params=TRAIN_COMMON_PARAMS)
