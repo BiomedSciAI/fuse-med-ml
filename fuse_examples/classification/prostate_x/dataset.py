@@ -174,7 +174,7 @@ def prostate_x_dataset(paths,train_common_params,lgr):
     gpu_ids_for_caching = []
     lgr.info(f'- Load and cache data:')
 
-    train_dataset.create(num_workers=0)
+    train_dataset.create()
 
     lgr.info(f'- Load and cache data: Done')
 
