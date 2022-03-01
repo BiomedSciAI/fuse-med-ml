@@ -96,7 +96,9 @@ class ResNet(torch.nn.Module):
         self.layer4 = self.make_layer(block, out_features[3], layers[3])
         self.in_channels = in_features[4]
         self.layer5 = self.make_layer(block, out_features[4], layers[4])
-        self.max_pool = nn.MaxPool3d((2,2,2),stride=(2,2,2))
+        self.max_pool2 = nn.MaxPool3d((2,2,2),stride=(2,2,2))
+        self.max_pool1 = nn.MaxPool3d((1,2,2),stride=(1,2,2))
+
         self.conv_last = conv3x3(1008, 1008)
         self.bn_last = nn.BatchNorm3d(1008)
 
@@ -133,18 +135,18 @@ class ResNet(torch.nn.Module):
         out = self.conv(conv_input)
         out = self.bn(out)
         out = self.relu(out)
-        out = self.max_pool(out)
+        out = self.max_pool2(out)
 
         out = self.layer1(out)
-        out = self.max_pool(out)
+        out = self.max_pool2(out)
         out = self.layer2(out)
-        out = self.max_pool(out)
+        out = self.max_pool2(out)
         out = self.layer3(out)
-        out = self.max_pool(out)
+        out = self.max_pool1(out)
         out = self.layer4(out)
-        out = self.max_pool(out)
+        out = self.max_pool1(out)
         out = self.layer5(out)
-        out = self.max_pool(out)
+        out = self.max_pool1(out)
 
         out = self.conv_last(out)
         out = self.bn_last(out)

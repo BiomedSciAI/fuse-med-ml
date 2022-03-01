@@ -17,6 +17,7 @@ import os
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
+from fuse.data.dataset.dataset_base import FuseDatasetBase
 from fuse.metrics.classification.metric_roc_curve import FuseMetricROCCurve
 from fuse.metrics.classification.metric_auc import FuseMetricAUC
 from fuse.analyzer.analyzer_default import FuseAnalyzerDefault
@@ -76,8 +77,8 @@ TRAIN_COMMON_PARAMS['db_name'] = 'prostate_x'
 TRAIN_COMMON_PARAMS['db_version'] = 29062021
 TRAIN_COMMON_PARAMS['fold_no'] = 5
 TRAIN_COMMON_PARAMS['data.batch_size'] = 50
-TRAIN_COMMON_PARAMS['data.train_num_workers'] = 10
-TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 10
+TRAIN_COMMON_PARAMS['data.train_num_workers'] = 8
+TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 8
 # add misalignment to segmentation
 TRAIN_COMMON_PARAMS['data.aug.mask_misalignment'] = True
 # add misalignment to phase registration
@@ -262,7 +263,7 @@ def train_template(paths: dict, train_common_params: dict):
 INFER_COMMON_PARAMS = {}
 INFER_COMMON_PARAMS['db_version'] = 29062021
 INFER_COMMON_PARAMS['db_name'] = 'prostate_x'
-INFER_COMMON_PARAMS['fold_no'] = 0
+INFER_COMMON_PARAMS['fold_no'] = 5
 INFER_COMMON_PARAMS['infer_filename'] = os.path.join(PATHS['inference_dir'], 'validation_set_infer.pickle.gz')
 INFER_COMMON_PARAMS['checkpoint'] = 'best' # Fuse TIP: possible values are 'best', 'last' or epoch_index.
 
@@ -279,22 +280,32 @@ def infer_template(paths: dict, infer_common_params: dict):
     #### create infer datasource
 
     ## Create data source:
-    infer_data_source = FuseProstateXDataSourcePatient(PATHS['dataset_dir'],'validation',
+    infer_data_source = FuseProstateXDataSourcePatient(PATHS['data_dir'],'validation',
                                                        db_ver=infer_common_params['db_version'],
                                                        db_name = infer_common_params['db_name'],
                                                        fold_no=infer_common_params['fold_no'])
+
     lgr.info(f'db_name={infer_common_params["db_name"]}', {'color': 'magenta'})
+    ### load dataset
+    data_set_filename = os.path.join(paths["model_dir"], "inference_dataset.pth")
+    dataset = FuseDatasetBase.load(filename=data_set_filename, override_datasource=infer_data_source, override_cache_dest=paths["cache_dir"], num_workers=0)
+    dataloader  = DataLoader(dataset=dataset,
+                                       shuffle=False,
+                                       drop_last=False,
+                                       batch_size=50,
+                                       num_workers=5,
+                                       collate_fn=dataset.collate_fn)
+
 
     #### Manager for inference
     manager = FuseManagerDefault()
     # extract just the global classification per sample and save to a file
     output_columns = ['model.output.ClinSig','data.ground_truth']
-    manager.infer(data_source=infer_data_source,
+    manager.infer(data_loader=dataloader,
                   input_model_dir=paths['model_dir'],
                   checkpoint=infer_common_params['checkpoint'],
                   output_columns=output_columns,
                   output_file_name=infer_common_params['infer_filename'],)
-                  # overwritecachedesk=paths['cache_dir'])
 
 ######################################
 # Analyze Common Params
@@ -326,7 +337,7 @@ def analyze_template(paths: dict, analyze_common_params: dict):
 
     # run
     results = analyzer.analyze(gt_processors={},
-                     data_pickle_filename=os.path.join(PATHS["inference_dir"], analyze_common_params["infer_filename"]),
+                     data_pickle_filename=analyze_common_params["infer_filename"],
                      metrics=metrics,
                      output_filename=analyze_common_params['output_filename'])
 

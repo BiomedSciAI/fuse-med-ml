@@ -373,7 +373,7 @@ if __name__ == "__main__":
     path_to_db = '.'
     root_data = '/gpfs/haifa/projects/m/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI/manifest-1607053360376/'
 
-    seq_dict,SER_INX_TO_USE,exp_patients = process_mri_series(root_data+'/metadata.csv')
+    seq_dict,SER_INX_TO_USE,exp_patients,_,_ = process_mri_series(root_data+'/metadata.csv')
     mri_vol_processor = FuseDicomMRIProcessor(seq_dict=seq_dict,
                                               seq_to_use=['DCE_mix_ph1',
                                                           'DCE_mix_ph2',
