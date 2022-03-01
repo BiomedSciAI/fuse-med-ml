@@ -125,10 +125,15 @@ class FuseCacheFiles(FuseCacheBase):
         if not self._cache_enable:
             raise Exception('First start caching using function start_caching()')
 
-        with self._cache_lock:
-            index = self._cache_size.value
+        if self._cache_lock is None:
+            index = self._cache_size
             self._cache_list.append(key)
-            self._cache_size.value = index + 1
+            self._cache_size = index + 1
+        else:
+            with self._cache_lock:
+                index = self._cache_size.value
+                self._cache_list.append(key)
+                self._cache_size.value = index + 1
 
         # if value is none, just update cache index
         if value is None:
@@ -195,6 +200,7 @@ class FuseCacheFiles(FuseCacheBase):
         self._cache_list = []
         self._cache_size = 0
         self._cache_index_mtime = -1
+        self._cache_lock = None
 
     def get_all_keys(self, include_none: bool = False) -> List[Hashable]:
         """
