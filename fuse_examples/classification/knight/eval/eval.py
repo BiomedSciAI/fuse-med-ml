@@ -73,7 +73,7 @@ def post_processing(sample_dict: dict, task1: bool = True, task2: bool = True) -
             task1_pred.append(FuseUtilsHierarchicalDict.get(sample_dict, f"task1_pred.{cls_name}-score" ))
         task1_pred_array = np.array(task1_pred)
         if not np.isclose(task1_pred_array.sum(), 1.0, rtol=0.05):
-            raise Exception(f"Error: expecting task 1 prediction for case {FuseUtilsHierarchicalDict.get(sample_dict, 'descriptor')} to sum up to almost 1.0, got {task1_pred_array}")
+            print(f"Warning: expecting task 1 prediction for case {FuseUtilsHierarchicalDict.get(sample_dict, 'descriptor')} to sum up to almost 1.0, got {task1_pred_array}")
         FuseUtilsHierarchicalDict.set(sample_dict, 'task1_pred.array', task1_pred_array)
 
     # task 2
@@ -83,7 +83,7 @@ def post_processing(sample_dict: dict, task1: bool = True, task2: bool = True) -
             task2_pred.append(FuseUtilsHierarchicalDict.get(sample_dict, f"task2_pred.{cls_name}-score" ))
         task2_pred_array = np.array(task2_pred)
         if not np.isclose(task2_pred_array.sum(), 1.0, rtol=0.05):
-            raise Exception(f"Error: expecting task 2 prediction for case {FuseUtilsHierarchicalDict.get(sample_dict, 'descriptor')} to sum up to almost 1.0, got {task2_pred_array}")
+            print(f"Error: expecting task 2 prediction for case {FuseUtilsHierarchicalDict.get(sample_dict, 'descriptor')} to sum up to almost 1.0, got {task2_pred_array}")
         FuseUtilsHierarchicalDict.set(sample_dict, 'task2_pred.array', task2_pred_array)
 
     return sample_dict
