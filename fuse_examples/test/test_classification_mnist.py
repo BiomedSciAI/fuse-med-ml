@@ -17,12 +17,14 @@ Created on June 30, 2021
 
 """
 
+import logging
 import shutil
 import tempfile
 import unittest
 import os
 
 from fuse.utils.utils_gpu import FuseUtilsGPU
+from fuse.utils.utils_logger import fuse_logger_end
 from fuse_examples.classification.mnist.runner import TRAIN_COMMON_PARAMS, run_train, run_infer, run_analyze, INFER_COMMON_PARAMS, \
     ANALYZE_COMMON_PARAMS
 
@@ -30,7 +32,7 @@ from fuse_examples.classification.mnist.runner import TRAIN_COMMON_PARAMS, run_t
 class ClassificationMnistTestCase(unittest.TestCase):
 
     def setUp(self):
-
+        fuse_logger_end()
         self.root = tempfile.mkdtemp()
 
         self.paths = {
@@ -59,6 +61,7 @@ class ClassificationMnistTestCase(unittest.TestCase):
         self.assertGreaterEqual(results['auc']['macro_avg'], threshold)
 
     def tearDown(self):
+        fuse_logger_end()
         # Delete temporary directories
         shutil.rmtree(self.root)
 

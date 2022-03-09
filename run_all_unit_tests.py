@@ -3,6 +3,8 @@ This script searches recursively for unit tests and generates the tests results 
 In the case that it's a Jenkins job, it should delete any created cache (not implemented yet)
 '''
 
+from sys import stdout
+import sys
 import unittest
 import os
 print(os.path.dirname(os.path.realpath(__file__)))
@@ -23,13 +25,14 @@ if __name__ == '__main__':
 
     # with open(f'{search_base}/packages.txt','r') as f:
     #     sub_sections = [x.split('#')[-1].strip()+'/fuse/' for x in f.readlines() if len(x)>4]
-    sub_sections = ["."]
-    print('found sub_sections = ', sub_sections)
+    # print('found sub_sections = ', sub_sections)
+    sub_sections = ["fuse/test", "fuse_examples/test"] 
+
 
     suite = None
     for curr_subsection in sub_sections:
         curr_subsuite = unittest.TestLoader().discover(
-            f'{search_base}/{curr_subsection}', 'test*.py'
+            f'{search_base}/{curr_subsection}', 'test*.py', top_level_dir=search_base
         )
         if suite is None:
             suite = curr_subsuite
@@ -37,8 +40,8 @@ if __name__ == '__main__':
             suite.addTest(curr_subsuite)
             
 
-    test_results = xmlrunner.XMLTestRunner(output=output).run(
-        suite,
+    test_results = xmlrunner.XMLTestRunner(output=output, verbosity=2, stream=sys.stdout).run(
+        suite, 
     )
 
     

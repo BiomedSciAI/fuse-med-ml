@@ -17,10 +17,12 @@ Created on June 30, 2021
 
 """
 
+import logging
 import unittest
 import os
 import tempfile
 import shutil
+from fuse.utils.utils_logger import fuse_logger_end
 
 from fuse_examples.classification.skin_lesion.runner import TRAIN_COMMON_PARAMS, \
     INFER_COMMON_PARAMS, ANALYZE_COMMON_PARAMS, run_train, run_analyze, run_infer
@@ -31,6 +33,7 @@ from fuse.utils.utils_gpu import FuseUtilsGPU
 class ClassificationSkinLesionTestCase(unittest.TestCase):
 
     def setUp(self):
+        fuse_logger_end()
         self.train_common_params = TRAIN_COMMON_PARAMS
         self.train_common_params['data.year'] = '2016'
         self.train_common_params['manager.train_params']['num_epochs'] = 5
@@ -72,6 +75,7 @@ class ClassificationSkinLesionTestCase(unittest.TestCase):
         self.assertGreaterEqual(results['auc']['macro_avg'], threshold)
 
     def tearDown(self):
+        fuse_logger_end()
         # Delete temporary directories
         shutil.rmtree(self.ROOT)
         shutil.rmtree(self.ROOT_DATA)
@@ -80,4 +84,6 @@ class ClassificationSkinLesionTestCase(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
 
