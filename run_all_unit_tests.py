@@ -3,6 +3,7 @@ This script searches recursively for unit tests and generates the tests results 
 In the case that it's a Jenkins job, it should delete any created cache (not implemented yet)
 '''
 
+import logging
 from sys import stdout
 import sys
 import unittest
@@ -39,10 +40,14 @@ if __name__ == '__main__':
         else:
             suite.addTest(curr_subsuite)
             
+    # enable fuse logger and avoid colors format
+    lgr = logging.getLogger('Fuse')
+    lgr.setLevel(logging.INFO)
 
-    test_results = xmlrunner.XMLTestRunner(output=output).run(
+    test_results = xmlrunner.XMLTestRunner(output=output, verbosity=2, stream=sys.stdout).run(
         suite, 
     )
+
 
     
 #TODO: think about caches and how we deal with them in unit tests (where they are found and who is responsible to delete them)

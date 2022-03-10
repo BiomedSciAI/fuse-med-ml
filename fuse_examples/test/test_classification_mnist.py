@@ -32,7 +32,6 @@ from fuse_examples.classification.mnist.runner import TRAIN_COMMON_PARAMS, run_t
 class ClassificationMnistTestCase(unittest.TestCase):
 
     def setUp(self):
-        fuse_logger_end()
         self.root = tempfile.mkdtemp()
 
         self.paths = {
@@ -61,7 +60,6 @@ class ClassificationMnistTestCase(unittest.TestCase):
         self.assertGreaterEqual(results['auc']['macro_avg'], threshold)
 
     def tearDown(self):
-        fuse_logger_end()
         # Delete temporary directories
         shutil.rmtree(self.root)
 

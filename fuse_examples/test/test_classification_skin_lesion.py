@@ -33,7 +33,6 @@ from fuse.utils.utils_gpu import FuseUtilsGPU
 class ClassificationSkinLesionTestCase(unittest.TestCase):
 
     def setUp(self):
-        fuse_logger_end()
         self.train_common_params = TRAIN_COMMON_PARAMS
         self.train_common_params['data.year'] = '2016'
         self.train_common_params['manager.train_params']['num_epochs'] = 5
@@ -75,7 +74,6 @@ class ClassificationSkinLesionTestCase(unittest.TestCase):
         self.assertGreaterEqual(results['auc']['macro_avg'], threshold)
 
     def tearDown(self):
-        fuse_logger_end()
         # Delete temporary directories
         shutil.rmtree(self.ROOT)
         shutil.rmtree(self.ROOT_DATA)
