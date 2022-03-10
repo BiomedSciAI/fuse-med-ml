@@ -40,7 +40,7 @@ if __name__ == '__main__':
             suite.addTest(curr_subsuite)
             
 
-    test_results = xmlrunner.XMLTestRunner(output=output, verbosity=2, stream=sys.stdout).run(
+    test_results = xmlrunner.XMLTestRunner(output=output, verbosity=2).run(
         suite, 
     )
 
