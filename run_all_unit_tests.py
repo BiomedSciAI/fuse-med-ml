@@ -47,20 +47,3 @@ if __name__ == '__main__':
     test_results = xmlrunner.XMLTestRunner(output=output, verbosity=2, stream=sys.stdout).run(
         suite, 
     )
-
-
-    
-#TODO: think about caches and how we deal with them in unit tests (where they are found and who is responsible to delete them)
-#    if is_jenkins_job:
-#        print('jenkins job is not supported yet, it requires a caching location etc.')
-#        raise NotImplementedError
-
-#        #TODO: delete the created cache
-#        cache_path = caching.get_current_read_locations(caching_kind='user_local')
-#        assert 1 == len(cache_path)
-#        cache_path = cache_path[0]
-#        assert 'ms_img_analytics' in cache_path
-#        #delete the cache that we've created for this job
-#        print(f'deleting eir cache {cache_path} ...')
-#        os.system(f'rm -rf {cache_path}')
-#        print('done deleting eir cache.')
