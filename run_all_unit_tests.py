@@ -4,7 +4,6 @@ In the case that it's a Jenkins job, it should delete any created cache (not imp
 '''
 
 import logging
-from sys import stdout
 import sys
 import unittest
 import os
