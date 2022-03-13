@@ -39,28 +39,29 @@ class FuseSamplerBalancedTestCase(unittest.TestCase):
         ])
         # Create dataset
         self.torch_dataset = torchvision.datasets.MNIST('/tmp/mnist_test', download=True, train=True, transform=transform)
+        # wrapping torch dataset
+        self.dataset = FuseDatasetWrapper(name='test', dataset=self.torch_dataset, mapping=('image', 'label'))
+        self.dataset.create(reset_cache=True)
         pass
 
     def test_balanced_dataset(self):
         num_classes = 10
-        probs = num_classes / 100
+        batch_size = 5
+        probs = 1.0 / num_classes
         num_samples = 60000
 
-        # wrapping torch dataset
-        dataset = FuseDatasetWrapper(name='test', dataset=self.torch_dataset, mapping=('image', 'label'))
-        dataset.create()
-        print(dataset.summary(statistic_keys=['data.label']))
-        sampler = FuseSamplerBalancedBatch(dataset=dataset,
+        print(self.dataset.summary(statistic_keys=['data.label']))
+        sampler = FuseSamplerBalancedBatch(dataset=self.dataset,
                                            balanced_class_name='data.label',
                                            num_balanced_classes=num_classes,
-                                           batch_size=5,
+                                           batch_size=batch_size,
                                            # balanced_class_weights=[1,1,1,1,1,1,1,1,1,1])  # relevant when batch size is % num classes
-                                           balanced_class_probs=[probs for i in range(num_classes)])
+                                           balanced_class_probs=[probs] * num_classes)
 
         labels = np.zeros(num_classes)
 
         # Create dataloader
-        dataloader = DataLoader(dataset=dataset, batch_sampler=sampler, num_workers=0)
+        dataloader = DataLoader(dataset=self.dataset, batch_sampler=sampler, num_workers=0)
         iter1 = iter(dataloader)
         for _ in range(len(dataloader)):
             batch_dict = next(iter1)
@@ -77,11 +78,11 @@ class FuseSamplerBalancedTestCase(unittest.TestCase):
 
     def test_unbalanced_dataset(self):
         num_classes = 10
-        probs = num_classes / 100
+        batch_size = 5
+        probs = 1.0 / num_classes
 
         # wrapping torch dataset
-        unbalanced_dataset = FuseDatasetWrapper(name='test', dataset=self.torch_dataset, mapping=('image', 'label'))
-        unbalanced_dataset.create()
+        unbalanced_dataset = self.dataset
 
         samples_to_save = []
         stats = [1000, 200, 200, 200, 300, 500, 700, 800, 900, 1000]
@@ -89,7 +90,7 @@ class FuseSamplerBalancedTestCase(unittest.TestCase):
         for idx in range(60000):
             label = unbalanced_dataset.get(idx, 'data.label')
             if stats[label] > chosen[label]:
-                samples_to_save.append(idx)
+                samples_to_save.append(("test", idx))
                 chosen[label] += 1
 
         unbalanced_dataset.samples_description = samples_to_save
@@ -97,9 +98,9 @@ class FuseSamplerBalancedTestCase(unittest.TestCase):
         sampler = FuseSamplerBalancedBatch(dataset=unbalanced_dataset,
                                            balanced_class_name='data.label',
                                            num_balanced_classes=num_classes,
-                                           batch_size=5,
+                                           batch_size=batch_size,
                                            # balanced_class_weights=[1,1,1,1,1,1,1,1,1,1])  # relevant when batch size is % num classes
-                                           balanced_class_probs=[probs for i in range(num_classes)])
+                                           balanced_class_probs=[probs] * num_classes)
 
         labels = np.zeros(num_classes)
 

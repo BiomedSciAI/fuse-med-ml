@@ -17,17 +17,19 @@ Created on June 30, 2021
 
 """
 
+import logging
 import unittest
 import os
 import tempfile
 import shutil
+from fuse.utils.utils_logger import fuse_logger_end
 
 from fuse_examples.classification.skin_lesion.runner import TRAIN_COMMON_PARAMS, \
     INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS, run_train, run_eval, run_infer
 
 from fuse.utils.utils_gpu import FuseUtilsGPU
 
-
+@unittest.skipIf(True, "Long test")
 class ClassificationSkinLesionTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -79,4 +81,6 @@ class ClassificationSkinLesionTestCase(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
 

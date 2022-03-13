@@ -28,7 +28,7 @@ import shutil
 
 from fuse.utils.utils_gpu import FuseUtilsGPU
 
-
+@unittest.skipIf(True, "Long test and requires to download the data manually")
 class ClassificationMGCmmdTestCase(unittest.TestCase):
 
     def setUp(self):

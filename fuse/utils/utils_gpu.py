@@ -80,7 +80,7 @@ class FuseUtilsGPU():
 
             torch.backends.cudnn.benchmark = False  # to prevent gpu illegal instruction exceptions
             torch.multiprocessing.set_sharing_strategy('file_system')  # to prevent a bug of too many open file descriptors
-        except:
+        except Exception as e:
             if use_cpu_if_fail:
                 lgr = logging.getLogger('Fuse')
                 track = traceback.format_exc()

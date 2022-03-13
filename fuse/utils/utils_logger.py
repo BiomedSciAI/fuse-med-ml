@@ -158,6 +158,13 @@ def fuse_logger_start(output_path: Optional[str] = None, console_verbose_level: 
             for src_file in list_of_source_files:
                 copyfile(os.path.abspath(src_file), os.path.join(source_files_output_path, os.path.basename(src_file)))
 
+def fuse_logger_end():
+    lgr = logging.getLogger("Fuse")
+    # skip if not already configured
+    if lgr.level == 0:
+        return
+    for h in lgr.handlers:
+        lgr.removeHandler(h)
 
 def convert_state_to_str(input_state: Any):
     """

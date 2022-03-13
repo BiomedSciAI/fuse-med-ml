@@ -30,7 +30,6 @@ from fuse_examples.classification.mnist.runner import TRAIN_COMMON_PARAMS, run_t
 class ClassificationMnistTestCase(unittest.TestCase):
 
     def setUp(self):
-
         self.root = tempfile.mkdtemp()
 
         self.paths = {
