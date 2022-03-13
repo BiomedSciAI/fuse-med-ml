@@ -17,4 +17,5 @@ opencv-python<=4.3.0.36
 h5py
 pydicom
 ipython
-
+xmlrunner
+paramiko
