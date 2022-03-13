@@ -188,11 +188,6 @@ def run_train(paths: dict, train_common_params: dict):
 
     lgr.info('\nFuse Train', {'attrs': ['bold', 'underline']})
 
-
-
-
-    
-
     lgr.info(f'model_dir={paths["model_dir"]}', {'color': 'magenta'})
     lgr.info(f'cache_dir={paths["cache_dir"]}', {'color': 'magenta'})
 
