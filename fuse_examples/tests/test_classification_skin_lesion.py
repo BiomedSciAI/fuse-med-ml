@@ -29,7 +29,7 @@ from fuse_examples.classification.skin_lesion.runner import TRAIN_COMMON_PARAMS,
 
 from fuse.utils.utils_gpu import FuseUtilsGPU
 
-@unittest.skipIf(True, "Long test")
+@unittest.skipIf(False, "Long test")
 class ClassificationSkinLesionTestCase(unittest.TestCase):
 
     def setUp(self):

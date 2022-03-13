@@ -17,6 +17,7 @@ Created on June 30, 2021
 
 """
 import os
+from typing import OrderedDict
 
 from fuse.eval.evaluator import EvaluatorDefault
 from fuse.utils.utils_debug import FuseUtilsDebug
@@ -48,6 +49,7 @@ from fuse.models.backbones.backbone_inception_resnet_v2 import FuseBackboneIncep
 from fuse.losses.loss_default import FuseLossDefault
 
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy, MetricROCCurve
+from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 
 from fuse.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
 from fuse.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
@@ -306,10 +308,12 @@ def run_train(paths: dict, train_common_params: dict):
     # ====================================================================================
     # Metrics
     # ====================================================================================
-    metrics = {
-        'auc': MetricAUCROC(pred='model.output.head_0', target='data.gt.gt_global.tensor'),
-        'accuracy': MetricAccuracy(pred='model.output.head_0', target='data.gt.gt_global.tensor')
-    }
+    metrics = OrderedDict([
+        ('op', MetricApplyThresholds(pred='model.output.head_0')), # will apply argmax
+        ('auc', MetricAUCROC(pred='model.output.head_0', target='data.gt.gt_global.tensor')),
+        ('accuracy', MetricAccuracy(pred='results:metrics.op.cls_pred', target='data.gt.gt_global.tensor')),
+    ])
+
 
     # =====================================================================================
     #  Callbacks
@@ -444,12 +448,14 @@ def run_eval(paths: dict, eval_common_params: dict):
     lgr.info('Fuse Eval', {'attrs': ['bold', 'underline']})
 
     # metrics
-    metrics = {
-        'auc': MetricAUCROC(pred='model.output.head_0', target='data.gt.gt_global.tensor'),
-        'accuracy': MetricAccuracy(pred='model.output.head_0', target='data.gt.gt_global.tensor'),
-        'roc': MetricROCCurve(pred='model.output.head_0', target='data.gt.gt_global.tensor',
-                                  output_filename=os.path.join(paths["inference_dir"], "roc_curve.png"))
-    }
+    metrics = OrderedDict([
+        ('op', MetricApplyThresholds(pred='model.output.head_0')), # will apply argmax
+        ('auc', MetricAUCROC(pred='model.output.head_0', target='data.gt.gt_global.tensor')),
+        ('accuracy', MetricAccuracy(pred='results:metrics.op.cls_pred', target='data.gt.gt_global.tensor')),
+        ('roc', MetricROCCurve(pred='model.output.head_0', target='data.gt.gt_global.tensor',
+                                  output_filename=os.path.join(paths["inference_dir"], "roc_curve.png"))),
+    ])
+
 
     # create evaluator
     evaluator = EvaluatorDefault()
