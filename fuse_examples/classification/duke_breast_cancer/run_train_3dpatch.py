@@ -81,8 +81,8 @@ TRAIN_COMMON_PARAMS['db_name'] = 'DUKE'
 TRAIN_COMMON_PARAMS['partition_version'] = '11102021TumorSize'
 TRAIN_COMMON_PARAMS['fold_no'] = 0
 TRAIN_COMMON_PARAMS['data.batch_size'] = 50
-TRAIN_COMMON_PARAMS['data.train_num_workers'] = 10
-TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 10
+TRAIN_COMMON_PARAMS['data.train_num_workers'] = 8
+TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 8
 
 
 # ===============
@@ -283,7 +283,7 @@ def train_template(paths: dict, train_common_params: dict):
 INFER_COMMON_PARAMS = {}
 INFER_COMMON_PARAMS['partition_version'] = '11102021TumorSize'
 INFER_COMMON_PARAMS['db_name'] = 'DUKE'
-INFER_COMMON_PARAMS['fold_no'] = 4
+INFER_COMMON_PARAMS['fold_no'] = 0
 INFER_COMMON_PARAMS['infer_filename'] = os.path.join(PATHS['inference_dir'], 'validation_set_infer.pickle.gz')
 INFER_COMMON_PARAMS['checkpoint'] = 'best' # Fuse TIP: possible values are 'best', 'last' or epoch_index.
 
@@ -305,6 +305,9 @@ def infer_template(paths: dict, infer_common_params: dict):
                                                        db_ver=infer_common_params['partition_version'],
                                                        db_name = infer_common_params['db_name'],
                                                        fold_no=infer_common_params['fold_no'])
+
+
+    lgr.info(f'db_name={infer_common_params["db_name"]}', {'color': 'magenta'})
     ### load dataset
     data_set_filename = os.path.join(paths["model_dir"], "inference_dataset.pth")
     dataset = FuseDatasetBase.load(filename=data_set_filename, override_datasource=infer_data_source, override_cache_dest=paths["cache_dir"], num_workers=0)

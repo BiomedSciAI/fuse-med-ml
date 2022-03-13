@@ -21,6 +21,7 @@ import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricROCCurve
 from fuse.eval.evaluator import EvaluatorDefault
+from fuse.data.dataset.dataset_base import FuseDatasetBase
 
 from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
 from fuse.losses.loss_default import FuseLossDefault
@@ -77,8 +78,8 @@ TRAIN_COMMON_PARAMS['db_name'] = 'prostate_x'
 TRAIN_COMMON_PARAMS['db_version'] = 29062021
 TRAIN_COMMON_PARAMS['fold_no'] = 5
 TRAIN_COMMON_PARAMS['data.batch_size'] = 50
-TRAIN_COMMON_PARAMS['data.train_num_workers'] = 10
-TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 10
+TRAIN_COMMON_PARAMS['data.train_num_workers'] = 8
+TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 8
 # add misalignment to segmentation
 TRAIN_COMMON_PARAMS['data.aug.mask_misalignment'] = True
 # add misalignment to phase registration
@@ -263,7 +264,7 @@ def train_template(paths: dict, train_common_params: dict):
 INFER_COMMON_PARAMS = {}
 INFER_COMMON_PARAMS['db_version'] = 29062021
 INFER_COMMON_PARAMS['db_name'] = 'prostate_x'
-INFER_COMMON_PARAMS['fold_no'] = 0
+INFER_COMMON_PARAMS['fold_no'] = 5
 INFER_COMMON_PARAMS['infer_filename'] = os.path.join(PATHS['inference_dir'], 'validation_set_infer.pickle.gz')
 INFER_COMMON_PARAMS['checkpoint'] = 'best' # Fuse TIP: possible values are 'best', 'last' or epoch_index.
 
