@@ -273,6 +273,9 @@ class MetricWithCollectorBase(MetricBase):
         """
         extract keyworded arguments and value arguments from collected data and results dict
         """
+        if not isinstance(results, NDict):
+            results = NDict(results)
+        
         arg_dict = {}
         data = self._collector.get(ids)
         arg_dict.update(data)

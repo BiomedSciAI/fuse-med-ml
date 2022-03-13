@@ -23,6 +23,8 @@ from fuse.managers.callbacks.callback_base import FuseCallback
 from fuse.managers.manager_state import FuseManagerState
 from fuse.utils.utils_file import FuseUtilsFile as file
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
+import torch
+import numpy as np
 
 
 class FuseTensorboardCallback(FuseCallback):
@@ -57,7 +59,7 @@ class FuseTensorboardCallback(FuseCallback):
         # update train tensorboard logger
         for evaluator_name in FuseUtilsHierarchicalDict.flatten(train_results).keys():
             evaluator_value = FuseUtilsHierarchicalDict.get(train_results, evaluator_name)
-            if evaluator_value is not None and not isinstance(evaluator_value, (str,)):
+            if evaluator_value is not None and isinstance(evaluator_value, (int, float, np.ndarray, torch.Tensor)):
                 self.add_scalar(self.tensorboard_logger_train, tag=evaluator_name, scalar_value=evaluator_value, global_step=step)
         self.add_scalar(self.tensorboard_logger_train, 'learning_rate', learning_rate, step)
 
@@ -65,7 +67,7 @@ class FuseTensorboardCallback(FuseCallback):
         if validation_results is not None:
             for evaluator_name in FuseUtilsHierarchicalDict.flatten(validation_results).keys():
                 evaluator_value = FuseUtilsHierarchicalDict.get(validation_results, evaluator_name)
-                if evaluator_value is not None and not isinstance(evaluator_value, (str,)):
+                if evaluator_value is not None and isinstance(evaluator_value, (int, float, np.ndarray, torch.Tensor)):
                     self.add_scalar(self.tensorboard_logger_validation, tag=evaluator_name, scalar_value=evaluator_value, global_step=step)
             self.add_scalar(self.tensorboard_logger_validation, 'learning_rate', learning_rate, step)
 

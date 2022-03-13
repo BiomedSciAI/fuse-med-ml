@@ -20,6 +20,9 @@ from typing import Any, Callable, Dict, List, Sequence, Tuple
 
 from fuse.utils import NDict
 
+import torch
+import numpy as np
+
 class CollateToBatchList(Callable):
     """
     Collate list of dictionaries to a batch dictionary, each value in dict will be a list of values collected from all samples.
@@ -102,15 +105,29 @@ def uncollate(batch: Dict) -> List[Dict]:
     """
     samples = []
     if not isinstance(batch, NDict):
-        batch = NDict
+        batch = NDict(batch)
     keys = batch.keypaths()
     
     # empty batch
     if not keys:
         return samples
     
-    batch_size = len(batch[keys[0]])
+    batch_size = None
+    for key in keys:
+        if isinstance(batch[key], (np.ndarray, torch.Tensor, list, tuple)):
+            batch_size = len(batch[key])
+            break
+    if batch_size is None:
+        return batch # assuming batch dict with no samples
+          
     for sample_index in range(batch_size):
-        samples.append(NDict({key: batch[key][sample_index] for key in keys}))
+        sample = NDict()
+        for key in keys:
+            if isinstance(batch[key], (np.ndarray, torch.Tensor, list, tuple)):
+                sample[key] = batch[key][sample_index]
+            else:
+                sample[key] = batch[key] # broadcast single value for all batch
+        
+        samples.append(sample)
 
     return samples

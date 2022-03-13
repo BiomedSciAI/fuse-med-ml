@@ -42,7 +42,7 @@ class PairedBootstrap(MetricWithCollectorBase):
                  compare_method: Callable = ModelComparison.bootstrap_margin_superiority,
                  num_of_bootstraps: int = 10000,
                  rnd_seed: int = 1234,
-                 margin: float = 0.1,
+                 margin: float = 0.0,
                  **super_kwargs) -> None:
         """
         :param metric_test: compare the results of metric_test to results of metric_reference

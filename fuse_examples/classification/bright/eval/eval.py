@@ -5,6 +5,7 @@ from typing import List, Tuple, Union
 from collections import OrderedDict
 
 import csv
+from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 from fuse.utils.ndict import NDict
 import pandas as pd
 import numpy as np
@@ -157,25 +158,24 @@ def eval(task1_prediction_filename: str, task2_prediction_filename: str, target_
     FuseUtilsFile.create_or_reset_dir(output_dir, force_reset=True)
 
     # metrics to evaluate
-    metrics = {
+    metrics = OrderedDict([
         # task 1
-        "task1_f1": CI(
-            MetricConfusion(pred='task1_pred.predicted_label', target='target.Task1-target', class_names=TASK1_CLASS_NAMES, metrics=("f1",), operation_point=None, pre_collect_process_func=process), 
-            stratum="target.Task1-target"),
-        "task1_bss": CI(
+        ("task1_op", MetricApplyThresholds(pred="task1_pred.predicted_label")), # will apply argmax
+        ("task1_f1", CI(
+            MetricConfusion(pred="results:metrics.task1_op.cls_pred", target='target.Task1-target', class_names=TASK1_CLASS_NAMES, metrics=("f1",), pre_collect_process_func=process), 
+            stratum="target.Task1-target")),
+        ("task1_bss", CI(
             MetricBSS(pred='task1_pred.array', target='target.Task1-target', pre_collect_process_func=process), 
-            stratum="target.Task1-target"),
+            stratum="target.Task1-target")),
         # task 2
-        "task2_f1": CI(
-            MetricConfusion(pred='task2_pred.predicted_label', target='target.Task2-target', class_names=TASK2_CLASS_NAMES, metrics=("f1",), operation_point=None, pre_collect_process_func=process), 
-            stratum="target.Task2-target"),
-        "task2_bss": CI(
+        ("task2_op", MetricApplyThresholds(pred="task2_pred.predicted_label")), # will apply argmax
+        ("task2_f1", CI(
+            MetricConfusion(pred='results:metrics.task1_op.cls_pred', target='target.Task2-target', class_names=TASK2_CLASS_NAMES, metrics=("f1",), pre_collect_process_func=process), 
+            stratum="target.Task2-target")),
+        ("task2_bss", CI(
             MetricBSS(pred='task2_pred.array', target='target.Task2-target', pre_collect_process_func=process), 
-            stratum="target.Task2-target"),
-        
-
-    }
-    
+            stratum="target.Task2-target")),
+    ])    
     # read files
     task1_pred_df = pd.read_csv(task1_prediction_filename, dtype={PRED_SAMPLE_DESC_NAME: object})
     task2_pred_df = pd.read_csv(task2_prediction_filename, dtype={PRED_SAMPLE_DESC_NAME: object})

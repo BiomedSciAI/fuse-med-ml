@@ -152,7 +152,7 @@ def decode_results(results: dict, output_dir: str, task1: bool, task2: bool) -> 
 
     return results_table, results_text
 
-def eval(task1_prediction_filename: str, task2_prediction_filename: str, target_filename: str, output_dir: str, case_ids_source: Optional[Union[str, List[str]]] = None) -> Tuple[OrderedDict, str]:
+def eval(task1_prediction_filename: str, task2_prediction_filename: str, target_filename: str, output_dir: str, case_ids_source: Optional[Union[str, List[str]]] = "target") -> Tuple[OrderedDict, str]:
     """
     Load the prediction and target files, evaluate the predictions and save the results into files.
     :param task1_prediction_filename: path to a prediction csv file for task1. Expecting the columns listed in EXPECTED_TASK1_PRED_KEYS to exist (including the header).
@@ -222,7 +222,7 @@ def eval(task1_prediction_filename: str, task2_prediction_filename: str, target_
 
     # analyze
     evaluator = EvaluatorDefault()
-    results = evaluator.eval(ids=list(target_df["id"]), 
+    results = evaluator.eval(ids=list(dataframes_dict[case_ids_source]["id"]), 
                              data=dataframes_dict, 
                              metrics=metrics, 
                              output_dir=None)

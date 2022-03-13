@@ -15,7 +15,9 @@ Created on June 30, 2021
 
 """
 
+from collections import OrderedDict
 import os
+from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 
 from fuse.utils.utils_debug import FuseUtilsDebug
 from fuse.utils.utils_gpu import FuseUtilsGPU
@@ -183,10 +185,11 @@ def run_train(paths: dict, train_common_params: dict, reset_cache: bool):
     # ====================================================================================
     # Metrics
     # ====================================================================================
-    metrics = {
-        'auc': MetricAUCROC(pred='model.output.head_0', target='data.gt.classification'),
-        'accuracy': MetricAccuracy(pred='model.output.head_0', target='data.gt.classification')
-    }
+    metrics = OrderedDict([
+        ('op', MetricApplyThresholds(pred='model.output.head_0')), # will apply argmax
+        ('auc', MetricAUCROC(pred='model.output.head_0', target='data.gt.classification')),
+        ('accuracy', MetricAccuracy(pred='results:metrics.op.cls_pred', target='data.gt.classification')),
+    ])
 
     # =====================================================================================
     #  Callbacks
@@ -284,11 +287,11 @@ def run_eval(paths: dict, eval_common_params: dict):
     lgr.info('Fuse Eval', {'attrs': ['bold', 'underline']})
 
      # metrics
-    metrics = {
-        'accuracy': MetricAccuracy(pred='model.output.head_0', target='data.gt.classification'),
-        'roc': MetricROCCurve(pred='model.output.head_0', target='data.gt.classification', output_filename=os.path.join(paths['inference_dir'], 'roc_curve.png')),
-        'auc': MetricAUCROC(pred='model.output.head_0', target='data.gt.classification')
-    }
+    metrics = OrderedDict([
+        ('op', MetricApplyThresholds(pred='model.output.head_0')), # will apply argmax
+        ('auc', MetricAUCROC(pred='model.output.head_0', target='data.gt.classification')),
+        ('accuracy', MetricAccuracy(pred='results:metrics.op.cls_pred', target='data.gt.classification')),
+    ])
 
     # create evaluator
     evaluator = EvaluatorDefault()
