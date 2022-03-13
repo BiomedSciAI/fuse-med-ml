@@ -27,7 +27,7 @@ class NDict(dict):
 
     NOTE: assumes that all keys (including nested) are:
         1. strings
-        2. do not contain '.' within a single key, as '.' is used as a special symbol for accesing deeper level nested dict.
+        2. do not contain '.' within a single key, as '.' is used as a special symbol for accessing deeper level nested dict.
 
     For example:
 
@@ -157,9 +157,11 @@ class NDict(dict):
         
         value = self._stored        
         for sub_key in nested_key:
-            if not isinstance(value, dict):
+            if isinstance(value, dict) and sub_key in value:
+                value = value.get(sub_key)
+            else:
                 raise NestedKeyError(key, self)
-            value = value.get(sub_key)
+            
 
         return value
 
@@ -235,9 +237,9 @@ class NestedKeyError(KeyError):
             partial_ndict = d[partial_key]
         
         if isinstance(partial_ndict, NDict):
-            options = str([f"{partial_key}.{k}" for k in partial_ndict.flatten().keys()])
-            error_str = f'key {key} does not exist\n. Possible keys are: {options}'
+            options = str([f"{partial_key}.{k}" for k in partial_ndict.keypaths()])
+            error_str = f'key {key} does not exist\n. Possible keys on the same branch are: {options}. All keys {d.keypaths()}'
             super().__init__(error_str)
         else:
-            error_str = f'key {key} does not exist\n. Closest key is: {partial_key}'
+            error_str = f'key {key} does not exist\n. Closest key is: {partial_key}. All keys: {d.keypaths()}'
             super().__init__(error_str)

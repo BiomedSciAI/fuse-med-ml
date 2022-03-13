@@ -17,3 +17,7 @@ opencv-python<=4.3.0.36
 ipython
 pydicom
 h5py
+deepdiff
+statsmodels
+nibabel
+pycocotools>=2.0.1
