@@ -25,11 +25,6 @@ Besides having implemented a rich library of evaluation metrics and helper funct
 * Confusion matrix and resulting metrics: sensitivity (=recall=TPR), specificity (=selectivity), precision (=PPV), f1-score
 * Brier score
 
-### Model comparison:
-* Paired bootstrap
-* McNemar's test
-* DeLong's test
-
 ### Semantic Segmentation:
 * Intersection over union (IOU) / Jaccard Index
 * Dice Score
@@ -41,6 +36,16 @@ Besides having implemented a rich library of evaluation metrics and helper funct
 * Mean Intersection over union (IOU) over detected objects
 * Precision ( based on a given IOU overlap threshold )
 * Recall ( based on a given IOU overlap threshold )
+
+### Model comparison:
+* Paired bootstrap
+* McNemar's test
+* DeLong's test
+
+### Confidence calibration
+* Reliability diagram
+* Expected calibration error
+* Temperature scaling
 
 ### General:
 * Sub-group analysis
@@ -276,6 +281,33 @@ This operation can be useful for scenarios in which the original predictions in 
 metrics = OrderedDict([
             ("apply_thresh", MetricApplyThresholds(pred="pred", operation_point=0.5)),
             ("acc", MetricAccuracy(pred="results:metrics.apply_thresh.cls_pred", target="target"))
+    ])
+```
+
+### 9. Confidence calibration:
+
+#### Reliability diagram
+The reliability diagram is a plot of accuracy as a function of confidence. If a model is perfectly calibrated, it should plot the identity function. The following code defines the metric to generate a reliability diagram plot with 10 equal width confidence bins. The input found in key "pred" should contain a list of 1D arrays with predicted probabilities per class. 
+```
+metrics = OrderedDict([
+        ("reliability", MetricReliabilityDiagram(pred="pred", target="target", num_bins=10, output_filename='reliability.png')),
+])
+```
+
+#### Expected calibration error
+Similarly, this metric definition will compute the Expected Calibration Error (ECE):
+```
+metrics = OrderedDict([
+            ("ece", MetricECE(pred="pred", target="target", num_bins=10)),
+    ])
+```
+
+#### Temperature scaling
+In order to calibrate the model, we first compute the optimal temperature scalar parametes, and then apply it to the predicted logits. We use a metric pipeline to define these two operations:
+```
+metrics = OrderedDict([
+            ("find_temperature", MetricFindTemperature(pred="logits", target="target")),
+            ("apply_temperature", MetricApplyTemperature(pred="logits", temperature="results:metrics.find_temperature")),
     ])
 ```
 
