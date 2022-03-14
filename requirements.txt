@@ -1,7 +1,7 @@
 # Requirements for developments
-# python>=3.6.9
+# python>=3.7
 numpy>=1.18.5
-pandas>=1.1.4
+pandas>=1.2
 tqdm>=4.52.0
 scipy>=1.5.4
 matplotlib>=3.3.3
@@ -14,8 +14,12 @@ SimpleITK>=1.2.0
 wget
 tensorboard
 opencv-python<=4.3.0.36 
-h5py
-pydicom
 ipython
+pydicom
+h5py
+deepdiff
+statsmodels
+nibabel
+pycocotools>=2.0.1
 xmlrunner
 paramiko

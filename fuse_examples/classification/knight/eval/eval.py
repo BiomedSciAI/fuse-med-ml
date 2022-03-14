@@ -17,6 +17,7 @@ Created on June 30, 2021
 
 """
 
+import pathlib
 import sys
 import os
 from typing import List, Tuple, Union, Optional
@@ -29,11 +30,10 @@ import numpy as np
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 from fuse.utils.utils_file import FuseUtilsFile
 
-from fuse.analyzer.analyzer_default import FuseAnalyzerDefault
+from fuse.eval.evaluator import EvaluatorDefault
 
-from fuse.metrics.metric_confidence_interval import FuseMetricConfidenceInterval
-from fuse.metrics.classification.metric_auc import FuseMetricAUC
-from fuse.metrics.classification.metric_roc_curve import FuseMetricROCCurve
+from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricConfusionMatrix, MetricROCCurve
+from fuse.eval.metrics.metrics_common import CI
 from pandas.core.frame import DataFrame
 
 
@@ -98,6 +98,7 @@ def decode_results(results: dict, output_dir: str, task1: bool, task2: bool) -> 
     :param task2: if true will evaluate task2
     :return: ordered dict summarizing the results and markdown text
     """
+    results = results["metrics"]
     results_table = OrderedDict()
     # Table
     ## task1
@@ -136,7 +137,6 @@ def decode_results(results: dict, output_dir: str, task1: bool, task2: bool) -> 
         results_text += "".join([f" ------ |" for column in table_columns])
         results_text += "\n|"
         results_text += "".join([f" {results_table[f'Task2-{column}']} {results_table[f'Task2-{column}-CI']} |" for column in table_columns])
-        
         results_text += "\n## ROC Curve\n"
         results_text += f'<br/>\n<img src="task2_roc.png" alt="drawing" width="40%"/>\n<br/>\n'
 
@@ -152,7 +152,7 @@ def decode_results(results: dict, output_dir: str, task1: bool, task2: bool) -> 
 
     return results_table, results_text
 
-def eval(task1_prediction_filename: str, task2_prediction_filename: str, target_filename: str, output_dir: str, case_ids_source: Optional[Union[str, List[str]]] = None) -> Tuple[OrderedDict, str]:
+def eval(task1_prediction_filename: str, task2_prediction_filename: str, target_filename: str, output_dir: str, case_ids_source: Optional[Union[str, List[str]]] = "target") -> Tuple[OrderedDict, str]:
     """
     Load the prediction and target files, evaluate the predictions and save the results into files.
     :param task1_prediction_filename: path to a prediction csv file for task1. Expecting the columns listed in EXPECTED_TASK1_PRED_KEYS to exist (including the header).
@@ -186,30 +186,30 @@ def eval(task1_prediction_filename: str, task2_prediction_filename: str, target_
     if task1:
         # metrics to evaluate
         metrics.update({
-            "task1_auc": FuseMetricConfidenceInterval(FuseMetricAUC(pred_name='task1_pred.array', target_name='target.Task1-target', class_names=TASK1_CLASS_NAMES), stratum_name="target.Task1-target"),
-            "task1_roc_curve": FuseMetricROCCurve(pred_name='task1_pred.array', target_name='target.Task1-target', class_names=[None, ""], output_filename=os.path.join(output_dir, "task1_roc.png")),
+            "task1_auc": CI(MetricAUCROC(pred='task1_pred.array', target='target.Task1-target', class_names=TASK1_CLASS_NAMES, pre_collect_process_func=post_processing), stratum="target.Task1-target"),
+            "task1_roc_curve": MetricROCCurve(pred='task1_pred.array', target='target.Task1-target', class_names=[None, ""], pre_collect_process_func=post_processing, output_filename=os.path.join(output_dir, "task1_roc.png")),
         })
         # read files
         task1_pred_df = pd.read_csv(task1_prediction_filename, dtype={PRED_CASE_ID_NAME: object})
         # verify input
         assert set(task1_pred_df.keys()).issubset(EXPECTED_TASK1_PRED_KEYS), \
             f'Expecting task1 prediction file {os.path.abspath(task1_prediction_filename)} to include also the following keys: {EXPECTED_TASK1_PRED_KEYS - set(task1_pred_df.keys())}'
-        task1_pred_df = task1_pred_df.set_index(PRED_CASE_ID_NAME, drop=False)
+        task1_pred_df["id"] = task1_pred_df[PRED_CASE_ID_NAME]
         dataframes_dict["task1_pred"] = task1_pred_df
 
     # task 2
     if task2:
         # metrics to evaluate
         metrics.update({
-            "task2_auc": FuseMetricConfidenceInterval(FuseMetricAUC(pred_name='task2_pred.array', target_name='target.Task2-target', class_names=TASK2_CLASS_NAMES), stratum_name="target.Task2-target"),
-            "task2_roc_curve": FuseMetricROCCurve(pred_name='task2_pred.array', target_name='target.Task2-target', class_names=TASK2_CLASS_NAMES, output_filename=os.path.join(output_dir, "task2_roc.png")),
+            "task2_auc": CI(MetricAUCROC(pred='task2_pred.array', target='target.Task2-target', class_names=TASK2_CLASS_NAMES, pre_collect_process_func=post_processing), stratum="target.Task2-target"),
+            "task2_roc_curve": MetricROCCurve(pred='task2_pred.array', target='target.Task2-target', class_names=TASK2_CLASS_NAMES, output_filename=os.path.join(output_dir, "task2_roc.png"), pre_collect_process_func=post_processing),
         })
         # read files
         task2_pred_df = pd.read_csv(task2_prediction_filename, dtype={PRED_CASE_ID_NAME: object})
         # verify input
         assert set(task2_pred_df.keys()).issubset(EXPECTED_TASK2_PRED_KEYS), \
             f'Expecting task2 prediction file {os.path.abspath(task2_prediction_filename)} to include also the following keys: {EXPECTED_TASK2_PRED_KEYS - set(task2_pred_df.keys())}'
-        task2_pred_df = task2_pred_df.set_index(PRED_CASE_ID_NAME, drop=False)
+        task2_pred_df["id"] = task2_pred_df[PRED_CASE_ID_NAME]
         dataframes_dict["task2_pred"] = task2_pred_df
     
     # read files
@@ -217,16 +217,15 @@ def eval(task1_prediction_filename: str, task2_prediction_filename: str, target_
     # verify input
     assert set(target_df.keys()).issubset(EXPECTED_TARGET_KEYS), \
         f'Expecting target file {os.path.abspath(target_filename)} to include also the following keys: {EXPECTED_TARGET_KEYS - set(target_df.keys())}'
-    target_df = target_df.set_index(TARGET_CASE_ID_NAME, drop=False)
+    target_df["id"] = target_df[TARGET_CASE_ID_NAME]
     dataframes_dict["target"] = target_df
 
     # analyze
-    analyzer = FuseAnalyzerDefault()
-    results = analyzer.analyze_prediction_dataframe(sample_descr=case_ids_source, 
-                                                    dataframes_dict=dataframes_dict, 
-                                                    post_processing=lambda x: post_processing(x, task1, task2),
-                                                    metrics=metrics, 
-                                                    output_filename=None)
+    evaluator = EvaluatorDefault()
+    results = evaluator.eval(ids=list(dataframes_dict[case_ids_source]["id"]), 
+                             data=dataframes_dict, 
+                             metrics=metrics, 
+                             output_dir=None)
 
     # output
     return decode_results(results, output_dir=output_dir, task1=task1, task2=task2)
@@ -240,10 +239,11 @@ if __name__ == "__main__":
     Run dummy example (set the working dir to fuse-med-ml/fuse_examples/classification/knight/eval): python eval.py example/example_targets.csv example/example_task1_predictions.csv example/example_task2_predictions.csv example/results
     """
     if len(sys.argv) == 1:
+        dir_path = pathlib.Path(__file__).parent.resolve()
         # no arguments - set arguments inline - see details in function eval()
-        target_filename = "example/example_targets.csv"
-        task1_prediction_filename = "example/example_task1_predictions.csv"
-        task2_prediction_filename = "example/example_task2_predictions.csv"
+        target_filename = os.path.join(dir_path, "example/example_targets.csv")
+        task1_prediction_filename = os.path.join(dir_path, "example/example_task1_predictions.csv")
+        task2_prediction_filename = os.path.join(dir_path, "example/example_task2_predictions.csv")
         output_dir = "example/results"
     else:
         # get arguments from sys.argv

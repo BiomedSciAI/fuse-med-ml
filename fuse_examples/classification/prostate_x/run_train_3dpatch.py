@@ -14,13 +14,14 @@ Created on June 30, 2021
 
 import logging
 import os
+import pathlib
+from fuse.data.dataset.dataset_base import FuseDatasetBase
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
+from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricROCCurve
+from fuse.eval.evaluator import EvaluatorDefault
 from fuse.data.dataset.dataset_base import FuseDatasetBase
-from fuse.metrics.classification.metric_roc_curve import FuseMetricROCCurve
-from fuse.metrics.classification.metric_auc import FuseMetricAUC
-from fuse.analyzer.analyzer_default import FuseAnalyzerDefault
 
 from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
 from fuse.losses.loss_default import FuseLossDefault
@@ -50,18 +51,18 @@ root_path  ='.'
 # Download instructions can be found in README
 # load data from:
 # https://wiki.cancerimagingarchive.net/display/Public/SPIE-AAPM-NCI+PROSTATEx+Challenges#23691656d4622c5ad5884bdb876d6d441994da38
-root_data = './PatientData/ProstateX/manifest-A3Y4AE4o5818678569166032044/'
+root_data = 'PatientData/ProstateX/manifest-A3Y4AE4o5818678569166032044/'
 
 
 PATHS = {'force_reset_model_dir': False,
          # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
-         'model_dir': root_path + '/my_model/',
-         'cache_dir': root_path + '/my_cache/',
-         'inference_dir': root_path + '/my_model/inference/',
-         'analyze_dir': root_path +  '/my_model/analyze/',
-         'data_dir':root_path,
+         'model_dir': os.path.join(root_path, 'prostatex/my_model/'),
+         'cache_dir': os.path.join(root_path, 'prostatex/my_cache/'),
+         'inference_dir': os.path.join(root_path, 'prostatex/my_model/inference/'),
+         'eval_dir': os.path.join(root_path,  'prostatex/my_model/eval/'),
+         'data_dir': pathlib.Path(__file__).parent.resolve(),
          'prostate_data_path' : root_data,
-         'ktrans_path': root_data + 'ProstateXKtrains-train-fixed/',
+         'ktrans_path': os.path.join(root_data, 'ProstateXKtrains-train-fixed/'),
          }
 #################################
 # Train Template
@@ -89,7 +90,7 @@ TRAIN_COMMON_PARAMS['data.aug.phase_misalignment'] = True
 # ===============
 TRAIN_COMMON_PARAMS['manager.train_params'] = {
     'num_gpus': 1,
-    'num_epochs': 150,
+    'num_epochs': 5,
     'virtual_batch_size': 1,  # number of batches in one virtual batch
     'start_saving_epochs': 120,  # first epoch to start saving checkpoints from
     'gap_between_saving_epochs': 5,  # number of epochs between saved checkpoint
@@ -203,7 +204,7 @@ def train_template(paths: dict, train_common_params: dict):
 
     metrics = {
 
-        'auc': FuseMetricAUC(pred_name='model.output.ClinSig', target_name='data.ground_truth',
+        'auc': MetricAUCROC(pred='model.output.ClinSig', target='data.ground_truth',
                                 class_names=train_common_params['task'].class_names()),
     }
 
@@ -277,15 +278,15 @@ def infer_template(paths: dict, infer_common_params: dict):
     lgr.info('Fuse Inference', {'attrs': ['bold', 'underline']})
     lgr.info(f'infer_filename={infer_common_params["infer_filename"]}', {'color': 'magenta'})
 
-    #### create infer datasource
+    #### create infer data set
 
+    lgr.info(f'db_name={infer_common_params["db_name"]}', {'color': 'magenta'})
     ## Create data source:
-    infer_data_source = FuseProstateXDataSourcePatient(PATHS['data_dir'],'validation',
+    infer_data_source = FuseProstateXDataSourcePatient(paths['data_dir'],'validation',
                                                        db_ver=infer_common_params['db_version'],
                                                        db_name = infer_common_params['db_name'],
                                                        fold_no=infer_common_params['fold_no'])
 
-    lgr.info(f'db_name={infer_common_params["db_name"]}', {'color': 'magenta'})
     ### load dataset
     data_set_filename = os.path.join(paths["model_dir"], "inference_dataset.pth")
     dataset = FuseDatasetBase.load(filename=data_set_filename, override_datasource=infer_data_source, override_cache_dest=paths["cache_dir"], num_workers=0)
@@ -295,8 +296,6 @@ def infer_template(paths: dict, infer_common_params: dict):
                                        batch_size=50,
                                        num_workers=5,
                                        collate_fn=dataset.collate_fn)
-
-
     #### Manager for inference
     manager = FuseManagerDefault()
     # extract just the global classification per sample and save to a file
@@ -305,41 +304,36 @@ def infer_template(paths: dict, infer_common_params: dict):
                   input_model_dir=paths['model_dir'],
                   checkpoint=infer_common_params['checkpoint'],
                   output_columns=output_columns,
-                  output_file_name=infer_common_params['infer_filename'],)
+                  output_file_name=infer_common_params['infer_filename'])
 
 ######################################
 # Analyze Common Params
 ######################################
-ANALYZE_COMMON_PARAMS = {}
-ANALYZE_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
-ANALYZE_COMMON_PARAMS['output_filename'] = os.path.join(PATHS['analyze_dir'], 'all_metrics')
+EVAL_COMMON_PARAMS = {}
+EVAL_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
 ######################################
 # Analyze Template
 ######################################
-def analyze_template(paths: dict, analyze_common_params: dict):
+def eval_template(paths: dict, eval_common_params: dict):
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
-    lgr.info('Fuse Analyze', {'attrs': ['bold', 'underline']})
-
-    fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
-    lgr = logging.getLogger('Fuse')
-    lgr.info('Fuse Analyze', {'attrs': ['bold', 'underline']})
+    lgr.info('Fuse Eval', {'attrs': ['bold', 'underline']})
 
     # metrics
     metrics = {
-        'roc': FuseMetricROCCurve(pred_name='model.output.ClinSig', target_name='data.ground_truth',
+        'roc': MetricROCCurve(pred='model.output.ClinSig', target='data.ground_truth',
                                   output_filename=os.path.join(paths['inference_dir'], 'roc_curve.png')),
-        'auc': FuseMetricAUC(pred_name='model.output.ClinSig', target_name='data.ground_truth')
+        'auc': MetricAUCROC(pred='model.output.ClinSig', target='data.ground_truth')
     }
 
-    # create analyzer
-    analyzer = FuseAnalyzerDefault()
+    # create evaluator
+    evaluator = EvaluatorDefault()
 
     # run
-    results = analyzer.analyze(gt_processors={},
-                     data_pickle_filename=analyze_common_params["infer_filename"],
-                     metrics=metrics,
-                     output_filename=analyze_common_params['output_filename'])
+    results = evaluator.eval(ids=None,
+                            data=eval_common_params["infer_filename"],
+                            metrics=metrics,
+                            output_dir=paths["eval_dir"])
 
     return results
 ######################################
@@ -355,7 +349,7 @@ if __name__ == "__main__":
     force_gpus = None  # [0]
     FuseUtilsGPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
-    RUNNING_MODES = ['train','infer', 'analyze']  # Options: 'train', 'infer', 'analyze'
+    RUNNING_MODES = ['train','infer', 'eval']  # Options: 'train', 'infer', 'eval'
 
     if 'train' in RUNNING_MODES:
         train_template(paths=PATHS, train_common_params=TRAIN_COMMON_PARAMS)
@@ -363,5 +357,5 @@ if __name__ == "__main__":
     if 'infer' in RUNNING_MODES:
         infer_template(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS)
 
-    if 'analyze' in RUNNING_MODES:
-        analyze_template(paths=PATHS,analyze_common_params=ANALYZE_COMMON_PARAMS)
+    if 'eval' in RUNNING_MODES:
+        eval_template(paths=PATHS,eval_common_params=EVAL_COMMON_PARAMS)

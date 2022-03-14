@@ -162,6 +162,7 @@ class ResNet(torch.nn.Module):
 
         return out
 
+
 class Fuse_model_3d_multichannel(torch.nn.Module):
     """
     Fuse model that classifing high resolution images

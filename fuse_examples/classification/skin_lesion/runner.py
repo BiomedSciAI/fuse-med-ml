@@ -16,31 +16,13 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-
-"""
-
-(C) Copyright 2021 IBM Corp.
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-   http://www.apache.org/licenses/LICENSE-2.0
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-Created on June 30, 2021
-
-"""
-
 import os
+from typing import OrderedDict
 
-from fuse.analyzer.analyzer_default import FuseAnalyzerDefault
+from fuse.eval.evaluator import EvaluatorDefault
 from fuse.utils.utils_debug import FuseUtilsDebug
 
 from fuse.utils.utils_gpu import FuseUtilsGPU
-
-os.environ['skip_broker'] = '1'
 
 import logging
 
@@ -66,9 +48,8 @@ from fuse.models.backbones.backbone_inception_resnet_v2 import FuseBackboneIncep
 
 from fuse.losses.loss_default import FuseLossDefault
 
-from fuse.metrics.classification.metric_auc import FuseMetricAUC
-from fuse.metrics.classification.metric_accuracy import FuseMetricAccuracy
-from fuse.metrics.classification.metric_roc_curve import FuseMetricROCCurve
+from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy, MetricROCCurve
+from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 
 from fuse.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
 from fuse.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
@@ -164,7 +145,7 @@ TRAIN_COMMON_PARAMS['manager.train_params'] = {
 # best_epoch_source
 # if an epoch values are the best so far, the epoch is saved as a checkpoint.
 TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = {
-    'source': 'metrics.auc.macro_avg',  # can be any key from losses or metrics dictionaries
+    'source': 'metrics.auc',  # can be any key from losses or metrics dictionaries
     'optimization': 'max',  # can be either min/max
     'on_equal_values': 'better',
     # can be either better/worse - whether to consider best epoch when values are equal
@@ -228,7 +209,7 @@ def run_train(paths: dict, train_common_params: dict):
         augmentation_pipeline=train_common_params['data.augmentation_pipeline'])
 
     # Create visualizer (optional)
-    visualiser = FuseVisualizerDefault(image_name='data.input.input_0', label_name='data.gt.gt_global.tensor')
+    visualizer = FuseVisualizerDefault(image_name='data.input.input_0', label_name='data.gt.gt_global.tensor')
 
     # Create dataset
     train_dataset = FuseDatasetDefault(cache_dest=paths['cache_dir'],
@@ -236,7 +217,7 @@ def run_train(paths: dict, train_common_params: dict):
                                        input_processors=input_processors,
                                        gt_processors=gt_processors,
                                        augmentor=augmentor,
-                                       visualizer=visualiser)
+                                       visualizer=visualizer)
 
     lgr.info(f'- Load and cache data:')
     train_dataset.create()
@@ -280,7 +261,7 @@ def run_train(paths: dict, train_common_params: dict):
                                             input_processors=input_processors,
                                             gt_processors=gt_processors,
                                             augmentor=None,
-                                            visualizer=visualiser)
+                                            visualizer=visualizer)
 
     lgr.info(f'- Load and cache data:')
     validation_dataset.create(pool_type='thread')  # use ThreadPool to create this dataset, to avoid cv2 problems in multithreading
@@ -327,10 +308,12 @@ def run_train(paths: dict, train_common_params: dict):
     # ====================================================================================
     # Metrics
     # ====================================================================================
-    metrics = {
-        'auc': FuseMetricAUC(pred_name='model.output.head_0', target_name='data.gt.gt_global.tensor'),
-        'accuracy': FuseMetricAccuracy(pred_name='model.output.head_0', target_name='data.gt.gt_global.tensor')
-    }
+    metrics = OrderedDict([
+        ('op', MetricApplyThresholds(pred='model.output.head_0')), # will apply argmax
+        ('auc', MetricAUCROC(pred='model.output.head_0', target='data.gt.gt_global.tensor')),
+        ('accuracy', MetricAccuracy(pred='results:metrics.op.cls_pred', target='data.gt.gt_global.tensor')),
+    ])
+
 
     # =====================================================================================
     #  Callbacks
@@ -415,14 +398,14 @@ def run_infer(paths: dict, infer_common_params: dict):
     }
 
     # Create visualizer (optional)
-    visualiser = FuseVisualizerDefault(image_name='data.input.input_0', label_name='data.gt.gt_global.tensor')
+    visualizer = FuseVisualizerDefault(image_name='data.input.input_0', label_name='data.gt.gt_global.tensor')
 
     # Create dataset
     infer_dataset = FuseDatasetDefault(cache_dest=paths['cache_dir'],
                                        data_source=infer_data_source,
                                        input_processors=input_processors_infer,
                                        gt_processors=gt_processors_infer,
-                                       visualizer=visualiser)
+                                       visualizer=visualizer)
     infer_dataset.create()
 
     lgr.info(f'- Create sampler: Done')
@@ -437,7 +420,7 @@ def run_infer(paths: dict, infer_common_params: dict):
     #### Manager for inference
     manager = FuseManagerDefault()
     # extract just the global classification per sample and save to a file
-    output_columns = ['model.output.head_0']
+    output_columns = ['model.output.head_0', 'data.gt.gt_global.tensor']
     manager.infer(data_loader=infer_dataloader,
                   input_model_dir=paths['model_dir'],
                   checkpoint=infer_common_params['checkpoint'],
@@ -448,50 +431,40 @@ def run_infer(paths: dict, infer_common_params: dict):
 ######################################
 # Analyze Common Params
 ######################################
-ANALYZE_COMMON_PARAMS = {}
-ANALYZE_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
-ANALYZE_COMMON_PARAMS['output_filename'] = 'all_metrics.txt'
-ANALYZE_COMMON_PARAMS['num_workers'] = 4
-ANALYZE_COMMON_PARAMS['batch_size'] = 8
-ANALYZE_COMMON_PARAMS['data.year'] = TRAIN_COMMON_PARAMS['data.year']
+EVAL_COMMON_PARAMS = {}
+EVAL_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
+EVAL_COMMON_PARAMS['output_filename'] = 'all_metrics.txt'
+EVAL_COMMON_PARAMS['num_workers'] = 4
+EVAL_COMMON_PARAMS['batch_size'] = 8
+EVAL_COMMON_PARAMS['data.year'] = TRAIN_COMMON_PARAMS['data.year']
 
 
 ######################################
 # Analyze Template
 ######################################
-def run_analyze(paths: dict, analyze_common_params: dict):
+def run_eval(paths: dict, eval_common_params: dict):
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
-    lgr.info('Fuse Analyze', {'attrs': ['bold', 'underline']})
-
-    # dataset generating ground truth processors
-    input_source = {'2016': os.path.join(paths['data_dir'], 'data/ISIC2016_Test_GroundTruth.csv'),
-                    '2017': os.path.join(paths['data_dir'], 'data/ISIC2017_Test_GroundTruth.csv')}
-
-    ## Create data processors
-    gt_processors = {
-        'gt_global': FuseSkinGroundTruthProcessor(input_data=input_source[analyze_common_params['data.year']],
-                                                  train=False, year=analyze_common_params['data.year'])
-    }
+    lgr.info('Fuse Eval', {'attrs': ['bold', 'underline']})
 
     # metrics
-    metrics = {
-        'auc': FuseMetricAUC(pred_name='model.output.head_0', target_name='data.gt.gt_global.tensor'),
-        'accuracy': FuseMetricAccuracy(pred_name='model.output.head_0', target_name='data.gt.gt_global.tensor'),
-        'roc': FuseMetricROCCurve(pred_name='model.output.head_0', target_name='data.gt.gt_global.tensor',
-                                  output_filename=os.path.join(paths["inference_dir"], "roc_curve.png"))
-    }
+    metrics = OrderedDict([
+        ('op', MetricApplyThresholds(pred='model.output.head_0')), # will apply argmax
+        ('auc', MetricAUCROC(pred='model.output.head_0', target='data.gt.gt_global.tensor')),
+        ('accuracy', MetricAccuracy(pred='results:metrics.op.cls_pred', target='data.gt.gt_global.tensor')),
+        ('roc', MetricROCCurve(pred='model.output.head_0', target='data.gt.gt_global.tensor',
+                                  output_filename=os.path.join(paths["inference_dir"], "roc_curve.png"))),
+    ])
 
-    # create analyzer
-    analyzer = FuseAnalyzerDefault()
+
+    # create evaluator
+    evaluator = EvaluatorDefault()
 
     # run
-    results = analyzer.analyze(gt_processors=gt_processors,
-                               data_pickle_filename=os.path.join(paths["inference_dir"], analyze_common_params["infer_filename"]),
+    results = evaluator.eval(ids=None,
+                               data=os.path.join(paths["inference_dir"], eval_common_params["infer_filename"]),
                                metrics=metrics,
-                               output_filename=os.path.join(paths["inference_dir"], analyze_common_params['output_filename']),
-                               num_workers=analyze_common_params['num_workers'],
-                               batch_size=analyze_common_params['num_workers'])
+                               output_dir=paths["inference_dir"])
 
     return results
 
@@ -510,7 +483,7 @@ if __name__ == "__main__":
     force_gpus = None  # [0]
     FuseUtilsGPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
-    RUNNING_MODES = ['train', 'infer', 'analyze']  # Options: 'train', 'infer', 'analyze'
+    RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
 
     # train
     if 'train' in RUNNING_MODES:
@@ -520,6 +493,6 @@ if __name__ == "__main__":
     if 'infer' in RUNNING_MODES:
         run_infer(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS)
 
-    # analyze
-    if 'analyze' in RUNNING_MODES:
-        run_analyze(paths=PATHS, analyze_common_params=ANALYZE_COMMON_PARAMS)
+    # eval
+    if 'eval' in RUNNING_MODES:
+        run_eval(paths=PATHS, eval_common_params=EVAL_COMMON_PARAMS)

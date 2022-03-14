@@ -83,6 +83,7 @@ class FuseInferResultsCallback(FuseCallback):
         # prepare dataframe from the results
         infer_results_df = pd.DataFrame()
         infer_results_df['descriptor'] = self.aggregated_dict['descriptor']
+        infer_results_df['id'] = self.aggregated_dict['descriptor'] # for future support - evaluation package
 
         for output in FuseUtilsHierarchicalDict.get_all_keys(self.aggregated_dict['output']):
             infer_results_df[output] = list(

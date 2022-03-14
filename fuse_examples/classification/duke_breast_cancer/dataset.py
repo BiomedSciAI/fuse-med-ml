@@ -100,7 +100,7 @@ def duke_breast_cancer_dataset(paths,train_common_params,lgr):
         vol_processor=mri_vol_processor,
         path_to_db=paths['data_dir'],
         data_path=paths['data_path'],
-        ktrans_data_path=paths['ktrans_path'],
+        ktrans_data_path='',
         db_name=train_common_params['db_name'],
         db_version=train_common_params['partition_version'],
         fold_no=train_common_params['fold_no'],

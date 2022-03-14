@@ -16,7 +16,6 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-import logging
 import os, glob
 import numpy as np
 import SimpleITK as sitk
@@ -27,6 +26,7 @@ import h5py
 from typing import Tuple
 import pandas as pd
 from fuse.data.processor.processor_base import FuseProcessorBase
+
 
 # ========================================================================
 # sequences to be read, and the sequence name

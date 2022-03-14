@@ -78,6 +78,12 @@ $ pip install fuse-med-ml
 ## Walkthrough template
 * [**Walkthrough Template**](https://github.com/IBM/fuse-med-ml/tree/master/fuse/templates/walkthrough_template.py) - includes several TODO notes, marking the minimal scope of code required to get your pipeline up and running. The template also includes useful explanations and tips.
 
+
+## Evaluation package
+The evaluation package of FuseMedML (fuse.eval) is a standalone library for evaluating ML models which not necessarily trained with FuseMedML.  
+The package includes collection of off-the-shelf metrics and utilities such as calibration, thresholding, model comparison and more.
+Details and examples can be found [here](https://github.com/IBM/fuse-med-ml/tree/master/fuse/eval/README.md)   
+
 ## Community support
 We use the Slack workspace at fusemedml.slack.com for informal communication.
 We encourage you to ask questions regarding FuseMedML that don't necessarily merit opening an issue on Github.

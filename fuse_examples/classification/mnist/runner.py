@@ -19,6 +19,8 @@ Created on June 30, 2021
 
 import logging
 import os
+from typing import OrderedDict
+from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 
 import torch
 import torch.nn.functional as F
@@ -28,7 +30,7 @@ import torchvision.models as models
 from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms
 
-from fuse.analyzer.analyzer_default import FuseAnalyzerDefault
+from fuse.eval.evaluator import EvaluatorDefault 
 from fuse.data.dataset.dataset_wrapper import FuseDatasetWrapper
 from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
 from fuse.losses.loss_default import FuseLossDefault
@@ -36,9 +38,7 @@ from fuse.managers.callbacks.callback_metric_statistics import FuseMetricStatist
 from fuse.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
 from fuse.managers.callbacks.callback_time_statistics import FuseTimeStatisticsCallback
 from fuse.managers.manager_default import FuseManagerDefault
-from fuse.metrics.classification.metric_accuracy import FuseMetricAccuracy
-from fuse.metrics.classification.metric_auc import FuseMetricAUC
-from fuse.metrics.classification.metric_roc_curve import FuseMetricROCCurve
+from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
 from fuse.models.model_wrapper import FuseModelWrapper
 from fuse.utils.utils_debug import FuseUtilsDebug
 from fuse.utils.utils_gpu import FuseUtilsGPU
@@ -61,7 +61,7 @@ PATHS = {'model_dir': os.path.join(ROOT, 'mnist/model_dir'),
          'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
          'cache_dir': os.path.join(ROOT, 'mnist/cache_dir'),
          'inference_dir': os.path.join(ROOT, 'mnist/infer_dir'),
-         'analyze_dir': os.path.join(ROOT, 'mnist/analyze_dir')}
+         'eval_dir': os.path.join(ROOT, 'mnist/eval_dir')}
 
 ##########################################
 # Train Common Params
@@ -188,9 +188,10 @@ def run_train(paths: dict, train_params: dict):
     # ====================================================================================
     # Metrics
     # ====================================================================================
-    metrics = {
-        'accuracy': FuseMetricAccuracy(pred_name='model.output.classification', target_name='data.label')
-    }
+    metrics = OrderedDict([
+        ('operation_point', MetricApplyThresholds(pred='model.output.classification')), # will apply argmax
+        ('accuracy', MetricAccuracy(pred='results:metrics.operation_point.cls_pred', target='data.label'))
+    ])
 
     # =====================================================================================
     #  Callbacks
@@ -280,35 +281,36 @@ def run_infer(paths: dict, infer_common_params: dict):
 ######################################
 # Analyze Common Params
 ######################################
-ANALYZE_COMMON_PARAMS = {}
-ANALYZE_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
-ANALYZE_COMMON_PARAMS['output_filename'] = os.path.join(PATHS['analyze_dir'], 'all_metrics')
+EVAL_COMMON_PARAMS = {}
+EVAL_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
 
 
 ######################################
 # Analyze Template
 ######################################
-def run_analyze(paths: dict, analyze_common_params: dict):
+def run_eval(paths: dict, eval_common_params: dict):
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Analyze', {'attrs': ['bold', 'underline']})
 
     # metrics
-    metrics = {
-        'accuracy': FuseMetricAccuracy(pred_name='model.output.classification', target_name='data.label'),
-        'roc': FuseMetricROCCurve(pred_name='model.output.classification', target_name='data.label', output_filename=os.path.join(paths['inference_dir'], 'roc_curve.png')),
-        'auc': FuseMetricAUC(pred_name='model.output.classification', target_name='data.label')
-    }
+    class_names = [str(i) for i in range(10)]
 
-    # create analyzer
-    analyzer = FuseAnalyzerDefault()
+    metrics = OrderedDict([
+        ('operation_point', MetricApplyThresholds(pred='model.output.classification')), # will apply argmax
+        ('accuracy', MetricAccuracy(pred='results:metrics.operation_point.cls_pred', target='data.label')),
+        ('roc', MetricROCCurve(pred='model.output.classification', target='data.label', class_names=class_names, output_filename=os.path.join(paths['inference_dir'], 'roc_curve.png'))),
+        ('auc', MetricAUCROC(pred='model.output.classification', target='data.label', class_names=class_names)),
+    ])
+   
+    # create evaluator
+    evaluator = EvaluatorDefault()
 
     # run
-    # FIXME: simplify analyze interface for this case
-    results = analyzer.analyze(gt_processors={},
-                     data_pickle_filename=os.path.join(paths["inference_dir"], analyze_common_params["infer_filename"]),
+    results = evaluator.eval(ids=None,
+                     data=os.path.join(paths["inference_dir"], eval_common_params["infer_filename"]),
                      metrics=metrics,
-                     output_filename=analyze_common_params['output_filename'])
+                     output_dir=paths['eval_dir'])
 
     return results
 
@@ -326,7 +328,7 @@ if __name__ == "__main__":
     force_gpus = None  # [0]
     FuseUtilsGPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
-    RUNNING_MODES = ['train', 'infer', 'analyze']  # Options: 'train', 'infer', 'analyze'
+    RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
     # train
     if 'train' in RUNNING_MODES:
         run_train(paths=PATHS, train_params=TRAIN_COMMON_PARAMS)
@@ -335,6 +337,6 @@ if __name__ == "__main__":
     if 'infer' in RUNNING_MODES:
         run_infer(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS)
 
-    # analyze
-    if 'analyze' in RUNNING_MODES:
-        run_analyze(paths=PATHS, analyze_common_params=ANALYZE_COMMON_PARAMS)
+    # eval
+    if 'eval' in RUNNING_MODES:
+        run_eval(paths=PATHS, eval_common_params=EVAL_COMMON_PARAMS)

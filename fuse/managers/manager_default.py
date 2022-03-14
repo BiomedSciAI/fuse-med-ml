@@ -39,7 +39,7 @@ from fuse.managers.callbacks.callback_base import FuseCallback
 from fuse.managers.callbacks.callback_debug import FuseCallbackDebug
 from fuse.managers.callbacks.callback_infer_results import FuseInferResultsCallback
 from fuse.managers.manager_state import FuseManagerState
-from fuse.metrics.metric_base import FuseMetricBase
+from fuse.eval import MetricBase
 from fuse.models.model_ensemble import FuseModelEnsemble
 from fuse.utils import utils_misc as misc
 from fuse.utils.utils_checkpoint import FuseCheckpoint
@@ -98,7 +98,7 @@ class FuseManagerDefault:
     def set_objects(self,
                     net: nn.Module = None,
                     # ensemble_nets: Sequence[nn.Module] = None,
-                    metrics: Dict[str, FuseMetricBase] = None,
+                    metrics: Dict[str, MetricBase] = None,
                     losses: Dict[str, FuseLossBase] = None,
                     callbacks: List[FuseCallback] = None,
                     optimizer: Optimizer = None,
@@ -109,7 +109,7 @@ class FuseManagerDefault:
         """
         Sets objects to the given values.
         :param net: the model definition
-        :param metrics: a dictionary of metric name and FuseMetricBase to compute on train and validation sets.
+        :param metrics: a dictionary of metric name and MetricBase to compute on train and validation sets.
         :param losses: definition of loss functions
         :param callbacks: list of callbacks to call during train or infer.
         :param optimizer: optimizer to use
@@ -683,7 +683,7 @@ class FuseManagerDefault:
         # compute metrics and keep the results
         for metric_name, metric in self.state.metrics.items():
             try:
-                metric_result = metric.process()
+                metric_result = metric.eval(epoch_results)
             except:
                 lgr = logging.getLogger('Fuse')
                 track = traceback.format_exc()
