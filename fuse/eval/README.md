@@ -303,7 +303,7 @@ metrics = OrderedDict([
 ```
 
 #### Temperature scaling
-In order to calibrate the model, we first compute the optimal temperature scalar parametes, and then apply it to the predicted logits. We use a metric pipeline to define these two operations:
+In order to calibrate the model, we first compute the optimal temperature scalar parameters, and then apply it to the predicted logits. We use a metric pipeline to define these two operations:
 ```
 metrics = OrderedDict([
             ("find_temperature", MetricFindTemperature(pred="logits", target="target")),
