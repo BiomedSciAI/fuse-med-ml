@@ -27,11 +27,15 @@ from PIL import Image
 from scipy.ndimage.filters import gaussian_filter
 from scipy.ndimage.interpolation import map_coordinates
 from torch import Tensor
+import elasticdeform as ed
 
 from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerGaussianPatch as Gaussian
 from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerRandBool as RandBool
 from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerRandInt as RandInt
 from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerUniform as Uniform
+
+import PIL
+import torch.nn.functional as F
 
 
 ######## Affine augmentation
@@ -63,7 +67,12 @@ def aug_op_affine(aug_input: Tensor, rotate: float = 0.0, translate: Tuple[float
     for channel in channels:
         aug_channel_tensor = aug_input[channel].numpy()
         aug_channel_tensor = Image.fromarray(aug_channel_tensor)
-        aug_channel_tensor = TTF.affine(aug_channel_tensor, angle=rotate, scale=scale, translate=translate, shear=shear)
+        aug_channel_tensor = TTF.affine(aug_channel_tensor, 
+                                        angle=rotate, 
+                                        scale=scale, 
+                                        resample=PIL.Image.BILINEAR,
+                                        translate=translate, 
+                                        shear=shear)
         if flip[0]:
             aug_channel_tensor = TTF.vflip(aug_channel_tensor)
         if flip[1]:
@@ -265,23 +274,13 @@ def aug_op_elastic_transform(aug_input: Tensor, alpha: float = 1, sigma: float =
        :param channels: which channels to apply the augmentation
        :return distorted image
     """
-    random_state = numpy.random.RandomState(None)
-    if channels is None:
-        channels = list(range(aug_input.shape[0]))
-    aug_tensor = aug_input.numpy()
-    for channel in channels:
-        aug_channel_tensor = aug_input[channel].numpy()
-        shape = aug_channel_tensor.shape
-        dx1 = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma, mode="constant", cval=0) * alpha
-        dx2 = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma, mode="constant", cval=0) * alpha
+    # convert back to torch tensor
+    aug_input = [numpy.array(t) for t in aug_input]
+    aug_input_d = ed.deform_random_grid(aug_input, sigma=7, points=3, axis=[(1, 2), (1,2)])
 
-        x1, x2 = numpy.meshgrid(numpy.arange(shape[0]), numpy.arange(shape[1]))
-        indices = numpy.reshape(x2 + dx2, (-1, 1)), numpy.reshape(x1 + dx1, (-1, 1))
+    aug_output = [torch.from_numpy(t) for t in aug_input_d]
 
-        distored_image = map_coordinates(aug_channel_tensor, indices, order=1, mode='reflect')
-        distored_image = distored_image.reshape(aug_channel_tensor.shape)
-        aug_tensor[channel] = distored_image
-    return torch.from_numpy(aug_tensor)
+    return aug_output
 
 
 ######### Default / Example augmentation pipline for a 2D image
@@ -452,3 +451,39 @@ def aug_op_batch_mix_up(aug_input: Tuple[Tensor, Tensor], factor: float) -> Tupl
     img = img * (1.0 - factor) + factor * img_mix_up
     labels = labels * (1.0 - factor) + factor * labels_mix_up
     return img, labels
+
+
+def aug_op_random_crop_and_resize(aug_input: Tensor,
+                                  out_size,
+                                  crop_size: float = 1.0,  # or optional - Tuple[float, float]
+                                  x_off: float = 1.0,
+                                  y_off: float = 1.0, 
+                                  z_off: float = 1.0) -> Tensor:
+    """
+    random crop a (3d) tensor and resize it to a given size
+    :param crop_size: float <= 1.0 - the fraction to crop from the original tensor for each dim
+    :param x_off: float <= 1.0 - the x-offset to take 
+    :param y_off:
+    :param z_off:
+    :param out_size: the size of the output tensor
+    :return: the output tensor
+    """
+    in_shape = aug_input.shape
+
+    if len(aug_input.shape) == 4:
+        ch, z, y, x = in_shape
+
+        x_width = int(crop_size * x)
+        x_off = int(x_off * (x - x_width))
+
+        y_width = int(crop_size * y)
+        y_off = int(y_off * (y - y_width))
+
+        z_width = int(crop_size * z)
+        z_off = int(z_off * (z - z_width))
+
+        aug_tensor = aug_input[:, z_off:z_off+z_width, y_off:y_off+y_width, x_off:x_off+x_width]
+
+        aug_tensor = F.interpolate(aug_tensor, out_size)
+
+    return aug_tensor

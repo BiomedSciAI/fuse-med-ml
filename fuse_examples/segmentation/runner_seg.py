@@ -39,6 +39,7 @@ import random
 import numpy as np
 import matplotlib.pylab as plt
 from pathlib import Path
+from collections import OrderedDict
 
 import torch
 from torch.utils.data import DataLoader
@@ -63,9 +64,11 @@ from fuse.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
 from fuse.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
 from fuse.managers.callbacks.callback_time_statistics import FuseTimeStatisticsCallback
 from fuse.data.processor.processor_dataframe import FuseProcessorDataFrame
-from fuse.metrics.metric_auc_per_pixel import FuseMetricAUCPerPixel
-from fuse.metrics.segmentation.metric_score_map import FuseMetricScoreMap
-from fuse.analyzer.analyzer_default import FuseAnalyzerDefault
+# from fuse.metrics.metric_auc_per_pixel import FuseMetricAUCPerPixel
+# from fuse.metrics.segmentation.metric_score_map import FuseMetricScoreMap
+# from fuse.analyzer.analyzer_default import FuseAnalyzerDefault
+from fuse.eval.evaluator import EvaluatorDefault
+from fuse.eval.metrics.segmentation.metrics_segmentation_common import MetricDice, MetricIouJaccard, MetricOverlap, Metric2DHausdorff, MetricPixelAccuracy
 
 from data_source_segmentation import FuseDataSourceSeg
 from seg_input_processor import SegInputProcessor
@@ -154,7 +157,7 @@ TRAIN_COMMON_PARAMS['data.augmentation_pipeline'] = [
 # Manager - Train1
 # ===============
 TRAIN_COMMON_PARAMS['manager.train_params'] = {
-    'num_epochs': 20,
+    'num_epochs': 2,
     'virtual_batch_size': 1,  # number of batches in one virtual batch
     'start_saving_epochs': 10,  # first epoch to start saving checkpoints from
     'gap_between_saving_epochs': 5,  # number of epochs between saved checkpoint
@@ -428,29 +431,38 @@ def run_analyze(paths: dict, analyze_common_params: dict):
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Analyze', {'attrs': ['bold', 'underline']})
 
-    gt_processors = {
-        'gt_global': SegInputProcessor(name='mask')
-    }
+    # gt_processors = {
+    #     'gt_global': SegInputProcessor(name='mask')
+    # }
 
     # metrics
-    metrics = {
-        'auc': FuseMetricAUCPerPixel(pred_name='model.logits.classification', 
-                                     target_name='data.gt.gt_global'), 
-        'seg': FuseMetricScoreMap(pred_name='model.logits.classification', 
-                                  target_name='data.gt.gt_global',
-                                  hard_threshold=True, threshold=0.5)
-    }
+    # {
+    #     'auc': FuseMetricAUCPerPixel(pred_name='model.logits.classification', 
+    #                                  target_name='data.gt.gt_global'), 
+    #     'seg': FuseMetricScoreMap(pred_name='model.logits.classification', 
+    #                               target_name='data.gt.gt_global',
+    #                               hard_threshold=True, threshold=0.5)
+    # }
+
+    metrics = OrderedDict([
+            ("dice", MetricDice(pred='model.logits.classification', 
+                                target='data.gt.gt_global')),
+    ])
 
     # create analyzer
-    analyzer = FuseAnalyzerDefault()
+    evaluator = EvaluatorDefault()
 
-    # run
-    analyzer.analyze(gt_processors=gt_processors,
-                     data_pickle_filename=analyze_common_params['infer_filename'],
-                     metrics=metrics,
-                     print_results=True,
-                     output_filename=analyze_common_params['output_filename'],
-                     num_workers=0) 
+    results = evaluator.eval(ids=None, 
+                             data=analyze_common_params['infer_filename'],
+                             metrics=metrics) 
+
+#     # run
+#     analyzer.analyze(gt_processors=gt_processors,
+#                      data_pickle_filename=analyze_common_params['infer_filename'],
+#                      metrics=metrics,
+#                      print_results=True,
+#                      output_filename=analyze_common_params['output_filename'],
+#                      num_workers=0) 
 
 
 ######################################
