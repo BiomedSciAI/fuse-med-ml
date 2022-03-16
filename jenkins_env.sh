@@ -15,11 +15,14 @@ create_jenkins_env() {
         conda create -n $ENV_NAME python=$PYTHON_VER -y
         echo "Creating new environment: $ENV_NAME - Done"
         echo "Activating new environment: $ENV_NAME"
-        conda activate $ENV_NAME
+        CONDA_BASE=$(conda info --base)
+        source "$CONDA_BASE/etc/profile.d/conda.sh"
+       	conda activate $ENV_NAME
         echo "Activating new environment: $ENV_NAME - Done"
         echo "Installing requirements"
         pip install -e .
         echo "Installing requirements"
+	conda deactivate
     fi
     # return value
     JENKINS_ENV_NAME=$ENV_NAME
