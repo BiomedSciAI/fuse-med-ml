@@ -33,7 +33,6 @@ create_jenkins_env() {
             echo "Installing requirements"
             conda deactivate
         fi
-        sleep 120
     ) 873>$lock_filename
 
     # return value
