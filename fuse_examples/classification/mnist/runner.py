@@ -43,7 +43,7 @@ from fuse.models.model_wrapper import FuseModelWrapper
 from fuse.utils.utils_debug import FuseUtilsDebug
 from fuse.utils.utils_gpu import FuseUtilsGPU
 from fuse.utils.utils_logger import fuse_logger_start
-import lenet
+from fuse_examples.classification.mnist import lenet
 ###########################################################################################################
 # Fuse
 ###########################################################################################################
