@@ -33,3 +33,4 @@ fuse_examples/classification/knight/baseline/*.csv
 fuse_examples/classification/knight/baseline/clinical_data/*
 fuse_examples/classification/knight/baseline/model_dir
 .gitignore.save
+fuse_examples/classification/mnist/examples/
