@@ -37,6 +37,7 @@ import logging
 from glob import glob
 import random
 import numpy as np
+import pandas as pd
 import matplotlib.pylab as plt
 from pathlib import Path
 from collections import OrderedDict
@@ -157,7 +158,7 @@ TRAIN_COMMON_PARAMS['data.augmentation_pipeline'] = [
 # Manager - Train1
 # ===============
 TRAIN_COMMON_PARAMS['manager.train_params'] = {
-    'num_epochs': 2,
+    'num_epochs': 20,
     'virtual_batch_size': 1,  # number of batches in one virtual batch
     'start_saving_epochs': 10,  # first epoch to start saving checkpoints from
     'gap_between_saving_epochs': 5,  # number of epochs between saved checkpoint
@@ -431,38 +432,31 @@ def run_analyze(paths: dict, analyze_common_params: dict):
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Analyze', {'attrs': ['bold', 'underline']})
 
-    # gt_processors = {
-    #     'gt_global': SegInputProcessor(name='mask')
-    # }
-
-    # metrics
-    # {
-    #     'auc': FuseMetricAUCPerPixel(pred_name='model.logits.classification', 
-    #                                  target_name='data.gt.gt_global'), 
-    #     'seg': FuseMetricScoreMap(pred_name='model.logits.classification', 
-    #                               target_name='data.gt.gt_global',
-    #                               hard_threshold=True, threshold=0.5)
-    # }
+    # define iterator
+    def data_iter():
+        data = pd.read_pickle(analyze_common_params['infer_filename'])
+        n_samples = data.shape[0]
+        threshold = 0.5
+        for inx in range(n_samples):
+            row = data.loc[inx]
+            sample_dict = {}
+            sample_dict["id"] = row['id']
+            sample_dict["pred.array"] = row['model.logits.classification'] > threshold
+            sample_dict["label.array"] = row['data.gt.gt_global']
+            yield sample_dict
 
     metrics = OrderedDict([
-            ("dice", MetricDice(pred='model.logits.classification', 
-                                target='data.gt.gt_global')),
+            ("dice", MetricDice(pred='pred.array', 
+                                target='label.array')),
     ])
 
     # create analyzer
     evaluator = EvaluatorDefault()
 
     results = evaluator.eval(ids=None, 
-                             data=analyze_common_params['infer_filename'],
+                             data=data_iter(),
+                             batch_size=1,
                              metrics=metrics) 
-
-#     # run
-#     analyzer.analyze(gt_processors=gt_processors,
-#                      data_pickle_filename=analyze_common_params['infer_filename'],
-#                      metrics=metrics,
-#                      print_results=True,
-#                      output_filename=analyze_common_params['output_filename'],
-#                      num_workers=0) 
 
 
 ######################################
