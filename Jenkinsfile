@@ -13,10 +13,7 @@ pipeline {
             steps {
                 sh '''
                 rm -rf test-reports/TEST-*.xml
-                export PYTHONPATH=$PYTHONPATH:.
-                source ./jenkins_env.sh
-                create_jenkins_env
-                jbsub -wait -out ccc_log.txt -queue x86_1h -mem 40g -cores "4+1" bash ./fuse/utils/remote_execution/script_runner.sh "" $JENKINS_ENV_NAME "" ./run_all_unit_tests.py
+                jbsub -wait -out ccc_log.txt -queue x86_1h -mem 40g -cores "4+1" bash ./run_all_unit_tests.sh
                 echo "------ printing ccc_log.txt ------"
                 cat ./ccc_log.txt
                 echo "------ Done printing ccc_log.txt ------"
