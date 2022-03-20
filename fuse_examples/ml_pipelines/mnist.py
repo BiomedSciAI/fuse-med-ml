@@ -1,4 +1,4 @@
-from pipeline import run
+from fuse.managers.pipeline import run
 from fuse_examples.classification.mnist.runner import run_train, run_infer, run_eval
 import os
 
