@@ -75,10 +75,7 @@ TRAIN_COMMON_PARAMS['model'] = 'lenet' # 'resnet18' or 'lenet'
 # ============
 # Data
 # ============
-if TRAIN_COMMON_PARAMS['model'] == 'lenet':
-    TRAIN_COMMON_PARAMS['data.batch_size'] = 100
-elif TRAIN_COMMON_PARAMS['model'] == 'resnet18':
-    TRAIN_COMMON_PARAMS['data.batch_size'] = 30
+TRAIN_COMMON_PARAMS['data.batch_size'] = 100
 TRAIN_COMMON_PARAMS['data.train_num_workers'] = 8
 TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 8
 
@@ -177,7 +174,7 @@ def run_train(paths: dict, train_params: dict):
         # modify conv1 to support single channel image
         torch_model.conv1 = torch.nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
     elif train_params['model'] == 'lenet':
-        torch_model = lenet.Net()
+        torch_model = lenet.LeNet()
     
     # use adaptive avg pooling to support mnist low resolution images
     torch_model.avgpool = torch.nn.AdaptiveAvgPool2d(1)
