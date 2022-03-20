@@ -70,7 +70,7 @@ TRAIN_COMMON_PARAMS = {}
 # ============
 # Model
 # ============
-TRAIN_COMMON_PARAMS['model'] = 'resnet18' # 'resnet18' or 'lenet'
+TRAIN_COMMON_PARAMS['model'] = 'lenet' # 'resnet18' or 'lenet'
 
 # ============
 # Data
