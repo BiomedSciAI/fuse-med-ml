@@ -1,4 +1,3 @@
-from .pipeline import run_train, run_infer, run_eval
 from fuse.utils.utils_gpu import FuseUtilsGPU
 from fuse.utils.utils_debug import FuseUtilsDebug
 
@@ -19,7 +18,7 @@ def setup(num_gpus, force_gpus=None):
 def run(params):
     if params['num_gpus'] == 0:
         params['manager.train_params']['device'] = 'cpu'
-    params = setup(num_gpus=params['num_gpus'])
-    run_train(paths=params['paths'], train_params=params['train'])
-    run_infer(paths=params['paths'], infer_common_params=params['infer'])
-    run_eval(paths=params['paths'], eval_common_params=params['eval'])
+    setup(num_gpus=params['num_gpus'])
+    params['train']['run_func'](paths=params['paths'], train_params=params['train'])
+    params['infer']['run_func'](paths=params['paths'], infer_common_params=params['infer'])
+    params['eval']['run_func'](paths=params['paths'], eval_common_params=params['eval'])

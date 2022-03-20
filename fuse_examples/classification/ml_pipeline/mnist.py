@@ -1,4 +1,4 @@
-from .pipeline import setup, run
+from pipeline import run
 from fuse_examples.classification.mnist.runner import run_train, run_infer, run_eval
 import os
 
@@ -75,7 +75,7 @@ infer_params['run_func'] = run_infer
 # Eval Params
 ######################################
 eval_params = {}
-eval_params['infer_filename'] = eval_params['infer_filename']
+eval_params['infer_filename'] = infer_params['infer_filename']
 eval_params['run_func'] = run_eval
 
 params['paths'] = paths
