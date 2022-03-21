@@ -84,7 +84,7 @@ def run_train(cfg : DictConfig):
     sampler = FuseSamplerBalancedBatch(dataset=train_dataset,
                                        balanced_class_name='data.gt.classification',
                                        num_balanced_classes=2,
-                                       batch_size=cfg.train.manager_train_params.num_gpus)
+                                       batch_size=cfg.train.batch_size)
 
     lgr.info(f'- Create sampler: Done')
 
@@ -106,7 +106,7 @@ def run_train(cfg : DictConfig):
                                        shuffle=False,
                                        drop_last=False,
                                        batch_sampler=None,
-                                       batch_size=cfg.train.manager_train_params.batch_size,
+                                       batch_size=cfg.train.batch_size,
                                        num_workers=cfg.train.manager_train_params.validation_num_workers,
                                        collate_fn=validation_dataset.collate_fn)
     lgr.info(f'Validation Data: Done', {'attrs': 'bold'})
