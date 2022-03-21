@@ -92,7 +92,7 @@ def run_train(cfg : DictConfig):
     train_dataloader = DataLoader(dataset=train_dataset,
                                   shuffle=False, drop_last=False,
                                   batch_sampler=sampler, collate_fn=train_dataset.collate_fn,
-                                  num_workers=cfg.train.train_num_workers)
+                                  num_workers=cfg.train.num_workers)
     lgr.info(f'Train Data: Done', {'attrs': 'bold'})
 
     #### Validation data
