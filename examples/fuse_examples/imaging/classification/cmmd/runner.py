@@ -108,13 +108,8 @@ def run_train(paths : NDict , train: NDict ):
                                        shuffle=False,
                                        drop_last=False,
                                        batch_sampler=None,
-<<<<<<< HEAD:examples/fuse_examples/imaging/classification/cmmd/runner.py
                                        batch_size=train["batch_size"],
                                        num_workers=train["num_workers"],
-=======
-                                       batch_size=cfg.train.batch_size,
-                                       num_workers=cfg.train.num_workers,
->>>>>>> hydra example:fuse_examples/classification/cmmd/runner.py
                                        collate_fn=validation_dataset.collate_fn)
     lgr.info(f'Validation Data: Done', {'attrs': 'bold'})
 
