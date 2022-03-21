@@ -34,4 +34,5 @@ fuse_examples/classification/knight/baseline/clinical_data/*
 fuse_examples/classification/knight/baseline/model_dir
 .gitignore.save
 fuse_examples/classification/mnist/examples
+fuse_examples/tutorials/hello_world/examples/
 .vscode/
