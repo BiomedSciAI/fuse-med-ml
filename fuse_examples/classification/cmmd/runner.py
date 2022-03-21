@@ -167,8 +167,8 @@ def run_train(cfg : DictConfig):
     lgr.info('Train:', {'attrs': 'bold'})
 
     # create optimizer
-    optimizer = optim.Adam(model.parameters(), lr=cfg.train.manager_train_params.learning_rate,
-                           weight_decay=cfg.train.manager_train_params.weight_decay)
+    optimizer = optim.Adam(model.parameters(), lr=cfg.train.learning_rate,
+                           weight_decay=cfg.train.weight_decay)
 
     # create scheduler
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
