@@ -94,6 +94,7 @@ def run_train(paths : NDict , train: NDict ):
                                   shuffle=False, drop_last=False,
                                   batch_sampler=sampler, collate_fn=train_dataset.collate_fn,
                                   num_workers=train["num_workers"])
+
     lgr.info(f'Train Data: Done', {'attrs': 'bold'})
 
     #### Validation data
