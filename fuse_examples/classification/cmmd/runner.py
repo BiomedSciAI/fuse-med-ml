@@ -180,10 +180,10 @@ def run_train(cfg : DictConfig):
                         optimizer=optimizer,
                         losses=losses,
                         metrics=metrics,
-                        best_epoch_source=cfg.train.manager_best_epoch_source,
+                        best_epoch_source=OmegaConf.to_container(cfg.train.manager_best_epoch_source),
                         lr_scheduler=scheduler,
                         callbacks=callbacks,
-                        train_params=cfg.train.manager_train_params,
+                        train_params=OmegaConf.to_container(cfg.train.manager_train_params),
                         output_model_dir=cfg.paths.model_dir)
 
     # Continue training
