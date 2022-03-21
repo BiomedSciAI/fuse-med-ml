@@ -174,7 +174,7 @@ def run_train(cfg : DictConfig):
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
     # train from scratch
-    manager = FuseManagerDefault(output_model_dir=cfg.paths.model_dir, force_reset=cfg.paths.force_reset_model_dir)
+    manager = FuseManagerDefault(output_model_dir=cfg.paths.model_dir, force_reset=cfg.params.force_reset_model_dir)
     # Providing the objects required for the training process.
     manager.set_objects(net=model,
                         optimizer=optimizer,
