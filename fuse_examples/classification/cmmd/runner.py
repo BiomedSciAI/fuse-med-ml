@@ -107,7 +107,7 @@ def run_train(cfg : DictConfig):
                                        drop_last=False,
                                        batch_sampler=None,
                                        batch_size=cfg.train.batch_size,
-                                       num_workers=cfg.train.manager_train_params.num_workers,
+                                       num_workers=cfg.train.num_workers,
                                        collate_fn=validation_dataset.collate_fn)
     lgr.info(f'Validation Data: Done', {'attrs': 'bold'})
 
