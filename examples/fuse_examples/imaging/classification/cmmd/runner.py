@@ -178,11 +178,9 @@ def run_train(paths : NDict , train: NDict ):
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
     # train from scratch
-<<<<<<< HEAD:examples/fuse_examples/imaging/classification/cmmd/runner.py
+
     manager = ManagerDefault(output_model_dir=paths['model_dir'], force_reset=paths['force_reset_model_dir'])
-=======
-    manager = FuseManagerDefault(output_model_dir=cfg.paths.model_dir, force_reset=cfg.paths.force_reset_model_dir)
->>>>>>> added conf:fuse_examples/classification/cmmd/runner.py
+
     # Providing the objects required for the training process.
     manager.set_objects(net=model,
                         optimizer=optimizer,
