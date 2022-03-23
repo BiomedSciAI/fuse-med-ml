@@ -57,7 +57,7 @@ create_env() {
 
 # create environment and run all unit tests
 if ["$#" -gt 1]; then
-    force_cuda_version==$1
+    force_cuda_version=$1
 else
     force_cuda_version="no"
 fi
