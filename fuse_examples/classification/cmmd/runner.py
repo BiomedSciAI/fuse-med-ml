@@ -48,6 +48,7 @@ from fuse_examples.classification.cmmd.dataset import CMMD_2021_dataset
 from fuse.models.backbones.backbone_inception_resnet_v2 import FuseBackboneInceptionResnetV2
 
 import hydra
+from typing import Dict
 from omegaconf import DictConfig, OmegaConf
 from fuse.eval.evaluator import EvaluatorDefault
 ##########################################
@@ -60,11 +61,11 @@ debug = FuseUtilsDebug(mode)
 #################################
 # Train Template
 #################################
-def run_train(cfg : DictConfig):
+def run_train(paths : Dict , train: Dict ):
     # ==============================================================================
     # Logger
     # ==============================================================================
-    fuse_logger_start(output_path=cfg.paths.model_dir, console_verbose_level=logging.INFO)
+    fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
 
     # Download data
@@ -72,19 +73,19 @@ def run_train(cfg : DictConfig):
 
     lgr.info('\nFuse Train', {'attrs': ['bold', 'underline']})
 
-    lgr.info(f'model_dir={cfg.paths.model_dir}', {'color': 'magenta'})
-    lgr.info(f'cache_dir={cfg.paths.cache_dir}', {'color': 'magenta'})
+    lgr.info(f'model_dir={paths["model_dir"]}', {'color': 'magenta'})
+    lgr.info(f'cache_dir={paths["cache_dir"]}', {'color': 'magenta'})
 
     #### Train Data
     lgr.info(f'Train Data:', {'attrs': 'bold'})
-    train_dataset, validation_dataset , _ = CMMD_2021_dataset(cfg.paths.data_dir, cfg.paths.data_misc_dir, reset_cache=cfg.params.reset_cache)
+    train_dataset, validation_dataset , _ = CMMD_2021_dataset(paths["data_dir"], paths["data_misc_dir"], reset_cache=train["reset_cache"])
 
     ## Create sampler
     lgr.info(f'- Create sampler:')
     sampler = FuseSamplerBalancedBatch(dataset=train_dataset,
                                        balanced_class_name='data.gt.classification',
                                        num_balanced_classes=2,
-                                       batch_size=cfg.train.batch_size)
+                                       batch_size=train["batch_size"])
 
     lgr.info(f'- Create sampler: Done')
 
@@ -92,7 +93,7 @@ def run_train(cfg : DictConfig):
     train_dataloader = DataLoader(dataset=train_dataset,
                                   shuffle=False, drop_last=False,
                                   batch_sampler=sampler, collate_fn=train_dataset.collate_fn,
-                                  num_workers=cfg.train.num_workers)
+                                  num_workers=train["num_workers"])
     lgr.info(f'Train Data: Done', {'attrs': 'bold'})
 
     #### Validation data
@@ -106,8 +107,8 @@ def run_train(cfg : DictConfig):
                                        shuffle=False,
                                        drop_last=False,
                                        batch_sampler=None,
-                                       batch_size=cfg.train.batch_size,
-                                       num_workers=cfg.train.num_workers,
+                                       batch_size=train["batch_size"],
+                                       num_workers=train["num_workers"],
                                        collate_fn=validation_dataset.collate_fn)
     lgr.info(f'Validation Data: Done', {'attrs': 'bold'})
 
@@ -155,9 +156,9 @@ def run_train(cfg : DictConfig):
     # =====================================================================================
     callbacks = [
         # default callbacks
-        FuseTensorboardCallback(model_dir=cfg.paths.model_dir),  # save statistics for tensorboard
-        FuseMetricStatisticsCallback(output_path=cfg.paths.model_dir + "/metrics.csv"),  # save statistics in a csv file
-        FuseTimeStatisticsCallback(num_epochs=cfg.train.manager_train_params.num_epochs, load_expected_part=0.1)  # time profiler
+        FuseTensorboardCallback(model_dir=paths["model_dir"]),  # save statistics for tensorboard
+        FuseMetricStatisticsCallback(output_path=paths["model_dir"] + "/metrics.csv"),  # save statistics in a csv file
+        FuseTimeStatisticsCallback(num_epochs=train["manager_train_params"]["num_epochs"], load_expected_part=0.1)  # time profiler
     ]
 
     # =====================================================================================
@@ -167,29 +168,29 @@ def run_train(cfg : DictConfig):
     lgr.info('Train:', {'attrs': 'bold'})
 
     # create optimizer
-    optimizer = optim.Adam(model.parameters(), lr=cfg.train.learning_rate,
-                           weight_decay=cfg.train.weight_decay)
+    optimizer = optim.Adam(model.parameters(), lr=train["learning_rate"],
+                           weight_decay=train["weight_decay"])
 
     # create scheduler
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
     # train from scratch
-    manager = FuseManagerDefault(output_model_dir=cfg.paths.model_dir, force_reset=cfg.params.force_reset_model_dir)
+    manager = FuseManagerDefault(output_model_dir=paths["model_dir"], force_reset=train["force_reset_model_dir"])
     # Providing the objects required for the training process.
     manager.set_objects(net=model,
                         optimizer=optimizer,
                         losses=losses,
                         metrics=metrics,
-                        best_epoch_source=OmegaConf.to_container(cfg.train.manager_best_epoch_source),
+                        best_epoch_source=train["manager_best_epoch_source"],
                         lr_scheduler=scheduler,
                         callbacks=callbacks,
-                        train_params=OmegaConf.to_container(cfg.train.manager_train_params),
-                        output_model_dir=cfg.paths.model_dir)
+                        train_params=train["manager_train_params"],
+                        output_model_dir=paths["model_dir"])
 
     # Continue training
-    if cfg.train.resume_checkpoint_filename is not None:
+    if train.resume_checkpoint_filename is not None:
         # Loading the checkpoint including model weights, learning rate, and epoch_index.
-        manager.load_checkpoint(checkpoint=cfg.train.resume_checkpoint_filename, mode='train',
+        manager.load_checkpoint(checkpoint=train["resume_checkpoint_filename"], mode='train',
                                 values_to_resume=['net'])
     # # Start training
     manager.train(train_dataloader=train_dataloader,
@@ -200,22 +201,22 @@ def run_train(cfg : DictConfig):
 ######################################
 # Inference Template
 ######################################
-def run_infer(cfg : DictConfig):
+def run_infer(paths : Dict , infer: Dict):
     #### Logger
-    fuse_logger_start(output_path=cfg.paths.inference_dir, console_verbose_level=logging.INFO)
+    fuse_logger_start(output_path=paths.inference_dir, console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Inference', {'attrs': ['bold', 'underline']})
-    lgr.info(f'infer_filename={os.path.join(cfg.paths.inference_dir, cfg.infer.infer_filename)}', {'color': 'magenta'})
+    lgr.info(f'infer_filename={os.path.join(paths.inference_dir, infer.infer_filename)}', {'color': 'magenta'})
 
     # Create data source:
-    _, _ , test_dataset = CMMD_2021_dataset(cfg.paths.data_dir, cfg.paths.data_misc_dir)
+    _, _ , test_dataset = CMMD_2021_dataset(paths.data_dir, paths.data_misc_dir)
 
 
     ## Create dataloader
     infer_dataloader = DataLoader(dataset=test_dataset,
                                   shuffle=False, drop_last=False,
                                   collate_fn=test_dataset.collate_fn,
-                                  num_workers=cfg.infer.num_workers)
+                                  num_workers=infer.num_workers)
     lgr.info(f'Test Data: Done', {'attrs': 'bold'})
 
     #### Manager for inference
@@ -223,17 +224,17 @@ def run_infer(cfg : DictConfig):
     # extract just the global classification per sample and save to a file
     output_columns = ['model.output.head_0','data.gt.classification']
     manager.infer(data_loader=infer_dataloader,
-                  input_model_dir=cfg.paths.model_dir,
-                  checkpoint=cfg.infer.checkpoint,
+                  input_model_dir=paths.model_dir,
+                  checkpoint=infer.checkpoint,
                   output_columns=output_columns,
-                  output_file_name=os.path.join(cfg.paths.inference_dir, cfg.infer.infer_filename))
+                  output_file_name=os.path.join(paths.inference_dir, infer.infer_filename))
     
 
 
 ######################################
 # Analyze Template
 ######################################
-def run_eval(cfg : DictConfig):
+def run_eval(paths : Dict , infer: Dict):
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Eval', {'attrs': ['bold', 'underline']})
@@ -250,9 +251,9 @@ def run_eval(cfg : DictConfig):
 
     # run
     results = evaluator.eval(ids=None,
-                     data=os.path.join(cfg.paths.inference_dir, cfg.infer.infer_filename),
+                     data=os.path.join(paths.inference_dir, infer.infer_filename),
                      metrics=metrics,
-                     output_dir=cfg.paths.eval_dir)
+                     output_dir=paths.eval_dir)
 
     return results
 
@@ -273,14 +274,14 @@ def main(cfg : DictConfig) -> None:
 
     # train
     if 'train' in RUNNING_MODES:
-        run_train(cfg)
+        run_train(OmegaConf.to_container(cfg.paths) , OmegaConf.to_container(cfg.train))
 
     # infer
     if 'infer' in RUNNING_MODES:
-        run_infer(cfg)
+        run_infer(OmegaConf.to_container(cfg.paths) , OmegaConf.to_container(cfg.infer))
     #
     # analyze
     if 'analyze' in RUNNING_MODES:
-        run_eval(cfg)
+        run_eval(OmegaConf.to_container(cfg.paths) , OmegaConf.to_container(cfg.infer))
 if __name__ == "__main__":
     main()
