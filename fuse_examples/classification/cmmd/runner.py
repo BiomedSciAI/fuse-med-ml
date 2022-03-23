@@ -188,7 +188,7 @@ def run_train(paths : Dict , train: Dict ):
                         output_model_dir=paths["model_dir"])
 
     # Continue training
-    if train.resume_checkpoint_filename is not None:
+    if train["resume_checkpoint_filename"] is not None:
         # Loading the checkpoint including model weights, learning rate, and epoch_index.
         manager.load_checkpoint(checkpoint=train["resume_checkpoint_filename"], mode='train',
                                 values_to_resume=['net'])
@@ -203,20 +203,20 @@ def run_train(paths : Dict , train: Dict ):
 ######################################
 def run_infer(paths : Dict , infer: Dict):
     #### Logger
-    fuse_logger_start(output_path=paths.inference_dir, console_verbose_level=logging.INFO)
+    fuse_logger_start(output_path=paths["inference_dir"], console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Inference', {'attrs': ['bold', 'underline']})
-    lgr.info(f'infer_filename={os.path.join(paths.inference_dir, infer.infer_filename)}', {'color': 'magenta'})
+    lgr.info(f'infer_filename={os.path.join(paths["inference_dir"], infer["infer_filename"])}', {'color': 'magenta'})
 
     # Create data source:
-    _, _ , test_dataset = CMMD_2021_dataset(paths.data_dir, paths.data_misc_dir)
+    _, _ , test_dataset = CMMD_2021_dataset(paths["data_dir"], paths["data_misc_dir"])
 
 
     ## Create dataloader
     infer_dataloader = DataLoader(dataset=test_dataset,
                                   shuffle=False, drop_last=False,
                                   collate_fn=test_dataset.collate_fn,
-                                  num_workers=infer.num_workers)
+                                  num_workers=infer["num_workers"])
     lgr.info(f'Test Data: Done', {'attrs': 'bold'})
 
     #### Manager for inference
@@ -224,10 +224,10 @@ def run_infer(paths : Dict , infer: Dict):
     # extract just the global classification per sample and save to a file
     output_columns = ['model.output.head_0','data.gt.classification']
     manager.infer(data_loader=infer_dataloader,
-                  input_model_dir=paths.model_dir,
-                  checkpoint=infer.checkpoint,
+                  input_model_dir=paths["model_dir"],
+                  checkpoint=infer["checkpoint"],
                   output_columns=output_columns,
-                  output_file_name=os.path.join(paths.inference_dir, infer.infer_filename))
+                  output_file_name=os.path.join(paths["inference_dir"], infer["infer_filename"]))
     
 
 
@@ -251,9 +251,9 @@ def run_eval(paths : Dict , infer: Dict):
 
     # run
     results = evaluator.eval(ids=None,
-                     data=os.path.join(paths.inference_dir, infer.infer_filename),
+                     data=os.path.join(paths["inference_dir"], infer["infer_filename"]),
                      metrics=metrics,
-                     output_dir=paths.eval_dir)
+                     output_dir=paths["eval_dir"])
 
     return results
 
