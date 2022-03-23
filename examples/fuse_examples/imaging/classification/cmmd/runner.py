@@ -48,6 +48,7 @@ from fuse_examples.imaging.classification.cmmd.dataset import CMMD_2021_dataset
 from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
 
 import hydra
+from typing import Dict
 from omegaconf import DictConfig, OmegaConf
 from fuse.eval.evaluator import EvaluatorDefault
 ##########################################
@@ -94,7 +95,6 @@ def run_train(paths : NDict , train: NDict ):
                                   shuffle=False, drop_last=False,
                                   batch_sampler=sampler, collate_fn=train_dataset.collate_fn,
                                   num_workers=train["num_workers"])
-
     lgr.info(f'Train Data: Done', {'attrs': 'bold'})
 
     #### Validation data

@@ -5,10 +5,9 @@ paths:
   eval_dir : ${hydra:runtime.cwd}/model_new/eval_dir
   cache_dir : ${hydra:runtime.cwd}/examples/CMMD_cache_dir
   data_misc_dir : ${hydra:runtime.cwd}/data_misc
-params:
+train:
   force_reset_model_dir: True
   reset_cache: False
-train:
   num_workers : 8
   batch_size: 2
   learning_rate : 1e-5
