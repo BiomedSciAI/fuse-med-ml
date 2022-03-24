@@ -41,7 +41,7 @@ create_env() {
 
             if [ $force_cuda_version != "no" ]; then
                 echo "forcing cudatoolkit $force_cuda_version"
-                conda install -n $ENV_NAME cudatoolkit=$force_cuda_version -y
+                conda install -n $ENV_NAME pytorch torchvision cudatoolkit=$force_cuda_version -c pytorch -y
                 echo "forcing cudatoolkit $force_cuda_version - Done"
             fi            
 
