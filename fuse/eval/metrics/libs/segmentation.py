@@ -25,12 +25,12 @@ class MetricsSegmentation:
         ntf = (u * not_v).sum()
         return (nft, ntf)
     @staticmethod
-    def dice(pred: np.ndarray, target : np.ndarray, pixel_weight: Optional[Dict[int,np.ndarray]] = None) -> Dict:
+    def dice(pred: np.ndarray[int], target : np.ndarray[int], pixel_weight: Optional[Dict[int,np.ndarray]] = None) -> Dict:
         """
         Compute dice similarity score (2*|X&Y| / (|X|+|Y|)) using sklearn , pred and target should be of same shape
         Supports multiclass (semantic segmentation)
-        :param pred: single sample prediction matrix ( np.ndarray of any shape) per sample
-        :param target: target mask ( np.ndarray of any shape ) per sample
+        :param pred: single sample prediction matrix ( np.ndarray of any shape of type int/bool ) per sample
+        :param target: target mask ( np.ndarray of any shape of type int/bool) per sample
         :param pixel_weight: Optional dictionary - key = label ,value = weight per pixel . Each element is  float in range [0-1]
         :return dice score
         """
@@ -57,12 +57,12 @@ class MetricsSegmentation:
         return scores
 
     @staticmethod
-    def iou_jaccard(pred: np.ndarray, target : np.ndarray, pixel_weight: Optional[Dict[int,np.ndarray]] = None) -> Dict:
+    def iou_jaccard(pred: np.ndarray[int], target : np.ndarray[int], pixel_weight: Optional[Dict[int,np.ndarray]] = None) -> Dict:
         """
         Calculates intersection over union (iou) (|X&Y| / | XUY |) score based on predicted and target segmentation mask
         Supports multiclass (semantic segmentation)
-        :param pred: single sample prediction matrix ( np.ndarray of any shape) per sample
-        :param target: target mask ( np.ndarray of any shape) per sample
+        :param pred: single sample prediction matrix ( np.ndarray of any shape of type int/bool) per sample
+        :param target: target mask ( np.ndarray of any shape of type int/bool) per sample
         :param pixel_weight: Optional dictionary - key = label ,value = weight per pixel . Each element is  float in range [0-1]
         :return: iou score
         """
@@ -94,12 +94,12 @@ class MetricsSegmentation:
         return scores
 
     @staticmethod
-    def overlap(pred: np.ndarray, target : np.ndarray, pixel_weight: Optional[Dict[int,np.ndarray]] = None) -> Dict:
+    def overlap(pred: np.ndarray[int], target : np.ndarray[int], pixel_weight: Optional[Dict[int,np.ndarray]] = None) -> Dict:
         """
         Calculates overlap score (|X&Y| / min(|X|,|Y|)) based on predicted and target segmentation mask
         Supports multiclass (semantic segmentation)
-        :param pred: single sample prediction matrix ( np.ndarray of any shape) per sample
-        :param target: target mask ( np.ndarray of any shape) per sample
+        :param pred: single sample prediction matrix ( np.ndarray of any shape of type int/bool) per sample
+        :param target: target mask ( np.ndarray of any shape of type int/bool) per sample
         :param pixel_weight: Optional dictionary - key = label ,value = weight per pixel . Each element is  float in range [0-1]
         :return: overlap score
         """
@@ -117,6 +117,8 @@ class MetricsSegmentation:
             # overlap not defined if both are empty ( 0/0 situation)
             if gt_empty and pred_empty:
                 scores[label] = 1.0
+            elif gt_empty or pred_empty:
+                scores[label] = 0.0
             else:
                 if pixel_weight is None or pixel_weight[label] is None:
                     intersection = np.logical_and(pred, target)
@@ -129,12 +131,12 @@ class MetricsSegmentation:
         return scores
     
     @staticmethod
-    def hausdorff_2d_distance(pred: np.ndarray, target : np.ndarray) -> Dict:
+    def hausdorff_2d_distance(pred: np.ndarray[int], target : np.ndarray[int]) -> Dict:
         """
         Calculates 2D hausdorff distance based on predicted and target segmentation mask - works for 2D array only!
         Supports multiclass (semantic segmentation)
-        :param pred: single sample prediction matrix 2D  array ( np.ndarray  [H, W] ) per sample
-        :param target: target mask 2D array ( np.ndarray [H, W]  ) per sample
+        :param pred: single sample prediction matrix 2D  array ( np.ndarray  [H, W] of type int/bool) per sample
+        :param target: target mask 2D array ( np.ndarray [H, W]  of type int/bool) per sample
         :return: hausdorff distance
         """
         assert ( len(pred.shape) == 2 or len(target.shape) == 2 )
@@ -162,12 +164,12 @@ class MetricsSegmentation:
     
         
     @staticmethod
-    def pixel_accuracy(pred: np.ndarray, target : np.ndarray, pixel_weight: Optional[Dict[int,np.ndarray]] = None) -> Dict:
+    def pixel_accuracy(pred: np.ndarray[int], target : np.ndarray[int], pixel_weight: Optional[Dict[int,np.ndarray]] = None) -> Dict:
         """
         Calculates pixel accuracy score (|X&Y| / |Y| ) based on predicted and target segmentation mask 
         Supports multiclass (semantic segmentation)
-        :param pred: single sample prediction matrix ( np.ndarray ) per sample
-        :param target: target mask ( np.ndarray ) per sample
+        :param pred: single sample prediction matrix ( np.ndarray of any shape of type int/bool) per sample
+        :param target: target mask ( np.ndarray of any shape of type int/bool) per sample
         :param pixel_weight: Optional dictionary - key = label ,value = weight per pixel . Each element is  float in range [0-1]
         :return: pixel accuracy score
         """
