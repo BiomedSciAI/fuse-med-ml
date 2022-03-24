@@ -29,6 +29,8 @@ create_env() {
         # Got lock - excute sensitive code 
         echo "Got lock: $ENV_NAME"   
         
+        nvidia-smi
+        
         if find_in_conda_env $ENV_NAME ; then        
             echo "Environment exist: $ENV_NAME"
         else
