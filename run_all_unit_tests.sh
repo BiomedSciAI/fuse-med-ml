@@ -2,7 +2,7 @@
 
 # check if current env already exist
 find_in_conda_env(){
-    conda env list | grep "\n${@}" >/dev/null 2>/dev/null
+    conda env list | grep "${@}" >/dev/null 2>/dev/null
 }
 
 # error message when failed to lock
