@@ -1,6 +1,4 @@
 #!/bin/bash
-# exit on failure
-set -e
 
 # check if current env already exist
 find_in_conda_env(){
