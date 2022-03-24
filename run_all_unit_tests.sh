@@ -32,6 +32,11 @@ create_env() {
         if find_in_conda_env $ENV_NAME ; then        
             echo "Environment exist: $ENV_NAME"
         else
+            # update conda
+            echo "Update conda"
+            conda update conda -y
+            echo "Update conda - Done"
+
             # create an environment
             echo "Creating new environment: $ENV_NAME"
             conda create -n $ENV_NAME python=$PYTHON_VER -y
@@ -56,7 +61,9 @@ create_env() {
 
 
 # create environment and run all unit tests
-if ["$#" -gt 1]; then
+echo "input args ($#) - $@"
+
+if [ "$#" -gt 0 ]; then
     force_cuda_version=$1
 else
     force_cuda_version="no"
