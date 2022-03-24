@@ -1,4 +1,6 @@
 #!/bin/bash
+# exit on failure
+set -e
 
 # check if current env already exist
 find_in_conda_env(){
@@ -56,7 +58,7 @@ create_env() {
 
 
 # create environment and run all unit tests
-if ["$#" -gt 1]; then
+if [ "$#" -gt 1 ]; then
     force_cuda_version=$1
 else
     force_cuda_version="no"
