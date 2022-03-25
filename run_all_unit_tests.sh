@@ -25,13 +25,13 @@ create_env() {
 
     (
         flock -w 1200 -e 873 || lockfailed # wait for lock at most 20 minutes
-        
-        # Got lock - excute sensitive code 
-        echo "Got lock: $ENV_NAME"   
-        
+
+        # Got lock - excute sensitive code
+        echo "Got lock: $ENV_NAME"
+
         nvidia-smi
-        
-        if find_in_conda_env $ENV_NAME ; then        
+
+        if find_in_conda_env $ENV_NAME ; then
             echo "Environment exist: $ENV_NAME"
         else
             # create an environment
@@ -41,13 +41,13 @@ create_env() {
 
             if [ $force_cuda_version != "no" ]; then
                 echo "forcing cudatoolkit $force_cuda_version"
-                conda install -n $ENV_NAME cudatoolkit=$force_cuda_version -y
+                conda install -n $ENV_NAME pytorch torchvision cudatoolkit=$force_cuda_version -c pytorch -y
                 echo "forcing cudatoolkit $force_cuda_version - Done"
-            fi            
+            fi
 
             # install local repository (fuse-med-ml)
             echo "Installing requirements"
-            conda run -n $ENV_NAME --no-capture-output --live-stream pip install -e .
+            conda run -n $ENV_NAME --no-capture-output --live-stream pip install -r requirements.txt
             echo "Installing requirements - Done"
         fi
     ) 873>$lock_filename
@@ -71,4 +71,3 @@ create_env $force_cuda_version
 echo "Running unittests"
 conda run -n $ENV_NAME --no-capture-output --live-stream python ./run_all_unit_tests.py
 echo "Running unittests - Done"
-
