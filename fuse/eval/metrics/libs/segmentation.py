@@ -29,8 +29,8 @@ class MetricsSegmentation:
         """
         Compute dice similarity score (2*|X&Y| / (|X|+|Y|)) using sklearn , pred and target should be of same shape
         Supports multiclass (semantic segmentation)
-        :param pred: single sample prediction matrix ( np.ndarray of any shape) per sample
-        :param target: target mask ( np.ndarray of any shape ) per sample
+        :param pred: single sample prediction matrix ( np.ndarray of any shape of type int/bool ) per sample
+        :param target: target mask ( np.ndarray of any shape of type int/bool) per sample
         :param pixel_weight: Optional dictionary - key = label ,value = weight per pixel . Each element is  float in range [0-1]
         :return dice score
         """
@@ -61,8 +61,8 @@ class MetricsSegmentation:
         """
         Calculates intersection over union (iou) (|X&Y| / | XUY |) score based on predicted and target segmentation mask
         Supports multiclass (semantic segmentation)
-        :param pred: single sample prediction matrix ( np.ndarray of any shape) per sample
-        :param target: target mask ( np.ndarray of any shape) per sample
+        :param pred: single sample prediction matrix ( np.ndarray of any shape of type int/bool) per sample
+        :param target: target mask ( np.ndarray of any shape of type int/bool) per sample
         :param pixel_weight: Optional dictionary - key = label ,value = weight per pixel . Each element is  float in range [0-1]
         :return: iou score
         """
@@ -98,8 +98,8 @@ class MetricsSegmentation:
         """
         Calculates overlap score (|X&Y| / min(|X|,|Y|)) based on predicted and target segmentation mask
         Supports multiclass (semantic segmentation)
-        :param pred: single sample prediction matrix ( np.ndarray of any shape) per sample
-        :param target: target mask ( np.ndarray of any shape) per sample
+        :param pred: single sample prediction matrix ( np.ndarray of any shape of type int/bool) per sample
+        :param target: target mask ( np.ndarray of any shape of type int/bool) per sample
         :param pixel_weight: Optional dictionary - key = label ,value = weight per pixel . Each element is  float in range [0-1]
         :return: overlap score
         """
@@ -117,6 +117,8 @@ class MetricsSegmentation:
             # overlap not defined if both are empty ( 0/0 situation)
             if gt_empty and pred_empty:
                 scores[label] = 1.0
+            elif gt_empty or pred_empty:
+                scores[label] = 0.0
             else:
                 if pixel_weight is None or pixel_weight[label] is None:
                     intersection = np.logical_and(pred, target)
@@ -133,8 +135,8 @@ class MetricsSegmentation:
         """
         Calculates 2D hausdorff distance based on predicted and target segmentation mask - works for 2D array only!
         Supports multiclass (semantic segmentation)
-        :param pred: single sample prediction matrix 2D  array ( np.ndarray  [H, W] ) per sample
-        :param target: target mask 2D array ( np.ndarray [H, W]  ) per sample
+        :param pred: single sample prediction matrix 2D  array ( np.ndarray  [H, W] of type int/bool) per sample
+        :param target: target mask 2D array ( np.ndarray [H, W]  of type int/bool) per sample
         :return: hausdorff distance
         """
         assert ( len(pred.shape) == 2 or len(target.shape) == 2 )
@@ -166,8 +168,8 @@ class MetricsSegmentation:
         """
         Calculates pixel accuracy score (|X&Y| / |Y| ) based on predicted and target segmentation mask 
         Supports multiclass (semantic segmentation)
-        :param pred: single sample prediction matrix ( np.ndarray ) per sample
-        :param target: target mask ( np.ndarray ) per sample
+        :param pred: single sample prediction matrix ( np.ndarray of any shape of type int/bool) per sample
+        :param target: target mask ( np.ndarray of any shape of type int/bool) per sample
         :param pixel_weight: Optional dictionary - key = label ,value = weight per pixel . Each element is  float in range [0-1]
         :return: pixel accuracy score
         """
