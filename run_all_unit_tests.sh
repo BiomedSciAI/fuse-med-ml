@@ -2,7 +2,7 @@
 
 # check if current env already exist
 find_in_conda_env(){
-    conda env list | grep "\n${@}" >/dev/null 2>/dev/null
+    conda env list | grep "${@}" >/dev/null 2>/dev/null
 }
 
 # error message when failed to lock
@@ -25,18 +25,15 @@ create_env() {
 
     (
         flock -w 1200 -e 873 || lockfailed # wait for lock at most 20 minutes
-        
-        # Got lock - excute sensitive code 
-        echo "Got lock: $ENV_NAME"   
-        
-        if find_in_conda_env $ENV_NAME ; then        
+
+        # Got lock - excute sensitive code
+        echo "Got lock: $ENV_NAME"
+
+        nvidia-smi
+
+        if find_in_conda_env $ENV_NAME ; then
             echo "Environment exist: $ENV_NAME"
         else
-            # update conda
-            echo "Update conda"
-            conda update conda -y
-            echo "Update conda - Done"
-
             # create an environment
             echo "Creating new environment: $ENV_NAME"
             conda create -n $ENV_NAME python=$PYTHON_VER -y
@@ -44,13 +41,13 @@ create_env() {
 
             if [ $force_cuda_version != "no" ]; then
                 echo "forcing cudatoolkit $force_cuda_version"
-                conda install -n $ENV_NAME cudatoolkit=$force_cuda_version -y
+                conda install -n $ENV_NAME pytorch torchvision cudatoolkit=$force_cuda_version -c pytorch -y
                 echo "forcing cudatoolkit $force_cuda_version - Done"
-            fi            
+            fi
 
             # install local repository (fuse-med-ml)
             echo "Installing requirements"
-            conda run -n $ENV_NAME --no-capture-output --live-stream pip install -e .
+            conda run -n $ENV_NAME --no-capture-output --live-stream pip install -r requirements.txt
             echo "Installing requirements - Done"
         fi
     ) 873>$lock_filename
@@ -74,4 +71,3 @@ create_env $force_cuda_version
 echo "Running unittests"
 conda run -n $ENV_NAME --no-capture-output --live-stream python ./run_all_unit_tests.py
 echo "Running unittests - Done"
-
