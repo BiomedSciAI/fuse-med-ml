@@ -135,7 +135,6 @@ class DiceBCELoss(FuseLossBase):
 
         assert predict.shape == target.shape, 'predict & target shape do not match'
 
-        # import ipdb; ipdb.set_trace(context=7) # BREAKPOINT
         total_class_weights = sum(self.class_weights) if self.class_weights is not None else n_classes
         for cls_index in range(n_classes):
             dice_loss = self.dice(predict[:, cls_index, :, :], target[:, cls_index, :, :])
