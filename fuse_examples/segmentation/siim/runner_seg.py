@@ -16,22 +16,6 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-
-"""
-
-(C) Copyright 2021 IBM Corp.
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-   http://www.apache.org/licenses/LICENSE-2.0
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-Created on June 30, 2021
-
-"""
 import os 
 import logging
 from glob import glob
@@ -105,7 +89,7 @@ PATHS = {'data_dir': [TRAIN, MASKS, TEST],
          'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
          'cache_dir': os.path.join(CACHE_PATH, EXPERIMENT_CACHE+'_cache_dir'),
          'inference_dir': os.path.join(ROOT, EXPERIMENT, 'infer_dir'),
-         'analyze_dir': os.path.join(ROOT, EXPERIMENT, 'analyze_dir')}
+         'eval_dir': os.path.join(ROOT, EXPERIMENT, 'eval_dir')}
 
 ##########################################
 # Train Common Params
@@ -179,9 +163,6 @@ def run_train(paths: dict, train_common_params: dict):
     # ==============================================================================
     fuse_logger_start(output_path=paths['model_dir'], console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
-
-    # Download data
-    # TODO - function to download + arrange the data
 
     lgr.info('\nFuse Train', {'attrs': ['bold', 'underline']})
 
@@ -417,7 +398,7 @@ def run_infer(paths: dict, infer_common_params: dict):
 ######################################
 ANALYZE_COMMON_PARAMS = {}
 ANALYZE_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
-ANALYZE_COMMON_PARAMS['output_filename'] = os.path.join(PATHS['analyze_dir'], 'all_metrics.txt')
+ANALYZE_COMMON_PARAMS['output_filename'] = os.path.join(PATHS['eval_dir'], 'all_metrics.txt')
 ANALYZE_COMMON_PARAMS['num_workers'] = 4
 ANALYZE_COMMON_PARAMS['batch_size'] = 8
 
