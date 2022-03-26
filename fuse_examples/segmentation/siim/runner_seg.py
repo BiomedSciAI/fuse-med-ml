@@ -65,11 +65,9 @@ from fuse.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
 from fuse.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
 from fuse.managers.callbacks.callback_time_statistics import FuseTimeStatisticsCallback
 from fuse.data.processor.processor_dataframe import FuseProcessorDataFrame
-# from fuse.metrics.metric_auc_per_pixel import FuseMetricAUCPerPixel
-# from fuse.metrics.segmentation.metric_score_map import FuseMetricScoreMap
-# from fuse.analyzer.analyzer_default import FuseAnalyzerDefault
 from fuse.eval.evaluator import EvaluatorDefault
 from fuse.eval.metrics.segmentation.metrics_segmentation_common import MetricDice, MetricIouJaccard, MetricOverlap, Metric2DHausdorff, MetricPixelAccuracy
+from fuse.utils.utils_debug import FuseUtilsDebug
 
 from data_source_segmentation import FuseDataSourceSeg
 from seg_input_processor import SegInputProcessor
@@ -77,19 +75,19 @@ from seg_input_processor import SegInputProcessor
 from unet import UNet
 
 
-def perform_softmax(output):
-    if isinstance(output, torch.Tensor):  # validation
-        logits = output
-    else:  # train
-        logits = output.logits
-    cls_preds = F.softmax(logits, dim=1)
-    return logits, cls_preds
+##########################################
+# Debug modes
+##########################################
+mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseUtilsDebug
+debug = FuseUtilsDebug(mode)
 
-
+##########################################
+# Output and data Paths
+##########################################
 SZ = 512
-TRAIN = f'../../data/siim/data{SZ}/train/'
-TEST = f'../../data/siim/data{SZ}/test/'
-MASKS = f'../../data/siim/data{SZ}/masks/'
+TRAIN = f'../siim_data/data{SZ}/train/'
+TEST = f'../siim_data/data{SZ}/test/'
+MASKS = f'../siim_data/data{SZ}/masks/'
 
 # TODO: Path to save model
 ROOT = '../results/'
@@ -158,7 +156,7 @@ TRAIN_COMMON_PARAMS['data.augmentation_pipeline'] = [
 # Manager - Train1
 # ===============
 TRAIN_COMMON_PARAMS['manager.train_params'] = {
-    'num_epochs': 20,
+    'num_epochs': 50,
     'virtual_batch_size': 1,  # number of batches in one virtual batch
     'start_saving_epochs': 10,  # first epoch to start saving checkpoints from
     'gap_between_saving_epochs': 5,  # number of epochs between saved checkpoint
@@ -273,8 +271,7 @@ def run_train(paths: dict, train_common_params: dict):
 
     model = FuseModelWrapper(model=torch_model,
                             model_inputs=['data.input.input_0'],
-                            post_forward_processing_function=perform_softmax,
-                            model_outputs=['logits.classification', 'output.classification']
+                            model_outputs=['logits.classification']
                             )
 
     lgr.info('Model: Done', {'attrs': 'bold'})
@@ -436,7 +433,7 @@ def run_analyze(paths: dict, analyze_common_params: dict):
     def data_iter():
         data = pd.read_pickle(analyze_common_params['infer_filename'])
         n_samples = data.shape[0]
-        threshold = 0.5
+        threshold = 1e-7 #0.5
         for inx in range(n_samples):
             row = data.loc[inx]
             sample_dict = {}
@@ -446,8 +443,10 @@ def run_analyze(paths: dict, analyze_common_params: dict):
             yield sample_dict
 
     metrics = OrderedDict([
-            ("dice", MetricDice(pred='pred.array', 
-                                target='label.array')),
+            ("dice", MetricDice(pred='pred.array', target='label.array')),
+            ("IOU", MetricIouJaccard(pred='pred.array', target='label.array')),
+            ("Overlap", MetricOverlap(pred='pred.array', target='label.array')),
+            ("PixelAcc", MetricPixelAccuracy(pred='pred.array', target='label.array')),
     ])
 
     # create analyzer
@@ -472,7 +471,7 @@ if __name__ == "__main__":
     FuseUtilsGPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
     RUNNING_MODES = ['train', 'infer', 'analyze']  # Options: 'train', 'infer', 'analyze'
-    RUNNING_MODES = ['analyze']  # Options: 'train', 'infer', 'analyze'
+    # RUNNING_MODES = ['analyze']  # Options: 'train', 'infer', 'analyze'
 
     # train
     if 'train' in RUNNING_MODES:
