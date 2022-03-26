@@ -1,10 +1,14 @@
-
-""" Full assembly of the parts to form the complete network """
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
+"""
+implementation of Unet based on - 
+U-Net: Convolutional Networks for Biomedical Image Segmentation
+https://arxiv.org/abs/1505.04597
+Code from - https://github.com/milesial/Pytorch-UNet
+"""
 
 class DoubleConv(nn.Module):
     """(convolution => [BN] => ReLU) * 2"""
