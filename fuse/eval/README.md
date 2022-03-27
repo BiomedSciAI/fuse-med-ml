@@ -67,7 +67,7 @@ metrics = OrderedDict([
 data = input_filename
 evaluator = EvaluatorDefault()
 results = evaluator.eval(ids=None, data=data, metrics=metrics) 
-```python
+```
 Here the input is given as a path to a pickled file containing a pandas DataFrame which consists of three columns: "pred" (each cell is a numpy array with predictions per class), "target" (each cell is either 0 or 1) and "id" (each cell is a string or an integer representing a sample ID). In this DataFrame, the names "pred" and "target" are the names of the respective columns. 
 
 If the input was given in two separate pickled files, one for the predictions and another for the targets, we could define `data` as:
