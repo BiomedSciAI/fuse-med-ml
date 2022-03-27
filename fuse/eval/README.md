@@ -9,7 +9,7 @@ The evaluation package of FuseMedML (fuse.eval) is a standalone library for eval
 Besides having implemented a rich library of evaluation metrics and helper functions, fuse.eval offers many higher level features that can save you lots of time during your ML research:
 * **Handling massive data.** What if you want to compute a metric over millions of samples that cannot be read to RAM all at once? fuse.eval takes care of the batching and multiprocessing to make it happen.
 * **Multi-class evaluation.** Some metrics naturally extend from binary to multi-class, and in others it may be less straightforward. In fuse.eval, a "one vs. rest" logic is implemented under the hood. This means that whenever you implement your own new metrics, you automatically also get the "one vs. rest" computation without writing any extra code.
-* **Statistical significance**. fuse.eval can easily compute confidence intervals and compare models (via paired bootstrap test, Delong test, McNemar test). 
+* **Statistical significance**. fuse.eval can easily compute confidence intervals and compare models (via paired bootstrap test, Delong's test, McNemar's test). 
 * **Pipelining.** You can easily combine a sequence of metrics, as well as interleave metrics with more general operations on the data. Each metric or operation may use results of previously computed metrics or operations.
 * **Automatic per-fold evaluation** and sub-group analysis.
 
