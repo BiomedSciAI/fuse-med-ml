@@ -7,15 +7,15 @@ The evaluation package of FuseMedML (fuse.eval) is a standalone library for eval
 
 ## What's inside?
 Besides having implemented a rich library of evaluation metrics and helper functions, fuse.eval offers many higher level features that can save you lots of time during your ML research:
-* Handling massive data. What if you want to compute a metric over millions of samples that cannot be read to RAM all at once? fuse.eval takes care of the batching and multiprocessing to make it happen.
-* Multi-class evaluation. Some metrics naturally extend from binary to multi-class, and in others it may be less straightforward. In fuse.eval, a "one vs. rest" logic is implemented under the hood. This means that whenever you implement your own new metrics, you automatically also get the "one vs. rest" computation without writing any extra code.
-* Confidence intervals. fuse.eval can compute confidence intervals for any metric via bootstrapping that's implemented under the hood. 
-* Pipelining. You can easily combine a sequence of metrics, as well as interleave metrics with more general operations on the data. Each metric or operation may use results of previously computed metrics or operations.
-* Automatic per-fold evaluation and sub-group analysis.
+* **Handling massive data.** What if you want to compute a metric over millions of samples that cannot be read to RAM all at once? fuse.eval takes care of the batching and multiprocessing to make it happen.
+* **Multi-class evaluation.** Some metrics naturally extend from binary to multi-class, and in others it may be less straightforward. In fuse.eval, a "one vs. rest" logic is implemented under the hood. This means that whenever you implement your own new metrics, you automatically also get the "one vs. rest" computation without writing any extra code.
+* **Statistical significance**. fuse.eval can easily compute confidence intervals and compare models (via paired bootstrap test, Delong test, McNemar test). 
+* **Pipelining.** You can easily combine a sequence of metrics, as well as interleave metrics with more general operations on the data. Each metric or operation may use results of previously computed metrics or operations.
+* **Automatic per-fold evaluation** and sub-group analysis.
 
 ## Design principles
-* Generic input. Input data for evaluation metrics can be pandas DataFrames, a sequence or a dictionary thereof, or any iterator. fuse.eval is standalone and does not assume anything about the ML library which was used to generate the data for evaluation.
-* Two layer design. Low-level metric functions implementation, and high-level components that use these metrics and apply higher-level logic. It is easy to implement a new low-level function, and doesn't require an in depth familiarity with FuseMedML's design.
+* **Generic input.** Input data for evaluation metrics can be pandas DataFrames, a sequence or a dictionary thereof, or any iterator. fuse.eval is standalone and does not assume anything about the ML library which was used to generate the data for evaluation.
+* **Two layer design.** Low-level metric functions implementation, and high-level components that use these metrics and apply higher-level logic. It is easy to implement a new low-level function, and doesn't require an in depth familiarity with FuseMedML's design.
 
 ## Implemented low-level metrics:
 ### Classification:
