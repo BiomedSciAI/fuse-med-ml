@@ -69,9 +69,6 @@ class FuseDataSourceSeg(FuseDataSourceBase):
                     repartition = pickle.load(splits)
                 sample_descs = repartition['val']
         else:
-            # TODO - this option is not clear - if the partition file is not give? do we train 
-            #       with all the data? or just dont save the partition? (than we will not be able 
-            #       to re-run the experiment ...
             for sample_id in input_df.iloc[:, 0]:
                 sample_descs.append(sample_id)
 
@@ -79,31 +76,9 @@ class FuseDataSourceSeg(FuseDataSourceBase):
 
         self.input_source = [image_source, mask_source]
 
-        # prev version
-        # self.samples = input_source
-
-    # @staticmethod
-    # def filter_by_conditions(samples: pd.DataFrame, conditions: Optional[List[Dict[str, List]]]):
-    #     """
-    #     Returns a vector of the samples that passed the conditions
-    #     :param samples: dataframe to check. expected to have at least sample_desc column.
-    #     :param conditions: list of dictionaries. each dictionary has column name as keys and possible values as the values.
-    #             for each dict in the list:
-    #                 the keys are applied with AND between them.
-    #             the dict conditions are applied with OR between them.
-    #     :return: boolean vector with the filtered samples
-    #     """
-    #     to_keep = samples.sample_desc.isna()  # start with all false
-    #     for condition_list in conditions:
-    #         condition_to_keep = samples.sample_desc.notna()  # start with all true
-    #         for column, values in condition_list.items():
-    #             condition_to_keep = condition_to_keep & samples[column].isin(values)  # all conditions in list must be met
-    #         to_keep = to_keep | condition_to_keep  # add this condition samples to_keep
-    #     return to_keep
 
     def get_samples_description(self):
         return self.samples
-        # return list(self.samples_df['sample_desc'])
 
     def summary(self) -> str:
         summary_str = ''

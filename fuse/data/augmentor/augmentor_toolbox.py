@@ -18,7 +18,7 @@ Created on June 30, 2021
 """
 
 from copy import deepcopy
-from typing import Tuple, Any, List, Iterable, Optional
+from typing import Tuple, Any, List, Iterable, Optional, Union
 
 import numpy
 import torch
@@ -264,19 +264,23 @@ def aug_op_gaussian(aug_input: Tensor, mean: float = 0.0, std: float = 0.03, cha
     return aug_tensor
 
 
-def aug_op_elastic_transform(aug_input: Tensor, alpha: float = 1, sigma: float = 50, channels: Optional[List[int]] = None):
+def aug_op_elastic_transform(aug_input: Tuple[Tensor], 
+                             sigma: float = 50, 
+                             num_points: int  = 3):
     """Elastic deformation of images as described in [Simard2003]_.
     .. [Simard2003] Simard, Steinkraus and Platt, "Best Practices for
        Convolutional Neural Networks applied to Visual Document Analysis",
-       :param aug_input: input tensor of shape (C,Y,X)
-       :param alpha: global pixel shifting (correlated to the article)
+       :param aug_input: list of tensors of shape (C,Y,X)
        :param sigma: Gaussian filter parameter
-       :param channels: which channels to apply the augmentation
+       :param num_points: define the resolution of the deformation gris
+            see https://github.com/gvtulder/elasticdeform for more info.
        :return distorted image
     """
     # convert back to torch tensor
     aug_input = [numpy.array(t) for t in aug_input]
-    aug_input_d = ed.deform_random_grid(aug_input, sigma=7, points=3, axis=[(1, 2), (1,2)])
+    # for a (ch X Rows X cols) image - deform the 2 last axis
+    axis = [(1,2) for _ in range(len(aug_input))]
+    aug_input_d = ed.deform_random_grid(aug_input, sigma=sigma, points=num_points, axis=axis)
 
     aug_output = [torch.from_numpy(t) for t in aug_input_d]
 
@@ -454,7 +458,7 @@ def aug_op_batch_mix_up(aug_input: Tuple[Tensor, Tensor], factor: float) -> Tupl
 
 
 def aug_op_random_crop_and_resize(aug_input: Tensor,
-                                  out_size,
+                                  out_size: Union[int, Tuple[int, int], Tuple[int, int, int]],
                                   crop_size: float = 1.0,  # or optional - Tuple[float, float]
                                   x_off: float = 1.0,
                                   y_off: float = 1.0, 
@@ -463,8 +467,8 @@ def aug_op_random_crop_and_resize(aug_input: Tensor,
     random crop a (3d) tensor and resize it to a given size
     :param crop_size: float <= 1.0 - the fraction to crop from the original tensor for each dim
     :param x_off: float <= 1.0 - the x-offset to take 
-    :param y_off:
-    :param z_off:
+    :param y_off: float <= 1.0 - the y-offset to take
+    :param z_off: float <= 1.0 - the z-offset to take
     :param out_size: the size of the output tensor
     :return: the output tensor
     """
@@ -485,5 +489,22 @@ def aug_op_random_crop_and_resize(aug_input: Tensor,
         aug_tensor = aug_input[:, z_off:z_off+z_width, y_off:y_off+y_width, x_off:x_off+x_width]
 
         aug_tensor = F.interpolate(aug_tensor, out_size)
+
+    elif len(aug_input.shape) == 3:
+        ch, y, x = in_shape
+
+        x_width = int(crop_size * x)
+        x_off = int(x_off * (x - x_width))
+
+        y_width = int(crop_size * y)
+        y_off = int(y_off * (y - y_width))
+
+        aug_tensor = aug_input[:, y_off:y_off+y_width, x_off:x_off+x_width]
+
+        aug_tensor = F.interpolate(aug_tensor, out_size)
+
+    # else:
+
+
 
     return aug_tensor

@@ -66,7 +66,7 @@ class BinaryDiceLoss(nn.Module):
         target = target.contiguous().view(target.shape[0], -1)
 
         if target.dtype == torch.int64 or target.dtype == torch.int32:
-            target = target.type(torch.float32).to(target.device)
+            target = target.type(torch.float32)  
         num = 2*torch.sum(torch.mul(predict, target), dim=1) + self.eps
         den = torch.sum(predict.pow(self.p) + target.pow(self.p), dim=1) + self.eps
         loss = 1 - num / den
@@ -85,8 +85,8 @@ class BinaryDiceLoss(nn.Module):
 class DiceBCELoss(FuseLossBase):
 
     def __init__(self, 
-                 pred_name,
-                 target_name,
+                 pred_name: str = None,
+                 target_name: str = None,
                  filter_func: Optional[Callable]=None,
                  class_weights=None,
                  bce_weight: float=1.0,
@@ -124,7 +124,7 @@ class DiceBCELoss(FuseLossBase):
         predict = FuseUtilsHierarchicalDict.get(batch_dict, self.pred_name).float()
         target = FuseUtilsHierarchicalDict.get(batch_dict, self.target_name).long()
 
-        target = target.type(torch.float32).to(target.device)
+        target = target.type(torch.float32)  
 
         total_loss = 0
         n_classes = predict.shape[1]
@@ -157,8 +157,9 @@ class DiceBCELoss(FuseLossBase):
 
 class FuseDiceLoss(FuseLossBase):
 
-    def __init__(self, pred_name,
-                 target_name,
+    def __init__(self, 
+                 pred_name: str = None,
+                 target_name: str = None,
                  filter_func: Optional[Callable] = None,
                  class_weights=None,
                  ignore_cls_index_list=None,

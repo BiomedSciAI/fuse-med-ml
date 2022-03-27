@@ -35,18 +35,13 @@ class SegInputProcessor(FuseProcessorBase):
                  resize_to: Optional[Tuple] = (299, 299),
                  padding: Optional[Tuple] = (0, 0),
                  ):
-        # """
-        # Create Input processor
-        # :param input_data:              path to images
-        # :param normalized_target_range: range for image normalization
-        # :param resize_to:               Optional, new size of input images, keeping proportions
-        # :param padding:                 Optional, padding size
-        # """
-
-        # self.input_data = input_data
-        # self.normalized_target_range = normalized_target_range
-        # self.resize_to = np.subtract(resize_to, (2*padding[0], 2*padding[1]))
-        # self.padding = padding
+        """
+        Create Input processor
+        :param input_data:              path to images
+        :param normalized_target_range: range for image normalization
+        :param resize_to:               Optional, new size of input images, keeping proportions
+        :param padding:                 Optional, padding size
+        """
         self.name = name
         if self.name == 'image':
             self.im_inx = 0
@@ -63,69 +58,12 @@ class SegInputProcessor(FuseProcessorBase):
             image_fn = image_fn[self.im_inx] 
             image = imread(image_fn)
 
-            # ======================================================================
-            # TODO - change type to float if input image and to int it mask image
             if self.name == 'image':
                 image = image.astype('float32')
                 image = image / 255.0
             else:
                 image = image > 0
                 image = image.astype('float32')
-            # =====================================================================
-
-            # img_path = self.input_data + str(inner_image_desc) + '.jpg'
-
-            # # read image
-            # inner_image = skimage.io.imread(img_path)
-
-            # # convert to numpy
-            # inner_image = np.asarray(inner_image)
-            
-            # # normalize
-            # inner_image = normalize_to_range(inner_image, range=self.normalized_target_range)
-
-            # # resize
-            # inner_image_height, inner_image_width = inner_image.shape[0], inner_image.shape[1]
-            
-            # if self.resize_to is not None:
-            #     if inner_image_height > self.resize_to[0]:
-            #         h_ratio = self.resize_to[0] / inner_image_height
-            #     else:
-            #         h_ratio = 1
-            #     if inner_image_width > self.resize_to[1]:
-            #         w_ratio = self.resize_to[1] / inner_image_width
-            #     else:
-            #         w_ratio = 1
-
-            #     resize_ratio = min(h_ratio, w_ratio)
-            #     if resize_ratio != 1:
-            #         inner_image = skimage.transform.resize(inner_image,
-            #                                                output_shape=(int(inner_image_height * resize_ratio),
-            #                                                              int(inner_image_width * resize_ratio)),
-            #                                                mode='reflect',
-            #                                                anti_aliasing=True
-            #                                                )
-
-            # # padding
-            # if self.padding is not None:
-            #     # "Pad" around inner image
-            #     inner_image = inner_image.astype('float32')
-
-            #     inner_image_height, inner_image_width = inner_image.shape[0], inner_image.shape[1]
-            #     inner_image[0:inner_image_height, 0] = 0
-            #     inner_image[0:inner_image_height, inner_image_width-1] = 0
-            #     inner_image[0, 0:inner_image_width] = 0
-            #     inner_image[inner_image_height-1, 0:inner_image_width] = 0
-
-            #     if self.normalized_target_range is None:
-            #         pad_value = 0
-            #     else:
-            #         pad_value = self.normalized_target_range[0]
-
-            #     image = pad_image(inner_image, outer_height=self.resize_to[0] + 2*self.padding[0], outer_width=self.resize_to[1] + 2*self.padding[1], pad_value=pad_value)
-
-            # else:
-            #     image = inner_image
 
             # convert image from shape (H x W x C) to shape (C x H x W) with C=3
             if len(image.shape) > 2:
@@ -140,39 +78,3 @@ class SegInputProcessor(FuseProcessorBase):
             return None
 
         return sample
-
-
-def normalize_to_range(input_image: np.ndarray, range: Tuple = (-1.0, 1.0)):
-    """
-    Scales tensor to range
-    @param input_image: image of shape (H x W x C)
-    @param range:       bounds for normalization
-    @return:            normalized image
-    """
-    max_val = input_image.max()
-    min_val = input_image.min()
-    if min_val == max_val == 0:
-        return input_image
-    input_image = input_image - min_val
-    input_image = input_image / (max_val - min_val)
-    input_image = input_image * (range[1] - range[0])
-    input_image = input_image + range[0]
-    return input_image
-
-
-def pad_image(image: np.ndarray, outer_height: int, outer_width: int, pad_value: Tuple):
-    """
-    Pastes input image in the middle of a larger one
-    @param image:        image of shape (H x W x C)
-    @param outer_height: final outer height
-    @param outer_width:  final outer width
-    @param pad_value:    value for padding around inner image
-    @return:             padded image
-    """
-    inner_height, inner_width = image.shape[0], image.shape[1]
-    h_offset = int((outer_height - inner_height) / 2.0)
-    w_offset = int((outer_width - inner_width) / 2.0)
-    outer_image = np.ones((outer_height, outer_width, 3), dtype=image.dtype) * pad_value
-    outer_image[h_offset:h_offset + inner_height, w_offset:w_offset + inner_width, :] = image
-
-    return outer_image

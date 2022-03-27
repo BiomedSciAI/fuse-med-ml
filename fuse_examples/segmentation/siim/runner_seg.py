@@ -114,7 +114,8 @@ TRAIN_COMMON_PARAMS['data.augmentation_pipeline'] = [
     [
         ('data.input.input_0','data.gt.gt_global'),
         aug_op_elastic_transform,
-        {},
+        {'sigma': 7,
+         'num_points': 3},
         {'apply': RandBool(0.7)}
     ],
     [
@@ -195,7 +196,7 @@ def run_train(paths: dict, train_common_params: dict):
     # Create visualizer (optional)
     visualiser = FuseVisualizerDefault(image_name='data.input.input_0', 
                                        mask_name='data.gt.gt_global',
-                                       pred_name='model.logits.classification')
+                                       pred_name='model.logits.segmentation')
 
     train_dataset = FuseDatasetDefault(cache_dest=paths['cache_dir'],
                                        data_source=train_data_source,
@@ -252,7 +253,7 @@ def run_train(paths: dict, train_common_params: dict):
 
     model = FuseModelWrapper(model=torch_model,
                             model_inputs=['data.input.input_0'],
-                            model_outputs=['logits.classification']
+                            model_outputs=['logits.segmentation']
                             )
 
     lgr.info('Model: Done', {'attrs': 'bold'})
@@ -260,11 +261,11 @@ def run_train(paths: dict, train_common_params: dict):
     #  Loss
     # ====================================================================================
     losses = {
-        'dice_loss': DiceBCELoss(pred_name='model.logits.classification', 
+        'dice_loss': DiceBCELoss(pred_name='model.logits.segmentation', 
                                  target_name='data.gt.gt_global')
     }
 
-    model = model.cuda()
+    # model = model.cuda()
     optimizer = optim.SGD(model.parameters(), 
                           lr=train_common_params['manager.learning_rate'],
                           momentum=0.9,
@@ -344,7 +345,7 @@ def run_infer(paths: dict, infer_common_params: dict):
     # Create visualizer (optional)
     visualiser = FuseVisualizerDefault(image_name='data.input.input_0', 
                                        mask_name='data.gt.gt_global',
-                                       pred_name='model.logits.classification')
+                                       pred_name='model.logits.segmentation')
 
     infer_dataset = FuseDatasetDefault(cache_dest=paths['cache_dir'],
                                        data_source=infer_data_source,
@@ -368,8 +369,8 @@ def run_infer(paths: dict, infer_common_params: dict):
 
     #### Manager for inference
     manager = FuseManagerDefault()
-    # extract just the global classification per sample and save to a file
-    output_columns = ['model.logits.classification', 'data.gt.gt_global']
+    # extract just the global segmentation per sample and save to a file
+    output_columns = ['model.logits.segmentation', 'data.gt.gt_global']
     manager.infer(data_loader=infer_dataloader,
                   input_model_dir=paths['model_dir'],
                   checkpoint=infer_common_params['checkpoint'],
@@ -379,7 +380,7 @@ def run_infer(paths: dict, infer_common_params: dict):
     # visualize the predictions
     infer_processor = FuseProcessorDataFrame(data_pickle_filename=infer_common_params['infer_filename'])
     descriptors_list = infer_processor.get_samples_descriptors()
-    out_name = 'model.logits.classification'
+    out_name = 'model.logits.segmentation'
     gt_name = 'data.gt.gt_global' 
     for desc in descriptors_list[:10]:
         data = infer_processor(desc)
@@ -394,32 +395,32 @@ def run_infer(paths: dict, infer_common_params: dict):
         plt.savefig(fn)
 
 ######################################
-# Analyze Common Params
+# Evaluation Common Params
 ######################################
-ANALYZE_COMMON_PARAMS = {}
-ANALYZE_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
-ANALYZE_COMMON_PARAMS['output_filename'] = os.path.join(PATHS['eval_dir'], 'all_metrics.txt')
-ANALYZE_COMMON_PARAMS['num_workers'] = 4
-ANALYZE_COMMON_PARAMS['batch_size'] = 8
+EVAL_COMMON_PARAMS = {}
+EVAL_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
+EVAL_COMMON_PARAMS['output_filename'] = os.path.join(PATHS['eval_dir'], 'all_metrics.txt')
+EVAL_COMMON_PARAMS['num_workers'] = 4
+EVAL_COMMON_PARAMS['batch_size'] = 8
 
 ######################################
 # Analyze Template
 ######################################
-def run_analyze(paths: dict, analyze_common_params: dict):
+def run_eval(paths: dict, eval_common_params: dict):
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
-    lgr.info('Fuse Analyze', {'attrs': ['bold', 'underline']})
+    lgr.info('Fuse eval', {'attrs': ['bold', 'underline']})
 
     # define iterator
     def data_iter():
-        data = pd.read_pickle(analyze_common_params['infer_filename'])
+        data = pd.read_pickle(eval_common_params['infer_filename'])
         n_samples = data.shape[0]
         threshold = 1e-7 #0.5
         for inx in range(n_samples):
             row = data.loc[inx]
             sample_dict = {}
             sample_dict["id"] = row['id']
-            sample_dict["pred.array"] = row['model.logits.classification'] > threshold
+            sample_dict["pred.array"] = row['model.logits.segmentation'] > threshold
             sample_dict["label.array"] = row['data.gt.gt_global']
             yield sample_dict
 
@@ -430,7 +431,7 @@ def run_analyze(paths: dict, analyze_common_params: dict):
             ("PixelAcc", MetricPixelAccuracy(pred='pred.array', target='label.array')),
     ])
 
-    # create analyzer
+    # create evaluator
     evaluator = EvaluatorDefault()
 
     results = evaluator.eval(ids=None, 
@@ -451,8 +452,8 @@ if __name__ == "__main__":
     force_gpus = None  # [0]
     FuseUtilsGPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
-    RUNNING_MODES = ['train', 'infer', 'analyze']  # Options: 'train', 'infer', 'analyze'
-    # RUNNING_MODES = ['analyze']  # Options: 'train', 'infer', 'analyze'
+    RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
+    # RUNNING_MODES = ['eval']  # Options: 'train', 'infer', 'eval'
 
     # train
     if 'train' in RUNNING_MODES:
@@ -462,7 +463,7 @@ if __name__ == "__main__":
     if 'infer' in RUNNING_MODES:
         run_infer(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS)
 
-    # analyze
-    if 'analyze' in RUNNING_MODES:
-        run_analyze(paths=PATHS, analyze_common_params=ANALYZE_COMMON_PARAMS)
+    # eval
+    if 'eval' in RUNNING_MODES:
+        run_eval(paths=PATHS, eval_common_params=EVAL_COMMON_PARAMS)
 
