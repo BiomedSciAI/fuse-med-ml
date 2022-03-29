@@ -228,14 +228,14 @@ The default comparison method checks for superiority, i.e counts the proportion 
 
 Continuing with the `MetricAUCROC`, a paired bootstrap model comparison using this metric is defined as follows:
 ```python
-metric_model_test = MetricAUCROC(pred="pred", target="target")
-metric_model_reference = MetricAUCROC(pred="pred", target="target")
+metric_model_test = MetricAUCROC(pred="model_a.pred", target="model_a.target")
+metric_model_reference = MetricAUCROC(pred="model_b.pred", target="model_b.target")
 
 metrics = OrderedDict([
         ("compare_a_to_b", 
-                PairedBootstrap(MetricAUCROC(pred="pred", target="target"),
-                                MetricAUCROC(pred="pred", target="target"), 
-                                        stratum="target", rnd_seed=seed, margin=0.1)),
+                PairedBootstrap(metric_model_test,
+                                metric_model_reference, 
+                                stratum="target", rnd_seed=seed, margin=0.1)),
 ])
 ```
 After running the evaluator, the result will contain the number of sampled instances in which the absolute difference in AUC between model A and model B were larger than 0.1, and the resulting p-value.
