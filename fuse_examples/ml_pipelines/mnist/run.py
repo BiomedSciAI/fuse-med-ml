@@ -1,9 +1,9 @@
 from fuse.managers.pipeline import run
-from fuse_examples.classification.mnist.runner import run_train, run_infer, run_eval
+#from fuse_examples.classification.mnist.runner import run_train, run_infer, run_eval
+from funcs import run_train, run_infer, run_eval, create_dataset
 import os
 
 params = {}
-params['num_gpus'] = 1
 
 ##########################################
 # Output Paths
@@ -15,6 +15,12 @@ paths = {'model_dir': os.path.join(root_path, 'mnist/model_dir'),
          'inference_dir': os.path.join(root_path, 'mnist/infer_dir'),
          'eval_dir': os.path.join(root_path, 'mnist/eval_dir')}
 
+##########################################
+# Common Params
+##########################################
+common_params = {}
+common_params['paths'] = paths
+common_params['num_gpus'] = 3
 ##########################################
 # Train Params
 ##########################################
@@ -55,7 +61,12 @@ train_params['manager.weight_decay'] = 0.001
 train_params['manager.resume_checkpoint_filename'] = None  # if not None, will try to load the checkpoint
 
 # ===============
-# Run function
+# Dataset func.
+# ===============
+train_params['dataset_func'] = dataset_func
+
+# ===============
+# Run func.
 # ===============
 train_params['run_func'] = run_train
 
@@ -78,7 +89,7 @@ eval_params = {}
 eval_params['infer_filename'] = infer_params['infer_filename']
 eval_params['run_func'] = run_eval
 
-params['paths'] = paths
+params['common'] = common_params
 params['train'] = train_params
 params['infer'] = infer_params
 params['eval'] = eval_params
