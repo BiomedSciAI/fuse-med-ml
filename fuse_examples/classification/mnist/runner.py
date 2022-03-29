@@ -173,12 +173,12 @@ def run_train(paths: dict, train_params: dict):
         torch_model = models.resnet18(num_classes=10)
         # modify conv1 to support single channel image
         torch_model.conv1 = torch.nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        # use adaptive avg pooling to support mnist low resolution images
+        torch_model.avgpool = torch.nn.AdaptiveAvgPool2d(1)
+
     elif train_params['model'] == 'lenet':
         torch_model = lenet.LeNet()
     
-    # use adaptive avg pooling to support mnist low resolution images
-    torch_model.avgpool = torch.nn.AdaptiveAvgPool2d(1)
-
     model = FuseModelWrapper(model=torch_model,
                              model_inputs=['data.image'],
                              post_forward_processing_function=perform_softmax,

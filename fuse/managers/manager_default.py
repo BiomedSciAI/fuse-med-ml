@@ -53,7 +53,7 @@ from fuse.utils.utils_misc import FuseUtilsMisc
 
 class FuseManagerDefault:
     """
-    Default implementation of manager. The manager is the main API to use when running Fuse.
+    Default implementation of manager.
     Supports Train and Infer functionality.
 
 
