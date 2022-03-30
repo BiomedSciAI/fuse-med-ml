@@ -1,5 +1,6 @@
 from fuse.utils.utils_gpu import FuseUtilsGPU
 from fuse.utils.utils_debug import FuseUtilsDebug
+from sklearn.model_selection import KFold
 
 def setup_dbg():
     ##########################################
@@ -23,6 +24,9 @@ def run(params):
     available_gpu_ids = FuseUtilsGPU.get_available_gpu_ids()
     
     dataset = params['train']['dataset_func'](params=params)
+    n_splits = params['common']['num_folds'] if params['common']['num_folds'] is not None else 5
+    kfold = KFold(n_splits=n_splits, shuffle=True)
+    inds = [item for item in kfold.split(dataset)]
     params['train']['run_func'](params=params)
     params['infer']['run_func'](params=params)
     params['eval']['run_func'](params=params)

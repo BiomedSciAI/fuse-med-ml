@@ -21,6 +21,8 @@ paths = {'model_dir': os.path.join(root_path, 'mnist/model_dir'),
 common_params = {}
 common_params['paths'] = paths
 common_params['num_gpus'] = 3
+common_params['num_folds'] = 5
+
 ##########################################
 # Train Params
 ##########################################
@@ -63,7 +65,7 @@ train_params['manager.resume_checkpoint_filename'] = None  # if not None, will t
 # ===============
 # Dataset func.
 # ===============
-train_params['dataset_func'] = dataset_func
+train_params['dataset_func'] = create_dataset
 
 # ===============
 # Run func.
