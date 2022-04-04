@@ -1,4 +1,4 @@
-# Requirements for developments
+# All requirements
 # python>=3.7
 numpy>=1.18.5
 pandas>=1.2
@@ -10,9 +10,9 @@ scikit-learn>=0.23.2
 termcolor>=1.1.0
 torch>=1.5.0
 torchvision>=0.8.1
+tensorboard
 SimpleITK>=1.2.0
 wget
-tensorboard
 opencv-python<=4.3.0.36 
 ipython
 pydicom
