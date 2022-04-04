@@ -63,6 +63,8 @@ $ pip install fuse-med-ml
 ## FuseMedML from the ground up
 [**User Guide**](https://github.com/IBM/fuse-med-ml/tree/master/fuse/doc/user_guide.md) - including detailed explanation about FuseMedML modules, structure, concept, and more.
 
+[**Hello World**](https://colab.research.google.com/github/IBM/fuse-med-ml/blob/master/fuse_examples/tutorials/hello_world/hello_world.ipynb) - Introductory hands-on notebook on the well-known MNIST dataset. 
+
 [**High Level Code Example**](https://github.com/IBM/fuse-med-ml/tree/master/fuse/doc/high_level_example.md) - example of binary classifier for mammography with an auxiliary segmentation loss and clinical data
 
 ## Examples
