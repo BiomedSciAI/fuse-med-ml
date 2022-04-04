@@ -29,4 +29,5 @@ psutil
 testbook
 ipykernel
 hydra
+hydra-core
 
