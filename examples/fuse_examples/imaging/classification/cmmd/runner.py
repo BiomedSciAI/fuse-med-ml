@@ -266,6 +266,7 @@ def run_eval(paths : NDict , infer: NDict):
 def main(cfg : DictConfig) -> None:
     cfg = NDict(OmegaConf.to_container(cfg))
     print(cfg)
+    cfg = NDict(OmegaConf.to_container(cfg))
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None  # [0]
     choose_and_enable_multiple_gpus(cfg["train.manager_train_params.num_gpus"], force_gpus=force_gpus)
