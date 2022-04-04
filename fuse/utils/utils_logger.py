@@ -87,7 +87,7 @@ class FuseConsoleFormatter(logging.Formatter):
 
 
 def fuse_logger_start(output_path: Optional[str] = None, console_verbose_level: int = logging.INFO,
-                      list_of_source_files: Optional[List[str]] = None) -> None:
+                      list_of_source_files: Optional[List[str]] = None, force_reset: Optional[bool] = None) -> None:
     """
     Start Fuse logger:
     Define output destination; console, file and file including also debug
@@ -125,7 +125,7 @@ def fuse_logger_start(output_path: Optional[str] = None, console_verbose_level: 
     if output_path is not None:
         log_output_path = os.path.join(output_path, 'logs')
         # Create log dir
-        FuseUtilsFile.create_dir(log_output_path)
+        FuseUtilsFile.create_or_reset_dir(log_output_path, force_reset=force_reset)
 
         # file info
         file_handler = logging.FileHandler(os.path.join(log_output_path, f'fuse_{timestr}.log'))
@@ -147,7 +147,7 @@ def fuse_logger_start(output_path: Optional[str] = None, console_verbose_level: 
     if list_of_source_files is None or list_of_source_files:
         if output_path is not None:
             source_files_output_path = os.path.join(output_path, f'source_files', timestr)
-            FuseUtilsFile.create_or_reset_dir(source_files_output_path)
+            FuseUtilsFile.create_or_reset_dir(source_files_output_path, force_reset=force_reset)
 
             lgr.info(f'Copy source files to {source_files_output_path}')
             if list_of_source_files is None:
