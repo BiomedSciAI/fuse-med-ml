@@ -29,7 +29,7 @@ import torch.nn.functional as F
 from torch.utils.data.dataloader import DataLoader
 
 from fuse.utils.utils_logger import fuse_logger_start
-
+from fuse.utils import NDict
 from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
 
 from fuse.models.model_default import FuseModelDefault
@@ -260,9 +260,10 @@ def run_eval(paths : Dict , infer: Dict):
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg : DictConfig) -> None:
     print(cfg)
+    cfg = NDict(OmegaConf.to_container(cfg))
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None  # [0]
-    FuseUtilsGPU.choose_and_enable_multiple_gpus(cfg.train.manager_train_params.num_gpus, force_gpus=force_gpus)
+    FuseUtilsGPU.choose_and_enable_multiple_gpus(cfg["train.manager_train_params.num_gpus"], force_gpus=force_gpus)
 
     RUNNING_MODES = ['train', 'infer', 'analyze']  # Options: 'train', 'infer', 'analyze'
     # Path to the stored dataset location
@@ -274,14 +275,14 @@ def main(cfg : DictConfig) -> None:
 
     # train
     if 'train' in RUNNING_MODES:
-        run_train(OmegaConf.to_container(cfg.paths) , OmegaConf.to_container(cfg.train))
+        run_train(cfg["paths"] ,cfg["train"])
 
     # infer
     if 'infer' in RUNNING_MODES:
-        run_infer(OmegaConf.to_container(cfg.paths) , OmegaConf.to_container(cfg.infer))
+        run_infer(cfg["paths"] , cfg["infer"])
     #
     # analyze
     if 'analyze' in RUNNING_MODES:
-        run_eval(OmegaConf.to_container(cfg.paths) , OmegaConf.to_container(cfg.infer))
+        run_eval(cfg["paths"] ,cfg["infer"])
 if __name__ == "__main__":
     main()
