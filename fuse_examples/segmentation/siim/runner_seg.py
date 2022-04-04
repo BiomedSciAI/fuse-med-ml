@@ -265,7 +265,6 @@ def run_train(paths: dict, train_common_params: dict):
                                  target_name='data.gt.gt_global')
     }
 
-    # model = model.cuda()
     optimizer = optim.SGD(model.parameters(), 
                           lr=train_common_params['manager.learning_rate'],
                           momentum=0.9,
@@ -453,7 +452,6 @@ if __name__ == "__main__":
     FuseUtilsGPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
     RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
-    # RUNNING_MODES = ['eval']  # Options: 'train', 'infer', 'eval'
 
     # train
     if 'train' in RUNNING_MODES:
