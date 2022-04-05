@@ -2,6 +2,8 @@ from fuse.utils.utils_gpu import FuseUtilsGPU
 from fuse.utils.utils_debug import FuseUtilsDebug
 from sklearn.model_selection import KFold
 import multiprocessing
+from functools import partial
+from multiprocessing import Process, Queue
 
 def setup_dbg():
     ##########################################
@@ -22,6 +24,15 @@ def choose_gpus(num_gpus, force_gpus=None):
     gpu_id = available_gpu_ids[cpu_id]
     FuseUtilsGPU.choose_and_enable_multiple_gpus(1, force_gpus=[gpu_id])
 
+def runner_wrapper(q_resources, f, *f_args, **f_kwargs):
+
+    resource = q_resources.get()
+    print(f"Using GPUs: {resource}")
+    FuseUtilsGPU.choose_and_enable_multiple_gpus(len(resource), force_gpus=list(resource))
+    f(*f_args, **f_kwargs)
+    print(f"Done with GPUs: {resource} - adding them back to the queue")
+    q_resources.put(resource)
+
 def run(num_folds, num_gpus_total, num_gpus_per_split, dataset_func, \
         train_func, infer_func, eval_func, \
         dataset_params=None, train_params=None, infer_params=None, eval_params=None):
@@ -39,9 +50,20 @@ def run(num_folds, num_gpus_total, num_gpus_per_split, dataset_func, \
     kfold = KFold(n_splits=n_splits, shuffle=True)
     sample_ids = [item for item in kfold.split(dataset)]
 
-    # create a pool of workers for each available gpu
-    pool = multiprocessing.Pool(len(available_gpu_ids), initializer=choose_gpus(num_gpus_per_split))
+    # create a queue of gpu chunks (resources)
+    q_resources = Queue()
+    for r in gpu_resources:
+        q_resources.put(r)
 
-    pool.starmap(train_func, [(train_params, dataset, available_gpu_ids, ids, cv_index) for (ids, cv_index) in zip(sample_ids, range(n_splits))])
+    runner = partial(runner_wrapper, q_resources, train_func)
+    # create process per fold
+    processes = [Process(target=runner, args=(train_params, dataset, ids, cv_index)) for (ids, cv_index) in zip(sample_ids, range(n_splits))] 
+    for p in processes:
+        p.start()
+
+    for p in processes:
+        p.join()
+        p.close()
+
     #params['infer']['run_func'](params=params)
     #params['eval']['run_func'](params=params)
