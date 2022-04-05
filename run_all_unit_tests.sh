@@ -15,6 +15,7 @@ lockfailed()
 # create an environment including the set of requirements specified in fuse-med-ml/requirements.txt (if not already exist)
 create_env() {
     force_cuda_version=$1
+    dest_path=$2
 
     PYTHON_VER=3.7
     ENV_NAME="fuse_$PYTHON_VER_"$(sha256sum requirements.txt | awk '{print $1;}')
@@ -34,20 +35,26 @@ create_env() {
         if find_in_conda_env $ENV_NAME ; then
             echo "Environment exist: $ENV_NAME"
         else
+            if [ $env_path = "no" ]; then
+                env="-n $ENV_NAME"
+            else
+                env="-p $env_path/$ENV_NAME"
+            fi
+    
             # create an environment
-            echo "Creating new environment: $ENV_NAME"
-            conda create -n $ENV_NAME python=$PYTHON_VER -y
-            echo "Creating new environment: $ENV_NAME - Done"
+            echo "Creating new environment: $env"
+            conda create $env python=$PYTHON_VER -y
+            echo "Creating new environment: $env - Done"
 
             if [ $force_cuda_version != "no" ]; then
                 echo "forcing cudatoolkit $force_cuda_version"
-                conda install -n $ENV_NAME pytorch torchvision cudatoolkit=$force_cuda_version -c pytorch -y
+                conda install $env pytorch torchvision cudatoolkit=$force_cuda_version -c pytorch -y
                 echo "forcing cudatoolkit $force_cuda_version - Done"
             fi
 
             # install local repository (fuse-med-ml)
             echo "Installing requirements"
-            conda run -n $ENV_NAME --no-capture-output --live-stream pip install -r requirements.txt
+            conda run $env --no-capture-output --live-stream pip install -r requirements.txt
             echo "Installing requirements - Done"
         fi
     ) 873>$lock_filename
@@ -66,8 +73,20 @@ else
     force_cuda_version="no"
 fi
 
+if [ "$#" -gt 1 ]; then
+    env_path=$2
+else
+    env_path="no"
+fi
+
 echo "Force cuda version: $force_cuda_version"
-create_env $force_cuda_version
+create_env $force_cuda_version $env_path
 echo "Running unittests"
-conda run -n $ENV_NAME --no-capture-output --live-stream python ./run_all_unit_tests.py
+
+if [ "$#" -gt 1 ]; then
+    env="-p $env_path/$ENV_NAME"
+else
+    env="-n $ENV_NAME"
+fi
+conda run $env --no-capture-output --live-stream python ./run_all_unit_tests.py
 echo "Running unittests - Done"
