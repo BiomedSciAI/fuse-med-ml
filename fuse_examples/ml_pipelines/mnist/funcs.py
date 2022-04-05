@@ -5,6 +5,7 @@ import logging
 from fuse.data.dataset.dataset_wrapper import FuseDatasetWrapper
 from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
 from torch.utils.data.dataloader import DataLoader
+from torch.utils.data import Subset
 import torch
 import torchvision.models as models
 from fuse_examples.classification.mnist import lenet
@@ -19,6 +20,8 @@ from fuse.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
 from fuse.managers.callbacks.callback_time_statistics import FuseTimeStatisticsCallback
 import torch.optim as optim
 from fuse.managers.manager_default import FuseManagerDefault
+import multiprocessing
+from fuse.utils.utils_gpu import FuseUtilsGPU
 
 def create_dataset(params):
     transform = transforms.Compose([
@@ -32,17 +35,28 @@ def create_dataset(params):
     train_dataset.create()
 
     # Validation dataset:
-    torch_validation_dataset = torchvision.datasets.MNIST(params['common']['paths']['cache_dir'], download=True, train=False, transform=transform)
+    torch_test_dataset = torchvision.datasets.MNIST(params['common']['paths']['cache_dir'], download=True, train=False, transform=transform)
     # wrapping torch dataset
-    validation_dataset = FuseDatasetWrapper(name='validation', dataset=torch_validation_dataset, mapping=('image', 'label'))
-    validation_dataset.create()
-    return train_dataset, validation_dataset
+    test_dataset = FuseDatasetWrapper(name='test', dataset=torch_test_dataset, mapping=('image', 'label'))
+    test_dataset.create()
+    return train_dataset, test_dataset
 
-def run_train(params, train_dataset, validation_dataset):
+def run_train(params, dataset, available_gpu_ids, sample_ids, cv_index):
+
+    ## choose gpu id for this process
+    #cpu_name = multiprocessing.current_process().name
+    #cpu_id = int(cpu_name[cpu_name.find('-') + 1:]) - 1
+    #gpu_id = available_gpu_ids[cpu_id]
+    #FuseUtilsGPU.choose_and_enable_multiple_gpus(1, force_gpus=[gpu_id])
+
+    # obtain train/val dataset subset:
+    train_dataset = Subset(dataset, sample_ids[0])
+    validation_dataset = Subset(dataset, sample_ids[1])
+
     # ==============================================================================
     # Logger
     # ==============================================================================
-    fuse_logger_start(output_path=params['common']['paths']['model_dir'], console_verbose_level=logging.INFO)
+    fuse_logger_start(output_path=params['common']['paths']['model_dir'], console_verbose_level=logging.INFO, force_reset=True)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Train', {'attrs': ['bold', 'underline']})
 

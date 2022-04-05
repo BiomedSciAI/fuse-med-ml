@@ -1,13 +1,19 @@
 from fuse.managers.pipeline import run
-#from fuse_examples.classification.mnist.runner import run_train, run_infer, run_eval
 from funcs import run_train, run_infer, run_eval, create_dataset
 import os
 
-params = {}
+##########################################
+# Required Parameters
+##########################################
+num_gpus_total = 3 
+num_gpus_per_split = 1
+num_folds = 5
+dataset_func = create_dataset
+train_func = run_train
+infer_func = run_infer
+eval_func = run_eval
 
-##########################################
-# Output Paths
-##########################################
+# output paths:
 root_path = 'examples' 
 paths = {'model_dir': os.path.join(root_path, 'mnist/model_dir'),
          'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
@@ -16,13 +22,14 @@ paths = {'model_dir': os.path.join(root_path, 'mnist/model_dir'),
          'eval_dir': os.path.join(root_path, 'mnist/eval_dir')}
 
 ##########################################
-# Common Params
+# Custom Parameters
 ##########################################
-common_params = {}
-common_params['paths'] = paths
-common_params['num_gpus'] = 3
-common_params['num_folds'] = 5
 
+##########################################
+# Dataset Params
+##########################################
+
+dataset_params = None
 ##########################################
 # Train Params
 ##########################################
@@ -91,12 +98,9 @@ eval_params = {}
 eval_params['infer_filename'] = infer_params['infer_filename']
 eval_params['run_func'] = run_eval
 
-params['common'] = common_params
-params['train'] = train_params
-params['infer'] = infer_params
-params['eval'] = eval_params
-
 
 
 if __name__ == "__main__":
-    run(params=params)
+    run(num_folds, num_gpus_total, num_gpus_per_split, \
+        dataset_func, train_func, infer_func, eval_func, \
+        dataset_params, train_params, infer_params, eval_params)
