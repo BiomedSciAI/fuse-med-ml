@@ -29,11 +29,15 @@ paths = {'model_dir': os.path.join(root_path, 'mnist/model_dir'),
 # Dataset Params
 ##########################################
 
-dataset_params = None
+dataset_params = {}
+dataset_params['cache_dir'] = paths['cache_dir']
+
 ##########################################
 # Train Params
 ##########################################
 train_params = {}
+train_params['paths'] = paths
+
 # ============
 # Model
 # ============

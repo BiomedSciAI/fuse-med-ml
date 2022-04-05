@@ -23,19 +23,19 @@ from fuse.managers.manager_default import FuseManagerDefault
 import multiprocessing
 from fuse.utils.utils_gpu import FuseUtilsGPU
 
-def create_dataset(params):
+def create_dataset(cache_dir):
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,))
     ])
 
     # Train dataset:
-    torch_train_dataset = torchvision.datasets.MNIST(params['common']['paths']['cache_dir'], download=True, train=True, transform=transform)
+    torch_train_dataset = torchvision.datasets.MNIST(cache_dir, download=True, train=True, transform=transform)
     train_dataset = FuseDatasetWrapper(name='train', dataset=torch_train_dataset, mapping=('image', 'label'))
     train_dataset.create()
 
     # Validation dataset:
-    torch_test_dataset = torchvision.datasets.MNIST(params['common']['paths']['cache_dir'], download=True, train=False, transform=transform)
+    torch_test_dataset = torchvision.datasets.MNIST(cache_dir, download=True, train=False, transform=transform)
     # wrapping torch dataset
     test_dataset = FuseDatasetWrapper(name='test', dataset=torch_test_dataset, mapping=('image', 'label'))
     test_dataset.create()

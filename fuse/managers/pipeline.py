@@ -34,7 +34,6 @@ def run(num_folds, num_gpus_total, num_gpus_per_split, dataset_func, \
     gpu_resources = [available_gpu_ids[i:i+num_gpus_per_split] for i in range(0, len(available_gpu_ids), num_gpus_per_split)]
     if num_gpus_total < len(available_gpu_ids):
         available_gpu_ids = available_gpu_ids[0:num_gpus_total]
-    
     dataset, test_dataset = dataset_func(**dataset_params)
     n_splits = num_folds if num_folds is not None else 5
     kfold = KFold(n_splits=n_splits, shuffle=True)
