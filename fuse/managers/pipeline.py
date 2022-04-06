@@ -12,17 +12,6 @@ def setup_dbg():
     mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseUtilsDebug
     debug = FuseUtilsDebug(mode)
 
-def choose_gpus(num_gpus, force_gpus=None):
-    ##########################################
-    # Allocate GPUs
-    ##########################################
-    # pass specific gpus to force_gpus to force them rather than automatically looking for free ones.
-    # for example: force_gpus = [1,4,5] will use these three specifically 
-    # choose gpu id for this process
-    cpu_name = multiprocessing.current_process().name
-    cpu_id = int(cpu_name[cpu_name.find('-') + 1:]) - 1
-    gpu_id = available_gpu_ids[cpu_id]
-    FuseUtilsGPU.choose_and_enable_multiple_gpus(1, force_gpus=[gpu_id])
 
 def runner_wrapper(q_resources, f, *f_args, **f_kwargs):
 
