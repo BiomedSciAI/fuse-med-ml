@@ -25,7 +25,8 @@ def runner_wrapper(q_resources, f, *f_args, **f_kwargs):
 
 def run(num_folds, num_gpus_total, num_gpus_per_split, dataset_func, \
         train_func, infer_func, eval_func, \
-        dataset_params=None, train_params=None, infer_params=None, eval_params=None):
+        dataset_params=None, train_params=None, infer_params=None, \
+        eval_params=None, sample_ids=None):
     if num_gpus_total == 0 or num_gpus_per_split == 0:
         if train_params is not None and 'manager.train_params' in train_params:
             train_params['manager.train_params']['device'] = 'cpu'
@@ -36,9 +37,11 @@ def run(num_folds, num_gpus_total, num_gpus_per_split, dataset_func, \
     # group gpus into chunks of size params['common']['num_gpus_per_split']
     gpu_resources = [available_gpu_ids[i:i+num_gpus_per_split] for i in range(0, len(available_gpu_ids), num_gpus_per_split)]
     dataset, test_dataset = dataset_func(**dataset_params)
-    n_splits = num_folds if num_folds is not None else 5
-    kfold = KFold(n_splits=n_splits, shuffle=True)
-    sample_ids = [item for item in kfold.split(dataset)]
+    if sample_ids is None:
+        kfold = KFold(n_splits=num_folds, shuffle=True)
+        sample_ids = [item for item in kfold.split(dataset)]
+    else:
+        assert(num_folds == len(sample_ids))
 
     # create a queue of gpu chunks (resources)
     q_resources = Queue()
