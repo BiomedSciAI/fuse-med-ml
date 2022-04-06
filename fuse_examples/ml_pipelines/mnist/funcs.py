@@ -46,8 +46,8 @@ def create_dataset(cache_dir):
 def run_train(dataset, sample_ids, cv_index, params):
 
     # obtain train/val dataset subset:
-    train_dataset = Subset(dataset, sample_ids[0])
-    validation_dataset = Subset(dataset, sample_ids[1])
+    train_dataset = Subset(dataset, sample_ids[0]).dataset
+    validation_dataset = Subset(dataset, sample_ids[1]).dataset
 
     # ==============================================================================
     # Logger
@@ -134,7 +134,7 @@ def run_train(dataset, sample_ids, cv_index, params):
     lgr.info('Train:', {'attrs': 'bold'})
 
     # create optimizer
-    optimizer = optim.Adam(model.parameters(), lr=params['manager.learning_rate'], weight_decay=params['train']['manager.weight_decay'])
+    optimizer = optim.Adam(model.parameters(), lr=params['manager.learning_rate'], weight_decay=params['manager.weight_decay'])
 
     # create learning scheduler
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
@@ -152,7 +152,7 @@ def run_train(dataset, sample_ids, cv_index, params):
                         train_params=params['manager.train_params'])
 
     ## Continue training
-    if params['train']['manager.resume_checkpoint_filename'] is not None:
+    if params['manager.resume_checkpoint_filename'] is not None:
         # Loading the checkpoint including model weights, learning rate, and epoch_index.
         manager.load_checkpoint(checkpoint=params['manager.resume_checkpoint_filename'], mode='train')
 
