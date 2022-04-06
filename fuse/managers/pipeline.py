@@ -47,7 +47,7 @@ def run(num_folds, num_gpus_total, num_gpus_per_split, dataset_func, \
 
     runner = partial(runner_wrapper, q_resources, train_func)
     # create process per fold
-    processes = [Process(target=runner, args=(train_params, dataset, ids, cv_index)) for (ids, cv_index) in zip(sample_ids, range(n_splits))] 
+    processes = [Process(target=runner, args=(dataset, ids, cv_index, train_params)) for (ids, cv_index) in zip(sample_ids, range(n_splits))] 
     for p in processes:
         p.start()
 

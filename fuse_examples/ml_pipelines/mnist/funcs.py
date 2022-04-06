@@ -23,6 +23,7 @@ from fuse.managers.manager_default import FuseManagerDefault
 import multiprocessing
 from fuse.utils.utils_gpu import FuseUtilsGPU
 import os
+import torch.nn.functional as F
 
 def create_dataset(cache_dir):
     transform = transforms.Compose([
@@ -42,7 +43,7 @@ def create_dataset(cache_dir):
     test_dataset.create()
     return train_dataset, test_dataset
 
-def run_train(params, dataset, sample_ids, cv_index):
+def run_train(dataset, sample_ids, cv_index, params):
 
     # obtain train/val dataset subset:
     train_dataset = Subset(dataset, sample_ids[0])
@@ -68,27 +69,27 @@ def run_train(params, dataset, sample_ids, cv_index):
     sampler = FuseSamplerBalancedBatch(dataset=train_dataset,
                                        balanced_class_name='data.label',
                                        num_balanced_classes=10,
-                                       batch_size=params['train']['data.batch_size'],
+                                       batch_size=params['data.batch_size'],
                                        balanced_class_weights=None)
     lgr.info(f'- Create sampler: Done')
 
     # Create dataloader
-    train_dataloader = DataLoader(dataset=train_dataset, batch_sampler=sampler, num_workers=params['train']['data.train_num_workers'])
+    train_dataloader = DataLoader(dataset=train_dataset, batch_sampler=sampler, num_workers=params['data.train_num_workers'])
 
     # dataloader
-    validation_dataloader = DataLoader(dataset=validation_dataset, batch_size=params['train']['data.batch_size'],
-                                       num_workers=params['train']['data.validation_num_workers'])
+    validation_dataloader = DataLoader(dataset=validation_dataset, batch_size=params['data.batch_size'],
+                                       num_workers=params['data.validation_num_workers'])
 
     # ==============================================================================
     # Model
     # ==============================================================================
     lgr.info('Model:', {'attrs': 'bold'})
 
-    if params['train']['model'] == 'resnet18':
+    if params['model'] == 'resnet18':
         torch_model = models.resnet18(num_classes=10)
         # modify conv1 to support single channel image
         torch_model.conv1 = torch.nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
-    elif params['train']['model'] == 'lenet':
+    elif params['model'] == 'lenet':
         torch_model = lenet.Net()
     
     # use adaptive avg pooling to support mnist low resolution images
@@ -122,9 +123,9 @@ def run_train(params, dataset, sample_ids, cv_index):
     # =====================================================================================
     callbacks = [
         # default callbacks
-        FuseTensorboardCallback(model_dir=params['common']['paths']['model_dir']),  # save statistics for tensorboard
-        FuseMetricStatisticsCallback(output_path=params['common']['paths']['model_dir'] + "/metrics.csv"),  # save statistics a csv file
-        FuseTimeStatisticsCallback(num_epochs=params['train']['manager.train_params']['num_epochs'], load_expected_part=0.1)  # time profiler
+        FuseTensorboardCallback(model_dir=model_dir),  # save statistics for tensorboard
+        FuseMetricStatisticsCallback(output_path=model_dir + "/metrics.csv"),  # save statistics a csv file
+        FuseTimeStatisticsCallback(num_epochs=params['manager.train_params']['num_epochs'], load_expected_part=0.1)  # time profiler
     ]
 
     # =====================================================================================
@@ -133,27 +134,27 @@ def run_train(params, dataset, sample_ids, cv_index):
     lgr.info('Train:', {'attrs': 'bold'})
 
     # create optimizer
-    optimizer = optim.Adam(model.parameters(), lr=params['train']['manager.learning_rate'], weight_decay=params['train']['manager.weight_decay'])
+    optimizer = optim.Adam(model.parameters(), lr=params['manager.learning_rate'], weight_decay=params['train']['manager.weight_decay'])
 
     # create learning scheduler
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
     # train from scratch
-    manager = FuseManagerDefault(output_model_dir=params['common']['paths']['model_dir'], force_reset=params['common']['paths']['force_reset_model_dir'])
+    manager = FuseManagerDefault(output_model_dir=model_dir, force_reset=params['paths']['force_reset_model_dir'])
     # Providing the objects required for the training process.
     manager.set_objects(net=model,
                         optimizer=optimizer,
                         losses=losses,
                         metrics=metrics,
-                        best_epoch_source=params['train']['manager.best_epoch_source'],
+                        best_epoch_source=params['manager.best_epoch_source'],
                         lr_scheduler=scheduler,
                         callbacks=callbacks,
-                        train_params=params['train']['manager.train_params'])
+                        train_params=params['manager.train_params'])
 
     ## Continue training
     if params['train']['manager.resume_checkpoint_filename'] is not None:
         # Loading the checkpoint including model weights, learning rate, and epoch_index.
-        manager.load_checkpoint(checkpoint=params['train']['manager.resume_checkpoint_filename'], mode='train')
+        manager.load_checkpoint(checkpoint=params['manager.resume_checkpoint_filename'], mode='train')
 
     # Start training
     manager.train(train_dataloader=train_dataloader, validation_dataloader=validation_dataloader)
