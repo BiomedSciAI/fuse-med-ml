@@ -1,3 +1,4 @@
+from typing import Dict
 from fuse.utils.utils_gpu import FuseUtilsGPU
 from fuse.utils.utils_debug import FuseUtilsDebug
 from sklearn.model_selection import KFold
@@ -25,9 +26,9 @@ def runner_wrapper(q_resources, f, *f_args, **f_kwargs):
 def run(num_folds, num_gpus_total, num_gpus_per_split, dataset_func, \
         train_func, infer_func, eval_func, \
         dataset_params=None, train_params=None, infer_params=None, eval_params=None):
-    #if num_gpus_total == 0 or num_gpus_per_split == 0:
-        #kwargs['common']['device'] = 'cpu'
-        #params['manager.train_params']['device'] = 'cpu'
+    if num_gpus_total == 0 or num_gpus_per_split == 0:
+        if train_params is not None and 'manager.train_params' in train_params:
+            train_params['manager.train_params']['device'] = 'cpu'
     setup_dbg()
     available_gpu_ids = FuseUtilsGPU.get_available_gpu_ids()
     # group gpus into chunks of size params['common']['num_gpus_per_split']

@@ -22,6 +22,7 @@ import torch.optim as optim
 from fuse.managers.manager_default import FuseManagerDefault
 import multiprocessing
 from fuse.utils.utils_gpu import FuseUtilsGPU
+import os
 
 def create_dataset(cache_dir):
     transform = transforms.Compose([
@@ -41,13 +42,7 @@ def create_dataset(cache_dir):
     test_dataset.create()
     return train_dataset, test_dataset
 
-def run_train(params, dataset, available_gpu_ids, sample_ids, cv_index):
-
-    ## choose gpu id for this process
-    #cpu_name = multiprocessing.current_process().name
-    #cpu_id = int(cpu_name[cpu_name.find('-') + 1:]) - 1
-    #gpu_id = available_gpu_ids[cpu_id]
-    #FuseUtilsGPU.choose_and_enable_multiple_gpus(1, force_gpus=[gpu_id])
+def run_train(params, dataset, sample_ids, cv_index):
 
     # obtain train/val dataset subset:
     train_dataset = Subset(dataset, sample_ids[0])
@@ -56,12 +51,14 @@ def run_train(params, dataset, available_gpu_ids, sample_ids, cv_index):
     # ==============================================================================
     # Logger
     # ==============================================================================
-    fuse_logger_start(output_path=params['common']['paths']['model_dir'], console_verbose_level=logging.INFO, force_reset=True)
+    fuse_logger_start(output_path=os.path.join(params['paths']['model_dir'], str(cv_index)), console_verbose_level=logging.INFO, force_reset=True)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Train', {'attrs': ['bold', 'underline']})
 
-    lgr.info(f'model_dir={params["common"]["paths"]["model_dir"]}', {'color': 'magenta'})
-    lgr.info(f'cache_dir={params["common"]["paths"]["cache_dir"]}', {'color': 'magenta'})
+    model_dir = os.path.join(params["paths"]["model_dir"], str(cv_index))
+    cache_dir = os.path.join(params["paths"]["cache_dir"], str(cv_index))
+    lgr.info(f'model_dir={model_dir}', {'color': 'magenta'})
+    lgr.info(f'cache_dir={cache_dir}', {'color': 'magenta'})
 
     # ==============================================================================
     # Data
