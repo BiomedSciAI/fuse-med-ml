@@ -87,6 +87,7 @@ train_params['run_func'] = run_train
 # Inference Params
 ######################################
 infer_params = {}
+infer_params['paths'] = paths
 infer_params['infer_filename'] = 'validation_set_infer.gz'
 infer_params['checkpoint'] = 'best'  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
 
