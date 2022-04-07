@@ -6,6 +6,7 @@ import multiprocessing
 from functools import partial
 from multiprocessing import Process, Queue
 from typing import Sequence
+import numpy as np
 
 def setup_dbg():
     ##########################################
@@ -62,5 +63,6 @@ def run(num_folds, num_gpus_total, num_gpus_per_split, dataset_func, \
         p.join()
         p.close()
 
-    #params['infer']['run_func'](params=params)
-    #params['eval']['run_func'](params=params)
+    # ensemble:
+    ensemble()
+    run_infer(test_dataset, sample_ids=None, cv_index='ensemble', params=infer_params)

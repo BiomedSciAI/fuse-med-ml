@@ -24,6 +24,7 @@ import multiprocessing
 from fuse.utils.utils_gpu import FuseUtilsGPU
 import os
 import torch.nn.functional as F
+from fuse.eval.evaluator import EvaluatorDefault 
 
 def create_dataset(cache_dir):
     transform = transforms.Compose([
@@ -162,13 +163,19 @@ def run_train(dataset, sample_ids, cv_index, params):
     lgr.info('Train: Done', {'attrs': 'bold'})
 
 
-def run_infer(dataset, sample_ids, cv_index, params):
+def run_infer(dataset, sample_ids, cv_index, params, test=False):
     # obtain train/val dataset subset:
-    validation_dataset = Subset(dataset, sample_ids[1]).dataset
+    if sample_ids is None:
+        validation_dataset = dataset
+    else:
+        validation_dataset = Subset(dataset, sample_ids[1]).dataset
 
     #### Logger
     model_dir = os.path.join(params['paths']['model_dir'], str(cv_index))
-    inference_dir = os.path.join(params['paths']['inference_dir'], str(cv_index))
+    if test:
+        inference_dir = os.path.join(params['paths']['test_dir'], str(cv_index))
+    else:
+        inference_dir = os.path.join(params['paths']['inference_dir'], str(cv_index))
     fuse_logger_start(output_path=inference_dir, console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Inference', {'attrs': ['bold', 'underline']})
@@ -187,5 +194,32 @@ def run_infer(dataset, sample_ids, cv_index, params):
                   output_file_name=os.path.join(inference_dir, params["infer_filename"]))
 
 
-def run_eval():
-    pass
+def run_eval(dataset, sample_ids, cv_index, params, test=False):
+    if test:
+        inference_dir = os.path.join(params['paths']['test_dir'], str(cv_index))
+    else:
+        inference_dir = os.path.join(params['paths']['inference_dir'], str(cv_index))
+    eval_dir = os.path.join(params['paths']['eval_dir'], str(cv_index))
+    fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
+    lgr = logging.getLogger('Fuse')
+    lgr.info('Fuse Analyze', {'attrs': ['bold', 'underline']})
+
+    # metrics
+    class_names = [str(i) for i in range(10)]
+
+    metrics = OrderedDict([
+        ('operation_point', MetricApplyThresholds(pred='model.output.classification')), # will apply argmax
+        ('accuracy', MetricAccuracy(pred='results:metrics.operation_point.cls_pred', target='data.label')),
+        ('roc', MetricROCCurve(pred='model.output.classification', target='data.label', class_names=class_names, output_filename=os.path.join(inference_dir, 'roc_curve.png'))),
+        ('auc', MetricAUCROC(pred='model.output.classification', target='data.label', class_names=class_names)),
+    ])
+   
+    # create evaluator
+    evaluator = EvaluatorDefault()
+
+    # run
+    _ = evaluator.eval(ids=None,
+                     data=os.path.join(inference_dir, params["infer_filename"]),
+                     metrics=metrics,
+                     output_dir=eval_dir)
+

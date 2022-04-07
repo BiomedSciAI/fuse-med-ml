@@ -8,6 +8,7 @@ import os
 num_gpus_total = 3 
 num_gpus_per_split = 1
 num_folds = 5
+num_test_folds = 1
 dataset_func = create_dataset
 train_func = run_train
 infer_func = run_infer
@@ -19,7 +20,9 @@ paths = {'model_dir': os.path.join(root_path, 'mnist/model_dir'),
          'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
          'cache_dir': os.path.join(root_path, 'mnist/cache_dir'),
          'inference_dir': os.path.join(root_path, 'mnist/infer_dir'),
-         'eval_dir': os.path.join(root_path, 'mnist/eval_dir')}
+         'eval_dir': os.path.join(root_path, 'mnist/eval_dir'),
+         'test_dir': os.path.join(root_path, 'mnist/test_dir'), 
+         }
 
 ##########################################
 # Custom Parameters
@@ -100,6 +103,7 @@ infer_params['run_func'] = run_infer
 # Eval Params
 ######################################
 eval_params = {}
+eval_params['paths'] = paths
 eval_params['infer_filename'] = infer_params['infer_filename']
 eval_params['run_func'] = run_eval
 
