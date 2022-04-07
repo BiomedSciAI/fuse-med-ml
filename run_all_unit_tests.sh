@@ -15,10 +15,20 @@ lockfailed()
 # create an environment including the set of requirements specified in fuse-med-ml/requirements.txt (if not already exist)
 create_env() {
     force_cuda_version=$1
+    env_path=$2
 
     PYTHON_VER=3.7
     ENV_NAME="fuse_$PYTHON_VER_"$(sha256sum requirements.txt | awk '{print $1;}')
     echo $ENV_NAME
+    # env full name
+    if [ $env_path = "no" ]; then
+        env="-n $ENV_NAME"
+    else
+        env="-p $env_path/$ENV_NAME"
+    fi
+
+
+    # create a lokc
     mkdir -p ~/env_locks # will create dir if not exist
     lock_filename=~/env_locks/.$ENV_NAME.lock
     echo "Lock filename $lock_filename"
@@ -32,28 +42,28 @@ create_env() {
         nvidia-smi
 
         if find_in_conda_env $ENV_NAME ; then
-            echo "Environment exist: $ENV_NAME"
+            echo "Environment exist: $env"
         else
             # create an environment
-            echo "Creating new environment: $ENV_NAME"
-            conda create -n $ENV_NAME python=$PYTHON_VER -y
-            echo "Creating new environment: $ENV_NAME - Done"
+            echo "Creating new environment: $env"
+            conda create $env python=$PYTHON_VER -y
+            echo "Creating new environment: $env - Done"
 
             if [ $force_cuda_version != "no" ]; then
                 echo "forcing cudatoolkit $force_cuda_version"
-                conda install -n $ENV_NAME pytorch torchvision cudatoolkit=$force_cuda_version -c pytorch -y
+                conda install $env pytorch torchvision cudatoolkit=$force_cuda_version -c pytorch -y
                 echo "forcing cudatoolkit $force_cuda_version - Done"
             fi
 
             # install local repository (fuse-med-ml)
             echo "Installing requirements"
-            conda run -n $ENV_NAME --no-capture-output --live-stream pip install -r requirements.txt
+            conda run $env --no-capture-output --live-stream pip install -r requirements.txt
             echo "Installing requirements - Done"
         fi
     ) 873>$lock_filename
 
     # set env name
-    ENV_NAME=$ENV_NAME
+    ENV_TO_USE=$env
 }
 
 
@@ -66,8 +76,15 @@ else
     force_cuda_version="no"
 fi
 
+if [ "$#" -gt 1 ]; then
+    env_path=$2
+else
+    env_path="no"
+fi
+
 echo "Force cuda version: $force_cuda_version"
-create_env $force_cuda_version
-echo "Running unittests"
-conda run -n $ENV_NAME --no-capture-output --live-stream python ./run_all_unit_tests.py
+create_env $force_cuda_version $env_path
+
+echo "Runng unittests in $ENV_TO_USE"
+conda run $env --no-capture-output --live-stream python ./run_all_unit_tests.py
 echo "Running unittests - Done"
