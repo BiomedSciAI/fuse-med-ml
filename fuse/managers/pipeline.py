@@ -53,9 +53,11 @@ def run(num_folds, num_gpus_total, num_gpus_per_split, dataset_func, \
     for r in gpu_resources:
         q_resources.put(r)
 
+    # run training, inference and evaluation on all cross validation folds in parallel
+    # using the available gpu resources:
     runner = partial(runner_wrapper, q_resources, [train_func, infer_func, eval_func])
     # create process per fold
-    processes = [Process(target=runner, args=(dataset, ids, cv_index, [train_params, infer_params, eval_params])) for (ids, cv_index) in zip(sample_ids, range(num_folds))] 
+    processes = [Process(target=runner, args=(dataset, ids, cv_index, False, [train_params, infer_params, eval_params])) for (ids, cv_index) in zip(sample_ids, range(num_folds))] 
     for p in processes:
         p.start()
 
@@ -63,6 +65,17 @@ def run(num_folds, num_gpus_total, num_gpus_per_split, dataset_func, \
         p.join()
         p.close()
 
-    # ensemble:
-    ensemble()
-    run_infer(test_dataset, sample_ids=None, cv_index='ensemble', params=infer_params)
+    # infer on test set
+    runner = partial(runner_wrapper, q_resources, [infer_func, eval_func])
+    # create process per fold
+    processes = [Process(target=runner, args=(test_dataset, None, cv_index, True, [infer_params, eval_params])) for cv_index in range(num_folds)] 
+    for p in processes:
+        p.start()
+
+    for p in processes:
+        p.join()
+        p.close()
+
+    #run_infer(test_dataset, sample_ids=None, cv_index='ensemble', params=infer_params)
+
+    # model ensemble:

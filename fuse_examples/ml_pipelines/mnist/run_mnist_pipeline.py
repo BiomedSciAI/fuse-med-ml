@@ -92,6 +92,7 @@ train_params['run_func'] = run_train
 infer_params = {}
 infer_params['paths'] = paths
 infer_params['infer_filename'] = 'validation_set_infer.gz'
+infer_params['test_infer_filename'] = 'test_set_infer.gz'
 infer_params['checkpoint'] = 'best'  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
 
 # ===============
@@ -105,6 +106,7 @@ infer_params['run_func'] = run_infer
 eval_params = {}
 eval_params['paths'] = paths
 eval_params['infer_filename'] = infer_params['infer_filename']
+eval_params['test_infer_filename'] = infer_params['test_infer_filename']
 eval_params['run_func'] = run_eval
 
 

@@ -44,8 +44,8 @@ def create_dataset(cache_dir):
     test_dataset.create()
     return train_dataset, test_dataset
 
-def run_train(dataset, sample_ids, cv_index, params):
-
+def run_train(dataset, sample_ids, cv_index, test=False, params=None):
+    assert(test == False)
     # obtain train/val dataset subset:
     train_dataset = Subset(dataset, sample_ids[0]).dataset
     validation_dataset = Subset(dataset, sample_ids[1]).dataset
@@ -163,7 +163,7 @@ def run_train(dataset, sample_ids, cv_index, params):
     lgr.info('Train: Done', {'attrs': 'bold'})
 
 
-def run_infer(dataset, sample_ids, cv_index, params, test=False):
+def run_infer(dataset, sample_ids, cv_index, test=False, params=None):
     # obtain train/val dataset subset:
     if sample_ids is None:
         validation_dataset = dataset
@@ -174,12 +174,14 @@ def run_infer(dataset, sample_ids, cv_index, params, test=False):
     model_dir = os.path.join(params['paths']['model_dir'], str(cv_index))
     if test:
         inference_dir = os.path.join(params['paths']['test_dir'], str(cv_index))
+        infer_filename = params['test_infer_filename']
     else:
         inference_dir = os.path.join(params['paths']['inference_dir'], str(cv_index))
+        infer_filename = params['infer_filename']
     fuse_logger_start(output_path=inference_dir, console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Inference', {'attrs': ['bold', 'underline']})
-    lgr.info(f'infer_filename={os.path.join(inference_dir, params["infer_filename"])}', {'color': 'magenta'})
+    lgr.info(f'infer_filename={os.path.join(inference_dir, infer_filename)}', {'color': 'magenta'})
 
     # dataloader
     validation_dataloader = DataLoader(dataset=validation_dataset, collate_fn=validation_dataset.collate_fn, batch_size=2, num_workers=2)
@@ -191,14 +193,16 @@ def run_infer(dataset, sample_ids, cv_index, params, test=False):
                   input_model_dir=model_dir,
                   checkpoint=params['checkpoint'],
                   output_columns=output_columns,
-                  output_file_name=os.path.join(inference_dir, params["infer_filename"]))
+                  output_file_name=os.path.join(inference_dir, infer_filename))
 
 
-def run_eval(dataset, sample_ids, cv_index, params, test=False):
+def run_eval(dataset, sample_ids, cv_index, test=False, params=None):
     if test:
         inference_dir = os.path.join(params['paths']['test_dir'], str(cv_index))
+        infer_filename = params["test_infer_filename"]
     else:
         inference_dir = os.path.join(params['paths']['inference_dir'], str(cv_index))
+        infer_filename = params["infer_filename"]
     eval_dir = os.path.join(params['paths']['eval_dir'], str(cv_index))
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
@@ -219,7 +223,7 @@ def run_eval(dataset, sample_ids, cv_index, params, test=False):
 
     # run
     _ = evaluator.eval(ids=None,
-                     data=os.path.join(inference_dir, params["infer_filename"]),
+                     data=os.path.join(inference_dir, infer_filename),
                      metrics=metrics,
                      output_dir=eval_dir)
 
