@@ -28,7 +28,10 @@ import shutil
 
 from fuse.utils.utils_gpu import FuseUtilsGPU
 
-@unittest.skipIf(True, "Long test and requires to download the data manually")
+@unittest.skip("Not ready yet")
+# TODO:
+# 1. Get the path to data as an env variable
+# 2. Consider reducing the number of samples
 class ClassificationMGCmmdTestCase(unittest.TestCase):
 
     def setUp(self):

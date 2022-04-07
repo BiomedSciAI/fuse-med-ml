@@ -7,10 +7,7 @@ from fuse.data.augmentor.augmentor_toolbox import unsqueeze_2d_to_3d, aug_op_col
 from fuse.data.dataset.dataset_generator import FuseDatasetGenerator
 
 from fuse.utils.utils_gpu import FuseUtilsGPU
-from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerRandBool as RandBool
-from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerRandInt as RandInt
-from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerUniform as Uniform
-from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerChoice
+from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool, Choice
 
 from fuse_examples.classification.prostate_x.patient_data_source import FuseProstateXDataSourcePatient
 from fuse_examples.classification.prostate_x.processor import  FuseProstateXPatchProcessor
@@ -148,11 +145,9 @@ def prostate_x_dataset(paths,train_common_params,lgr):
              'translate': (RandInt(-2, 2), RandInt(-2, 2)),
              'flip': (False, False),
              'scale': Uniform(0.9, 1.1),
-             'channels': FuseUtilsParamSamplerChoice(image_channels, probabilities=None)},
+             'channels': Choice(image_channels, probabilities=None)},
             {'apply': RandBool(0.5) if train_common_params['data.aug.phase_misalignment'] else 0}
         ],
-
-
         [
             ('data.input',),
             unsqueeze_2d_to_3d,

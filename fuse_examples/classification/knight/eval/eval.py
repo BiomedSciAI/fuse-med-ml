@@ -28,7 +28,7 @@ import pandas as pd
 import numpy as np
 
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
-from fuse.utils.utils_file import FuseUtilsFile
+from fuse.utils.file_io.file_io import create_dir
 
 from fuse.eval.evaluator import EvaluatorDefault
 
@@ -168,7 +168,7 @@ def eval(task1_prediction_filename: str, task2_prediction_filename: str, target_
                                  * list to define the samples explicitly
     :return: ordered dict summarizing the results and markdown text
     """
-    FuseUtilsFile.create_dir(output_dir)
+    create_dir(output_dir)
     
     # eval task1, task2 or both
     task1 = task1_prediction_filename is not None and task1_prediction_filename != ""

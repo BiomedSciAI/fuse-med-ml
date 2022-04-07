@@ -32,8 +32,8 @@ import torch
 torch.multiprocessing.set_sharing_strategy('file_system')
 
 from fuse.data.cache.cache_base import FuseCacheBase
-from fuse.utils.utils_atomic_file import FuseUtilsAtomicFileWriter
-from fuse.utils.utils_file import FuseUtilsFile
+from fuse.utils.file_io.atomic_file import AtomicFileWriter
+from fuse.utils.file_io.file_io import create_dir, remove_dir_content
 
 
 class FuseCacheFiles(FuseCacheBase):
@@ -48,7 +48,7 @@ class FuseCacheFiles(FuseCacheBase):
         self._save_cache_index = 100
 
         # create dir if not already exist
-        FuseUtilsFile.create_dir(cache_file_dir)
+        create_dir(cache_file_dir)
 
         # pointer to cache index
         self._cache_file_name = os.path.join(self._cache_file_dir, 'cache_index.pkl')
@@ -59,7 +59,7 @@ class FuseCacheFiles(FuseCacheBase):
             self.reset()
             self.single_file = single_file
             # save initial properties
-            with FuseUtilsAtomicFileWriter(filename=self._cache_prop_file_name) as cache_prop_file:
+            with AtomicFileWriter(filename=self._cache_prop_file_name) as cache_prop_file:
                 pickle.dump({'single_file': self.single_file}, cache_prop_file)
         else:
             # get last modified time of the index
@@ -151,13 +151,13 @@ class FuseCacheFiles(FuseCacheBase):
                 logging.getLogger('Fuse').warning(f'cache file {value_abs_file_name} unexpectedly exist, overriding it.')
 
             # store the file
-            with FuseUtilsAtomicFileWriter(value_abs_file_name) as value_file:
+            with AtomicFileWriter(value_abs_file_name) as value_file:
                 pickle.dump(value, value_file)
 
             # store the cache index - just for a case of crashing
             if index % self._save_cache_index == 0:
                 try:
-                    with FuseUtilsAtomicFileWriter(filename=self._cache_file_name) as cache_index_file:
+                    with AtomicFileWriter(filename=self._cache_file_name) as cache_index_file:
                         pickle.dump(dict(self._cache_index), cache_index_file)
                 except:
                     # do not trow error- just print warning
@@ -172,7 +172,7 @@ class FuseCacheFiles(FuseCacheBase):
         # disable caching
         self._cache_enable = False
 
-        with FuseUtilsAtomicFileWriter(filename=self._cache_file_name) as cache_index_file:
+        with AtomicFileWriter(filename=self._cache_file_name) as cache_index_file:
             pickle.dump(dict(self._cache_index), cache_index_file)
 
         # move back to simple data structures
@@ -192,7 +192,7 @@ class FuseCacheFiles(FuseCacheBase):
         See base class
         """
         # make sure the dir content is empty
-        FuseUtilsFile.remove_dir_content(self._cache_file_dir)
+        remove_dir_content(self._cache_file_dir)
 
         # create empty data structures
         self._cache_enable = False

@@ -21,10 +21,10 @@ import unittest
 
 import pandas as pd
 
-from fuse.utils.utils_misc import get_pretty_dataframe
+from fuse.utils.misc.misc import get_pretty_dataframe
 
 
-class FuseUtilsHierarchicalDictTestCase(unittest.TestCase):
+class PrettyDataframeTestCase(unittest.TestCase):
 
     def setUp(self):
         pass

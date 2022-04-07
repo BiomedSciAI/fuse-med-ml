@@ -41,14 +41,13 @@ from fuse.managers.callbacks.callback_infer_results import FuseInferResultsCallb
 from fuse.managers.manager_state import FuseManagerState
 from fuse.eval import MetricBase
 from fuse.models.model_ensemble import FuseModelEnsemble
-from fuse.utils import utils_misc as misc
-from fuse.utils.utils_checkpoint import FuseCheckpoint
+from fuse.utils.dl.checkpoint import FuseCheckpoint
 from fuse.utils.utils_debug import FuseUtilsDebug
-from fuse.utils.utils_file import FuseUtilsFile as file
+from fuse.utils.file_io.file_io import create_or_reset_dir
 from fuse.utils.utils_gpu import FuseUtilsGPU as gpu
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 from fuse.utils.utils_logger import log_object_input_state
-from fuse.utils.utils_misc import FuseUtilsMisc
+from fuse.utils.misc.misc import Misc, get_pretty_dataframe
 
 
 class FuseManagerDefault:
@@ -90,7 +89,7 @@ class FuseManagerDefault:
 
         if output_model_dir is not None:
             # prepare model_dir
-            file.create_or_reset_dir(output_model_dir, ignore_files=['logs', 'source_files'], force_reset=force_reset)
+            create_or_reset_dir(output_model_dir, ignore_files=['logs', 'source_files'], force_reset=force_reset)
 
         self.callbacks: List[FuseCallback] = list()  # callback can be empty
         pass
@@ -470,7 +469,7 @@ class FuseManagerDefault:
                 # run model
                 batch_dict['model'] = self.state.net(batch_dict)
                 # convert dimensions back to single sample
-                FuseUtilsHierarchicalDict.apply_on_all(batch_dict, FuseUtilsMisc.squeeze_obj)
+                FuseUtilsHierarchicalDict.apply_on_all(batch_dict, Misc.squeeze_obj)
             else:
                 # get the sample descriptor of the sample
                 sample_descriptor = FuseUtilsHierarchicalDict.get(batch_dict, 'data.descriptor')
@@ -992,7 +991,7 @@ class FuseManagerDefault:
             best_so_far = self.state.best_epoch[epoch_source_index]
             epoch_title = f'Stats for epoch: {self.state.current_epoch} (Best epoch is {best_so_far} for source {best_source})'
             self.logger.info(epoch_title)
-        stats_as_str = misc.get_pretty_dataframe(stats_table)
+        stats_as_str = get_pretty_dataframe(stats_table)
         self.logger.info(stats_as_str)
         self.logger.info(f"Model: {self.state.output_model_dir}")
 

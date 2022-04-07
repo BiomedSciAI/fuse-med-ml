@@ -27,7 +27,7 @@ import torch
 from torch import Tensor
 
 from fuse.managers.callbacks.callback_base import FuseCallback
-from fuse.utils.utils_file import FuseUtilsFile as file
+from fuse.utils.file_io.file_io import create_dir
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 
 
@@ -46,7 +46,7 @@ class FuseInferResultsCallback(FuseCallback):
 
         # prepare output_path (if not already exists)
         if self.output_file is not None:
-            file.create_dir(os.path.dirname(self.output_file))
+            create_dir(os.path.dirname(self.output_file))
 
         self.reset()
         pass

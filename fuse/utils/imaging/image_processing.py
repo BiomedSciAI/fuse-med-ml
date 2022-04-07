@@ -25,7 +25,7 @@ import torch
 import cv2
 
 
-class FuseUtilsImageProcessing:
+class ImageProcessing:
     @staticmethod
     def match_img_to_input(im: np.ndarray, input: np.ndarray):
         '''
@@ -114,7 +114,7 @@ class FuseUtilsImageProcessing:
 
         try:
             import cv2
-            from fuse.utils.align.utils_align_ecc import FuseAlignMapECC
+            from fuse.utils.imaging.align.utils_align_ecc import FuseAlignMapECC
 
             transformation = transformation or cv2.MOTION_AFFINE
 
@@ -131,7 +131,7 @@ class FuseUtilsImageProcessing:
             return img2
 
     @staticmethod
-    def resize_image(image: np.ndarray, resize_to: (int, int)):
+    def resize_image(image: np.ndarray, resize_to: Tuple[int, int]):
         """
         Resizes image to resize_to dimensions
         :param image: ndarray of shape [height, width]

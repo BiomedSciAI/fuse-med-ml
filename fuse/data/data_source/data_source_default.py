@@ -23,7 +23,7 @@ import pandas as pd
 from typing import Sequence, Hashable, Union, Optional, List, Dict
 
 from fuse.data.data_source.data_source_base import FuseDataSourceBase
-from fuse.utils.utils_misc import autodetect_input_source
+from fuse.utils.misc.misc import autodetect_input_source
 
 
 class FuseDataSourceDefault(FuseDataSourceBase):

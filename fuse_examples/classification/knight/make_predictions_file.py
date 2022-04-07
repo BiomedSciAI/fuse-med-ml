@@ -26,7 +26,7 @@ from typing import Optional, Union
 import pandas as pd
 
 from fuse.utils.utils_logger import fuse_logger_start
-from fuse.utils.utils_file import FuseUtilsFile
+from fuse.utils.file_io.file_io import save_dataframe
 from fuse.managers.manager_default import FuseManagerDefault
 
 from fuse_examples.classification.knight.eval.eval import TASK1_CLASS_NAMES, TASK2_CLASS_NAMES 
@@ -98,7 +98,7 @@ def make_predictions_file(model_dir: str,
     predictions_df = predictions_df[["case_id"] + predictions_score_names]
 
     # save file
-    FuseUtilsFile.save_dataframe(predictions_df, output_filename, index=False)   
+    save_dataframe(predictions_df, output_filename, index=False)   
 
 if __name__ == "__main__":
     """

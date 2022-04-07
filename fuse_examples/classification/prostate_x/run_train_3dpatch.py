@@ -318,6 +318,7 @@ def eval_template(paths: dict, eval_common_params: dict):
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Eval', {'attrs': ['bold', 'underline']})
+    
 
     # metrics
     metrics = {

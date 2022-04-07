@@ -17,13 +17,16 @@ Created on June 30, 2021
 
 """
 
+from ntpath import join
+from tempfile import tempdir
+import tempfile
 import unittest
 import os
 import logging
 from fuse.utils.utils_logger import fuse_logger_start
 
 from fuse.managers.manager_default import FuseManagerDefault
-from fuse.utils.utils_file import FuseUtilsFile
+from fuse.utils.file_io.file_io import create_or_reset_dir
 
 
 class FuseManagerTestCase(unittest.TestCase):
@@ -31,18 +34,18 @@ class FuseManagerTestCase(unittest.TestCase):
         super().__init__(*args, **kwargs)
 
     def setUp(self):
+        self.tempdir = tempfile.mkdtemp()
+        create_or_reset_dir(self.tempdir, force_reset=True)
+        fuse_logger_start(output_path=self.tempdir, console_verbose_level=logging.INFO)
 
-        FuseUtilsFile.create_or_reset_dir('/tmp/test_manager', force_reset=True)
-        fuse_logger_start(output_path='/tmp/test_manager', console_verbose_level=logging.INFO)
-
-        self.manager = FuseManagerDefault('/tmp/test_manager', force_reset=True)
+        self.manager = FuseManagerDefault(self.tempdir, force_reset=True)
         self.train_dict = {'metric_1': 100, 'metric_2': 80, 'metric_3': 75}
         self.validation_dict = {'metric_1': 90, 'metric_2': 70, 'metric_3': 60}
         self.manager.state.current_epoch = 7
         pass
 
     def read_file(self):
-        with open("/tmp/test_manager/last_epoch_summary.txt", 'r') as sfile:
+        with open(os.path.join(self.tempdir, "last_epoch_summary.txt"), 'r') as sfile:
             summ = sfile.read()
         return summ
 
