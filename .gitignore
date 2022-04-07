@@ -36,3 +36,8 @@ fuse_examples/classification/knight/baseline/model_dir
 fuse_examples/classification/mnist/examples
 fuse_examples/tutorials/hello_world/examples/
 .vscode/
+examples/
+reliability.png
+reliability_calibrated.png
+roc.png
+test-reports/
