@@ -5,6 +5,7 @@ from sklearn.model_selection import KFold
 import multiprocessing
 from functools import partial
 from multiprocessing import Process, Queue
+from typing import Sequence
 
 def setup_dbg():
     ##########################################
@@ -14,12 +15,15 @@ def setup_dbg():
     debug = FuseUtilsDebug(mode)
 
 
-def runner_wrapper(q_resources, f, *f_args, **f_kwargs):
-
+def runner_wrapper(q_resources, fs, *f_args, **f_kwargs):
     resource = q_resources.get()
     print(f"Using GPUs: {resource}")
     FuseUtilsGPU.choose_and_enable_multiple_gpus(len(resource), force_gpus=list(resource))
-    f(*f_args, **f_kwargs)
+    if isinstance(fs, Sequence):
+        for f, last_arg in zip(fs, f_args[-1]):
+            f(*(f_args[:-1] + (last_arg,)), **f_kwargs)
+    else:
+        f(*f_args, **f_kwargs)
     print(f"Done with GPUs: {resource} - adding them back to the queue")
     q_resources.put(resource)
 
@@ -48,9 +52,9 @@ def run(num_folds, num_gpus_total, num_gpus_per_split, dataset_func, \
     for r in gpu_resources:
         q_resources.put(r)
 
-    runner = partial(runner_wrapper, q_resources, train_func)
+    runner = partial(runner_wrapper, q_resources, [train_func, infer_func, eval_func])
     # create process per fold
-    processes = [Process(target=runner, args=(dataset, ids, cv_index, train_params)) for (ids, cv_index) in zip(sample_ids, range(n_splits))] 
+    processes = [Process(target=runner, args=(dataset, ids, cv_index, [train_params, infer_params, eval_params])) for (ids, cv_index) in zip(sample_ids, range(num_folds))] 
     for p in processes:
         p.start()
 
