@@ -162,9 +162,30 @@ def run_train(dataset, sample_ids, cv_index, params):
     lgr.info('Train: Done', {'attrs': 'bold'})
 
 
+def run_infer(dataset, sample_ids, cv_index, params):
+    # obtain train/val dataset subset:
+    validation_dataset = Subset(dataset, sample_ids[1]).dataset
+
+    #### Logger
+    model_dir = os.path.join(params['paths']['model_dir'], str(cv_index))
+    inference_dir = os.path.join(params['paths']['inference_dir'], str(cv_index))
+    fuse_logger_start(output_path=inference_dir, console_verbose_level=logging.INFO)
+    lgr = logging.getLogger('Fuse')
+    lgr.info('Fuse Inference', {'attrs': ['bold', 'underline']})
+    lgr.info(f'infer_filename={os.path.join(inference_dir, params["infer_filename"])}', {'color': 'magenta'})
+
+    # dataloader
+    validation_dataloader = DataLoader(dataset=validation_dataset, collate_fn=validation_dataset.collate_fn, batch_size=2, num_workers=2)
+
+    ## Manager for inference
+    manager = FuseManagerDefault()
+    output_columns = ['model.output.classification', 'data.label']
+    manager.infer(data_loader=validation_dataloader,
+                  input_model_dir=model_dir,
+                  checkpoint=params['checkpoint'],
+                  output_columns=output_columns,
+                  output_file_name=os.path.join(inference_dir, params["infer_filename"]))
+
+
 def run_eval():
     pass
-
-def run_infer():
-    pass
-
