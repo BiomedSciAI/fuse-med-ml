@@ -53,7 +53,7 @@ class KnightTestTestCase(unittest.TestCase):
         wget.download("https://raw.github.com/neheller/KNIGHT/main/knight/data/knight.json", os.path.join(data_path, "knight", "data"))
         make_targets_file(data_path=data_path, cache_path=cache_path, split=split, output_filename=output_filename)
 
-    @unittest.SkipTest("Not ready yet")
+    @unittest.skip("Not ready yet")
     # TODOs: set KNIGHT data 
     # 1 Set 'KNIGHT_DATA' ahead (and not in the test)
     # 2, Add code that skip test if this var wasn't set
