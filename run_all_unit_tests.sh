@@ -20,6 +20,15 @@ create_env() {
     PYTHON_VER=3.7
     ENV_NAME="fuse_$PYTHON_VER_"$(sha256sum requirements.txt | awk '{print $1;}')
     echo $ENV_NAME
+    # env full name
+    if [ $env_path = "no" ]; then
+        env="-n $ENV_NAME"
+    else
+        env="-p $env_path/$ENV_NAME"
+    fi
+
+
+    # create a lokc
     mkdir -p ~/env_locks # will create dir if not exist
     lock_filename=~/env_locks/.$ENV_NAME.lock
     echo "Lock filename $lock_filename"
@@ -33,14 +42,8 @@ create_env() {
         nvidia-smi
 
         if find_in_conda_env $ENV_NAME ; then
-            echo "Environment exist: $ENV_NAME"
+            echo "Environment exist: $env"
         else
-            if [ $env_path = "no" ]; then
-                env="-n $ENV_NAME"
-            else
-                env="-p $env_path/$ENV_NAME"
-            fi
-    
             # create an environment
             echo "Creating new environment: $env"
             conda create $env python=$PYTHON_VER -y
@@ -60,7 +63,7 @@ create_env() {
     ) 873>$lock_filename
 
     # set env name
-    ENV=$env
+    ENV_TO_USE=$env
 }
 
 
@@ -80,8 +83,9 @@ else
 fi
 
 echo "Force cuda version: $force_cuda_version"
+ENV_TO_USE="bla" # global var for return value
 create_env $force_cuda_version $env_path
-echo "Running unittests"
 
-conda run $ENV --no-capture-output --live-stream python ./run_all_unit_tests.py
+echo "Runng unittests in $ENV_TO_USE"
+conda run $env --no-capture-output --live-stream python ./run_all_unit_tests.py
 echo "Running unittests - Done"
