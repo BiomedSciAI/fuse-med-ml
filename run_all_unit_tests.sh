@@ -83,7 +83,6 @@ else
 fi
 
 echo "Force cuda version: $force_cuda_version"
-ENV_TO_USE="bla" # global var for return value
 create_env $force_cuda_version $env_path
 
 echo "Runng unittests in $ENV_TO_USE"
