@@ -15,7 +15,7 @@ lockfailed()
 # create an environment including the set of requirements specified in fuse-med-ml/requirements.txt (if not already exist)
 create_env() {
     force_cuda_version=$1
-    dest_path=$2
+    env_path=$2
 
     PYTHON_VER=3.7
     ENV_NAME="fuse_$PYTHON_VER_"$(sha256sum requirements.txt | awk '{print $1;}')
@@ -60,7 +60,7 @@ create_env() {
     ) 873>$lock_filename
 
     # set env name
-    ENV_NAME=$ENV_NAME
+    ENV=$env
 }
 
 
@@ -83,10 +83,5 @@ echo "Force cuda version: $force_cuda_version"
 create_env $force_cuda_version $env_path
 echo "Running unittests"
 
-if [ "$#" -gt 1 ]; then
-    env="-p $env_path/$ENV_NAME"
-else
-    env="-n $ENV_NAME"
-fi
-conda run $env --no-capture-output --live-stream python ./run_all_unit_tests.py
+conda run $ENV --no-capture-output --live-stream python ./run_all_unit_tests.py
 echo "Running unittests - Done"
