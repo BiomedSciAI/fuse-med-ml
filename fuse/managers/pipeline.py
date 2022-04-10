@@ -7,13 +7,18 @@ from functools import partial
 from multiprocessing import Process, Queue
 from typing import Sequence
 import numpy as np
+import pandas as pd
+import os
 
-def setup_dbg():
-    ##########################################
-    # Debug modes
-    ##########################################
-    mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseUtilsDebug
-    debug = FuseUtilsDebug(mode)
+def ensemble(test_dirs, test_infer_filename, ensembled_output_dir):
+    test_infer_filenames = [os.path.join(d, test_infer_filename) for d in test_dirs]
+    softmax = [pd.read_pickle(f)['model.output.classification'] for f in test_infer_filenames]
+    softmax = np.vstack(softmax)
+    softmax = np.mean(softmax, 0) # ensemble
+    original_infer_1st_split = pd.read_pickle(test_infer_filenames[0])
+    ensembled_infer = original_infer_1st_split
+    ensembled_infer['model.output.classification'] = softmax
+
 
 
 def runner_wrapper(q_resources, fs, *f_args, **f_kwargs):
@@ -35,7 +40,11 @@ def run(num_folds, num_gpus_total, num_gpus_per_split, dataset_func, \
     if num_gpus_total == 0 or num_gpus_per_split == 0:
         if train_params is not None and 'manager.train_params' in train_params:
             train_params['manager.train_params']['device'] = 'cpu'
-    setup_dbg()
+    
+    # set debug mode:
+    mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseUtilsDebug
+    debug = FuseUtilsDebug(mode)
+
     available_gpu_ids = FuseUtilsGPU.get_available_gpu_ids()
     if num_gpus_total < len(available_gpu_ids):
         available_gpu_ids = available_gpu_ids[0:num_gpus_total]
@@ -65,7 +74,7 @@ def run(num_folds, num_gpus_total, num_gpus_per_split, dataset_func, \
         p.join()
         p.close()
 
-    # infer on test set
+    # infer and eval each split's model on test set:
     runner = partial(runner_wrapper, q_resources, [infer_func, eval_func])
     # create process per fold
     processes = [Process(target=runner, args=(test_dataset, None, cv_index, True, [infer_params, eval_params])) for cv_index in range(num_folds)] 
@@ -75,7 +84,12 @@ def run(num_folds, num_gpus_total, num_gpus_per_split, dataset_func, \
     for p in processes:
         p.join()
         p.close()
+    
+    ensemble(test_dirs, test_infer_filename, ensembled_output_dir)
+    
 
+    # infer and eval ensembled model model on test set:
+
+
+    # run infer
     #run_infer(test_dataset, sample_ids=None, cv_index='ensemble', params=infer_params)
-
-    # model ensemble:

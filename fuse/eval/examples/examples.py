@@ -515,3 +515,36 @@ def example_13() -> Dict:
 
     return results
 
+def example_14() -> Dict[str, Any]:
+    """
+    Model ensemble example
+    """
+    # path to prediction and target files
+    dir_path = pathlib.Path(__file__).parent.resolve()
+    model_dirs = [os.path.join(dir_path, "inputs/ensemble/mnist", i) for i in range(5)]
+    inference_file_name = 'test_set_infer'
+
+    # define data
+    data = {"model_dirs": model_dirs}
+
+    # pre collect function to change the format
+    def pre_collect_process(sample_dict: dict) -> dict:    
+        # convert scores to numpy array
+        task1_pred = []
+        for cls_name in ("NoAT", "CanAT"):
+            task1_pred.append(sample_dict[f"pred.{cls_name}-score"])
+        task1_pred_array = np.array(task1_pred)
+        sample_dict['pred.array'] = task1_pred_array
+
+        return sample_dict
+    
+    # list of metrics
+    metrics = OrderedDict([
+            ("ensemble", MetricEnsemble(preds="pred.array", target="target",
+                    pre_collect_process_func=pre_collect_process)),
+    ])
+    
+    evaluator = EvaluatorDefault()
+    results = evaluator.eval(ids=None, data=data, metrics=metrics)
+
+    return results

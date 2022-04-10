@@ -5,7 +5,7 @@ import os
 ##########################################
 # Required Parameters
 ##########################################
-num_gpus_total = 3 
+num_gpus_total = 2
 num_gpus_per_split = 1
 num_folds = 5
 num_test_folds = 1

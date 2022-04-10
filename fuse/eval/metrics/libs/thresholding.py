@@ -22,4 +22,6 @@ class Thresholding:
                                             If no class probability crossed the threshold the predicated class will be set to -1  
         """
 
-        return MetricsLibClass.convert_probabilities_to_class(pred, operation_point)
+        softmax = np.vstack(softmax)
+        softmax = np.mean(softmax, 0) # ensemble
+        return softmax
