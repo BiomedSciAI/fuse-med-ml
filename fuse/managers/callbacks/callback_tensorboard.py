@@ -21,7 +21,7 @@ import os
 from typing import Dict
 from fuse.managers.callbacks.callback_base import FuseCallback
 from fuse.managers.manager_state import FuseManagerState
-from fuse.utils.utils_file import FuseUtilsFile as file
+from fuse.utils.file_io.file_io import create_dir
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 import torch
 import numpy as np
@@ -98,8 +98,8 @@ class FuseTensorboardCallback(FuseCallback):
         tensorboard_validation_dir = os.path.join(self.model_dir, 'validation')
 
         # make sure we have these folders
-        file.create_dir(tensorboard_train_dir, error_if_exist=False)
-        file.create_dir(tensorboard_validation_dir, error_if_exist=False)
+        create_dir(tensorboard_train_dir, error_if_exist=False)
+        create_dir(tensorboard_validation_dir, error_if_exist=False)
 
         # Get TensorBoard loggers
         self.tensorboard_logger_train = self.writer_class(tensorboard_train_dir)

@@ -22,7 +22,7 @@ from typing import OrderedDict
 from fuse.eval.evaluator import EvaluatorDefault
 from fuse.utils.utils_debug import FuseUtilsDebug
 
-from fuse.utils.utils_gpu import FuseUtilsGPU
+import fuse.utils.gpu as FuseUtilsGPU
 
 import logging
 
@@ -30,9 +30,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data.dataloader import DataLoader
 
-from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerUniform as Uniform
-from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerRandInt as RandInt
-from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerRandBool as RandBool
+from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
 from fuse.utils.utils_logger import fuse_logger_start
 
 from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch

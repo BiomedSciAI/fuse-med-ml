@@ -25,7 +25,7 @@ import torch.nn as nn
 
 from fuse.managers.callbacks.callback_base import FuseCallback
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
-from fuse.utils.utils_misc import FuseUtilsMisc
+from fuse.utils.misc.misc import Misc
 
 
 class FuseCallbackDebug(FuseCallback):
@@ -138,7 +138,7 @@ class FuseCallbackDebug(FuseCallback):
                      {'color': 'green', 'attrs': ['bold', 'underline']})
 
             lgr.info(f'Batch Dict:', {'color': 'green', 'attrs': 'bold'})
-            lgr.info(f'{FuseUtilsMisc.batch_dict_to_string(batch_dict)}', {'color': 'green'})
+            lgr.info(f'{Misc.batch_dict_to_string(batch_dict)}', {'color': 'green'})
 
     def on_batch_end(self, mode: str, batch: int, batch_dict: Dict = None) -> None:
         # log info on first train/validation batch only: batch_dict
@@ -151,7 +151,7 @@ class FuseCallbackDebug(FuseCallback):
             lgr.info(f'{mode.capitalize()} batch {batch} - {current_time} (total time {total_time}) - END', {'color': 'green', 'attrs': ['bold', 'underline']})
 
             lgr.info(f'Batch Dict:', {'color': 'green', 'attrs': 'bold'})
-            lgr.info(f'{FuseUtilsMisc.batch_dict_to_string(batch_dict)}', {'color': 'green'})
+            lgr.info(f'{Misc.batch_dict_to_string(batch_dict)}', {'color': 'green'})
 
             self.time_batch_begin = None
             self.first_batch[mode] = False

@@ -19,8 +19,8 @@ import torch.optim as optim
 from fuse.managers.manager_default import FuseManagerDefault
 from fuse.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
 from fuse.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
-from fuse.utils.utils_gpu import FuseUtilsGPU
-from fuse.utils.utils_misc import FuseUtilsMisc
+import fuse.utils.gpu as FuseUtilsGPU
+from fuse.utils.rand.seed import Seed
 import logging
 import time
 
@@ -85,7 +85,7 @@ def main():
 
     # set constant seed for reproducibility. 
     os.environ['CUBLAS_WORKSPACE_CONFIG']=":4096:8" # required for pytorch deterministic mode
-    rand_gen = FuseUtilsMisc.set_seed(1234, deterministic_mode=True)
+    rand_gen = Seed.set_seed(1234, deterministic_mode=True)
 
     # select gpus
     FuseUtilsGPU.choose_and_enable_multiple_gpus(len(force_gpus), force_gpus=force_gpus)

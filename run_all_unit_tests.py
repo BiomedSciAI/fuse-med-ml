@@ -26,7 +26,7 @@ if __name__ == '__main__':
     # with open(f'{search_base}/packages.txt','r') as f:
     #     sub_sections = [x.split('#')[-1].strip()+'/fuse/' for x in f.readlines() if len(x)>4]
     # print('found sub_sections = ', sub_sections)
-    sub_sections = ["fuse/tests", "fuse_examples/tests", "fuse/eval"] 
+    sub_sections = ["fuse/tests", "fuse_examples/tests", "fuse/eval", "fuse/utils"] 
 
 
     suite = None

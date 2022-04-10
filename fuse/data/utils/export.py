@@ -21,7 +21,7 @@ import pandas as pd
 
 from fuse.data.dataset.dataset_base import FuseDatasetBase
 
-from fuse.utils.utils_file import FuseUtilsFile
+from fuse.utils.file_io.file_io import save_dataframe
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 
 class DatasetExport:
@@ -64,6 +64,6 @@ class DatasetExport:
         df = df.set_index(sample_id_key)
 
         if output_filename is not None:
-            FuseUtilsFile.save_dataframe(df, output_filename)
+            save_dataframe(df, output_filename)
         
         return df

@@ -16,24 +16,14 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-
-import secrets
 from abc import ABC, abstractmethod
-from random import Random
-from typing import Any, Sequence, List, Tuple
 
-import torch
-from torch import Tensor
+from typing import Any, Optional, Sequence, List, Tuple
+import random
 
-import os
+import numpy as np
 
-secretsGenerator = secrets.SystemRandom()
-
-def set_seed(seed: int):
-    global secretsGenerator
-    secretsGenerator = Random(seed)
-
-class FuseUtilsParamSamplerBase(ABC):
+class ParamSamplerBase(ABC):
     """
     Base class for param sampler
     """
@@ -46,7 +36,7 @@ class FuseUtilsParamSamplerBase(ABC):
         raise NotImplementedError
 
 
-class FuseUtilsParamSamplerUniform(FuseUtilsParamSamplerBase):
+class Uniform(ParamSamplerBase):
     def __init__(self, min: float, max: float):
         """
         Uniform distribution between min and max
@@ -61,13 +51,13 @@ class FuseUtilsParamSamplerUniform(FuseUtilsParamSamplerBase):
         """
         :return: random float in range [min-max]
         """
-        return secretsGenerator.uniform(self.min, self.max)
+        return random.uniform(self.min, self.max)
 
     def __str__(self):
-        return f'RandUniform [{self.min} - {self.max}] '
+        return f'Uniform [{self.min} - {self.max}] '
 
 
-class FuseUtilsParamSamplerRandInt(FuseUtilsParamSamplerBase):
+class RandInt(ParamSamplerBase):
     def __init__(self, min: int, max: int):
         """
         Uniform integer distribution between min and max
@@ -82,13 +72,13 @@ class FuseUtilsParamSamplerRandInt(FuseUtilsParamSamplerBase):
         """
         :return: random int in range [min-max]
         """
-        return secretsGenerator.randint(self.min, self.max)
+        return random.randint(self.min, self.max)
 
     def __str__(self):
         return f'RandInt [{self.min} - {self.max}] '
 
 
-class FuseUtilsParamSamplerRandBool(FuseUtilsParamSamplerBase):
+class RandBool(ParamSamplerBase):
     def __init__(self, probability: float):
         """
         Random boolean according to the given probability
@@ -102,15 +92,14 @@ class FuseUtilsParamSamplerRandBool(FuseUtilsParamSamplerBase):
         """
         :return: random boolean according to probability
         """
-        return secretsGenerator.uniform(0, 1) <= self.probability
+        return random.uniform(0, 1) <= self.probability
 
     def __str__(self):
         return f'RandBool p={self.probability}] '
 
 
-class FuseUtilsParamSamplerChoice(FuseUtilsParamSamplerBase):
-
-    def __init__(self, seq: Sequence, probabilities: List[float], k: int = 0):
+class Choice(ParamSamplerBase):
+    def __init__(self, seq: Sequence, probabilities: Optional[List[float]] = None, k: int = 0):
         """
         Random choice out of a sequence
         Return a k sized list of population elements chosen with replacement
@@ -128,53 +117,22 @@ class FuseUtilsParamSamplerChoice(FuseUtilsParamSamplerBase):
         :return: random element according to probabilities
         """
         if self.k == 0:
-            return secretsGenerator.choices(self.seq, weights=self.probabilities)[0]
+            return random.choices(self.seq, weights=self.probabilities)[0]
         else:
-            return secretsGenerator.choices(self.seq, weights=self.probabilities, k=self.k)
+            return random.choices(self.seq, weights=self.probabilities, k=self.k)
 
     def __str__(self):
-        return f'RandChoice seq={self.seq}, w={self.probabilities}] '
+        return f'Choice seq={self.seq}, w={self.probabilities}] '
 
-
-def sample_all(data: Any) -> Any:
+class Gaussian(ParamSamplerBase):
     """
-    Generate a copy of the data structure, replacing each FuseUtilsParamSamplerBase with a random sample.
-
-    :param data:data_structure: recursivelly looking for FuseUtilsParamSamplerBase in a dictionary and a sequence
-    :return: See above
+    Gaussian noise
     """
-    # if a dictionary return a copy of the dictionary try to sample each value recursively
-    if isinstance(data, dict):
-        data_dict: dict = data.copy()
-        for key in data_dict:
-            data_dict[key] = sample_all(data_dict[key])
-        return data_dict
-
-    # if a list  return a copy of the list try to sample each element recursively
-    if isinstance(data, list):
-        data_lst: list = data[:]
-        for ii in range(len(data_lst)):
-            data_lst[ii] = sample_all(data_lst[ii])
-        return data_lst
-
-    # if a tuple  return a copy of the tuple try to sample each element recursively
-    if isinstance(data, Tuple):
-        data_tuple = tuple((sample_all(data[ii]) for ii in range(len(data))))
-        return data_tuple
-
-    # if FuseUtilsParamSamplerBase, sample a number
-    if isinstance(data, FuseUtilsParamSamplerBase):
-        data_sampler: FuseUtilsParamSamplerBase = data
-        return data_sampler.sample()
-
-    # otherwise return the original data
-    return data
-
-
-class FuseUtilsParamSamplerGaussianPatch(FuseUtilsParamSamplerBase):
     def __init__(self, shape: Tuple[int, ...], mean: float, std: float):
         """
-        Gaussian noise
+        :param shape: patch size of the required noise
+        :param mean: mean of the gauss noise
+        :param std: std of the gauss noise
         """
         super().__init__()
 
@@ -183,8 +141,44 @@ class FuseUtilsParamSamplerGaussianPatch(FuseUtilsParamSamplerBase):
         self.mean = mean
         self.std = std
 
-    def sample(self) -> Tensor:
+    def sample(self) -> np.ndarray:
         """
         :return: random gaussian noise
         """
-        return self.std * torch.randn(self.shape) + self.mean
+        return self.std * np.random.randn(*list(self.shape)) + self.mean
+
+def draw_samples_recursively (data: Any) -> Any:
+    """
+    Generate a copy of the data structure, replacing each ParamSamplerBase with a random sample.
+
+    :param data:data_structure: recursively looking for ParamSamplerBase in a dictionary and a sequence
+    :return: See above
+    """
+    # if a dictionary return a copy of the dictionary try to sample each value recursively
+    if isinstance(data, dict):
+        data_dict: dict = data.copy()
+        for key in data_dict:
+            data_dict[key] = draw_samples_recursively (data_dict[key])
+        return data_dict
+
+    # if a list  return a copy of the list try to sample each element recursively
+    if isinstance(data, list):
+        data_lst: list = data[:]
+        for ii in range(len(data_lst)):
+            data_lst[ii] = draw_samples_recursively (data_lst[ii])
+        return data_lst
+
+    # if a tuple  return a copy of the tuple try to sample each element recursively
+    if isinstance(data, Tuple):
+        data_tuple = tuple((draw_samples_recursively (data[ii]) for ii in range(len(data))))
+        return data_tuple
+
+    # if ParamSamplerBase, sample a number
+    if isinstance(data, ParamSamplerBase):
+        data_sampler: ParamSamplerBase = data
+        return data_sampler.sample()
+
+    # otherwise return the original data
+    return data
+
+
