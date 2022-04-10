@@ -23,7 +23,7 @@ import unittest
 import os
 import pathlib
 
-from fuse.utils.utils_gpu import FuseUtilsGPU
+import fuse.utils.gpu as FuseUtilsGPU
 from fuse_examples.classification.prostate_x.run_train_3dpatch import TRAIN_COMMON_PARAMS, train_template, infer_template, eval_template, INFER_COMMON_PARAMS, \
     EVAL_COMMON_PARAMS
 

@@ -19,7 +19,7 @@ import torch.optim as optim
 from fuse.managers.manager_default import FuseManagerDefault
 from fuse.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
 from fuse.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
-from fuse.utils.utils_gpu import FuseUtilsGPU
+import fuse.utils.gpu as FuseUtilsGPU
 from fuse.utils.rand.seed import Seed
 import logging
 import time

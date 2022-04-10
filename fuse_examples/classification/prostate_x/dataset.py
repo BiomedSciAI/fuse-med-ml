@@ -6,7 +6,7 @@ from fuse.data.augmentor.augmentor_toolbox import unsqueeze_2d_to_3d, aug_op_col
     rotation_in_3d
 from fuse.data.dataset.dataset_generator import FuseDatasetGenerator
 
-from fuse.utils.utils_gpu import FuseUtilsGPU
+import fuse.utils.gpu as FuseUtilsGPU
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool, Choice
 
 from fuse_examples.classification.prostate_x.patient_data_source import FuseProstateXDataSourcePatient

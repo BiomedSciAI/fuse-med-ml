@@ -44,7 +44,7 @@ from fuse.models.model_ensemble import FuseModelEnsemble
 from fuse.utils.dl.checkpoint import FuseCheckpoint
 from fuse.utils.utils_debug import FuseUtilsDebug
 from fuse.utils.file_io.file_io import create_or_reset_dir
-from fuse.utils.utils_gpu import FuseUtilsGPU as gpu
+import fuse.utils.gpu as gpu
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 from fuse.utils.utils_logger import log_object_input_state
 from fuse.utils.misc.misc import Misc, get_pretty_dataframe

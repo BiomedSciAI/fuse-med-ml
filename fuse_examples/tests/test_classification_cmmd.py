@@ -26,7 +26,7 @@ import shutil
 
 
 
-from fuse.utils.utils_gpu import FuseUtilsGPU
+import fuse.utils.gpu as FuseUtilsGPU
 
 @unittest.skip("Not ready yet")
 # TODO:

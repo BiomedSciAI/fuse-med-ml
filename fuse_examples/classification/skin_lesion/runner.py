@@ -22,7 +22,7 @@ from typing import OrderedDict
 from fuse.eval.evaluator import EvaluatorDefault
 from fuse.utils.utils_debug import FuseUtilsDebug
 
-from fuse.utils.utils_gpu import FuseUtilsGPU
+import fuse.utils.gpu as FuseUtilsGPU
 
 import logging
 
