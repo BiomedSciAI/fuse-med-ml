@@ -34,6 +34,7 @@ from fuse.eval.metrics.classification.metrics_classification_common import Metri
 from fuse.eval.metrics.classification.metrics_model_comparison_common import MetricDelongsTest, MetricMcnemarsTest
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 from fuse.eval.metrics.classification.metrics_calibration_common import MetricReliabilityDiagram, MetricECE, MetricFindTemperature, MetricApplyTemperature
+from fuse.eval.metrics.classification.metrics_ensembling_common import MetricEnsemble
 from fuse.eval.evaluator import EvaluatorDefault
 
 def example_0() -> Dict[str, Any]:
@@ -336,7 +337,11 @@ def example_9():
     set_seed(1234)
 
     # Create dataset
-    torch_dataset = torchvision.datasets.MNIST('/tmp/mnist', download=True, train=False)
+    dir_path = pathlib.Path(__file__).parent.resolve()
+    mnist_tmp_path = os.path.join(dir_path, 'tmp_outputs', 'mnist')
+    if not os.path.isdir(mnist_tmp_path):
+        os.makedirs(mnist_tmp_path)
+    torch_dataset = torchvision.datasets.MNIST(mnist_tmp_path, download=True, train=False)
 
     # define iterator
     def data_iter():
