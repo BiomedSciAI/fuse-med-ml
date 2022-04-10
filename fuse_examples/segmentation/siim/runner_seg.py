@@ -62,21 +62,20 @@ from unet import UNet
 ##########################################
 # Debug modes
 ##########################################
-mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseUtilsDebug
+mode = 'debug'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseUtilsDebug
 debug = FuseUtilsDebug(mode)
 
 ##########################################
 # Output and data Paths
 ##########################################
-SZ = 512
-TRAIN = f'../siim_data/data{SZ}/train/'
-TEST = f'../siim_data/data{SZ}/test/'
-MASKS = f'../siim_data/data{SZ}/masks/'
 
-# TODO: Path to save model
+# # TODO: path to save model
 ROOT = '../results/'
-# TODO: path to store the data  
-ROOT_DATA = ROOT
+
+# TODO: path for siim data
+# Download instructions can be found in README
+DATA_ROOT = '../siim/'
+
 # TODO: Name of the experiment
 EXPERIMENT = 'unet_seg_results'
 # TODO: Path to cache data
@@ -84,7 +83,10 @@ CACHE_PATH = '../results/'
 # TODO: Name of the cached data folder
 EXPERIMENT_CACHE = 'exp_cache'
 
-PATHS = {'data_dir': [TRAIN, MASKS, TEST],
+PATHS = {#'data_dir': [TRAIN, MASKS, TEST],
+         'train_rle_file': os.path.join(DATA_ROOT, 'train-rle.csv'),
+         'train_folder': os.path.join(DATA_ROOT, 'dicom-images-train'),
+         'test_folder': os.path.join(DATA_ROOT, 'dicom-images-test'),
          'model_dir': os.path.join(ROOT, EXPERIMENT, 'model_dir'),
          'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
          'cache_dir': os.path.join(CACHE_PATH, EXPERIMENT_CACHE+'_cache_dir'),
@@ -98,6 +100,7 @@ PATHS = {'data_dir': [TRAIN, MASKS, TEST],
 # Data
 # ============
 TRAIN_COMMON_PARAMS = {}
+TRAIN_COMMON_PARAMS['data.image_size'] = 512
 TRAIN_COMMON_PARAMS['data.batch_size'] = 8
 TRAIN_COMMON_PARAMS['data.train_num_workers'] = 8
 TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 8
@@ -170,24 +173,30 @@ def run_train(paths: dict, train_common_params: dict):
     lgr.info(f'model_dir={paths["model_dir"]}', {'color': 'magenta'})
     lgr.info(f'cache_dir={paths["cache_dir"]}', {'color': 'magenta'})
 
-    train_path = paths['data_dir'][0]
-    mask_path = paths['data_dir'][1]
+    # train_path = paths['data_dir'][0]
+    # mask_path = paths['data_dir'][1]
 
     #### Train Data
     lgr.info(f'Train Data:', {'attrs': 'bold'})
 
-    train_data_source = FuseDataSourceSeg(image_source=train_path,
-                                          mask_source=mask_path,
-                                          partition_file=train_common_params['partition_file'],
-                                          train=True)
+    train_data_source = FuseDataSourceSeg(phase='train',
+                                          data_folder=paths['train_folder'],
+                                          partition_file=train_common_params['partition_file'])
+
+    # train_data_source = FuseDataSourceSeg(image_source=train_path,
+    #                                       mask_source=mask_path,
+    #                                       train=True)
     print(train_data_source.summary())
 
     ## Create data processors:
     input_processors = {
-        'input_0': SegInputProcessor(name='image')
+        'input_0': SegInputProcessor(name='image',
+                                     size=train_common_params['data.image_size'])
     }
     gt_processors = {
-        'gt_global': SegInputProcessor(name='mask')
+        'gt_global': SegInputProcessor(name='mask', 
+                                       data_csv=paths['train_rle_file'],
+                                       size=train_common_params['data.image_size'])
     }
 
     ## Create data augmentation (optional)
@@ -221,10 +230,13 @@ def run_train(paths: dict, train_common_params: dict):
     # Validation dataset
     lgr.info(f'Validation Data:', {'attrs': 'bold'})
 
-    valid_data_source = FuseDataSourceSeg(image_source=train_path,
-                                          mask_source=mask_path,
-                                          partition_file=train_common_params['partition_file'],
-                                          train=False)
+    # valid_data_source = FuseDataSourceSeg(image_source=train_path,
+    #                                       mask_source=mask_path,
+    #                                       partition_file=train_common_params['partition_file'],
+    #                                       train=False)
+    valid_data_source = FuseDataSourceSeg(phase='validation',
+                                          data_folder=paths['train_folder'],
+                                          partition_file=train_common_params['partition_file'])
     print(valid_data_source.summary())
 
     valid_dataset = FuseDatasetDefault(cache_dest=paths['cache_dir'],
@@ -309,6 +321,7 @@ INFER_COMMON_PARAMS['infer_filename'] = os.path.join(PATHS['inference_dir'], 'va
 INFER_COMMON_PARAMS['checkpoint'] = 'last'  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
 INFER_COMMON_PARAMS['data.train_num_workers'] = TRAIN_COMMON_PARAMS['data.train_num_workers']
 INFER_COMMON_PARAMS['partition_file'] = TRAIN_COMMON_PARAMS['partition_file']
+INFER_COMMON_PARAMS['data.image_size'] = TRAIN_COMMON_PARAMS['data.image_size']
 INFER_COMMON_PARAMS['data.batch_size'] = TRAIN_COMMON_PARAMS['data.batch_size']
 
 ######################################
@@ -327,18 +340,20 @@ def run_infer(paths: dict, infer_common_params: dict):
     # Validation dataset
     lgr.info(f'Test Data:', {'attrs': 'bold'})
 
-    infer_data_source = FuseDataSourceSeg(image_source=train_path,
-                                          mask_source=mask_path,
-                                          partition_file=infer_common_params['partition_file'],
-                                          train=False)
-    print(infer_data_source.summary())
+    train_data_source = FuseDataSourceSeg(phase='validation',
+                                          data_folder=paths['train_folder'],
+                                          partition_file=infer_common_params['partition_file'])
+    print(train_data_source.summary())
 
     ## Create data processors:
     input_processors = {
-        'input_0': SegInputProcessor(name='image')
+        'input_0': SegInputProcessor(name='image',
+                                     size=infer_common_params['data.image_size'])
     }
     gt_processors = {
-        'gt_global': SegInputProcessor(name='mask')
+        'gt_global': SegInputProcessor(name='mask', 
+                                       data_csv=paths['train_rle_file'],
+                                       size=infer_common_params['data.image_size'])
     }
 
     # Create visualizer (optional)
@@ -444,7 +459,7 @@ def run_eval(paths: dict, eval_common_params: dict):
 ######################################
 if __name__ == "__main__":
     # allocate gpus
-    NUM_GPUS = 1
+    NUM_GPUS = 0
     if NUM_GPUS == 0:
         TRAIN_COMMON_PARAMS['manager.train_params']['device'] = 'cpu'
     # uncomment if you want to use specific gpus instead of automatically looking for free ones

@@ -19,21 +19,47 @@ Created on June 30, 2021
 """
 
 import numpy as np
+import pandas as pd
 from skimage.io import imread
 import torch
+from pathlib import Path
+import PIL
+import pydicom
 
 from typing import Optional, Tuple
 
 from fuse.data.processor.processor_base import FuseProcessorBase
 
 
+def rle2mask(rles, width, height):
+    """
+    
+    rle encoding if images
+    input: rles(list of rle), width and height of image
+    returns: mask of shape (width,height)
+    """
+    
+    mask= np.zeros(width* height)
+    for rle in rles:
+        array = np.asarray([int(x) for x in rle.split()])
+        starts = array[0::2]
+        lengths = array[1::2]
+
+        current_position = 0
+        for index, start in enumerate(starts):
+            current_position += start
+            mask[current_position:current_position+lengths[index]] = 255
+            current_position += lengths[index]
+
+    return mask.reshape(width, height).T
+
+
 class SegInputProcessor(FuseProcessorBase):
     def __init__(self,
-                 input_data: str = None,
                  name: str = 'image', # can be 'image' or 'mask'
-                 normalized_target_range: Tuple = (-1, 1),
-                 resize_to: Optional[Tuple] = (299, 299),
-                 padding: Optional[Tuple] = (0, 0),
+                 data_csv: str = None,
+                 size: int = 512,
+                 normalization: float = 255.0,
                  ):
         """
         Create Input processor
@@ -43,26 +69,43 @@ class SegInputProcessor(FuseProcessorBase):
         :param padding:                 Optional, padding size
         """
         self.name = name
-        if self.name == 'image':
-            self.im_inx = 0
-        elif self.name == 'mask':
-            self.im_inx = 1
-        else:
-            print('Wrong input!!')
+        assert self.name == 'image' or self.name == 'mask', "Error: name can be image or mask only."
+
+        if data_csv:
+            self.df = pd.read_csv(data_csv)
+
+        self.size = (size, size)
+        self.norm = normalization
 
     def __call__(self,
-                 image_fn,
+                 desc,
                  *args, **kwargs):
 
         try:
-            image_fn = image_fn[self.im_inx] 
-            image = imread(image_fn)
 
             if self.name == 'image':
+                dcm = pydicom.read_file(desc).pixel_array
+                image = np.asarray(PIL.Image.fromarray(dcm).resize(self.size))
+
                 image = image.astype('float32')
                 image = image / 255.0
-            else:
-                image = image > 0
+
+            else: # create mask
+                I = self.df.ImageId == Path(desc).stem
+                enc = self.df.loc[I, ' EncodedPixels']
+                if sum(I) == 0:
+                    im = np.zeros((1024, 1024)).astype(np.uint8)
+                elif sum(I) == 1:
+                    enc = enc.values[0]
+                    if enc == '-1': 
+                        im = np.zeros((1024, 1024)).astype(np.uint8)
+                    else:
+                        im = rle2mask([enc], 1024, 1024).astype(np.uint8)
+                else:
+                    im = rle2mask(enc.values, 1024, 1024).astype(np.uint8)
+
+                im = np.asarray(PIL.Image.fromarray(im).resize(self.size))
+                image = im > 0
                 image = image.astype('float32')
 
             # convert image from shape (H x W x C) to shape (C x H x W) with C=3
