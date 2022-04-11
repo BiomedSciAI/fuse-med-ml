@@ -14,4 +14,6 @@ class Ensembling:
         :param preds: sequence of numpy arrays / floats of shape [NUM_CLASSES]
         """
         
-        return MetricsLibClass.convert_probabilities_to_class(pred, operation_point)
+        softmax = np.vstack(softmax)
+        softmax = np.mean(softmax, 0) # ensemble
+        return softmax
