@@ -86,6 +86,7 @@ class FuseManagerDefault:
         self.state = FuseManagerState()
         self.state.output_model_dir = output_model_dir
         self.state.current_epoch = 0
+        self.state.device = 'cpu'
 
         if output_model_dir is not None:
             # prepare model_dir
