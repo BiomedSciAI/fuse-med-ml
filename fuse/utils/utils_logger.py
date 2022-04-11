@@ -31,7 +31,7 @@ from typing import Dict, Optional, Any, List
 
 from termcolor import colored
 
-from fuse.utils.utils_file import FuseUtilsFile
+from fuse.utils.file_io.file_io import create_dir, create_or_reset_dir  
 
 
 class ProcessSafeHandler(logging.StreamHandler):
@@ -125,8 +125,7 @@ def fuse_logger_start(output_path: Optional[str] = None, console_verbose_level: 
     if output_path is not None:
         log_output_path = os.path.join(output_path, 'logs')
         # Create log dir
-        FuseUtilsFile.create_or_reset_dir(log_output_path, force_reset=force_reset)
-
+        create_or_reset_dir(log_output_path, force_reset=force_reset)
         # file info
         file_handler = logging.FileHandler(os.path.join(log_output_path, f'fuse_{timestr}.log'))
         file_handler.setLevel(logging.INFO)
@@ -147,8 +146,7 @@ def fuse_logger_start(output_path: Optional[str] = None, console_verbose_level: 
     if list_of_source_files is None or list_of_source_files:
         if output_path is not None:
             source_files_output_path = os.path.join(output_path, f'source_files', timestr)
-            FuseUtilsFile.create_or_reset_dir(source_files_output_path, force_reset=force_reset)
-
+            create_or_reset_dir(source_files_output_path, force_reset=force_reset)
             lgr.info(f'Copy source files to {source_files_output_path}')
             if list_of_source_files is None:
                 # copy just the caller function file name

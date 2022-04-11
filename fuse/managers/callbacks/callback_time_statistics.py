@@ -25,7 +25,7 @@ import torch.nn as nn
 
 from fuse.managers.callbacks.callback_base import FuseCallback
 from fuse.managers.manager_state import FuseManagerState
-from fuse.utils import utils_misc as misc
+from fuse.utils.misc.misc import get_time_delta, time_display
 
 
 class FuseTimeStatisticsCallback(FuseCallback):
@@ -68,8 +68,8 @@ class FuseTimeStatisticsCallback(FuseCallback):
         end_time = time.time()
         timedelta_seconds = end_time - self.step_begin_time
         running_time_left_seconds = timedelta_seconds * (self.num_epochs - step)
-        running_time_left_str = misc.time_display(running_time_left_seconds)
-        epoch_time_str = misc.time_display(timedelta_seconds)
+        running_time_left_str = time_display(running_time_left_seconds)
+        epoch_time_str = time_display(timedelta_seconds)
         logging.getLogger('Fuse').info(f'Estimated time left: {running_time_left_str} (last epoch time: {epoch_time_str})', {'color': 'cyan'})
         pass
 
@@ -95,10 +95,10 @@ class FuseTimeStatisticsCallback(FuseCallback):
         epoch_end = time.time()
 
         lgr = logging.getLogger('Fuse')
-        lgr.debug(f"Time for {mode} epoch {epoch}: {misc.get_time_delta(self.epoch_begin_time)}")
+        lgr.debug(f"Time for {mode} epoch {epoch}: {get_time_delta(self.epoch_begin_time)}")
 
         # debug info about the batch iterator loading time
-        load_time_str = misc.time_display(self.load_batch_aggregated_time)
+        load_time_str = time_display(self.load_batch_aggregated_time)
         lgr.debug(f'Mode: {mode}, epoch {epoch}: Total time for loading the data is {load_time_str}')
 
         # check if the loading part of the data exceeded load_expected_part of epoch time
@@ -106,7 +106,7 @@ class FuseTimeStatisticsCallback(FuseCallback):
         max_time_for_load = epoch_time * self.load_expected_part
         if self.load_batch_aggregated_time > max_time_for_load:
             lgr.info(f'Mode: {mode}, epoch {epoch}: '
-                     f'Total time for loading data ({load_time_str}) is greater than expected (maximum {misc.time_display(max_time_for_load)})',
+                     f'Total time for loading data ({load_time_str}) is greater than expected (maximum {time_display(max_time_for_load)})',
                      {'color': 'blue'})
         pass
 
@@ -115,7 +115,7 @@ class FuseTimeStatisticsCallback(FuseCallback):
         pass
 
     def on_virtual_batch_end(self, mode: str, virtual_batch: int, virtual_batch_results: Dict = None) -> None:
-        logging.getLogger('Fuse').debug(f"Time for {mode} virtual batch {virtual_batch}: {misc.get_time_delta(self.virtual_batch_begin_time)}")
+        logging.getLogger('Fuse').debug(f"Time for {mode} virtual batch {virtual_batch}: {get_time_delta(self.virtual_batch_begin_time)}")
         pass
 
     def on_batch_begin(self, mode: str, batch: int) -> None:
@@ -128,7 +128,7 @@ class FuseTimeStatisticsCallback(FuseCallback):
         pass
 
     def on_batch_end(self, mode: str, batch: int, batch_dict: Dict = None) -> None:
-        logging.getLogger('Fuse').debug(f"Time for {mode} batch {batch}: {misc.get_time_delta(self.batch_begin_time)}")
+        logging.getLogger('Fuse').debug(f"Time for {mode} batch {batch}: {get_time_delta(self.batch_begin_time)}")
         pass
 
     def on_train_begin(self, state: FuseManagerState) -> None:
@@ -138,5 +138,5 @@ class FuseTimeStatisticsCallback(FuseCallback):
         pass
 
     def on_train_end(self) -> None:
-        logging.getLogger('Fuse').debug(f"Time for train: {misc.get_time_delta(self.train_begin_time)}")
+        logging.getLogger('Fuse').debug(f"Time for train: {get_time_delta(self.train_begin_time)}")
         pass

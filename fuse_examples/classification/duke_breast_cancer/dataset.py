@@ -1,14 +1,11 @@
 import pandas as pd
 from functools import partial
-from multiprocessing import Manager
 from fuse.data.augmentor.augmentor_default import FuseAugmentorDefault
-from fuse.data.augmentor.augmentor_toolbox import unsqueeze_2d_to_3d, aug_op_color, aug_op_affine, squeeze_3d_to_2d, \
+from fuse.data.augmentor.augmentor_toolbox import unsqueeze_2d_to_3d, aug_op_affine, squeeze_3d_to_2d, \
     rotation_in_3d
 from fuse.data.dataset.dataset_generator import FuseDatasetGenerator
 
-from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerRandBool as RandBool
-from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerRandInt as RandInt
-from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerUniform as Uniform
+from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
 from fuse.data.visualizer.visualizer_default_3d import Fuse3DVisualizerDefault
 
 from fuse.data.processor.processor_dicom_mri import FuseDicomMRIProcessor

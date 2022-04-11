@@ -25,7 +25,7 @@ from typing import Dict, List, Optional
 import pandas as pd
 
 from fuse.managers.callbacks.callback_base import FuseCallback
-from fuse.utils.utils_file import FuseUtilsFile as file
+from fuse.utils.file_io.file_io import create_dir
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 
 
@@ -46,7 +46,7 @@ class FuseMetricStatisticsCallback(FuseCallback):
         self.metrics = metrics
 
         # prepare output_path dir (if not already exists)
-        file.create_dir(os.path.dirname(self.output_path))
+        create_dir(os.path.dirname(self.output_path))
 
         # create file on first attempt to write values
         self.first = True

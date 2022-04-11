@@ -1,0 +1,1 @@
+from .run_multiprocessed import run_multiprocessed, get_from_global_storage

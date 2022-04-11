@@ -63,6 +63,8 @@ $ pip install fuse-med-ml
 ## FuseMedML from the ground up
 [**User Guide**](https://github.com/IBM/fuse-med-ml/tree/master/fuse/doc/user_guide.md) - including detailed explanation about FuseMedML modules, structure, concept, and more.
 
+[**Hello World**](https://colab.research.google.com/github/IBM/fuse-med-ml/blob/master/fuse_examples/tutorials/hello_world/hello_world.ipynb) - Introductory hands-on notebook on the well-known MNIST dataset. 
+
 [**High Level Code Example**](https://github.com/IBM/fuse-med-ml/tree/master/fuse/doc/high_level_example.md) - example of binary classifier for mammography with an auxiliary segmentation loss and clinical data
 
 ## Examples
@@ -84,6 +86,7 @@ The evaluation package of FuseMedML (fuse.eval) is a standalone library for eval
 The package includes collection of off-the-shelf metrics and utilities such as calibration, thresholding, model comparison and more.
 Details and examples can be found [here](https://github.com/IBM/fuse-med-ml/tree/master/fuse/eval/README.md)   
 
+
 ## Community support
 We use the Slack workspace at fusemedml.slack.com for informal communication.
 We encourage you to ask questions regarding FuseMedML that don't necessarily merit opening an issue on Github.
@@ -92,5 +95,4 @@ We encourage you to ask questions regarding FuseMedML that don't necessarily mer
 
 IBMers can also join a Slack channel in the IBM Research organization: 
 [**#fusers**](https://ibm-research.slack.com/archives/C0176S37QNP) .
-
 

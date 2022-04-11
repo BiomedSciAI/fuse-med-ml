@@ -41,7 +41,7 @@ from fuse.managers.manager_default import FuseManagerDefault
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
 from fuse.models.model_wrapper import FuseModelWrapper
 from fuse.utils.utils_debug import FuseUtilsDebug
-from fuse.utils.utils_gpu import FuseUtilsGPU
+import fuse.utils.gpu as FuseUtilsGPU
 from fuse.utils.utils_logger import fuse_logger_start
 from fuse_examples.classification.mnist import lenet
 ###########################################################################################################
@@ -70,15 +70,12 @@ TRAIN_COMMON_PARAMS = {}
 # ============
 # Model
 # ============
-TRAIN_COMMON_PARAMS['model'] = 'resnet18' # 'resnet18' or 'lenet'
+TRAIN_COMMON_PARAMS['model'] = 'lenet' # 'resnet18' or 'lenet'
 
 # ============
 # Data
 # ============
-if TRAIN_COMMON_PARAMS['model'] == 'lenet':
-    TRAIN_COMMON_PARAMS['data.batch_size'] = 100
-elif TRAIN_COMMON_PARAMS['model'] == 'resnet18':
-    TRAIN_COMMON_PARAMS['data.batch_size'] = 30
+TRAIN_COMMON_PARAMS['data.batch_size'] = 100
 TRAIN_COMMON_PARAMS['data.train_num_workers'] = 8
 TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 8
 
@@ -176,12 +173,12 @@ def run_train(paths: dict, train_params: dict):
         torch_model = models.resnet18(num_classes=10)
         # modify conv1 to support single channel image
         torch_model.conv1 = torch.nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
-    elif train_params['model'] == 'lenet':
-        torch_model = lenet.Net()
-    
-    # use adaptive avg pooling to support mnist low resolution images
-    torch_model.avgpool = torch.nn.AdaptiveAvgPool2d(1)
+        # use adaptive avg pooling to support mnist low resolution images
+        torch_model.avgpool = torch.nn.AdaptiveAvgPool2d(1)
 
+    elif train_params['model'] == 'lenet':
+        torch_model = lenet.LeNet()
+    
     model = FuseModelWrapper(model=torch_model,
                              model_inputs=['data.image'],
                              post_forward_processing_function=perform_softmax,

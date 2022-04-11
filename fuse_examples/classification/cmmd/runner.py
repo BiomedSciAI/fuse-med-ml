@@ -20,7 +20,7 @@ import os
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 
 from fuse.utils.utils_debug import FuseUtilsDebug
-from fuse.utils.utils_gpu import FuseUtilsGPU
+import fuse.utils.gpu as FuseUtilsGPU
 
 import logging
 

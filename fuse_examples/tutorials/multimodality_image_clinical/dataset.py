@@ -10,9 +10,7 @@ from fuse.data.dataset.dataset_default import FuseDatasetDefault
 from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
 from fuse.data.processor.processor_csv import FuseProcessorCSV
 
-from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerUniform as Uniform
-from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerRandInt as RandInt
-from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerRandBool as RandBool
+from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
 from fuse_examples.tutorials.multimodality_image_clinical.download import download_and_extract_isic
 from torch.utils.data.dataloader import DataLoader
 

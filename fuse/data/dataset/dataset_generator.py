@@ -41,7 +41,7 @@ from fuse.data.visualizer.visualizer_base import FuseVisualizerBase
 from fuse.utils.utils_debug import FuseUtilsDebug
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 from fuse.utils.utils_logger import log_object_input_state
-from fuse.utils.utils_misc import get_pretty_dataframe, FuseUtilsMisc
+from fuse.utils.misc.misc import get_pretty_dataframe, Misc
 
 
 class FuseDatasetGenerator(FuseDatasetBase):
@@ -234,7 +234,7 @@ class FuseDatasetGenerator(FuseDatasetBase):
         # debug mode - print original sample before augmentation and before post processing
         if sample_stages_debug:
             lgr = logging.getLogger('Fuse')
-            sample_str = FuseUtilsMisc.batch_dict_to_string(sample)
+            sample_str = Misc.batch_dict_to_string(sample)
             lgr.info(f'Dataset - original sample:', {'color': 'green', 'attrs': 'bold'})
             lgr.info(f'{sample_str}', {'color': 'green'})
             # one time print
@@ -247,7 +247,7 @@ class FuseDatasetGenerator(FuseDatasetBase):
             # debug mode - print sample after augmentation
             if sample_stages_debug:
                 lgr = logging.getLogger('Fuse')
-                sample_str = FuseUtilsMisc.batch_dict_to_string(sample)
+                sample_str = Misc.batch_dict_to_string(sample)
                 lgr.info(f'Dataset - augmented sample:', {'color': 'green', 'attrs': 'bold'})
                 lgr.info(f'{sample_str}', {'color': 'green'})
 
@@ -258,7 +258,7 @@ class FuseDatasetGenerator(FuseDatasetBase):
             # debug mode - print sample after post processing
             if sample_stages_debug:
                 lgr = logging.getLogger('Fuse')
-                sample_str = FuseUtilsMisc.batch_dict_to_string(sample)
+                sample_str = Misc.batch_dict_to_string(sample)
                 lgr.info(f'Dataset - post processed sample:', {'color': 'green', 'attrs': 'bold'})
                 lgr.info(f'{sample_str}', {'color': 'green'})
 
