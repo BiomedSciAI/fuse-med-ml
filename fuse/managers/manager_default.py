@@ -1060,7 +1060,9 @@ class FuseManagerDefault:
         set the manger's device to a given one.
         :param device: device to set
         """
-        self.state.device = device
+        train_params = {'device' : device}
+        self.set_objects(train_params=train_params)
+        
         pass
 
 
