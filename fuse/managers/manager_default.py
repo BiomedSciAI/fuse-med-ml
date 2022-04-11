@@ -86,7 +86,6 @@ class FuseManagerDefault:
         self.state = FuseManagerState()
         self.state.output_model_dir = output_model_dir
         self.state.current_epoch = 0
-        self.state.device = 'cpu'
 
         if output_model_dir is not None:
             # prepare model_dir
@@ -1055,6 +1054,15 @@ class FuseManagerDefault:
             self.logger.info("Validation Dataset Summary:")
             self.logger.info(dataset_summary)
         pass
+
+    def set_device(self, device: str):
+        """
+        set the manger's device to a given one.
+        :param device: device to set
+        """
+        self.state.device = device
+        pass
+
 
 
 def _extend_results_dict(mode: str, current_dict: Dict, aggregated_dict: Dict) -> Dict:
