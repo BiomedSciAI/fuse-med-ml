@@ -17,6 +17,7 @@ opencv-python<=4.3.0.36
 ipython
 pydicom
 h5py
+hdf5plugin
 deepdiff
 statsmodels
 nibabel
@@ -25,3 +26,5 @@ xmlrunner
 paramiko
 testbook
 termcolor
+tables
+ipykernel
