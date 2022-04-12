@@ -526,8 +526,8 @@ def example_14() -> Dict[str, Any]:
     """
     # path to prediction and target files
     dir_path = pathlib.Path(__file__).parent.resolve()
-    model_dirs = [os.path.join(dir_path, "inputs/ensemble/mnist", i) for i in range(5)]
-    inference_file_name = 'test_set_infer'
+    inference_file_name = 'test_set_infer.gz'
+    model_dirs = [os.path.join(dir_path, "inputs/ensemble/mnist/test_dir", str(i), inference_file_name) for i in range(5)]
 
     # define data
     data = {"model_dirs": model_dirs}
@@ -547,6 +547,8 @@ def example_14() -> Dict[str, Any]:
     metrics = OrderedDict([
             ("ensemble", MetricEnsemble(preds="pred.array", target="target",
                     pre_collect_process_func=pre_collect_process)),
+            ("accuracy", MetricAccuracy(pred="results:metrics.ensemble.preds", target="target")), # operation_point=None -> no need to convert pred from probabilities to class 
+
     ])
     
     evaluator = EvaluatorDefault()

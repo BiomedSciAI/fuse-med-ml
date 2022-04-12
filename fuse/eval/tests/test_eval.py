@@ -24,7 +24,7 @@ import unittest
                                         
 from fuse.eval.examples.examples import example_0, example_1, example_2, example_3, example_4, \
                                         example_5, example_6, example_7, example_8, example_9, \
-                                        example_10, example_11, example_12, example_13
+                                        example_10, example_11, example_12, example_13, example_14
                       
 from fuse.eval.examples.examples_segmentation import example_seg_0, example_seg_1, example_seg_2, example_seg_3, example_seg_4
 
@@ -158,6 +158,10 @@ class TestEval(unittest.TestCase):
         self.assertAlmostEqual(results['metrics.ece_calibrated']['mce'], 0.300, places=2)
         self.assertAlmostEqual(results['metrics.reliability_calibrated']['avg_accuracy'], 0.566, places=2)
         self.assertAlmostEqual(results['metrics.reliability_calibrated']['avg_confidence'], 0.485, places=2)
+    
+    def test_eval_example_14(self):
+        results = example_14()
+        self.assertGreater(results['metrics.accuracy'], 0.9)
 
 if __name__ == '__main__':
     unittest.main()
