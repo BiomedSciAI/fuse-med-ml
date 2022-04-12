@@ -1,5 +1,5 @@
 from typing import Dict
-from fuse.utils.utils_gpu import FuseUtilsGPU
+from fuse.utils import gpu as FuseUtilsGPU
 from fuse.utils.utils_debug import FuseUtilsDebug
 from sklearn.model_selection import KFold
 import multiprocessing
@@ -37,6 +37,7 @@ def run(num_folds, num_gpus_total, num_gpus_per_split, dataset_func, \
         train_func, infer_func, eval_func, \
         dataset_params=None, train_params=None, infer_params=None, \
         eval_params=None, sample_ids=None):
+    multiprocessing.set_start_method('spawn') 
     if num_gpus_total == 0 or num_gpus_per_split == 0:
         if train_params is not None and 'manager.train_params' in train_params:
             train_params['manager.train_params']['device'] = 'cpu'
