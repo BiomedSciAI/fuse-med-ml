@@ -21,7 +21,7 @@ from fuse.managers.callbacks.callback_time_statistics import FuseTimeStatisticsC
 import torch.optim as optim
 from fuse.managers.manager_default import FuseManagerDefault
 import multiprocessing
-from fuse.utils.utils_gpu import FuseUtilsGPU
+from fuse.utils import gpu as FuseUtilsGPU
 import os
 import torch.nn.functional as F
 from fuse.eval.evaluator import EvaluatorDefault 
@@ -91,7 +91,7 @@ def run_train(dataset, sample_ids, cv_index, test=False, params=None):
         # modify conv1 to support single channel image
         torch_model.conv1 = torch.nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
     elif params['model'] == 'lenet':
-        torch_model = lenet.Net()
+        torch_model = lenet.LeNet()
     
     # use adaptive avg pooling to support mnist low resolution images
     torch_model.avgpool = torch.nn.AdaptiveAvgPool2d(1)
@@ -178,7 +178,7 @@ def run_infer(dataset, sample_ids, cv_index, test=False, params=None):
     else:
         inference_dir = os.path.join(params['paths']['inference_dir'], str(cv_index))
         infer_filename = params['infer_filename']
-    fuse_logger_start(output_path=inference_dir, console_verbose_level=logging.INFO)
+    fuse_logger_start(output_path=inference_dir, console_verbose_level=logging.INFO, force_reset=True)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Inference', {'attrs': ['bold', 'underline']})
     lgr.info(f'infer_filename={os.path.join(inference_dir, infer_filename)}', {'color': 'magenta'})
@@ -204,7 +204,7 @@ def run_eval(dataset, sample_ids, cv_index, test=False, params=None):
         inference_dir = os.path.join(params['paths']['inference_dir'], str(cv_index))
         infer_filename = params["infer_filename"]
     eval_dir = os.path.join(params['paths']['eval_dir'], str(cv_index))
-    fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
+    fuse_logger_start(output_path=None, console_verbose_level=logging.INFO, force_reset=True)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Analyze', {'attrs': ['bold', 'underline']})
 
