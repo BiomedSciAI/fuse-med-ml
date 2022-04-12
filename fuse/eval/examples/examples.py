@@ -530,7 +530,9 @@ def example_14() -> Dict[str, Any]:
     model_dirs = [os.path.join(dir_path, "inputs/ensemble/mnist/test_dir", str(i), inference_file_name) for i in range(5)]
 
     # define data
-    data = {"model_dirs": model_dirs}
+    #data = model_dirs
+    data = {str(k):model_dirs[k] for k in range(len(model_dirs))}
+    #data = {"model_dirs": model_dirs}
 
     # pre collect function to change the format
     def pre_collect_process(sample_dict: dict) -> dict:    
