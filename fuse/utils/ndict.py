@@ -75,7 +75,12 @@ class NDict(dict):
             for k,d in d.items():
                 self[k] = d
     
+    def keys(self):
+        return self._stored.keys()
         
+    def values(self):
+        return self._stored.values()
+
     def items(self):
         return self._stored.items()
 
