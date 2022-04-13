@@ -16,10 +16,17 @@ lockfailed()
 create_env() {
     force_cuda_version=$1
     env_path=$2
+    mode=$3
+
+    requirements=$(cat requirements.txt)
+    if [ $mode = "examples" ]; then
+        requirements+=$(cat examples/requirements.txt)
+    fi
 
     PYTHON_VER=3.7
-    ENV_NAME="fuse_$PYTHON_VER_"$(sha256sum requirements.txt | awk '{print $1;}')
+    ENV_NAME="fuse_$PYTHON_VER-$(echo -n $requirements | sha256sum | awk '{print $1;}')"
     echo $ENV_NAME
+    
     # env full name
     if [ $env_path = "no" ]; then
         env="-n $ENV_NAME"
@@ -56,9 +63,15 @@ create_env() {
             fi
 
             # install local repository (fuse-med-ml)
-            echo "Installing requirements"
+            echo "Installing core requirements"
             conda run $env --no-capture-output --live-stream pip install -r requirements.txt
-            echo "Installing requirements - Done"
+            echo "Installing core requirements - Done"
+
+            if [ $mode = "examples" ]; then
+                echo "Installing examples requirements"
+                conda run $env --no-capture-output --live-stream pip install -r examples/requirements.txt
+                echo "Installing examples requirements - Done"
+            fi
         fi
     ) 873>$lock_filename
 
@@ -82,9 +95,18 @@ else
     env_path="no"
 fi
 
-echo "Force cuda version: $force_cuda_version"
-create_env $force_cuda_version $env_path
+echo "Create core env"
+create_env $force_cuda_version $env_path "core"
+echo "Create core env - Done"
 
-echo "Runng unittests in $ENV_TO_USE"
-conda run $env --no-capture-output --live-stream python ./run_all_unit_tests.py
-echo "Running unittests - Done"
+echo "Running core unittests in $ENV_TO_USE"
+conda run $env --no-capture-output --live-stream python ./run_all_unit_tests.py core
+echo "Running core unittests - Done"
+
+echo "Create examples env"
+create_env $force_cuda_version $env_path "examples"
+echo "Create examples env - Done"
+
+echo "Running examples unittests in $ENV_TO_USE"
+conda run $env --no-capture-output --live-stream python ./run_all_unit_tests.py examples
+echo "Running examples unittests - Done"

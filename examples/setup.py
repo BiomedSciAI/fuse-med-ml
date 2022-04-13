@@ -3,8 +3,6 @@ import os
 import pathlib
 from setuptools import setup, find_packages
 
-import sys
-
 # The directory containing this file
 HERE = pathlib.Path(__file__).parent
 
@@ -20,10 +18,10 @@ with open(os.path.join(HERE, 'requirements.txt'), 'r') as fh:
             requirements.append(line.strip())
 
 # version
-version_file = open(os.path.join(HERE, 'VERSION.txt'))
+version_file = open(os.path.join(HERE, '../VERSION.txt'))
 version = version_file.read().strip()
 
-setup(name='fuse-med-ml',
+setup(name='fuse-med-ml-examples',
       version=version,
       description='Open-source PyTorch based framework designed to facilitate deep learning R&D in medical imaging',
       long_description=long_description,
