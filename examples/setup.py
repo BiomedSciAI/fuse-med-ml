@@ -7,7 +7,7 @@ from setuptools import setup, find_packages
 HERE = pathlib.Path(__file__).parent
 
 # The text of the README file
-with open(os.path.join(HERE, "README.md"), "r", encoding="utf-8") as fh:
+with open(os.path.join(HERE, "../README.md"), "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 # list of requirements
