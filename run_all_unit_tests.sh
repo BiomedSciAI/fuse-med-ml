@@ -105,6 +105,7 @@ echo "Running core unittests - Done"
 
 echo "Create examples env"
 create_env $force_cuda_version $env_path "examples"
+PYTHONPATH=$PYTHONPATH:./examples
 echo "Create examples env - Done"
 
 echo "Running examples unittests in $ENV_TO_USE"
