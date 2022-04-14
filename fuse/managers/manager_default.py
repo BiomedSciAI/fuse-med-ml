@@ -957,9 +957,6 @@ def _extend_results_dict(mode: str, current_dict: Dict, aggregated_dict: Dict) -
     if mode == 'infer':
         return {}
     else:
-        # handle the case where batch dict is empty (the end of the last virtual mini batch)
-        if current_dict == {}:
-            return aggregated_dict
         # for train and validation we need the loss values
         cur_keys = FuseUtilsHierarchicalDict.get_all_keys(current_dict)
         # aggregate just keys that start with losses

@@ -31,8 +31,9 @@ from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms
 
 from fuse.eval.evaluator import EvaluatorDefault 
-from fuse.data.dataset.dataset_wrapper import FuseDatasetWrapper
-from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
+from fuse.data.datasets.dataset_wrap_seq_to_dict import DatasetWrapSeqToDict
+from fuse.data.utils.samplers import BatchSamplerDefault
+from fuse.data.utils.collates import CollateDefault
 from fuse.losses.loss_default import FuseLossDefault
 from fuse.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
 from fuse.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
@@ -137,10 +138,10 @@ def run_train(paths: dict, train_params: dict):
     torch_train_dataset = torchvision.datasets.MNIST(paths['cache_dir'], download=True, train=True, transform=transform)
     # wrapping torch dataset
     # FIXME: support also using torch dataset directly
-    train_dataset = FuseDatasetWrapper(name='train', dataset=torch_train_dataset, mapping=('image', 'label'))
+    train_dataset = DatasetWrapSeqToDict(name='train', dataset=torch_train_dataset, sample_keys=("data.image", "data.label"))
     train_dataset.create()
     lgr.info(f'- Create sampler:')
-    sampler = FuseSamplerBalancedBatch(dataset=train_dataset,
+    sampler = BatchSamplerDefault(dataset=train_dataset,
                                        balanced_class_name='data.label',
                                        num_balanced_classes=10,
                                        batch_size=train_params['data.batch_size'],
@@ -156,7 +157,7 @@ def run_train(paths: dict, train_params: dict):
     # Create dataset
     torch_validation_dataset = torchvision.datasets.MNIST(paths['cache_dir'], download=True, train=False, transform=transform)
     # wrapping torch dataset
-    validation_dataset = FuseDatasetWrapper(name='validation', dataset=torch_validation_dataset, mapping=('image', 'label'))
+    validation_dataset = DatasetWrapSeqToDict(name='validation', dataset=torch_validation_dataset, sample_keys=("data.image", "data.label"))
     validation_dataset.create()
 
     # dataloader
@@ -272,10 +273,10 @@ def run_infer(paths: dict, infer_common_params: dict):
     # Create dataset
     torch_validation_dataset = torchvision.datasets.MNIST(paths['cache_dir'], download=True, train=False, transform=transform)
     # wrapping torch dataset
-    validation_dataset = FuseDatasetWrapper(name='validation', dataset=torch_validation_dataset, mapping=('image', 'label'))
+    validation_dataset = DatasetWrapSeqToDict(name='validation', dataset=torch_validation_dataset, sample_keys=("data.image", "data.label"))
     validation_dataset.create()
     # dataloader
-    validation_dataloader = DataLoader(dataset=validation_dataset, collate_fn=validation_dataset.collate_fn, batch_size=2, num_workers=2)
+    validation_dataloader = DataLoader(dataset=validation_dataset, collate_fn=CollateDefault(), batch_size=2, num_workers=2)
 
     ## Manager for inference
     manager = FuseManagerDefault()
