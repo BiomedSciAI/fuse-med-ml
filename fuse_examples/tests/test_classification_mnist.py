@@ -58,6 +58,7 @@ class ClassificationMnistTestCase(unittest.TestCase):
         self.assertGreaterEqual(results['metrics.auc.macro_avg'], threshold)
 
     def tearDown(self):
+        FuseUtilsGPU.deallocate_gpu()
         # Delete temporary directories
         shutil.rmtree(self.root)
 
