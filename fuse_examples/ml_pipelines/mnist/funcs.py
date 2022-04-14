@@ -196,7 +196,8 @@ def run_infer(dataset, sample_ids, cv_index, test=False, params=None):
                   output_file_name=os.path.join(inference_dir, infer_filename))
 
 
-def run_eval(dataset, sample_ids, cv_index, test=False, params=None):
+def run_eval(dataset, sample_ids, cv_index, test=False, params=None, \
+            pred_key='model.output.classification', label_key='data.label'):
     if test:
         inference_dir = os.path.join(params['paths']['test_dir'], str(cv_index))
         infer_filename = params["test_infer_filename"]
@@ -212,10 +213,10 @@ def run_eval(dataset, sample_ids, cv_index, test=False, params=None):
     class_names = [str(i) for i in range(10)]
 
     metrics = OrderedDict([
-        ('operation_point', MetricApplyThresholds(pred='model.output.classification')), # will apply argmax
-        ('accuracy', MetricAccuracy(pred='results:metrics.operation_point.cls_pred', target='data.label')),
-        ('roc', MetricROCCurve(pred='model.output.classification', target='data.label', class_names=class_names, output_filename=os.path.join(inference_dir, 'roc_curve.png'))),
-        ('auc', MetricAUCROC(pred='model.output.classification', target='data.label', class_names=class_names)),
+        ('operation_point', MetricApplyThresholds(pred=pred_key)), # will apply argmax
+        ('accuracy', MetricAccuracy(pred='results:metrics.operation_point.cls_pred', target=label_key)),
+        ('roc', MetricROCCurve(pred=pred_key, target=label_key, class_names=class_names, output_filename=os.path.join(inference_dir, 'roc_curve.png'))),
+        ('auc', MetricAUCROC(pred=pred_key, target=label_key, class_names=class_names)),
     ])
    
     # create evaluator

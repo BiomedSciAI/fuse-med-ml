@@ -12,6 +12,7 @@ import os
 from fuse.eval.metrics.classification.metrics_ensembling_common import MetricEnsemble
 from collections import OrderedDict
 from fuse.eval.evaluator import EvaluatorDefault
+from fuse.utils.file_io.file_io import create_or_reset_dir  
 
 # pre collect function to change the format
 def ensemble_pre_collect(sample_dict: dict) -> dict:    
@@ -27,20 +28,17 @@ def ensemble_pre_collect(sample_dict: dict) -> dict:
 
     return sample_dict
 
-def ensemble(test_dirs, test_infer_filename, ensembled_output_dir):
+def ensemble(test_dirs, test_infer_filename, ensembled_output_file):
+    ensembled_output_dir = os.path.dirname(ensembled_output_file)
+    create_or_reset_dir(ensembled_output_dir, force_reset=True)
     test_infer_filenames = [os.path.join(d, test_infer_filename) for d in test_dirs]
     # define data for ensemble metric
     data = {str(k):test_infer_filenames[k] for k in range(len(test_infer_filenames))}
 
         # list of metrics
     metrics = OrderedDict([
-            ("ensemble", MetricEnsemble(preds="preds", output_file=os.path.join(ensembled_output_dir, 'ensembled_output.gz'),
+            ("ensemble", MetricEnsemble(preds="preds", target="target", output_file=ensembled_output_file,
                     pre_collect_process_func=ensemble_pre_collect)),
-    #        ("apply_thresh", MetricApplyThresholds(pred="results:metrics.ensemble.preds_ensembled", 
-    #                operation_point=None)),
-    #        ("accuracy", MetricAccuracy(pred="results:metrics.apply_thresh.cls_pred", 
-    #                target="target", pre_collect_process_func=pre_collect_process)), 
-
     ])
 
     evaluator = EvaluatorDefault()
@@ -112,10 +110,13 @@ def run(num_folds, num_gpus_total, num_gpus_per_split, dataset_func, \
         p.join()
         p.close()
     
+    # generate ensembled predictions:
     test_dirs = [os.path.join(infer_params['paths']['test_dir'], str(cv_index)) for cv_index in range(num_folds)]
-    test_infer_filename = infer_params['paths']['test_infer_filename']
-    ensembled_output_dir = os.path.join(infer_params['paths']['test_dir'], 'ensemble')
-    ensemble(test_dirs, test_infer_filename, ensembled_output_dir)
+    test_infer_filename = infer_params['test_infer_filename']
+    ensembled_output_file = os.path.join(infer_params['paths']['test_dir'], 'ensemble', infer_params['test_infer_filename'])
+    ensemble(test_dirs, test_infer_filename, ensembled_output_file)
 
     # evaluate ensemble:
+    eval_func(dataset=None, sample_ids=None, cv_index='ensemble', test=True, \
+                params=infer_params, pred_key='preds', label_key="target")
     
