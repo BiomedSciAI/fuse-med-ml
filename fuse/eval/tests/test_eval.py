@@ -53,7 +53,6 @@ class TestEval(unittest.TestCase):
         self.assertAlmostEqual(results["metrics.auc_per_group.female"], 1.000, places=2)
         self.assertAlmostEqual(results["metrics.auc_per_group.male"], 0.666, places=2)
 
-
     def test_eval_example_4(self):
         results = example_4() 
         self.assertEqual(results["metrics.auc.org"], 0.845)
@@ -66,7 +65,7 @@ class TestEval(unittest.TestCase):
         results = example_5() 
         self.assertAlmostEqual(results["metrics.compare_a_to_b.sensitivity.p_value"], 1 - (0.33 + 0.67*0.33 + 0.67*0.67*0.33), places=2)
         self.assertEqual(results["metrics.compare_a_to_b.sensitivity.count"], 10000)
-    
+
     def test_eval_example_6(self):
         results = example_6()
         self.assertAlmostEqual(results['metrics.delongs_test']['p_value.macro_avg'], 0.3173, places=4)
@@ -93,7 +92,7 @@ class TestEval(unittest.TestCase):
 
         results = example_9()
         self.assertAlmostEqual(results['metrics.accuracy'], 0.1, places=2)
-    
+
     def test_eval_example_10(self):
         results = example_10()
         self.assertAlmostEqual(results['metrics.mcnemars_test']['statistic.macro_avg'], 12.0, places=1)
@@ -106,26 +105,26 @@ class TestEval(unittest.TestCase):
     def test_eval_example_12(self):
         results = example_12()
         self.assertAlmostEqual(results['metrics.acc'], 0.615, places=2)
-                
+
     def test_eval_example_seg_0(self):
         results = example_seg_0()
         self.assertAlmostEqual(results['metrics.dice_label_1.1'], 0.8740, places=3)
         self.assertAlmostEqual(results['metrics.dice_label_2.1'], 0.7163, places=3)
         self.assertAlmostEqual(results['metrics.dice_label_3.1'], 0.7184, places=3)
-        
+
     def test_eval_example_seg_1(self):
         results = example_seg_1()
         self.assertAlmostEqual(results['metrics.dice.1'], 0.49900, places=3)
         self.assertAlmostEqual(results['metrics.overlap.1'], 0.51759, places=3)
         self.assertAlmostEqual(results['metrics.pixel_accuracy.1'], 0.48167, places=3)
         self.assertAlmostEqual(results['metrics.iou_jaccard.1'], 0.3324, places=3)
-        
+
     def test_eval_example_seg_2(self):
         results = example_seg_2()
         self.assertAlmostEqual(results['metrics.dice.1'], 0.9726, places=3)
         self.assertAlmostEqual(results['metrics.dice.2'], 0.7184, places=3)
         self.assertAlmostEqual(results['metrics.dice.average'], 0.8455, places=3)
-        
+
     def test_eval_example_seg_3(self):
         results = example_seg_3()
         self.assertEqual(results['metrics.hausdorff.average'], 1.0)
@@ -162,6 +161,7 @@ class TestEval(unittest.TestCase):
     def test_eval_example_14(self):
         results = example_14()
         self.assertGreater(results['metrics.accuracy'], 0.9)
+
 
 if __name__ == '__main__':
     unittest.main()

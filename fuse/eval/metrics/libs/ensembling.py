@@ -2,6 +2,7 @@ from typing import Dict, Optional, Sequence, Tuple, Union, Hashable
 from fuse.eval.metrics.libs.classification import MetricsLibClass
 import numpy as np
 from sklearn.utils import resample
+import pandas as pd
 
 class Ensembling:
     """

@@ -528,31 +528,35 @@ def example_14() -> Dict[str, Any]:
     dir_path = pathlib.Path(__file__).parent.resolve()
     inference_file_name = 'test_set_infer.gz'
     model_dirs = [os.path.join(dir_path, "inputs/ensemble/mnist/test_dir", str(i), inference_file_name) for i in range(5)]
-
+    output_file = 'ensemble_output.gz'
     # define data
-    #data = model_dirs
     data = {str(k):model_dirs[k] for k in range(len(model_dirs))}
-    #data = {"model_dirs": model_dirs}
 
     # pre collect function to change the format
     def pre_collect_process(sample_dict: dict) -> dict:    
-        # convert scores to numpy array
-        task1_pred = []
-        for cls_name in ("NoAT", "CanAT"):
-            task1_pred.append(sample_dict[f"pred.{cls_name}-score"])
-        task1_pred_array = np.array(task1_pred)
-        sample_dict['pred.array'] = task1_pred_array
+        # convert predictions from all models to numpy array
+        num_classes = sample_dict['0']['model']['output']['classification'].shape[0]
+        model_names = list(sample_dict.to_dict().keys())
+        model_names.remove('id')
+        pred_array = np.zeros((len(model_names), num_classes))
+        for i, m in enumerate(model_names):
+            pred_array[i, :] = sample_dict[m]['model']['output']['classification']
+        sample_dict['preds'] = pred_array
+        sample_dict['target'] = sample_dict['0']['data']['label']
 
         return sample_dict
     
     # list of metrics
     metrics = OrderedDict([
-            ("ensemble", MetricEnsemble(preds="pred.array", target="target",
+            ("ensemble", MetricEnsemble(preds="preds", output_file=output_file,
                     pre_collect_process_func=pre_collect_process)),
-            ("accuracy", MetricAccuracy(pred="results:metrics.ensemble.preds", target="target")), # operation_point=None -> no need to convert pred from probabilities to class 
+            ("apply_thresh", MetricApplyThresholds(pred="results:metrics.ensemble.preds_ensembled", 
+                    operation_point=None)),
+            ("accuracy", MetricAccuracy(pred="results:metrics.apply_thresh.cls_pred", 
+                    target="target", pre_collect_process_func=pre_collect_process)), 
 
     ])
-    
+
     evaluator = EvaluatorDefault()
     results = evaluator.eval(ids=None, data=data, metrics=metrics)
 

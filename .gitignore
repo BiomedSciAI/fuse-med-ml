@@ -39,3 +39,4 @@ fuse_examples/tutorials/hello_world/examples/
 .vscode/
 fuse/eval/tests/*.png
 fuse/eval/examples/tmp_outputs/
+**/ensemble_output.gz
