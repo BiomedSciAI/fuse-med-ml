@@ -25,6 +25,5 @@ pycocotools>=2.0.1
 xmlrunner
 paramiko
 testbook
-termcolor
 tables
 ipykernel
