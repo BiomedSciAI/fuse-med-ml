@@ -26,7 +26,7 @@ import shutil
 
 
 
-import fuse.utils.gpu as FuseUtilsGPU
+from fuse.utils.gpu import choose_and_enable_multiple_gpus
 
 @unittest.skip("Not ready yet")
 # TODO:
@@ -63,7 +63,7 @@ class ClassificationMGCmmdTestCase(unittest.TestCase):
 
     def test_runner(self):
         self.assertIsNot(os.path.isdir(self.ROOT_DATA),False)
-        num_gpus_allocated = FuseUtilsGPU.choose_and_enable_multiple_gpus(1, use_cpu_if_fail=True)
+        num_gpus_allocated = choose_and_enable_multiple_gpus(1, use_cpu_if_fail=True)
         if num_gpus_allocated == 0:
             self.train_common_params['manager.train_params']['device'] = 'cpu'
 
