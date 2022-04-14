@@ -9,16 +9,42 @@ from typing import Sequence
 import numpy as np
 import pandas as pd
 import os
+from fuse.eval.metrics.classification.metrics_ensembling_common import MetricEnsemble
+from collections import OrderedDict
+from fuse.eval.evaluator import EvaluatorDefault
+
+# pre collect function to change the format
+def ensemble_pre_collect(sample_dict: dict) -> dict:    
+    # convert predictions from all models to numpy array
+    num_classes = sample_dict['0']['model']['output']['classification'].shape[0]
+    model_names = list(sample_dict.to_dict().keys())
+    model_names.remove('id')
+    pred_array = np.zeros((len(model_names), num_classes))
+    for i, m in enumerate(model_names):
+        pred_array[i, :] = sample_dict[m]['model']['output']['classification']
+    sample_dict['preds'] = pred_array
+    sample_dict['target'] = sample_dict['0']['data']['label']
+
+    return sample_dict
 
 def ensemble(test_dirs, test_infer_filename, ensembled_output_dir):
     test_infer_filenames = [os.path.join(d, test_infer_filename) for d in test_dirs]
-    softmax = [pd.read_pickle(f)['model.output.classification'] for f in test_infer_filenames]
-    softmax = np.vstack(softmax)
-    softmax = np.mean(softmax, 0) # ensemble
-    original_infer_1st_split = pd.read_pickle(test_infer_filenames[0])
-    ensembled_infer = original_infer_1st_split
-    ensembled_infer['model.output.classification'] = softmax
+    # define data for ensemble metric
+    data = {str(k):test_infer_filenames[k] for k in range(len(test_infer_filenames))}
 
+        # list of metrics
+    metrics = OrderedDict([
+            ("ensemble", MetricEnsemble(preds="preds", output_file=os.path.join(ensembled_output_dir, 'ensembled_output.gz'),
+                    pre_collect_process_func=ensemble_pre_collect)),
+    #        ("apply_thresh", MetricApplyThresholds(pred="results:metrics.ensemble.preds_ensembled", 
+    #                operation_point=None)),
+    #        ("accuracy", MetricAccuracy(pred="results:metrics.apply_thresh.cls_pred", 
+    #                target="target", pre_collect_process_func=pre_collect_process)), 
+
+    ])
+
+    evaluator = EvaluatorDefault()
+    _ = evaluator.eval(ids=None, data=data, metrics=metrics)
 
 
 def runner_wrapper(q_resources, fs, *f_args, **f_kwargs):
@@ -86,12 +112,10 @@ def run(num_folds, num_gpus_total, num_gpus_per_split, dataset_func, \
         p.join()
         p.close()
     
-    
+    test_dirs = [os.path.join(infer_params['paths']['test_dir'], str(cv_index)) for cv_index in range(num_folds)]
+    test_infer_filename = infer_params['paths']['test_infer_filename']
+    ensembled_output_dir = os.path.join(infer_params['paths']['test_dir'], 'ensemble')
     ensemble(test_dirs, test_infer_filename, ensembled_output_dir)
+
+    # evaluate ensemble:
     
-
-    # infer and eval ensembled model model on test set:
-
-
-    # run infer
-    #run_infer(test_dataset, sample_ids=None, cv_index='ensemble', params=infer_params)
