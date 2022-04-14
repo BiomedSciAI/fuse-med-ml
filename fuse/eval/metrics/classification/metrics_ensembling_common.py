@@ -18,10 +18,10 @@ class  MetricEnsemble(MetricDefault):
         """
         super().__init__(extract_ids=True, preds=preds, metric_func=self._ensemble, **kwargs)
 
-    def _ensemble(self, pred: Sequence[np.ndarray], ids: Sequence[Hashable]):
+    def _ensemble(self, preds: Sequence[np.ndarray], ids: Sequence[Hashable]):
 
-        ensemble_preds = Ensembling.ensemble(pred=pred)
+        ensemble_preds = Ensembling.ensemble(preds=preds)
         # make sure to return the per-sample metric result for the relevant sample ids:
         per_sample_data = PerSampleData(data=ensemble_preds, ids=ids)
 
-        return {'preds': per_sample_data}
+        return {'preds_ensembled': per_sample_data}

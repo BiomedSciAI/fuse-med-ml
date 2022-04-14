@@ -13,7 +13,8 @@ class Ensembling:
         """
         :param preds: sequence of numpy arrays / floats of shape [NUM_CLASSES]
         """
+        if isinstance(preds, Sequence):
+            preds = np.stack(preds)
+        preds_ensembled = np.mean(preds, 1) # ensemble
         
-        softmax = np.vstack(softmax)
-        softmax = np.mean(softmax, 0) # ensemble
-        return softmax
+        return preds_ensembled
