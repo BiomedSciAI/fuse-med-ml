@@ -1,7 +1,6 @@
 import os
 import unittest
 from testbook import testbook
-from fuse.templates.walkthrough_template import NUM_GPUS
 import fuse.utils.gpu as FuseUtilsGPU
 
 class NotebookHelloWorldTestCase(unittest.TestCase):
