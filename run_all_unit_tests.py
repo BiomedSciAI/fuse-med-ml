@@ -32,7 +32,7 @@ if __name__ == '__main__':
     suite = None
     for curr_subsection in sub_sections:
         curr_subsuite = unittest.TestLoader().discover(
-            f'{search_base}/{curr_subsection}', 'test_*.py', top_level_dir=search_base
+            f'{search_base}/{curr_subsection}', 'test*.py', top_level_dir=search_base
         )
         if suite is None:
             suite = curr_subsuite
