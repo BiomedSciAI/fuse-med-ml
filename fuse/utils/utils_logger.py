@@ -49,7 +49,7 @@ class ProcessSafeHandler(logging.StreamHandler):
         self._locks[current_process_id].release()
 
 
-class FuseConsoleFormatter(logging.Formatter):
+class ConsoleFormatter(logging.Formatter):
     """Logging Formatter to add colors per verbose level and file, line number in case of warnning/error"""
 
     grey = "\x1b[38;21m"
@@ -113,7 +113,7 @@ def fuse_logger_start(output_path: Optional[str] = None, console_verbose_level: 
     # console
     console_handler = ProcessSafeHandler(stream=sys.stdout)
     console_handler.setLevel(console_verbose_level)
-    console_formatter = FuseConsoleFormatter()
+    console_formatter = ConsoleFormatter()
     console_handler.setFormatter(console_formatter)
     lgr.addHandler(console_handler)
     lgr.propagate = False

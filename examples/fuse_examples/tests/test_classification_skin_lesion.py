@@ -24,10 +24,11 @@ import tempfile
 import shutil
 from fuse.utils.utils_logger import fuse_logger_end
 
-from fuse_examples.classification.skin_lesion.runner import TRAIN_COMMON_PARAMS, \
-    INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS, run_train, run_eval, run_infer
+# FIXME: data_package
+#from fuse_examples.imaging.classification.skin_lesion.runner import TRAIN_COMMON_PARAMS, \
+#    INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS, run_train, run_eval, run_infer
 
-import fuse.utils.gpu as FuseUtilsGPU
+import fuse.utils.gpu as GPU
 
 @unittest.skipIf(True, "Long test")
 class ClassificationSkinLesionTestCase(unittest.TestCase):
@@ -61,7 +62,7 @@ class ClassificationSkinLesionTestCase(unittest.TestCase):
         self.analyze_common_params['data.year'] = self.train_common_params['data.year']
 
     def test_runner(self):
-        num_gpus_allocated = FuseUtilsGPU.choose_and_enable_multiple_gpus(1, use_cpu_if_fail=True)
+        num_gpus_allocated = GPU.choose_and_enable_multiple_gpus(1, use_cpu_if_fail=True)
         if num_gpus_allocated == 0:
             self.train_common_params['manager.train_params']['device'] = 'cpu'
 
