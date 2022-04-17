@@ -25,7 +25,7 @@ from multiprocessing import Manager
 from typing import Hashable, Any, List
 
 
-class FuseCacheBase(ABC):
+class CacheBase(ABC):
 
     @abstractmethod
     def __contains__(self, key: Hashable) -> bool:

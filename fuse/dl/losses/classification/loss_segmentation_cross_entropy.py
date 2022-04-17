@@ -22,11 +22,11 @@ from typing import Dict, Union
 import numpy as np
 import torch
 
-from fuse.dl.losses.loss_base import FuseLossBase
+from fuse.dl.losses.loss_base import LossBase
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 
 
-class FuseLossSegmentationCrossEntropy(FuseLossBase):
+class LossSegmentationCrossEntropy(LossBase):
     def __init__(self,
                  pred_name: str = None,
                  target_name: str = None,

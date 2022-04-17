@@ -22,11 +22,11 @@ from skimage import measure
 import torch
 from typing import Optional, Tuple
 
-from fuse.data.processor.processor_base import FuseProcessorBase
-from fuse.data.processor.processors_image_toolbox import FuseProcessorsImageToolBox
+from fuse.data.processor.processor_base import ProcessorBase
+from fuse.data.processor.processors_image_toolbox import ProcessorsImageToolBox
 
 
-class FuseMGInputProcessor(FuseProcessorBase):
+class MGInputProcessor(ProcessorBase):
     """
     This processor expects configuration parameters to process an image and path to a mammography dicom file
     it then reads it (just the image),
@@ -60,17 +60,17 @@ class FuseMGInputProcessor(FuseProcessorBase):
                  *args, **kwargs):
 
         image_full_path = os.path.join(self.input_data, inner_image_desc)
-        inner_image = FuseProcessorsImageToolBox.read_dicom_image_to_numpy(image_full_path)
+        inner_image = ProcessorsImageToolBox.read_dicom_image_to_numpy(image_full_path)
 
         inner_image = standardize_breast_image(inner_image, self.normalized_target_range)
 
         # resize
         if self.resize_to is not None:
-            inner_image = FuseProcessorsImageToolBox.resize_image(inner_image, self.resize_to)
+            inner_image = ProcessorsImageToolBox.resize_image(inner_image, self.resize_to)
 
         # padding
         if self.padding is not None:
-            image = FuseProcessorsImageToolBox.pad_image(inner_image, self.padding, self.resize_to, self.normalized_target_range, 1)
+            image = ProcessorsImageToolBox.pad_image(inner_image, self.padding, self.resize_to, self.normalized_target_range, 1)
 
         else:
             image = inner_image
@@ -175,6 +175,6 @@ def standardize_breast_image(inner_image : np.ndarray, normalized_target_range: 
     aabb = find_breast_aabb(inner_image)
     inner_image = inner_image[aabb[0]: aabb[2], aabb[1]: aabb[3]].copy()
     # normalize
-    inner_image = FuseProcessorsImageToolBox.normalize_to_range(inner_image, range=normalized_target_range)
+    inner_image = ProcessorsImageToolBox.normalize_to_range(inner_image, range=normalized_target_range)
 
     return inner_image

@@ -28,7 +28,7 @@ from torchvision.models.resnet import Bottleneck, model_urls, BasicBlock
 from torch import Tensor
 
 
-class FuseBackboneResnet(ResNet):
+class BackboneResnet(ResNet):
     """
     2D ResNet backbone
     """

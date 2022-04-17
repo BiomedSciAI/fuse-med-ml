@@ -21,21 +21,21 @@ from typing import Sequence, Dict, Tuple, Callable, Optional
 
 import torch
 
-from fuse.dl.models.backbones.backbone_inception_resnet_v2 import FuseBackboneInceptionResnetV2
-from fuse.dl.models.heads.head_global_pooling_classifier import FuseHeadGlobalPoolingClassifier
+from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
+from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 
 
-class FuseModelMultistream(torch.nn.Module):
+class ModelMultistream(torch.nn.Module):
     """
     Multi-stream Fuse model - convolutional neural network with multiple processing streams and multiple heads
     """
 
     def __init__(self,
                  conv_inputs: Tuple[str, int] = ('data.input.input_0.tensor', 1),
-                 backbone_streams: Sequence[torch.nn.Module] = (FuseBackboneInceptionResnetV2(logical_units_num=12),
-                                                                FuseBackboneInceptionResnetV2(logical_units_num=12)),
-                 heads: Sequence[torch.nn.Module] = (FuseHeadGlobalPoolingClassifier(),),
+                 backbone_streams: Sequence[torch.nn.Module] = (BackboneInceptionResnetV2(logical_units_num=12),
+                                                                BackboneInceptionResnetV2(logical_units_num=12)),
+                 heads: Sequence[torch.nn.Module] = (HeadGlobalPoolingClassifier(),),
                  split_logic: Optional[Callable] = None,
                  join_logic: Optional[Callable] = None,
                  ) -> None:
@@ -76,7 +76,7 @@ class FuseModelMultistream(torch.nn.Module):
         elif callable(self.split_logic):
             stream_outputs = self.split_logic(batch_dict, self.backbone_streams)
         else:
-            raise Exception('Error in FuseModelMultistream - bad split logic provided')
+            raise Exception('Error in ModelMultistream - bad split logic provided')
 
         # Combining feature maps from multiple streams
         # --------------------------------------------
@@ -86,7 +86,7 @@ class FuseModelMultistream(torch.nn.Module):
         elif callable(self.join_logic):
             backbone_features = self.join_logic(batch_dict, stream_outputs)
         else:
-            raise Exception('Error in FuseModelMultistream - bad join logic provided')
+            raise Exception('Error in ModelMultistream - bad join logic provided')
 
         FuseUtilsHierarchicalDict.set(batch_dict, 'model.backbone_features', backbone_features)
         for head in self.heads:
@@ -96,36 +96,36 @@ class FuseModelMultistream(torch.nn.Module):
 
 
 if __name__ == '__main__':
-    from fuse.dl.models.heads.head_dense_segmentation import FuseHeadDenseSegmentation
+    from fuse.dl.models.heads.head_dense_segmentation import HeadDenseSegmentation
 
-    backbone_0 = FuseBackboneInceptionResnetV2(logical_units_num=8)
-    backbone_1 = FuseBackboneInceptionResnetV2(logical_units_num=8)
+    backbone_0 = BackboneInceptionResnetV2(logical_units_num=8)
+    backbone_1 = BackboneInceptionResnetV2(logical_units_num=8)
 
-    non_shared_model = FuseModelMultistream(
+    non_shared_model = ModelMultistream(
         conv_inputs=('data.input.input_0.tensor', 2),
         backbone_streams=[backbone_0, backbone_1],
         heads=[
-            FuseHeadGlobalPoolingClassifier(head_name='head_0',
+            HeadGlobalPoolingClassifier(head_name='head_0',
                                             conv_inputs=[('model.backbone_features', 640)],
                                             post_concat_inputs=None,
                                             num_classes=2),
 
-            FuseHeadDenseSegmentation(head_name='head_1',
+            HeadDenseSegmentation(head_name='head_1',
                                       conv_inputs=[('model.backbone_features', 640)],
                                       num_classes=2)
         ]
     )
 
-    shared_model = FuseModelMultistream(
+    shared_model = ModelMultistream(
         conv_inputs=('data.input.input_0.tensor', 2),
         backbone_streams=[backbone_0, backbone_0],
         heads=[
-            FuseHeadGlobalPoolingClassifier(head_name='head_0',
+            HeadGlobalPoolingClassifier(head_name='head_0',
                                             conv_inputs=[('model.backbone_features', 640)],
                                             post_concat_inputs=None,
                                             num_classes=2),
 
-            FuseHeadDenseSegmentation(head_name='head_1',
+            HeadDenseSegmentation(head_name='head_1',
                                       conv_inputs=[('model.backbone_features', 640)],
                                       num_classes=2)
         ]

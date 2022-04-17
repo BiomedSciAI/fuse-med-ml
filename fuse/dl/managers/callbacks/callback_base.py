@@ -19,10 +19,10 @@ Created on June 30, 2021
 
 from typing import Dict
 
-from fuse.dl.managers.manager_state import FuseManagerState
+from fuse.dl.managers.manager_state import ManagerState
 
 
-class FuseCallback(object):
+class Callback(object):
     """
         Abstract base class used to build new callbacks.
         Callbacks are called at various stages during training and infer.
@@ -141,12 +141,12 @@ class FuseCallback(object):
         """
         pass
 
-    def on_train_begin(self, state: FuseManagerState) -> None:
+    def on_train_begin(self, state: ManagerState) -> None:
         """
         Called at the beginning of the train procedure, after initialization of all variables and model.
 
         :param state: manager state object.
-            Contains the state of the manager. For details, see FuseManagerState.
+            Contains the state of the manager. For details, see ManagerState.
         """
         pass
 

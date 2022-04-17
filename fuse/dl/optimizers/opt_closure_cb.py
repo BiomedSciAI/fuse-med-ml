@@ -18,14 +18,14 @@ Created on June 30, 2021
 """
 
 from typing import Dict
-from fuse.dl.managers.callbacks.callback_base import FuseCallback
-from fuse.dl.managers.manager_state import FuseManagerState
+from fuse.dl.managers.callbacks.callback_base import Callback
+from fuse.dl.managers.manager_state import ManagerState
 
-class FuseCallbackOptClosure(FuseCallback):
+class CallbackOptClosure(Callback):
     """
     Use this callback if an optimizer requires closure argument
     """
-    def on_train_begin(self, state: FuseManagerState):
+    def on_train_begin(self, state: ManagerState):
         self.virtual_batch = []
         self.state = state
         self.state.opt_closure = self.opt_closure

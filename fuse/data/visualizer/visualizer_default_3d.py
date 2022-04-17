@@ -24,12 +24,12 @@ import matplotlib.pyplot as plt
 from skimage.color import gray2rgb
 from skimage.segmentation import mark_boundaries
 
-from fuse.data.visualizer.visualizer_base import FuseVisualizerBase
+from fuse.data.visualizer.visualizer_base import VisualizerBase
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 from fuse.utils.utils_logger import log_object_input_state
 
 
-class Fuse3DVisualizerDefault(FuseVisualizerBase):
+class Fuse3DVisualizerDefault(VisualizerBase):
     """
     Visualiser for data including 3D volume with optional local annotations
     """

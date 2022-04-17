@@ -27,7 +27,7 @@ from fuse.dl.models.heads.common import ClassifierFCN
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 
 
-class FuseHeadDenseSegmentation(nn.Module):
+class HeadDenseSegmentation(nn.Module):
     def __init__(self,
                  head_name: str = 'head_0',
                  conv_inputs: Sequence[Tuple[str, int]] = (('model.backbone_features', 384),),

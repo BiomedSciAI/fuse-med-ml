@@ -21,18 +21,18 @@ from typing import Callable, Dict, Optional
 
 import torch
 
-from fuse.dl.losses.loss_base import FuseLossBase
+from fuse.dl.losses.loss_base import LossBase
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 
 
-class FuseLossDefault(FuseLossBase):
+class LossDefault(LossBase):
     """
     Default Fuse loss function
     """
 
     def __init__(self,
-                 pred_name: str = None,
-                 target_name: str = None,
+                 pred: str = None,
+                 target: str = None,
                  batch_kwargs_name: str = None,
                  callable: Callable = None,
                  sample_weight_name: Optional[str] = None,
@@ -54,8 +54,8 @@ class FuseLossDefault(FuseLossBase):
         :param kwargs:                  kwargs for PyTorch loss function
         """
         super().__init__()
-        self.pred_name = pred_name
-        self.target_name = target_name
+        self.pred_name = pred
+        self.target_name = target
         self.batch_kwargs_name = batch_kwargs_name
         self.callable = callable
         self.sample_weight_name = sample_weight_name
@@ -82,21 +82,3 @@ class FuseLossDefault(FuseLossBase):
             loss_obj = torch.mean(weighted_loss)
 
         return loss_obj
-
-
-if __name__ == '__main__':
-    import torch
-
-    batch_dict = {'pred': torch.randn(3, 5, requires_grad=True),
-                  'gt': torch.empty(3, dtype=torch.long).random_(5),
-                  'batch_loss_kwargs': {'reduction': 'mean', 'ignore_index': 0}}
-
-    loss = FuseLossDefault(pred_name='pred',
-                           target_name='gt',
-                           batch_kwargs_name='batch_loss_kwargs',
-                           callable=torch.nn.functional.cross_entropy,
-                           weight=1.0,
-                           reduction='sum')
-
-    res = loss(batch_dict)
-    print('Loss output = ' + str(res))

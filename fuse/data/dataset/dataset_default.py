@@ -29,32 +29,32 @@ from pandas import DataFrame
 from torch import Tensor
 from tqdm import tqdm, trange
 
-from fuse.data.augmentor.augmentor_base import FuseAugmentorBase
-from fuse.data.cache.cache_base import FuseCacheBase
-from fuse.data.cache.cache_files import FuseCacheFiles
-from fuse.data.cache.cache_memory import FuseCacheMemory
-from fuse.data.cache.cache_null import FuseCacheNull
-from fuse.data.data_source.data_source_base import FuseDataSourceBase
-from fuse.data.dataset.dataset_base import FuseDatasetBase
-from fuse.data.processor.processor_base import FuseProcessorBase
-from fuse.data.visualizer.visualizer_base import FuseVisualizerBase
-from fuse.utils.utils_debug import FuseUtilsDebug
+from fuse.data.augmentor.augmentor_base import AugmentorBase
+from fuse.data.cache.cache_base import CacheBase
+from fuse.data.cache.cache_files import CacheFiles
+from fuse.data.cache.cache_memory import CacheMemory
+from fuse.data.cache.cache_null import CacheNull
+from fuse.data.data_source.data_source_base import DataSourceBase
+from fuse.data.dataset.dataset_base import DatasetBase
+from fuse.data.processor.processor_base import ProcessorBase
+from fuse.data.visualizer.visualizer_base import VisualizerBase
+from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 from fuse.utils.utils_logger import log_object_input_state
 from fuse.utils.misc.misc import get_pretty_dataframe, Misc
 
 
-class FuseDatasetDefault(FuseDatasetBase):
+class DatasetDefault(DatasetBase):
     """
     Fuse Dataset Default
     Default generic implementation aimed to be used in most of the scenarios.
     """
 
     #### CONSTRUCTOR
-    def __init__(self, data_source: FuseDataSourceBase,
-                 input_processors: Optional[Dict[str, FuseProcessorBase]], gt_processors: Optional[Dict[str, FuseProcessorBase]], processors: Union[FuseProcessorBase, Dict[str, FuseProcessorBase]] = None,
-                 cache_dest: Optional[Union[str, int]] = None, augmentor: Optional[FuseAugmentorBase] = None,
-                 visualizer: Optional[FuseVisualizerBase] = None, post_processing_func=None,
+    def __init__(self, data_source: DataSourceBase,
+                 input_processors: Optional[Dict[str, ProcessorBase]], gt_processors: Optional[Dict[str, ProcessorBase]], processors: Union[ProcessorBase, Dict[str, ProcessorBase]] = None,
+                 cache_dest: Optional[Union[str, int]] = None, augmentor: Optional[AugmentorBase] = None,
+                 visualizer: Optional[VisualizerBase] = None, post_processing_func=None,
                  statistic_keys: Optional[List[str]] = None,
                  filter_keys: Optional[List[str]] = None,
                  data_key_prefix: Optional[str] = 'data'):
@@ -107,18 +107,18 @@ class FuseDatasetDefault(FuseDatasetBase):
         self.samples_description = []
 
         # create dummy cache for now - the cache will be created and loaded in create()
-        self.cache: FuseCacheBase = FuseCacheNull()
+        self.cache: CacheBase = CacheNull()
         # create dummy cache self.cache_fields used to store specific fields of the sample - used to optimize the running time of dataset.get(
         # key=<key name>, use_cache=True)
-        self.cache_fields: FuseCacheBase = FuseCacheNull()
+        self.cache_fields: CacheBase = CacheNull()
 
         # debug modes - read configuration
-        self.sample_stages_debug = FuseUtilsDebug().get_setting('dataset_sample_stages_info') != 'default'
-        self.sample_user_debug = FuseUtilsDebug().get_setting('dataset_user') != 'default'
+        self.sample_stages_debug = FuseDebug().get_setting('dataset_sample_stages_info') != 'default'
+        self.sample_user_debug = FuseDebug().get_setting('dataset_user') != 'default'
 
     def create(self, cache_all: bool = True, reset_cache: bool = False,
                num_workers: int = 16, worker_init_func: Callable = None, worker_init_args: Any = None,
-               override_datasource: Optional[FuseDataSourceBase] = None,
+               override_datasource: Optional[DataSourceBase] = None,
                pool_type: str = 'process') -> None:
         """
         Create the data set, including loading sample descriptions and caching
@@ -132,7 +132,7 @@ class FuseDatasetDefault(FuseDatasetBase):
         :return: None
         """
         # debug - override num workers
-        override_num_workers = FuseUtilsDebug().get_setting('dataset_override_num_workers')
+        override_num_workers = FuseDebug().get_setting('dataset_override_num_workers')
         if override_num_workers != 'default':
             num_workers = override_num_workers
             logging.getLogger('Fuse').info(f'Dataset - debug mode - override num workers to {override_num_workers}', {'color': 'red'})
@@ -148,19 +148,19 @@ class FuseDatasetDefault(FuseDatasetBase):
         self.samples_description = self.data_source.get_samples_description()
 
         # debug - override number of samples
-        dataset_override_num_samples = FuseUtilsDebug().get_setting('dataset_override_num_samples')
+        dataset_override_num_samples = FuseDebug().get_setting('dataset_override_num_samples')
         if dataset_override_num_samples != 'default':
             self.samples_description = self.samples_description[:dataset_override_num_samples]
             logging.getLogger('Fuse').info(f'Dataset - debug mode - override num samples to {dataset_override_num_samples}', {'color': 'red'})
 
         # cache object
         if isinstance(self.cache_dest, str) and self.cache_dest == 'memory':
-            self.cache: FuseCacheBase = FuseCacheMemory()
+            self.cache: CacheBase = CacheMemory()
         elif isinstance(self.cache_dest, str):
-            self.cache: FuseCacheBase = FuseCacheFiles(self.cache_dest, reset_cache)
+            self.cache: CacheBase = CacheFiles(self.cache_dest, reset_cache)
 
         # cache samples if required
-        if not isinstance(self.cache, FuseCacheNull) and cache_all:
+        if not isinstance(self.cache, CacheNull) and cache_all:
             self.cache_all_samples(num_workers=num_workers, worker_init_func=worker_init_func, worker_init_args=worker_init_args)
 
             # update descriptors
@@ -191,7 +191,7 @@ class FuseDatasetDefault(FuseDatasetBase):
         return sample
 
     @staticmethod
-    def getitem_without_augmentation_static(processors: Union[Dict[str, FuseProcessorBase], FuseProcessorBase], descr: Hashable, data_key_prefix: Optional[str]) -> Any:
+    def getitem_without_augmentation_static(processors: Union[Dict[str, ProcessorBase], ProcessorBase], descr: Hashable, data_key_prefix: Optional[str]) -> Any:
         """
         Get the original item, just before applying the augmentation.
         The returned value will be stored in cache
@@ -223,7 +223,7 @@ class FuseDatasetDefault(FuseDatasetBase):
         # extract the sample description to be used by the processors
         sample_data['descriptor'] = descr
         # process data
-        if isinstance(processors, FuseProcessorBase):  # handle a case of single processor
+        if isinstance(processors, ProcessorBase):  # handle a case of single processor
             try:
                 processor = processors
                 value = processor(descr)
@@ -319,7 +319,7 @@ class FuseDatasetDefault(FuseDatasetBase):
             return self.get_from_cache(index, key)
 
         ## otherwise run the processor
-        if isinstance(self.processors, FuseProcessorBase):  # single processor case
+        if isinstance(self.processors, ProcessorBase):  # single processor case
             processor = self.processors
             inner_key = key[len('data.'):]
         else:  # dictionary including multiple processors
@@ -466,7 +466,7 @@ class FuseDatasetDefault(FuseDatasetBase):
 
         if len(descriptors_to_cache) != 0:
             # multi process cache
-            lgr.info(f'FuseDatasetDefault: caching {len(descriptors_to_cache)} out of {len(all_descriptors)}')
+            lgr.info(f'DatasetDefault: caching {len(descriptors_to_cache)} out of {len(all_descriptors)}')
             with Manager() as manager:
                 # change cache mode - to caching (writing)
                 self.cache.start_caching(manager)
@@ -487,9 +487,9 @@ class FuseDatasetDefault(FuseDatasetBase):
 
                 # save and move back to read mode
                 self.cache.save()
-                lgr.info('FuseDatasetDefault: caching done')
+                lgr.info('DatasetDefault: caching done')
         else:
-            lgr.info(f'FuseDatasetDefault: all {len(all_descriptors)} samples are already cached')
+            lgr.info(f'DatasetDefault: all {len(all_descriptors)} samples are already cached')
 
     def cache_sample_fields(self, fields: List[str], reset_cache: bool = False, num_workers: int = 8, cache_dest: Optional[str] = None) -> None:
         """
@@ -504,7 +504,7 @@ class FuseDatasetDefault(FuseDatasetBase):
         lgr = logging.getLogger('Fuse')
 
         # debug - override num workers
-        override_num_workers = FuseUtilsDebug().get_setting('dataset_override_num_workers')
+        override_num_workers = FuseDebug().get_setting('dataset_override_num_workers')
         if override_num_workers != 'default':
             num_workers = override_num_workers
             lgr.info(f'Dataset - debug mode - override num workers to {override_num_workers}', {'color': 'red'})
@@ -513,12 +513,12 @@ class FuseDatasetDefault(FuseDatasetBase):
             cache_dest = os.path.join(self.cache_dest, 'fields')
 
         # create cache field object upon request
-        if isinstance(self.cache_fields, FuseCacheNull):
+        if isinstance(self.cache_fields, CacheNull):
             # cache object
             if isinstance(cache_dest, str) and cache_dest == 'memory':
-                self.cache_fields: FuseCacheBase = FuseCacheMemory()
+                self.cache_fields: CacheBase = CacheMemory()
             elif isinstance(cache_dest, str):
-                self.cache_fields: FuseCacheBase = FuseCacheFiles(cache_dest, reset_cache, single_file=True)
+                self.cache_fields: CacheBase = CacheFiles(cache_dest, reset_cache, single_file=True)
 
         # get list of desc to cache
         desc_list = self.samples_description
@@ -529,7 +529,7 @@ class FuseDatasetDefault(FuseDatasetBase):
 
         # multi thread caching
         if len(desc_to_cache) != 0:
-            lgr.info(f'FuseDatasetDefault: samples fields - caching {len(desc_to_cache)} out of {len(desc_list)}')
+            lgr.info(f'DatasetDefault: samples fields - caching {len(desc_to_cache)} out of {len(desc_list)}')
             if num_workers > 0:
                 with Manager() as manager:
                     self.cache_fields.start_caching(manager)
@@ -547,7 +547,7 @@ class FuseDatasetDefault(FuseDatasetBase):
                     self._cache_sample_fields((desc, fields))
                 self.cache_fields.save()
         else:
-            lgr.info('FuseDatasetDefault: all samples fields are already cached')
+            lgr.info('DatasetDefault: all samples fields are already cached')
 
     def _cache_sample_fields(self, args):
         # decode args
@@ -569,7 +569,7 @@ class FuseDatasetDefault(FuseDatasetBase):
         :return: None
         """
         processors, desc, cache, data_key_prefix = args
-        sample = FuseDatasetDefault.getitem_without_augmentation_static(processors, desc, data_key_prefix=data_key_prefix)
+        sample = DatasetDefault.getitem_without_augmentation_static(processors, desc, data_key_prefix=data_key_prefix)
         cache[desc] = sample
 
     #### Filtering
@@ -636,20 +636,20 @@ class FuseDatasetDefault(FuseDatasetBase):
         self.visualizer.visualize_aug(batch_dict, batch_dict_aug, block)
 
     # save and load dataset
-    def get_instance_to_save(self, mode: FuseDatasetBase.SaveMode) -> FuseDatasetBase:
+    def get_instance_to_save(self, mode: DatasetBase.SaveMode) -> DatasetBase:
         """
         See base class
         """
 
         # prepare data to save
-        dataset = FuseDatasetDefault(data_source=None,
+        dataset = DatasetDefault(data_source=None,
                                      input_processors={},
                                      gt_processors={},
                                      augmentor=self.augmentor,
                                      post_processing_func=self.post_processing_func,
                                      statistic_keys=self.statistic_keys,
                                      visualizer=self.visualizer)
-        if mode == FuseDatasetBase.SaveMode.INFERENCE and isinstance(self.processors, dict) and 'input' in self.processors:
+        if mode == DatasetBase.SaveMode.INFERENCE and isinstance(self.processors, dict) and 'input' in self.processors:
             dataset.processors = {'input': self.processors['input']}  # for inference we can save only input processors if available
         else:
             dataset.processors = self.processors
@@ -730,7 +730,7 @@ class FuseDatasetDefault(FuseDatasetBase):
             samples = sample_data
 
         # in case of multi processors, collect data of the ones implementing get_all() method
-        if not isinstance(self.processors, FuseProcessorBase):
+        if not isinstance(self.processors, ProcessorBase):
             all_keys = FuseUtilsHierarchicalDict.get_all_keys(self.processors)
             for key in all_keys:
                 processor = FuseUtilsHierarchicalDict.get(self.processors, key)

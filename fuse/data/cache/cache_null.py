@@ -23,10 +23,10 @@ Dummy cache implementation, doing nothing
 from multiprocessing import Manager
 from typing import Hashable, Any, List
 
-from fuse.data.cache.cache_base import FuseCacheBase
+from fuse.data.cache.cache_base import CacheBase
 
 
-class FuseCacheNull(FuseCacheBase):
+class CacheNull(CacheBase):
     def __init__(self):
         super().__init__()
 

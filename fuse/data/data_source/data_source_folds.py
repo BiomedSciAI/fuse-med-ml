@@ -20,12 +20,12 @@ Created on January 06, 2022
 import pandas as pd
 import os
 import numpy as np
-from fuse.data.data_source.data_source_base import FuseDataSourceBase
+from fuse.data.data_source.data_source_base import DataSourceBase
 from typing import Optional, Tuple
-from fuse.data.data_source.data_source_toolbox import FuseDataSourceToolbox
+from fuse.data.data_source.data_source_toolbox import DataSourceToolbox
 
 
-class FuseDataSourceFolds(FuseDataSourceBase):
+class DataSourceFolds(DataSourceBase):
     def __init__(self,
                  input_source: str,
                  input_df : pd.DataFrame,
@@ -63,7 +63,7 @@ class FuseDataSourceFolds(FuseDataSourceBase):
 
              if input_source is not None :
                 input_df = pd.read_csv(input_source)
-                self.folds_df = FuseDataSourceToolbox.balanced_division(df = input_df ,
+                self.folds_df = DataSourceToolbox.balanced_division(df = input_df ,
                                                                     no_mixture_id = no_mixture_id,
                                                                     key_columns = self.key_columns ,
                                                                     nfolds = self.nfolds ,
@@ -99,7 +99,7 @@ class FuseDataSourceFolds(FuseDataSourceBase):
         if isinstance(self.input_source, str):
             summary_str += 'Input source filename = %s\n' % self.input_source
 
-        summary_str += FuseDataSourceToolbox.print_folds_stat(db = self.folds_df ,
+        summary_str += DataSourceToolbox.print_folds_stat(db = self.folds_df ,
                                                                 nfolds = self.nfolds ,
                                                                 key_columns = self.key_columns )
 

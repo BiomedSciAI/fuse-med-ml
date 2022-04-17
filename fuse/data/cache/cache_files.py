@@ -31,12 +31,12 @@ from typing import Hashable, Any, List
 import torch
 torch.multiprocessing.set_sharing_strategy('file_system')
 
-from fuse.data.cache.cache_base import FuseCacheBase
+from fuse.data.cache.cache_base import CacheBase
 from fuse.utils.file_io.atomic_file import AtomicFileWriter
 from fuse.utils.file_io.file_io import create_dir, remove_dir_content
 
 
-class FuseCacheFiles(FuseCacheBase):
+class CacheFiles(CacheBase):
     def __init__(self, cache_file_dir: str, reset_cache: bool, single_file: bool=False):
         """
         :param cache_file_dir: path to cache dir

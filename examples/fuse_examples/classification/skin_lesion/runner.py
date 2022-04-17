@@ -20,9 +20,9 @@ import os
 from typing import OrderedDict
 
 from fuse.eval.evaluator import EvaluatorDefault
-from fuse.utils.utils_debug import FuseUtilsDebug
+from fuse.utils.utils_debug import FuseDebug
 
-import fuse.utils.gpu as FuseUtilsGPU
+import fuse.utils.gpu as GPU
 
 import logging
 
@@ -33,39 +33,39 @@ from torch.utils.data.dataloader import DataLoader
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
 from fuse.utils.utils_logger import fuse_logger_start
 
-from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
-from fuse.data.visualizer.visualizer_default import FuseVisualizerDefault
-from fuse.data.augmentor.augmentor_default import FuseAugmentorDefault
+from fuse.data.sampler.sampler_balanced_batch import SamplerBalancedBatch
+from fuse.data.visualizer.visualizer_default import VisualizerDefault
+from fuse.data.augmentor.augmentor_default import AugmentorDefault
 from fuse.data.augmentor.augmentor_toolbox import aug_op_affine, aug_op_color, aug_op_gaussian
-from fuse.data.dataset.dataset_default import FuseDatasetDefault
+from fuse.data.dataset.dataset_default import DatasetDefault
 
-from fuse.dl.models.model_default import FuseModelDefault
-from fuse.dl.models.backbones.backbone_resnet import FuseBackboneResnet
-from fuse.dl.models.heads.head_global_pooling_classifier import FuseHeadGlobalPoolingClassifier
-from fuse.dl.models.backbones.backbone_inception_resnet_v2 import FuseBackboneInceptionResnetV2
+from fuse.dl.models.model_default import ModelDefault
+from fuse.dl.models.backbones.backbone_resnet import BackboneResnet
+from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
+from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
 
-from fuse.dl.losses.loss_default import FuseLossDefault
+from fuse.dl.losses.loss_default import LossDefault
 
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy, MetricROCCurve
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 
-from fuse.dl.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
-from fuse.dl.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
-from fuse.dl.managers.callbacks.callback_time_statistics import FuseTimeStatisticsCallback
-from fuse.dl.managers.manager_default import FuseManagerDefault
+from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
+from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
+from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
+from fuse.dl.managers.manager_default import ManagerDefault
 
 
-from fuse_examples.classification.skin_lesion.data_source import FuseSkinDataSource
-from fuse_examples.classification.skin_lesion.input_processor import FuseSkinInputProcessor
-from fuse_examples.classification.skin_lesion.ground_truth_processor import FuseSkinGroundTruthProcessor
+from fuse_examples.classification.skin_lesion.data_source import SkinDataSource
+from fuse_examples.classification.skin_lesion.input_processor import SkinInputProcessor
+from fuse_examples.classification.skin_lesion.ground_truth_processor import SkinGroundTruthProcessor
 from fuse_examples.classification.skin_lesion.download import download_and_extract_isic
 
 
 ##########################################
 # Debug modes
 ##########################################
-mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseUtilsDebug
-debug = FuseUtilsDebug(mode)
+mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
+debug = FuseDebug(mode)
 
 ##########################################
 # Output Paths
@@ -188,29 +188,29 @@ def run_train(paths: dict, train_common_params: dict):
     partition_file = {'2016': "train_val_split.pickle",
                       '2017': None}  # as no validation set is available in 2016 dataset, it needs to be created
 
-    train_data_source = FuseSkinDataSource(input_source_gt[train_common_params['data.year']],
+    train_data_source = SkinDataSource(input_source_gt[train_common_params['data.year']],
                                            partition_file=partition_file[train_common_params['data.year']],
                                            train=True,
                                            override_partition=True)
 
     ## Create data processors:
     input_processors = {
-        'input_0': FuseSkinInputProcessor(input_data=training_data[train_common_params['data.year']])
+        'input_0': SkinInputProcessor(input_data=training_data[train_common_params['data.year']])
     }
     gt_processors = {
-        'gt_global': FuseSkinGroundTruthProcessor(input_data=input_source_gt[train_common_params['data.year']],
+        'gt_global': SkinGroundTruthProcessor(input_data=input_source_gt[train_common_params['data.year']],
                                                   year=train_common_params['data.year'])
     }
 
     # Create data augmentation (optional)
-    augmentor = FuseAugmentorDefault(
+    augmentor = AugmentorDefault(
         augmentation_pipeline=train_common_params['data.augmentation_pipeline'])
 
     # Create visualizer (optional)
-    visualizer = FuseVisualizerDefault(image_name='data.input.input_0', label_name='data.gt.gt_global.tensor')
+    visualizer = VisualizerDefault(image_name='data.input.input_0', label_name='data.gt.gt_global.tensor')
 
     # Create dataset
-    train_dataset = FuseDatasetDefault(cache_dest=paths['cache_dir'],
+    train_dataset = DatasetDefault(cache_dest=paths['cache_dir'],
                                        data_source=train_data_source,
                                        input_processors=input_processors,
                                        gt_processors=gt_processors,
@@ -223,7 +223,7 @@ def run_train(paths: dict, train_common_params: dict):
 
     ## Create sampler
     lgr.info(f'- Create sampler:')
-    sampler = FuseSamplerBalancedBatch(dataset=train_dataset,
+    sampler = SamplerBalancedBatch(dataset=train_dataset,
                                        balanced_class_name='data.gt.gt_global.tensor',
                                        num_balanced_classes=2,
                                        batch_size=train_common_params['data.batch_size'])
@@ -241,20 +241,20 @@ def run_train(paths: dict, train_common_params: dict):
     lgr.info(f'Validation Data:', {'attrs': 'bold'})
 
     ## Create data source
-    validation_data_source = FuseSkinDataSource(input_source_gt_val[train_common_params['data.year']],
+    validation_data_source = SkinDataSource(input_source_gt_val[train_common_params['data.year']],
                                                 partition_file=partition_file[train_common_params['data.year']],
                                                 train=False)
 
     input_processors = {
-        'input_0': FuseSkinInputProcessor(input_data=validation_data[train_common_params['data.year']])
+        'input_0': SkinInputProcessor(input_data=validation_data[train_common_params['data.year']])
     }
     gt_processors = {
-        'gt_global': FuseSkinGroundTruthProcessor(input_data=input_source_gt_val[train_common_params['data.year']],
+        'gt_global': SkinGroundTruthProcessor(input_data=input_source_gt_val[train_common_params['data.year']],
                                                   year=train_common_params['data.year'])
     }
 
     ## Create dataset
-    validation_dataset = FuseDatasetDefault(cache_dest=paths['cache_dir'],
+    validation_dataset = DatasetDefault(cache_dest=paths['cache_dir'],
                                             data_source=validation_data_source,
                                             input_processors=input_processors,
                                             gt_processors=gt_processors,
@@ -280,12 +280,12 @@ def run_train(paths: dict, train_common_params: dict):
     # ==============================================================================
     lgr.info('Model:', {'attrs': 'bold'})
 
-    model = FuseModelDefault(
+    model = ModelDefault(
         conv_inputs=(('data.input.input_0', 1),),
-        backbone={'Resnet18': FuseBackboneResnet(pretrained=True, in_channels=3, name='resnet18'),
-                  'InceptionResnetV2': FuseBackboneInceptionResnetV2(input_channels_num=3, logical_units_num=43)}['InceptionResnetV2'],
+        backbone={'Resnet18': BackboneResnet(pretrained=True, in_channels=3, name='resnet18'),
+                  'InceptionResnetV2': BackboneInceptionResnetV2(input_channels_num=3, logical_units_num=43)}['InceptionResnetV2'],
         heads=[
-            FuseHeadGlobalPoolingClassifier(head_name='head_0',
+            HeadGlobalPoolingClassifier(head_name='head_0',
                                             dropout_rate=0.5,
                                             conv_inputs=[('model.backbone_features', 1536)],
                                             num_classes=2,
@@ -299,7 +299,7 @@ def run_train(paths: dict, train_common_params: dict):
     #  Loss
     # ====================================================================================
     losses = {
-        'cls_loss': FuseLossDefault(pred_name='model.logits.head_0', target_name='data.gt.gt_global.tensor',
+        'cls_loss': LossDefault(pred='model.logits.head_0', target='data.gt.gt_global.tensor',
                                     callable=F.cross_entropy, weight=1.0)
     }
 
@@ -318,9 +318,9 @@ def run_train(paths: dict, train_common_params: dict):
     # =====================================================================================
     callbacks = [
         # default callbacks
-        FuseTensorboardCallback(model_dir=paths['model_dir']),  # save statistics for tensorboard
-        FuseMetricStatisticsCallback(output_path=paths['model_dir'] + "/metrics.csv"),  # save statistics in a csv file
-        FuseTimeStatisticsCallback(num_epochs=train_common_params['manager.train_params']['num_epochs'], load_expected_part=0.1)  # time profiler
+        TensorboardCallback(model_dir=paths['model_dir']),  # save statistics for tensorboard
+        MetricStatisticsCallback(output_path=paths['model_dir'] + "/metrics.csv"),  # save statistics in a csv file
+        TimeStatisticsCallback(num_epochs=train_common_params['manager.train_params']['num_epochs'], load_expected_part=0.1)  # time profiler
     ]
 
     # =====================================================================================
@@ -338,7 +338,7 @@ def run_train(paths: dict, train_common_params: dict):
                  'CosineAnnealing': optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=1)}['ReduceLROnPlateau']
 
     # train from scratch
-    manager = FuseManagerDefault(output_model_dir=paths['model_dir'], force_reset=paths['force_reset_model_dir'])
+    manager = ManagerDefault(output_model_dir=paths['model_dir'], force_reset=paths['force_reset_model_dir'])
     # Providing the objects required for the training process.
     manager.set_objects(net=model,
                         optimizer=optimizer,
@@ -384,22 +384,22 @@ def run_infer(paths: dict, infer_common_params: dict):
     infer_data = {'2016': os.path.join(paths['data_dir'], 'data/ISIC2016_Test_Data/'),
                   '2017': os.path.join(paths['data_dir'], 'data/ISIC2017_Test_Data/')}
 
-    infer_data_source = FuseSkinDataSource(input_source[infer_common_params['data.year']])
+    infer_data_source = SkinDataSource(input_source[infer_common_params['data.year']])
 
     # Create data processors
     input_processors_infer = {
-        'input_0': FuseSkinInputProcessor(input_data=infer_data[infer_common_params['data.year']])
+        'input_0': SkinInputProcessor(input_data=infer_data[infer_common_params['data.year']])
     }
     gt_processors_infer = {
-        'gt_global': FuseSkinGroundTruthProcessor(input_data=input_source[infer_common_params['data.year']],
+        'gt_global': SkinGroundTruthProcessor(input_data=input_source[infer_common_params['data.year']],
                                                   train=False, year=infer_common_params['data.year'])
     }
 
     # Create visualizer (optional)
-    visualizer = FuseVisualizerDefault(image_name='data.input.input_0', label_name='data.gt.gt_global.tensor')
+    visualizer = VisualizerDefault(image_name='data.input.input_0', label_name='data.gt.gt_global.tensor')
 
     # Create dataset
-    infer_dataset = FuseDatasetDefault(cache_dest=paths['cache_dir'],
+    infer_dataset = DatasetDefault(cache_dest=paths['cache_dir'],
                                        data_source=infer_data_source,
                                        input_processors=input_processors_infer,
                                        gt_processors=gt_processors_infer,
@@ -416,7 +416,7 @@ def run_infer(paths: dict, infer_common_params: dict):
     lgr.info(f'Test Data: Done', {'attrs': 'bold'})
 
     #### Manager for inference
-    manager = FuseManagerDefault()
+    manager = ManagerDefault()
     # extract just the global classification per sample and save to a file
     output_columns = ['model.output.head_0', 'data.gt.gt_global.tensor']
     manager.infer(data_loader=infer_dataloader,
@@ -479,7 +479,7 @@ if __name__ == "__main__":
         TRAIN_COMMON_PARAMS['manager.train_params']['device'] = 'cpu'
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None  # [0]
-    FuseUtilsGPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
+    GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
     RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
 

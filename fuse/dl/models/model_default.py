@@ -21,12 +21,12 @@ from typing import Sequence, Dict, Tuple
 
 import torch
 
-from fuse.dl.models.backbones.backbone_inception_resnet_v2 import FuseBackboneInceptionResnetV2
-from fuse.dl.models.heads.head_global_pooling_classifier import FuseHeadGlobalPoolingClassifier
+from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
+from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 
 
-class FuseModelDefault(torch.nn.Module):
+class ModelDefault(torch.nn.Module):
     """
     Default Fuse model - convolutional neural network with multiple heads
     """
@@ -76,7 +76,7 @@ class FuseModelDefault(torch.nn.Module):
 
 
 if __name__ == '__main__':
-    from fuse.dl.models.heads.head_dense_segmentation import FuseHeadDenseSegmentation
+    from fuse.dl.models.heads.head_dense_segmentation import HeadDenseSegmentation
     import torch
     import os
 
@@ -85,16 +85,16 @@ if __name__ == '__main__':
     DEVICE = 'cpu'  # 'cuda'
     DATAPARALLEL = False  # True
 
-    model = FuseModelDefault(
+    model = ModelDefault(
         conv_inputs=(('data.input.input_0.tensor', 1),),
-        backbone=FuseBackboneInceptionResnetV2(),
+        backbone=BackboneInceptionResnetV2(),
         heads=[
-            FuseHeadGlobalPoolingClassifier(head_name='head_0',
+            HeadGlobalPoolingClassifier(head_name='head_0',
                                             conv_inputs=[('model.backbone_features', 384)],
                                             post_concat_inputs=None,
                                             num_classes=2),
 
-            FuseHeadDenseSegmentation(head_name='head_1',
+            HeadDenseSegmentation(head_name='head_1',
                                       conv_inputs=[('model.backbone_features', 384)],
                                       num_classes=2)
         ]

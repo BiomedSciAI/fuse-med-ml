@@ -7,19 +7,19 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 from baseline.dataset import knight_dataset
 import pandas as pd
-from fuse.dl.models.model_default import FuseModelDefault
-from fuse.dl.models.backbones.backbone_resnet_3d import FuseBackboneResnet3D
-from fuse.dl.models.heads.head_3D_classifier import FuseHead3dClassifier
-from fuse.dl.losses.loss_default import FuseLossDefault
+from fuse.dl.models.model_default import ModelDefault
+from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
+from fuse.dl.models.heads.head_3D_classifier import Head3dClassifier
+from fuse.dl.losses.loss_default import LossDefault
 import torch.nn.functional as F
 import torch.nn as nn
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy, MetricConfusion
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 import torch.optim as optim
-from fuse.dl.managers.manager_default import FuseManagerDefault
-from fuse.dl.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
-from fuse.dl.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
-import fuse.utils.gpu as FuseUtilsGPU
+from fuse.dl.managers.manager_default import ManagerDefault
+from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
+from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
+import fuse.utils.gpu as GPU
 from fuse.utils.rand.seed import Seed
 import logging
 import time
@@ -88,7 +88,7 @@ def main():
     rand_gen = Seed.set_seed(1234, deterministic_mode=True)
 
     # select gpus
-    FuseUtilsGPU.choose_and_enable_multiple_gpus(len(force_gpus), force_gpus=force_gpus)
+    GPU.choose_and_enable_multiple_gpus(len(force_gpus), force_gpus=force_gpus)
 
     ## FuseMedML dataset preparation
     ##############################################################################
@@ -121,7 +121,7 @@ def main():
     ##############################################################################
 
     if use_data['imaging']:
-        backbone = FuseBackboneResnet3D(in_channels=1)
+        backbone = BackboneResnet3D(in_channels=1)
         conv_inputs = [('model.backbone_features', 512)]
     else:
         backbone = nn.Identity()
@@ -131,11 +131,11 @@ def main():
     else:
         append_features = None
 
-    model = FuseModelDefault(
+    model = ModelDefault(
         conv_inputs=(('data.input.image', 1),),
         backbone=backbone,
         heads=[
-            FuseHead3dClassifier(head_name='head_0',
+            Head3dClassifier(head_name='head_0',
                                 conv_inputs=conv_inputs,
                                 dropout_rate=imaging_dropout, 
                                 num_classes=num_classes,
@@ -150,7 +150,7 @@ def main():
     # Loss definition:
     ##############################################################################
     losses = {
-        'cls_loss': FuseLossDefault(pred_name='model.logits.head_0', target_name=target_name,
+        'cls_loss': LossDefault(pred='model.logits.head_0', target=target_name,
                                     callable=F.cross_entropy, weight=1.0)
     }
 
@@ -183,11 +183,11 @@ def main():
 
     # set tensorboard callback
     callbacks = {
-        FuseTensorboardCallback(model_dir=model_dir), # save statistics for tensorboard
-        FuseMetricStatisticsCallback(output_path=model_dir + "/metrics.csv"),  # save statistics a csv file
+        TensorboardCallback(model_dir=model_dir), # save statistics for tensorboard
+        MetricStatisticsCallback(output_path=model_dir + "/metrics.csv"),  # save statistics a csv file
 
     }
-    manager = FuseManagerDefault(output_model_dir=model_dir, force_reset=True)
+    manager = ManagerDefault(output_model_dir=model_dir, force_reset=True)
     manager.set_objects(net=model,
                         optimizer=optimizer,
                         losses=losses,

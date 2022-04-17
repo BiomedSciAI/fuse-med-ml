@@ -23,10 +23,10 @@ import torch
 import pandas as pd
 from torch import Tensor
 
-from fuse.data.processor.processor_base import FuseProcessorBase
+from fuse.data.processor.processor_base import ProcessorBase
 
 
-class FuseProcessorDataFrame(FuseProcessorBase):
+class ProcessorDataFrame(ProcessorBase):
     """
     Processor reading data from pickle file / dataframe object.
     Covert each row to a dictionary
@@ -54,11 +54,11 @@ class FuseProcessorDataFrame(FuseProcessorBase):
         # verify input
         lgr = logging.getLogger('Fuse')
         if data is None and data_pickle_filename is None:
-            msg = "Error in FuseProcessorDataFrame - need to provide either in-memory DataFrame or a path to pickled DataFrame."
+            msg = "Error in ProcessorDataFrame - need to provide either in-memory DataFrame or a path to pickled DataFrame."
             lgr.error(msg)
             raise Exception(msg)
         elif data is not None and data_pickle_filename is not None:
-            msg = "Error in FuseProcessorDataFrame - need to provide either 'data' or 'data_pickle_filename' args, bot not both."
+            msg = "Error in ProcessorDataFrame - need to provide either 'data' or 'data_pickle_filename' args, bot not both."
             lgr.error(msg)
             raise Exception(msg)
 

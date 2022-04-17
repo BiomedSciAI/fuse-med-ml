@@ -19,20 +19,20 @@ Created on June 30, 2021
 
 from typing import Dict, List, Sequence
 
-from fuse.data.augmentor.augmentor_default import FuseAugmentorDefault
-from fuse.dl.managers.callbacks.callback_base import FuseCallback
+from fuse.data.augmentor.augmentor_default import AugmentorDefault
+from fuse.dl.managers.callbacks.callback_base import Callback
 
 
-class FuseAugmentorBatchCallback(FuseCallback):
+class AugmentorBatchCallback(Callback):
     """
     Simple class which gets augmentation pipeline and apply augmentation on a batch level batch dict
     """
     def __init__(self, aug_pipeline: List, modes: Sequence[str] = ('train',)):
         """
-        :param aug_pipeline: See  FuseAugmentorDefault
+        :param aug_pipeline: See  AugmentorDefault
         :param modes: modees to apply the augmentation: 'train', 'validation' and/or 'infer'
         """
-        self._augmentor = FuseAugmentorDefault(aug_pipeline)
+        self._augmentor = AugmentorDefault(aug_pipeline)
         self._modes = modes
 
     def on_data_fetch_end(self, mode: str, batch: int, batch_dict: Dict = None) -> None:

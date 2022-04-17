@@ -19,15 +19,15 @@ Created on June 30, 2021
 
 import os
 from typing import Dict
-from fuse.dl.managers.callbacks.callback_base import FuseCallback
-from fuse.dl.managers.manager_state import FuseManagerState
+from fuse.dl.managers.callbacks.callback_base import Callback
+from fuse.dl.managers.manager_state import ManagerState
 from fuse.utils.file_io.file_io import create_dir
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 import torch
 import numpy as np
 
 
-class FuseTensorboardCallback(FuseCallback):
+class TensorboardCallback(Callback):
     """
         Responsible for writing the data of both training and validation to tensorborad loggers under model_dir.
     """
@@ -73,7 +73,7 @@ class FuseTensorboardCallback(FuseCallback):
 
         return
 
-    def on_train_begin(self, state: FuseManagerState) -> None:
+    def on_train_begin(self, state: ManagerState) -> None:
         """
         Called at the beginning of the train procedure.
 

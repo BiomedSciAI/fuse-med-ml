@@ -19,10 +19,10 @@ Created on June 30, 2021
 
 from typing import Sequence, Hashable
 
-from fuse.data.data_source.data_source_base import FuseDataSourceBase
+from fuse.data.data_source.data_source_base import DataSourceBase
 
 
-class FuseDataSourceFromList(FuseDataSourceBase):
+class DataSourceFromList(DataSourceBase):
     """
     Simple DataSource that can be initialized with a Python list (or other sequence).
     Does nothing but passing the list to Dataset.
@@ -36,5 +36,5 @@ class FuseDataSourceFromList(FuseDataSourceBase):
 
     def summary(self) -> str:
         summary_str = ''
-        summary_str += 'FuseDataSourceFromList - %d samples\n' % len(self.list_of_samples)
+        summary_str += 'DataSourceFromList - %d samples\n' % len(self.list_of_samples)
         return summary_str

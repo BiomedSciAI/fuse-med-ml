@@ -27,10 +27,10 @@ import logging
 import traceback
 from typing import Optional, Tuple
 
-from fuse.data.processor.processor_base import FuseProcessorBase
+from fuse.data.processor.processor_base import ProcessorBase
 
 
-class FuseSkinInputProcessor(FuseProcessorBase):
+class SkinInputProcessor(ProcessorBase):
     def __init__(self,
                  input_data: str,
                  normalized_target_range: Tuple = (0, 1),

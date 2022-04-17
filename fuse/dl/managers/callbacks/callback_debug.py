@@ -23,12 +23,12 @@ from typing import Dict
 
 import torch.nn as nn
 
-from fuse.dl.managers.callbacks.callback_base import FuseCallback
+from fuse.dl.managers.callbacks.callback_base import Callback
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 from fuse.utils.misc.misc import Misc
 
 
-class FuseCallbackDebug(FuseCallback):
+class CallbackDebug(Callback):
     """
     Callback used to log the information about each stage: begin/end time and fuse main structure: batch_dict, virtual_batch_results and
     epoch_results

@@ -22,7 +22,7 @@ import tempfile
 import unittest
 import os
 
-import fuse.utils.gpu as FuseUtilsGPU
+import fuse.utils.gpu as GPU
 from fuse_examples.classification.mnist.runner import TRAIN_COMMON_PARAMS, run_train, run_infer, run_eval, INFER_COMMON_PARAMS, \
     EVAL_COMMON_PARAMS
 
@@ -47,7 +47,7 @@ class ClassificationMnistTestCase(unittest.TestCase):
         self.analyze_common_params = EVAL_COMMON_PARAMS
 
     def test_template(self):
-        num_gpus_allocated = FuseUtilsGPU.choose_and_enable_multiple_gpus(1, use_cpu_if_fail=True)
+        num_gpus_allocated = GPU.choose_and_enable_multiple_gpus(1, use_cpu_if_fail=True)
         if num_gpus_allocated == 0:
             self.train_common_params['manager.train_params']['device'] = 'cpu'
         run_train(self.paths, self.train_common_params)

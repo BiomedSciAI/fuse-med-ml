@@ -24,7 +24,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 
-class FuseAugmentorBase(ABC):
+class AugmentorBase(ABC):
     """
     Base class for augmentor.
     Given an augmenatation pipline description, expected to sample random parameters first and then apply them.

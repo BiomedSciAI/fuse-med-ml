@@ -1,19 +1,19 @@
 from functools import partial
 from multiprocessing import Manager
 
-from fuse.data.augmentor.augmentor_default import FuseAugmentorDefault
+from fuse.data.augmentor.augmentor_default import AugmentorDefault
 from fuse.data.augmentor.augmentor_toolbox import unsqueeze_2d_to_3d, aug_op_color, aug_op_affine, squeeze_3d_to_2d, \
     rotation_in_3d
-from fuse.data.dataset.dataset_generator import FuseDatasetGenerator
+from fuse.data.dataset.dataset_generator import DatasetGenerator
 
-import fuse.utils.gpu as FuseUtilsGPU
+import fuse.utils.gpu as GPU
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool, Choice
 
-from fuse_examples.classification.prostate_x.patient_data_source import FuseProstateXDataSourcePatient
-from fuse_examples.classification.prostate_x.processor import  FuseProstateXPatchProcessor
+from fuse_examples.classification.prostate_x.patient_data_source import ProstateXDataSourcePatient
+from fuse_examples.classification.prostate_x.processor import  ProstateXPatchProcessor
 from fuse_examples.classification.prostate_x.post_processor import post_processing
-# from fuse_examples.classification.prostate_x.processor_dicom_mri import FuseDicomMRIProcessor
-from fuse.data.processor.processor_dicom_mri import FuseDicomMRIProcessor
+# from fuse_examples.classification.prostate_x.processor_dicom_mri import DicomMRIProcessor
+from fuse.data.processor.processor_dicom_mri import DicomMRIProcessor
 
 
 def process_mri_series():
@@ -73,7 +73,7 @@ def prostate_x_dataset(paths,train_common_params,lgr):
     lgr.info(f'database_revision={DATABASE_REVISION}', {'color': 'magenta'})
 
     # create data source
-    train_data_source = FuseProstateXDataSourcePatient(paths['data_dir'], 'train',
+    train_data_source = ProstateXDataSourcePatient(paths['data_dir'], 'train',
                                                        db_ver=train_common_params['db_version'],
                                                        db_name=train_common_params['db_name'],
                                                        fold_no=train_common_params['fold_no'])
@@ -89,8 +89,8 @@ def prostate_x_dataset(paths,train_common_params,lgr):
     seq_to_use_dict, SER_INX_TO_USE, \
     exp_patients, seq_to_use, subseq_to_use = process_mri_series()
 
-    generate_processor = FuseProstateXPatchProcessor(
-        vol_processor=FuseDicomMRIProcessor(reference_inx=0,
+    generate_processor = ProstateXPatchProcessor(
+        vol_processor=DicomMRIProcessor(reference_inx=0,
                                             seq_dict=seq_to_use_dict,
                                             seq_to_use=seq_to_use,
                                             subseq_to_use=subseq_to_use,
@@ -155,10 +155,10 @@ def prostate_x_dataset(paths,train_common_params,lgr):
             {}
         ],
     ]
-    augmentor = FuseAugmentorDefault(augmentation_pipeline=aug_pipeline)
+    augmentor = AugmentorDefault(augmentation_pipeline=aug_pipeline)
 
     # Create dataset
-    train_dataset = FuseDatasetGenerator(cache_dest=paths['cache_dir'],
+    train_dataset = DatasetGenerator(cache_dest=paths['cache_dir'],
                                          data_source=train_data_source,
                                          processor=generate_processor,
                                          post_processing_func=train_post_processor,
@@ -177,7 +177,7 @@ def prostate_x_dataset(paths,train_common_params,lgr):
     lgr.info(f'Validation Data:', {'attrs': 'bold'})
 
     ## Create data source
-    validation_data_source = FuseProstateXDataSourcePatient(paths['data_dir'], 'validation',
+    validation_data_source = ProstateXDataSourcePatient(paths['data_dir'], 'validation',
                                                             db_ver=DATABASE_REVISION,
                                                             db_name=train_common_params['db_name'],
                                                             fold_no=train_common_params['fold_no'])
@@ -186,7 +186,7 @@ def prostate_x_dataset(paths,train_common_params,lgr):
     validation_post_processor = partial(post_processing)
 
     ## Create dataset
-    validation_dataset = FuseDatasetGenerator(cache_dest=paths['cache_dir'],
+    validation_dataset = DatasetGenerator(cache_dest=paths['cache_dir'],
                                               data_source=validation_data_source,
                                               processor=generate_processor,
                                               post_processing_func=validation_post_processor,

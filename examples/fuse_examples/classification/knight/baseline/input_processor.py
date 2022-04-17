@@ -27,11 +27,11 @@ import logging
 import traceback
 from typing import Optional, Tuple
 
-from fuse.data.processor.processor_base import FuseProcessorBase
+from fuse.data.processor.processor_base import ProcessorBase
 
 import SimpleITK as sitk
 
-class KiTSBasicInputProcessor(FuseProcessorBase):
+class KiTSBasicInputProcessor(ProcessorBase):
     def __init__(self,
                  input_data: str,
                  normalized_target_range: Tuple = (0, 1),

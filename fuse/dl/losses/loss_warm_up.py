@@ -1,9 +1,7 @@
 from typing import Dict
 import torch
 
-from fuse.metrics.metric_base import FuseMetricBase
-
-class FuseLossWarmUp(torch.nn.Module):
+class LossWarmUp(torch.nn.Module):
     def __init__(self, loss: torch.nn.Module, nof_iterations: int):
         super().__init__()
         self._loss = loss

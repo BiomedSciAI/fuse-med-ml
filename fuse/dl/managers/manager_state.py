@@ -25,13 +25,13 @@ import torch.nn as nn
 from torch.optim.optimizer import Optimizer
 from torch.utils.data.dataloader import DataLoader
 
-from fuse.dl.losses.loss_base import FuseLossBase
+from fuse.dl.losses.loss_base import LossBase
 from fuse.eval import MetricBase
 
 
-class FuseManagerState:
+class ManagerState:
     """
-    FuseManagerState contains the current state of the manager.
+    ManagerState contains the current state of the manager.
     """
 
     def __init__(self) -> None:
@@ -40,7 +40,7 @@ class FuseManagerState:
 
         self.net: nn.Module
         self.metrics: Dict[str, MetricBase] = {}
-        self.losses: Dict[str, FuseLossBase] = {}
+        self.losses: Dict[str, LossBase] = {}
         self.optimizer: Optimizer
         self.lr_scheduler: Any
         self.train_params: Dict = {}

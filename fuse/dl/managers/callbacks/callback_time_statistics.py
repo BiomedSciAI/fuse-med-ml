@@ -23,12 +23,12 @@ from typing import Dict
 
 import torch.nn as nn
 
-from fuse.dl.managers.callbacks.callback_base import FuseCallback
-from fuse.dl.managers.manager_state import FuseManagerState
+from fuse.dl.managers.callbacks.callback_base import Callback
+from fuse.dl.managers.manager_state import ManagerState
 from fuse.utils.misc.misc import get_time_delta, time_display
 
 
-class FuseTimeStatisticsCallback(FuseCallback):
+class TimeStatisticsCallback(Callback):
     """
         Counts time of procedures.
     """
@@ -131,7 +131,7 @@ class FuseTimeStatisticsCallback(FuseCallback):
         logging.getLogger('Fuse').debug(f"Time for {mode} batch {batch}: {get_time_delta(self.batch_begin_time)}")
         pass
 
-    def on_train_begin(self, state: FuseManagerState) -> None:
+    def on_train_begin(self, state: ManagerState) -> None:
         # update number of epochs from the manager's state:
         self.num_epochs = state.num_epochs
         self.train_begin_time = time.time()

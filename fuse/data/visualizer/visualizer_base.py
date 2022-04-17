@@ -21,7 +21,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 
-class FuseVisualizerBase(ABC):
+class VisualizerBase(ABC):
 
     @abstractmethod
     def visualize(self, sample: Any, block: bool = True) -> None:

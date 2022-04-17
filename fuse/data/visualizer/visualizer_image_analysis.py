@@ -22,11 +22,11 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 
-from fuse.data.visualizer.visualizer_base import FuseVisualizerBase
+from fuse.data.visualizer.visualizer_base import VisualizerBase
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 
 
-class FuseVisualizerImageAnalysis(FuseVisualizerBase):
+class VisualizerImageAnalysis(VisualizerBase):
     """
     Class for producing analysis of an image
     """

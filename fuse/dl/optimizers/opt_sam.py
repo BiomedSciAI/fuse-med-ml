@@ -31,22 +31,22 @@ from typing import Dict
 import torch
 
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
-from fuse.dl.managers.callbacks.callback_base import FuseCallback
-from fuse.dl.managers.manager_state import FuseManagerState
+from fuse.dl.managers.callbacks.callback_base import Callback
+from fuse.dl.managers.manager_state import ManagerState
 
 
 class SAM(torch.optim.Optimizer):
     """
     SAM optimizer - see https://github.com/davda54/sam/blob/main/sam.py
     To use in FuseMedML:
-    Create the optimizer and add FuseCallbackSamOpt() to the list of callbacks:.
+    Create the optimizer and add CallbackSamOpt() to the list of callbacks:.
     Examples:
     base_optimizer = torch.optim.SGD
     optimizer = SAM(model.parameters(), base_optimizer,
                     lr=lr,
                     momentum=momentum,
                     weight_decay=weight_decay)
-    callbacks.append(FuseCallbackSamOpt())
+    callbacks.append(CallbackSamOpt())
 
     """
     def __init__(self, params, base_optimizer, rho=0.05, **kwargs):
@@ -99,12 +99,12 @@ class SAM(torch.optim.Optimizer):
         )
 
 
-class FuseCallbackSamOpt(FuseCallback):
+class CallbackSamOpt(Callback):
     """
     Use this callback for SAM optimizer
     """
 
-    def on_train_begin(self, state: FuseManagerState):
+    def on_train_begin(self, state: ManagerState):
         self.state = state
 
     def on_batch_end(self, mode: str, batch: int, batch_dict: Dict = None):

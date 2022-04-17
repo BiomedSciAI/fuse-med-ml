@@ -25,11 +25,11 @@ import os
 import logging
 from fuse.utils.utils_logger import fuse_logger_start
 
-from fuse.dl.managers.manager_default import FuseManagerDefault
+from fuse.dl.managers.manager_default import ManagerDefault
 from fuse.utils.file_io.file_io import create_or_reset_dir
 
 
-class FuseManagerTestCase(unittest.TestCase):
+class ManagerTestCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -38,7 +38,7 @@ class FuseManagerTestCase(unittest.TestCase):
         create_or_reset_dir(self.tempdir, force_reset=True)
         fuse_logger_start(output_path=self.tempdir, console_verbose_level=logging.INFO)
 
-        self.manager = FuseManagerDefault(self.tempdir, force_reset=True)
+        self.manager = ManagerDefault(self.tempdir, force_reset=True)
         self.train_dict = {'metric_1': 100, 'metric_2': 80, 'metric_3': 75}
         self.validation_dict = {'metric_1': 90, 'metric_2': 70, 'metric_3': 60}
         self.manager.state.current_epoch = 7

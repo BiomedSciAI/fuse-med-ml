@@ -27,7 +27,7 @@ from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 from fuse.dl.models.heads.common import ClassifierMLP
 
 
-class FuseHead3dClassifier(nn.Module):
+class Head3dClassifier(nn.Module):
     """
     Model that capture slice feature including the 3D context given the local feature about a slice.
     """

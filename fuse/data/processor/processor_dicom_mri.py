@@ -25,7 +25,7 @@ import logging
 import h5py
 from typing import Tuple
 import pandas as pd
-from fuse.data.processor.processor_base import FuseProcessorBase
+from fuse.data.processor.processor_base import ProcessorBase
 
 
 # ========================================================================
@@ -74,13 +74,13 @@ B_SER_FIX = ['diffusie-3Scan-4bval_fs',
              'ep2d_DIFF_tra_b50_500_800_1400_alle_spoelen',
              'diff tra b 50 500 800 WIP511b alle spoelen']
 
-class FuseDicomMRIProcessor(FuseProcessorBase):
+class DicomMRIProcessor(ProcessorBase):
     def __init__(self,verbose: bool=True,reference_inx: int=0,seq_dict:dict=SEQ_DICT,
                  seq_to_use:list=SEQ_TO_USE,subseq_to_use:list=SUB_SEQ_TO_USE,
                  ser_inx_to_use:dict=SER_INX_TO_USE,exp_patients:dict=EXP_PATIENTS,
                  use_order_indicator: bool=False):
         '''
-        FuseDicomMRIProcessor is MRI volume processor
+        DicomMRIProcessor is MRI volume processor
         :param verbose: if print verbose
         :param reference_inx: index for the sequence that is selected as reference from SEQ_TO_USE (0 for T2)
         :param seq_dict: dictionary in which varies series descriptions are grouped

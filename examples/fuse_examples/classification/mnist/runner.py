@@ -31,17 +31,17 @@ from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms
 
 from fuse.eval.evaluator import EvaluatorDefault 
-from fuse.data.dataset.dataset_wrapper import FuseDatasetWrapper
-from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
-from fuse.dl.losses.loss_default import FuseLossDefault
-from fuse.dl.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
-from fuse.dl.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
-from fuse.dl.managers.callbacks.callback_time_statistics import FuseTimeStatisticsCallback
-from fuse.dl.managers.manager_default import FuseManagerDefault
+from fuse.data.dataset.dataset_wrapper import DatasetWrapper
+from fuse.data.sampler.sampler_balanced_batch import SamplerBalancedBatch
+from fuse.dl.losses.loss_default import LossDefault
+from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
+from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
+from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
+from fuse.dl.managers.manager_default import ManagerDefault
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
-from fuse.dl.models.model_wrapper import FuseModelWrapper
-from fuse.utils.utils_debug import FuseUtilsDebug
-import fuse.utils.gpu as FuseUtilsGPU
+from fuse.dl.models.model_wrapper import ModelWrapper
+from fuse.utils.utils_debug import FuseDebug
+import fuse.utils.gpu as GPU
 from fuse.utils.utils_logger import fuse_logger_start
 from fuse_examples.classification.mnist import lenet
 ###########################################################################################################
@@ -50,8 +50,8 @@ from fuse_examples.classification.mnist import lenet
 ##########################################
 # Debug modes
 ##########################################
-mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseUtilsDebug
-debug = FuseUtilsDebug(mode)
+mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
+debug = FuseDebug(mode)
 
 ##########################################
 # Output Paths
@@ -137,10 +137,10 @@ def run_train(paths: dict, train_params: dict):
     torch_train_dataset = torchvision.datasets.MNIST(paths['cache_dir'], download=True, train=True, transform=transform)
     # wrapping torch dataset
     # FIXME: support also using torch dataset directly
-    train_dataset = FuseDatasetWrapper(name='train', dataset=torch_train_dataset, mapping=('image', 'label'))
+    train_dataset = DatasetWrapper(name='train', dataset=torch_train_dataset, mapping=('image', 'label'))
     train_dataset.create()
     lgr.info(f'- Create sampler:')
-    sampler = FuseSamplerBalancedBatch(dataset=train_dataset,
+    sampler = SamplerBalancedBatch(dataset=train_dataset,
                                        balanced_class_name='data.label',
                                        num_balanced_classes=10,
                                        batch_size=train_params['data.batch_size'],
@@ -156,7 +156,7 @@ def run_train(paths: dict, train_params: dict):
     # Create dataset
     torch_validation_dataset = torchvision.datasets.MNIST(paths['cache_dir'], download=True, train=False, transform=transform)
     # wrapping torch dataset
-    validation_dataset = FuseDatasetWrapper(name='validation', dataset=torch_validation_dataset, mapping=('image', 'label'))
+    validation_dataset = DatasetWrapper(name='validation', dataset=torch_validation_dataset, mapping=('image', 'label'))
     validation_dataset.create()
 
     # dataloader
@@ -179,7 +179,7 @@ def run_train(paths: dict, train_params: dict):
     elif train_params['model'] == 'lenet':
         torch_model = lenet.LeNet()
     
-    model = FuseModelWrapper(model=torch_model,
+    model = ModelWrapper(model=torch_model,
                              model_inputs=['data.image'],
                              post_forward_processing_function=perform_softmax,
                              model_outputs=['logits.classification', 'output.classification']
@@ -191,7 +191,7 @@ def run_train(paths: dict, train_params: dict):
     #  Loss
     # ====================================================================================
     losses = {
-        'cls_loss': FuseLossDefault(pred_name='model.logits.classification', target_name='data.label', callable=F.cross_entropy, weight=1.0),
+        'cls_loss': LossDefault(pred='model.logits.classification', target='data.label', callable=F.cross_entropy, weight=1.0),
     }
 
     # ====================================================================================
@@ -207,9 +207,9 @@ def run_train(paths: dict, train_params: dict):
     # =====================================================================================
     callbacks = [
         # default callbacks
-        FuseTensorboardCallback(model_dir=paths['model_dir']),  # save statistics for tensorboard
-        FuseMetricStatisticsCallback(output_path=paths['model_dir'] + "/metrics.csv"),  # save statistics a csv file
-        FuseTimeStatisticsCallback(num_epochs=train_params['manager.train_params']['num_epochs'], load_expected_part=0.1)  # time profiler
+        TensorboardCallback(model_dir=paths['model_dir']),  # save statistics for tensorboard
+        MetricStatisticsCallback(output_path=paths['model_dir'] + "/metrics.csv"),  # save statistics a csv file
+        TimeStatisticsCallback(num_epochs=train_params['manager.train_params']['num_epochs'], load_expected_part=0.1)  # time profiler
     ]
 
     # =====================================================================================
@@ -224,7 +224,7 @@ def run_train(paths: dict, train_params: dict):
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
     # train from scratch
-    manager = FuseManagerDefault(output_model_dir=paths['model_dir'], force_reset=paths['force_reset_model_dir'])
+    manager = ManagerDefault(output_model_dir=paths['model_dir'], force_reset=paths['force_reset_model_dir'])
     # Providing the objects required for the training process.
     manager.set_objects(net=model,
                         optimizer=optimizer,
@@ -272,13 +272,13 @@ def run_infer(paths: dict, infer_common_params: dict):
     # Create dataset
     torch_validation_dataset = torchvision.datasets.MNIST(paths['cache_dir'], download=True, train=False, transform=transform)
     # wrapping torch dataset
-    validation_dataset = FuseDatasetWrapper(name='validation', dataset=torch_validation_dataset, mapping=('image', 'label'))
+    validation_dataset = DatasetWrapper(name='validation', dataset=torch_validation_dataset, mapping=('image', 'label'))
     validation_dataset.create()
     # dataloader
     validation_dataloader = DataLoader(dataset=validation_dataset, collate_fn=validation_dataset.collate_fn, batch_size=2, num_workers=2)
 
     ## Manager for inference
-    manager = FuseManagerDefault()
+    manager = ManagerDefault()
     output_columns = ['model.output.classification', 'data.label']
     manager.infer(data_loader=validation_dataloader,
                   input_model_dir=paths['model_dir'],
@@ -335,7 +335,7 @@ if __name__ == "__main__":
         TRAIN_COMMON_PARAMS['manager.train_params']['device'] = 'cpu' 
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None  # [0]
-    FuseUtilsGPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
+    GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
     RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
     # train

@@ -20,13 +20,13 @@ import torch
 import logging
 import cv2
 from scipy.ndimage.morphology import binary_dilation
-from fuse.data.processor.processor_base import FuseProcessorBase
-from fuse.data.processor.processor_dicom_mri import FuseDicomMRIProcessor
+from fuse.data.processor.processor_base import ProcessorBase
+from fuse.data.processor.processor_dicom_mri import DicomMRIProcessor
 
-from fuse_examples.classification.prostate_x.data_utils import FuseProstateXUtilsData
+from fuse_examples.classification.prostate_x.data_utils import ProstateXUtilsData
 
 
-class FusePatchProcessor(FuseProcessorBase):
+class PatchProcessor(ProcessorBase):
     """
     This processor crops the lesion volume from within 4D MRI volume base on
     lesion location as appears in the database.
@@ -40,7 +40,7 @@ class FusePatchProcessor(FuseProcessorBase):
                 'ClinSig': row['ClinSig']: Clinical significant ( 0 for benign and 3+3 lesions, 1 for rest)
     """
     def __init__(self,
-                 vol_processor: FuseDicomMRIProcessor = FuseDicomMRIProcessor(),
+                 vol_processor: DicomMRIProcessor = DicomMRIProcessor(),
                  path_to_db: str = None,
                  data_path: str = None,
                  ktrans_data_path: str = None,
@@ -272,8 +272,8 @@ class FusePatchProcessor(FuseProcessorBase):
 
         # ========================================================================
         # get db - lesions
-        db_full = FuseProstateXUtilsData.get_dataset(self.path_to_db,'other',self.db_ver,self.db_name,self.fold_no)
-        db = FuseProstateXUtilsData.get_lesions_prostate_x(db_full)
+        db_full = ProstateXUtilsData.get_dataset(self.path_to_db,'other',self.db_ver,self.db_name,self.fold_no)
+        db = ProstateXUtilsData.get_lesions_prostate_x(db_full)
 
         # ========================================================================
         # get patient
@@ -374,7 +374,7 @@ if __name__ == "__main__":
     root_data = '/gpfs/haifa/projects/m/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI/manifest-1607053360376/'
 
     seq_dict,SER_INX_TO_USE,exp_patients,_,_ = process_mri_series(root_data+'/metadata.csv')
-    mri_vol_processor = FuseDicomMRIProcessor(seq_dict=seq_dict,
+    mri_vol_processor = DicomMRIProcessor(seq_dict=seq_dict,
                                               seq_to_use=['DCE_mix_ph1',
                                                           'DCE_mix_ph2',
                                                           'DCE_mix_ph3',
@@ -388,7 +388,7 @@ if __name__ == "__main__":
                                               reference_inx=0,
                                               use_order_indicator=False)
 
-    a = FusePatchProcessor(vol_processor=mri_vol_processor,
+    a = PatchProcessor(vol_processor=mri_vol_processor,
                            path_to_db=path_to_db,
                            data_path=root_data + 'Duke-Breast-Cancer-MRI',
                            ktrans_data_path='',

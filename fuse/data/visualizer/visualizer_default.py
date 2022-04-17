@@ -22,14 +22,14 @@ from typing import Optional, Iterable, Any, Tuple
 
 import matplotlib.pyplot as plt
 
-from fuse.data.visualizer.visualizer_base import FuseVisualizerBase
+from fuse.data.visualizer.visualizer_base import VisualizerBase
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 from fuse.utils.utils_logger import log_object_input_state
 import fuse.utils.imaging.image_processing as ImageProcessing
 import torch
 
 
-class FuseVisualizerDefault(FuseVisualizerBase):
+class VisualizerDefault(VisualizerBase):
     """
     Visualizer for data including single 2D image with optional mask
     """

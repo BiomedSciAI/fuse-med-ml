@@ -23,10 +23,10 @@ import torch
 import pandas as pd
 import numpy as np
 
-from fuse.data.processor.processor_base import FuseProcessorBase
+from fuse.data.processor.processor_base import ProcessorBase
 
 
-class FuseMGGroundTruthProcessor(FuseProcessorBase):
+class MGGroundTruthProcessor(ProcessorBase):
     def __init__(self,
                  input_data: str):
 

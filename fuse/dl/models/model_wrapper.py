@@ -21,12 +21,12 @@ from typing import Sequence, Dict, Tuple, Callable
 
 import torch
 
-from fuse.dl.models.backbones.backbone_inception_resnet_v2 import FuseBackboneInceptionResnetV2
-from fuse.dl.models.heads.head_global_pooling_classifier import FuseHeadGlobalPoolingClassifier
+from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
+from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 
 
-class FuseModelWrapper(torch.nn.Module):
+class ModelWrapper(torch.nn.Module):
     """
     Fuse model wrapper for wrapping torch modules and passing through Fuse
     """
@@ -113,7 +113,7 @@ if __name__ == '__main__':
     def convert_googlenet_outputs(output):
         return output.logits
 
-    model = FuseModelWrapper(
+    model = ModelWrapper(
         model_inputs=['data.input.input_0.tensor'],
         model=googlenet_model,
         post_forward_processing_function=convert_googlenet_outputs,

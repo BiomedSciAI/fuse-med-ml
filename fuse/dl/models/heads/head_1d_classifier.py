@@ -84,7 +84,7 @@ class LinearLayers(nn.Module):
         x = self.classifier(x)
         return x
 
-class FuseHead1dClassifier(nn.Module):
+class Head1dClassifier(nn.Module):
     def __init__(self,
                  head_name: str = 'head_0',
                  conv_inputs: Sequence[Tuple[str, int]] = (('model.backbone_features', 193),),

@@ -1,20 +1,20 @@
 import pandas as pd
 from functools import partial
-from fuse.data.augmentor.augmentor_default import FuseAugmentorDefault
+from fuse.data.augmentor.augmentor_default import AugmentorDefault
 from fuse.data.augmentor.augmentor_toolbox import unsqueeze_2d_to_3d, aug_op_affine, squeeze_3d_to_2d, \
     rotation_in_3d
-from fuse.data.dataset.dataset_generator import FuseDatasetGenerator
+from fuse.data.dataset.dataset_generator import DatasetGenerator
 
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
 from fuse.data.visualizer.visualizer_default_3d import Fuse3DVisualizerDefault
 
-from fuse.data.processor.processor_dicom_mri import FuseDicomMRIProcessor
+from fuse.data.processor.processor_dicom_mri import DicomMRIProcessor
 
-from fuse_examples.classification.prostate_x.patient_data_source import FuseProstateXDataSourcePatient
+from fuse_examples.classification.prostate_x.patient_data_source import ProstateXDataSourcePatient
 
 
 from fuse_examples.classification.duke_breast_cancer.post_processor import post_processing
-from fuse_examples.classification.duke_breast_cancer.processor import FusePatchProcessor
+from fuse_examples.classification.duke_breast_cancer.processor import PatchProcessor
 
 
 def process_mri_series(metadata_path: str):
@@ -70,7 +70,7 @@ def duke_breast_cancer_dataset(paths,train_common_params,lgr):
     lgr.info(f'database_revision={DATABASE_REVISION}', {'color': 'magenta'})
 
     # create data source
-    train_data_source = FuseProstateXDataSourcePatient(paths['data_dir'], 'train',
+    train_data_source = ProstateXDataSourcePatient(paths['data_dir'], 'train',
                                                        db_ver=train_common_params['partition_version'],
                                                        db_name=train_common_params['db_name'],
                                                        fold_no=train_common_params['fold_no'])
@@ -85,7 +85,7 @@ def duke_breast_cancer_dataset(paths,train_common_params,lgr):
     #########################################################################################
     seq_dict, SER_INX_TO_USE, exp_patients,seq_to_use,subseq_to_use = \
                                                     process_mri_series(paths['metadata_path'])
-    mri_vol_processor = FuseDicomMRIProcessor(seq_dict=seq_dict,
+    mri_vol_processor = DicomMRIProcessor(seq_dict=seq_dict,
                                               seq_to_use=seq_to_use,
                                               subseq_to_use=subseq_to_use,
                                               ser_inx_to_use=SER_INX_TO_USE,
@@ -93,7 +93,7 @@ def duke_breast_cancer_dataset(paths,train_common_params,lgr):
                                               reference_inx=0,
                                               use_order_indicator=False)
 
-    generate_processor = FusePatchProcessor(
+    generate_processor = PatchProcessor(
         vol_processor=mri_vol_processor,
         path_to_db=paths['data_dir'],
         data_path=paths['data_path'],
@@ -144,11 +144,11 @@ def duke_breast_cancer_dataset(paths,train_common_params,lgr):
             {}
         ],
     ]
-    augmentor = FuseAugmentorDefault(augmentation_pipeline=aug_pipeline)
+    augmentor = AugmentorDefault(augmentation_pipeline=aug_pipeline)
 
     visualizer = Fuse3DVisualizerDefault(image_name='data.input', label_name='data.isLargeTumorSize')
     # Create dataset
-    train_dataset = FuseDatasetGenerator(cache_dest=paths['cache_dir'],
+    train_dataset = DatasetGenerator(cache_dest=paths['cache_dir'],
                                          data_source=train_data_source,
                                          processor=generate_processor,
                                          post_processing_func=train_post_processor,
@@ -167,7 +167,7 @@ def duke_breast_cancer_dataset(paths,train_common_params,lgr):
     lgr.info(f'Validation Data:', {'attrs': 'bold'})
 
     ## Create data source
-    validation_data_source = FuseProstateXDataSourcePatient(paths['data_dir'], 'validation',
+    validation_data_source = ProstateXDataSourcePatient(paths['data_dir'], 'validation',
                                                             db_ver=DATABASE_REVISION,
                                                             db_name=train_common_params['db_name'],
                                                             fold_no=train_common_params['fold_no'])
@@ -176,7 +176,7 @@ def duke_breast_cancer_dataset(paths,train_common_params,lgr):
     validation_post_processor = partial(post_processing, label=train_common_params['classification_task'])
 
     ## Create dataset
-    validation_dataset = FuseDatasetGenerator(cache_dest=paths['cache_dir'],
+    validation_dataset = DatasetGenerator(cache_dest=paths['cache_dir'],
                                               data_source=validation_data_source,
                                               processor=generate_processor,
                                               post_processing_func=validation_post_processor,

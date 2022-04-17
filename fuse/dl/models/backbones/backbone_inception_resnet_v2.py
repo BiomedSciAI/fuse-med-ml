@@ -243,7 +243,7 @@ class Block8(nn.Module):
         return out  # results in 2080 channels
 
 
-class FuseBackboneInceptionResnetV2(nn.Module):
+class BackboneInceptionResnetV2(nn.Module):
     def __init__(self,
                  logical_units_num: int = 14,
                  intra_block_cut_level: int = 384,

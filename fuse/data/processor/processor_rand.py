@@ -24,10 +24,10 @@ from typing import Hashable, Tuple
 
 import torch
 
-from fuse.data.processor.processor_base import FuseProcessorBase
+from fuse.data.processor.processor_base import ProcessorBase
 
 
-class FuseProcessorRandInt(FuseProcessorBase):
+class ProcessorRandInt(ProcessorBase):
     def __init__(self, min: int = 0, max: int = 1, shape: Tuple = (1,)):
         self.min = min
         self.max = max

@@ -27,17 +27,17 @@ from typing import Any, List, Optional
 import numpy as np
 from torch.utils.data.sampler import Sampler
 
-from fuse.data.dataset.dataset_base import FuseDatasetBase
-from fuse.utils.utils_debug import FuseUtilsDebug
+from fuse.data.dataset.dataset_base import DatasetBase
+from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.utils_logger import log_object_input_state
 
 
-class FuseSamplerBalancedBatch(Sampler):
+class SamplerBalancedBatch(Sampler):
     """
     Torch batch sampler - balancing per batch
     """
 
-    def __init__(self, dataset: FuseDatasetBase, balanced_class_name: str, num_balanced_classes: int, batch_size: int,
+    def __init__(self, dataset: DatasetBase, balanced_class_name: str, num_balanced_classes: int, batch_size: int,
                  balanced_class_weights: Optional[List[int]] = None, balanced_class_probs: Optional[List[float]] = None,
                  num_batches: Optional[int] = None, use_dataset_cache: bool = False) -> None:
         """
@@ -97,7 +97,7 @@ class FuseSamplerBalancedBatch(Sampler):
             self.balanced_class_weights = [self.batch_size // self.num_balanced_classes] * self.num_balanced_classes
 
         lgr = logging.getLogger('Fuse')
-        lgr.debug(f'FuseSamplerBalancedBatch: balancing per batch - balanced_class_name {self.balanced_class_name}, '
+        lgr.debug(f'SamplerBalancedBatch: balancing per batch - balanced_class_name {self.balanced_class_name}, '
                   f'batch_size={batch_size}, weights={self.balanced_class_weights}, probs={self.balanced_class_probs}')
 
         # get balanced classes per each sample
@@ -105,10 +105,10 @@ class FuseSamplerBalancedBatch(Sampler):
         self.balanced_classes = np.array(self.balanced_classes)
         self.balanced_class_indices = [np.where(self.balanced_classes == cls_i)[0] for cls_i in range(self.num_balanced_classes)]
         self.balanced_class_sizes = [len(self.balanced_class_indices[cls_i]) for cls_i in range(self.num_balanced_classes)]
-        lgr.debug('FuseSamplerBalancedBatch: samples per each balanced class {}'.format(self.balanced_class_sizes))
+        lgr.debug('SamplerBalancedBatch: samples per each balanced class {}'.format(self.balanced_class_sizes))
 
         # debug - simple batch
-        batch_mode = FuseUtilsDebug().get_setting('sampler_batch_mode')
+        batch_mode = FuseDebug().get_setting('sampler_batch_mode')
         if batch_mode == 'simple':
             num_avail_bcls = sum(
                 bcls_num_samples != 0
@@ -117,7 +117,7 @@ class FuseSamplerBalancedBatch(Sampler):
 
             self.balanced_class_weights = None
             self.balanced_class_probs = [1.0/num_avail_bcls if bcls_num_samples != 0 else 0.0 for bcls_num_samples in self.balanced_class_sizes]
-            lgr.info('FuseSamplerBalancedBatch: debug mode - override to random sample')
+            lgr.info('SamplerBalancedBatch: debug mode - override to random sample')
 
         # calc batch index to balanced class mapping according to weights
         if self.balanced_class_weights is not None:
@@ -161,7 +161,7 @@ class FuseSamplerBalancedBatch(Sampler):
                     cls_i in range(self.num_balanced_classes)]
             bigger_balanced_class_weighted_size = max(balanced_class_weighted_sizes)
             self.num_batches = int(bigger_balanced_class_weighted_size) + 1
-            lgr.debug(f'FuseSamplerBalancedBatch: num_batches = {self.num_batches}')
+            lgr.debug(f'SamplerBalancedBatch: num_batches = {self.num_batches}')
 
         # pointers per class
         self.cls_pointers = [0] * self.num_balanced_classes

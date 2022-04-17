@@ -22,11 +22,11 @@ import logging
 import pandas as pd
 from typing import Sequence, Hashable, Union, Optional, List, Dict
 
-from fuse.data.data_source.data_source_base import FuseDataSourceBase
+from fuse.data.data_source.data_source_base import DataSourceBase
 from fuse.utils.misc.misc import autodetect_input_source
 
 
-class FuseDataSourceDefault(FuseDataSourceBase):
+class DataSourceDefault(DataSourceBase):
     """
     DataSource for the following aut-detectable types:
 
@@ -67,7 +67,7 @@ class FuseDataSourceDefault(FuseDataSourceBase):
             logging.getLogger('Fuse').info(f"Remove {before - len(self.samples_df)} records that did not meet conditions")
 
         if self.samples_df is None:
-            raise Exception('Error detecting input source in FuseDataSourceDefault')
+            raise Exception('Error detecting input source in DataSourceDefault')
 
         if isinstance(folds, int):
             self.folds = [folds]
@@ -102,7 +102,7 @@ class FuseDataSourceDefault(FuseDataSourceBase):
 
     def summary(self) -> str:
         summary_str = ''
-        summary_str += 'FuseDataSourceDefault - %d samples\n' % len(self.samples_df)
+        summary_str += 'DataSourceDefault - %d samples\n' % len(self.samples_df)
         return summary_str
 
 
@@ -113,8 +113,8 @@ if __name__ == '__main__':
                           'C': range(10, 5, -1)})
     print(my_df)
     clist = [{'A': [2, 3, 4], 'B': [8, 2]}, {'C': [8, 7]}]
-    to_keep = FuseDataSourceDefault.filter_by_conditions(my_df, clist)
+    to_keep = DataSourceDefault.filter_by_conditions(my_df, clist)
     print(my_df[to_keep])
 
-    to_keep = FuseDataSourceDefault.filter_by_conditions(my_df, [{}])
+    to_keep = DataSourceDefault.filter_by_conditions(my_df, [{}])
     print(my_df[to_keep])

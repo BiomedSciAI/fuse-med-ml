@@ -15,30 +15,30 @@ Created on June 30, 2021
 import logging
 import os
 import pathlib
-from fuse.data.dataset.dataset_base import FuseDatasetBase
+from fuse.data.dataset.dataset_base import DatasetBase
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricROCCurve
 from fuse.eval.evaluator import EvaluatorDefault
-from fuse.data.dataset.dataset_base import FuseDatasetBase
+from fuse.data.dataset.dataset_base import DatasetBase
 
-from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
-from fuse.dl.losses.loss_default import FuseLossDefault
-from fuse.dl.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
-from fuse.dl.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
-from fuse.dl.managers.callbacks.callback_time_statistics import FuseTimeStatisticsCallback
-from fuse.dl.managers.manager_default import FuseManagerDefault
+from fuse.data.sampler.sampler_balanced_batch import SamplerBalancedBatch
+from fuse.dl.losses.loss_default import LossDefault
+from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
+from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
+from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
+from fuse.dl.managers.manager_default import ManagerDefault
 
-import fuse.utils.gpu as FuseUtilsGPU
+import fuse.utils.gpu as GPU
 from fuse.utils.utils_logger import fuse_logger_start
 
 
 from fuse_examples.classification.prostate_x.dataset import prostate_x_dataset
 from fuse_examples.classification.prostate_x.backbone_3d_multichannel import Fuse_model_3d_multichannel,ResNet
-from fuse_examples.classification.prostate_x.patient_data_source import FuseProstateXDataSourcePatient
-from fuse_examples.classification.prostate_x.tasks import FuseProstateXTask
-from fuse.dl.models.heads.head_1d_classifier import FuseHead1dClassifier
+from fuse_examples.classification.prostate_x.patient_data_source import ProstateXDataSourcePatient
+from fuse_examples.classification.prostate_x.tasks import ProstateXTask
+from fuse.dl.models.heads.head_1d_classifier import Head1dClassifier
 
 
 ##########################################
@@ -111,7 +111,7 @@ TRAIN_COMMON_PARAMS['manager.momentum'] = 0.9
 TRAIN_COMMON_PARAMS['manager.resume_checkpoint_filename'] = None  # if not None, will try to load the checkpoint
 
 TRAIN_COMMON_PARAMS['num_backbone_features'] = 512
-TRAIN_COMMON_PARAMS['task'] = FuseProstateXTask('ClinSig', 0)
+TRAIN_COMMON_PARAMS['task'] = ProstateXTask('ClinSig', 0)
 TRAIN_COMMON_PARAMS['class_num'] = TRAIN_COMMON_PARAMS['task'].num_classes()
 
 # backbone parameters
@@ -139,7 +139,7 @@ def train_template(paths: dict, train_common_params: dict):
     ## Create dataloader
     lgr.info(f'- Create sampler:')
 
-    sampler = FuseSamplerBalancedBatch(dataset=train_dataset,
+    sampler = SamplerBalancedBatch(dataset=train_dataset,
                                        balanced_class_name='data.ground_truth',
                                        num_balanced_classes=train_common_params['task'].num_classes(),
                                        batch_size=train_common_params['data.batch_size'],
@@ -173,7 +173,7 @@ def train_template(paths: dict, train_common_params: dict):
         conv_inputs=(('data.input', 1),),
         backbone= ResNet(ch_num=TRAIN_COMMON_PARAMS['backbone_model_dict']['input_channels_num']),
         heads=[
-        FuseHead1dClassifier(head_name='ClinSig',
+        Head1dClassifier(head_name='ClinSig',
                                         conv_inputs=[('model.backbone_features',  train_common_params['num_backbone_features'])],
                                         post_concat_inputs=None,
                                         dropout_rate=0.25,
@@ -191,8 +191,8 @@ def train_template(paths: dict, train_common_params: dict):
     lgr.info('Losses: CrossEntropy', {'attrs': 'bold'})
 
     losses = {
-            'cls_loss': FuseLossDefault(pred_name='model.logits.ClinSig',
-                                        target_name='data.ground_truth',
+            'cls_loss': LossDefault(pred='model.logits.ClinSig',
+                                        target='data.ground_truth',
                                         callable=F.cross_entropy, weight=1.0),
         }
 
@@ -213,10 +213,10 @@ def train_template(paths: dict, train_common_params: dict):
     #  Callbacks
     # =====================================================================================
     callbacks = [
-        FuseTensorboardCallback(model_dir=paths['model_dir']),  # save statistics for tensorboard
-        FuseMetricStatisticsCallback(output_path=paths['model_dir'] + "/metrics.csv"),
+        TensorboardCallback(model_dir=paths['model_dir']),  # save statistics for tensorboard
+        MetricStatisticsCallback(output_path=paths['model_dir'] + "/metrics.csv"),
         # save statistics for tensorboard in a csv file
-        FuseTimeStatisticsCallback(num_epochs=train_common_params['manager.train_params']['num_epochs'],
+        TimeStatisticsCallback(num_epochs=train_common_params['manager.train_params']['num_epochs'],
                                    load_expected_part=0.1)  # time profiler
     ]
 
@@ -234,7 +234,7 @@ def train_template(paths: dict, train_common_params: dict):
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, verbose=True)
 
     # train from scratch
-    manager = FuseManagerDefault(output_model_dir=paths['model_dir'], force_reset=paths['force_reset_model_dir'])
+    manager = ManagerDefault(output_model_dir=paths['model_dir'], force_reset=paths['force_reset_model_dir'])
     # Providing the objects required for the training process.
     manager.set_objects(net=model,
                         optimizer=optimizer,
@@ -282,14 +282,14 @@ def infer_template(paths: dict, infer_common_params: dict):
 
     lgr.info(f'db_name={infer_common_params["db_name"]}', {'color': 'magenta'})
     ## Create data source:
-    infer_data_source = FuseProstateXDataSourcePatient(paths['data_dir'],'validation',
+    infer_data_source = ProstateXDataSourcePatient(paths['data_dir'],'validation',
                                                        db_ver=infer_common_params['db_version'],
                                                        db_name = infer_common_params['db_name'],
                                                        fold_no=infer_common_params['fold_no'])
 
     ### load dataset
     data_set_filename = os.path.join(paths["model_dir"], "inference_dataset.pth")
-    dataset = FuseDatasetBase.load(filename=data_set_filename, override_datasource=infer_data_source, override_cache_dest=paths["cache_dir"], num_workers=0)
+    dataset = DatasetBase.load(filename=data_set_filename, override_datasource=infer_data_source, override_cache_dest=paths["cache_dir"], num_workers=0)
     dataloader  = DataLoader(dataset=dataset,
                                        shuffle=False,
                                        drop_last=False,
@@ -297,7 +297,7 @@ def infer_template(paths: dict, infer_common_params: dict):
                                        num_workers=5,
                                        collate_fn=dataset.collate_fn)
     #### Manager for inference
-    manager = FuseManagerDefault()
+    manager = ManagerDefault()
     # extract just the global classification per sample and save to a file
     output_columns = ['model.output.ClinSig','data.ground_truth']
     manager.infer(data_loader=dataloader,
@@ -348,7 +348,7 @@ if __name__ == "__main__":
         TRAIN_COMMON_PARAMS['manager.train_params']['device'] = 'cpu'
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None  # [0]
-    FuseUtilsGPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
+    GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
     RUNNING_MODES = ['train','infer', 'eval']  # Options: 'train', 'infer', 'eval'
 

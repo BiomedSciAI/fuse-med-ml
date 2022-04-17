@@ -27,7 +27,7 @@ import pandas as pd
 
 from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import save_dataframe
-from fuse.dl.managers.manager_default import FuseManagerDefault
+from fuse.dl.managers.manager_default import ManagerDefault
 
 from fuse_examples.classification.knight.eval.eval import TASK1_CLASS_NAMES, TASK2_CLASS_NAMES 
 from baseline.dataset import knight_dataset
@@ -76,7 +76,7 @@ def make_predictions_file(model_dir: str,
         dl = validation_dl
 
     # Manager for inference
-    manager = FuseManagerDefault()
+    manager = ManagerDefault()
     predictions_df = manager.infer(data_loader=dl,
                   input_model_dir=model_dir,
                   checkpoint=checkpoint,

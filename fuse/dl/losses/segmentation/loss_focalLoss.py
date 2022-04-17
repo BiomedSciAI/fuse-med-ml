@@ -22,7 +22,7 @@ from typing import Callable, Dict, Union, Optional
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from fuse.dl.losses.loss_base import FuseLossBase
+from fuse.dl.losses.loss_base import LossBase
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 import numpy as np
 
@@ -70,7 +70,7 @@ class WeightedFocalLoss(nn.Module):
         return F_loss.mean()
 
 
-class FuseFocalLoss(FuseLossBase):
+class FocalLoss(LossBase):
 
     def __init__(self,
                  pred_name: str = None,

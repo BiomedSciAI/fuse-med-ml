@@ -26,7 +26,7 @@ import pickle
 import os
 
 
-class FuseDataSourceToolbox():
+class DataSourceToolbox():
 
     @staticmethod
     def print_folds_stat(db: pd.DataFrame, nfolds: int, key_columns: np.ndarray):
@@ -110,7 +110,7 @@ class FuseDataSourceToolbox():
             db['data_fold' + str(f)] = fold_df
         folds = pd.concat(db, ignore_index=True)
         if print_flag is True:
-            FuseDataSourceToolbox.print_folds_stat(folds, nfolds, key_columns)
+            DataSourceToolbox.print_folds_stat(folds, nfolds, key_columns)
         # remove labels used for creating the partition to folds
         if not debug_mode :
             folds.drop(id_level_labels+record_labels, axis=1, inplace=True)

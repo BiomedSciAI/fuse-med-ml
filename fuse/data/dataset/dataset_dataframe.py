@@ -22,14 +22,14 @@ from typing import Optional, List, Dict, Union
 import torch
 import pandas as pd
 
-from fuse.data.data_source.data_source_from_list import FuseDataSourceFromList
-from fuse.data.dataset.dataset_default import FuseDatasetDefault
-from fuse.data.processor.processor_dataframe import FuseProcessorDataFrame
+from fuse.data.data_source.data_source_from_list import DataSourceFromList
+from fuse.data.dataset.dataset_default import DatasetDefault
+from fuse.data.processor.processor_dataframe import ProcessorDataFrame
 
 
-class FuseDatasetDataframe(FuseDatasetDefault):
+class DatasetDataframe(DatasetDefault):
     """
-    Simple dataset, based on FuseDatasetDefault, that converts dataframe into dataset.
+    Simple dataset, based on DatasetDefault, that converts dataframe into dataset.
     """
     def __init__(self,
                  data: Optional[pd.DataFrame] = None,
@@ -54,7 +54,7 @@ class FuseDatasetDataframe(FuseDatasetDefault):
 
         """
         # create processor
-        processor = FuseProcessorDataFrame(data=data,
+        processor = ProcessorDataFrame(data=data,
                                            data_pickle_filename=data_pickle_filename,
                                            sample_desc_column=sample_desc_column,
                                            columns_to_extract=columns_to_extract,
@@ -64,7 +64,7 @@ class FuseDatasetDataframe(FuseDatasetDefault):
         # extract descriptor list and create datasource
         descriptors_list = processor.get_samples_descriptors()
 
-        data_source = FuseDataSourceFromList(descriptors_list)
+        data_source = DataSourceFromList(descriptors_list)
 
         super().__init__(
             data_source=data_source,

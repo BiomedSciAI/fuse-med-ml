@@ -22,13 +22,13 @@ Augmentor Default class
 """
 from typing import Any, Iterable
 
-from fuse.data.augmentor.augmentor_base import FuseAugmentorBase
+from fuse.data.augmentor.augmentor_base import AugmentorBase
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 from fuse.utils.utils_logger import log_object_input_state, convert_state_to_str
 from fuse.utils.rand.param_sampler import draw_samples_recursively
 
 
-class FuseAugmentorDefault(FuseAugmentorBase):
+class AugmentorDefault(AugmentorBase):
     """
     Default generic implementation for Fuse augmentor. Aimed to be used by most experiments.
     """

@@ -24,7 +24,7 @@ import torch.nn as nn
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 
 
-class FuseMultilayerPerceptronBackbone(torch.nn.Module):
+class MultilayerPerceptronBackbone(torch.nn.Module):
 
     def __init__(self,
                  layers: List[int] = (64, 192, 320, 320, 1088, 384),

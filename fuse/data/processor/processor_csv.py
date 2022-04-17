@@ -20,13 +20,13 @@ Created on June 30, 2021
 import ast
 import pandas as pd
 
-from fuse.data.processor.processor_base import FuseProcessorBase
+from fuse.data.processor.processor_base import ProcessorBase
 import logging
 from typing import Hashable, List, Optional, Dict, Union
 from torch import Tensor
 import torch
 
-class FuseProcessorCSV(FuseProcessorBase):
+class ProcessorCSV(ProcessorBase):
     """
     Processor reading data from csv file.
     Covert each row to a dictionary

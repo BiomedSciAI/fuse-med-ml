@@ -28,7 +28,7 @@ from typing import Any, List, Optional
 from torch.utils.data.dataset import Dataset
 
 
-class FuseDatasetBase(Dataset):
+class DatasetBase(Dataset):
     """
     Abstract base class for Fuse dataset.
     All subclasses should overwrite the following abstract methods inherited from  torch.utils.data.Dataset
@@ -88,7 +88,7 @@ class FuseDatasetBase(Dataset):
 
     # save and load datasets
     @abstractmethod
-    def get_instance_to_save(self, mode: SaveMode) -> 'FuseDatasetBase':
+    def get_instance_to_save(self, mode: SaveMode) -> 'DatasetBase':
         """
         Create lite instance version of dataset with just the info required to recreate it
         :param mode: see SaveMode for available modes
@@ -97,7 +97,7 @@ class FuseDatasetBase(Dataset):
         raise NotImplementedError
 
     @staticmethod
-    def save(dataset: 'FuseDatasetBase', mode: SaveMode, filename: str) -> None:
+    def save(dataset: 'DatasetBase', mode: SaveMode, filename: str) -> None:
         """
         Static method save dataset to the disc (see SaveMode for available modes)
         :param dataset: the dataset to save
@@ -113,7 +113,7 @@ class FuseDatasetBase(Dataset):
             pickle.dump(dataset_to_save, pickle_file)
 
     @staticmethod
-    def load(filename: str, **kwargs) -> 'FuseDatasetBase':
+    def load(filename: str, **kwargs) -> 'DatasetBase':
         """
         load dataset
         :param filename: path to saved dataset

@@ -16,7 +16,7 @@ import pickle
 import pandas as pd
 import os
 
-class FuseProstateXUtilsData:
+class ProstateXUtilsData:
     @staticmethod
     def get_dataset(path_to_db: str,set_type: str, db_ver: int,db_name: str,fold_no: int):
         db_name = os.path.join(path_to_db,f'dataset_{db_name}_folds_ver{db_ver}_seed1.pickle')
@@ -57,8 +57,8 @@ class FuseProstateXUtilsData:
 
 if __name__ == "__main__":
     path_to_db = '/gpfs/haifa/projects/m/msieve_dev3/usr/Tal/my_research/virtual_biopsy/prostate/experiments/V1/'
-    # data = FuseCAPVUtilsData.get_dataset(path_to_db=path_to_db,set_type='train', db_ver=18042021,db_name='tcia',fold_no=0)
-    # data_lesion = FuseCAPVUtilsData.get_lesions(data)
+    # data = CAPVUtilsData.get_dataset(path_to_db=path_to_db,set_type='train', db_ver=18042021,db_name='tcia',fold_no=0)
+    # data_lesion = CAPVUtilsData.get_lesions(data)
 
-    data = FuseProstateXUtilsData.get_dataset(path_to_db=path_to_db, set_type='train', db_ver=29042021, db_name='prostate_x',fold_no=0)
-    data_lesion = FuseProstateXUtilsData.get_lesions_prostate_x(data)
+    data = ProstateXUtilsData.get_dataset(path_to_db=path_to_db, set_type='train', db_ver=29042021, db_name='prostate_x',fold_no=0)
+    data_lesion = ProstateXUtilsData.get_lesions_prostate_x(data)

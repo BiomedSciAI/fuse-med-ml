@@ -19,7 +19,7 @@ from collections import OrderedDict
 import os
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 
-from fuse.utils.utils_debug import FuseUtilsDebug
+from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.gpu import choose_and_enable_multiple_gpus
 
 import logging
@@ -30,30 +30,30 @@ from torch.utils.data.dataloader import DataLoader
 
 from fuse.utils.utils_logger import fuse_logger_start
 
-from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
+from fuse.data.sampler.sampler_balanced_batch import SamplerBalancedBatch
 
-from fuse.dl.models.model_default import FuseModelDefault
-from fuse.dl.models.heads.head_global_pooling_classifier import FuseHeadGlobalPoolingClassifier
+from fuse.dl.models.model_default import ModelDefault
+from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
 
-from fuse.dl.losses.loss_default import FuseLossDefault
+from fuse.dl.losses.loss_default import LossDefault
 
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy, MetricROCCurve
 
-from fuse.dl.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
-from fuse.dl.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
-from fuse.dl.managers.callbacks.callback_time_statistics import FuseTimeStatisticsCallback
-from fuse.dl.managers.manager_default import FuseManagerDefault
+from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
+from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
+from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
+from fuse.dl.managers.manager_default import ManagerDefault
 
 from fuse_examples.classification.cmmd.dataset import CMMD_2021_dataset
-from fuse.dl.models.backbones.backbone_inception_resnet_v2 import FuseBackboneInceptionResnetV2
+from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
 
 
 from fuse.eval.evaluator import EvaluatorDefault
 ##########################################
 # Debug modes
 ##########################################
-mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseUtilsDebug
-debug = FuseUtilsDebug(mode)
+mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
+debug = FuseDebug(mode)
 
 
 ##########################################
@@ -122,7 +122,7 @@ def run_train(paths: dict, train_common_params: dict, reset_cache: bool):
 
     ## Create sampler
     lgr.info(f'- Create sampler:')
-    sampler = FuseSamplerBalancedBatch(dataset=train_dataset,
+    sampler = SamplerBalancedBatch(dataset=train_dataset,
                                        balanced_class_name='data.gt.classification',
                                        num_balanced_classes=2,
                                        batch_size=train_common_params['data.batch_size'])
@@ -158,11 +158,11 @@ def run_train(paths: dict, train_common_params: dict, reset_cache: bool):
     # ==============================================================================
     lgr.info('Model:', {'attrs': 'bold'})
 
-    model = FuseModelDefault(
+    model = ModelDefault(
         conv_inputs=(('data.input.image', 1),),
-        backbone=FuseBackboneInceptionResnetV2(input_channels_num=1),
+        backbone=BackboneInceptionResnetV2(input_channels_num=1),
         heads=[
-            FuseHeadGlobalPoolingClassifier(head_name='head_0',
+            HeadGlobalPoolingClassifier(head_name='head_0',
                                             dropout_rate=0.5,
                                             conv_inputs=[('model.backbone_features', 384)],
                                             layers_description=(256,),
@@ -178,7 +178,7 @@ def run_train(paths: dict, train_common_params: dict, reset_cache: bool):
     #  Loss
     # ====================================================================================
     losses = {
-        'cls_loss': FuseLossDefault(pred_name='model.logits.head_0', target_name='data.gt.classification',
+        'cls_loss': LossDefault(pred='model.logits.head_0', target='data.gt.classification',
                                     callable=F.cross_entropy, weight=1.0)
     }
 
@@ -196,9 +196,9 @@ def run_train(paths: dict, train_common_params: dict, reset_cache: bool):
     # =====================================================================================
     callbacks = [
         # default callbacks
-        FuseTensorboardCallback(model_dir=paths['model_dir']),  # save statistics for tensorboard
-        FuseMetricStatisticsCallback(output_path=paths['model_dir'] + "/metrics.csv"),  # save statistics in a csv file
-        FuseTimeStatisticsCallback(num_epochs=train_common_params['manager.train_params']['num_epochs'], load_expected_part=0.1)  # time profiler
+        TensorboardCallback(model_dir=paths['model_dir']),  # save statistics for tensorboard
+        MetricStatisticsCallback(output_path=paths['model_dir'] + "/metrics.csv"),  # save statistics in a csv file
+        TimeStatisticsCallback(num_epochs=train_common_params['manager.train_params']['num_epochs'], load_expected_part=0.1)  # time profiler
     ]
 
     # =====================================================================================
@@ -215,7 +215,7 @@ def run_train(paths: dict, train_common_params: dict, reset_cache: bool):
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
     # train from scratch
-    manager = FuseManagerDefault(output_model_dir=paths['model_dir'], force_reset=paths['force_reset_model_dir'])
+    manager = ManagerDefault(output_model_dir=paths['model_dir'], force_reset=paths['force_reset_model_dir'])
     # Providing the objects required for the training process.
     manager.set_objects(net=model,
                         optimizer=optimizer,
@@ -260,7 +260,7 @@ def run_infer(paths: dict, infer_common_params: dict):
     lgr.info(f'Test Data: Done', {'attrs': 'bold'})
 
     #### Manager for inference
-    manager = FuseManagerDefault()
+    manager = ManagerDefault()
     # extract just the global classification per sample and save to a file
     output_columns = ['model.output.head_0','data.gt.classification']
     manager.infer(data_loader=infer_dataloader,

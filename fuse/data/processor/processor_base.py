@@ -24,7 +24,7 @@ from abc import ABC, abstractmethod
 from typing import Hashable
 
 
-class FuseProcessorBase(ABC):
+class ProcessorBase(ABC):
     @abstractmethod
     def __call__(self, sample_desc: Hashable):
         raise NotImplementedError

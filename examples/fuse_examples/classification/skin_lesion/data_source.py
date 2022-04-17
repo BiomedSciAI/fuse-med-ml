@@ -23,10 +23,10 @@ import pandas as pd
 import numpy as np
 import pickle
 
-from fuse.data.data_source.data_source_base import FuseDataSourceBase
+from fuse.data.data_source.data_source_base import DataSourceBase
 
 
-class FuseSkinDataSource(FuseDataSourceBase):
+class SkinDataSource(DataSourceBase):
     def __init__(self,
                  input_source: str,
                  partition_file: Optional[str] = None,
@@ -103,7 +103,7 @@ class FuseSkinDataSource(FuseDataSourceBase):
         :return: str
         """
         summary_str = ''
-        summary_str += 'Class = FuseSkinDataSource\n'
+        summary_str += 'Class = SkinDataSource\n'
 
         if isinstance(self.input_source, str):
             summary_str += 'Input source filename = %s\n' % self.input_source

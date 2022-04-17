@@ -30,19 +30,19 @@ from torch.utils.data.dataloader import DataLoader
 from tqdm import trange, tqdm
 from typing import Dict, Any, List, Iterator, Optional, Union, Sequence, Hashable, Callable
 
-from fuse.data.data_source.data_source_base import FuseDataSourceBase
-from fuse.data.dataset.dataset_base import FuseDatasetBase
-from fuse.data.processor.processor_base import FuseProcessorBase
-from fuse.data.visualizer.visualizer_base import FuseVisualizerBase
-from fuse.dl.losses.loss_base import FuseLossBase
-from fuse.dl.managers.callbacks.callback_base import FuseCallback
-from fuse.dl.managers.callbacks.callback_debug import FuseCallbackDebug
-from fuse.dl.managers.callbacks.callback_infer_results import FuseInferResultsCallback
-from fuse.dl.managers.manager_state import FuseManagerState
+from fuse.data.data_source.data_source_base import DataSourceBase
+from fuse.data.dataset.dataset_base import DatasetBase
+from fuse.data.processor.processor_base import ProcessorBase
+from fuse.data.visualizer.visualizer_base import VisualizerBase
+from fuse.dl.losses.loss_base import LossBase
+from fuse.dl.managers.callbacks.callback_base import Callback
+from fuse.dl.managers.callbacks.callback_debug import CallbackDebug
+from fuse.dl.managers.callbacks.callback_infer_results import InferResultsCallback
+from fuse.dl.managers.manager_state import ManagerState
 from fuse.eval import MetricBase
-from fuse.dl.models.model_ensemble import FuseModelEnsemble
-from fuse.utils.dl.checkpoint import FuseCheckpoint
-from fuse.utils.utils_debug import FuseUtilsDebug
+from fuse.dl.models.model_ensemble import ModelEnsemble
+from fuse.utils.dl.checkpoint import Checkpoint
+from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.file_io.file_io import create_or_reset_dir
 import fuse.utils.gpu as gpu
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
@@ -50,7 +50,7 @@ from fuse.utils.utils_logger import log_object_input_state
 from fuse.utils.misc.misc import Misc, get_pretty_dataframe
 
 
-class FuseManagerDefault:
+class ManagerDefault:
     """
     Default implementation of manager.
     Supports Train and Infer functionality.
@@ -58,17 +58,17 @@ class FuseManagerDefault:
 
     Possible Work flows for using the manager are (see function documentations for parameters description):
     For train:
-        FuseManagerDefault() -> manager.set_objects() -> manager.train()
+        ManagerDefault() -> manager.set_objects() -> manager.train()
     For Resume training:
-        FuseManagerDefault() -> manager.load_objects() -> manager.load_checkpoint() -> manager.train()
+        ManagerDefault() -> manager.load_objects() -> manager.load_checkpoint() -> manager.train()
     For Train using existing model:
-        FuseManagerDefault() -> manager.set_objects() [-> manager.load_objects()] [-> manager.load_checkpoint()] -> manager.train()
+        ManagerDefault() -> manager.set_objects() [-> manager.load_objects()] [-> manager.load_checkpoint()] -> manager.train()
     For Infer:
-        FuseManagerDefault() -> manager.infer()
+        ManagerDefault() -> manager.infer()
         or -
-        FuseManagerDefault() -> manager.load_objects() -> manager.load_checkpoint() -> manager.infer()
+        ManagerDefault() -> manager.load_objects() -> manager.load_checkpoint() -> manager.infer()
     For Infer given model:
-        FuseManagerDefault() -> manager.set_objects() -> manager.load_checkpoint() -> manager.infer()
+        ManagerDefault() -> manager.set_objects() -> manager.load_checkpoint() -> manager.infer()
     """
 
     def __init__(self, output_model_dir: str = None, force_reset: bool = False):
@@ -83,7 +83,7 @@ class FuseManagerDefault:
         log_object_input_state(self, locals())
         self.logger = logging.getLogger('Fuse')
 
-        self.state = FuseManagerState()
+        self.state = ManagerState()
         self.state.output_model_dir = output_model_dir
         self.state.current_epoch = 0
 
@@ -91,15 +91,15 @@ class FuseManagerDefault:
             # prepare model_dir
             create_or_reset_dir(output_model_dir, ignore_files=['logs', 'source_files'], force_reset=force_reset)
 
-        self.callbacks: List[FuseCallback] = list()  # callback can be empty
+        self.callbacks: List[Callback] = list()  # callback can be empty
         pass
 
     def set_objects(self,
                     net: nn.Module = None,
                     # ensemble_nets: Sequence[nn.Module] = None,
                     metrics: Dict[str, MetricBase] = None,
-                    losses: Dict[str, FuseLossBase] = None,
-                    callbacks: List[FuseCallback] = None,
+                    losses: Dict[str, LossBase] = None,
+                    callbacks: List[Callback] = None,
                     optimizer: Optimizer = None,
                     lr_scheduler: Any = None,
                     best_epoch_source: Union[List[Dict[str, str]], Dict[str, str]] = None,
@@ -143,8 +143,8 @@ class FuseManagerDefault:
         if output_model_dir is not None: self.state.output_model_dir = output_model_dir
 
         # debug mode - append debug callback
-        if FuseUtilsDebug().get_setting('manager_stages') != 'default':
-            self.callbacks.append(FuseCallbackDebug())
+        if FuseDebug().get_setting('manager_stages') != 'default':
+            self.callbacks.append(CallbackDebug())
             self.logger.info(f'Manager - debug mode - append debug callback', {'color': 'red'})
         pass
 
@@ -176,7 +176,7 @@ class FuseManagerDefault:
 
         # also save validation_dataset in inference mode
         if validation_dataloader is not None:
-            FuseDatasetBase.save(validation_dataloader.dataset, mode=FuseDatasetBase.SaveMode.INFERENCE,
+            DatasetBase.save(validation_dataloader.dataset, mode=DatasetBase.SaveMode.INFERENCE,
                                  filename=os.path.join(self.state.output_model_dir, "inference_dataset.pth"))
         pass
 
@@ -217,7 +217,7 @@ class FuseManagerDefault:
             for model_idx, model_dir in enumerate(input_model_dir):
                 self.logger.info("Loading ensemble model %d from: %s" % (model_idx, model_dir))
 
-            self.state.net = FuseModelEnsemble(input_model_dir)
+            self.state.net = ModelEnsemble(input_model_dir)
             input_model_dir = input_model_dir[0]
 
         else:  # load single module
@@ -293,7 +293,7 @@ class FuseManagerDefault:
                 raise Exception(msg)
             str_vals = 'all' if values_to_resume is None else str(values_to_resume)
             self.logger.info(f'Loading checkpoint file: {checkpoint_file}. values_to_resume {str_vals}', {'color': 'yellow'})
-            checkpoint_objs.append(FuseCheckpoint.load_from_file(checkpoint_file))
+            checkpoint_objs.append(Checkpoint.load_from_file(checkpoint_file))
 
         if should_load('net'):
             net_state_dict_list = [checkpoint.net_state_dict for checkpoint in checkpoint_objs]
@@ -327,7 +327,7 @@ class FuseManagerDefault:
         self._verify_all_objects_initialized(mode='train')
 
         # debug - num workers
-        override_num_workers = FuseUtilsDebug().get_setting('manager_override_num_dataloader_workers')
+        override_num_workers = FuseDebug().get_setting('manager_override_num_dataloader_workers')
         if override_num_workers != 'default':
             train_dataloader.num_workers = override_num_workers
             validation_dataloader.num_workers = override_num_workers
@@ -380,7 +380,7 @@ class FuseManagerDefault:
                 state_dict = self.state.net.module.state_dict()
             else:
                 state_dict = self.state.net.state_dict()
-            epoch_checkpoint = FuseCheckpoint(state_dict, self.state.current_epoch, self.get_current_learning_rate())
+            epoch_checkpoint = Checkpoint(state_dict, self.state.current_epoch, self.get_current_learning_rate())
 
             # if this is the best epoch yet
             for i in range(self.state.num_models_to_save):
@@ -413,14 +413,14 @@ class FuseManagerDefault:
 
         pass
 
-    def visualize(self, visualizer: FuseVisualizerBase, data_loader: Optional[DataLoader] = None, infer_processor: Optional[FuseProcessorBase] = None,
+    def visualize(self, visualizer: VisualizerBase, data_loader: Optional[DataLoader] = None, infer_processor: Optional[ProcessorBase] = None,
                   descriptors: Optional[List[Hashable]] = None, device: str = 'cuda', display_func: Optional[Callable] = None):
 
         """
         Visualize data including the input and the output.
         Expected Sequence:
         1. Using a loaded model to extract the output:
-         manager = FuseManagerDefault()
+         manager = ManagerDefault()
 
          manager.load_objects(<model dir>, mode='infer')  # this method can load either a single model or an ensemble
          manager.load_checkpoint(checkpoint=<path to checkpoint file>, mode='infer')
@@ -431,7 +431,7 @@ class FuseManagerDefault:
                   infer_processor=None)
 
         2. using inference processor
-         manager = FuseManagerDefault()
+         manager = ManagerDefault()
          manager.visualize(visualizer=visualizer,
                   data_loader=dataloader,
                   descriptors=<optional - list of descriptors>,
@@ -446,7 +446,7 @@ class FuseManagerDefault:
         :param display_func: Function getting the batch dict as an input and returns boolean specifying if to visualize this sample or not.
         :return: None
         """
-        dataset: FuseDatasetBase = data_loader.dataset
+        dataset: DatasetBase = data_loader.dataset
         if infer_processor is None:
             if not hasattr(self, 'net') or self.state.net is None:
                 self.logger.error(f"Cannot visualize without either net or infer_processor")
@@ -484,7 +484,7 @@ class FuseManagerDefault:
 
     def infer(self, input_model_dir: Optional[Union[str, Sequence]] = None,
               checkpoint: Optional[Union[str, int, Sequence[Union[str, int]]]] = None,
-              data_source: Optional[FuseDataSourceBase] = None, data_loader: Optional[DataLoader] = None,
+              data_source: Optional[DataSourceBase] = None, data_loader: Optional[DataLoader] = None,
               num_workers: Optional[int] = 4, batch_size: Optional[int] = 2,
               output_columns: List[str] = None, output_file_name: str = None, strict: bool = True,
               append_default_inference_callback: bool = True,
@@ -530,7 +530,7 @@ class FuseManagerDefault:
         :param batch_size: batch size for Dataloader, effective only if 'data_loader' param is None
         :param output_columns: output columns to return.
             When None (default) all columns are returned.
-            When not None, FuseInferResultsCallback callback is created.
+            When not None, InferResultsCallback callback is created.
         :param output_file_name: output file path. when None (default) results are not saved to file.
         :param strict: strict state dict loading when loading checkpoint weights. default is True.
         :param append_default_inference_callback: if True, appends Fuse's default results collector callback
@@ -539,7 +539,7 @@ class FuseManagerDefault:
         """
 
         # debug - num workers
-        override_num_workers = FuseUtilsDebug().get_setting('manager_override_num_dataloader_workers')
+        override_num_workers = FuseDebug().get_setting('manager_override_num_dataloader_workers')
         if override_num_workers != 'default':
             num_workers = override_num_workers
             if data_loader is not None:
@@ -568,7 +568,7 @@ class FuseManagerDefault:
         #TODO I don't like this flag - maybe think about a way to get rid of it?
         # append inference callback
         if append_default_inference_callback:
-            self.callbacks.append(FuseInferResultsCallback(output_file=output_file_name, output_columns=output_columns))
+            self.callbacks.append(InferResultsCallback(output_file=output_file_name, output_columns=output_columns))
 
         # either optional_datasource or optional_dataloader
         if data_loader is not None and data_source is not None:
@@ -590,7 +590,7 @@ class FuseManagerDefault:
             else:
                 data_set_filename = os.path.join(input_model_dir, "inference_dataset.pth")
             self.logger.info(f"Loading data source definitions from {data_set_filename}", {'color': 'yellow'})
-            infer_dataset = FuseDatasetBase.load(filename=data_set_filename, override_datasource=data_source)
+            infer_dataset = DatasetBase.load(filename=data_set_filename, override_datasource=data_source)
             data_loader = DataLoader(dataset=infer_dataset, shuffle=False, drop_last=False, batch_sampler=None,
                                      batch_size=batch_size, num_workers=num_workers, collate_fn=infer_dataset.collate_fn)
 
@@ -604,7 +604,7 @@ class FuseManagerDefault:
 
         # if infer CB is in the callback list, then return its result
         for callback in self.callbacks:
-            if isinstance(callback, FuseInferResultsCallback):
+            if isinstance(callback, InferResultsCallback):
                 return callback.get_infer_results()
 
     def handle_epoch(self, mode: str, epoch: int, data_loader: DataLoader) -> Dict:
@@ -855,7 +855,7 @@ class FuseManagerDefault:
         if mode == 'train':
             self.state.num_epochs: int = full_config['num_epochs']
             # debug - num epochs
-            override_num_epochs = FuseUtilsDebug().get_setting('manager_override_num_epochs')
+            override_num_epochs = FuseDebug().get_setting('manager_override_num_epochs')
             if override_num_epochs != 'default':
                 self.state.num_epochs = override_num_epochs
                 self.logger.info(f'Manager - debug mode - override num_epochs to {self.state.num_epochs}', {'color': 'red'})

@@ -23,7 +23,7 @@ import numpy as np
 import skimage
 import skimage.transform as transform
 
-class FuseProcessorsImageToolBox:
+class ProcessorsImageToolBox:
     """
     Common utils for image processors
     """
@@ -97,7 +97,7 @@ class FuseProcessorsImageToolBox:
         else:
             pad_value = normalized_target_range[0]
 
-        image = FuseProcessorsImageToolBox.pad_inner_image(inner_image, outer_height=resize_to[0] + 2 * padding[0],
+        image = ProcessorsImageToolBox.pad_inner_image(inner_image, outer_height=resize_to[0] + 2 * padding[0],
                                                            outer_width=resize_to[1] + 2 * padding[1], pad_value=pad_value, number_of_channels=number_of_channels)
         return image
 

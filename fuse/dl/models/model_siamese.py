@@ -21,13 +21,13 @@ from typing import Sequence, Dict, Tuple
 
 import torch
 
-from fuse.dl.models.model_default import FuseModelDefault
-from fuse.dl.models.backbones.backbone_inception_resnet_v2 import FuseBackboneInceptionResnetV2
-from fuse.dl.models.heads.head_global_pooling_classifier import FuseHeadGlobalPoolingClassifier
+from fuse.dl.models.model_default import ModelDefault
+from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
+from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 
 
-class FuseModelSiamese(FuseModelDefault):
+class ModelSiamese(ModelDefault):
     """
     Fuse Siamese model - 2 branches of the same convolutional neural network with multiple heads
     """
@@ -35,8 +35,8 @@ class FuseModelSiamese(FuseModelDefault):
     def __init__(self,
                  conv_inputs_0: Tuple[Tuple[str, int], ...] = (('data.input.input_0.tensor', 1),),
                  conv_inputs_1: Tuple[Tuple[str, int], ...] = (('data.input.input_1.tensor', 1),),
-                 backbone: torch.nn.Module = FuseBackboneInceptionResnetV2(),
-                 heads: Sequence[torch.nn.Module] = (FuseHeadGlobalPoolingClassifier(),)
+                 backbone: torch.nn.Module = BackboneInceptionResnetV2(),
+                 heads: Sequence[torch.nn.Module] = (HeadGlobalPoolingClassifier(),)
                  ) -> None:
         """
         Fuse Siamese model -  two branches with same convolutional neural network with multiple heads

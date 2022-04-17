@@ -7,22 +7,22 @@ import os, glob
 from pathlib import Path
 
 
-from fuse.data.visualizer.visualizer_default import FuseVisualizerDefault
-from fuse.data.augmentor.augmentor_default import FuseAugmentorDefault
+from fuse.data.visualizer.visualizer_default import VisualizerDefault
+from fuse.data.augmentor.augmentor_default import AugmentorDefault
 from fuse.data.augmentor.augmentor_toolbox import aug_op_color, aug_op_gaussian, aug_op_affine
-from fuse.data.dataset.dataset_default import FuseDatasetDefault
+from fuse.data.dataset.dataset_default import DatasetDefault
 
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
 
-from fuse_examples.classification.cmmd.input_processor import FuseMGInputProcessor
-from fuse_examples.classification.cmmd.ground_truth_processor import FuseMGGroundTruthProcessor
-from fuse.data.data_source.data_source_folds import FuseDataSourceFolds
+from fuse_examples.classification.cmmd.input_processor import MGInputProcessor
+from fuse_examples.classification.cmmd.ground_truth_processor import MGGroundTruthProcessor
+from fuse.data.data_source.data_source_folds import DataSourceFolds
 
 from typing import Tuple
 
 
 def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache', reset_cache: bool = False,
-                      post_cache_processing_func: Optional[Callable] = None) -> Tuple[FuseDatasetDefault, FuseDatasetDefault]:
+                      post_cache_processing_func: Optional[Callable] = None) -> Tuple[DatasetDefault, DatasetDefault]:
     """
     Creates Fuse Dataset object for training, validation and test
     :param data_dir:                    dataset root path
@@ -30,7 +30,7 @@ def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache
     :param cache_dir:                   Optional, name of the cache folder
     :param reset_cache:                 Optional,specifies if we want to clear the cache first
     :param post_cache_processing_func:  Optional, function run post cache processing
-    :return: training, validation and test FuseDatasetDefault objects
+    :return: training, validation and test DatasetDefault objects
     """
     augmentation_pipeline = [
         [
@@ -60,7 +60,7 @@ def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache
     input_source_gt = merge_clinical_data_with_dicom_tags(data_dir, data_misc_dir, target)
 
     partition_file_path = os.path.join(data_misc_dir, 'data_fold_new.csv')
-    train_data_source = FuseDataSourceFolds(input_source=input_source_gt,
+    train_data_source = DataSourceFolds(input_source=input_source_gt,
                                             input_df=None,
                                             phase='train',
                                             no_mixture_id='ID1',
@@ -73,21 +73,21 @@ def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache
 
     # Create data processors:
     input_processors = {
-        'image': FuseMGInputProcessor(input_data=data_dir)
+        'image': MGInputProcessor(input_data=data_dir)
     }
     gt_processors = {
-        'classification': FuseMGGroundTruthProcessor(input_data=input_source_gt)
+        'classification': MGGroundTruthProcessor(input_data=input_source_gt)
     }
 
     # Create data augmentation (optional)
-    augmentor = FuseAugmentorDefault(
+    augmentor = AugmentorDefault(
         augmentation_pipeline=augmentation_pipeline)
 
     # Create visualizer (optional)
-    visualiser = FuseVisualizerDefault(image_name='data.input.image', label_name='data.gt.classification')
+    visualiser = VisualizerDefault(image_name='data.input.image', label_name='data.gt.classification')
 
     # Create train dataset
-    train_dataset = FuseDatasetDefault(cache_dest=cache_dir,
+    train_dataset = DatasetDefault(cache_dest=cache_dir,
                                        data_source=train_data_source,
                                        input_processors=input_processors,
                                        gt_processors=gt_processors,
@@ -100,7 +100,7 @@ def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache
     lgr.info(f'- Load and cache data: Done')
 
     # Create validation data source
-    validation_data_source = FuseDataSourceFolds(input_source=input_source_gt,
+    validation_data_source = DataSourceFolds(input_source=input_source_gt,
                                             input_df=None,
                                             phase='validation',
                                             no_mixture_id='ID1',
@@ -111,7 +111,7 @@ def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache
                                             partition_file_name=partition_file_path)
 
     ## Create dataset
-    validation_dataset = FuseDatasetDefault(cache_dest=cache_dir,
+    validation_dataset = DatasetDefault(cache_dest=cache_dir,
                                             data_source=validation_data_source,
                                             input_processors=input_processors,
                                             gt_processors=gt_processors,
@@ -120,7 +120,7 @@ def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache
                                             visualizer=visualiser)
     validation_dataset.create( pool_type='thread')  # use ThreadPool to create this dataset, to avoid cv2 problems in multithreading
 
-    test_data_source =  FuseDataSourceFolds(input_source=input_source_gt,
+    test_data_source =  DataSourceFolds(input_source=input_source_gt,
                                             input_df=None,
                                             phase='test',
                                             no_mixture_id='ID1',
@@ -129,7 +129,7 @@ def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache
                                             folds=[4],
                                             num_folds=5,
                                             partition_file_name=partition_file_path)
-    test_dataset = FuseDatasetDefault(cache_dest=cache_dir,
+    test_dataset = DatasetDefault(cache_dest=cache_dir,
                                             data_source=test_data_source,
                                             input_processors=input_processors,
                                             gt_processors=gt_processors,

@@ -21,7 +21,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from fuse.dl.losses.loss_base import FuseLossBase
+from fuse.dl.losses.loss_base import LossBase
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 from typing import Callable, Dict, Optional
 
@@ -82,7 +82,7 @@ class BinaryDiceLoss(nn.Module):
             raise Exception('Unexpected reduction {}'.format(self.reduction))
 
 
-class FuseDiceLoss(FuseLossBase):
+class DiceLoss(LossBase):
 
     def __init__(self, pred_name,
                  target_name,

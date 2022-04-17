@@ -20,17 +20,17 @@ Created on June 30, 2021
 import torch
 
 
-class FuseLossBase(torch.nn.Module):
+class LossBase(torch.nn.Module):
     """
     Base class for Fuse loss functions
     """
 
     def __init__(self,
-                 pred_name: str = None,
-                 target_name: str = None,
+                 pred: str = None,
+                 target: str = None,
                  weight: float = 1.0, ) -> None:
         super().__init__()
-        self.pred_name = pred_name
-        self.target_name = target_name
+        self.pred_name = pred
+        self.target_name = target
         self.weight = weight
 

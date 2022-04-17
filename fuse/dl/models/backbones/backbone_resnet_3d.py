@@ -25,7 +25,7 @@ from torch.hub import load_state_dict_from_url
 from torchvision.models.video.resnet import VideoResNet, BasicBlock, Conv3DSimple, BasicStem, model_urls
 
 
-class FuseBackboneResnet3D(VideoResNet):
+class BackboneResnet3D(VideoResNet):
     """
     3D model classifier (ResNet architecture"
     """

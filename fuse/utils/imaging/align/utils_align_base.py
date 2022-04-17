@@ -20,7 +20,7 @@ Created on June 30, 2021
 from abc import ABC
 
 
-class FuseAlignMapBase(ABC):
+class AlignMapBase(ABC):
     def __init__(self):
         """
         AlignMap settings, e.g. number of iterations for an iterative algorithm.

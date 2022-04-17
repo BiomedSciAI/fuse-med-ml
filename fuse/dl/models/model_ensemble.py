@@ -24,7 +24,7 @@ import torch
 from typing import Sequence, Dict, List
 
 
-class FuseModelEnsemble(torch.nn.Module):
+class ModelEnsemble(torch.nn.Module):
     """
     Ensemble Module - runs several sub-modules sequentially.
     In addition to producing a dictionary with predictions of each model in the ensemble,

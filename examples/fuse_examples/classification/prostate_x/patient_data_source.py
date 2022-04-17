@@ -14,10 +14,10 @@ Created on June 30, 2021
 
 from typing import List, Tuple
 
-from fuse.data.data_source.data_source_base import FuseDataSourceBase
-from fuse_examples.classification.prostate_x.data_utils import FuseProstateXUtilsData
+from fuse.data.data_source.data_source_base import DataSourceBase
+from fuse_examples.classification.prostate_x.data_utils import ProstateXUtilsData
 
-class FuseProstateXDataSourcePatient(FuseDataSourceBase):
+class ProstateXDataSourcePatient(DataSourceBase):
     def __init__(self,
                  db_path: str,
                  set_type: str,
@@ -65,9 +65,9 @@ class FuseProstateXDataSourcePatient(FuseDataSourceBase):
         Go Over all patients and create a tuple list of (db_ver, set_type, patient_id [,'gt'])
         :return: list of patient descriptors
         '''
-        data = FuseProstateXUtilsData.get_dataset(self.db_path,self.set_type, self.db_ver,self.db_name,self.fold_no)
+        data = ProstateXUtilsData.get_dataset(self.db_path,self.set_type, self.db_ver,self.db_name,self.fold_no)
         if (self.db_name=='prostate_x') | (self.db_name=='ISPY2')| (self.db_name=='DUKE'):
-            data_lesions = FuseProstateXUtilsData.get_lesions_prostate_x(data)
+            data_lesions = ProstateXUtilsData.get_lesions_prostate_x(data)
 
         patients = list(data_lesions['Patient ID'].unique())
 
@@ -75,4 +75,4 @@ class FuseProstateXDataSourcePatient(FuseDataSourceBase):
 
 if __name__ == "__main__":
     path_to_db = '/gpfs/haifa/projects/m/msieve_dev3/usr/Tal/my_research/virtual_biopsy/prostate/experiments/V1/'
-    train_data_source = FuseProstateXDataSourcePatient(path_to_db,'train',db_name='tcia', db_ver='18042021',fold_no=0, include_gt=False)
+    train_data_source = ProstateXDataSourcePatient(path_to_db,'train',db_name='tcia', db_ver='18042021',fold_no=0, include_gt=False)

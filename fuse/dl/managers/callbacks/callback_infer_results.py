@@ -26,12 +26,12 @@ import pandas as pd
 import torch
 from torch import Tensor
 
-from fuse.dl.managers.callbacks.callback_base import FuseCallback
+from fuse.dl.managers.callbacks.callback_base import Callback
 from fuse.utils.file_io.file_io import create_dir
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 
 
-class FuseInferResultsCallback(FuseCallback):
+class InferResultsCallback(Callback):
     """
         Responsible of writing the data of inference results into a CSV file.
         Collects the output data (corresponding to the output_columns) at the end of handle_batch into an aggregated dict,

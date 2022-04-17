@@ -19,8 +19,8 @@ Created on June 30, 2021
 
 import os
 
-from fuse.utils.utils_debug import FuseUtilsDebug
-import fuse.utils.gpu as FuseUtilsGPU
+from fuse.utils.utils_debug import FuseDebug
+import fuse.utils.gpu as GPU
 
 os.environ['skip_broker'] = '1'
 
@@ -31,19 +31,19 @@ from torch.utils.data.dataloader import DataLoader
 
 from fuse.utils.utils_logger import fuse_logger_start
 
-from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
-from fuse.data.visualizer.visualizer_default import FuseVisualizerDefault
-from fuse.data.augmentor.augmentor_default import FuseAugmentorDefault
-from fuse.data.dataset.dataset_default import FuseDatasetDefault
+from fuse.data.sampler.sampler_balanced_batch import SamplerBalancedBatch
+from fuse.data.visualizer.visualizer_default import VisualizerDefault
+from fuse.data.augmentor.augmentor_default import AugmentorDefault
+from fuse.data.dataset.dataset_default import DatasetDefault
 
-from fuse.dl.models.model_default import FuseModelDefault
+from fuse.dl.models.model_default import ModelDefault
 
-from fuse.dl.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
-from fuse.dl.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
-from fuse.dl.managers.callbacks.callback_time_statistics import FuseTimeStatisticsCallback
-from fuse.dl.managers.manager_default import FuseManagerDefault
+from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
+from fuse.dl.managers.callbacks.callback_metric_statistics import StatisticsCallback
+from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
+from fuse.dl.managers.manager_default import ManagerDefault
 
-from fuse.analyzer.analyzer_default import FuseAnalyzerDefault
+from fuse.eval.evaluator import EvaluatorDefault
 
 ###########################################################################################################
 # Fuse
@@ -83,8 +83,8 @@ from fuse.analyzer.analyzer_default import FuseAnalyzerDefault
 ##########################################
 # Debug modes
 ##########################################
-mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseUtilsDebug
-debug = FuseUtilsDebug(mode)
+mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
+debug = FuseDebug(mode)
 
 ##########################################
 # Output Paths
@@ -150,70 +150,70 @@ def train_template(paths: dict, train_common_params: dict):
     #   Build dataloaders (torch.utils.data.DataLoader) for both train and validation.
     #   Using Fuse generic components:
     #
-    #   (1) Data Source - FuseDataSourceBase -
+    #   (1) Data Source - DataSourceBase -
     #       Class providing list of sample descriptors
     #
-    #   (2) Processor - FuseProcessorBase -
+    #   (2) Processor - ProcessorBase -
     #       Group of classes extracting sample data given the sample descriptor.
     #       We divide the processor to two groups (1) 'input' (2) 'gt'.
     #       Both groups will be used for training, but only the 'input' group will be used for 'inference'
     #       The input processors data will be aggregated in batch_dict['data.input.<processor name>.*']
     #       The gt processors data will be aggregated in batch_dict['data.gt.<processor name>.*']
     #       Available Processor classes are:
-    #       FuseProcessorCSV -  Reads CSV file, call() returns a sample as dict
-    #       FuseProcessorDataFrame -  Reads either data frame or pickled data frame, call() returns a sample as dict
-    #       FuseProcessorDataFrameWithGT - Reads either data frame or pickled data frame, call() returns a gt tensor value as dict
-    #       FuseProcessorRand - Processor generating random ground truth - useful for testing and sanity check
+    #       ProcessorCSV -  Reads CSV file, call() returns a sample as dict
+    #       ProcessorDataFrame -  Reads either data frame or pickled data frame, call() returns a sample as dict
+    #       ProcessorDataFrameWithGT - Reads either data frame or pickled data frame, call() returns a gt tensor value as dict
+    #       ProcessorRand - Processor generating random ground truth - useful for testing and sanity check
     #
-    #   (3) Dataset - FuseDatasetBase -
+    #   (3) Dataset - DatasetBase -
     #       Extended pytorch Dataset class - providing additional functionality such as caching, filtering, visualizing.
     #       Available Dataset classes are:
-    #       FuseDatasetDefault - generic default implementation
-    #       FuseDatasetGenerator - to be used when generating simple samples at once (e.g., patches of a single image)
-    #       FuseDatasetWrapper - wraps Pytorch's dataset, converts each sample into a dict.
+    #       DatasetDefault - generic default implementation
+    #       DatasetGenerator - to be used when generating simple samples at once (e.g., patches of a single image)
+    #       DatasetWrapper - wraps Pytorch's dataset, converts each sample into a dict.
     #
-    #   (4) Augmentor - FuseAugmentorBase -
+    #   (4) Augmentor - AugmentorBase -
     #       Optional class applying the augmentation
-    #       See FuseAugmentorDefault for default generic implementation of augmentor. It is aimed to be used by most experiments.
+    #       See AugmentorDefault for default generic implementation of augmentor. It is aimed to be used by most experiments.
     #       See fuse.data.augmentor.augmentor_toolbox.py for implemented augmentation functions to be used in the pipeline.
     #
-    #   (5) Visualizer - FuseVisualizerBase -
+    #   (5) Visualizer - VisualizerBase -
     #       Optional class visualizing the data before and after augmentations
     #       Available visualizers:
-    #       FuseVisualizerDefault - Visualizer for data including single 2D image with optional mask
+    #       VisualizerDefault - Visualizer for data including single 2D image with optional mask
     #       Fuse3DVisualizerDefault - Visualizer for data including 3D volume with optional mask
-    #       FuseVisualizerImageAnalysis - Visualizer for producing analysis of an image
+    #       VisualizerImageAnalysis - Visualizer for producing analysis of an image
     #
     #   (6) Sampler - implementing 'torch.utils.data.sampler' -
     #       Class retrieving list of samples to use for each batch
     #       Available Sampler;
-    #       FuseSamplerBalancedBatch - balances data per batch. Supports balancing of classes by weights/probabilities.
+    #       SamplerBalancedBatch - balances data per batch. Supports balancing of classes by weights/probabilities.
     # ==============================================================================
     #### Train Data
 
     lgr.info(f'Train Data:', {'attrs': 'bold'})
 
     ## Create data source:
-    # TODO: Create instance of FuseDataSourceBase
-    # Reference: FuseMGDataSource
+    # TODO: Create instance of DataSourceBase
+    # Reference: MGDataSource
     train_data_source = None
 
     ## Create data processors:
-    # TODO - Create instances of FuseProcessorBase and add to the dictionaries below
-    # Reference: FuseProcessorDataFrame, FuseProcessorCSV, DatasetProcessor (for pytorch data)
+    # TODO - Create instances of ProcessorBase and add to the dictionaries below
+    # Reference: ProcessorDataFrame, ProcessorCSV, DatasetProcessor (for pytorch data)
     input_processors = {}
     gt_processors = {}
 
     ## Create data augmentation (optional)
-    augmentor = FuseAugmentorDefault(augmentation_pipeline=train_common_params['data.augmentation_pipeline'])
+    augmentor = AugmentorDefault(augmentation_pipeline=train_common_params['data.augmentation_pipeline'])
 
     # Create visualizer (optional)
     # TODO - Either use the default visualizer or an alternative one
-    visualiser = FuseVisualizerDefault(image_name='TODO', label_name='TODO')
+    visualiser = VisualizerDefault(image_name='TODO', label_name='TODO')
 
     # Create dataset
-    # Fuse TIP: If it's more convenient to generate few samples at once, use FuseDatasetGenerator
-    train_dataset = FuseDatasetDefault(cache_dest=paths['cache_dir'],
+    # Fuse TIP: If it's more convenient to generate few samples at once, use DatasetGenerator
+    train_dataset = DatasetDefault(cache_dest=paths['cache_dir'],
                                        data_source=train_data_source,
                                        input_processors=input_processors,
                                        gt_processors=gt_processors,
@@ -237,7 +237,7 @@ def train_template(paths: dict, train_common_params: dict):
     # 2. You don't have to equally balance between the classes.
     #    Use balanced_class_weights to specify the number of required samples in a batch per each class
     lgr.info(f'- Create sampler:')
-    sampler = FuseSamplerBalancedBatch(dataset=train_dataset,
+    sampler = SamplerBalancedBatch(dataset=train_dataset,
                                        balanced_class_name='TODO',
                                        num_balanced_classes='TODO',
                                        batch_size=train_common_params['data.batch_size'],
@@ -257,13 +257,13 @@ def train_template(paths: dict, train_common_params: dict):
     lgr.info(f'Validation Data:', {'attrs': 'bold'})
 
     ## Create data source
-    # TODO: Create instance of FuseDataSourceBase
-    # Reference: FuseDataSourceDefault
+    # TODO: Create instance of DataSourceBase
+    # Reference: DataSourceDefault
     validation_data_source = 'TODO'
 
     ## Create dataset
-    # Fuse TIP: If it's more convenient to generate few samples at once, use FuseDatasetGenerator
-    validation_dataset = FuseDatasetDefault(cache_dest=paths['cache_dir'],
+    # Fuse TIP: If it's more convenient to generate few samples at once, use DatasetGenerator
+    validation_dataset = DatasetDefault(cache_dest=paths['cache_dir'],
                                             data_source=validation_data_source,
                                             input_processors=input_processors,
                                             gt_processors=gt_processors,
@@ -287,75 +287,69 @@ def train_template(paths: dict, train_common_params: dict):
     # ===================================================================================================================
     # Model
     #   Build a model (torch.nn.Module) using generic Fuse componnets:
-    #   1. FuseModelDefault - generic component supporting single backbone with multiple heads
-    #   2. FuseBackbone - simple backbone model
-    #   3. FuseHead* - generic head implementations
+    #   1. ModelDefault - generic component supporting single backbone with multiple heads
+    #   2. Backbone - simple backbone model
+    #   3. Head* - generic head implementations
     #   The model outputs will be aggregated in batch_dict['model.*']
     #   Each head output will be aggregated in batch_dict['model.<head name>.*']
     #
     #   Additional implemented models:
-    #   * FuseModelEnsemble - runs several sub-modules sequentially
-    #   * FuseModelMultistream - convolutional neural network with multiple processing streams and multiple heads
+    #   * ModelEnsemble - runs several sub-modules sequentially
+    #   * ModelMultistream - convolutional neural network with multiple processing streams and multiple heads
     #   *
     # ===================================================================================================================
     lgr.info('Model:', {'attrs': 'bold'})
     # TODO - define / create a model
-    model = FuseModelDefault(
+    model = ModelDefault(
         conv_inputs=(('data.input.input_0.tensor', 1),),
-        backbone='TODO',  # Reference: FuseBackboneInceptionResnetV2
-        heads=['TODO']  # References: FuseHeadGlobalPoolingClassifier, FuseHeadDenseSegmentation
+        backbone='TODO',  # Reference: BackboneInceptionResnetV2
+        heads=['TODO']  # References: HeadGlobalPoolingClassifier, HeadDenseSegmentation
     )
     lgr.info('Model: Done', {'attrs': 'bold'})
 
     # ==========================================================================================================================================
     #   Loss
-    #   Dictionary of loss elements each element is a sub-class of FuseLossBase
+    #   Dictionary of loss elements each element is a sub-class of LossBase
     #   The total loss will be the weighted sum of all the elements.
     #   Each element output loss will be aggregated in batch_dict['losses.<loss name>']
     #   The average batch loss per epoch will be included in epoch_result['losses.<loss name>'],
     #   and the total loss in epoch_result['losses.total_loss']
     #   The 'best_epoch_source', used to save the best model could be based on one of this losses.
     #   Available Losses:
-    #   FuseLossDefault - wraps a PyTorch loss function with a Fuse api.
-    #   FuseLossSegmentationCrossEntropy - calculates cross entropy loss per location ("dense") of a class activation map ("segmentation")
+    #   LossDefault - wraps a PyTorch loss function with a Fuse api.
+    #   LossSegmentationCrossEntropy - calculates cross entropy loss per location ("dense") of a class activation map ("segmentation")
     #
     # ==========================================================================================================================================
     losses = {
-        # TODO add losses here (instances of FuseLossBase)
+        # TODO add losses here (instances of LossBase)
     }
 
     # =========================================================================================================
     # Metrics
-    # Dictionary of metric elements. Each element is a sub-class of FuseMetricBase
+    # Dictionary of metric elements. Each element is a sub-class of MetricBase
     # The metrics will be calculated per epoch for both the validation and train.
     # The results will be included  in epoch_result['metrics.<metric name>']
     # The 'best_epoch_source', used to save the best model could be based on one of this metrics.
     # Available Metrics:
-    # FuseMetricAccuracy - basic accuracy
-    # FuseMetricAUC - Area under receiver operating characteristic curve
-    # FuseMetricBoundingBoxes - Bounding boxes metric
-    # FuseMetricConfidenceInterval - Wrapper Metric to compute the confidence interval of another metric
-    # FuseMetricConfusionMatrix - Confusion matrix
-    # FuseMetricPartialAUC - Partial area under receiver operating characteristic curve
-    # FuseMetricScoreMap - Segmentation metric
+    # See fuse/eva;/README.md for more details
     #
     # =========================================================================================================
     metrics = {
-        # TODO add metrics here (instances of FuseMetricBase)
+        # TODO add metrics here (instances of MetricBase)
     }
 
     # ==========================================================================================================
     #  Callbacks
-    #  Callbacks are sub-classes of FuseCallbackBase.
+    #  Callbacks are sub-classes of CallbackBase.
     #  A callback is an object that can perform actions at various stages of training,
     #  In each stage it allows to manipulate either the data, batch_dict or epoch_results.
     # ==========================================================================================================
     callbacks = [
         # Fuse TIPs: add additional callbacks here
         # default callbacks
-        FuseTensorboardCallback(model_dir=paths['model_dir']),  # save statstics for tensorboard
-        FuseMetricStatisticsCallback(output_path=paths['model_dir'] + "/metrics.csv"),  # save statisticsin a csv file
-        FuseTimeStatisticsCallback(num_epochs=train_common_params['manager.train_params']['num_epochs'], load_expected_part=0.1)  # time profiler
+        TensorboardCallback(model_dir=paths['model_dir']),  # save statstics for tensorboard
+        MetricStatisticsCallback(output_path=paths['model_dir'] + "/metrics.csv"),  # save statisticsin a csv file
+        TimeStatisticsCallback(num_epochs=train_common_params['manager.train_params']['num_epochs'], load_expected_part=0.1)  # time profiler
     ]
 
     # =====================================================================================
@@ -372,7 +366,7 @@ def train_template(paths: dict, train_common_params: dict):
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
     # train from scratch
-    manager = FuseManagerDefault(output_model_dir=paths['model_dir'], force_reset=paths['force_reset_model_dir'])
+    manager = ManagerDefault(output_model_dir=paths['model_dir'], force_reset=paths['force_reset_model_dir'])
     # Providing the objects required for the training process.
     manager.set_objects(net=model,
                         optimizer=optimizer,
@@ -414,13 +408,13 @@ def infer_template(paths: dict, infer_common_params: dict):
     lgr.info(f'infer_filename={infer_common_params["infer_filename"]}', {'color': 'magenta'})
 
     #### create infer datasource
-    # TODO: Create instance of FuseDataSourceBase
-    # Reference: FuseDataSourceDefault
+    # TODO: Create instance of DataSourceBase
+    # Reference: DataSourceDefault
     infer_data_source = 'TODO'
     lgr.info(f'experiment={infer_common_params["experiment_filename"]}', {'color': 'magenta'})
 
     #### Manager for inference
-    manager = FuseManagerDefault()
+    manager = ManagerDefault()
     # TODO - define the keys out of batch_dict that will be saved to a file
     output_columns = ['TODO']
     manager.infer(data_source=infer_data_source,
@@ -430,45 +424,6 @@ def infer_template(paths: dict, infer_common_params: dict):
                   output_file_name=infer_common_params['infer_filename'])
 
 
-######################################
-# Analyze Common Params
-######################################
-ANALYZE_COMMON_PARAMS = {}
-ANALYZE_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
-ANALYZE_COMMON_PARAMS['output_filename'] = os.path.join(PATHS['analyze_dir'], 'all_metrics')
-ANALYZE_COMMON_PARAMS['num_workers'] = 4
-ANALYZE_COMMON_PARAMS['batch_size'] = 2
-
-
-######################################
-# Analyze Template
-######################################
-def analyze_template(paths: dict, analyze_common_params: dict):
-    fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
-    lgr = logging.getLogger('Fuse')
-    lgr.info('Fuse Analyze', {'attrs': ['bold', 'underline']})
-
-    # TODO - include all the gt processors required for analyzing
-    gt_processors = {
-        'TODO',
-    }
-
-    # metrics
-    # Fuse TIP: use metric FuseMetricConfidenceInterval for computing confidence interval for metrics
-    metrics = {
-        # TODO : add required metrics
-    }
-
-    # create analyzer
-    analyzer = FuseAnalyzerDefault()
-
-    # run
-    analyzer.analyze(gt_processors=gt_processors,
-                     data_pickle_filename=analyze_common_params['infer_filename'],
-                     metrics=metrics,
-                     output_filename=analyze_common_params['output_filename'],
-                     num_workers=analyze_common_params['num_workers'],
-                     batch_size=analyze_common_params['num_workers'])
 
 
 ######################################
@@ -479,7 +434,7 @@ if __name__ == "__main__":
     NUM_GPUS = 1
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None  # [0]
-    FuseUtilsGPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
+    GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
     RUNNING_MODES = ['train']  # Options: 'train', 'infer', 'analyze'
 
@@ -491,6 +446,4 @@ if __name__ == "__main__":
     if 'infer' in RUNNING_MODES:
         infer_template(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS)
 
-    # analyze
-    if 'analyze' in RUNNING_MODES:
-        analyze_template(analyze_common_params=ANALYZE_COMMON_PARAMS)
+ 

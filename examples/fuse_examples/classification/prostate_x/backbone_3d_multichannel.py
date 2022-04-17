@@ -20,7 +20,7 @@ import torch.nn as nn
 
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 import numpy as np
-from fuse.dl.models.heads.head_1d_classifier import FuseHead1dClassifier
+from fuse.dl.models.heads.head_1d_classifier import Head1dClassifier
 
 
 # 3x3 convolution
@@ -178,7 +178,7 @@ class Fuse_model_3d_multichannel(torch.nn.Module):
     def __init__(self,
                  conv_inputs: Tuple[Tuple[str, int], ...] = (('data.input', 1),),
                  backbone: ResNet = ResNet(),
-                 heads: Sequence[torch.nn.Module] = (FuseHead1dClassifier(),),
+                 heads: Sequence[torch.nn.Module] = (Head1dClassifier(),),
                  ch_num = None,
                  ) -> None:
         """
@@ -227,7 +227,7 @@ if __name__ == '__main__':
         conv_inputs=(('data.input', 1),),
         backbone= ResNet(),
         heads=[
-        FuseHead1dClassifier(head_name='ClinSig',
+        Head1dClassifier(head_name='ClinSig',
                                         conv_inputs=[('model.backbone_features', num_features)],
                                         post_concat_inputs=None,
                                         dropout_rate=0.25,
@@ -264,7 +264,7 @@ if __name__ == '__main__':
 
 
     res = {}
-    # manager = FuseManagerDefault()
+    # manager = ManagerDefault()
     # manager.set_objects(net=model)
     # checkpoint =  '/gpfs/haifa/projects/m/msieve_dev3/usr/Tal/fus_sessions/multiclass_MG/malignant_multi_class_sentara_baptist_froedtert/exp_12_pretrain_normal-mal-benign_head/model_2/checkpoint_80_epoch.pth'
     # aa = manager.load_checkpoint(checkpoint)

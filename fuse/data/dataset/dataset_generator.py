@@ -29,31 +29,31 @@ from pandas import DataFrame
 from torch import Tensor
 from tqdm import tqdm, trange
 
-from fuse.data.augmentor.augmentor_base import FuseAugmentorBase
-from fuse.data.cache.cache_base import FuseCacheBase
-from fuse.data.cache.cache_files import FuseCacheFiles
-from fuse.data.cache.cache_memory import FuseCacheMemory
-from fuse.data.cache.cache_null import FuseCacheNull
-from fuse.data.data_source.data_source_base import FuseDataSourceBase
-from fuse.data.dataset.dataset_base import FuseDatasetBase
-from fuse.data.processor.processor_base import FuseProcessorBase
-from fuse.data.visualizer.visualizer_base import FuseVisualizerBase
-from fuse.utils.utils_debug import FuseUtilsDebug
+from fuse.data.augmentor.augmentor_base import AugmentorBase
+from fuse.data.cache.cache_base import CacheBase
+from fuse.data.cache.cache_files import CacheFiles
+from fuse.data.cache.cache_memory import CacheMemory
+from fuse.data.cache.cache_null import CacheNull
+from fuse.data.data_source.data_source_base import DataSourceBase
+from fuse.data.dataset.dataset_base import DatasetBase
+from fuse.data.processor.processor_base import ProcessorBase
+from fuse.data.visualizer.visualizer_base import VisualizerBase
+from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 from fuse.utils.utils_logger import log_object_input_state
 from fuse.utils.misc.misc import get_pretty_dataframe, Misc
 
 
-class FuseDatasetGenerator(FuseDatasetBase):
+class DatasetGenerator(DatasetBase):
     """
     Fuse Dataset Generator
     Used when it's more convient to generate sevral samples at once
     """
 
     #### CONSTRUCTOR
-    def __init__(self, data_source: FuseDataSourceBase, processor: FuseProcessorBase,
-                 cache_dest: Optional[Union[str, int]] = None, augmentor: Optional[FuseAugmentorBase] = None,
-                 visualizer: Optional[FuseVisualizerBase] = None, post_processing_func=None,
+    def __init__(self, data_source: DataSourceBase, processor: ProcessorBase,
+                 cache_dest: Optional[Union[str, int]] = None, augmentor: Optional[AugmentorBase] = None,
+                 visualizer: Optional[VisualizerBase] = None, post_processing_func=None,
                  statistic_keys: Optional[List[str]] = None,
                  filter_keys: Optional[List[str]] = None):
         """
@@ -86,19 +86,19 @@ class FuseDatasetGenerator(FuseDatasetBase):
         self.subsets_description = []
 
         # create default cache for now - the cache will be created and loaded in create()
-        self.cache: FuseCacheBase = FuseCacheMemory()
+        self.cache: CacheBase = CacheMemory()
         # create dummy cache
         # self.cache_fields is used to store specific fields of the sample -
         # used to optimize the running time of dataset.get(key=<key name>, use_cache=True)
-        self.cache_fields: FuseCacheBase = FuseCacheNull()
+        self.cache_fields: CacheBase = CacheNull()
 
         # debug modes - read configuration
-        self.sample_stages_debug = FuseUtilsDebug().get_setting('dataset_sample_stages_info') != 'default'
-        self.sample_user_debug = FuseUtilsDebug().get_setting('dataset_user') != 'default'
+        self.sample_stages_debug = FuseDebug().get_setting('dataset_sample_stages_info') != 'default'
+        self.sample_user_debug = FuseDebug().get_setting('dataset_user') != 'default'
 
     def create(self, reset_cache: bool = False,
                num_workers: int = 16, worker_init_func: Callable = None, worker_init_args: Any = None,
-               override_datasource: Optional[FuseDataSourceBase] = None, override_cache_dest: Optional[str] = None,
+               override_datasource: Optional[DataSourceBase] = None, override_cache_dest: Optional[str] = None,
                pool_type: str = 'process') -> None:
 
         """
@@ -113,7 +113,7 @@ class FuseDatasetGenerator(FuseDatasetBase):
         :return: None
         """
         # debug - override num workers
-        override_num_workers = FuseUtilsDebug().get_setting('dataset_override_num_workers')
+        override_num_workers = FuseDebug().get_setting('dataset_override_num_workers')
         if override_num_workers != 'default':
             num_workers = override_num_workers
             logging.getLogger('Fuse').info(f'Dataset - debug mode - override num workers to {override_num_workers}', {'color': 'red'})
@@ -131,19 +131,19 @@ class FuseDatasetGenerator(FuseDatasetBase):
         self.subsets_description = self.data_source.get_samples_description()
 
         # debug - override number of samples
-        dataset_override_num_samples = FuseUtilsDebug().get_setting('dataset_override_num_samples')
+        dataset_override_num_samples = FuseDebug().get_setting('dataset_override_num_samples')
         if dataset_override_num_samples != 'default':
             self.subsets_description = self.subsets_description[:dataset_override_num_samples]
             logging.getLogger('Fuse').info(f'Dataset - debug mode - override num samples to {dataset_override_num_samples}', {'color': 'red'})
 
         # cache object
         if isinstance(self.cache_dest, str) and self.cache_dest == 'memory':
-            self.cache: FuseCacheBase = FuseCacheMemory()
+            self.cache: CacheBase = CacheMemory()
         elif isinstance(self.cache_dest, str):
-            self.cache: FuseCacheBase = FuseCacheFiles(self.cache_dest, reset_cache)
+            self.cache: CacheBase = CacheFiles(self.cache_dest, reset_cache)
 
         # cache samples if required
-        if not isinstance(self.cache, FuseCacheNull):
+        if not isinstance(self.cache, CacheNull):
             self.cache_all_samples(num_workers=num_workers, worker_init_func=worker_init_func, worker_init_args=worker_init_args)
 
             # update descriptors
@@ -309,7 +309,7 @@ class FuseDatasetGenerator(FuseDatasetBase):
 
         if len(descriptors_to_cache) != 0:
             # multi process cache
-            lgr.info(f'FuseDatasetGenerator: caching {len(descriptors_to_cache)} out of {len(all_descriptors)}')
+            lgr.info(f'DatasetGenerator: caching {len(descriptors_to_cache)} out of {len(all_descriptors)}')
             with  Manager() as manager:
                 # change cache mode - to caching (writing)
                 self.cache.start_caching(manager)
@@ -330,9 +330,9 @@ class FuseDatasetGenerator(FuseDatasetBase):
 
                 # save and move back to read mode
                 self.cache.save()
-                lgr.info('FuseDatasetGenerator: caching done')
+                lgr.info('DatasetGenerator: caching done')
         else:
-            lgr.info('FuseDatasetGenerator: all samples are already cached')
+            lgr.info('DatasetGenerator: all samples are already cached')
 
     @staticmethod
     def _cache_subset(args: Tuple) -> None:
@@ -371,7 +371,7 @@ class FuseDatasetGenerator(FuseDatasetBase):
         lgr = logging.getLogger('Fuse')
 
         # debug - override num workers
-        override_num_workers = FuseUtilsDebug().get_setting('dataset_override_num_workers')
+        override_num_workers = FuseDebug().get_setting('dataset_override_num_workers')
         if override_num_workers != 'default':
             num_workers = override_num_workers
             lgr.info(f'Dataset - debug mode - override num workers to {override_num_workers}', {'color': 'red'})
@@ -380,12 +380,12 @@ class FuseDatasetGenerator(FuseDatasetBase):
             cache_dest = os.path.join(self.cache_dest, 'fields')
 
         # create cache field object upon request
-        if isinstance(self.cache_fields, FuseCacheNull):
+        if isinstance(self.cache_fields, CacheNull):
             # cache object
             if isinstance(cache_dest, str) and cache_dest == 'memory':
-                self.cache_fields: FuseCacheBase = FuseCacheMemory()
+                self.cache_fields: CacheBase = CacheMemory()
             elif isinstance(cache_dest, str):
-                self.cache_fields: FuseCacheBase = FuseCacheFiles(cache_dest, reset_cache, single_file=True)
+                self.cache_fields: CacheBase = CacheFiles(cache_dest, reset_cache, single_file=True)
 
         # get list of desc to cache
         desc_list = self.samples_description
@@ -396,7 +396,7 @@ class FuseDatasetGenerator(FuseDatasetBase):
 
         # multi thread caching
         if len(desc_to_cache) != 0:
-            lgr.info(f'FuseDatasetGenerator: samples fields - caching {len(desc_to_cache)} out of {len(desc_list)}')
+            lgr.info(f'DatasetGenerator: samples fields - caching {len(desc_to_cache)} out of {len(desc_list)}')
             if num_workers > 0:
                 with Manager() as manager:
                     self.cache_fields.start_caching(manager)
@@ -414,7 +414,7 @@ class FuseDatasetGenerator(FuseDatasetBase):
                     self._cache_sample_fields((desc, fields))
                 self.cache_fields.save()
         else:
-            lgr.info('FuseDatasetGenerator: all samples fields are already cached')
+            lgr.info('DatasetGenerator: all samples fields are already cached')
 
     def _cache_sample_fields(self, args):
         # decode args
@@ -493,20 +493,20 @@ class FuseDatasetGenerator(FuseDatasetBase):
         self.visualizer.visualize_aug(batch_dict, batch_dict_aug, block)
 
     # save and load dataset
-    def get_instance_to_save(self, mode: FuseDatasetBase.SaveMode) -> FuseDatasetBase:
+    def get_instance_to_save(self, mode: DatasetBase.SaveMode) -> DatasetBase:
         """
         See base class
         """
 
         # prepare data to save
-        if mode == FuseDatasetBase.SaveMode.INFERENCE:
-            dataset = FuseDatasetGenerator(data_source=None,
+        if mode == DatasetBase.SaveMode.INFERENCE:
+            dataset = DatasetGenerator(data_source=None,
                                            processor=self.processor,
                                            augmentor=self.augmentor,
                                            post_processing_func=self.post_processing_func
                                            )
-        elif mode == FuseDatasetBase.SaveMode.TRAINING:
-            dataset = FuseDatasetGenerator(data_source=self.data_source,
+        elif mode == DatasetBase.SaveMode.TRAINING:
+            dataset = DatasetGenerator(data_source=self.data_source,
                                            processor=self.processor,
                                            augmentor=self.augmentor,
                                            post_processing_func=self.post_processing_func,

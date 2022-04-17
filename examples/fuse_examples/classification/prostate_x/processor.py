@@ -20,14 +20,14 @@ import torch
 import logging
 from scipy.ndimage.morphology import binary_dilation
 
-from fuse.data.processor.processor_base import FuseProcessorBase
+from fuse.data.processor.processor_base import ProcessorBase
 
-from fuse_examples.classification.prostate_x.data_utils import FuseProstateXUtilsData
-# from fuse_examples.classification.prostate_x.processor_dicom_mri import FuseDicomMRIProcessor
-from fuse.data.processor.processor_dicom_mri import FuseDicomMRIProcessor
+from fuse_examples.classification.prostate_x.data_utils import ProstateXUtilsData
+# from fuse_examples.classification.prostate_x.processor_dicom_mri import DicomMRIProcessor
+from fuse.data.processor.processor_dicom_mri import DicomMRIProcessor
 
 
-class FuseProstateXPatchProcessor(FuseProcessorBase):
+class ProstateXPatchProcessor(ProcessorBase):
     """
     This processor crops the lesion volume from within 4D MRI volume base on
     lesion location as appears in the database.
@@ -41,7 +41,7 @@ class FuseProstateXPatchProcessor(FuseProcessorBase):
                 'ClinSig': row['ClinSig']: Clinical significant ( 0 for benign and 3+3 lesions, 1 for rest)
     """
     def __init__(self,
-                 vol_processor: FuseDicomMRIProcessor = FuseDicomMRIProcessor(),
+                 vol_processor: DicomMRIProcessor = DicomMRIProcessor(),
                  path_to_db: str = None,
                  data_path: str = None,
                  ktrans_data_path: str = None,
@@ -186,8 +186,8 @@ class FuseProstateXPatchProcessor(FuseProcessorBase):
 
         # ========================================================================
         # get db - lesions
-        db_full = FuseProstateXUtilsData.get_dataset(self.path_to_db,'other',self.db_ver,self.db_name,self.fold_no)
-        db = FuseProstateXUtilsData.get_lesions_prostate_x(db_full)
+        db_full = ProstateXUtilsData.get_dataset(self.path_to_db,'other',self.db_ver,self.db_name,self.fold_no)
+        db = ProstateXUtilsData.get_lesions_prostate_x(db_full)
 
         # ========================================================================
         # get patient
@@ -270,7 +270,7 @@ if __name__ == "__main__":
         Ktrain_data_path = path_to_dataset + '/ProstateXKtrains-train-fixed/'
         sample = ('29062021', 'train', 'ProstateX-0148', 'pred')
 
-        a = FuseProstateXPatchProcessor(vol_processor=FuseDicomMRIProcessor(reference_inx=0),path_to_db = path_to_db,
+        a = ProstateXPatchProcessor(vol_processor=DicomMRIProcessor(reference_inx=0),path_to_db = path_to_db,
                                         data_path=prostate_data_path,ktrans_data_path=Ktrain_data_path,
                                         db_name=dataset,fold_no=1,lsn_shape=(13, 74, 74))
         samples = a.__call__(sample)

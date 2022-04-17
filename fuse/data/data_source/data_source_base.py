@@ -23,7 +23,7 @@ Data source base
 from abc import ABC, abstractmethod
 
 
-class FuseDataSourceBase(ABC):
+class DataSourceBase(ABC):
 
     @abstractmethod
     def get_samples_description(self):

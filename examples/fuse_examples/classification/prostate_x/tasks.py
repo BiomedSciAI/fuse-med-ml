@@ -16,7 +16,7 @@ import logging
 from typing import List
 
 
-class FuseProstateXTask():
+class ProstateXTask():
     tasks = {}
     def __init__(self, task_name: str, version: int):
         self._task_name, self._task_version, self._task_mapping, self._task_class_names = \
@@ -58,10 +58,10 @@ GLEASON_SCORE_VER_0 = [['HIGH'], ['LOW'],['BENIGN']],
 CLINSIG_VER_0 = [['HIGH'], ['LOW']],
 
 
-FuseProstateXTask.register('gleason_score', 0, GLEASON_SCORE_VER_0, ['HIGH','LOW','BENIGN'])
-FuseProstateXTask.register('ClinSig', 0, CLINSIG_VER_0, ['HIGH','LOW'])
+ProstateXTask.register('gleason_score', 0, GLEASON_SCORE_VER_0, ['HIGH','LOW','BENIGN'])
+ProstateXTask.register('ClinSig', 0, CLINSIG_VER_0, ['HIGH','LOW'])
 if __name__ == '__main__':
-    mp_task = FuseProstateXTask('gleason_score', 0)
+    mp_task = ProstateXTask('gleason_score', 0)
     print(mp_task.name())
     print(mp_task.class_names())
     print(len(mp_task.class_names()))

@@ -3,21 +3,21 @@ import os
 import sys
 from typing import Callable, Optional
 
-from fuse.data.visualizer.visualizer_default import FuseVisualizerDefault
-from fuse.data.augmentor.augmentor_default import FuseAugmentorDefault
+from fuse.data.visualizer.visualizer_default import VisualizerDefault
+from fuse.data.augmentor.augmentor_default import AugmentorDefault
 from fuse.data.augmentor.augmentor_toolbox import aug_op_affine, aug_op_color, aug_op_gaussian
-from fuse.data.dataset.dataset_default import FuseDatasetDefault
-from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
-from fuse.data.processor.processor_csv import FuseProcessorCSV
+from fuse.data.dataset.dataset_default import DatasetDefault
+from fuse.data.sampler.sampler_balanced_batch import SamplerBalancedBatch
+from fuse.data.processor.processor_csv import ProcessorCSV
 
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
 from fuse_examples.tutorials.multimodality_image_clinical.download import download_and_extract_isic
 from torch.utils.data.dataloader import DataLoader
 
 sys.path.append(".")
-from .input_processor import FuseSkinInputProcessor
-from .ground_truth_processor import FuseSkinGroundTruthProcessor
-from .data_source import FuseSkinDataSource
+from .input_processor import SkinInputProcessor
+from .ground_truth_processor import SkinGroundTruthProcessor
+from .data_source import SkinDataSource
 
 def isic_2019_dataset(data_dir: str = 'data', size: int = None, reset_cache: bool = False, post_cache_processing_func: Optional[Callable] = None):
     #data_dir = "data"
@@ -45,7 +45,7 @@ def isic_2019_dataset(data_dir: str = 'data', size: int = None, reset_cache: boo
         ],
     ]
     path = os.path.join(data_dir, 'ISIC2019/ISIC_2019_Training_GroundTruth.csv')
-    train_data_source = FuseSkinDataSource(path,
+    train_data_source = SkinDataSource(path,
                                            partition_file=os.path.join(data_dir, 'ISIC2019/partition.pickle'),
                                            train=True,
                                            size=size,
@@ -53,24 +53,24 @@ def isic_2019_dataset(data_dir: str = 'data', size: int = None, reset_cache: boo
 
 
     input_processors = {
-        'image': FuseSkinInputProcessor(input_data=os.path.join(data_dir, 'ISIC2019/ISIC_2019_Training_Input')),
-        # 'clinical': FuseSkinClinicalProcessor(input_data=os.path.join(data_dir, 'ISIC2019/ISIC_2019_Training_Metadata.csv'))
-        'clinical': FuseProcessorCSV(csv_filename=os.path.join(data_dir, 'ISIC2019/ISIC_2019_Training_Metadata.csv'), sample_desc_column="image")
+        'image': SkinInputProcessor(input_data=os.path.join(data_dir, 'ISIC2019/ISIC_2019_Training_Input')),
+        # 'clinical': SkinClinicalProcessor(input_data=os.path.join(data_dir, 'ISIC2019/ISIC_2019_Training_Metadata.csv'))
+        'clinical': ProcessorCSV(csv_filename=os.path.join(data_dir, 'ISIC2019/ISIC_2019_Training_Metadata.csv'), sample_desc_column="image")
     }
  
     gt_processors = {
-        'gt_global': FuseSkinGroundTruthProcessor(input_data=os.path.join(data_dir, 'ISIC2019/ISIC_2019_Training_GroundTruth.csv'))
+        'gt_global': SkinGroundTruthProcessor(input_data=os.path.join(data_dir, 'ISIC2019/ISIC_2019_Training_GroundTruth.csv'))
     }
 
     # Create data augmentation (optional)
-    augmentor = FuseAugmentorDefault(
+    augmentor = AugmentorDefault(
         augmentation_pipeline=augmentation_pipeline)
 
     # Create visualizer (optional)
-    visualizer = FuseVisualizerDefault(image_name='data.input.image', label_name='data.gt.gt_global.tensor', metadata_names=["data.input.clinical"], gray_scale=False)
+    visualizer = VisualizerDefault(image_name='data.input.image', label_name='data.gt.gt_global.tensor', metadata_names=["data.input.clinical"], gray_scale=False)
 
     # Create dataset
-    train_dataset = FuseDatasetDefault(cache_dest=cache_dir,
+    train_dataset = DatasetDefault(cache_dest=cache_dir,
                                        data_source=train_data_source,
                                        input_processors=input_processors,
                                        gt_processors=gt_processors,
@@ -85,7 +85,7 @@ def isic_2019_dataset(data_dir: str = 'data', size: int = None, reset_cache: boo
 
     ## Create sampler
     print(f'- Create sampler:')
-    sampler = FuseSamplerBalancedBatch(dataset=train_dataset,
+    sampler = SamplerBalancedBatch(dataset=train_dataset,
                                        balanced_class_name='data.gt.gt_global.tensor',
                                        num_balanced_classes=8,
                                        batch_size=8,
@@ -104,14 +104,14 @@ def isic_2019_dataset(data_dir: str = 'data', size: int = None, reset_cache: boo
     print(f'Validation Data:', {'attrs': 'bold'})
 
     ## Create data source
-    validation_data_source = FuseSkinDataSource(os.path.join(data_dir, 'ISIC2019/ISIC_2019_Training_GroundTruth.csv'),
+    validation_data_source = SkinDataSource(os.path.join(data_dir, 'ISIC2019/ISIC_2019_Training_GroundTruth.csv'),
                                                 size=size,
                                                 partition_file=os.path.join(data_dir, 'ISIC2019/partition.pickle'),
                                                 train=False)
 
 
     ## Create dataset
-    validation_dataset = FuseDatasetDefault(cache_dest=cache_dir,
+    validation_dataset = DatasetDefault(cache_dest=cache_dir,
                                             data_source=validation_data_source,
                                             input_processors=input_processors,
                                             gt_processors=gt_processors,

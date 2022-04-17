@@ -2,15 +2,15 @@
 import os
 
 from fuse.data.visualizer.visualizer_default_3d import Fuse3DVisualizerDefault
-from fuse.data.augmentor.augmentor_default import FuseAugmentorDefault
+from fuse.data.augmentor.augmentor_default import AugmentorDefault
 from fuse.data.augmentor.augmentor_toolbox import aug_op_affine, aug_op_gaussian
-from fuse.data.dataset.dataset_default import FuseDatasetDefault
-from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
+from fuse.data.dataset.dataset_default import DatasetDefault
+from fuse.data.sampler.sampler_balanced_batch import SamplerBalancedBatch
 
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
 from torch.utils.data.dataloader import DataLoader
 from .input_processor import KiTSBasicInputProcessor
-from fuse.data.data_source.data_source_default import FuseDataSourceDefault
+from fuse.data.data_source.data_source_default import DataSourceDefault
 
 from fuse.data.augmentor.augmentor_toolbox import rotation_in_3d, squeeze_3d_to_2d, unsqueeze_2d_to_3d
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
@@ -105,7 +105,7 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
     ]
     
     if 'train' in split:
-        train_data_source = FuseDataSourceDefault(list(split['train']))
+        train_data_source = DataSourceDefault(list(split['train']))
         image_dir = os.path.join(data_dir, 'knight', 'data')
         json_filepath = os.path.join(image_dir, 'knight.json')
         gt_processors = {
@@ -136,14 +136,14 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
         post_processing_func=prepare_clinical
 
     # Create data augmentation (optional)
-    augmentor = FuseAugmentorDefault(
+    augmentor = AugmentorDefault(
         augmentation_pipeline=augmentation_pipeline)
 
     # Create visualizer (optional)
     visualizer = Fuse3DVisualizerDefault(image_name = 'data.input.image', label_name=target_name)
     # Create dataset
     if 'train' in split:
-        train_dataset = FuseDatasetDefault(cache_dest=cache_dir,
+        train_dataset = DatasetDefault(cache_dest=cache_dir,
                                         data_source=train_data_source,
                                         input_processors=input_processors,
                                         gt_processors=gt_processors,
@@ -158,7 +158,7 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
 
         ## Create sampler
         print(f'- Create sampler:')
-        sampler = FuseSamplerBalancedBatch(dataset=train_dataset,
+        sampler = SamplerBalancedBatch(dataset=train_dataset,
                                         balanced_class_name=target_name,
                                         num_balanced_classes=num_classes,
                                         batch_size=batch_size,
@@ -180,11 +180,11 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
         print(f'Validation Data:', {'attrs': 'bold'})
 
         ## Create data source
-        validation_data_source = FuseDataSourceDefault(list(split['val']))
+        validation_data_source = DataSourceDefault(list(split['val']))
 
 
         ## Create dataset
-        validation_dataset = FuseDatasetDefault(cache_dest=cache_dir,
+        validation_dataset = DatasetDefault(cache_dest=cache_dir,
                                                 data_source=validation_data_source,
                                                 input_processors=input_processors,
                                                 gt_processors=gt_processors,
@@ -211,10 +211,10 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
         print(f'Test Data:', {'attrs': 'bold'})
 
         ## Create data source
-        test_data_source = FuseDataSourceDefault(list(split['test']))
+        test_data_source = DataSourceDefault(list(split['test']))
 
         ## Create dataset
-        test_dataset = FuseDatasetDefault(cache_dest=cache_dir,
+        test_dataset = DatasetDefault(cache_dest=cache_dir,
                                                 data_source=test_data_source,
                                                 input_processors=input_processors,
                                                 gt_processors=gt_processors,
