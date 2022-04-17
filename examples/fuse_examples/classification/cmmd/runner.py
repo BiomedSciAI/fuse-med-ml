@@ -32,20 +32,20 @@ from fuse.utils.utils_logger import fuse_logger_start
 
 from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
 
-from fuse.models.model_default import FuseModelDefault
-from fuse.models.heads.head_global_pooling_classifier import FuseHeadGlobalPoolingClassifier
+from fuse.dl.models.model_default import FuseModelDefault
+from fuse.dl.models.heads.head_global_pooling_classifier import FuseHeadGlobalPoolingClassifier
 
-from fuse.losses.loss_default import FuseLossDefault
+from fuse.dl.losses.loss_default import FuseLossDefault
 
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy, MetricROCCurve
 
-from fuse.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
-from fuse.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
-from fuse.managers.callbacks.callback_time_statistics import FuseTimeStatisticsCallback
-from fuse.managers.manager_default import FuseManagerDefault
+from fuse.dl.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
+from fuse.dl.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
+from fuse.dl.managers.callbacks.callback_time_statistics import FuseTimeStatisticsCallback
+from fuse.dl.managers.manager_default import FuseManagerDefault
 
 from fuse_examples.classification.cmmd.dataset import CMMD_2021_dataset
-from fuse.models.backbones.backbone_inception_resnet_v2 import FuseBackboneInceptionResnetV2
+from fuse.dl.models.backbones.backbone_inception_resnet_v2 import FuseBackboneInceptionResnetV2
 
 
 from fuse.eval.evaluator import EvaluatorDefault

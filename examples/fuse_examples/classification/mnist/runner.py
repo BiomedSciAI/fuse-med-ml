@@ -33,13 +33,13 @@ from torchvision import transforms
 from fuse.eval.evaluator import EvaluatorDefault 
 from fuse.data.dataset.dataset_wrapper import FuseDatasetWrapper
 from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
-from fuse.losses.loss_default import FuseLossDefault
-from fuse.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
-from fuse.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
-from fuse.managers.callbacks.callback_time_statistics import FuseTimeStatisticsCallback
-from fuse.managers.manager_default import FuseManagerDefault
+from fuse.dl.losses.loss_default import FuseLossDefault
+from fuse.dl.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
+from fuse.dl.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
+from fuse.dl.managers.callbacks.callback_time_statistics import FuseTimeStatisticsCallback
+from fuse.dl.managers.manager_default import FuseManagerDefault
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
-from fuse.models.model_wrapper import FuseModelWrapper
+from fuse.dl.models.model_wrapper import FuseModelWrapper
 from fuse.utils.utils_debug import FuseUtilsDebug
 import fuse.utils.gpu as FuseUtilsGPU
 from fuse.utils.utils_logger import fuse_logger_start

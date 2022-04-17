@@ -20,7 +20,7 @@ import torch.nn as nn
 
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 import numpy as np
-from fuse.models.heads.head_1d_classifier import FuseHead1dClassifier
+from fuse.dl.models.heads.head_1d_classifier import FuseHead1dClassifier
 
 
 # 3x3 convolution

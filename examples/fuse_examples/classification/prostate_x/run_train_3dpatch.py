@@ -24,11 +24,11 @@ from fuse.eval.evaluator import EvaluatorDefault
 from fuse.data.dataset.dataset_base import FuseDatasetBase
 
 from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
-from fuse.losses.loss_default import FuseLossDefault
-from fuse.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
-from fuse.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
-from fuse.managers.callbacks.callback_time_statistics import FuseTimeStatisticsCallback
-from fuse.managers.manager_default import FuseManagerDefault
+from fuse.dl.losses.loss_default import FuseLossDefault
+from fuse.dl.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
+from fuse.dl.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
+from fuse.dl.managers.callbacks.callback_time_statistics import FuseTimeStatisticsCallback
+from fuse.dl.managers.manager_default import FuseManagerDefault
 
 import fuse.utils.gpu as FuseUtilsGPU
 from fuse.utils.utils_logger import fuse_logger_start
@@ -38,7 +38,7 @@ from fuse_examples.classification.prostate_x.dataset import prostate_x_dataset
 from fuse_examples.classification.prostate_x.backbone_3d_multichannel import Fuse_model_3d_multichannel,ResNet
 from fuse_examples.classification.prostate_x.patient_data_source import FuseProstateXDataSourcePatient
 from fuse_examples.classification.prostate_x.tasks import FuseProstateXTask
-from fuse.models.heads.head_1d_classifier import FuseHead1dClassifier
+from fuse.dl.models.heads.head_1d_classifier import FuseHead1dClassifier
 
 
 ##########################################

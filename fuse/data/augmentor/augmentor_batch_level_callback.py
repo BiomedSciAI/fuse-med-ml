@@ -20,7 +20,7 @@ Created on June 30, 2021
 from typing import Dict, List, Sequence
 
 from fuse.data.augmentor.augmentor_default import FuseAugmentorDefault
-from fuse.managers.callbacks.callback_base import FuseCallback
+from fuse.dl.managers.callbacks.callback_base import FuseCallback
 
 
 class FuseAugmentorBatchCallback(FuseCallback):

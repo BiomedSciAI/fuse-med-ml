@@ -39,20 +39,20 @@ from fuse.data.augmentor.augmentor_default import FuseAugmentorDefault
 from fuse.data.augmentor.augmentor_toolbox import aug_op_affine, aug_op_color, aug_op_gaussian
 from fuse.data.dataset.dataset_default import FuseDatasetDefault
 
-from fuse.models.model_default import FuseModelDefault
-from fuse.models.backbones.backbone_resnet import FuseBackboneResnet
-from fuse.models.heads.head_global_pooling_classifier import FuseHeadGlobalPoolingClassifier
-from fuse.models.backbones.backbone_inception_resnet_v2 import FuseBackboneInceptionResnetV2
+from fuse.dl.models.model_default import FuseModelDefault
+from fuse.dl.models.backbones.backbone_resnet import FuseBackboneResnet
+from fuse.dl.models.heads.head_global_pooling_classifier import FuseHeadGlobalPoolingClassifier
+from fuse.dl.models.backbones.backbone_inception_resnet_v2 import FuseBackboneInceptionResnetV2
 
-from fuse.losses.loss_default import FuseLossDefault
+from fuse.dl.losses.loss_default import FuseLossDefault
 
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy, MetricROCCurve
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 
-from fuse.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
-from fuse.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
-from fuse.managers.callbacks.callback_time_statistics import FuseTimeStatisticsCallback
-from fuse.managers.manager_default import FuseManagerDefault
+from fuse.dl.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
+from fuse.dl.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
+from fuse.dl.managers.callbacks.callback_time_statistics import FuseTimeStatisticsCallback
+from fuse.dl.managers.manager_default import FuseManagerDefault
 
 
 from fuse_examples.classification.skin_lesion.data_source import FuseSkinDataSource

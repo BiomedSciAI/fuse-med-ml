@@ -7,18 +7,18 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 from baseline.dataset import knight_dataset
 import pandas as pd
-from fuse.models.model_default import FuseModelDefault
-from fuse.models.backbones.backbone_resnet_3d import FuseBackboneResnet3D
-from fuse.models.heads.head_3D_classifier import FuseHead3dClassifier
-from fuse.losses.loss_default import FuseLossDefault
+from fuse.dl.models.model_default import FuseModelDefault
+from fuse.dl.models.backbones.backbone_resnet_3d import FuseBackboneResnet3D
+from fuse.dl.models.heads.head_3D_classifier import FuseHead3dClassifier
+from fuse.dl.losses.loss_default import FuseLossDefault
 import torch.nn.functional as F
 import torch.nn as nn
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy, MetricConfusion
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 import torch.optim as optim
-from fuse.managers.manager_default import FuseManagerDefault
-from fuse.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
-from fuse.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
+from fuse.dl.managers.manager_default import FuseManagerDefault
+from fuse.dl.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
+from fuse.dl.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
 import fuse.utils.gpu as FuseUtilsGPU
 from fuse.utils.rand.seed import Seed
 import logging
