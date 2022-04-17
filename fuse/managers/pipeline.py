@@ -46,7 +46,10 @@ def ensemble(test_dirs, test_infer_filename, ensembled_output_file):
     _ = evaluator.eval(ids=None, data=data, metrics=metrics)
 
 
-def runner_wrapper(q_resources, fs, *f_args, **f_kwargs):
+def runner_wrapper(q_resources, rep_index, fs, *f_args, **f_kwargs):
+    rand_gen = Seed.set_seed(rep_index, deterministic_mode=True)
+    f_kwargs['rep_index'] = rep_index
+    f_kwargs['rand_gen'] = rand_gen
     resource = q_resources.get()
     print(f"Using GPUs: {resource}")
     FuseUtilsGPU.choose_and_enable_multiple_gpus(len(resource), force_gpus=list(resource))
@@ -91,12 +94,11 @@ def run(num_folds, num_gpus_total, num_gpus_per_split, num_repetitions,
         assert(num_folds == len(sample_ids))
 
     for rep_index in range(num_repetitions):
-        rand_gen = Seed.set_seed(rep_index, deterministic_mode=True)
         # run training, inference and evaluation on all cross validation folds in parallel
         # using the available gpu resources:
-        runner = partial(runner_wrapper, q_resources, [train_func, infer_func, eval_func])
+        runner = partial(runner_wrapper, q_resources, rep_index, [train_func, infer_func, eval_func])
         # create process per fold
-        processes = [Process(target=runner, args=(dataset, ids, rep_index, rand_gen, cv_index, False, [train_params, infer_params, eval_params])) for (ids, cv_index) in zip(sample_ids, range(num_folds))] 
+        processes = [Process(target=runner, args=(dataset, ids, cv_index, False, [train_params, infer_params, eval_params])) for (ids, cv_index) in zip(sample_ids, range(num_folds))] 
         for p in processes:
             p.start()
 
@@ -105,9 +107,9 @@ def run(num_folds, num_gpus_total, num_gpus_per_split, num_repetitions,
             p.close()
 
         # infer and eval each split's model on test set:
-        runner = partial(runner_wrapper, q_resources, [infer_func, eval_func])
+        runner = partial(runner_wrapper, q_resources, rep_index, [infer_func, eval_func])
         # create process per fold
-        processes = [Process(target=runner, args=(test_dataset, None, rep_index, rand_gen, cv_index, True, [infer_params, eval_params])) for cv_index in range(num_folds)] 
+        processes = [Process(target=runner, args=(test_dataset, None, cv_index, True, [infer_params, eval_params])) for cv_index in range(num_folds)] 
         for p in processes:
             p.start()
 
@@ -122,6 +124,8 @@ def run(num_folds, num_gpus_total, num_gpus_per_split, num_repetitions,
         ensemble(test_dirs, test_infer_filename, ensembled_output_file)
 
         # evaluate ensemble:
-        eval_func(dataset=None, sample_ids=None, rep_index=rep_index, rand_gen=rand_gen, cv_index='ensemble', test=True, \
-                    params=infer_params, pred_key='preds', label_key="target")
+        rand_gen = Seed.set_seed(rep_index, deterministic_mode=True)
+        eval_func(dataset=None, sample_ids=None, cv_index='ensemble', test=True, \
+                    params=infer_params, rep_index=rep_index, rand_gen=rand_gen, \
+                    pred_key='preds', label_key="target")
     

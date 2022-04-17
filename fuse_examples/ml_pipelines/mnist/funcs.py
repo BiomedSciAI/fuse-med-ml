@@ -44,7 +44,8 @@ def create_dataset(cache_dir):
     test_dataset.create()
     return train_dataset, test_dataset
 
-def run_train(dataset, sample_ids, rep_index, rand_gen, cv_index, test=False, params=None):
+def run_train(dataset, sample_ids, cv_index, test=False, params=None, \
+        rep_index=0, rand_gen=None):
     assert(test == False)
     # obtain train/val dataset subset:
     train_dataset = Subset(dataset, sample_ids[0]).dataset
@@ -163,7 +164,8 @@ def run_train(dataset, sample_ids, rep_index, rand_gen, cv_index, test=False, pa
     lgr.info('Train: Done', {'attrs': 'bold'})
 
 
-def run_infer(dataset, sample_ids, rep_index, rand_gen, cv_index, test=False, params=None):
+def run_infer(dataset, sample_ids, cv_index, test=False, params=None, \
+              rep_index=0, rand_gen=None):
     # obtain train/val dataset subset:
     if sample_ids is None:
         validation_dataset = dataset
@@ -171,12 +173,12 @@ def run_infer(dataset, sample_ids, rep_index, rand_gen, cv_index, test=False, pa
         validation_dataset = Subset(dataset, sample_ids[1]).dataset
 
     #### Logger
-    model_dir = os.path.join(params['paths']['model_dir'], str(cv_index))
+    model_dir = os.path.join(params['paths']['model_dir'], 'rep_' + str(rep_index), str(cv_index))
     if test:
-        inference_dir = os.path.join(params['paths']['test_dir'], str(cv_index))
+        inference_dir = os.path.join(params['paths']['test_dir'], 'rep_' + str(rep_index), str(cv_index))
         infer_filename = params['test_infer_filename']
     else:
-        inference_dir = os.path.join(params['paths']['inference_dir'], str(cv_index))
+        inference_dir = os.path.join(params['paths']['inference_dir'], 'rep_' + str(rep_index), str(cv_index))
         infer_filename = params['infer_filename']
     fuse_logger_start(output_path=inference_dir, console_verbose_level=logging.INFO, force_reset=True)
     lgr = logging.getLogger('Fuse')
@@ -184,7 +186,7 @@ def run_infer(dataset, sample_ids, rep_index, rand_gen, cv_index, test=False, pa
     lgr.info(f'infer_filename={os.path.join(inference_dir, infer_filename)}', {'color': 'magenta'})
 
     # dataloader
-    validation_dataloader = DataLoader(dataset=validation_dataset, collate_fn=validation_dataset.collate_fn, batch_size=2, num_workers=2)
+    validation_dataloader = DataLoader(dataset=validation_dataset, collate_fn=validation_dataset.collate_fn, batch_size=2, num_workers=2, generator=rand_gen)
 
     ## Manager for inference
     manager = FuseManagerDefault()
@@ -196,16 +198,17 @@ def run_infer(dataset, sample_ids, rep_index, rand_gen, cv_index, test=False, pa
                   output_file_name=os.path.join(inference_dir, infer_filename))
 
 
-def run_eval(dataset, sample_ids, rep_index, rand_gen, cv_index, test=False, params=None, \
-            pred_key='model.output.classification', label_key='data.label'):
+def run_eval(dataset, sample_ids, cv_index, test=False, params=None, \
+             rep_index=0, rand_gen=None, pred_key='model.output.classification', \
+             label_key='data.label'):
     if test:
-        inference_dir = os.path.join(params['paths']['test_dir'], str(cv_index))
+        inference_dir = os.path.join(params['paths']['test_dir'], 'rep_' + str(rep_index), str(cv_index))
         infer_filename = params["test_infer_filename"]
     else:
-        inference_dir = os.path.join(params['paths']['inference_dir'], str(cv_index))
+        inference_dir = os.path.join(params['paths']['inference_dir'], 'rep_' + str(rep_index), str(cv_index))
         infer_filename = params["infer_filename"]
-    eval_dir = os.path.join(params['paths']['eval_dir'], str(cv_index))
-    fuse_logger_start(output_path=None, console_verbose_level=logging.INFO, force_reset=True)
+    eval_dir = os.path.join(params['paths']['eval_dir'], 'rep_' + str(rep_index), str(cv_index))
+    fuse_logger_start(output_path=inference_dir, console_verbose_level=logging.INFO, force_reset=True)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Analyze', {'attrs': ['bold', 'underline']})
 
