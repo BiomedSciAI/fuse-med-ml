@@ -13,6 +13,7 @@ from fuse.eval.metrics.classification.metrics_ensembling_common import MetricEns
 from collections import OrderedDict
 from fuse.eval.evaluator import EvaluatorDefault
 from fuse.utils.file_io.file_io import create_or_reset_dir  
+from fuse.utils.rand.seed import Seed
 
 # pre collect function to change the format
 def ensemble_pre_collect(sample_dict: dict) -> dict:    
@@ -57,8 +58,8 @@ def runner_wrapper(q_resources, fs, *f_args, **f_kwargs):
     print(f"Done with GPUs: {resource} - adding them back to the queue")
     q_resources.put(resource)
 
-def run(num_folds, num_gpus_total, num_gpus_per_split, dataset_func, \
-        train_func, infer_func, eval_func, \
+def run(num_folds, num_gpus_total, num_gpus_per_split, num_repetitions, 
+        dataset_func, train_func, infer_func, eval_func, \
         dataset_params=None, train_params=None, infer_params=None, \
         eval_params=None, sample_ids=None):
     multiprocessing.set_start_method('spawn') 
@@ -75,48 +76,52 @@ def run(num_folds, num_gpus_total, num_gpus_per_split, dataset_func, \
         available_gpu_ids = available_gpu_ids[0:num_gpus_total]
     # group gpus into chunks of size params['common']['num_gpus_per_split']
     gpu_resources = [available_gpu_ids[i:i+num_gpus_per_split] for i in range(0, len(available_gpu_ids), num_gpus_per_split)]
-    dataset, test_dataset = dataset_func(**dataset_params)
-    if sample_ids is None:
-        kfold = KFold(n_splits=num_folds, shuffle=True)
-        sample_ids = [item for item in kfold.split(dataset)]
-    else:
-        assert(num_folds == len(sample_ids))
 
     # create a queue of gpu chunks (resources)
     q_resources = Queue()
     for r in gpu_resources:
         q_resources.put(r)
 
-    # run training, inference and evaluation on all cross validation folds in parallel
-    # using the available gpu resources:
-    runner = partial(runner_wrapper, q_resources, [train_func, infer_func, eval_func])
-    # create process per fold
-    processes = [Process(target=runner, args=(dataset, ids, cv_index, False, [train_params, infer_params, eval_params])) for (ids, cv_index) in zip(sample_ids, range(num_folds))] 
-    for p in processes:
-        p.start()
+    dataset, test_dataset = dataset_func(**dataset_params)
+    if sample_ids is None:
+        # the split decision should be the same regardless of repetition index
+        kfold = KFold(n_splits=num_folds, shuffle=True, random_state=1234) 
+        sample_ids = [item for item in kfold.split(dataset)]
+    else:
+        assert(num_folds == len(sample_ids))
 
-    for p in processes:
-        p.join()
-        p.close()
+    for rep_index in range(num_repetitions):
+        rand_gen = Seed.set_seed(rep_index, deterministic_mode=True)
+        # run training, inference and evaluation on all cross validation folds in parallel
+        # using the available gpu resources:
+        runner = partial(runner_wrapper, q_resources, [train_func, infer_func, eval_func])
+        # create process per fold
+        processes = [Process(target=runner, args=(dataset, ids, rep_index, rand_gen, cv_index, False, [train_params, infer_params, eval_params])) for (ids, cv_index) in zip(sample_ids, range(num_folds))] 
+        for p in processes:
+            p.start()
 
-    # infer and eval each split's model on test set:
-    runner = partial(runner_wrapper, q_resources, [infer_func, eval_func])
-    # create process per fold
-    processes = [Process(target=runner, args=(test_dataset, None, cv_index, True, [infer_params, eval_params])) for cv_index in range(num_folds)] 
-    for p in processes:
-        p.start()
+        for p in processes:
+            p.join()
+            p.close()
 
-    for p in processes:
-        p.join()
-        p.close()
-    
-    # generate ensembled predictions:
-    test_dirs = [os.path.join(infer_params['paths']['test_dir'], str(cv_index)) for cv_index in range(num_folds)]
-    test_infer_filename = infer_params['test_infer_filename']
-    ensembled_output_file = os.path.join(infer_params['paths']['test_dir'], 'ensemble', infer_params['test_infer_filename'])
-    ensemble(test_dirs, test_infer_filename, ensembled_output_file)
+        # infer and eval each split's model on test set:
+        runner = partial(runner_wrapper, q_resources, [infer_func, eval_func])
+        # create process per fold
+        processes = [Process(target=runner, args=(test_dataset, None, rep_index, rand_gen, cv_index, True, [infer_params, eval_params])) for cv_index in range(num_folds)] 
+        for p in processes:
+            p.start()
 
-    # evaluate ensemble:
-    eval_func(dataset=None, sample_ids=None, cv_index='ensemble', test=True, \
-                params=infer_params, pred_key='preds', label_key="target")
+        for p in processes:
+            p.join()
+            p.close()
+        
+        # generate ensembled predictions:
+        test_dirs = [os.path.join(infer_params['paths']['test_dir'], 'rep_' + str(rep_index), str(cv_index)) for cv_index in range(num_folds)]
+        test_infer_filename = infer_params['test_infer_filename']
+        ensembled_output_file = os.path.join(infer_params['paths']['test_dir'], 'rep_' + str(rep_index), 'ensemble', infer_params['test_infer_filename'])
+        ensemble(test_dirs, test_infer_filename, ensembled_output_file)
+
+        # evaluate ensemble:
+        eval_func(dataset=None, sample_ids=None, rep_index=rep_index, rand_gen=rand_gen, cv_index='ensemble', test=True, \
+                    params=infer_params, pred_key='preds', label_key="target")
     

@@ -5,6 +5,7 @@ import os
 ##########################################
 # Required Parameters
 ##########################################
+num_repetitions = 1
 num_gpus_total = 3
 num_gpus_per_split = 1
 num_folds = 5
@@ -113,5 +114,5 @@ eval_params['run_func'] = run_eval
 
 if __name__ == "__main__":
     run(num_folds, num_gpus_total, num_gpus_per_split, \
-        dataset_func, train_func, infer_func, eval_func, \
+        num_repetitions, dataset_func, train_func, infer_func, eval_func, \
         dataset_params, train_params, infer_params, eval_params)

@@ -44,7 +44,7 @@ def create_dataset(cache_dir):
     test_dataset.create()
     return train_dataset, test_dataset
 
-def run_train(dataset, sample_ids, cv_index, test=False, params=None):
+def run_train(dataset, sample_ids, rep_index, rand_gen, cv_index, test=False, params=None):
     assert(test == False)
     # obtain train/val dataset subset:
     train_dataset = Subset(dataset, sample_ids[0]).dataset
@@ -53,12 +53,12 @@ def run_train(dataset, sample_ids, cv_index, test=False, params=None):
     # ==============================================================================
     # Logger
     # ==============================================================================
-    fuse_logger_start(output_path=os.path.join(params['paths']['model_dir'], str(cv_index)), console_verbose_level=logging.INFO, force_reset=True)
+    fuse_logger_start(output_path=os.path.join(params['paths']['model_dir'], 'rep_' + str(rep_index), str(cv_index)), console_verbose_level=logging.INFO, force_reset=True)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Train', {'attrs': ['bold', 'underline']})
 
-    model_dir = os.path.join(params["paths"]["model_dir"], str(cv_index))
-    cache_dir = os.path.join(params["paths"]["cache_dir"], str(cv_index))
+    model_dir = os.path.join(params["paths"]["model_dir"], 'rep_' + str(rep_index), str(cv_index))
+    cache_dir = os.path.join(params["paths"]["cache_dir"], 'rep_' + str(rep_index), str(cv_index))
     lgr.info(f'model_dir={model_dir}', {'color': 'magenta'})
     lgr.info(f'cache_dir={cache_dir}', {'color': 'magenta'})
 
@@ -75,11 +75,11 @@ def run_train(dataset, sample_ids, cv_index, test=False, params=None):
     lgr.info(f'- Create sampler: Done')
 
     # Create dataloader
-    train_dataloader = DataLoader(dataset=train_dataset, batch_sampler=sampler, num_workers=params['data.train_num_workers'])
+    train_dataloader = DataLoader(dataset=train_dataset, batch_sampler=sampler, num_workers=params['data.train_num_workers'], generator=rand_gen)
 
     # dataloader
     validation_dataloader = DataLoader(dataset=validation_dataset, batch_size=params['data.batch_size'],
-                                       num_workers=params['data.validation_num_workers'])
+                                       num_workers=params['data.validation_num_workers'], generator=rand_gen)
 
     # ==============================================================================
     # Model
@@ -163,7 +163,7 @@ def run_train(dataset, sample_ids, cv_index, test=False, params=None):
     lgr.info('Train: Done', {'attrs': 'bold'})
 
 
-def run_infer(dataset, sample_ids, cv_index, test=False, params=None):
+def run_infer(dataset, sample_ids, rep_index, rand_gen, cv_index, test=False, params=None):
     # obtain train/val dataset subset:
     if sample_ids is None:
         validation_dataset = dataset
@@ -196,7 +196,7 @@ def run_infer(dataset, sample_ids, cv_index, test=False, params=None):
                   output_file_name=os.path.join(inference_dir, infer_filename))
 
 
-def run_eval(dataset, sample_ids, cv_index, test=False, params=None, \
+def run_eval(dataset, sample_ids, rep_index, rand_gen, cv_index, test=False, params=None, \
             pred_key='model.output.classification', label_key='data.label'):
     if test:
         inference_dir = os.path.join(params['paths']['test_dir'], str(cv_index))
