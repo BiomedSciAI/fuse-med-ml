@@ -65,6 +65,7 @@ def run(num_folds, num_gpus_total, num_gpus_per_split, num_repetitions,
         dataset_func, train_func, infer_func, eval_func, \
         dataset_params=None, train_params=None, infer_params=None, \
         eval_params=None, sample_ids=None):
+    os.environ['CUBLAS_WORKSPACE_CONFIG']=":4096:8" # required for pytorch deterministic mode
     multiprocessing.set_start_method('spawn') 
     if num_gpus_total == 0 or num_gpus_per_split == 0:
         if train_params is not None and 'manager.train_params' in train_params:
