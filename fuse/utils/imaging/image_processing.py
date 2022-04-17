@@ -102,17 +102,17 @@ def align_ecc(img1: np.ndarray, img2: np.ndarray, num_iterations: int = 400, ter
     :param transformation: type of transformation to perform. If None (default), cv2.MOTION_AFFINE is performed.
     :return   transformed img2
 
-    The implementation was moved to a separate class; see FuseAlignMapECC. This function serves for backward
+    The implementation was moved to a separate class; see AlignMapECC. This function serves for backward
     compatibility
     """
 
     try:
         import cv2
-        from fuse.utils.imaging.align.utils_align_ecc import FuseAlignMapECC
+        from fuse.utils.imaging.align.utils_align_ecc import AlignMapECC
 
         transformation = transformation or cv2.MOTION_AFFINE
 
-        aligner = FuseAlignMapECC(transformation_type=transformation,
+        aligner = AlignMapECC(transformation_type=transformation,
                                     num_iterations=num_iterations,
                                     termination_eps=termination_eps)
 

@@ -26,4 +26,5 @@ xmlrunner
 paramiko
 tables
 psutil
-
+testbook
+ipykernel

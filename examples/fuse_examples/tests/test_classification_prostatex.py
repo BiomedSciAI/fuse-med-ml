@@ -23,9 +23,10 @@ import unittest
 import os
 import pathlib
 
-import fuse.utils.gpu as FuseUtilsGPU
-from fuse_examples.classification.prostate_x.run_train_3dpatch import TRAIN_COMMON_PARAMS, train_template, infer_template, eval_template, INFER_COMMON_PARAMS, \
-    EVAL_COMMON_PARAMS
+import fuse.utils.gpu as GPU
+# FIXME: data_package
+#from fuse_examples.imaging.classification.prostate_x.run_train_3dpatch import TRAIN_COMMON_PARAMS, train_template, infer_template, eval_template, INFER_COMMON_PARAMS, \
+#    EVAL_COMMON_PARAMS
 
 
 class ClassificationProstateXTestCase(unittest.TestCase):
@@ -58,7 +59,7 @@ class ClassificationProstateXTestCase(unittest.TestCase):
     #  1. Get path as an env variable
     #  2. modify the result value check 
     def test_template(self):
-        num_gpus_allocated = FuseUtilsGPU.choose_and_enable_multiple_gpus(1, use_cpu_if_fail=True)
+        num_gpus_allocated = GPU.choose_and_enable_multiple_gpus(1, use_cpu_if_fail=True)
         if num_gpus_allocated == 0:
             self.train_common_params['manager.train_params']['device'] = 'cpu'
         train_template(self.paths, self.train_common_params)
