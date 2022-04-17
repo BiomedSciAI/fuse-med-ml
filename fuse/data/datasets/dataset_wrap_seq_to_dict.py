@@ -29,7 +29,7 @@ from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.utils.ndict import NDict
 
 # Dataset processor
-class OpFuse(OpBase):
+class OpReadDataset(OpBase):
     """
     Op that extract data from pytorch dataset that returning sequence of values and adds those values to sample_dict
     """
@@ -89,7 +89,7 @@ class DatasetWrapSeqToDict(DatasetDefault):
         :param kwargs: optional, additional arguments to provide to DatasetDefault
         """
         sample_ids =[(name, i) for i in range(len(dataset))]
-        static_pipeline = PipelineDefault(name="staticp", ops_and_kwargs=[(OpFuse(dataset, sample_keys), {})])
+        static_pipeline = PipelineDefault(name="staticp", ops_and_kwargs=[(OpReadDataset(dataset, sample_keys), {})])
         if cache_dir is not None:
             cacher = SamplesCacher('dataset_test_cache', static_pipeline, cache_dir, restart_cache=True)
         else:
