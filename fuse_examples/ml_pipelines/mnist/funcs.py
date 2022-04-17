@@ -34,23 +34,24 @@ def create_dataset(cache_dir):
 
     # Train dataset:
     torch_train_dataset = torchvision.datasets.MNIST(cache_dir, download=True, train=True, transform=transform)
-    train_dataset = FuseDatasetWrapper(name='train', dataset=torch_train_dataset, mapping=('image', 'label'))
-    train_dataset.create()
 
     # Validation dataset:
     torch_test_dataset = torchvision.datasets.MNIST(cache_dir, download=True, train=False, transform=transform)
-    # wrapping torch dataset
-    test_dataset = FuseDatasetWrapper(name='test', dataset=torch_test_dataset, mapping=('image', 'label'))
-    test_dataset.create()
-    return train_dataset, test_dataset
+
+    return torch_train_dataset, torch_test_dataset
 
 def run_train(dataset, sample_ids, cv_index, test=False, params=None, \
         rep_index=0, rand_gen=None):
     assert(test == False)
     # obtain train/val dataset subset:
-    train_dataset = Subset(dataset, sample_ids[0]).dataset
-    validation_dataset = Subset(dataset, sample_ids[1]).dataset
+    torch_train_dataset = Subset(dataset, sample_ids[0])
+    torch_validation_dataset = Subset(dataset, sample_ids[1])
 
+    # wrapping torch dataset
+    train_dataset = FuseDatasetWrapper(name='train', dataset=torch_train_dataset, mapping=('image', 'label'))
+    train_dataset.create()
+    validation_dataset = FuseDatasetWrapper(name='validation', dataset=torch_validation_dataset, mapping=('image', 'label'))
+    validation_dataset.create()
     # ==============================================================================
     # Logger
     # ==============================================================================
@@ -168,10 +169,13 @@ def run_infer(dataset, sample_ids, cv_index, test=False, params=None, \
               rep_index=0, rand_gen=None):
     # obtain train/val dataset subset:
     if sample_ids is None:
-        validation_dataset = dataset
+        torch_validation_dataset = dataset
     else:
-        validation_dataset = Subset(dataset, sample_ids[1]).dataset
-
+        torch_validation_dataset = Subset(dataset, sample_ids[1])
+    # wrap torch dataset:
+    validation_dataset = FuseDatasetWrapper(name='validation', dataset=torch_validation_dataset, mapping=('image', 'label'))
+    validation_dataset.create()
+    
     #### Logger
     model_dir = os.path.join(params['paths']['model_dir'], 'rep_' + str(rep_index), str(cv_index))
     if test:

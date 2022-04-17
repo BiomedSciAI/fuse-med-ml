@@ -62,7 +62,7 @@ train_params['data.validation_num_workers'] = 8
 # ===============
 train_params['manager.train_params'] = {
     'device': 'cuda', 
-    'num_epochs': 5,
+    'num_epochs': 2,
     'virtual_batch_size': 1,  # number of batches in one virtual batch
     'start_saving_epochs': 10,  # first epoch to start saving checkpoints from
     'gap_between_saving_epochs': 5,  # number of epochs between saved checkpoint
