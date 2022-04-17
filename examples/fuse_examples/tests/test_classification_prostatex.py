@@ -24,7 +24,7 @@ import os
 import pathlib
 
 import fuse.utils.gpu as GPU
-from fuse_examples.classification.prostate_x.run_train_3dpatch import TRAIN_COMMON_PARAMS, train_template, infer_template, eval_template, INFER_COMMON_PARAMS, \
+from fuse_examples.imaging.classification.prostate_x.run_train_3dpatch import TRAIN_COMMON_PARAMS, train_template, infer_template, eval_template, INFER_COMMON_PARAMS, \
     EVAL_COMMON_PARAMS
 
 

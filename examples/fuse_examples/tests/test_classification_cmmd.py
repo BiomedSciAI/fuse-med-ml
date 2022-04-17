@@ -16,7 +16,7 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from fuse_examples.classification.cmmd.runner import TRAIN_COMMON_PARAMS, \
+from fuse_examples.imaging.classification.cmmd.runner import TRAIN_COMMON_PARAMS, \
     INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS, run_train, run_eval, run_infer
 
 import unittest
