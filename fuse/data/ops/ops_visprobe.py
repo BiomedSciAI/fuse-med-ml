@@ -146,7 +146,7 @@ class VisProbe(OpBase):
             if self._coco_converter != None :
                  res[f'{prekey}.value'] = self._coco_converter(res[f'{prekey}.value'])
             res[f'{prekey}.type'] = self._type_detector.get_type(sample_dict, key)
-            if res[f'{prekey}.type'] != DataTypeImaging.SEG and res[f'{prekey}.type'] != DataTypeImaging.IMAGE and res[f'{prekey}.type'] != DataTypeImaging.BBOX :
+            if res[f'{prekey}.type'] not in [DataTypeImaging.SEG, DataTypeImaging.IMAGE , DataTypeImaging.BBOX ]:
                 res[f'{prekey}.converted_value'] = convert_COCO_to_mask(res[f'{prekey}.value'],sample_dict['height'],sample_dict['width'],res[f'{prekey}.type'] )
             res[f'{prekey}.name'] = name
         return res
