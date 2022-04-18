@@ -11,12 +11,16 @@ class DataTypeImaging(Enum):
     SEG = "seg"  # Segmentation Map
     BBOX = "bboxes"  # Bounding Box
     CTR = "contours"  # Contour
+    CRLE ="compressed rle"
+    UCRLE ="uncompressed rle"
 
 PATTERNS_DICT_IMAGING = {
     r".*img$": DataTypeImaging.IMAGE,
     r".*seg$": DataTypeImaging.SEG,
     r".*bbox$": DataTypeImaging.BBOX,
     r".*ctr$": DataTypeImaging.CTR,
+    r".*crle$": DataTypeImaging.CRLE,
+    r".*ucrle$": DataTypeImaging.UCRLE,
     r".*$": DataTypeBasic.UNKNOWN
 }
 
