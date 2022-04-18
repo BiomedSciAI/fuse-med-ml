@@ -379,15 +379,16 @@ class NDict(dict):
     #         cls.set(hierarchical_dict, key, new_value)
     #     pass
 
-    # @classmethod
-    # def flatten(cls, hierarchical_dict: dict) -> dict:
-    #     """
-    #     Flatten the dict
-    #     @param hierarchical_dict: dict to flatten
-    #     @return: dict where keys are the hierarchical_dict keys separated by periods.
-    #     """
-    #     flat_dict = {}
-    #     return cls.get_all_keys(hierarchical_dict, include_values=True)
+    # A WALKAROUND!
+    @classmethod
+    def flatten_wa(cls, hierarchical_dict: dict) -> dict:
+        """
+        Flatten the dict
+        @param hierarchical_dict: dict to flatten
+        @return: dict where keys are the hierarchical_dict keys separated by periods.
+        """
+        flat_dict = {}
+        return cls.get_all_keys(hierarchical_dict, include_values=True)
 
     # @classmethod
     # def indices(cls, hierarchical_dict: dict, indices: List[int]) -> dict:
