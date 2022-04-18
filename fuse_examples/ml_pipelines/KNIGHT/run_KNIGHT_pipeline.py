@@ -1,6 +1,13 @@
 from fuse.managers.pipeline import run
 from funcs import run_train, run_infer, run_eval, create_dataset
+from dataset import knight_dataset
 import os
+import pandas as pd
+
+# Note: This example is only meant to illustrate the ML pipeline concept. 
+# we'll use a limited set-up for speed and simplicity - task #1 only, with only 
+# clinical features as input. For a more complete example of a model for the KNIGHT
+# challenge task, see: fuse_examples/classification/knight
 
 ##########################################
 # Required Parameters
@@ -9,20 +16,27 @@ num_repetitions = 1
 num_gpus_total = 3
 num_gpus_per_split = 1
 num_folds = 5
-dataset_func = create_dataset
+dataset_func = knight_dataset
 train_func = run_train
 infer_func = run_infer
 eval_func = run_eval
 
 # output paths:
 root_path = 'results' 
-paths = {'model_dir': os.path.join(root_path, 'mnist/model_dir'),
+paths = {'model_dir': os.path.join(root_path, 'knight/model_dir'),
          'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
-         'cache_dir': os.path.join(root_path, 'mnist/cache_dir'),
-         'inference_dir': os.path.join(root_path, 'mnist/infer_dir'),
-         'eval_dir': os.path.join(root_path, 'mnist/eval_dir'),
-         'test_dir': os.path.join(root_path, 'mnist/test_dir'), 
+         'cache_dir': os.environ['KNIGHT_CACHE'],
+         'inference_dir': os.path.join(root_path, 'knight/infer_dir'),
+         'eval_dir': os.path.join(root_path, 'knight/eval_dir'),
+         'test_dir': os.path.join(root_path, 'knight/test_dir'), 
          }
+
+# common params:
+common_params = {}
+common_params['task_num'] = 1
+common_params['use_data'] = {'imaging': False, 'clinical': True} # specify whether to use imaging, clinical data or both
+common_params['target_name'] = 'data.gt.gt_global.task_1_label'
+common_params['target_metric'] = 'metrics.auc'
 
 ##########################################
 # Custom Parameters
@@ -33,48 +47,30 @@ paths = {'model_dir': os.path.join(root_path, 'mnist/model_dir'),
 ##########################################
 
 dataset_params = {}
+dataset_params['data_dir'] = os.environ['KNIGHT_DATA']
 dataset_params['cache_dir'] = paths['cache_dir']
+dataset_params['resize_to'] = (256, 256, 110) 
+dataset_params['num_classes'] = 2
+# custom train/test split:
+splits_path = '../../classification/knight/baseline/splits_final.pkl'
+splits=pd.read_pickle(splits_path)
+split = splits[0] 
+# note that the validation set of this split will be used as *test* for the ML pipeline example
+# the cross validation splits will be drawn randomly from split['train'] 
+dataset_params['split'] = split
 
 ##########################################
 # Train Params
 ##########################################
 train_params = {}
 train_params['paths'] = paths
-
-# ============
-# Model
-# ============
-train_params['model'] = 'lenet' # 'resnet18' or 'lenet'
-
-# ============
-# Data
-# ============
-if train_params['model'] == 'lenet':
-    train_params['data.batch_size'] = 100
-elif train_params['model'] == 'resnet18':
-    train_params['data.batch_size'] = 30
-train_params['data.train_num_workers'] = 8
-train_params['data.validation_num_workers'] = 8
-
-# ===============
-# Manager - Train
-# ===============
-train_params['manager.train_params'] = {
-    'device': 'cuda', 
-    'num_epochs': 5,
-    'virtual_batch_size': 1,  # number of batches in one virtual batch
-    'start_saving_epochs': 10,  # first epoch to start saving checkpoints from
-    'gap_between_saving_epochs': 5,  # number of epochs between saved checkpoint
-}
-train_params['manager.best_epoch_source'] = {
-    'source': 'metrics.accuracy',  # can be any key from 'epoch_results'
-    'optimization': 'max',  # can be either min/max
-    'on_equal_values': 'better',
-    # can be either better/worse - whether to consider best epoch when values are equal
-}
-train_params['manager.learning_rate'] = 1e-4
-train_params['manager.weight_decay'] = 0.001
-train_params['manager.resume_checkpoint_filename'] = None  # if not None, will try to load the checkpoint
+train_params['common'] = common_params
+train_params['imaging_dropout'] = 0.5
+train_params['clinical_dropout'] = 0.0
+train_params['fused_dropout'] = 0.5
+train_params['batch_size'] = 2
+train_params['num_epochs'] = 5
+train_params['learning_rate'] = 1e-4
 
 
 ######################################
@@ -82,6 +78,7 @@ train_params['manager.resume_checkpoint_filename'] = None  # if not None, will t
 ######################################
 infer_params = {}
 infer_params['paths'] = paths
+infer_params['common'] = common_params
 infer_params['infer_filename'] = 'validation_set_infer.gz'
 infer_params['test_infer_filename'] = 'test_set_infer.gz'
 infer_params['checkpoint'] = 'best'  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
@@ -96,6 +93,7 @@ infer_params['run_func'] = run_infer
 ######################################
 eval_params = {}
 eval_params['paths'] = paths
+eval_params['common'] = common_params
 eval_params['infer_filename'] = infer_params['infer_filename']
 eval_params['test_infer_filename'] = infer_params['test_infer_filename']
 eval_params['run_func'] = run_eval
