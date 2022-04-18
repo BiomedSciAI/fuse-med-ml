@@ -120,7 +120,7 @@ class Misc:
         res = ''
         all_keys = NDict.get_all_keys(batch_dict)
         for key in all_keys:
-            value = NDict.get(batch_dict, key)
+            value = batch_dict[key]
             res += f'{key} : type={type(value)}'
             if isinstance(value, (np.ndarray, Tensor)):
                 res += f', dtype={value.dtype}, shape={value.shape}'
