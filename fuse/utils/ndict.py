@@ -292,7 +292,7 @@ class NDict(dict):
     # FuseUtilsHierarchicalDict's methods
 
     @classmethod
-    def get(cls, hierarchical_dict: dict, key: str):
+    def get(cls, hierarchical_dict: NDict, key: str):
         """
         get(dict, 'x.y.z') <==> dict['x']['y']['z']
         """
@@ -306,7 +306,7 @@ class NDict(dict):
                 value = value[sub_key]
             return value
         except:
-            flat_dict = FuseUtilsHierarchicalDict.flatten(hierarchical_dict)
+            flat_dict = hierarchical_dict.flatten()
             if key in flat_dict:
                 return flat_dict[key]
             else:
@@ -339,7 +339,7 @@ class NDict(dict):
         all_keys = {}
         for key in hierarchical_dict:
             if isinstance(hierarchical_dict[key], dict):
-                all_sub_keys = FuseUtilsHierarchicalDict.get_all_keys(hierarchical_dict[key], include_values=True)
+                all_sub_keys = NDict.get_all_keys(hierarchical_dict[key], include_values=True)
                 keys_to_add = {f'{key}.{sub_key}':all_sub_keys[sub_key] for sub_key in all_sub_keys}
                 all_keys.update(keys_to_add)
             else:
@@ -413,20 +413,20 @@ class NDict(dict):
 
     # Exist as __str__
 
-    # @classmethod
-    # def to_string(cls, hierarchical_dict: dict) -> str:
-    #     """
-    #     Get flat string including thr content of the dictionary
-    #     :param hierarchical_dict: input dict
-    #     :return: string
-    #     """
-    #     keys = cls.get_all_keys(hierarchical_dict)
-    #     keys = sorted(keys)
-    #     res = ''
-    #     for key in keys:
-    #         res += f'{key} = {FuseUtilsHierarchicalDict.get(hierarchical_dict, key)}\n'
+    @classmethod
+    def to_string(cls, hierarchical_dict: dict) -> str:
+        """
+        Get flat string including thr content of the dictionary
+        :param hierarchical_dict: input dict
+        :return: string
+        """
+        keys = cls.get_all_keys(hierarchical_dict)
+        keys = sorted(keys)
+        res = ''
+        for key in keys:
+            res += f'{key} = {NDict.get(hierarchical_dict, key)}\n'
 
-    #     return res
+        return res
 
     # @classmethod
     # def pop(cls, hierarchical_dict: dict, key:str):
@@ -445,23 +445,23 @@ class NDict(dict):
     #             value = value[sub_key]
     #         return value.pop(hierarchical_key[key_idx])
     #     except:
-    #         flat_dict = FuseUtilsHierarchicalDict.flatten(hierarchical_dict)
+    #         flat_dict = hierarchical_dict.flatten()
     #         if key in flat_dict:
     #             return flat_dict[key]
     #         else:
     #             raise KeyError(f'key {key} does not exist\n. Possible keys are: {str(list(flat_dict.keys()))}')
 
-    # @classmethod
-    # def is_in(cls, hierarchical_dict: dict, key:str) -> bool:
-    #     """
-    #     Returns True if the full key is in dict, False otherwise.
-    #     e.g., for dict = {'a':1, 'b.c':2} is_in(dict, 'b.c') returns True, but is_in(dict, 'c') returns False.
+    @classmethod
+    def is_in(cls, hierarchical_dict: dict, key:str) -> bool:
+        """
+        Returns True if the full key is in dict, False otherwise.
+        e.g., for dict = {'a':1, 'b.c':2} is_in(dict, 'b.c') returns True, but is_in(dict, 'c') returns False.
 
-    #     :param hierarchical_dict: dict to check
-    #     :param key: key to search
-    #     :return: key in hierarchical_dict
-    #     """
-    #     return key in cls.get_all_keys(hierarchical_dict)
+        :param hierarchical_dict: dict to check
+        :param key: key to search
+        :return: key in hierarchical_dict
+        """
+        return key in cls.get_all_keys(hierarchical_dict)
 
     
 

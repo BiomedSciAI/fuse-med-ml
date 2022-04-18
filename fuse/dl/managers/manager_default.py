@@ -40,7 +40,7 @@ from fuse.utils.dl.checkpoint import Checkpoint
 from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.file_io.file_io import create_or_reset_dir
 import fuse.utils.gpu as gpu
-from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
+from fuse.utils.ndict import NDict
 from fuse.utils.utils_logger import log_object_input_state
 from fuse.utils.misc.misc import Misc, get_pretty_dataframe
 from tqdm import trange
@@ -375,7 +375,7 @@ class ManagerDefault:
             # if this is the best epoch yet
             for i in range(self.state.num_models_to_save):
                 if self._is_best_epoch_so_far(train_results, validation_results, i):
-                    best_val = FuseUtilsHierarchicalDict.get(self.state.best_epoch_values[i], self.state.best_epoch_function[i])
+                    best_val = self.state.best_epoch_values[i][self.state.best_epoch_function[i]]
                     self.logger.info(f"This is the best epoch ever ({self.state.best_epoch_function[i]} = {best_val})",
                                      {'color': 'green', 'attrs': 'bold'})
                     self.state.best_epoch[i] = self.state.current_epoch
@@ -574,15 +574,15 @@ class ManagerDefault:
                 lgr.error(track)
                 metric_result = None
 
-            FuseUtilsHierarchicalDict.set(epoch_results, "metrics." + metric_name, metric_result)
+            epoch_results["metrics." + metric_name] = metric_result
             metric.reset()
 
         # average losses into mean_loss
         if 'losses' in epoch_results:
-            for loss in FuseUtilsHierarchicalDict.get_all_keys(epoch_results['losses']):
-                batch_losses = FuseUtilsHierarchicalDict.get(epoch_results, 'losses.' + loss)
+            for loss in NDict.get_all_keys(epoch_results['losses']):
+                batch_losses = epoch_results['losses.' + loss]
                 loss_mean = np.nansum(batch_losses) / len(batch_losses)
-                FuseUtilsHierarchicalDict.set(epoch_results, "losses." + loss, loss_mean)
+                epoch_results["losses." + loss] = loss_mean
 
         return epoch_results
 
@@ -653,7 +653,7 @@ class ManagerDefault:
         for callback in self.callbacks: callback.on_data_fetch_end(mode, batch, batch_dict)
 
         # move every tensor in input to device
-        FuseUtilsHierarchicalDict.apply_on_all(batch_dict, gpu.move_tensor_to_device, self.state.device)
+        batch_dict.apply_on_all(gpu.move_tensor_to_device, self.state.device)
 
         # forward net
         batch_dict['model'] = self.state.net(batch_dict)
@@ -662,12 +662,12 @@ class ManagerDefault:
         total_loss: torch.Tensor = 0
         for loss_name, loss_function in self.state.losses.items():
             current_loss_result = loss_function(batch_dict)
-            FuseUtilsHierarchicalDict.set(batch_dict, 'losses.' + loss_name, current_loss_result.data.item())
+            batch_dict['losses.' + loss_name] = current_loss_result.data.item()
             # sum all losses for backward
             total_loss += current_loss_result
         # no need to add total_loss if there are no losses computed
         if isinstance(total_loss, torch.Tensor):
-            FuseUtilsHierarchicalDict.set(batch_dict, 'losses.total_loss', total_loss.data.item())
+            batch_dict['losses.total_loss'] = total_loss.data.item()
 
         if mode == 'train':
             # backward
@@ -705,7 +705,7 @@ class ManagerDefault:
 
         # take total_loss from train_results
         results = {"train": train_results, "validation": validation_results}
-        self.state.lr_scheduler.step(np.mean(FuseUtilsHierarchicalDict.get(results, self.state.lr_sch_target)))
+        self.state.lr_scheduler.step(np.mean(results[self.state.lr_sch_target]))
 
         curr_lr = self.get_current_learning_rate()
 
@@ -794,8 +794,7 @@ class ManagerDefault:
 
         def is_better_epoch_value(current_value: float) -> bool:
             try:
-                current_best = FuseUtilsHierarchicalDict.get(self.state.best_epoch_values[epoch_source_index],
-                                                             self.state.best_epoch_function[epoch_source_index])
+                current_best = self.state.best_epoch_values[epoch_source_index][self.state.best_epoch_function[epoch_source_index]]
                 # check if we can compare values
                 if current_value is None:
                     lgr = logging.getLogger('Fuse')
@@ -824,15 +823,15 @@ class ManagerDefault:
         else:
             values_to_check = train_results
         function_key = self.state.best_epoch_function[epoch_source_index]
-        if not FuseUtilsHierarchicalDict.is_in(values_to_check, function_key):
+        if not NDict.is_in(values_to_check, function_key):
             lgr = logging.getLogger('Fuse')
             lgr.error(f"source function {function_key} does not exist in results_dict. " + \
-                      f"Possible values are {FuseUtilsHierarchicalDict.get_all_keys(values_to_check)}")
+                      f"Possible values are {NDict.get_all_keys(values_to_check)}")
             lgr.error(traceback.format_exc())
             raise KeyError(f"source function {function_key} does not exist in results_dict." + \
-                           f"Possible values are {FuseUtilsHierarchicalDict.get_all_keys(values_to_check)}")
+                           f"Possible values are {NDict.get_all_keys(values_to_check)}")
 
-        value_to_compare = FuseUtilsHierarchicalDict.get(values_to_check, function_key)
+        value_to_compare = values_to_check[function_key]
         if is_better_epoch_value(value_to_compare):
             self.state.best_epoch_values[epoch_source_index] = values_to_check
             return True
@@ -849,7 +848,7 @@ class ManagerDefault:
         def get_value_as_float_str(dict, key):
             val_as_str = 'N/A'
             try:
-                value = FuseUtilsHierarchicalDict.get(dict, key)
+                value = dict[key]
                 val_as_str = '%.4f' % float(value)
             except:
                 pass
@@ -858,7 +857,7 @@ class ManagerDefault:
         stats_table = pd.DataFrame(columns=['', 'Best Epoch Value', 'Current Epoch Validation', 'Current Epoch Train'])
         idx = 0
 
-        eval_keys = sorted(FuseUtilsHierarchicalDict.get_all_keys(train_dict))
+        eval_keys = sorted(NDict.get_all_keys(train_dict))
         for evaluator_name in eval_keys:
             train_value_str = get_value_as_float_str(train_dict, evaluator_name)
             validation_val_str = get_value_as_float_str(validation_dict, evaluator_name)
@@ -958,20 +957,20 @@ def _extend_results_dict(mode: str, current_dict: Dict, aggregated_dict: Dict) -
         return {}
     else:
         # for train and validation we need the loss values
-        cur_keys = FuseUtilsHierarchicalDict.get_all_keys(current_dict)
+        cur_keys = NDict.get_all_keys(current_dict)
         # aggregate just keys that start with losses
         cur_keys = [key for key in cur_keys if key.startswith('losses.')]
-        agg_keys = FuseUtilsHierarchicalDict.get_all_keys(aggregated_dict)
+        agg_keys = NDict.get_all_keys(aggregated_dict)
         for key in cur_keys:
             if key not in agg_keys:
                 # init dict is needed
-                FuseUtilsHierarchicalDict.set(aggregated_dict, key, [])
-            val = FuseUtilsHierarchicalDict.get(current_dict, key)
+                aggregated_dict[key] = []
+            val = current_dict[key]
             if isinstance(val, list):
                 # in the epoch dict, the loss is a list of the virtual mini batches
-                FuseUtilsHierarchicalDict.get(aggregated_dict, key).extend(val)
+                aggregated_dict[key].extend(val)
             else:
                 # in the virtual batch dict, the losses are float per batch
-                FuseUtilsHierarchicalDict.get(aggregated_dict, key).append(val)
+                aggregated_dict[key].append(val)
 
     return aggregated_dict

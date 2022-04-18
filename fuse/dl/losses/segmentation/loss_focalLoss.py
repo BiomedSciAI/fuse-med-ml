@@ -23,7 +23,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from fuse.dl.losses.loss_base import LossBase
-from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
+from fuse.utils.ndict import NDict
 import numpy as np
 
 
@@ -92,18 +92,18 @@ class FocalLoss(LossBase):
         :param resize_mode:             Resize mode- either using a max pooling kernel(default), or using PyTorch interpolation ('interpolate'/'maxpool')
         """
         super().__init__(pred_name, target_name, weight)
-        self.class_weights = class_weights
+        self.class_weights = class_weights # Should be deleted? -Sagi's TEMP note
         self.filter_func = filter_func
         self.resize_mode = resize_mode
         self.callable = WeightedFocalLoss(alpha=alpha, gamma=gamma)
 
-    def __call__(self, batch_dict: Dict) -> torch.Tensor:
+    def __call__(self, batch_dict: NDict) -> torch.Tensor:
         # filter batch_dict if required
         if self.filter_func is not None:
             batch_dict = self.filter_func(batch_dict)
 
-        preds = FuseUtilsHierarchicalDict.get(batch_dict, self.pred_name)  # preds shape [batch_size, num_classes, height, width]
-        targets = FuseUtilsHierarchicalDict.get(batch_dict, self.target_name)  # targets shape [batch_size, height, width]
+        preds = batch_dict[self.pred_name]  # preds shape [batch_size, num_classes, height, width]
+        targets = batch_dict[self.target_name]  # targets shape [batch_size, height, width]
 
         batch_size, targets_height, targets_width = targets.shape
         batch_size, num_classes, preds_height, preds_width = preds.shape

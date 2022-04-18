@@ -30,7 +30,7 @@ from typing import Dict
 
 import torch
 
-from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
+from fuse.utils.ndict import NDict
 from fuse.dl.managers.callbacks.callback_base import Callback
 from fuse.dl.managers.manager_state import ManagerState
 
@@ -107,7 +107,7 @@ class CallbackSamOpt(Callback):
     def on_train_begin(self, state: ManagerState):
         self.state = state
 
-    def on_batch_end(self, mode: str, batch: int, batch_dict: Dict = None):
+    def on_batch_end(self, mode: str, batch: int, batch_dict: NDict = None):
         # self.virtual_batch.append(batch_dict)
         if mode == 'train':
             self.state.optimizer.first_step(zero_grad=True)
@@ -117,7 +117,7 @@ class CallbackSamOpt(Callback):
             total_loss: torch.Tensor = 0
             for loss_name, loss_function in self.state.losses.items():
                 current_loss_result = loss_function(batch_dict)
-                FuseUtilsHierarchicalDict.set(batch_dict, 'losses.' + loss_name, current_loss_result.data.item())
+                batch_dict['losses.' + loss_name] = current_loss_result.data.item()
                 # sum all losses for backward
                 total_loss += current_loss_result
             total_loss.backward()

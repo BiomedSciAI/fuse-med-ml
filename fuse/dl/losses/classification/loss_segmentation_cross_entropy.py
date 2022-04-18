@@ -23,7 +23,7 @@ import numpy as np
 import torch
 
 from fuse.dl.losses.loss_base import LossBase
-from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
+from fuse.utils.ndict import NDict
 
 
 class LossSegmentationCrossEntropy(LossBase):
@@ -56,9 +56,9 @@ class LossSegmentationCrossEntropy(LossBase):
         self.resize_mode = resize_mode
         assert resize_mode in ['maxpool', 'interpolate']
 
-    def __call__(self, batch_dict: Dict) -> torch.Tensor:
-        preds = FuseUtilsHierarchicalDict.get(batch_dict, self.pred_name)  # preds shape [batch_size, num_classes, height, width]
-        targets = FuseUtilsHierarchicalDict.get(batch_dict, self.target_name)  # targets shape [batch_size, height, width]
+    def __call__(self, batch_dict: NDict) -> torch.Tensor:
+        preds = batch_dict[self.pred_name]  # preds shape [batch_size, num_classes, height, width]
+        targets = batch_dict[self.target_name]  # targets shape [batch_size, height, width]
 
         batch_size, targets_height, targets_width = targets.shape
         batch_size, num_classes, preds_height, preds_width = preds.shape
