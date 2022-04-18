@@ -379,7 +379,7 @@ class NDict(dict):
     #         cls.set(hierarchical_dict, key, new_value)
     #     pass
 
-    # A WALKAROUND!
+    # A WALKAROUND - TEMP
     @classmethod
     def flatten_wa(cls, hierarchical_dict: dict) -> dict:
         """
