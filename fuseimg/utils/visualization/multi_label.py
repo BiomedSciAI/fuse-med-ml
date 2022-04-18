@@ -5,6 +5,8 @@ from functools import partial
 import matplotlib.patches as patches
 from fuseimg.utils.typing.typed_element import TypedElement
 from itertools import cycle
+from matplotlib.collections import PatchCollection
+from matplotlib.patches import Polygon
 
 def show_multiple_images(plot_label : Callable , imgs : List, base_resolution :int = 5, **args ):
     '''
@@ -70,22 +72,35 @@ def plot_color_mask(mask , ax ) :
         img[:,:,i] = color_mask[i]
     ax.imshow(np.dstack( (img, masked*0.5) )) 
     
-def plot_bbox(bbox,ax ,color):
-    rect = patches.Rectangle((bbox[0], bbox[1]), bbox[2], bbox[3], linewidth=1, edgecolor=color, facecolor='none')
-    ax.add_patch(rect) 
     
 def plot_seg(ax : Any, sample : TypedElement, color ):
     if sample.seg is not None : 
         mask = sample.seg
         masked = np.ma.masked_where(mask == 0, mask)
         ax.imshow(masked) 
+    polygons = []
+    colors = []
+    cycol = cycle(color)
     if sample.contours is not None :
-        for mask in sample.contours :
-            plot_color_mask(mask , ax)
+        for seg in sample.contours :
+            seg = np.array(seg[0])
+            poly = seg.reshape(int(len(seg)/2), 2)
+            polygons.append(Polygon(poly))
+            c = (np.random.random((1, 3))*0.6+0.4).tolist()[0]
+            colors.append(c)
     if sample.bboxes is not None :
-        cycol = cycle(color)
         for bbox in sample.bboxes :
-             plot_bbox(bbox,ax,next(cycol))
+            [bbox_x, bbox_y, bbox_w, bbox_h] = bbox
+            poly = [[bbox_x, bbox_y], [bbox_x, bbox_y+bbox_h], [bbox_x+bbox_w, bbox_y+bbox_h], [bbox_x+bbox_w, bbox_y]]
+            np_poly = np.array(poly).reshape((4,2))
+            polygons.append(Polygon(np_poly))
+            c = (np.random.random((1, 3))*0.6+0.4).tolist()[0]
+            colors.append(c)
+    p = PatchCollection(polygons, facecolor=colors, linewidths=0, alpha=0.4)
+    ax.add_collection(p)
+    p = PatchCollection(polygons, facecolor='none', edgecolors=colors, linewidths=2)
+    ax.add_collection(p)
+             
     
 
 show_multiple_images_seg = partial(show_multiple_images, plot_label=plot_seg)

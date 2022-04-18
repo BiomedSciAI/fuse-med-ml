@@ -32,7 +32,7 @@ def convert_uncompressed_RLE_COCO_type(element : Dict ,height : int  ,width: int
     p = maskUtils.frPyObjects(element, height, width)
     return p 
 
-def convert_polygon_COCO_type(element : list ,height : int  ,width: int)-> np.ndarray:
+def convert_compressed_RLE_COCO_type(element : list ,height : int  ,width: int)-> np.ndarray:
     """
     converts polygon to COCO default type ( compressed RLE)
     :param element:  polygon - array of X,Y coordinates saves as X.Y , example: [[486.34, 239.01, 477.88, 244.78]]
@@ -45,15 +45,6 @@ def convert_polygon_COCO_type(element : list ,height : int  ,width: int)-> np.nd
     p = maskUtils.decode(p)
     return p  
 
-def convert_pixel_map_COCO_type(element : np.ndarray )-> np.ndarray:
-    """
-    converts pixel map (np.ndarray) to COCO default type ( compressed RLE)
-    :param element:  pixel map in np.ndarray with same shape as original image ( 0= not the object, 1= object)
-    :return   output mask 
-    """  
-    p =  maskUtils.encode(np.asfortranarray(element).astype(np.uint8))
-    p = maskUtils.decode(p)
-    return p  
 
 
 def convert_COCO_to_mask(elements : Any,height : int  ,width: int, segmentation_type : DataTypeImaging )-> Dict:
@@ -62,13 +53,13 @@ def convert_COCO_to_mask(elements : Any,height : int  ,width: int, segmentation_
     :param elements:  input in any COCO format
     :param height: original image height in pixels
     :param width: original image width in pixels
-    :param segmentation_type: input format - pixel_map , uncompressed_RLE , compressed_RLE , polygon , bbox
+    :param segmentation_type: DataTypeImaging
     :return  output mask 
     """     
     if segmentation_type == DataTypeImaging.UCRLE:
         elements = [convert_uncompressed_RLE_COCO_type(element,height,width)  for element in elements]    
-    elif segmentation_type == DataTypeImaging.CTR or segmentation_type == DataTypeImaging.CRLE:
-        elements = [convert_polygon_COCO_type(element,height,width)  for element in elements]     
+    elif segmentation_type == DataTypeImaging.CRLE:
+        elements = [convert_compressed_RLE_COCO_type(element,height,width)  for element in elements]     
     return elements
     
 class VisProbe(OpBase):
@@ -146,7 +137,7 @@ class VisProbe(OpBase):
             if self._coco_converter != None :
                  res[f'{prekey}.value'] = self._coco_converter(res[f'{prekey}.value'])
             res[f'{prekey}.type'] = self._type_detector.get_type(sample_dict, key)
-            if res[f'{prekey}.type'] not in [DataTypeImaging.SEG, DataTypeImaging.IMAGE , DataTypeImaging.BBOX ]:
+            if res[f'{prekey}.type'] in [DataTypeImaging.CRLE, DataTypeImaging.UCRLE  ]:
                 res[f'{prekey}.converted_value'] = convert_COCO_to_mask(res[f'{prekey}.value'],sample_dict['height'],sample_dict['width'],res[f'{prekey}.type'] )
             res[f'{prekey}.name'] = name
         return res
