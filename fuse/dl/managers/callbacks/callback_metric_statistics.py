@@ -71,7 +71,7 @@ class MetricStatisticsCallback(Callback):
             return
 
         lgr = logging.getLogger('Fuse')
-        flat_results = NDict.flatten_wa(epoch_results)
+        flat_results = epoch_results.flatten()
         # if this is step 0 - pre-training results should be logged in addition to the metrics csv
         if epoch == 0:
             lgr.info(f'Stats for Pre-Training:')

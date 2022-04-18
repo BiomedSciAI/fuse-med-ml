@@ -491,7 +491,7 @@ class ManagerDefault:
             if isinstance(callback, InferResultsCallback):
                 return callback.get_infer_results()
 
-    def handle_epoch(self, mode: str, epoch: int, data_loader: DataLoader) -> Dict:
+    def handle_epoch(self, mode: str, epoch: int, data_loader: DataLoader) -> NDict:
         """
         For each virtual batch calls handle_virtual_batch() and aggregates the results into a dict.
         In case mode is 'infer', the prediction results are returned.
@@ -533,7 +533,7 @@ class ManagerDefault:
                     callback.on_epoch_end(mode, epoch, epoch_results)
                 return epoch_results
 
-    def do_handle_epoch(self, mode: str, epoch: int, data_loader: DataLoader) -> Dict:
+    def do_handle_epoch(self, mode: str, epoch: int, data_loader: DataLoader) -> NDict:
         """
         Utility function that is called by handle_epoch
         :param mode: mode to run the epoch. Can be either 'train', 'validation', 'infer'
@@ -557,7 +557,7 @@ class ManagerDefault:
         data_iter = iter(data_loader)
 
         # loop over batches (can be virtual batch)
-        epoch_results = {}
+        epoch_results = NDict()
         for virtual_batch in trange(num_batches):
             # handle_virtual batch
             virtual_batch_dict = self.handle_virtual_batch(mode, virtual_batch, data_iter)
@@ -579,14 +579,14 @@ class ManagerDefault:
 
         # average losses into mean_loss
         if 'losses' in epoch_results:
-            for loss in NDict.get_all_keys(epoch_results['losses']):
+            for loss in epoch_results['losses'].keypaths():
                 batch_losses = epoch_results['losses.' + loss]
                 loss_mean = np.nansum(batch_losses) / len(batch_losses)
                 epoch_results["losses." + loss] = loss_mean
 
         return epoch_results
 
-    def handle_virtual_batch(self, mode: str, virtual_batch: int, data_iter: Iterator) -> Dict:
+    def handle_virtual_batch(self, mode: str, virtual_batch: int, data_iter: Iterator) -> NDict:
         """
         Responsible for splitting into mini batches, running each mini batch, aggregating its results, and running optimizer at the end
 
@@ -614,7 +614,7 @@ class ManagerDefault:
         if mode == 'train':
             self.state.optimizer.zero_grad()
 
-        virtual_batch_results = {}
+        virtual_batch_results = NDict()
 
         for mini_batch in range(self.state.virtual_batch_size):
             mini_batch_result_dict = self.handle_batch(mode, mini_batch, data_iter)
@@ -945,7 +945,7 @@ class ManagerDefault:
         pass
 
 
-def _extend_results_dict(mode: str, current_dict: Dict, aggregated_dict: Dict) -> Dict:
+def _extend_results_dict(mode: str, current_dict: NDict, aggregated_dict: NDict) -> NDict:
     """
     Utility function to create aggregated loss results dict from the handle_batch()/handle_virtual_batch() output dict.
     :param mode: Can be either 'train', 'validation', 'infer' (on infer return an empty dict)
@@ -954,13 +954,13 @@ def _extend_results_dict(mode: str, current_dict: Dict, aggregated_dict: Dict) -
     :return: aggregated dict
     """
     if mode == 'infer':
-        return {}
+        return NDict()
     else:
         # for train and validation we need the loss values
-        cur_keys = NDict.get_all_keys(current_dict)
+        cur_keys = current_dict.keypaths()
         # aggregate just keys that start with losses
         cur_keys = [key for key in cur_keys if key.startswith('losses.')]
-        agg_keys = NDict.get_all_keys(aggregated_dict)
+        agg_keys = aggregated_dict.keypaths()
         for key in cur_keys:
             if key not in agg_keys:
                 # init dict is needed
