@@ -25,34 +25,25 @@ from fuse.utils import gpu as FuseUtilsGPU
 import os
 import torch.nn.functional as F
 from fuse.eval.evaluator import EvaluatorDefault 
-
-def create_dataset(cache_dir):
-    
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
-    ])
-
-    # Train dataset:
-    torch_train_dataset = torchvision.datasets.MNIST(cache_dir, download=True, train=True, transform=transform)
-
-    # Validation dataset:
-    torch_test_dataset = torchvision.datasets.MNIST(cache_dir, download=True, train=False, transform=transform)
-
-    return torch_train_dataset, torch_test_dataset
+from fuse.data.data_source.data_source_default import FuseDataSourceDefault
+import copy
 
 def run_train(dataset, sample_ids, cv_index, test=False, params=None, \
         rep_index=0, rand_gen=None):
     assert(test == False)
     # obtain train/val dataset subset:
-    torch_train_dataset = Subset(dataset, sample_ids[0])
-    torch_validation_dataset = Subset(dataset, sample_ids[1])
+    ## Create subset data sources
+    train_data_source = FuseDataSourceDefault([dataset.samples_description[i] for i in sample_ids[0]])
+    validation_data_source = FuseDataSourceDefault([dataset.samples_description[i] for i in sample_ids[1]])
+    ## TODO: consider if there's a better way to obtain a subset of an already created fuse dataset
+    train_dataset = copy.deepcopy(dataset)
+    validation_dataset = copy.deepcopy(dataset)
 
-    # wrapping torch dataset
-    train_dataset = FuseDatasetWrapper(name='train', dataset=torch_train_dataset, mapping=('image', 'label'))
-    train_dataset.create()
-    validation_dataset = FuseDatasetWrapper(name='validation', dataset=torch_validation_dataset, mapping=('image', 'label'))
-    validation_dataset.create()
+    print(f'- Load and cache data:')
+    train_dataset.create(reset_cache=False, override_datasource=train_data_source)
+    validation_dataset.create(reset_cache=False, override_datasource=validation_data_source)
+    print(f'- Load and cache data: Done')
+
     # ==============================================================================
     # Logger
     # ==============================================================================

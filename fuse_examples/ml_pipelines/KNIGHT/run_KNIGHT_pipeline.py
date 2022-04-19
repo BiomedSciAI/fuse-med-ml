@@ -1,5 +1,5 @@
 from fuse.managers.pipeline import run
-from funcs import run_train, run_infer, run_eval, create_dataset
+from funcs import run_train, run_infer, run_eval
 from dataset import knight_dataset
 import os
 import pandas as pd
@@ -51,6 +51,7 @@ dataset_params['data_dir'] = os.environ['KNIGHT_DATA']
 dataset_params['cache_dir'] = paths['cache_dir']
 dataset_params['resize_to'] = (256, 256, 110) 
 dataset_params['num_classes'] = 2
+dataset_params['reset_cache'] = False
 # custom train/test split:
 splits_path = '../../classification/knight/baseline/splits_final.pkl'
 splits=pd.read_pickle(splits_path)
