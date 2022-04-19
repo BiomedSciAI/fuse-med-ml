@@ -62,7 +62,7 @@ from unet import UNet
 ##########################################
 # Debug modes
 ##########################################
-mode = 'debug'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseUtilsDebug
+mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseUtilsDebug
 debug = FuseUtilsDebug(mode)
 
 ##########################################
@@ -153,7 +153,7 @@ TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = {
     'source': 'losses.total_loss',  # can be any key from 'epoch_results' (either metrics or losses result)
     'optimization': 'min',  # can be either min/max
 }
-TRAIN_COMMON_PARAMS['manager.learning_rate'] = 1e-1
+TRAIN_COMMON_PARAMS['manager.learning_rate'] = 1e-2
 TRAIN_COMMON_PARAMS['manager.weight_decay'] = 1e-4  
 TRAIN_COMMON_PARAMS['manager.resume_checkpoint_filename'] = None  # if not None, will try to load the checkpoint
 TRAIN_COMMON_PARAMS['partition_file'] = 'train_val_split.pickle'
@@ -173,19 +173,12 @@ def run_train(paths: dict, train_common_params: dict):
     lgr.info(f'model_dir={paths["model_dir"]}', {'color': 'magenta'})
     lgr.info(f'cache_dir={paths["cache_dir"]}', {'color': 'magenta'})
 
-    # train_path = paths['data_dir'][0]
-    # mask_path = paths['data_dir'][1]
-
     #### Train Data
     lgr.info(f'Train Data:', {'attrs': 'bold'})
 
     train_data_source = FuseDataSourceSeg(phase='train',
                                           data_folder=paths['train_folder'],
                                           partition_file=train_common_params['partition_file'])
-
-    # train_data_source = FuseDataSourceSeg(image_source=train_path,
-    #                                       mask_source=mask_path,
-    #                                       train=True)
     print(train_data_source.summary())
 
     ## Create data processors:
@@ -230,20 +223,16 @@ def run_train(paths: dict, train_common_params: dict):
     # Validation dataset
     lgr.info(f'Validation Data:', {'attrs': 'bold'})
 
-    # valid_data_source = FuseDataSourceSeg(image_source=train_path,
-    #                                       mask_source=mask_path,
-    #                                       partition_file=train_common_params['partition_file'],
-    #                                       train=False)
     valid_data_source = FuseDataSourceSeg(phase='validation',
                                           data_folder=paths['train_folder'],
                                           partition_file=train_common_params['partition_file'])
     print(valid_data_source.summary())
 
     valid_dataset = FuseDatasetDefault(cache_dest=paths['cache_dir'],
-                                    data_source=valid_data_source,
-                                    input_processors=input_processors,
-                                    gt_processors=gt_processors,
-                                    visualizer=visualiser)
+                                       data_source=valid_data_source,
+                                       input_processors=input_processors,
+                                       gt_processors=gt_processors,
+                                       visualizer=visualiser)
 
     lgr.info(f'- Load and cache data:')
     valid_dataset.create()
@@ -293,7 +282,7 @@ def run_train(paths: dict, train_common_params: dict):
     # =====================================================================================
     callbacks = [
         # default callbacks
-        FuseTensorboardCallback(model_dir=paths['model_dir']),  # save statistics for tensorboard
+        # FuseTensorboardCallback(model_dir=paths['model_dir']),  # save statistics for tensorboard
         FuseMetricStatisticsCallback(output_path=paths['model_dir'] + "/metrics.csv"),  # save statistics in a csv file
         FuseTimeStatisticsCallback(num_epochs=train_common_params['manager.train_params']['num_epochs'], load_expected_part=0.1)  # time profiler
     ]
@@ -334,16 +323,14 @@ def run_infer(paths: dict, infer_common_params: dict):
     lgr.info('Fuse Inference', {'attrs': ['bold', 'underline']})
     lgr.info(f'infer_filename={os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])}', {'color': 'magenta'})
 
-    train_path = paths['data_dir'][0]
-    mask_path = paths['data_dir'][1]
     # ==================================================================
     # Validation dataset
     lgr.info(f'Test Data:', {'attrs': 'bold'})
 
-    train_data_source = FuseDataSourceSeg(phase='validation',
+    infer_data_source = FuseDataSourceSeg(phase='validation',
                                           data_folder=paths['train_folder'],
                                           partition_file=infer_common_params['partition_file'])
-    print(train_data_source.summary())
+    print(infer_data_source.summary())
 
     ## Create data processors:
     input_processors = {
@@ -459,7 +446,7 @@ def run_eval(paths: dict, eval_common_params: dict):
 ######################################
 if __name__ == "__main__":
     # allocate gpus
-    NUM_GPUS = 0
+    NUM_GPUS = 1
     if NUM_GPUS == 0:
         TRAIN_COMMON_PARAMS['manager.train_params']['device'] = 'cpu'
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
