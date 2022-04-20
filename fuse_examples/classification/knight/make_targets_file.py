@@ -52,8 +52,8 @@ def make_targets_file(data_path: str,
     # Data
     # read train/val splits file.
     # use validation set if split specified, otherwise assume testset
+    is_validation_set = True
     if isinstance(split, str):
-        is_validation_set = True
         split=pd.read_pickle(split)
     elif split is None:
         assert split is None, f"Error: unexpected split format {split}"
