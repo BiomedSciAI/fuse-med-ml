@@ -55,12 +55,11 @@ def run_train(dataset, sample_ids, cv_index, test=False, params=None, \
     # ==============================================================================
     # Logger
     # ==============================================================================
-    fuse_logger_start(output_path=os.path.join(params['paths']['model_dir'], 'rep_' + str(rep_index), str(cv_index)), console_verbose_level=logging.INFO, force_reset=True)
-    lgr = logging.getLogger('Fuse')
-    lgr.info('Fuse Train', {'attrs': ['bold', 'underline']})
-
     model_dir = os.path.join(params["paths"]["model_dir"], 'rep_' + str(rep_index), str(cv_index))
     cache_dir = os.path.join(params["paths"]["cache_dir"], 'rep_' + str(rep_index), str(cv_index))
+    fuse_logger_start(output_path=model_dir, console_verbose_level=logging.INFO, force_reset=True)
+    lgr = logging.getLogger('Fuse')
+    lgr.info('Fuse Train', {'attrs': ['bold', 'underline']})
     lgr.info(f'model_dir={model_dir}', {'color': 'magenta'})
     lgr.info(f'cache_dir={cache_dir}', {'color': 'magenta'})
 
