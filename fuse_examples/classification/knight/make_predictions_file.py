@@ -30,7 +30,7 @@ from fuse.utils.file_io.file_io import save_dataframe
 from fuse.managers.manager_default import FuseManagerDefault
 
 from fuse_examples.classification.knight.eval.eval import TASK1_CLASS_NAMES, TASK2_CLASS_NAMES 
-from baseline.dataset import knight_dataset
+from fuse_examples.classification.knight.baseline.dataset import knight_dataset
 
 def make_predictions_file(model_dir: str, 
                           checkpoint: str, 
