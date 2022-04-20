@@ -65,7 +65,7 @@ def prepare_clinical(sample_dict: dict) -> dict:
 
 def knight_dataset(split: Dict, data_dir: str = 'data', cache_dir: str = 'cache', \
         reset_cache: bool = False, resize_to=(256,256,110), task_num=1, \
-        target_name='data.gt.gt_global.task_1_label', num_classes=2, only_labels=False):
+        target_name='data.gt.gt_global.task_1_label', only_labels=False):
 
     augmentation_pipeline = [
         [

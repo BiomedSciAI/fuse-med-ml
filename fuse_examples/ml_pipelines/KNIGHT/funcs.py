@@ -7,13 +7,14 @@ from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data import Subset
 import torch
+import torch.nn as nn
 import torchvision.models as models
 from fuse_examples.classification.mnist import lenet
 from fuse.models.model_wrapper import FuseModelWrapper
 from fuse_examples.classification.mnist.runner import perform_softmax
 from fuse.losses.loss_default import FuseLossDefault
 from typing import OrderedDict
-from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
+from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve, MetricConfusion
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 from fuse.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
 from fuse.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
@@ -27,10 +28,15 @@ import torch.nn.functional as F
 from fuse.eval.evaluator import EvaluatorDefault 
 from fuse.data.data_source.data_source_default import FuseDataSourceDefault
 import copy
+from fuse.models.backbones.backbone_resnet_3d import FuseBackboneResnet3D
+from fuse.models.model_default import FuseModelDefault
+from fuse.models.heads.head_3D_classifier import FuseHead3dClassifier
 
 def run_train(dataset, sample_ids, cv_index, test=False, params=None, \
         rep_index=0, rand_gen=None):
     assert(test == False)
+    model_dir = os.path.join(params["paths"]["model_dir"], 'rep_' + str(rep_index), str(cv_index))
+    cache_dir = os.path.join(params["paths"]["cache_dir"], 'rep_' + str(rep_index), str(cv_index))
     # obtain train/val dataset subset:
     ## Create subset data sources
     train_data_source = FuseDataSourceDefault([dataset.samples_description[i] for i in sample_ids[0]])
@@ -44,117 +50,118 @@ def run_train(dataset, sample_ids, cv_index, test=False, params=None, \
     validation_dataset.create(reset_cache=False, override_datasource=validation_data_source)
     print(f'- Load and cache data: Done')
 
-    # ==============================================================================
-    # Logger
-    # ==============================================================================
-    fuse_logger_start(output_path=os.path.join(params['paths']['model_dir'], 'rep_' + str(rep_index), str(cv_index)), console_verbose_level=logging.INFO, force_reset=True)
-    lgr = logging.getLogger('Fuse')
-    lgr.info('Fuse Train', {'attrs': ['bold', 'underline']})
-
-    model_dir = os.path.join(params["paths"]["model_dir"], 'rep_' + str(rep_index), str(cv_index))
-    cache_dir = os.path.join(params["paths"]["cache_dir"], 'rep_' + str(rep_index), str(cv_index))
-    lgr.info(f'model_dir={model_dir}', {'color': 'magenta'})
-    lgr.info(f'cache_dir={cache_dir}', {'color': 'magenta'})
-
-    # ==============================================================================
-    # Data
-    # ==============================================================================
-
-    lgr.info(f'- Create sampler:')
+    ## Create sampler
+    print(f'- Create sampler:')
     sampler = FuseSamplerBalancedBatch(dataset=train_dataset,
-                                       balanced_class_name='data.label',
-                                       num_balanced_classes=10,
-                                       batch_size=params['data.batch_size'],
-                                       balanced_class_weights=None)
-    lgr.info(f'- Create sampler: Done')
+                                    balanced_class_name=params['common']['target_name'],
+                                    num_balanced_classes=params['common']['num_classes'],
+                                    batch_size=params['batch_size'],
+                                    balanced_class_probs=[1.0/params['common']['num_classes']]*params['common']['num_classes'] if params['common']['task_num']==2 else None,
+                                    use_dataset_cache=False) # we don't want to use_dataset_cache here since it's more 
+                                                                # costly to read all cached data then simply the CSV file 
+                                                                # which contains the labels
 
-    # Create dataloader
-    train_dataloader = DataLoader(dataset=train_dataset, batch_sampler=sampler, num_workers=params['data.train_num_workers'], generator=rand_gen)
+    print(f'- Create sampler: Done')
 
-    # dataloader
-    validation_dataloader = DataLoader(dataset=validation_dataset, batch_size=params['data.batch_size'],
-                                       num_workers=params['data.validation_num_workers'], generator=rand_gen)
+    ## Create dataloader
+    train_dataloader = DataLoader(dataset=train_dataset,
+                                shuffle=False, drop_last=False,
+                                batch_sampler=sampler, collate_fn=train_dataset.collate_fn,
+                                num_workers=params['num_workers'], generator=rand_gen)
 
-    # ==============================================================================
-    # Model
-    # ==============================================================================
-    lgr.info('Model:', {'attrs': 'bold'})
+    validation_dataloader = DataLoader(dataset=validation_dataset,
+                                        shuffle=False,
+                                        drop_last=False,
+                                        batch_sampler=None,
+                                        batch_size=params['batch_size'],
+                                        num_workers=8,
+                                        collate_fn=validation_dataset.collate_fn,
+                                        generator=rand_gen)
 
-    if params['model'] == 'resnet18':
-        torch_model = models.resnet18(num_classes=10)
-        # modify conv1 to support single channel image
-        torch_model.conv1 = torch.nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
-    elif params['model'] == 'lenet':
-        torch_model = lenet.LeNet()
-    
-    # use adaptive avg pooling to support mnist low resolution images
-    torch_model.avgpool = torch.nn.AdaptiveAvgPool2d(1)
+    ## Model definition
+    ##############################################################################
 
-    model = FuseModelWrapper(model=torch_model,
-                             model_inputs=['data.image'],
-                             post_forward_processing_function=perform_softmax,
-                             model_outputs=['logits.classification', 'output.classification']
-                             )
+    if params['common']['use_data']['imaging']:
+        backbone = FuseBackboneResnet3D(in_channels=1)
+        conv_inputs = [('model.backbone_features', 512)]
+    else:
+        backbone = nn.Identity()
+        conv_inputs = None
+    if params['common']['use_data']['clinical']:
+        append_features = [("data.input.clinical.all", 11)]
+    else:
+        append_features = None
 
-    lgr.info('Model: Done', {'attrs': 'bold'})
+    model = FuseModelDefault(
+        conv_inputs=(('data.input.image', 1),),
+        backbone=backbone,
+        heads=[
+            FuseHead3dClassifier(head_name='head_0',
+                                conv_inputs=conv_inputs,
+                                dropout_rate=params['imaging_dropout'], 
+                                num_classes=params['common']['num_classes'],
+                                append_features=append_features,
+                                append_layers_description=(256,128),
+                                append_dropout_rate=params['clinical_dropout'],
+                                fused_dropout_rate=params['fused_dropout']
+                                ),
+        ]
+    )
 
-    # ====================================================================================
-    #  Loss
-    # ====================================================================================
+    # Loss definition:
+    ##############################################################################
     losses = {
-        'cls_loss': FuseLossDefault(pred_name='model.logits.classification', target_name='data.label', callable=F.cross_entropy, weight=1.0),
+        'cls_loss': FuseLossDefault(pred_name='model.logits.head_0', target_name=params['common']['target_name'],
+                                    callable=F.cross_entropy, weight=1.0)
     }
 
-    # ====================================================================================
-    # Metrics
-    # ====================================================================================
+    # Metrics definition:
+    ##############################################################################
     metrics = OrderedDict([
-        ('operation_point', MetricApplyThresholds(pred='model.output.classification')), # will apply argmax
-        ('accuracy', MetricAccuracy(pred='results:metrics.operation_point.cls_pred', target='data.label'))
+        ('op', MetricApplyThresholds(pred='model.output.head_0')), # will apply argmax
+        ('auc', MetricAUCROC(pred='model.output.head_0', target=params['common']['target_name'])),
+        ('accuracy', MetricAccuracy(pred='results:metrics.op.cls_pred', target=params['common']['target_name'])),
+        ('sensitivity', MetricConfusion(pred='results:metrics.op.cls_pred', target=params['common']['target_name'], metrics=('sensitivity',))),
+
     ])
 
-    # =====================================================================================
-    #  Callbacks
-    # =====================================================================================
-    callbacks = [
-        # default callbacks
-        FuseTensorboardCallback(model_dir=model_dir),  # save statistics for tensorboard
-        FuseMetricStatisticsCallback(output_path=model_dir + "/metrics.csv"),  # save statistics a csv file
-        FuseTimeStatisticsCallback(num_epochs=params['manager.train_params']['num_epochs'], load_expected_part=0.1)  # time profiler
-    ]
+    best_epoch_source = {
+        'source': params['common']['target_metric'],  # can be any key from losses or metrics dictionaries
+        'optimization': 'max',  # can be either min/max
+    }
 
-    # =====================================================================================
-    #  Manager - Train
-    # =====================================================================================
-    lgr.info('Train:', {'attrs': 'bold'})
-
-    # create optimizer
-    optimizer = optim.Adam(model.parameters(), lr=params['manager.learning_rate'], weight_decay=params['manager.weight_decay'])
-
-    # create learning scheduler
+    # Optimizer definition:
+    ##############################################################################
+    optimizer = optim.Adam(model.parameters(), lr=params['learning_rate'],
+                            weight_decay=0.001)         
+                            
+    # Scheduler definition:
+    ##############################################################################
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
-    # train from scratch
-    manager = FuseManagerDefault(output_model_dir=model_dir, force_reset=params['paths']['force_reset_model_dir'])
-    # Providing the objects required for the training process.
+    ## Training
+    ##############################################################################
+
+    # set tensorboard callback
+    callbacks = {
+        FuseTensorboardCallback(model_dir=model_dir), # save statistics for tensorboard
+        FuseMetricStatisticsCallback(output_path=model_dir + "/metrics.csv"),  # save statistics a csv file
+
+    }
+    manager = FuseManagerDefault(output_model_dir=model_dir, force_reset=True)
     manager.set_objects(net=model,
                         optimizer=optimizer,
                         losses=losses,
                         metrics=metrics,
-                        best_epoch_source=params['manager.best_epoch_source'],
+                        best_epoch_source=best_epoch_source,
                         lr_scheduler=scheduler,
                         callbacks=callbacks,
-                        train_params=params['manager.train_params'])
+                        train_params={'num_epochs': params['num_epochs'], 'lr_sch_target': 'train.losses.total_loss'}, # 'lr_sch_target': 'validation.metrics.auc.macro_avg'
+                        output_model_dir=model_dir)
 
-    ## Continue training
-    if params['manager.resume_checkpoint_filename'] is not None:
-        # Loading the checkpoint including model weights, learning rate, and epoch_index.
-        manager.load_checkpoint(checkpoint=params['manager.resume_checkpoint_filename'], mode='train')
-
-    # Start training
-    manager.train(train_dataloader=train_dataloader, validation_dataloader=validation_dataloader)
-
-    lgr.info('Train: Done', {'attrs': 'bold'})
+    print('Training...')            
+    manager.train(train_dataloader=train_dataloader,
+                    validation_dataloader=validation_dataloader)
 
 
 def run_infer(dataset, sample_ids, cv_index, test=False, params=None, \

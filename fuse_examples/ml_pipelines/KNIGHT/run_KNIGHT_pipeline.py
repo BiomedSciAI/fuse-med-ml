@@ -4,11 +4,6 @@ from dataset import knight_dataset
 import os
 import pandas as pd
 
-# Note: This example is only meant to illustrate the ML pipeline concept. 
-# we'll use a limited set-up for speed and simplicity - task #1 only, with only 
-# clinical features as input. For a more complete example of a model for the KNIGHT
-# challenge task, see: fuse_examples/classification/knight
-
 ##########################################
 # Required Parameters
 ##########################################
@@ -23,12 +18,12 @@ eval_func = run_eval
 
 # output paths:
 root_path = 'results' 
-paths = {'model_dir': os.path.join(root_path, 'knight/model_dir'),
+paths = {'model_dir': os.path.join(os.environ['KNIGHT_RESULTS'], 'model'),
          'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
          'cache_dir': os.environ['KNIGHT_CACHE'],
-         'inference_dir': os.path.join(root_path, 'knight/infer_dir'),
-         'eval_dir': os.path.join(root_path, 'knight/eval_dir'),
-         'test_dir': os.path.join(root_path, 'knight/test_dir'), 
+         'inference_dir': os.path.join(os.environ['KNIGHT_RESULTS'], 'infer'),
+         'eval_dir': os.path.join(os.environ['KNIGHT_RESULTS'], 'eval'),
+         'test_dir': os.path.join(os.environ['KNIGHT_RESULTS'], 'test'), 
          }
 
 # common params:
@@ -37,7 +32,7 @@ common_params['task_num'] = 1
 common_params['use_data'] = {'imaging': False, 'clinical': True} # specify whether to use imaging, clinical data or both
 common_params['target_name'] = 'data.gt.gt_global.task_1_label'
 common_params['target_metric'] = 'metrics.auc'
-
+common_params['num_classes'] = 2
 ##########################################
 # Custom Parameters
 ##########################################
@@ -50,7 +45,6 @@ dataset_params = {}
 dataset_params['data_dir'] = os.environ['KNIGHT_DATA']
 dataset_params['cache_dir'] = paths['cache_dir']
 dataset_params['resize_to'] = (256, 256, 110) 
-dataset_params['num_classes'] = 2
 dataset_params['reset_cache'] = False
 # custom train/test split:
 splits_path = '../../classification/knight/baseline/splits_final.pkl'
@@ -72,6 +66,7 @@ train_params['fused_dropout'] = 0.5
 train_params['batch_size'] = 2
 train_params['num_epochs'] = 5
 train_params['learning_rate'] = 1e-4
+train_params['num_workers'] = 8
 
 
 ######################################
