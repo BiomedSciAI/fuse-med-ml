@@ -8,9 +8,10 @@ import pandas as pd
 # Required Parameters
 ##########################################
 num_repetitions = 1
-num_gpus_total = 3
+num_gpus_total = 1
 num_gpus_per_split = 1
 num_folds = 5
+num_folds_used = 1
 dataset_func = knight_dataset
 train_func = run_train
 infer_func = run_infer
@@ -65,7 +66,7 @@ train_params['imaging_dropout'] = 0.5
 train_params['clinical_dropout'] = 0.0
 train_params['fused_dropout'] = 0.5
 train_params['batch_size'] = 2
-train_params['num_epochs'] = 5
+train_params['num_epochs'] = 2
 train_params['learning_rate'] = 1e-4
 train_params['num_workers'] = 8
 
@@ -98,6 +99,6 @@ eval_params['run_func'] = run_eval
 
 
 if __name__ == "__main__":
-    run(num_folds, num_gpus_total, num_gpus_per_split, \
+    run(num_folds, num_folds_used, num_gpus_total, num_gpus_per_split, \
         num_repetitions, dataset_func, train_func, infer_func, eval_func, \
         dataset_params, train_params, infer_params, eval_params)

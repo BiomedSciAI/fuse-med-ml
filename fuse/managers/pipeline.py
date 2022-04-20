@@ -61,8 +61,8 @@ def runner_wrapper(q_resources, rep_index, fs, *f_args, **f_kwargs):
     print(f"Done with GPUs: {resource} - adding them back to the queue")
     q_resources.put(resource)
 
-def run(num_folds, num_gpus_total, num_gpus_per_split, num_repetitions, 
-        dataset_func, train_func, infer_func, eval_func, \
+def run(num_folds, num_folds_used, num_gpus_total, num_gpus_per_split, \
+        num_repetitions, dataset_func, train_func, infer_func, eval_func, \
         dataset_params=None, train_params=None, infer_params=None, \
         eval_params=None, sample_ids=None):
     os.environ['CUBLAS_WORKSPACE_CONFIG']=":4096:8" # required for pytorch deterministic mode
@@ -99,7 +99,7 @@ def run(num_folds, num_gpus_total, num_gpus_per_split, num_repetitions,
         # using the available gpu resources:
         runner = partial(runner_wrapper, q_resources, rep_index, [train_func, infer_func, eval_func])
         # create process per fold
-        processes = [Process(target=runner, args=(dataset, ids, cv_index, False, [train_params, infer_params, eval_params])) for (ids, cv_index) in zip(sample_ids, range(num_folds))] 
+        processes = [Process(target=runner, args=(dataset, ids, cv_index, False, [train_params, infer_params, eval_params])) for (ids, cv_index) in zip(sample_ids, range(num_folds))][0:num_folds_used] 
         for p in processes:
             p.start()
 
@@ -110,7 +110,7 @@ def run(num_folds, num_gpus_total, num_gpus_per_split, num_repetitions,
         # infer and eval each split's model on test set:
         runner = partial(runner_wrapper, q_resources, rep_index, [infer_func, eval_func])
         # create process per fold
-        processes = [Process(target=runner, args=(test_dataset, None, cv_index, True, [infer_params, eval_params])) for cv_index in range(num_folds)] 
+        processes = [Process(target=runner, args=(test_dataset, None, cv_index, True, [infer_params, eval_params])) for cv_index in range(num_folds)][0:num_folds_used] 
         for p in processes:
             p.start()
 
@@ -119,7 +119,7 @@ def run(num_folds, num_gpus_total, num_gpus_per_split, num_repetitions,
             p.close()
         
         # generate ensembled predictions:
-        test_dirs = [os.path.join(infer_params['paths']['test_dir'], 'rep_' + str(rep_index), str(cv_index)) for cv_index in range(num_folds)]
+        test_dirs = [os.path.join(infer_params['paths']['test_dir'], 'rep_' + str(rep_index), str(cv_index)) for cv_index in range(num_folds)][0:num_folds_used]
         test_infer_filename = infer_params['test_infer_filename']
         ensembled_output_file = os.path.join(infer_params['paths']['test_dir'], 'rep_' + str(rep_index), 'ensemble', infer_params['test_infer_filename'])
         ensemble(test_dirs, test_infer_filename, ensembled_output_file)

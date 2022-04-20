@@ -11,13 +11,14 @@ Another optional parameter is `sample_ids`, which may contain a sequence of arra
 
 The required parameters are as follows:  
 1. `num_folds` - Number of cross validation splits/folds.
-2. `num_gpus_total` - Number of GPUs to use in total for executing the pipeline.  
-3. `num_gpus_per_split` - Number of GPUs to use for a single model training/inference.
-4. `num_repetitions` - Number of repetitions of the procedure with different random seeds. Note that this does not change the random decision on cross validation fold sample ids.
-5. `dataset_func` - Callable to a custom function that implements a dataset creation. Its input is a path to cache directory and it should return a train and test dataset. 
-6. `train_func` - Callable to a custom function that executes model training. 
-7. `infer_func` - Same for inference.
-8. `eval_func` - Same for evaluation
+2. `num_folds_used` - Number of folds/splits to use. For example, for training a single model with 80% of the samples used for training and 20% for validation, set `num_folds=5` and `num_folds_used=1`.
+3. `num_gpus_total` - Number of GPUs to use in total for executing the pipeline.  
+4. `num_gpus_per_split` - Number of GPUs to use for a single model training/inference.
+5. `num_repetitions` - Number of repetitions of the procedure with different random seeds. Note that this does not change the random decision on cross validation fold sample ids.
+6. `dataset_func` - Callable to a custom function that implements a dataset creation. Its input is a path to cache directory and it should return a train and test dataset. 
+7. `train_func` - Callable to a custom function that executes model training. 
+8. `infer_func` - Same for inference.
+9. `eval_func` - Same for evaluation
 
 The three custom functions `train_func`, `infer_func` and `eval_func` should receive the following input parameters:
 1. `dataset` - PyTorch or FuseMedML wrapped dataset
