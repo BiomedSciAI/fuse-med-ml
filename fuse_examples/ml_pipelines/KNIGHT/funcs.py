@@ -31,6 +31,9 @@ import copy
 from fuse.models.backbones.backbone_resnet_3d import FuseBackboneResnet3D
 from fuse.models.model_default import FuseModelDefault
 from fuse.models.heads.head_3D_classifier import FuseHead3dClassifier
+from fuse_examples.classification.knight.make_predictions_file import make_predictions_file
+from fuse_examples.classification.knight.make_targets_file import make_targets_file
+from fuse_examples.classification.knight.eval.eval import eval
 
 def run_train(dataset, sample_ids, cv_index, test=False, params=None, \
         rep_index=0, rand_gen=None):
@@ -166,71 +169,35 @@ def run_train(dataset, sample_ids, cv_index, test=False, params=None, \
 
 def run_infer(dataset, sample_ids, cv_index, test=False, params=None, \
               rep_index=0, rand_gen=None):
-    # obtain train/val dataset subset:
-    if sample_ids is None:
-        torch_validation_dataset = dataset
-    else:
-        torch_validation_dataset = Subset(dataset, sample_ids[1])
-    # wrap torch dataset:
-    validation_dataset = FuseDatasetWrapper(name='validation', dataset=torch_validation_dataset, mapping=('image', 'label'))
-    validation_dataset.create()
-    
-    #### Logger
-    model_dir = os.path.join(params['paths']['model_dir'], 'rep_' + str(rep_index), str(cv_index))
-    if test:
-        inference_dir = os.path.join(params['paths']['test_dir'], 'rep_' + str(rep_index), str(cv_index))
-        infer_filename = params['test_infer_filename']
-    else:
-        inference_dir = os.path.join(params['paths']['inference_dir'], 'rep_' + str(rep_index), str(cv_index))
-        infer_filename = params['infer_filename']
-    fuse_logger_start(output_path=inference_dir, console_verbose_level=logging.INFO, force_reset=True)
-    lgr = logging.getLogger('Fuse')
-    lgr.info('Fuse Inference', {'attrs': ['bold', 'underline']})
-    lgr.info(f'infer_filename={os.path.join(inference_dir, infer_filename)}', {'color': 'magenta'})
 
-    # dataloader
-    validation_dataloader = DataLoader(dataset=validation_dataset, collate_fn=validation_dataset.collate_fn, batch_size=2, num_workers=2, generator=rand_gen)
+    model_dir = os.path.join(params["paths"]["model_dir"], 'rep_' + str(rep_index), str(cv_index))
+    cache_dir = os.path.join(params["paths"]["cache_dir"], 'rep_' + str(rep_index), str(cv_index))
+    infer_dir = os.path.join(params["paths"]["infer_dir"], 'rep_' + str(rep_index), str(cv_index))
 
-    ## Manager for inference
-    manager = FuseManagerDefault()
-    output_columns = ['model.output.classification', 'data.label']
-    manager.infer(data_loader=validation_dataloader,
-                  input_model_dir=model_dir,
-                  checkpoint=params['checkpoint'],
-                  output_columns=output_columns,
-                  output_file_name=os.path.join(inference_dir, infer_filename))
+    checkpoint = 'best'
+    data_path = params['paths']['data_dir']
+    predictions_filename = os.path.join(infer_dir, 'predictions.csv')
+    targets_filename = os.path.join(infer_dir, 'targets.csv')
 
+    predictions_key_name = "model.output.head_0"
+    task_num = params['common']['task_num']
+
+    split = {}
+    split['train'] = [dataset.samples_description[i] for i in sample_ids[0]]
+    split['val'] = [dataset.samples_description[i] for i in sample_ids[1]]
+
+    make_predictions_file(model_dir=model_dir, checkpoint=checkpoint, data_path=data_path, cache_path=cache_dir, split=split, output_filename=predictions_filename, predictions_key_name=predictions_key_name, task_num=task_num)
+    make_targets_file(data_path=data_path, cache_path=cache_dir, split=split, output_filename=targets_filename)
 
 def run_eval(dataset, sample_ids, cv_index, test=False, params=None, \
              rep_index=0, rand_gen=None, pred_key='model.output.classification', \
              label_key='data.label'):
-    if test:
-        inference_dir = os.path.join(params['paths']['test_dir'], 'rep_' + str(rep_index), str(cv_index))
-        infer_filename = params["test_infer_filename"]
-    else:
-        inference_dir = os.path.join(params['paths']['inference_dir'], 'rep_' + str(rep_index), str(cv_index))
-        infer_filename = params["infer_filename"]
-    eval_dir = os.path.join(params['paths']['eval_dir'], 'rep_' + str(rep_index), str(cv_index))
-    fuse_logger_start(output_path=inference_dir, console_verbose_level=logging.INFO, force_reset=True)
-    lgr = logging.getLogger('Fuse')
-    lgr.info('Fuse Analyze', {'attrs': ['bold', 'underline']})
 
-    # metrics
-    class_names = [str(i) for i in range(10)]
+    infer_dir = os.path.join(params["paths"]["infer_dir"], 'rep_' + str(rep_index), str(cv_index))
+    eval_dir = os.path.join(params["paths"]["eval_dir"], 'rep_' + str(rep_index), str(cv_index))
+    targets_filename = os.path.join(infer_dir, 'targets.csv')
+    predictions_filename = os.path.join(infer_dir, 'predictions.csv')
+    output_dir = eval_dir
+    eval(target_filename=targets_filename, task1_prediction_filename=predictions_filename, task2_prediction_filename=None, output_dir=output_dir)
 
-    metrics = OrderedDict([
-        ('operation_point', MetricApplyThresholds(pred=pred_key)), # will apply argmax
-        ('accuracy', MetricAccuracy(pred='results:metrics.operation_point.cls_pred', target=label_key)),
-        ('roc', MetricROCCurve(pred=pred_key, target=label_key, class_names=class_names, output_filename=os.path.join(inference_dir, 'roc_curve.png'))),
-        ('auc', MetricAUCROC(pred=pred_key, target=label_key, class_names=class_names)),
-    ])
-   
-    # create evaluator
-    evaluator = EvaluatorDefault()
-
-    # run
-    _ = evaluator.eval(ids=None,
-                     data=os.path.join(inference_dir, infer_filename),
-                     metrics=metrics,
-                     output_dir=eval_dir)
 

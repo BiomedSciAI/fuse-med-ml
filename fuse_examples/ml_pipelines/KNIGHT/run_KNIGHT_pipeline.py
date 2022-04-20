@@ -18,7 +18,8 @@ eval_func = run_eval
 
 # output paths:
 root_path = 'results' 
-paths = {'model_dir': os.path.join(os.environ['KNIGHT_RESULTS'], 'model'),
+paths = {'data_dir': os.environ['KNIGHT_DATA'], 
+         'model_dir': os.path.join(os.environ['KNIGHT_RESULTS'], 'model'),
          'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
          'cache_dir': os.environ['KNIGHT_CACHE'],
          'inference_dir': os.path.join(os.environ['KNIGHT_RESULTS'], 'infer'),
@@ -42,7 +43,7 @@ common_params['num_classes'] = 2
 ##########################################
 
 dataset_params = {}
-dataset_params['data_dir'] = os.environ['KNIGHT_DATA']
+dataset_params['data_dir'] = paths['data_dir']
 dataset_params['cache_dir'] = paths['cache_dir']
 dataset_params['resize_to'] = (256, 256, 110) 
 dataset_params['reset_cache'] = False

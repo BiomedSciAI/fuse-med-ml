@@ -54,12 +54,12 @@ def make_targets_file(data_path: str,
     # use validation set if split specified, otherwise assume testset
     if isinstance(split, str):
         is_validation_set = True
-    else:
+        split=pd.read_pickle(split)
+    elif split is None:
         assert split is None, f"Error: unexpected split format {split}"
         is_validation_set = False
 
     if is_validation_set: 
-        split=pd.read_pickle(split)
         if isinstance(split, list):
             # For this example, we use split 0 out of the the available cross validation splits
             split = split[0]
