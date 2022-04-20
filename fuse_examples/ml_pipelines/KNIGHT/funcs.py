@@ -33,7 +33,7 @@ from fuse.models.model_default import FuseModelDefault
 from fuse.models.heads.head_3D_classifier import FuseHead3dClassifier
 from fuse_examples.classification.knight.make_predictions_file import make_predictions_file
 from fuse_examples.classification.knight.make_targets_file import make_targets_file
-from fuse_examples.classification.knight.eval.eval import eval
+from fuse_examples.classification.knight.eval.eval_task1 import eval
 
 def run_train(dataset, sample_ids, cv_index, test=False, params=None, \
         rep_index=0, rand_gen=None):
@@ -171,8 +171,11 @@ def run_infer(dataset, sample_ids, cv_index, test=False, params=None, \
               rep_index=0, rand_gen=None):
 
     model_dir = os.path.join(params["paths"]["model_dir"], 'rep_' + str(rep_index), str(cv_index))
-    cache_dir = os.path.join(params["paths"]["cache_dir"], 'rep_' + str(rep_index), str(cv_index))
-    infer_dir = os.path.join(params["paths"]["infer_dir"], 'rep_' + str(rep_index), str(cv_index))
+    cache_dir = os.path.join(params["paths"]["cache_dir"])
+    infer_dir = os.path.join(params["paths"]["inference_dir"], 'rep_' + str(rep_index), str(cv_index))
+
+    if not os.path.isdir(infer_dir):
+        os.makedirs(infer_dir)
 
     checkpoint = 'best'
     data_path = params['paths']['data_dir']
@@ -193,11 +196,11 @@ def run_eval(dataset, sample_ids, cv_index, test=False, params=None, \
              rep_index=0, rand_gen=None, pred_key='model.output.classification', \
              label_key='data.label'):
 
-    infer_dir = os.path.join(params["paths"]["infer_dir"], 'rep_' + str(rep_index), str(cv_index))
+    infer_dir = os.path.join(params["paths"]["inference_dir"], 'rep_' + str(rep_index), str(cv_index))
     eval_dir = os.path.join(params["paths"]["eval_dir"], 'rep_' + str(rep_index), str(cv_index))
     targets_filename = os.path.join(infer_dir, 'targets.csv')
     predictions_filename = os.path.join(infer_dir, 'predictions.csv')
     output_dir = eval_dir
-    eval(target_filename=targets_filename, task1_prediction_filename=predictions_filename, task2_prediction_filename=None, output_dir=output_dir)
+    eval(target_filename=targets_filename, task1_prediction_filename=predictions_filename, task2_prediction_filename="", output_dir=output_dir)
 
 
