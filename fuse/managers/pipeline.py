@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Callable
 from fuse.utils import gpu as FuseUtilsGPU
 from fuse.utils.utils_debug import FuseUtilsDebug
 from sklearn.model_selection import KFold
@@ -61,10 +61,48 @@ def runner_wrapper(q_resources, rep_index, fs, *f_args, **f_kwargs):
     print(f"Done with GPUs: {resource} - adding them back to the queue")
     q_resources.put(resource)
 
-def run(num_folds, num_folds_used, num_gpus_total, num_gpus_per_split, \
-        num_repetitions, dataset_func, train_func, infer_func, eval_func, \
-        dataset_params=None, train_params=None, infer_params=None, \
-        eval_params=None, sample_ids=None):
+def run(num_folds: int, num_folds_used: int, num_gpus_total: int, num_gpus_per_split: int, \
+        num_repetitions: int, dataset_func: Callable, train_func: Callable, \
+        infer_func: Callable, eval_func: Callable, dataset_params: Dict=None, \
+        train_params: Dict=None, infer_params: Dict=None, eval_params: Dict=None, \
+        sample_ids: Sequence=None):
+    """
+    ML pipeline - run a full ML experiment pipeline which consists of training on multiple 
+    cross validation folds, validation inference and evaluation, inference and evaluation
+    of each fold's model on a held out test set, ensembling the models trained on different folds,
+    and evaluation of the ensembled model. 
+    The whole process can also be repeated multiple times, to evaluate variability due to different
+    random seed.
+    Multiple cross validation folds run simultaneously on available GPU resources.
+
+    :param num_folds: Number of cross validation splits/folds.
+    :param num_folds_used: Number of folds/splits to use. 
+        For example, for training a single model with 80% of the samples used 
+        for training and 20% for validation, set `num_folds=5` and `num_folds_used=1`.
+    :param num_gpus_total: Number of GPUs to use in total for executing the pipeline.  
+    :param num_gpus_per_split: Number of GPUs to use for a single model training/inference.
+    :param num_repetitions: Number of repetitions of the procedure with different random 
+        seeds. Note that this does not change the random decision on cross validation 
+        fold sample ids.
+    :param dataset_func: Callable to a custom function that implements a dataset 
+        creation. Its input is a path to cache directory and it should return a 
+        train and test dataset. 
+    :param train_func: Callable to a custom function that executes model training. 
+    :param infer_func: Callable to a custom inference function.
+    :param eval_func: Callable to a custom evaluation function.
+    :param dataset_params: Dictionary that can contain any number of additional 
+        custom parameters for dataset_func. 
+    :param train_params: Dictionary that can contain any number of additional 
+        custom parameters for train_func. 
+    :param infer_params: Dictionary that can contain any number of additional 
+        custom parameters for infer_func. 
+    :param eval_params: Dictionary that can contain any number of additional 
+        custom parameters for eval_func. 
+    :param sample_ids: May contain a sequence of array pairs denoting sample ids 
+        for pre-defined train/validation splits. If this parameter is set to `None`, 
+        the splits are decided at random.
+    """
+
     os.environ['CUBLAS_WORKSPACE_CONFIG']=":4096:8" # required for pytorch deterministic mode
     multiprocessing.set_start_method('spawn') 
     if num_gpus_total == 0 or num_gpus_per_split == 0:

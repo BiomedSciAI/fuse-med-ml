@@ -17,8 +17,8 @@ The required parameters are as follows:
 5. `num_repetitions` - Number of repetitions of the procedure with different random seeds. Note that this does not change the random decision on cross validation fold sample ids.
 6. `dataset_func` - Callable to a custom function that implements a dataset creation. Its input is a path to cache directory and it should return a train and test dataset. 
 7. `train_func` - Callable to a custom function that executes model training. 
-8. `infer_func` - Same for inference.
-9. `eval_func` - Same for evaluation
+8. `infer_func` - Callable to a custom inference function.
+9. `eval_func` - Callable to a custom evaluation function.
 
 The three custom functions `train_func`, `infer_func` and `eval_func` should receive the following input parameters:
 1. `dataset` - PyTorch or FuseMedML wrapped dataset
