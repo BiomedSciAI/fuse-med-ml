@@ -8,10 +8,10 @@ import pandas as pd
 # Required Parameters
 ##########################################
 num_repetitions = 1
-num_gpus_total = 1
+num_gpus_total = 3
 num_gpus_per_split = 1
 num_folds = 5
-num_folds_used = 1
+num_folds_used = 5
 dataset_func = knight_dataset
 train_func = run_train
 infer_func = run_infer

@@ -210,7 +210,8 @@ def run_eval(dataset, sample_ids, cv_index, test=False, params=None, \
     else:
         inference_dir = os.path.join(params['paths']['inference_dir'], 'rep_' + str(rep_index), str(cv_index))
         infer_filename = params["infer_filename"]
-    eval_dir = os.path.join(params['paths']['eval_dir'], 'rep_' + str(rep_index), str(cv_index))
+    if cv_index=='ensemble':
+        infer_filename = 'ensemble_results.gz'
     fuse_logger_start(output_path=inference_dir, console_verbose_level=logging.INFO, force_reset=True)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Analyze', {'attrs': ['bold', 'underline']})
@@ -232,5 +233,5 @@ def run_eval(dataset, sample_ids, cv_index, test=False, params=None, \
     _ = evaluator.eval(ids=None,
                      data=os.path.join(inference_dir, infer_filename),
                      metrics=metrics,
-                     output_dir=eval_dir)
+                     output_dir=inference_dir)
 
