@@ -20,7 +20,7 @@ import os
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 
 from fuse.utils.utils_debug import FuseUtilsDebug
-import fuse.utils.gpu as FuseUtilsGPU
+from fuse.utils.gpu import choose_and_enable_multiple_gpus
 
 import logging
 
@@ -314,7 +314,7 @@ if __name__ == "__main__":
         TRAIN_COMMON_PARAMS['manager.train_params']['device'] = 'cpu'
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None  # [0]
-    FuseUtilsGPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
+    choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
     RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
     # Path to save model
