@@ -33,7 +33,7 @@ from fuse.models.model_default import FuseModelDefault
 from fuse.models.heads.head_3D_classifier import FuseHead3dClassifier
 from fuse_examples.classification.knight.make_predictions_file import make_predictions_file
 from fuse_examples.classification.knight.make_targets_file import make_targets_file
-from fuse_examples.classification.knight.eval.eval_task1 import eval
+from fuse_examples.classification.knight.eval.eval import eval
 
 def run_train(dataset, sample_ids, cv_index, test=False, params=None, \
         rep_index=0, rand_gen=None):
