@@ -19,7 +19,7 @@ from fuse.utils.rand.seed import Seed
 def ensemble_pre_collect(sample_dict: dict) -> dict:    
     # convert predictions from all models to numpy array
     num_classes = sample_dict['0']['model']['output']['classification'].shape[0]
-    model_names = list(sample_dict.to_dict().keys())
+    model_names = list(sample_dict.keys())
     model_names.remove('id')
     pred_array = np.zeros((len(model_names), num_classes))
     for i, m in enumerate(model_names):
@@ -121,7 +121,7 @@ def run(num_folds, num_folds_used, num_gpus_total, num_gpus_per_split, \
         # generate ensembled predictions:
         test_dirs = [os.path.join(infer_params['paths']['test_dir'], 'rep_' + str(rep_index), str(cv_index)) for cv_index in range(num_folds)][0:num_folds_used]
         test_infer_filename = infer_params['test_infer_filename']
-        ensembled_output_file = os.path.join(infer_params['paths']['test_dir'], 'rep_' + str(rep_index), 'ensemble', infer_params['test_infer_filename'])
+        ensembled_output_file = os.path.join(infer_params['paths']['test_dir'], 'rep_' + str(rep_index), 'ensemble', 'ensemble_results.gz')
         ensemble(test_dirs, test_infer_filename, ensembled_output_file)
 
         # evaluate ensemble:
