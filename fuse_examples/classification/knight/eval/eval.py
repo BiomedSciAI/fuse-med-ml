@@ -182,10 +182,10 @@ def eval(task1_prediction_filename: str, task2_prediction_filename: str, target_
             
     dataframes_dict = {}
     metrics = {}
+    post_proc = partial(post_processing, task1=task1, task2=task2)
     # task 1
     if task1:
         # metrics to evaluate
-        post_proc = partial(post_processing, task1=task1, task2=task2)
         metrics.update({
             "task1_auc": CI(MetricAUCROC(pred='task1_pred.array', target='target.Task1-target', class_names=TASK1_CLASS_NAMES, pre_collect_process_func=post_proc), stratum="target.Task1-target"),
             "task1_roc_curve": MetricROCCurve(pred='task1_pred.array', target='target.Task1-target', class_names=[None, ""], pre_collect_process_func=post_proc, output_filename=os.path.join(output_dir, "task1_roc.png")),
@@ -202,8 +202,8 @@ def eval(task1_prediction_filename: str, task2_prediction_filename: str, target_
     if task2:
         # metrics to evaluate
         metrics.update({
-            "task2_auc": CI(MetricAUCROC(pred='task2_pred.array', target='target.Task2-target', class_names=TASK2_CLASS_NAMES, pre_collect_process_func=post_processing), stratum="target.Task2-target"),
-            "task2_roc_curve": MetricROCCurve(pred='task2_pred.array', target='target.Task2-target', class_names=TASK2_CLASS_NAMES, output_filename=os.path.join(output_dir, "task2_roc.png"), pre_collect_process_func=post_processing),
+            "task2_auc": CI(MetricAUCROC(pred='task2_pred.array', target='target.Task2-target', class_names=TASK2_CLASS_NAMES, pre_collect_process_func=post_proc), stratum="target.Task2-target"),
+            "task2_roc_curve": MetricROCCurve(pred='task2_pred.array', target='target.Task2-target', class_names=TASK2_CLASS_NAMES, output_filename=os.path.join(output_dir, "task2_roc.png"), pre_collect_process_func=post_proc),
         })
         # read files
         task2_pred_df = pd.read_csv(task2_prediction_filename, dtype={PRED_CASE_ID_NAME: object})
