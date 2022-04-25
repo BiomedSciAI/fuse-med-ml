@@ -33,9 +33,9 @@ class Imaging2dVisualizer(VisualizerBase):
                 elif value['type'] is DataTypeImaging.CTR:
                     vitem.contours = value['value']
                 elif value['type'] is DataTypeImaging.UCRLE:
-                    vitem.ucrle = value['converted_value']
+                    vitem.ucrle = value['value']
                 elif value['type'] is DataTypeImaging.CRLE:
-                    vitem.crle = value['converted_value']
+                    vitem.crle = value['value']
                 elif value['type'] is DataTypeImaging.SEG:
                     vitem.seg = value['value']
                 vitem.metadata = value['name']

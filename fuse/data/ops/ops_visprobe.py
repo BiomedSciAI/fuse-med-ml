@@ -138,7 +138,8 @@ class VisProbe(OpBase):
                  res[f'{prekey}.value'] = self._coco_converter(res[f'{prekey}.value'])
             res[f'{prekey}.type'] = self._type_detector.get_type(sample_dict, key)
             if res[f'{prekey}.type'] in [DataTypeImaging.CRLE, DataTypeImaging.UCRLE  ]:
-                res[f'{prekey}.converted_value'] = convert_COCO_to_mask(res[f'{prekey}.value'],sample_dict['height'],sample_dict['width'],res[f'{prekey}.type'] )
+                res[f'{prekey}.value'] = convert_COCO_to_mask(res[f'{prekey}.value'],sample_dict['height'],sample_dict['width'],res[f'{prekey}.type'] )
+                res[f'{prekey}.type'] = DataTypeImaging.SEG 
             res[f'{prekey}.name'] = name
         return res
 

@@ -2,9 +2,7 @@ from typing import List , Callable , Any
 import matplotlib.pyplot as plt
 import numpy as np
 from functools import partial
-import matplotlib.patches as patches
 from fuseimg.utils.typing.typed_element import TypedElement
-from itertools import cycle
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Polygon
 
@@ -80,7 +78,6 @@ def plot_seg(ax : Any, sample : TypedElement, color ):
         ax.imshow(masked) 
     polygons = []
     colors = []
-    cycol = cycle(color)
     if sample.contours is not None :
         for seg in sample.contours :
             seg = np.array(seg[0])
