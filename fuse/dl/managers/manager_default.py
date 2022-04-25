@@ -579,7 +579,7 @@ class ManagerDefault:
 
         # average losses into mean_loss
         if 'losses' in epoch_results:
-            for loss in epoch_results['losses'].keypaths():
+            for loss in NDict.get_all_keys(epoch_results['losses']):
                 batch_losses = epoch_results['losses.' + loss]
                 loss_mean = np.nansum(batch_losses) / len(batch_losses)
                 epoch_results["losses." + loss] = loss_mean
@@ -628,7 +628,7 @@ class ManagerDefault:
 
         return virtual_batch_results
 
-    def handle_batch(self, mode: str, batch: int, data_iter: Iterator) -> Dict:
+    def handle_batch(self, mode: str, batch: int, data_iter: Iterator) -> NDict:
         """Handles the batch load, net forward and metrics computations
         :param mode: mode to run the epoch. Can be either 'train', 'validation', 'infer'
         :param batch: batch number
@@ -648,12 +648,13 @@ class ManagerDefault:
         except StopIteration:
             # callbacks handling
             for callback in self.callbacks: callback.on_batch_end(mode, batch, {})
-            return {}
+            return NDict()
 
         for callback in self.callbacks: callback.on_data_fetch_end(mode, batch, batch_dict)
 
         # move every tensor in input to device
-        batch_dict.apply_on_all(gpu.move_tensor_to_device, self.state.device)
+        # batch_dict.apply_on_all(gpu.move_tensor_to_device, self.state.device)
+        NDict.apply_on_all_wa(batch_dict, gpu.move_tensor_to_device, self.state.device)
 
         # forward net
         batch_dict['model'] = self.state.net(batch_dict)
@@ -704,7 +705,7 @@ class ManagerDefault:
         prev_lr = self.get_current_learning_rate()
 
         # take total_loss from train_results
-        results = {"train": train_results, "validation": validation_results}
+        results = NDict({"train": train_results, "validation": validation_results})
         self.state.lr_scheduler.step(np.mean(results[self.state.lr_sch_target]))
 
         curr_lr = self.get_current_learning_rate()
