@@ -1,4 +1,4 @@
-from typing import List, Optional, Union , Dict , Any
+from typing import List, Optional, Union , Dict , Any , Callable
 import enum
 import numpy as np
 
@@ -78,7 +78,7 @@ class VisProbe(OpBase):
     def __init__(self,flags: VisFlag, 
                  keys: Union[List, dict] ,
                  type_detector: TypeDetectorBase,
-                 coco_converter = None,
+                 coco_converter : Callable = None,
                  name : str ="",
                  sample_id: Union[None, List] = None, 
                  visualizer: VisualizerBase = None,
@@ -134,9 +134,10 @@ class VisProbe(OpBase):
                 res[f'{prekey}.value'] = sample_dict[key].clone()
             else :
                  res[f'{prekey}.value'] = sample_dict[key].copy()
-            if self._coco_converter != None :
-                 res[f'{prekey}.value'] = self._coco_converter(res[f'{prekey}.value'])
             res[f'{prekey}.type'] = self._type_detector.get_type(sample_dict, key)
+            
+            if self._coco_converter != None :
+                 res[f'{prekey}.value'] = self._coco_converter(res[f'{prekey}.value'],res[f'{prekey}.type'])
             if res[f'{prekey}.type'] in [DataTypeImaging.CRLE, DataTypeImaging.UCRLE  ]:
                 res[f'{prekey}.value'] = convert_COCO_to_mask(res[f'{prekey}.value'],sample_dict['height'],sample_dict['width'],res[f'{prekey}.type'] )
                 res[f'{prekey}.type'] = DataTypeImaging.SEG 
