@@ -5,7 +5,7 @@ import fuse.utils.gpu as FuseUtilsGPU
 
 class NotebookHelloWorldTestCase(unittest.TestCase):
 
-    @unittest.skip("TEMP SKIP") # Test is ready-to-use. Waiting for GPU issue to be resolved.
+#     @unittest.skip("TEMP SKIP") # Test is ready-to-use. Waiting for GPU issue to be resolved.
     def test_notebook(self):
         NUM_OF_CELLS = 36
         notebook_path = "examples/fuse_examples/imaging/hello_world/hello_world.ipynb"
