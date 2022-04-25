@@ -85,20 +85,11 @@ class TestImageVisualizer(unittest.TestCase):
         
         sample = pipeline(sample)
         
-        self.assertLessEqual(NDict.get(sample, 'data.viewpoint1.img').max(), 1.0)
-        self.assertGreaterEqual(NDict.get(sample, 'data.viewpoint1.img').min(), -1.0)
+        self.assertLessEqual(sample['data.viewpoint1.img'].max(), 1.0)
+        self.assertGreaterEqual(sample['data.viewpoint1.img'].max().min(), -1.0)
+        
     def test_other_seg(self):
         visual = Imaging2dVisualizer(cmap = 'gray' )
-        VProbe = partial(VisProbe, 
-                            keys=  ["data.viewpoint1.img" , "data.viewpoint1.ctr" , "data.viewpoint1.bbox"], 
-                            type_detector=type_detector_imaging,
-                            visualizer = visual, output_path=os.getcwd())
-        repeat_for = [dict(key="data.viewpoint1.img"), dict(key="data.viewpoint1.ctr"), dict(key="data.viewpoint1.bbox")]
-        pipeline = PipelineDefault('test_pipeline', [
-                (OpDownloadImage(), dict(key_in ='data.viewpoint1.img_filename', key_out='data.viewpoint1.img')),
-                (VProbe( flags=VisFlag.SHOW_COLLECTED ), {}),
-            
-            ])
         dir_path = pathlib.Path(__file__).parent.resolve()
         annotation_path =os.path.join(dir_path,'inputs/detection/example_coco_new.json')
         cocoGt=COCO(annotation_path)
@@ -106,25 +97,32 @@ class TestImageVisualizer(unittest.TestCase):
         resFile=os.path.join(dir_path,'inputs/detection/instances_val2014_fakesegm100_results.json')
         coco=cocoGt.loadRes(resFile)
         catNms=['person','car']
-        map_field = {'polygon':'segmentation','bbox':'bbox'}
+        seg_type_name_map = {'ctr':'segmentation','bbox':'bbox'}
         catIds = coco.getCatIds(catNms)
         imgIds = coco.getImgIds(catIds=catIds )
         for img_id in imgIds:
             for img in coco.loadImgs(ids = [img_id]):
-                sample_dict = NDict()
-                sample_dict['data.viewpoint1.img_filename'] = "http://images.cocodataset.org/val2014/"+img['file_name'] 
-                sample_dict["height"] = img['height']
-                sample_dict["width"] = img['width']
-                sample_dict["name"] = img['file_name'] 
-                target_annIds = cocoGt.getAnnIds(imgIds=img_id, catIds=[str(id) for id in catIds], iscrowd=None)
-                ctrs = []
-                bbox =[]
-                for seg in cocoGt.loadAnns(target_annIds) :
-                    ctrs.append(seg[map_field['polygon']])
-                    bbox.append(seg[map_field['bbox']])
-                sample_dict["data.viewpoint1.ctr"] = ctrs
-                sample_dict["data.viewpoint1.bbox"] = bbox
-                sample_dict = pipeline(sample_dict)
+                for segtype in seg_type_name_map.keys() :
+                    VProbe = partial(VisProbe, 
+                    keys=  ["data.viewpoint1.img" , "data.viewpoint1."+segtype], 
+                    type_detector=type_detector_imaging,
+                    visualizer = visual, output_path=os.getcwd())
+                    pipeline = PipelineDefault('test_pipeline', [
+                            (OpDownloadImage(), dict(key_in ='data.viewpoint1.img_filename', key_out='data.viewpoint1.img')),
+                            (VProbe( flags=VisFlag.SHOW_COLLECTED ), {}),
+                        
+                        ])
+                    sample_dict = NDict()
+                    sample_dict['data.viewpoint1.img_filename'] = "http://images.cocodataset.org/val2014/"+img['file_name'] 
+                    sample_dict["height"] = img['height']
+                    sample_dict["width"] = img['width']
+                    sample_dict["name"] = segtype+"_"+img['file_name'] 
+                    target_annIds = cocoGt.getAnnIds(imgIds=img_id, catIds=[str(id) for id in catIds], iscrowd=None)
+                    segmentations = []
+                    for seg in cocoGt.loadAnns(target_annIds) :
+                        segmentations.append(seg[seg_type_name_map[segtype]])
+                    sample_dict["data.viewpoint1."+segtype] = segmentations
+                    sample_dict = pipeline(sample_dict)
     def tearDown(self) -> None:
         return super().tearDown()
 

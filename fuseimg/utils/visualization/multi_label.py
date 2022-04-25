@@ -53,7 +53,7 @@ def show_multiple_images(plot_label : Callable , imgs : List, base_resolution :i
         else:
             axis[i].imshow(im, interpolation='none', **pass_kwargs)
            
-        plot_label(axis[i], m , args['color'])
+        plot_label(axis[i], m )
                 
         if m.metadata:
             axis[i].set_title(str(i)+":"+m.metadata)
@@ -71,7 +71,7 @@ def plot_color_mask(mask , ax ) :
     ax.imshow(np.dstack( (img, masked*0.5) )) 
     
     
-def plot_seg(ax : Any, sample : TypedElement, color ):
+def plot_seg(ax : Any, sample : TypedElement ):
     if sample.seg is not None : 
         mask = sample.seg
         masked = np.ma.masked_where(mask == 0, mask)

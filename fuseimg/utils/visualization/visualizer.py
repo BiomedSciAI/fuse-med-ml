@@ -14,10 +14,9 @@ class Imaging2dVisualizer(VisualizerBase):
     """
     Curently supports only one group per viewed item
     """
-    def __init__(self, cmap ,bbox_colors = 'bgrcmk') -> None:
+    def __init__(self, cmap) -> None:
         super().__init__()
         self._cmap = cmap
-        self._bbox_colors = bbox_colors
 
     def _preprocess(self, vis_data: Union[List, NDict]) -> Tuple[List[Dict] , str]:
         if isinstance(vis_data, NDict):
@@ -47,7 +46,6 @@ class Imaging2dVisualizer(VisualizerBase):
         show_multiple_images_seg(
             imgs=vis_data,
             cmap=self._cmap ,
-            bbox_colors = self._bbox_colors,
             unify_size=True)
         if os.getenv('DISPLAY') is None or ''==os.getenv('DISPLAY'): #no monitor (for example, pure SSH session)
             matplotlib.use('Agg')
@@ -56,6 +54,5 @@ class Imaging2dVisualizer(VisualizerBase):
         show_multiple_images_seg(
             imgs=vis_data,
             cmap=self._cmap,
-            color = self._bbox_colors,
             unify_size=True)
         plt.savefig(os.path.join(output_path,file_name+"."+format), format = format)
