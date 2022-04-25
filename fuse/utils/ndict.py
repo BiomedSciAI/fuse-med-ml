@@ -371,13 +371,13 @@ class NDict(dict):
         res = '.'.join(key_parts[start:end])
         return res
 
-    # @classmethod
-    # def apply_on_all(cls, hierarchical_dict: dict, apply_func: Callable, *args: Any) -> None:
-    #     all_keys = cls.get_all_keys(hierarchical_dict)
-    #     for key in all_keys:
-    #         new_value = apply_func(cls.get(hierarchical_dict, key), *args)
-    #         cls.set(hierarchical_dict, key, new_value)
-    #     pass
+    @classmethod
+    def apply_on_all_wa(cls, hierarchical_dict: dict, apply_func: Callable, *args: Any) -> None:
+        all_keys = cls.get_all_keys(hierarchical_dict)
+        for key in all_keys:
+            new_value = apply_func(cls.get(hierarchical_dict, key), *args)
+            cls.set(hierarchical_dict, key, new_value)
+        pass
 
     # A WALKAROUND - TEMP
     @classmethod
