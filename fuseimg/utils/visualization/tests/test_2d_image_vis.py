@@ -13,6 +13,7 @@ from fuseimg.data.ops.debug_ops import OpDrawGrid
 from fuse.data.ops.ops_visprobe import VisFlag, VisProbe 
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuseimg.utils.visualization.visualizer import Imaging2dVisualizer
+from fuseimg.utils.visualization.visualizer_base import PrintVisual
 
 from fuseimg.data.ops.shape_ops import OpSelectSlice
 
@@ -55,7 +56,8 @@ class TestImageVisualizer(unittest.TestCase):
 
         sample , data_dir = create_sample_1(views=1)        
         sample["name"] = "kits21_example"
-        visual = Imaging2dVisualizer(cmap = 'gray')
+        #visual = Imaging2dVisualizer(cmap = 'gray')
+        visual = PrintVisual()
         VProbe = partial(VisProbe, 
                          keys=  ["data.viewpoint1.img", "data.viewpoint1.seg" ], 
                          type_detector=type_detector_imaging,
