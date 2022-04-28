@@ -950,7 +950,12 @@ class ManagerDefault:
         set the manger's device to a given one.
         :param device: device to set
         """
-        train_params = {'device' : device}
+        train_params = self.state.train_params
+
+        if train_params == None:
+            train_params = {}
+
+        train_params.update({'device' : device})
         self.set_objects(train_params=train_params)
 
         pass
