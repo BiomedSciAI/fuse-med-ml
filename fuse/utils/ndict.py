@@ -185,7 +185,6 @@ class NDict(dict):
 
         # set the value
         element[nested_key[-1]] = value
-        
 
     def __delitem__(self, key: str):
         nested_key = key.split('.')     
@@ -196,7 +195,6 @@ class NDict(dict):
                 value = value[sep_key]
             else: #last step
                 del value[sep_key]
-
 
     def get_closest_key(self, key: str) -> str:
         """
@@ -253,20 +251,6 @@ class NDict(dict):
         for key in all_keys:
             new_value = apply_func(self[key], *args)
             self[key] = new_value
-
-
-    @classmethod
-    def get_multi(cls, nested_dict: NDict, keys: Optional[List[str]]=None) -> Any:
-        if keys is None:
-            keys = nested_dict.keypaths() #take all keys
-
-        ans = NDict()
-
-        for k in keys:
-            curr = nested_dict[k]
-            ans[k] = curr
-        
-        return ans
        
     def __reduce__(self):
         return super().__reduce__()
@@ -286,53 +270,11 @@ class NDict(dict):
     def __contains__(self, o: str) -> bool:
         return o == self.get_closest_key(o)
 
-
-
-    # TODO: DELETE ALL AFTER DONE WITH THE CONVERSTION
-    # FuseUtilsHierarchicalDict's methods
+    def get(self, key: str):
+        return self[key]
 
     @classmethod
-    def get(cls, hierarchical_dict: NDict, key: str):
-        """
-        get(dict, 'x.y.z') <==> dict['x']['y']['z']
-        """
-        # split according to '.'
-        hierarchical_key = key.split('.')
-
-        # go over the the dictionary towards the requested value
-        try:
-            value = hierarchical_dict[hierarchical_key[0]]
-            for sub_key in hierarchical_key[1:]:
-                value = value[sub_key]
-            return value
-        except:
-            flat_dict = hierarchical_dict.flatten()
-            if key in flat_dict:
-                return flat_dict[key]
-            else:
-                raise KeyError(f'key {key} does not exist\n. Possible keys are: {str(list(flat_dict.keys()))}')
-
-    @classmethod
-    def set(cls, hierarchical_dict: dict, key: str, value: Any) -> None:
-        """
-        set(dict, 'x.y.z', value) <==> dict['x']['y']['z'] = value
-        If either 'x', 'y' or 'z' nodes do not exist, this function will create them
-        """
-        # split according to '.'
-        hierarchical_key = key.split('.')
-
-        # go over the the dictionary according to the path, create the nodes that does not exist
-        element = hierarchical_dict
-        for key in hierarchical_key[:-1]:
-            if key not in element:
-                element[key] = {}
-            element = element[key]
-
-        # set the value
-        element[hierarchical_key[-1]] = value
-
-    @classmethod
-    def get_all_keys(cls, hierarchical_dict: dict, include_values: bool = False) -> Union[List[str], dict]:
+    def get_all_keys(cls, hierarchical_dict: NDict, include_values: bool = False) -> Union[List[str], dict]:
         """
         Get all hierarchical keys in  hierarchical_dict
         """
@@ -348,121 +290,19 @@ class NDict(dict):
             return all_keys
         else:
             return list(all_keys.keys())
-
+    
     @classmethod
-    def subkey(cls, key: str, start: int, end: Optional[int]) -> Optional[str]:
-        """
-        Sub string of hierarchical key.
-        Example: subkey('a.b.c.d.f', 1, 3) -> 'b.c'
-        :param key: the original key
-        :param start: start index
-        :param end: end index, not including
-        :return: str
-        """
-        key_parts = key.split('.')
+    def get_multi(cls, nested_dict: NDict, keys: Optional[List[str]]=None) -> Any:
+        if keys is None:
+            keys = nested_dict.keypaths() #take all keys
 
-        # if end not specified set to max.
-        if end is None:
-            end = len(key_parts)
+        ans = NDict()
 
-        if len(key_parts) < start or len(key_parts) < end:
-            return None
-
-        res = '.'.join(key_parts[start:end])
-        return res
-
-    @classmethod
-    def apply_on_all_wa(cls, hierarchical_dict: dict, apply_func: Callable, *args: Any) -> None:
-        all_keys = cls.get_all_keys(hierarchical_dict)
-        for key in all_keys:
-            new_value = apply_func(cls.get(hierarchical_dict, key), *args)
-            cls.set(hierarchical_dict, key, new_value)
-        pass
-
-    # A WALKAROUND - TEMP
-    @classmethod
-    def flatten_wa(cls, hierarchical_dict: dict) -> dict:
-        """
-        Flatten the dict
-        @param hierarchical_dict: dict to flatten
-        @return: dict where keys are the hierarchical_dict keys separated by periods.
-        """
-        flat_dict = {}
-        return cls.get_all_keys(hierarchical_dict, include_values=True)
-
-    # @classmethod
-    # def indices(cls, hierarchical_dict: dict, indices: List[int]) -> dict:
-    #     """
-    #     Extract the specified indices from each element in the dictionary (if possible)
-    #     :param hierarchical_dict: input dict
-    #     :param indices: indices to extract
-    #     :return: dict with only the required indices
-    #     """
-    #     new_dict = {}
-    #     all_keys = cls.get_all_keys(hierarchical_dict)
-    #     for key in all_keys:
-    #         value = cls.get(hierarchical_dict, key)
-    #         if isinstance(value, numpy.ndarray) or isinstance(value, torch.Tensor):
-    #             new_value = value[indices]
-    #         elif isinstance(value, Sequence):
-    #             new_value =[item for i, item in enumerate(value) if indices[i]]
-    #         else:
-    #             new_value = value
-    #         cls.set(new_dict, key, new_value)
-    #     return new_dict
-
-
-    # Exist as __str__
-
-    @classmethod
-    def to_string(cls, hierarchical_dict: dict) -> str:
-        """
-        Get flat string including thr content of the dictionary
-        :param hierarchical_dict: input dict
-        :return: string
-        """
-        keys = cls.get_all_keys(hierarchical_dict)
-        keys = sorted(keys)
-        res = ''
-        for key in keys:
-            res += f'{key} = {NDict.get(hierarchical_dict, key)}\n'
-
-        return res
-
-    # @classmethod
-    # def pop(cls, hierarchical_dict: dict, key:str):
-    #     """
-    #     return the value hierarchical_dict[key] and remove the key from the dict.
-    #     :param hierarchical_dict: the dictionary
-    #     :param key: the key to return and remove
-    #     """
-    #     # split according to '.'
-    #     hierarchical_key = key.split('.')
-    #     # go over the the dictionary towards the requested value
-    #     try:
-    #         key_idx = len(hierarchical_key) - 1
-    #         value = hierarchical_dict[hierarchical_key[0]] if key_idx > 0 else hierarchical_dict
-    #         for sub_key in hierarchical_key[1:-1]:
-    #             value = value[sub_key]
-    #         return value.pop(hierarchical_key[key_idx])
-    #     except:
-    #         flat_dict = hierarchical_dict.flatten()
-    #         if key in flat_dict:
-    #             return flat_dict[key]
-    #         else:
-    #             raise KeyError(f'key {key} does not exist\n. Possible keys are: {str(list(flat_dict.keys()))}')
-
-    @classmethod
-    def is_in(cls, hierarchical_dict: dict, key:str) -> bool:
-        """
-        Returns True if the full key is in dict, False otherwise.
-        e.g., for dict = {'a':1, 'b.c':2} is_in(dict, 'b.c') returns True, but is_in(dict, 'c') returns False.
-
-        :param hierarchical_dict: dict to check
-        :param key: key to search
-        :return: key in hierarchical_dict
-        """
-        return key in cls.get_all_keys(hierarchical_dict)
+        for k in keys:
+            curr = nested_dict[k]
+            ans[k] = curr
+        
+        return ans
 
     
 

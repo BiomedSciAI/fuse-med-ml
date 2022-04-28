@@ -116,7 +116,7 @@ class InferResultsCallback(Callback):
         if self.output_columns is not None and len(self.output_columns) > 0:
             output_cols = self.output_columns
         else:
-            output_cols = NDict.get_all_keys(batch_dict)
+            output_cols = batch_dict.keypaths()
 
         for output_col in output_cols:
             if output_col not in NDict.get_all_keys(self.aggregated_dict['output']):

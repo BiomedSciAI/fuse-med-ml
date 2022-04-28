@@ -653,8 +653,7 @@ class ManagerDefault:
         for callback in self.callbacks: callback.on_data_fetch_end(mode, batch, batch_dict)
 
         # move every tensor in input to device
-        # batch_dict.apply_on_all(gpu.move_tensor_to_device, self.state.device)
-        NDict.apply_on_all_wa(batch_dict, gpu.move_tensor_to_device, self.state.device)
+        batch_dict.apply_on_all(gpu.move_tensor_to_device, self.state.device)
 
         # forward net
         batch_dict['model'] = self.state.net(batch_dict)
@@ -824,13 +823,14 @@ class ManagerDefault:
         else:
             values_to_check = train_results
         function_key = self.state.best_epoch_function[epoch_source_index]
-        if not NDict.is_in(values_to_check, function_key):
+
+        if function_key not in values_to_check:
             lgr = logging.getLogger('Fuse')
             lgr.error(f"source function {function_key} does not exist in results_dict. " + \
-                      f"Possible values are {NDict.get_all_keys(values_to_check)}")
+                      f"Possible values are {values_to_check.keypaths()}")
             lgr.error(traceback.format_exc())
             raise KeyError(f"source function {function_key} does not exist in results_dict." + \
-                           f"Possible values are {NDict.get_all_keys(values_to_check)}")
+                           f"Possible values are {values_to_check.keypaths()}")
 
         value_to_compare = values_to_check[function_key]
         if is_better_epoch_value(value_to_compare):
@@ -858,7 +858,7 @@ class ManagerDefault:
         stats_table = pd.DataFrame(columns=['', 'Best Epoch Value', 'Current Epoch Validation', 'Current Epoch Train'])
         idx = 0
 
-        eval_keys = sorted(NDict.get_all_keys(train_dict))
+        eval_keys = sorted(train_dict.keypaths())
         for evaluator_name in eval_keys:
             train_value_str = get_value_as_float_str(train_dict, evaluator_name)
             validation_val_str = get_value_as_float_str(validation_dict, evaluator_name)
