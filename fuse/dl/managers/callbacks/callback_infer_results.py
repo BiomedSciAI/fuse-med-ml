@@ -52,7 +52,7 @@ class InferResultsCallback(Callback):
         pass
 
     def reset(self):
-        self.aggregated_dict = {'descriptor': [], 'output': {}}
+        self.aggregated_dict = {'id': [], 'output': {}}
         self.infer_results_df = pd.DataFrame()
 
     def on_epoch_begin(self, mode: str, epoch: int) -> None:
@@ -82,8 +82,7 @@ class InferResultsCallback(Callback):
 
         # prepare dataframe from the results
         infer_results_df = pd.DataFrame()
-        infer_results_df['descriptor'] = self.aggregated_dict['descriptor']
-        infer_results_df['id'] = self.aggregated_dict['descriptor'] # for future support - evaluation package
+        infer_results_df['id'] = self.aggregated_dict['id']
 
         for output in FuseUtilsHierarchicalDict.get_all_keys(self.aggregated_dict['output']):
             infer_results_df[output] = list(
@@ -109,10 +108,10 @@ class InferResultsCallback(Callback):
             return
 
         # for infer we need the descriptor and the output predictions
-        descriptors = batch_dict['data'].get('descriptor', None)
-        if isinstance(descriptors, Tensor):
-            descriptors = list(descriptors.detach().cpu().numpy())
-        self.aggregated_dict['descriptor'].extend(descriptors)
+        sample_ids = batch_dict['data'].get('sample_id', None)
+        if isinstance(sample_ids, Tensor):
+            sample_ids = list(sample_ids.detach().cpu().numpy())
+        self.aggregated_dict['id'].extend(sample_ids)
 
         if self.output_columns is not None and len(self.output_columns) > 0:
             output_cols = self.output_columns

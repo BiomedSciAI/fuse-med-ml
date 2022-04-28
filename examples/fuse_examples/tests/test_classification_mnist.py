@@ -23,8 +23,9 @@ import unittest
 import os
 
 import fuse.utils.gpu as GPU
+
 from fuse_examples.imaging.classification.mnist.runner import TRAIN_COMMON_PARAMS, run_train, run_infer, run_eval, INFER_COMMON_PARAMS, \
-    EVAL_COMMON_PARAMS
+   EVAL_COMMON_PARAMS
 
 
 class ClassificationMnistTestCase(unittest.TestCase):

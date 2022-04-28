@@ -15,15 +15,15 @@ Created on June 30, 2021
 import logging
 import os
 import pathlib
-from fuse.data.dataset.dataset_base import DatasetBase
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricROCCurve
 from fuse.eval.evaluator import EvaluatorDefault
-from fuse.data.dataset.dataset_base import DatasetBase
 
+from fuse.data.dataset.dataset_base import DatasetBase
 from fuse.data.sampler.sampler_balanced_batch import SamplerBalancedBatch
+
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
 from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback

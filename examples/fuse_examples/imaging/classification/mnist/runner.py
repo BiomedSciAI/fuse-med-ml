@@ -20,29 +20,34 @@ Created on June 30, 2021
 import logging
 import os
 from typing import OrderedDict
-from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-import torchvision
 import torchvision.models as models
 from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms
 
 from fuse.eval.evaluator import EvaluatorDefault 
-from fuse.data.dataset.dataset_wrapper import DatasetWrapper
-from fuse.data.sampler.sampler_balanced_batch import SamplerBalancedBatch
+from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
+from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
+
+from fuse.data.utils.samplers import BatchSamplerDefault
+from fuse.data.utils.collates import CollateDefault
+
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
 from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
 from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
 from fuse.dl.managers.manager_default import ManagerDefault
-from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
 from fuse.dl.models.model_wrapper import ModelWrapper
+
 from fuse.utils.utils_debug import FuseDebug
 import fuse.utils.gpu as GPU
 from fuse.utils.utils_logger import fuse_logger_start
+
+from fuseimg.datasets.mnist import MNIST
+
 from fuse_examples.imaging.classification.mnist import lenet
 ###########################################################################################################
 # Fuse
@@ -129,18 +134,9 @@ def run_train(paths: dict, train_params: dict):
     # Train Data
     lgr.info(f'Train Data:', {'attrs': 'bold'})
 
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
-    ])
-    # Create dataset
-    torch_train_dataset = torchvision.datasets.MNIST(paths['cache_dir'], download=True, train=True, transform=transform)
-    # wrapping torch dataset
-    # FIXME: support also using torch dataset directly
-    train_dataset = DatasetWrapper(name='train', dataset=torch_train_dataset, mapping=('image', 'label'))
-    train_dataset.create()
+    train_dataset = MNIST.dataset(paths["cache_dir"], train=True)
     lgr.info(f'- Create sampler:')
-    sampler = SamplerBalancedBatch(dataset=train_dataset,
+    sampler = BatchSamplerDefault(dataset=train_dataset,
                                        balanced_class_name='data.label',
                                        num_balanced_classes=10,
                                        batch_size=train_params['data.batch_size'],
@@ -148,19 +144,16 @@ def run_train(paths: dict, train_params: dict):
     lgr.info(f'- Create sampler: Done')
 
     # Create dataloader
-    train_dataloader = DataLoader(dataset=train_dataset, batch_sampler=sampler, num_workers=train_params['data.train_num_workers'])
+    train_dataloader = DataLoader(dataset=train_dataset, batch_sampler=sampler, collate_fn=CollateDefault(), num_workers=train_params['data.train_num_workers'])
     lgr.info(f'Train Data: Done', {'attrs': 'bold'})
 
     ## Validation data
     lgr.info(f'Validation Data:', {'attrs': 'bold'})
-    # Create dataset
-    torch_validation_dataset = torchvision.datasets.MNIST(paths['cache_dir'], download=True, train=False, transform=transform)
     # wrapping torch dataset
-    validation_dataset = DatasetWrapper(name='validation', dataset=torch_validation_dataset, mapping=('image', 'label'))
-    validation_dataset.create()
-
+    validation_dataset = MNIST.dataset(paths["cache_dir"], train=False)
+    
     # dataloader
-    validation_dataloader = DataLoader(dataset=validation_dataset, batch_size=train_params['data.batch_size'],
+    validation_dataloader = DataLoader(dataset=validation_dataset, batch_size=train_params['data.batch_size'], collate_fn=CollateDefault(),
                                        num_workers=train_params['data.validation_num_workers'])
     lgr.info(f'Validation Data: Done', {'attrs': 'bold'})
 
@@ -270,12 +263,9 @@ def run_infer(paths: dict, infer_common_params: dict):
         transforms.Normalize((0.1307,), (0.3081,))
     ])
     # Create dataset
-    torch_validation_dataset = torchvision.datasets.MNIST(paths['cache_dir'], download=True, train=False, transform=transform)
-    # wrapping torch dataset
-    validation_dataset = DatasetWrapper(name='validation', dataset=torch_validation_dataset, mapping=('image', 'label'))
-    validation_dataset.create()
+    validation_dataset = MNIST.dataset(paths["cache_dir"], train=False)
     # dataloader
-    validation_dataloader = DataLoader(dataset=validation_dataset, collate_fn=validation_dataset.collate_fn, batch_size=2, num_workers=2)
+    validation_dataloader = DataLoader(dataset=validation_dataset, collate_fn=CollateDefault(), batch_size=2, num_workers=2)
 
     ## Manager for inference
     manager = ManagerDefault()

@@ -20,6 +20,7 @@ Created on June 30, 2021
 import logging
 import os
 import traceback
+from fuse.dl.managers.callbacks.callback_infer_results import InferResultsCallback
 
 import numpy as np
 import pandas as pd
@@ -27,17 +28,11 @@ import torch
 import torch.nn as nn
 from torch.optim.optimizer import Optimizer
 from torch.utils.data.dataloader import DataLoader
-from tqdm import trange, tqdm
 from typing import Dict, Any, List, Iterator, Optional, Union, Sequence, Hashable, Callable
 
-from fuse.data.data_source.data_source_base import DataSourceBase
-from fuse.data.dataset.dataset_base import DatasetBase
-from fuse.data.processor.processor_base import ProcessorBase
-from fuse.data.visualizer.visualizer_base import VisualizerBase
 from fuse.dl.losses.loss_base import LossBase
 from fuse.dl.managers.callbacks.callback_base import Callback
 from fuse.dl.managers.callbacks.callback_debug import CallbackDebug
-from fuse.dl.managers.callbacks.callback_infer_results import InferResultsCallback
 from fuse.dl.managers.manager_state import ManagerState
 from fuse.eval import MetricBase
 from fuse.dl.models.model_ensemble import ModelEnsemble
@@ -48,6 +43,7 @@ import fuse.utils.gpu as gpu
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 from fuse.utils.utils_logger import log_object_input_state
 from fuse.utils.misc.misc import Misc, get_pretty_dataframe
+from tqdm import trange
 
 
 class ManagerDefault:
@@ -148,11 +144,10 @@ class ManagerDefault:
             self.logger.info(f'Manager - debug mode - append debug callback', {'color': 'red'})
         pass
 
-    def _save_objects(self, validation_dataloader: DataLoader) -> None:
+    def _save_objects(self) -> None:
         """
         Saves objects using torch.save (net, losses, metrics, best_epoch_source, optimizer, lr_scheduler, callbacks).
         Each parameter is saved into a separate file (called losses.pth, metrics.pth, etc) under self.output_model_dir.
-        :param validation_dataloader: dataloader to extract dataset definitions from (saved on inference_dataset.pth)
         """
 
         def _torch_save(parameter_to_save: Any, parameter_name: str) -> None:
@@ -174,12 +169,7 @@ class ManagerDefault:
         _torch_save(self.state.best_epoch_source, 'best_epoch_source')
         _torch_save(self.state.train_params, 'train_params')
 
-        # also save validation_dataset in inference mode
-        if validation_dataloader is not None:
-            DatasetBase.save(validation_dataloader.dataset, mode=DatasetBase.SaveMode.INFERENCE,
-                                 filename=os.path.join(self.state.output_model_dir, "inference_dataset.pth"))
-        pass
-
+        
     def load_objects(self, input_model_dir: Union[str, Sequence[str]], list_of_object_names: List[str] = None, mode: str = 'infer') -> Dict[str, Any]:
         """
         Loads objects from torch saved pth files under input_model_dir.
@@ -345,7 +335,7 @@ class ManagerDefault:
                          {'color': 'red', 'attrs': 'bold'})
 
         # save model and parameters for future use (e.g., infer or resume_from_weights)
-        self._save_objects(validation_dataloader)
+        self._save_objects()
 
         # save datasets summary into file and logger
         self._handle_dataset_summaries(train_dataloader, validation_dataloader)
@@ -413,85 +403,14 @@ class ManagerDefault:
 
         pass
 
-    def visualize(self, visualizer: VisualizerBase, data_loader: Optional[DataLoader] = None, infer_processor: Optional[ProcessorBase] = None,
-                  descriptors: Optional[List[Hashable]] = None, device: str = 'cuda', display_func: Optional[Callable] = None):
-
-        """
-        Visualize data including the input and the output.
-        Expected Sequence:
-        1. Using a loaded model to extract the output:
-         manager = ManagerDefault()
-
-         manager.load_objects(<model dir>, mode='infer')  # this method can load either a single model or an ensemble
-         manager.load_checkpoint(checkpoint=<path to checkpoint file>, mode='infer')
-         manager.visualize(visualizer=visualizer,
-                  data_loader=dataloader,
-                  descriptors=<optional - list of descriptors>,
-                  display_func=<optional - display_func>,
-                  infer_processor=None)
-
-        2. using inference processor
-         manager = ManagerDefault()
-         manager.visualize(visualizer=visualizer,
-                  data_loader=dataloader,
-                  descriptors=<optional - list of descriptors>,
-                  display_func=<optional - display_func>,
-                  infer_processor=infer_processor)
-
-        :param visualizer: The visualizer, getting a batch_dict as an input and doing it's magic
-        :param data_loader: data loader as used for validation / training / inference
-        :param infer_processor: Optional, if specified this function will not run the model and instead extract the output from infer processor
-        :param descriptors: Optional. List of sample descriptors, if None will go over the entire dataset. Might be also list of dataset indices.
-        :param device: options: 'cuda', 'cpu', 'cuda:0', ... (default 'cuda')
-        :param display_func: Function getting the batch dict as an input and returns boolean specifying if to visualize this sample or not.
-        :return: None
-        """
-        dataset: DatasetBase = data_loader.dataset
-        if infer_processor is None:
-            if not hasattr(self, 'net') or self.state.net is None:
-                self.logger.error(f"Cannot visualize without either net or infer_processor")
-                raise Exception(f"Cannot visualize without either net or infer_processor")
-
-            # prepare net
-            self.state.net = self.state.net.to(device)
-            if self.state.device != 'cpu':
-                self.state.net = nn.DataParallel(self.state.net)
-
-        if descriptors is None:
-            descriptors = range(len(dataset))
-        for desc in tqdm(descriptors):
-            # extract sample
-            batch_dict = dataset.get(desc)
-            if infer_processor is None:
-                # apply model in case infer processor is not specified
-                # convert dimensions to batch
-                batch_dict = dataset.collate_fn([batch_dict])
-                # run model
-                batch_dict['model'] = self.state.net(batch_dict)
-                # convert dimensions back to single sample
-                FuseUtilsHierarchicalDict.apply_on_all(batch_dict, Misc.squeeze_obj)
-            else:
-                # get the sample descriptor of the sample
-                sample_descriptor = FuseUtilsHierarchicalDict.get(batch_dict, 'data.descriptor')
-                # get the infer data
-                infer_data = infer_processor(sample_descriptor)
-                # add infer data to batch_dict
-                for key in infer_data:
-                    FuseUtilsHierarchicalDict.set(batch_dict, key, infer_data[key])
-
-            if display_func is None or display_func(batch_dict):
-                visualizer.visualize(batch_dict)
-
     def infer(self, input_model_dir: Optional[Union[str, Sequence]] = None,
               checkpoint: Optional[Union[str, int, Sequence[Union[str, int]]]] = None,
-              data_source: Optional[DataSourceBase] = None, data_loader: Optional[DataLoader] = None,
-              num_workers: Optional[int] = 4, batch_size: Optional[int] = 2,
+              data_loader: Optional[DataLoader] = None,
               output_columns: List[str] = None, output_file_name: str = None, strict: bool = True,
               append_default_inference_callback: bool = True,
               checkpoint_index: int = 0) -> pd.DataFrame:
         """
-        Inference of net on data. Either the data_source or data_loader should be defined.
-        When data_source is defined, validation_dataset is loaded from the original model_dir and is used to create a dataloader.
+        Inference of net on data.
         Returns the inference Results as dict:
                 {
                 'descriptor': [id_1, id_2, ...],
@@ -524,10 +443,7 @@ class ManagerDefault:
             (either checkpoint_best_epoch.pth, checkpoint_last_epoch.pth or checkpoint_{checkpoint}_epoch.pth)
             when None, no checkpoint is loaded (assumes that the weights were already loaded.
             in ensemble mode, can provide either one checkpoint for all models or a sequence of separate checkpoints for each.
-        :param data_source: data source to use
         :param data_loader: data loader to use
-        :param num_workers: number of processes for Dataloader, effective only if 'data_loader' param is None
-        :param batch_size: batch size for Dataloader, effective only if 'data_loader' param is None
         :param output_columns: output columns to return.
             When None (default) all columns are returned.
             When not None, InferResultsCallback callback is created.
@@ -537,14 +453,6 @@ class ManagerDefault:
         :param checkpoint_index: few best checkpoints can be saved, each with its own index
         :return: infer results in a DataFrame
         """
-
-        # debug - num workers
-        override_num_workers = FuseDebug().get_setting('manager_override_num_dataloader_workers')
-        if override_num_workers != 'default':
-            num_workers = override_num_workers
-            if data_loader is not None:
-                data_loader.num_workers = override_num_workers
-            self.logger.info(f'Manager - debug mode - override dataloader num_workers to {override_num_workers}', {'color': 'red'})
 
         if input_model_dir is not None:
             # user provided model dir(s), and Manager has no 'net' attribute - need to load modules
@@ -569,30 +477,6 @@ class ManagerDefault:
         # append inference callback
         if append_default_inference_callback:
             self.callbacks.append(InferResultsCallback(output_file=output_file_name, output_columns=output_columns))
-
-        # either optional_datasource or optional_dataloader
-        if data_loader is not None and data_source is not None:
-            self.logger.error('Cannot have both data_loader and data_source defined')
-            raise Exception('Cannot have both data_loader and data_source defined')
-        if data_loader is None and data_source is None:
-            self.logger.error('Either data_loader or data_source should be defined')
-            raise Exception('Either data_loader or data_source should be defined')
-
-        if data_loader is None:
-            # need to create a data loader
-            # first check that we have the model dir to get these data from
-            if input_model_dir is None:
-                self.logger.error('Missing parameter input_model_dir! Cannot load data_set from previous model.')
-                raise Exception('Missing parameter input_model_dir! Cannot load data_set from previous model.')
-
-            if isinstance(input_model_dir, (tuple, list)):
-                data_set_filename = os.path.join(input_model_dir[0], "inference_dataset.pth")
-            else:
-                data_set_filename = os.path.join(input_model_dir, "inference_dataset.pth")
-            self.logger.info(f"Loading data source definitions from {data_set_filename}", {'color': 'yellow'})
-            infer_dataset = DatasetBase.load(filename=data_set_filename, override_datasource=data_source)
-            data_loader = DataLoader(dataset=infer_dataset, shuffle=False, drop_last=False, batch_sampler=None,
-                                     batch_size=batch_size, num_workers=num_workers, collate_fn=infer_dataset.collate_fn)
 
         # prepare net
         self.state.net = self.state.net.to(self.state.device)
@@ -806,12 +690,12 @@ class ManagerDefault:
 
         :param train_results: hierarchical dict train epoch results.
             contains the keys: losses, metrics.
-                losses is a dict where values are the commputed mean loss for each loss.
+                losses is a dict where values are the computed mean loss for each loss.
                     and an additional key 'total_loss' which is the mean total loss of the epoch.
                 metrics is a dict where values are the computed metrics.
         :param validation_results: hierarchical validation epoch results dict.
              contains the keys: losses, metrics.
-                losses is a dict where values are the commputed mean loss for each loss.
+                losses is a dict where values are the computed mean loss for each loss.
                     and an additional key 'total_loss' which is the mean total loss of the epoch.
                 metrics is a dict where values are the computed metrics.
                 Note, if validation was not done on the epoch, this parameter can be None
@@ -1037,7 +921,10 @@ class ManagerDefault:
         :param validation_dataloader: validation data (can be None)
         """
         # train dataset summary
-        dataset_summary = train_dataloader.dataset.summary()
+        if hasattr(train_dataloader.dataset, "summary"):
+            dataset_summary = train_dataloader.dataset.summary()
+        else:
+            dataset_summary = ""
 
         train_dataset_summary_file = os.path.join(self.state.output_model_dir, 'train_dataset_summary.txt')
         with open(train_dataset_summary_file, 'w') as sum_file:
@@ -1047,7 +934,10 @@ class ManagerDefault:
 
         # validation dataset summary, if exists
         if validation_dataloader is not None:
-            dataset_summary = validation_dataloader.dataset.summary()
+            if hasattr(validation_dataloader.dataset, "summary"):
+                dataset_summary = validation_dataloader.dataset.summary()
+            else:
+                dataset_summary = ""
             validation_dataset_summary_file = os.path.join(self.state.output_model_dir, 'validation_dataset_summary.txt')
             with open(validation_dataset_summary_file, 'w') as sum_file:
                 sum_file.write(dataset_summary)
@@ -1067,9 +957,6 @@ def _extend_results_dict(mode: str, current_dict: Dict, aggregated_dict: Dict) -
     if mode == 'infer':
         return {}
     else:
-        # handle the case where batch dict is empty (the end of the last virtual mini batch)
-        if current_dict == {}:
-            return aggregated_dict
         # for train and validation we need the loss values
         cur_keys = FuseUtilsHierarchicalDict.get_all_keys(current_dict)
         # aggregate just keys that start with losses

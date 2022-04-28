@@ -24,8 +24,9 @@ import os
 import pathlib
 
 import fuse.utils.gpu as GPU
-from fuse_examples.imaging.classification.prostate_x.run_train_3dpatch import TRAIN_COMMON_PARAMS, train_template, infer_template, eval_template, INFER_COMMON_PARAMS, \
-    EVAL_COMMON_PARAMS
+# FIXME: data_package
+#from fuse_examples.imaging.classification.prostate_x.run_train_3dpatch import TRAIN_COMMON_PARAMS, train_template, infer_template, eval_template, INFER_COMMON_PARAMS, \
+#    EVAL_COMMON_PARAMS
 
 
 class ClassificationProstateXTestCase(unittest.TestCase):
