@@ -827,10 +827,10 @@ class ManagerDefault:
         if function_key not in values_to_check:
             lgr = logging.getLogger('Fuse')
             lgr.error(f"source function {function_key} does not exist in results_dict. " + \
-                      f"Possible values are {values_to_check.keypaths()}")
+                      f"Possible values are {NDict.get_all_keys(values_to_check)}")
             lgr.error(traceback.format_exc())
             raise KeyError(f"source function {function_key} does not exist in results_dict." + \
-                           f"Possible values are {values_to_check.keypaths()}")
+                           f"Possible values are {NDict.get_all_keys(values_to_check)}")
 
         value_to_compare = values_to_check[function_key]
         if is_better_epoch_value(value_to_compare):
@@ -858,7 +858,7 @@ class ManagerDefault:
         stats_table = pd.DataFrame(columns=['', 'Best Epoch Value', 'Current Epoch Validation', 'Current Epoch Train'])
         idx = 0
 
-        eval_keys = sorted(train_dict.keypaths())
+        eval_keys = sorted(NDict.get_all_keys(train_dict))
         for evaluator_name in eval_keys:
             train_value_str = get_value_as_float_str(train_dict, evaluator_name)
             validation_val_str = get_value_as_float_str(validation_dict, evaluator_name)
