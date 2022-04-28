@@ -2,6 +2,8 @@ from abc import ABC, abstractclassmethod, abstractmethod
 from typing import Dict, Any, List ,Union , Tuple
 from fuse.utils.ndict import NDict
 from torch import Tensor
+from torchvision.utils import save_image
+import matplotlib
 import numpy as np
 import nibabel as nib
 import os
@@ -75,12 +77,13 @@ class VisualizerBase(ABC):
         data = self._preprocess(vis_data )
         self._save(data , output_path , op_id)
 
-class PrintVisual(VisualizerBase):
+class SaveVisual(VisualizerBase):
     """
     basic visualizer example that just prints the data string representation to the console
     """    
-    def __init__(self) -> None:
+    def __init__(self, format = "nii.gz") -> None:
         super().__init__()
+        self._format = format
         
     def _show(self, vis_data):
         if type(vis_data) is dict:
@@ -91,15 +94,15 @@ class PrintVisual(VisualizerBase):
             for item in vis_data:
                 print(item)
 
-    def _save(self, vis_data : List , output_path : str , file_name : str , format="nii.gz"):
-        for item in vis_data:
-            if isinstance(item.image,Tensor) :
-                item.image = nib.Nifti1Image(item.image.numpy(), affine=None)
-            if isinstance(item.image,np.ndarray) :
-                item.image = nib.Nifti1Image(item.image, affine=None)
-            if isinstance(item.seg,Tensor) :
-                item.seg = nib.Nifti1Image(item.seg.numpy(), affine=None)
-            if isinstance(item.seg,np.ndarray) :
-                item.seg = nib.Nifti1Image(item.seg, affine=None)
-            nib.loadsave.save(item.image,os.path.join(output_path,"img_"+file_name+"."+format)  )  
-            nib.loadsave.save(item.seg,os.path.join(output_path,"seg_"+file_name+"."+format)  )  
+    def _save(self, vis_data : List , output_path : str , file_name : str ):
+        if self._format == "nii.gz" :
+            for item in vis_data:
+                if isinstance(item.image,Tensor) :
+                    item.image = item.image.numpy()
+                    item.image = nib.Nifti1Image(item.image, affine=None)
+                    nib.loadsave.save(item.image,os.path.join(output_path,"img_"+item.metadata+"_"+file_name+"."+self._format)  )  
+                if item.seg is not None :
+                    if isinstance(item.seg,Tensor) :
+                        item.seg = item.seg.numpy()
+                    item.seg = nib.Nifti1Image(item.seg, affine=None)
+                    nib.loadsave.save(item.seg,os.path.join(output_path,"seg_"+item.metadata+"_"+file_name+"."+self._format)  )  

@@ -1,3 +1,4 @@
+
 import matplotlib
 import os
 import matplotlib.pyplot as plt
@@ -11,9 +12,10 @@ class Imaging2dVisualizer(VisualizerBase):
     """
     Curently supports only one group per viewed item
     """
-    def __init__(self, cmap) -> None:
+    def __init__(self, cmap , format ="png") -> None:
         super().__init__()
         self._cmap = cmap
+        self._format = format
 
     def _show(self, vis_data : List):
         show_multiple_images_seg(
@@ -23,9 +25,9 @@ class Imaging2dVisualizer(VisualizerBase):
         if os.getenv('DISPLAY') is None or ''==os.getenv('DISPLAY'): #no monitor (for example, pure SSH session)
             matplotlib.use('Agg')
         plt.show()
-    def _save(self, vis_data : List , output_path : str , file_name : str , format="png"):
+    def _save(self, vis_data : List , output_path : str , file_name : str ):
         show_multiple_images_seg(
             imgs=vis_data,
             cmap=self._cmap,
             unify_size=True)
-        plt.savefig(os.path.join(output_path,file_name+"."+format), format = format)
+        plt.savefig(os.path.join(output_path,file_name+"."+self._format), format = self._format)

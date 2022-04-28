@@ -13,7 +13,7 @@ from fuseimg.data.ops.debug_ops import OpDrawGrid
 from fuse.data.ops.ops_visprobe import VisFlag, VisProbe 
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuseimg.utils.visualization.visualizer import Imaging2dVisualizer
-from fuseimg.utils.visualization.visualizer_base import PrintVisual
+from fuseimg.utils.visualization.visualizer_base import SaveVisual
 
 from fuseimg.data.ops.shape_ops import OpSelectSlice
 
@@ -48,7 +48,7 @@ def create_sample_1(views=2):
     return sample , data_dir
     
 class TestImageVisualizer(unittest.TestCase):
-    def test_collect_compare(self):
+    def test_collect_2d_compare(self):
         """
         Test standard backward and forward pipeline
         """
@@ -56,8 +56,7 @@ class TestImageVisualizer(unittest.TestCase):
 
         sample , data_dir = create_sample_1(views=1)        
         sample["name"] = "kits21_example"
-        #visual = Imaging2dVisualizer(cmap = 'gray')
-        visual = PrintVisual()
+        visual = Imaging2dVisualizer(cmap = 'gray')
         VProbe = partial(VisProbe, 
                          keys=  ["data.viewpoint1.img", "data.viewpoint1.seg" ], 
                          type_detector=type_detector_imaging,
@@ -89,7 +88,45 @@ class TestImageVisualizer(unittest.TestCase):
         
         self.assertLessEqual(sample['data.viewpoint1.img'].max(), 1.0)
         self.assertGreaterEqual(sample['data.viewpoint1.img'].max().min(), -1.0)
+ 
+    def test_save_3d(self):
+        """
+        Test standard backward and forward pipeline
+        """
+
+
+        sample , data_dir = create_sample_1(views=1)        
+        sample["name"] = "kits21_example"
+        visual = SaveVisual()
+        VProbe = partial(VisProbe, 
+                         keys=  ["data.viewpoint1.img", "data.viewpoint1.seg" ], 
+                         type_detector=type_detector_imaging,
+                         visualizer = visual, output_path=os.getcwd())
+        repeat_for = [dict(key="data.viewpoint1.img"), dict(key="data.viewpoint1.seg")]
+        pipeline = PipelineDefault('test_pipeline', [
+            (OpLoadImage(data_dir), dict(key_in = 'data.viewpoint1.img_filename', key_out='data.viewpoint1.img', format="nib")),
+            (OpLoadImage(data_dir), dict(key_in = 'data.viewpoint1.seg_filename', key_out='data.viewpoint1.seg', format="nib")),
+            (OpToIntImageSpace(), dict(key="data.viewpoint1.img") ),
+            (OpRepeat(OpToTensor(), kwargs_per_step_to_add=repeat_for), dict(dtype=torch.float32)),
+            (VProbe( VisFlag.SHOW_CURRENT , name = "first"), {}),
+            (OpToRange(), dict(key="data.viewpoint1.img", from_range=(-500, 500), to_range=(0, 1))),
+            (VProbe( VisFlag.SHOW_CURRENT , name = "second"), {}),
+            (OpSampleAndRepeat(OpAugAffine2D (), kwargs_per_step_to_add=repeat_for), dict(
+                rotate=30.0
+            )),
+            (VProbe( VisFlag.SHOW_CURRENT, name = "last"), {}),
+            (OpSampleAndRepeat(OpAugAffine2D (), kwargs_per_step_to_add=repeat_for), dict(
+                rotate=30.0
+            )),
+            (VProbe( flags=VisFlag.SHOW_CURRENT ), {}),
+            
+        ])
         
+        sample = pipeline(sample)
+        
+        self.assertLessEqual(sample['data.viewpoint1.img'].max(), 1.0)
+        self.assertGreaterEqual(sample['data.viewpoint1.img'].max().min(), -1.0)
+       
     def test_other_seg(self):
         visual = Imaging2dVisualizer(cmap = 'gray' )
         dir_path = pathlib.Path(__file__).parent.resolve()
