@@ -11,12 +11,12 @@ from .op_base import OpBase
 from fuse.data.key_types import TypeDetectorBase
 
 class VisFlag(enum.IntFlag):
-    COLLECT = 1       #save current state for future comparison        
-    SHOW_CURRENT = 2          #show current state                                    
-    SHOW_COLLECTED = 4 #show comparison of all previuosly collected states
-    CLEAR = 8           #clear all collected states until this point in the pipeline
-    ONLINE = 16         #show operations will prompt the user with the releveant plot 
-    # REVERSE = 32       #visualization operation will be activated on reverse pipeline execution flow
+    COLLECT = 1                     #save current state for future comparison        
+    VISUALIZE_CURRENT = 2           #show current state                                    
+    VISUALIZE_COLLECTED = 4          #show comparison of all previuosly collected states
+    CLEAR = 8                       #clear all collected states until this point in the pipeline
+    ONLINE = 16                     #show operations will prompt the user with the releveant plot 
+    # REVERSE = 32                  #visualization operation will be activated on reverse pipeline execution flow
        
 
 def convert_uncompressed_RLE_COCO_type(element : Dict ,height : int  ,width: int)-> np.ndarray:
@@ -86,11 +86,11 @@ class VisProbe(OpBase):
         """ 
           :param flags: operation flags (or possible concatentation of flags using IntFlag), details:   
               COLLECT - save current state for future comparison                                                                                               
-              SHOW_CURRENT - show current state                                                                                                                        
-              SHOW_COLLECTED - show comparison of all previuosly collected states                                                                              
+              VISUALIZE_CURRENT - visualize current state                                                                                                                        
+              VISUALIZE_COLLECTED - visualize comparison of all previuosly collected states                                                                              
               CLEAR - clear all collected states until this point in the pipeline                                                                              
-              ONLINE - show operations will prompt the user with the releveant plot                                                                        
-              OFFLINE - show operations will write to disk (using the caching mechanism) the relevant info (state or states for comparison)                
+              ONLINE - visualize operations will prompt the user with the releveant plot                                                                        
+              OFFLINE - visualize operations will write to disk (using the caching mechanism) the relevant info (state or states for comparison)                
               FORWARD - visualization operation will be activated on forward pipeline execution flow                                                       
               REVERSE - visualization operation will be activated on reverse pipeline execution flow
           :param keys: for which sample keys to handle visualization, also can be grouped in a dictionary
@@ -163,13 +163,13 @@ class VisProbe(OpBase):
             sample_dict[self._collected_prefix].append(vis_data)
 
         
-        if VisFlag.SHOW_CURRENT in self._flags:
+        if VisFlag.VISUALIZE_CURRENT in self._flags:
             if VisFlag.ONLINE in self._flags:
                 self._visualizer.show(vis_data)
             else :
                 self._visualizer.save(vis_data , name_prefix , self._output_path)
         
-        if  VisFlag.SHOW_COLLECTED in self._flags:
+        if  VisFlag.VISUALIZE_COLLECTED in self._flags:
             vis_data = self._extract_collected(sample_dict) + [vis_data]
             if VisFlag.ONLINE in self._flags:
                 self._visualizer.show(vis_data)
