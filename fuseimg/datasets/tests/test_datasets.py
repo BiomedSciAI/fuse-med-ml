@@ -10,6 +10,8 @@ from fuseimg.datasets.kits21 import KITS21
 from tqdm import trange
 from testbook import testbook
 
+from fuseimg.datasets.skin_lesion import SkinLesion
+
 notebook_path = os.path.join(pathlib.Path(__file__).parent.resolve(), "../kits21_example.ipynb")
 
 class TestDatasets(unittest.TestCase):
@@ -18,6 +20,10 @@ class TestDatasets(unittest.TestCase):
         super().setUp()
         self.kits21_cache_dir = mkdtemp(prefix="kits21_cache")
         self.kits21_data_dir = mkdtemp(prefix="kits21_data")
+        self.skin_lesion_cache_dir = mkdtemp(prefix="skin_lesion_cache")
+        self.skin_lesion_data_dir = mkdtemp(prefix="skin_lesion_data")
+
+
     def test_kits32(self):
         KITS21.download(self.kits21_data_dir, cases=list(range(10)))
 
@@ -27,6 +33,13 @@ class TestDatasets(unittest.TestCase):
         for sample_index in trange(10):
             sample = dataset[sample_index]
             self.assertEqual(get_sample_id(sample), f"case_{sample_index:05d}")
+
+    def test_skin_lesion(self):
+        SkinLesion.download(self.skin_lesion_data_dir)
+
+        dataset = SkinLesion.dataset(data_path=self.skin_lesion_data_dir, cache_dir=self.skin_lesion_cache_dir, reset_cache=True)
+
+
 
     @testbook(notebook_path, execute=range(0,4))
     def test_basic(tb, self):
