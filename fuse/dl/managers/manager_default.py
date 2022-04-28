@@ -945,6 +945,21 @@ class ManagerDefault:
             self.logger.info(dataset_summary)
         pass
 
+    def set_device(self, device: str):
+        """
+        set the manger's device to a given one.
+        :param device: device to set
+        """
+        train_params = self.state.train_params
+
+        if train_params == None:
+            train_params = {}
+
+        train_params.update({'device' : device})
+        self.set_objects(train_params=train_params)
+
+        pass
+
 
 def _extend_results_dict(mode: str, current_dict: Dict, aggregated_dict: Dict) -> Dict:
     """
