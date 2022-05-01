@@ -15,42 +15,27 @@ Created on June 30, 2021
 """
 
 import os
-
-from fuse.utils.utils_debug import FuseUtilsDebug
-from fuse.utils.utils_gpu import FuseUtilsGPU
-
 import logging
-
-import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
 
+import fuse.utils.gpu as FuseUtilsGPU
+from fuse.utils.utils_debug import FuseUtilsDebug
 from fuse.utils.utils_logger import fuse_logger_start
-
-from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
-
-from fuse.metrics.classification.metric_auc import FuseMetricAUC
-from fuse.metrics.classification.metric_accuracy import FuseMetricAccuracy
-
 from fuse.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
 from fuse.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
 from fuse.managers.callbacks.callback_time_statistics import FuseTimeStatisticsCallback
 from fuse.managers.manager_default import FuseManagerDefault
-
-from fuse_examples.classification.multimodality.mg_dataset_radiologist import MG_dataset
-from fuse_examples.classification.multimodality.multimodal_paths import multimodal_paths
 from fuse.models.backbones.backbone_inception_resnet_v2 import FuseBackboneInceptionResnetV2
 from fuse.models.backbones.backbone_mlp import FuseMultilayerPerceptronBackbone
-
-
-from fuse.analyzer.analyzer_default import FuseAnalyzerDefault
-from fuse.metrics.classification.metric_roc_curve import FuseMetricROCCurve
-
-
-from fuse_examples.classification.MG_CMMD.input_processor import FuseMGInputProcessor
+from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
+from fuse.eval.evaluator import EvaluatorDefault
 from fuse.data.processor.processor_dataframe import FuseProcessorDataFrame
-from fuse_examples.classification.multimodality.mg_dataset_radiologist import PostProcessing,tabular_feature_mg
-from fuse_examples.classification.multimodality.multimodel_parameters import multimodal_parameters
 
+from fuse_examples.classification.cmmd.input_processor import FuseMGInputProcessor
+from fuse_examples.classification.multimodality.mg_dataset_clinical_and_annotations import PostProcessing,tabular_feature_mg
+from fuse_examples.classification.multimodality.multimodel_parameters import multimodal_parameters
+from fuse_examples.classification.multimodality.mg_dataset_clinical_and_annotations import mg_clinical_annotations_dataset
+from fuse_examples.classification.multimodality.multimodal_paths import multimodal_paths
 
 
 
@@ -157,7 +142,7 @@ TRAIN_COMMON_PARAMS['imaging_encoder'] = FuseBackboneInceptionResnetV2(input_cha
 
 
 
-TRAIN_COMMON_PARAMS['dataset_func'] = MG_dataset(
+TRAIN_COMMON_PARAMS['dataset_func'] = mg_clinical_annotations_dataset(
                                                           tabular_filename=TRAIN_COMMON_PARAMS['paths']['tabular_filename'],
                                                           imaging_filename=TRAIN_COMMON_PARAMS['paths']['imaging_filename'],
                                                           train_val_test_filenames=TRAIN_COMMON_PARAMS['paths']['train_val_test_filenames'],
@@ -348,11 +333,11 @@ def run_analyze(paths: dict, analyze_common_params: dict):
 
 
     # create analyzer
-    analyzer = FuseAnalyzerDefault()
+    analyzer = EvaluatorDefault()
 
     # run
     # FIXME: simplify analyze interface for this case
-    results = analyzer.analyze(gt_processors={},
+    results = analyzer.eval(gt_processors={},
                                data_pickle_filename=os.path.join(paths["inference_dir"],
                                                                  analyze_common_params["infer_filename"]),
                                metrics=metrics,

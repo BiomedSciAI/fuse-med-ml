@@ -1,47 +1,56 @@
 import pandas as pd
 import os
-from typing import Callable, Optional
-from typing import Tuple
+from typing import Callable, Optional,Tuple,Dict, List
+import torch
 
-# from MedicalAnalyticsCore.DatabaseUtils.selected_studies_queries import get_annotations_and_findings
-# from MedicalAnalyticsCore.DatabaseUtils.tableResolver import TableResolver
-# from MedicalAnalyticsCore.DatabaseUtils.connection import create_homer_engine, Connection
-# from MedicalAnalyticsCore.DatabaseUtils import tableNames
-# from MedicalAnalyticsCore.DatabaseUtils import db_utils as db
 
 
 # from autogluon.tabular import TabularPredictor
-from fuse_examples.classification.multimodality.dataset import IMAGING_TABULAR_dataset
-from fuse.data.dataset.dataset_default import FuseDatasetDefault
-
-from fuse_examples.classification.MG_CMMD.input_processor import FuseMGInputProcessor
+from fuse_examples.classification.multimodality.dataset import imaging_tabular_dataset
+from fuse_examples.classification.cmmd.input_processor import FuseMGInputProcessor
 from fuse.data.processor.processor_dataframe import FuseProcessorDataFrame
-
-
-from typing import Dict, List
-import torch
+from fuse.data.dataset.dataset_default import FuseDatasetDefault
+from fuse.data.processor.processor_base import FuseProcessorBase
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 
 class PostProcessing:
-    def __init__(self, continuous_tabular_features_lst: List,
+    """
+    Post processing for the tabular data.
+    In this dataset, some of the features are continuous and the other are categorical
+    In additions there are two types of features -
+    1. Objective features 2. Annotated features (by expert) based on the imaging
+    :param continuous_tabular_features_lst: columns in data that are continuous
+    :param categorical_tabular_features_lst: columns in data that are categorical
+    :param label_lst: label columns
+    :param annotated_features_lst: columns in data for annotated features (by expert) based on the imaging
+    :param non_annotated_features_lst: columns in data for non-annotated features (by expert) based on the imaging
+    :param use_annotated:
+    :param use_non_annotated
+
+    """
+    def __init__(self,
+                 continuous_tabular_features_lst: List,
                  categorical_tabular_features_lst: List,
                  label_lst: List,
-                 imaging_features_lst: List,
-                 non_imaging_features_lst: List,
-                 use_imaging: bool,
-                 use_non_imaging: bool):
+                 annotated_features_lst: List,
+                 non_annotated_features_lst: List,
+                 use_annotated: bool,
+                 use_non_annotated: bool):
+
         self.continuous_tabular_features_lst = continuous_tabular_features_lst
         self.categorical_tabular_features_lst = categorical_tabular_features_lst
         self.label_lst = label_lst
-        self.imaging_features_lst = imaging_features_lst
-        self.non_imaging_features_lst = non_imaging_features_lst
-        self.use_imaging = use_imaging
-        self.use_non_imaging = use_non_imaging
+        self.annotated_features_lst = annotated_features_lst
+        self.non_annotated_features_lst = non_annotated_features_lst
+        self.use_annotated = use_annotated
+        self.use_non_annotated = use_non_annotated
 
     def __call__(self, batch_dict: Dict) -> Dict:
-        if not self.use_imaging and not self.use_non_imaging:
+
+        if not self.use_annotated and not self.use_non_annotated:
             raise ValueError('No features are in use')
-        mask_list = self.use_imaging * self.imaging_features_lst + self.use_non_imaging * self.non_imaging_features_lst
+
+        mask_list = self.use_annotated * self.annotated_features_lst + self.use_non_annotated * self.non_annotated_features_lst
         mask_continuous = torch.zeros(len( self.continuous_tabular_features_lst))
         for i in range(len(mask_list)):
             try:
@@ -77,8 +86,6 @@ class PostProcessing:
             FuseUtilsHierarchicalDict.pop(batch_dict, 'data.' + feature)
         return batch_dict
 
-
-# feature selection univarient analysis
 
 #-------------------Tabular
 def get_selected_features_mg(data,features_mode,key_columns):
@@ -158,47 +165,13 @@ def imaging_mg(imaging_filename,key_columns):
     if os.path.exists(imaging_filename):
         df = pd.read_csv(imaging_filename)
     else:
-        REVISION_DATE = '20200915'
-        TableResolver().set_revision(REVISION_DATE)
-        revision = {'prefix': 'sentara', 'suffix': REVISION_DATE}
-        engine = Connection().get_engine()
-
-        df_with_findings = get_annotations_and_findings(engine, revision,
-                                                        exam_types=['MG'], viewpoints=None,  # ['CC','MLO'], \
-                                                        include_findings=True, remove_invalids=True,
-                                                        remove_heldout=False, \
-                                                        remove_excluded=False, remove_less_than_4views=False, \
-                                                        load_from_file=False, save_to_file=False)
-
-        # dicom_table = db.get_table_as_dataframe(engine, tableNames.get_dicom_tags_table_name(revision))
-        # study_statuses = db.get_table_as_dataframe(engine, tableNames.get_study_statuses_table_name(revision))
-        my_providers = ['sentara']
-        df = df_with_findings.loc[df_with_findings['provider'].isin(my_providers)]
-        # fixing assymetry
-        asymmetries = ['asymmetry', 'developing asymmetry', 'focal asymmetry', 'global asymmetry']
-        df['is_asymmetry'] = df['pathology'].isin(asymmetries)
-        df['is_Breast_Assymetry'] = df['type'].isin(['Breast Assymetry'])
-        df.loc[df['is_asymmetry'], 'pathology'] = df[df['is_asymmetry']]['biopsy_outcome']
-        df.loc[df['is_Breast_Assymetry'], 'pathology'] = df[df['is_Breast_Assymetry']]['biopsy_outcome']
-        # remove duble xmls
-        aa_unsorted = df
-        aa_unsorted.sort_values('xml_url', ascending=False, inplace=True)
-        xml_url_to_keep = aa_unsorted.groupby(['image_id'])['xml_url'].transform('first')
-        df = aa_unsorted[aa_unsorted['xml_url'] == xml_url_to_keep]
-        remove_from_pathology = ['undefined', 'not_applicable', 'Undefined', 'extracapsular rupture of breast implant',
-                                 'intracapsular rupture of breast implant']
-        is_pathology = ~df.pathology.isnull() & ~df.pathology.isin(remove_from_pathology)
-        is_digital = df.image_source == 'Digital'
-        is_biopsy = df.finding_biopsy.isin(['negative', 'negative high risk', 'positive'])
-        df = df[(is_digital) & (is_pathology) & (is_biopsy)]
-        df.to_csv(imaging_filename)
+        df = data_curation(imaging_filename)
 
     df1 = df.groupby(key_columns)[img_sample_column].apply(lambda x:  list(map(str, x))).reset_index()
     df2 = df.groupby(key_columns)[label_column].apply(lambda x:  list(map(str, x))).reset_index()
 
 
     return pd.merge(df1,df2,on=key_columns)
-
 
 #------------------Imaging+Tabular
 def merge_datasets(tabular_filename,imaging_filename,key_columns):
@@ -228,14 +201,13 @@ def apply_gluon_baseline(train_set,test_set,label,save_path):
     y_pred = predictor.predict_proba(test_data)
     perf = predictor.evaluate_predictions(y_true=y_test, y_pred=y_pred, auxiliary_metrics=True)
 
-#MO: thinkabout specific name
-def MG_dataset(tabular_filename:str,
+def mg_clinical_annotations_dataset(
+               tabular_filename:str,
                imaging_filename:str,
                train_val_test_filenames:list,
 
-               #Mo: internal parameters
-               imaging_processor,
-               tabular_processor,
+               imaging_processor: FuseProcessorBase,,
+               tabular_processor: FuseProcessorBase,,
 
                key_columns:list,
                label_key:str,
@@ -259,7 +231,7 @@ def MG_dataset(tabular_filename:str,
 
     features_list = list(tabular_columns)
     [features_list.remove(x) for x in key_columns]
-    train_dataset, validation_dataset, test_dataset = IMAGING_TABULAR_dataset(
+    train_dataset, validation_dataset, test_dataset = imaging_tabular_dataset(
                                                                         df=[train_set, val_set, test_set],
                                                                         imaging_processor=imaging_processor,
                                                                         tabular_processor=tabular_processor,
@@ -290,7 +262,7 @@ if __name__ == "__main__":
     label_column = 'finding_biopsy'
     img_sample_column = 'dcm_url'
     train_dataset, validation_dataset, test_dataset = \
-                                                    MG_dataset(tabular_filename=tabular_filename,
+                                                    mg_clinical_annotations_dataset(tabular_filename=tabular_filename,
                                                                imaging_filename=imaging_filename,
                                                                train_val_test_filenames=train_val_test_filenames,
                                                                key_columns=key_columns,

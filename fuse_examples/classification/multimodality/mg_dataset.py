@@ -11,7 +11,7 @@ from MedicalAnalyticsCore.DatabaseUtils import db_utils as db
 
 
 # from autogluon.tabular import TabularPredictor
-from fuse_examples.classification.multimodality.dataset import IMAGING_TABULAR_dataset
+from fuse_examples.classification.multimodality.dataset import imaging_tabular_dataset
 from fuse.data.dataset.dataset_default import FuseDatasetDefault
 
 from fuse_examples.classification.MG_CMMD.input_processor import FuseMGInputProcessor
@@ -383,7 +383,7 @@ def MG_dataset(tabular_filename:str,
 
     features_list = list(tabular_columns)
     [features_list.remove(x) for x in key_columns]
-    train_dataset, validation_dataset, test_dataset = IMAGING_TABULAR_dataset(
+    train_dataset, validation_dataset, test_dataset = imaging_tabular_dataset(
                                                                         df=[train_set, val_set, test_set],
                                                                         imaging_processor=imaging_processor,
                                                                         tabular_processor=tabular_processor,
