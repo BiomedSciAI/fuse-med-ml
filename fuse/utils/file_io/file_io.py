@@ -17,7 +17,6 @@ import h5py
 import hdf5plugin
 
 from fuse.utils.misc.misc import Misc
-from fuse.utils.ndict import NDict
 
 ###note - it is required that hdf5 support will be installed in a way that blosc is supported as well
 # the recommended way is to install it in the following way:
@@ -196,7 +195,7 @@ def save_hdf5_safe(filename:str, use_blosc:bool=True, **kwarrays):
 
 def load_hdf5(filename:str, 
     custom_extract:Optional[Dict[str,Union[int,List,Tuple]]] = None,
-    ) -> NDict:
+    ) -> dict:
     '''
 
     :param filename:     
@@ -233,7 +232,7 @@ def load_hdf5(filename:str,
     '''
     #import ipdb;ipdb.set_trace()
 
-    ans = NDict()
+    ans = {}
     h5f = h5py.File(filename, 'r')
     for k in h5f.keys():
         if custom_extract is not None:
