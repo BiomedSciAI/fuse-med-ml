@@ -10,20 +10,16 @@ def show_multiple_images(plot_label : Callable , imgs : List, base_resolution :i
     '''
     Show multiple images with shared zoom/translation controls
     everything passed as kwargs (for example - cmap='gray') will be passed to the individual imshow calls
-
     special possible values are:
         * cmap[image_index] = value
             for example - cmap0='gray' will only change the cmap of the first image
         * unify_size = 'dont_care'
             will make sure that all images are resized to the same size
-
     example usage:
-
     imshowmultiple([img1, img2])
     imshowmultiple(img1,img2,img3, cmap='gray', vmin=0.0, vmax=1.0)
     imshowmultiple(img1,img2,img3, cmap0='gray')   #will use grayscale color map only on the first image and default cmap on the rest
     imshowmultiple(img1,img2,img3, unify_size='blah')   #will resize all images to match
-
     @param plot_label : function to plot the ground truth segmentation
     @param imgs: list of images in TypedElement format
     @param base_resolution : base pixel resolution we want to maintain per image
