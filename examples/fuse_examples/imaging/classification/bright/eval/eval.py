@@ -40,7 +40,7 @@ def process(sample_dict: NDict) -> dict:
     expected_keys = [f"task1_pred.{key}" for key in EXPECTED_TASK1_PRED_KEYS]
     expected_keys += [f"task2_pred.{key}" for key in EXPECTED_TASK2_PRED_KEYS]
     expected_keys += [f"target.{key}" for key in EXPECTED_TARGET_KEYS]
-    set(expected_keys).issubset(set(NDict.get_all_keys(sample_dict)))
+    set(expected_keys).issubset(set(sample_dict.keypaths()))
 
     # convert scores to numpy array
     # task 1 

@@ -52,7 +52,7 @@ class InferResultsCallback(Callback):
         pass
 
     def reset(self):
-        self.aggregated_dict = {'id': [], 'output': {}}
+        self.aggregated_dict = {'id': [], 'output': NDict()}
         self.infer_results_df = pd.DataFrame()
 
     def on_epoch_begin(self, mode: str, epoch: int) -> None:
@@ -84,7 +84,7 @@ class InferResultsCallback(Callback):
         infer_results_df = pd.DataFrame()
         infer_results_df['id'] = self.aggregated_dict['id']
 
-        for output in NDict.get_all_keys(self.aggregated_dict['output']):
+        for output in self.aggregated_dict['output'].keypaths():
             infer_results_df[output] = list(
                 self.aggregated_dict['output'][output])  # note- wrapping with list for pandas compatibility
 
@@ -119,7 +119,7 @@ class InferResultsCallback(Callback):
             output_cols = batch_dict.keypaths()
 
         for output_col in output_cols:
-            if output_col not in NDict.get_all_keys(self.aggregated_dict['output']):
+            if output_col not in self.aggregated_dict['output'].keypaths():
                 self.aggregated_dict['output'][output_col] = []
             output = batch_dict[output_col]
             if isinstance(output, torch.Tensor):

@@ -558,6 +558,8 @@ class ManagerDefault:
 
         # loop over batches (can be virtual batch)
         epoch_results = NDict()
+        epoch_results['losses'] = NDict()
+        
         for virtual_batch in trange(num_batches):
             # handle_virtual batch
             virtual_batch_dict = self.handle_virtual_batch(mode, virtual_batch, data_iter)
@@ -579,7 +581,7 @@ class ManagerDefault:
 
         # average losses into mean_loss
         if 'losses' in epoch_results:
-            for loss in NDict.get_all_keys(epoch_results['losses']):
+            for loss in epoch_results['losses'].keypaths():
                 batch_losses = epoch_results['losses.' + loss]
                 loss_mean = np.nansum(batch_losses) / len(batch_losses)
                 epoch_results["losses." + loss] = loss_mean
@@ -782,7 +784,7 @@ class ManagerDefault:
         # save every gap_between_saving_epochs epoch starting from the start_saving_epochs epoch
         return epoch >= self.state.start_saving_epochs and (epoch - self.state.start_saving_epochs) % self.state.gap_between_saving_epochs == 0
 
-    def _is_best_epoch_so_far(self, train_results: Dict, validation_results: Dict, epoch_source_index: int) -> bool:
+    def _is_best_epoch_so_far(self, train_results: NDict, validation_results: NDict, epoch_source_index: int) -> bool:
         """
         Returns true whether the current results are the best results by now.
         if validation results are None, use train_results to decide.
@@ -827,10 +829,10 @@ class ManagerDefault:
         if function_key not in values_to_check:
             lgr = logging.getLogger('Fuse')
             lgr.error(f"source function {function_key} does not exist in results_dict. " + \
-                      f"Possible values are {NDict.get_all_keys(values_to_check)}")
+                      f"Possible values are {values_to_check.keypaths()}")
             lgr.error(traceback.format_exc())
             raise KeyError(f"source function {function_key} does not exist in results_dict." + \
-                           f"Possible values are {NDict.get_all_keys(values_to_check)}")
+                           f"Possible values are {values_to_check.keypaths()}")
 
         value_to_compare = values_to_check[function_key]
         if is_better_epoch_value(value_to_compare):
@@ -845,7 +847,7 @@ class ManagerDefault:
         """
         return self.state.optimizer.param_groups[0]['lr']
 
-    def _write_epoch_summary_table(self, train_dict: dict, validation_dict: dict, epoch_source_index: int) -> None:
+    def _write_epoch_summary_table(self, train_dict: NDict, validation_dict: dict, epoch_source_index: int) -> None:
         def get_value_as_float_str(dict, key):
             val_as_str = 'N/A'
             try:
@@ -858,7 +860,7 @@ class ManagerDefault:
         stats_table = pd.DataFrame(columns=['', 'Best Epoch Value', 'Current Epoch Validation', 'Current Epoch Train'])
         idx = 0
 
-        eval_keys = sorted(NDict.get_all_keys(train_dict))
+        eval_keys = sorted(train_dict.keypaths())
         for evaluator_name in eval_keys:
             train_value_str = get_value_as_float_str(train_dict, evaluator_name)
             validation_val_str = get_value_as_float_str(validation_dict, evaluator_name)

@@ -134,7 +134,7 @@ class DatasetDefault(DatasetBase):
         """
         return self.getitem(item)
     
-    def getitem(self, item: Union[int, Hashable], collect_marker_name: Optional[str] = None, keys: Optional[Sequence[str]] = None) -> dict:
+    def getitem(self, item: Union[int, Hashable], collect_marker_name: Optional[str] = None, keys: Optional[Sequence[str]] = None) -> NDict:
         """
         Get sample, read from cache if possible
         :param item: either int representing sample index or sample_id
@@ -179,7 +179,7 @@ class DatasetDefault(DatasetBase):
         
         # get just required keys
         if keys is not None:
-            sample = NDict.get_multi(sample, keys)
+            sample = sample.get_multi(keys)
 
         return sample
     

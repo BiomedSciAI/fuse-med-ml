@@ -63,7 +63,7 @@ def post_processing(sample_dict: NDict, task1: bool = True, task2: bool = True) 
         expected_keys += [f"task1_pred.{key}" for key in EXPECTED_TASK1_PRED_KEYS]
     if task2:
         expected_keys += [f"task2_pred.{key}" for key in EXPECTED_TASK2_PRED_KEYS]
-    set(expected_keys).issubset(set(NDict.get_all_keys(sample_dict)))
+    set(expected_keys).issubset(set(sample_dict.keypaths()))
 
     # convert scores to numpy array
     # task 1 

@@ -36,17 +36,17 @@ class OpFakeLoad(OpBase):
     def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs) -> Union[None, dict, List[dict]]:
         sid = get_sample_id(sample_dict)
         if 'case_1' == sid:
-            sample_dict = NDict.combine(sample_dict, _generate_sample_1())            
+            sample_dict = sample_dict.merge(_generate_sample_1())            
         elif 'case_2' == sid:
-            sample_dict = NDict.combine(sample_dict, _generate_sample_2())            
+            sample_dict = sample_dict.merge(_generate_sample_2())            
         elif 'case_3' == sid:
             return None
         elif 'case_4' == sid:
             sample_1 = create_initial_sample('case_4', 'case_4_subcase_1')
-            sample_1 = NDict.combine(sample_1, _generate_sample_1(41))
+            sample_1 = sample_1.merge(_generate_sample_1(41))
 
             sample_2 = create_initial_sample('case_4', 'case_4_subcase_2')
-            sample_2 = NDict.combine(sample_2, _generate_sample_2(42))
+            sample_2 = sample_2.merge(_generate_sample_2(42))
             
             return [sample_1, sample_2]
         else:

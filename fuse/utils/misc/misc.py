@@ -111,14 +111,14 @@ class Misc:
         return obj
 
     @staticmethod
-    def batch_dict_to_string(batch_dict: dict) -> str:
+    def batch_dict_to_string(batch_dict: NDict) -> str:
         """
         Convert batch dict to string, including the keys, types and shapes.
         :param batch_dict: might be any dict
         :return: string representation of the batch dict
         """
         res = ''
-        all_keys = NDict.get_all_keys(batch_dict)
+        all_keys = batch_dict.keypaths()
         for key in all_keys:
             value = batch_dict[key]
             res += f'{key} : type={type(value)}'

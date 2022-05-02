@@ -265,10 +265,10 @@ class SamplesCacher:
         for curr_read_dir in read_dirs:
             extension_less = os.path.join(curr_read_dir, sample_hash)
             if os.path.isfile(extension_less+'.pkl.gz'):
-                loaded_sample = load_pickle(extension_less+'.pkl.gz')
+                loaded_sample = NDict(load_pickle(extension_less+'.pkl.gz'))
                 if os.path.isfile(extension_less+'.hdf5'):
                     loaded_sample_hdf5_part = load_hdf5(extension_less+'.hdf5')
-                    loaded_sample = NDict.combine(loaded_sample, loaded_sample_hdf5_part)
+                    loaded_sample = loaded_sample.merge(loaded_sample_hdf5_part)
                 return loaded_sample
                                 
         raise Exception(f'Expected to find a cached sample for sample_id={sample_id} but could not find any!')
@@ -324,7 +324,7 @@ class SamplesCacher:
 
                 requiring_hdf5_keys = _object_requires_hdf5_recurse(curr_sample)                
                 if len(requiring_hdf5_keys)>0:                    
-                    requiring_hdf5_dict = NDict.get_multi(curr_sample, requiring_hdf5_keys)
+                    requiring_hdf5_dict = curr_sample.get_multi(requiring_hdf5_keys)
                     requiring_hdf5_dict = requiring_hdf5_dict.flatten()
 
                     hdf5_filename = os.path.join(write_dir, output_sample_hash+'.hdf5') 
