@@ -4,10 +4,16 @@ import torch.nn.functional as F
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 
 
-def softcrossentropyloss(target, logits):
+def softmax_cross_entropy_with_logits(target, logits):
     """
     From the pytorch discussion Forum:
     https://discuss.pytorch.org/t/soft-cross-entropy-loss-tf-has-it-does-pytorch-have-it/69501
+
+    Creates Fuse Dataset object for training, validation and test
+    :param target:           A list of soft labels
+    :param logits:
+    :return: loss
+
     """
     logprobs = torch.nn.functional.log_softmax(logits, dim=1)
     loss = -(target * logprobs).sum() / logits.shape[0]
@@ -15,6 +21,10 @@ def softcrossentropyloss(target, logits):
 
 
 class FuseLossMultimodalContrastiveLearning:
+    """
+    Based on Multimodality contrastive loss as described in:
+    https://openreview.net/pdf?id=T4gXBOXoIUr
+    """
     def __init__(self,
                  imaging_representations: str = None,
                  tabular_representations: str = None,
@@ -43,21 +53,9 @@ class FuseLossMultimodalContrastiveLearning:
         mask = torch.eq(torch.transpose(label_vec, 0, 1), label_vec).float()
         logits_imaging_tabular = torch.matmul(imaging_representations, torch.transpose(tabular_representations, 0, 1))/self.temperature
         logits_tabular_imaging = torch.matmul(tabular_representations, torch.transpose(imaging_representations, 0, 1))/self.temperature
-        loss_imaging_tabular = softcrossentropyloss(mask, logits_imaging_tabular)/torch.sum(mask, 0)
-        loss_tabular_imaging = softcrossentropyloss(mask, logits_tabular_imaging)/torch.sum(mask, 0)
+        loss_imaging_tabular = softmax_cross_entropy_with_logits(mask, logits_imaging_tabular)/torch.sum(mask, 0)
+        loss_tabular_imaging = softmax_cross_entropy_with_logits(mask, logits_tabular_imaging)/torch.sum(mask, 0)
         return self.alpha*loss_tabular_imaging.sum() + (1-self.alpha)*loss_imaging_tabular.sum()
 
 
-if __name__ == '__main__':
-    import torch
 
-    batch_dict = {'model.imaging_representations': torch.randn(3, 2),
-                  'model.tabular_representations': torch.randn(3, 2),
-                  'data.label': torch.empty(3, dtype=torch.long).random_(2)}
-
-    loss = FuseLossMultimodalContrastiveLearning(temperature=0.1,
-                                                 imaging_representations='model.imaging_representations',
-                                                 tabular_representations='model.tabular_representations',
-                                                 label='data.label')
-    res = loss(batch_dict)
-    print('Loss output = ' + str(res))

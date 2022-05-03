@@ -67,13 +67,13 @@ root = ''
 root_data = '/projects/msieve_dev3/usr/Tal/my_research/multi-modality/'  # TODO: add path to the data folder
 assert root_data is not None, "Error: please set root_data, the path to the stored MM dataset location"
 # Name of the experiment
-experiment = 'late_fusion_non_annotated'
+experiment = 'contrastive_non_annotated'
 # Path to cache data
 cache_path = root_data+'/mg_radiologic/'
 
 paths = multimodal_paths(dataset_name, root_data, root, experiment, cache_path)
 TRAIN_COMMON_PARAMS['paths'] = paths
-TRAIN_COMMON_PARAMS['fusion_type'] = 'late_fusion'
+TRAIN_COMMON_PARAMS['fusion_type'] = 'contrastive'
 ######################################
 # Inference Common Params
 ######################################
@@ -106,8 +106,8 @@ TRAIN_COMMON_PARAMS['manager.train_params'] = {
 # best_epoch_source
 # if an epoch values are the best so far, the epoch is saved as a checkpoint.
 TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = {
-    'source':'metrics.auc',#'losses.cls_loss',# 'metrics.auc.macro_avg',  # can be any key from losses or metrics dictionaries
-    'optimization': 'max',  # can be either min/max
+    'source':'losses.cls_loss',#'metrics.auc',#'losses.cls_loss',# 'metrics.auc.macro_avg',  # can be any key from losses or metrics dictionaries
+    'optimization': 'min',  # can be either min/max
     'on_equal_values': 'better',
     # can be either better/worse - whether to consider best epoch when values are equal
 }

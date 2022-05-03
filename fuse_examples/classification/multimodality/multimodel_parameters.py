@@ -136,6 +136,7 @@ def multimodal_parameters(train_common_params: dict,infer_common_params: dict,an
                                             imaging_backbone=model_imaging,
                                             multimodal_backbone=model_multimodel_concat,
                                             imaging_projection= model_projection_imaging,
+                                            tabular_projection=model_projection_tabular,
                                             heads=[heads_for_multimodal['multimodal_head'][0]],
                                         )
 
@@ -177,25 +178,36 @@ def multimodal_parameters(train_common_params: dict,infer_common_params: dict,an
                                                     'auc': metric_for_multimodal['ensemble_auc'],
                                                 }
 
-    #Mo:different parameter
-    if train_common_params['fusion_type'] == 'cotrastive':
-        train_common_params['model'] = FuseModelTabularImaging(
 
-            continuous_tabular_input=(('data.continuous', 1),),
-            categorical_tabular_input=(('data.categorical', 1),),
-            imaging_inputs=(('data.image', 1),),
-            backbone_categorical_tabular=train_common_params['tabular_encoder_categorical'],
-            backbone_continuous_tabular=train_common_params['tabular_encoder_continuous'],
-            backbone_imaging=train_common_params['imaging_encoder'],
+    if train_common_params['fusion_type'] == 'contrastive':
+        train_common_params['model'] = FuseMultiModalityModel(
+                                            tabular_inputs=(('data.continuous', 1), ('data.categorical', 1),),
+                                            imaging_inputs=(('data.image', 1),),
+                                            tabular_backbone=model_tabular,
+                                            imaging_backbone=model_imaging,
+                                            multimodal_backbone=None,
+                                            imaging_projection= model_projection_imaging,
+                                            tabular_projection=model_projection_tabular,
+                                        )
 
-        )
-
-        train_common_params['loss'] = FuseLossMultimodalContrastiveLearning(
-            imaging_representations='model.imaging_representations',
-            tabular_representations='model.tabular_representations',
+        train_common_params['loss'] = {'cls_loss': FuseLossMultimodalContrastiveLearning(
+            imaging_representations='model.imaging_features',
+            tabular_representations='model.tabular_features',
             label='data.gt',
             temperature=0.1,
             alpha=0.5)
+        }
         train_common_params['metrics'] = None
+        train_common_params['manager.learning_rate'] = 1e-4
+        train_common_params['manager.weight_decay'] = 1e-4
+        train_common_params['manager.momentum'] = 0.9
+        train_common_params['manager.step_size'] = 150
+        train_common_params['manager.gamma'] = 0.1
+        train_common_params['optimizer'] = optim.SGD(train_common_params['model'].parameters(),
+                  lr=train_common_params['manager.learning_rate'],
+                  momentum=train_common_params['manager.momentum'],
+                  weight_decay=train_common_params['manager.weight_decay'])
+        train_common_params['scheduler'] = optim.lr_scheduler.StepLR(train_common_params['optimizer'], step_size=train_common_params['manager.step_size'],
+                                  gamma=train_common_params['manager.gamma'])
 
     return train_common_params,infer_common_params,analyze_common_params
