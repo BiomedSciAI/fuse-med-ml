@@ -24,8 +24,8 @@ nibabel
 pycocotools>=2.0.1
 xmlrunner
 paramiko
-<<<<<<< HEAD
 elasticdeform 
-=======
 tables
->>>>>>> master
+psutil
+testbook
+ipykernel
