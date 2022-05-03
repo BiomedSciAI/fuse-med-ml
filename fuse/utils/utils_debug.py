@@ -19,7 +19,7 @@ Created on June 30, 2021
 
 from typing import Any
 
-from fuse.utils.utils_misc import Singleton
+from fuse.utils.misc.misc import Singleton
 
 
 class FuseUtilsDebug(metaclass=Singleton):

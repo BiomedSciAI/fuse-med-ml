@@ -17,10 +17,15 @@ opencv-python<=4.3.0.36
 ipython
 pydicom
 h5py
+hdf5plugin
 deepdiff
 statsmodels
 nibabel
 pycocotools>=2.0.1
 xmlrunner
 paramiko
+<<<<<<< HEAD
 elasticdeform 
+=======
+tables
+>>>>>>> master

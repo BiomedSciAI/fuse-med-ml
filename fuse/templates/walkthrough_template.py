@@ -20,7 +20,7 @@ Created on June 30, 2021
 import os
 
 from fuse.utils.utils_debug import FuseUtilsDebug
-from fuse.utils.utils_gpu import FuseUtilsGPU
+import fuse.utils.gpu as FuseUtilsGPU
 
 os.environ['skip_broker'] = '1'
 

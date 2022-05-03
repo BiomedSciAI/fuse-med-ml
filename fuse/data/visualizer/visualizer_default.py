@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 from fuse.data.visualizer.visualizer_base import FuseVisualizerBase
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 from fuse.utils.utils_logger import log_object_input_state
-from fuse.utils.utils_image_processing import FuseUtilsImageProcessing
+import fuse.utils.imaging.image_processing as ImageProcessing
 import torch
 
 
@@ -58,7 +58,7 @@ class FuseVisualizerDefault(FuseVisualizerBase):
         self.label_name = label_name
         self.metadata_pointers = metadata_names
         self.pred_name = pred_name
-        self.matching_function = FuseUtilsImageProcessing.match_img_to_input
+        self.matching_function = ImageProcessing.match_img_to_input
         self._gray_scale = gray_scale
 
     def extract_data(self, sample: dict) -> Tuple[Any, Any, Any, Any, Any]:

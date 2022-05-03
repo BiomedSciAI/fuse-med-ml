@@ -26,7 +26,7 @@ from typing import Optional, Union
 import pandas as pd
 
 from fuse.utils.utils_logger import fuse_logger_start
-from fuse.utils.utils_file import FuseUtilsFile
+from fuse.utils.file_io.file_io import save_dataframe
 from fuse.data.utils.export import DatasetExport
 
 from baseline.dataset import knight_dataset
@@ -88,7 +88,7 @@ def make_targets_file(data_path: str,
     targets_df.rename({"data.descriptor": "case_id", "data.gt.gt_global.task_1_label": "Task1-target", "data.gt.gt_global.task_2_label": "Task2-target"}, axis=1, inplace=True)
 
     # save file
-    FuseUtilsFile.save_dataframe(targets_df, output_filename, index=False)
+    save_dataframe(targets_df, output_filename, index=False)
 
     
     

@@ -1,22 +1,15 @@
 
 import os
-import sys
-
-from typing import Callable, Optional
 
 from fuse.data.visualizer.visualizer_default_3d import Fuse3DVisualizerDefault
 from fuse.data.augmentor.augmentor_default import FuseAugmentorDefault
-from fuse.data.augmentor.augmentor_toolbox import aug_op_affine, aug_op_color, aug_op_gaussian
+from fuse.data.augmentor.augmentor_toolbox import aug_op_affine, aug_op_gaussian
 from fuse.data.dataset.dataset_default import FuseDatasetDefault
 from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
 
-from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerUniform as Uniform
-from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerRandInt as RandInt
-from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerRandBool as RandBool
-from fuse_examples.tutorials.multimodality_image_clinical.download import download_and_extract_isic
+from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
 from torch.utils.data.dataloader import DataLoader
 from .input_processor import KiTSBasicInputProcessor
-from fuse_examples.tutorials.multimodality_image_clinical.ground_truth_processor import FuseSkinGroundTruthProcessor
 from fuse.data.data_source.data_source_default import FuseDataSourceDefault
 
 from fuse.data.augmentor.augmentor_toolbox import rotation_in_3d, squeeze_3d_to_2d, unsqueeze_2d_to_3d

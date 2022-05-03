@@ -22,7 +22,7 @@ import os
 import threading
 
 
-class FuseUtilsAtomicFileWriter:
+class AtomicFileWriter:
     """Writes a file to filename only on successful completion"""
 
     def __init__(self, filename: str):

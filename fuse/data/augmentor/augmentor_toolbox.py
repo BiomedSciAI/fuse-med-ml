@@ -29,10 +29,7 @@ from scipy.ndimage.interpolation import map_coordinates
 from torch import Tensor
 import elasticdeform as ed
 
-from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerGaussianPatch as Gaussian
-from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerRandBool as RandBool
-from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerRandInt as RandInt
-from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerUniform as Uniform
+from fuse.utils.rand.param_sampler import Gaussian, RandBool, RandInt, Uniform
 
 import PIL
 import torch.nn.functional as F
@@ -255,12 +252,16 @@ def aug_op_gaussian(aug_input: Tensor, mean: float = 0.0, std: float = 0.03, cha
     :return: the augmented tensor
     """
     aug_tensor = aug_input
+    dtype = aug_tensor.dtype
+    
     if channels is None:
         rand_patch = Gaussian(aug_tensor.shape, mean, std).sample()
         aug_tensor = aug_tensor + rand_patch
     else:
         rand_patch = Gaussian(aug_tensor[channels].shape, mean, std).sample()
         aug_tensor[channels] = aug_tensor[channels] + rand_patch
+    
+    aug_tensor = aug_tensor.to(dtype=dtype)
     return aug_tensor
 
 

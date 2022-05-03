@@ -20,7 +20,10 @@ from __future__ import annotations
 
 import copy
 import types
-from typing import Any, Union, List
+from typing import Any, Callable, Optional, Sequence, Union, List
+import numpy
+
+import torch
 
 class NDict(dict):
     """N(ested)Dict - wraps a python dict, and allows to access nested elements via '.' separated key desc
@@ -208,7 +211,61 @@ class NDict(dict):
             else:
                 break
         return '.'.join(partial_key)
-    
+
+    def pop(self, key:str) -> Any:
+        """
+        return the value nested_dict[key] and remove the key from the dict.
+        :param nested_dict: the dictionary
+        :param key: the key to return and remove
+        """
+        res = self[key]
+        del self[key]
+        return res
+
+    def indices(self, indices: Union[torch.Tensor, numpy.ndarray]) -> dict:
+        """
+        Extract the specified indices from each element in the dictionary (if possible)
+        :param nested_dict: input dict
+        :param indices: indices to extract. Either list of indices or boolean numpy array
+        :return: NDict with only the required indices
+        """
+        new_dict = {}
+        all_keys = self.keypaths()
+        for key in all_keys:
+            try:
+                value = self[key]
+                if isinstance(value, numpy.ndarray) or isinstance(value, torch.Tensor):
+                    new_value = value[indices]
+                elif isinstance(value, Sequence):
+                    new_value = [item for i, item in enumerate(value) if indices[i]]
+                else:
+                    new_value = value
+                new_dict[key] =  new_value
+            except:
+                print(f"failed to process key {key}")
+                raise
+        return new_dict
+
+    def apply_on_all(self, apply_func: Callable, *args: Any) -> None:
+        all_keys = self.keypaths()
+        for key in all_keys:
+            new_value = apply_func(self[key], *args)
+            self[key] = new_value
+
+
+    @classmethod
+    def get_multi(cls, nested_dict: NDict, keys: Optional[List[str]]=None) -> Any:
+        if keys is None:
+            keys = nested_dict.keypaths() #take all keys
+
+        ans = NDict()
+
+        for k in keys:
+            curr = nested_dict[k]
+            ans[k] = curr
+        
+        return ans
+       
     def __reduce__(self):
         return super().__reduce__()
 
