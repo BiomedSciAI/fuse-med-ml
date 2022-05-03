@@ -17,6 +17,7 @@ from fuseimg.data.ops.aug.color import OpAugColor
 from fuseimg.data.ops.aug.geometry import OpAugAffine2D , OpAugCropAndResize2D
 from fuse.data.ops.ops_aug_common import OpSample
 from fuse.data.ops.op_base import OpBase
+from fuse.data.ops.ops_read import OpReadDataframe
 from fuse.utils.ndict import NDict
 import torch
 from fuse.utils.rand.param_sampler import RandBool, RandInt, Uniform
@@ -37,22 +38,21 @@ class OpCmmdDecode(OpBase):
     Op that extract data from pytorch dataset that returning sequence of values and adds those values to sample_dict
     """
 
-    def __init__(self, df : pd.DataFrame, sample_keys: Sequence[str]):
+    def __init__(self, df : pd.DataFrame):
         """
         :param dataset: the pytorch dataset to convert. The dataset[i] expected to return sequence of values or a single value
         :param sample_keys: sequence keys - naming each value returned by dataset[i]
         """
         # store input arguments
         super().__init__()
-        self._sample_keys = sample_keys
         self._df = df
     def __call__(self, sample_dict: NDict,  op_id: Optional[str]) -> NDict:
         '''
         
         '''
-        sample_keys=('data.image', 'data.label')
-        name, dataset_index = get_sample_id(sample_keys)
-        sid = self._df.iloc[dataset_index]['file']
+        #sample_keys=('data.image', 'data.label')
+        sample_id = get_sample_id(sample_dict)
+        sid = self._df.iloc[sample_id]['file']
         
         img_filename_key = 'data.input.img_path'
         sample_dict[img_filename_key] = sid
@@ -105,7 +105,8 @@ def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache
     sample_ids=[id for id in range(len(folds_df))]
 
     static_pipeline = PipelineDefault("static", [
-        (OpCmmdDecode(folds_df,sample_ids), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path" 
+        # (OpCmmdDecode(folds_df), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path" 
+        (OpReadDataframe(folds_df,key_column = None , columns_to_extract = ['file','classification'] , rename_columns=dict(file="data.input.img_path",classification="data.gt.classification")), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path" 
         (OpLoadDicom(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", format="nib")),
         (OpToRange(), dict(key="data.input.img", from_range=(0, 255), to_range=(0, 1))),
         (OpAugCropAndResize2D(), dict(key="data.input.img", from_range=(0, 255), to_range=(0, 1))),

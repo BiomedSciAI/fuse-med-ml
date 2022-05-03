@@ -75,7 +75,8 @@ class OpReadDataframe(OpBase):
             df.rename(self._rename_columns, axis=1, inplace=True)
 
         # convert to dictionary: {index -> {column -> value}}
-        df = df.set_index(self._key_column)
+        if self._key_column is not None :
+            df = df.set_index(self._key_column)
         self._data = df.to_dict(orient='index')
 
     def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs) -> Union[None, dict, List[dict]]:
@@ -88,7 +89,7 @@ class OpReadDataframe(OpBase):
 
         # add values tp sample_dict
         for name, value in sample_data.items():
-            sample_dict[f"data.{name}"] = value
+            sample_dict[name] = value
 
         return sample_dict
 
