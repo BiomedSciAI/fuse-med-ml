@@ -2,10 +2,8 @@ import torch.optim as optim
 from fuse_examples.classification.multimodality.model_tabular_imaging import *
 from fuse.losses.loss_default import FuseLossDefault
 import torch.nn.functional as F
-from fuse.metrics.classification.metric_auc import FuseMetricAUC
-from fuse.metrics.classification.metric_accuracy import FuseMetricAccuracy
+from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC
 from fuse_examples.classification.multimodality.loss_multimodal_contrastive_learning import FuseLossMultimodalContrastiveLearning
-from fuse.models.model_default import FuseModelDefault
 from fuse.models.heads.head_global_pooling_classifier import FuseHeadGlobalPoolingClassifier
 from fuse.models.heads.head_1d_classifier import FuseHead1dClassifier
 from fuse.models.model_ensemble import FuseModelEnsemble
@@ -19,12 +17,16 @@ def multimodal_parameters(train_common_params: dict,infer_common_params: dict,an
         continuous_tabular_input=(('data.continuous', 1),),
         categorical_tabular_input=(('data.categorical', 1),),
         backbone_categorical_tabular=train_common_params['tabular_encoder_categorical'],
-        backbone_continuous_tabular = train_common_params['tabular_encoder_continuous'],
+        backbone_continuous_tabular=train_common_params['tabular_encoder_continuous'],
+        backbone_cat_tabular=train_common_params['tabular_encoder_cat'],
         heads=None,
         )
 
     model_imaging = train_common_params['imaging_encoder']
     model_multimodel_concat = TabularImagingConcat()
+    model_projection_imaging = train_common_params['imaging_projector']
+    model_projection_tabular = train_common_params['tabular_projector']
+
     heads_for_multimodal = {
                          'multimodal_head':
                              [
@@ -71,10 +73,10 @@ def multimodal_parameters(train_common_params: dict,infer_common_params: dict,an
 
                         }
     metric_for_multimodal = {
-                        'multimodal_auc': FuseMetricAUC(pred_name='model.output.multimodal', target_name='data.gt'),
-                        'tabular_auc': FuseMetricAUC(pred_name='model.output.tabular', target_name='data.gt'),
-                        'imaging_auc': FuseMetricAUC(pred_name='model.output.imaging', target_name='data.gt'),
-                        'ensemble_auc':FuseMetricAUC(pred_name='model.output.tabular_ensemble_average', target_name='data.gt'),
+                        'multimodal_auc': MetricAUCROC(pred='model.output.multimodal', target='data.gt'),
+                        'tabular_auc': MetricAUCROC(pred='model.output.tabular', target='data.gt'),
+                        'imaging_auc': MetricAUCROC(pred='model.output.imaging', target='data.gt'),
+                        'ensemble_auc':MetricAUCROC(pred='model.output.tabular_ensemble_average', target='data.gt'),
                         }
     ################################################
 
@@ -84,7 +86,7 @@ def multimodal_parameters(train_common_params: dict,infer_common_params: dict,an
         train_common_params['model'] = FuseMultiModalityModel(
                                             tabular_inputs=(('data.continuous', 1), ('data.categorical', 1),),
                                             tabular_backbone=model_tabular,
-                                            tabular_heads=heads_for_multimodal['tabular_head'],
+                                            heads=heads_for_multimodal['tabular_head'],
                                         )
         train_common_params['loss'] = {
             'cls_loss': loss_for_multimodal['tabular_loss'],
@@ -110,7 +112,7 @@ def multimodal_parameters(train_common_params: dict,infer_common_params: dict,an
         train_common_params['model'] = FuseMultiModalityModel(
                                             imaging_inputs=(('data.image', 1),),
                                             imaging_backbone=model_imaging,
-                                            imaging_heads=heads_for_multimodal['imaging_head'],
+                                            heads=heads_for_multimodal['imaging_head'],
                                         )
         train_common_params['loss'] = {
             'cls_loss': loss_for_multimodal['imaging_loss'],
@@ -133,9 +135,8 @@ def multimodal_parameters(train_common_params: dict,infer_common_params: dict,an
                                             tabular_backbone=model_tabular,
                                             imaging_backbone=model_imaging,
                                             multimodal_backbone=model_multimodel_concat,
-                                            imaging_heads=heads_for_multimodal['imaging_head'],
-                                            tabular_heads=heads_for_multimodal['tabular_head'],
-                                            multimodal_heads=heads_for_multimodal['multimodal_head'],
+                                            imaging_projection= model_projection_imaging,
+                                            heads=[heads_for_multimodal['multimodal_head'][0]],
                                         )
 
         train_common_params['loss'] = {
@@ -175,22 +176,6 @@ def multimodal_parameters(train_common_params: dict,infer_common_params: dict,an
         analyze_common_params['metrics'] =  train_common_params['metrics'] = {
                                                     'auc': metric_for_multimodal['ensemble_auc'],
                                                 }
-
-
-        # train_common_params['loss'] = {
-        #     'cls_loss': loss_for_multimodal['ensemble_loss'],
-        #
-        # }
-        # train_common_params['metrics'] = {
-        #     'auc': metric_for_multimodal['ensemble_auc'],
-        # }
-        # train_common_params['manager.learning_rate'] = 1e-5
-        # train_common_params['manager.weight_decay'] = 0.001
-        #
-        # train_common_params['optimizer'] = optim.Adam(train_common_params['model'].parameters(), lr=train_common_params['manager.learning_rate'],
-        #                                                  weight_decay=train_common_params['manager.weight_decay'])
-        # train_common_params['scheduler'] = optim.lr_scheduler.ReduceLROnPlateau(train_common_params['optimizer'])
-
 
     #Mo:different parameter
     if train_common_params['fusion_type'] == 'cotrastive':

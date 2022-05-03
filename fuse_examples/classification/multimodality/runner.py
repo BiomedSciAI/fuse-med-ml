@@ -17,6 +17,7 @@ Created on June 30, 2021
 import os
 import logging
 from torch.utils.data.dataloader import DataLoader
+import torch.nn as nn
 
 import fuse.utils.gpu as FuseUtilsGPU
 from fuse.utils.utils_debug import FuseUtilsDebug
@@ -36,6 +37,7 @@ from fuse_examples.classification.multimodality.mg_dataset_clinical_and_annotati
 from fuse_examples.classification.multimodality.multimodel_parameters import multimodal_parameters
 from fuse_examples.classification.multimodality.mg_dataset_clinical_and_annotations import mg_clinical_annotations_dataset
 from fuse_examples.classification.multimodality.multimodal_paths import multimodal_paths
+from fuse_examples.classification.multimodality.model_tabular_imaging import project_imaging, project_tabular
 
 
 
@@ -65,7 +67,7 @@ root = ''
 root_data = '/projects/msieve_dev3/usr/Tal/my_research/multi-modality/'  # TODO: add path to the data folder
 assert root_data is not None, "Error: please set root_data, the path to the stored MM dataset location"
 # Name of the experiment
-experiment = 'late_fusion_non_visual'
+experiment = 'late_fusion_non_annotated'
 # Path to cache data
 cache_path = root_data+'/mg_radiologic/'
 
@@ -104,7 +106,7 @@ TRAIN_COMMON_PARAMS['manager.train_params'] = {
 # best_epoch_source
 # if an epoch values are the best so far, the epoch is saved as a checkpoint.
 TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = {
-    'source':'metrics.auc.macro_avg',#'losses.cls_loss',# 'metrics.auc.macro_avg',  # can be any key from losses or metrics dictionaries
+    'source':'metrics.auc',#'losses.cls_loss',# 'metrics.auc.macro_avg',  # can be any key from losses or metrics dictionaries
     'optimization': 'max',  # can be either min/max
     'on_equal_values': 'better',
     # can be either better/worse - whether to consider best epoch when values are equal
@@ -119,9 +121,9 @@ features_dic = tabular_feature_mg()
 TRAIN_COMMON_PARAMS['post_processing'] = PostProcessing(features_dic['continuous_clinical_feat'],
                                                         features_dic['categorical_clinical_feat'],
                                                         ['gt'],
-                                                        features_dic['visual_feat'],
-                                                        features_dic['non_visual_feat'],
-                                                        use_imaging=False, use_non_imaging=True)
+                                                        features_dic['annotated_feat'],
+                                                        features_dic['non_annotated_feat'],
+                                                        use_annotated=False, use_non_annotated=True)
 
 #define processors
 TRAIN_COMMON_PARAMS['imaging_processor'] = FuseMGInputProcessor
@@ -133,14 +135,15 @@ TRAIN_COMMON_PARAMS['tabular_feature_size'] = 256
 TRAIN_COMMON_PARAMS['tabular_encoder_categorical'] = FuseMultilayerPerceptronBackbone(
                                                        layers=[128, len(features_dic['categorical_clinical_feat'])],
                                                        mlp_input_size=len(features_dic['categorical_clinical_feat']))
-TRAIN_COMMON_PARAMS['tabular_encoder_continuous'] = FuseMultilayerPerceptronBackbone(
+TRAIN_COMMON_PARAMS['tabular_encoder_continuous'] = None
+TRAIN_COMMON_PARAMS['tabular_encoder_cat'] = FuseMultilayerPerceptronBackbone(
                                                        layers=[TRAIN_COMMON_PARAMS['tabular_feature_size']],
                                                        mlp_input_size=len(features_dic['categorical_clinical_feat'])+\
                                                        len(features_dic['continuous_clinical_feat']))
 
 TRAIN_COMMON_PARAMS['imaging_encoder'] = FuseBackboneInceptionResnetV2(input_channels_num=1)
-
-
+TRAIN_COMMON_PARAMS['imaging_projector'] = project_imaging(projection_imaging=nn.Conv2d(TRAIN_COMMON_PARAMS['imaging_feature_size'], TRAIN_COMMON_PARAMS['tabular_feature_size'], kernel_size=1, stride=1))
+TRAIN_COMMON_PARAMS['tabular_projector'] = None
 
 TRAIN_COMMON_PARAMS['dataset_func'] = mg_clinical_annotations_dataset(
                                                           tabular_filename=TRAIN_COMMON_PARAMS['paths']['tabular_filename'],

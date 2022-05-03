@@ -60,7 +60,7 @@ def imaging_augmentation()-> Iterable[Any]:
 #     return tabular_processor
 
 
-def imaging_tabular_dataset(data_split: List[pd.Dataframe],
+def imaging_tabular_dataset(data_split: List[pd.DataFrame],
                             imaging_processor: FuseProcessorBase,
                             tabular_processor: FuseProcessorBase,
                             label_key:str,

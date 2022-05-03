@@ -3,9 +3,6 @@ import os
 from typing import Callable, Optional,Tuple,Dict, List
 import torch
 
-
-
-# from autogluon.tabular import TabularPredictor
 from fuse_examples.classification.multimodality.dataset import imaging_tabular_dataset
 from fuse_examples.classification.cmmd.input_processor import FuseMGInputProcessor
 from fuse.data.processor.processor_dataframe import FuseProcessorDataFrame
@@ -123,7 +120,7 @@ def tabular_feature_mg():
                                          'race_1', 'race_2', 'race_3', 'race_4', 'race_5', 'race_6', 'race_7', 'race_8',
                                          'race_9', 'race_10', 'max_prev_birad_class_0', 'max_prev_birad_class_1',
                                          'max_prev_birad_class_2', 'max_prev_birad_class_3'] #63 categorical clinical features
-    features_dict['visual_feat'] = ['findings_size', 'findings_x_max', 'findings_y_max', 'side', 'is_distortions',
+    features_dict['annotated_feat'] = ['findings_size', 'findings_x_max', 'findings_y_max', 'side', 'is_distortions',
                            'is_spiculations', 'is_susp_calcifications',
                            'breast_density_1', 'breast_density_2', 'breast_density_3',
                            'breast_density_4', 'final_side_birad_0', 'final_side_birad_1',
@@ -138,13 +135,12 @@ def tabular_feature_mg():
                            'type_0', 'type_1', 'type_2', 'type_3', 'type_4', 'type_5', 'type_6',
                            'max_prev_birad_class_0', 'max_prev_birad_class_1', 'max_prev_birad_class_2',
                            'max_prev_birad_class_3']
-    features_dict['non_visual_feat'] = ['DistanceSourceToPatient', 'DistanceSourceToDetector', 'x_pixel_spacing',
+    features_dict['non_annotated_feat'] = ['DistanceSourceToPatient', 'DistanceSourceToDetector', 'x_pixel_spacing',
                                'XRayTubeCurrent',
                                'CompressionForce', 'exposure_time', 'KVP', 'body_part_thickness',
                                'RelativeXRayExposure',
                                'exposure_in_mas', 'age', 'race_0', 'race_1', 'race_2', 'race_3', 'race_4', 'race_5',
                                'race_6', 'race_7', 'race_8', 'race_9', 'race_10']
-
 
 
     return features_dict
@@ -165,7 +161,8 @@ def imaging_mg(imaging_filename,key_columns):
     if os.path.exists(imaging_filename):
         df = pd.read_csv(imaging_filename)
     else:
-        df = data_curation(imaging_filename)
+        from fuse_examples.classification.multimodality.data_curation import mg_data_curation
+        df = mg_data_curation(imaging_filename)
 
     df1 = df.groupby(key_columns)[img_sample_column].apply(lambda x:  list(map(str, x))).reset_index()
     df2 = df.groupby(key_columns)[label_column].apply(lambda x:  list(map(str, x))).reset_index()
@@ -184,30 +181,14 @@ def merge_datasets(tabular_filename,imaging_filename,key_columns):
     dataset = pd.merge(tabular_data, imaging_data, on=key_columns, how='inner')
     return dataset,tabular_columns,imaging_columns
 
-#------------------Baseline
-def apply_gluon_baseline(train_set,test_set,label,save_path):
-
-    predictor = TabularPredictor(label=label, path=save_path, eval_metric='roc_auc').fit(train_set)
-    results = predictor.fit_summary(show_plot=True)
-
-    # Inference time:
-    y_test = test_set[label]
-    test_data = test_set.drop(labels=[label],
-                               axis=1)  # delete labels from test data since we wouldn't have them in practice
-    print(test_data.head())
-
-    predictor = TabularPredictor.load(
-        save_path)
-    y_pred = predictor.predict_proba(test_data)
-    perf = predictor.evaluate_predictions(y_true=y_test, y_pred=y_pred, auxiliary_metrics=True)
 
 def mg_clinical_annotations_dataset(
                tabular_filename:str,
                imaging_filename:str,
                train_val_test_filenames:list,
 
-               imaging_processor: FuseProcessorBase,,
-               tabular_processor: FuseProcessorBase,,
+               imaging_processor: FuseProcessorBase,
+               tabular_processor: FuseProcessorBase,
 
                key_columns:list,
                label_key:str,
@@ -232,7 +213,7 @@ def mg_clinical_annotations_dataset(
     features_list = list(tabular_columns)
     [features_list.remove(x) for x in key_columns]
     train_dataset, validation_dataset, test_dataset = imaging_tabular_dataset(
-                                                                        df=[train_set, val_set, test_set],
+                                                                        data_split=[train_set, val_set, test_set],
                                                                         imaging_processor=imaging_processor,
                                                                         tabular_processor=tabular_processor,
                                                                         label_key=label_key,
