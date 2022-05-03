@@ -22,7 +22,7 @@ from fuse.utils.ndict import NDict
 import torch
 from fuse.utils.rand.param_sampler import RandBool, RandInt, Uniform
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
-
+import numpy as np
 # from fuse_examples.imaging.classification.cmmd.input_processor import MGInputProcessor
 # from fuse_examples.imaging.classification.cmmd.ground_truth_processor import MGGroundTruthProcessor
 from fuse.data.utils.split import SplitDataset
@@ -30,33 +30,51 @@ from tempfile import mkdtemp
 from typing import Tuple
 from fuse.data.utils.sample import get_sample_id
 
-class OpCmmdDecode(OpBase):
-    '''
-    decodes sample id into image and segmentation filename
-    '''
-    """
-    Op that extract data from pytorch dataset that returning sequence of values and adds those values to sample_dict
-    """
+def create_folds(input_source: str,
+                input_df : pd.DataFrame,
+                phase: str,
+                no_mixture_id: str,
+                balance_keys: np.ndarray,
+                reset_partition_file: bool,
+                folds: Tuple[int],
+                num_folds : int =5,
+                partition_file_name: str = None
+                ):
 
-    def __init__(self, df : pd.DataFrame):
-        """
-        :param dataset: the pytorch dataset to convert. The dataset[i] expected to return sequence of values or a single value
-        :param sample_keys: sequence keys - naming each value returned by dataset[i]
-        """
-        # store input arguments
-        super().__init__()
-        self._df = df
-    def __call__(self, sample_dict: NDict,  op_id: Optional[str]) -> NDict:
-        '''
-        
-        '''
-        #sample_keys=('data.image', 'data.label')
-        sample_id = get_sample_id(sample_dict)
-        sid = self._df.iloc[sample_id]['file']
-        
-        img_filename_key = 'data.input.img_path'
-        sample_dict[img_filename_key] = sid
-        return sample_dict
+    """
+    Create DataSource which is divided to num_folds folds, supports either a path to a csv or data frame as input source.
+    The function creates a partition file which saves the fold partition
+    :param input_source:       path to dataframe containing the samples ( optional )
+    :param input_df:           dataframe containing the samples ( optional )
+    :param no_mixture_id:      The key column for which no mixture between folds should be forced
+    :param balance_keys:       keys for which balancing is forced
+    :param reset_partition_file: boolean flag which indicate if we want to reset the partition file
+    :param folds               indicates which folds we want to retrieve from the fold partition
+    :param num_folds:          number of folds to divide the data
+    :param partition_file_name:name of a csv file for the fold partition
+                                If train = True, train/val indices are dumped into the file,
+                                If train = False, train/val indices are loaded
+    :param phase:              specifies if we are in train/validation/test/all phase
+    """
+    if reset_partition_file is True and phase not in ['train','all']:
+        raise Exception("Sorry, it is possible to reset partition file only in train / all phase")
+    if reset_partition_file is True or not os.path.isfile(partition_file_name):
+        # Load csv file
+            # ----------------------
+
+            if input_source is not None :
+                input_df = pd.read_csv(input_source)
+                create_folds.folds_df = SplitDataset.balanced_division(df = input_df ,
+                                                                    no_mixture_id = no_mixture_id,
+                                                                    key_columns = balance_keys ,
+                                                                    nfolds = num_folds ,
+                                                                    print_flag=True )
+                # Extract entities
+                # ----------------
+            else:
+                create_folds.folds_df = pd.read_csv(partition_file_name)
+
+    return create_folds.folds_df[create_folds.folds_df['fold'].isin(folds)]
     
 def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache', reset_cache: bool = False,
                       post_cache_processing_func: Optional[Callable] = None) -> Tuple[DatasetDefault, DatasetDefault]:
@@ -96,17 +114,20 @@ def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache
     lgr = logging.getLogger('Fuse')
     target = 'classification'
     input_source_gt = merge_clinical_data_with_dicom_tags(data_dir, data_misc_dir, target)
-    input_df = pd.read_csv(input_source_gt)
-    folds_df = SplitDataset.balanced_division(df = input_df ,
-                                                no_mixture_id = 'ID1',
-                                                key_columns = [target] ,
-                                                nfolds = 5 ,
-                                                print_flag=True )
-    sample_ids=[id for id in range(len(folds_df))]
+    partition_file_path = os.path.join(data_misc_dir, 'data_fold_new.csv')
+    train_data_source = create_folds(input_source=input_source_gt,
+                                            input_df=None,
+                                            phase='train',
+                                            no_mixture_id='ID1',
+                                            balance_keys=[target],
+                                            reset_partition_file=True,
+                                            folds=[0,1,2],
+                                            num_folds=5,
+                                            partition_file_name=partition_file_path)
+    sample_ids=[id for id in range(len(train_data_source))]
 
     static_pipeline = PipelineDefault("static", [
-        # (OpCmmdDecode(folds_df), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path" 
-        (OpReadDataframe(folds_df,key_column = None , columns_to_extract = ['file','classification'] , rename_columns=dict(file="data.input.img_path",classification="data.gt.classification")), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path" 
+        (OpReadDataframe(train_data_source,key_column = None , columns_to_extract = ['file','classification'] , rename_columns=dict(file="data.input.img_path",classification="data.gt.classification")), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path" 
         (OpLoadDicom(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", format="nib")),
         (OpToRange(), dict(key="data.input.img", from_range=(0, 255), to_range=(0, 1))),
         (OpAugCropAndResize2D(), dict(key="data.input.img", from_range=(0, 255), to_range=(0, 1))),
