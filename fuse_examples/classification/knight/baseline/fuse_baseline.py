@@ -31,8 +31,8 @@ import time
 # allocate gpus
 # uncomment if you want to use specific gpus instead of automatically looking for free ones
 task_num = 1 # 1 or 2
-force_gpus = [0,1] # specify the GPU indices you want to use
-use_data = {'imaging': True, 'clinical': True} # specify whether to use imaging, clinical data or both
+force_gpus = [4,5] # specify the GPU indices you want to use
+use_data = {'imaging': True, 'clinical': False} # specify whether to use imaging, clinical data or both
 batch_size = 2
 resize_to = (256, 256, 110) 
 print_and_visualize = True
@@ -67,8 +67,8 @@ def main():
 
     # read environment variables for data, cache and results locations
     data_path = os.environ['KNIGHT_DATA']
-    cache_path = os.environ['KNIGHT_CACHE']
-    results_path = os.environ['KNIGHT_RESULTS'] 
+    cache_path = "/data/usr/il018850/data/"#os.environ['KNIGHT_CACHE']
+    results_path = "/data/usr/il018850/data/"#os.environ['KNIGHT_RESULTS'] 
 
     ## Basic settings:
     ##############################################################################

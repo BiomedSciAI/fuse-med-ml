@@ -23,6 +23,7 @@ from typing import Tuple, Any, List, Iterable, Optional
 import numpy
 import torch
 import torchvision.transforms.functional as TTF
+from torchvision.transforms import RandomCrop
 from PIL import Image
 from scipy.ndimage.filters import gaussian_filter
 from scipy.ndimage.interpolation import map_coordinates
@@ -135,6 +136,40 @@ def aug_op_crop_and_resize(aug_input: Tensor,
 
     return aug_tensor
 
+def aug_op_random_crop_and_pad(aug_input: Tensor,
+                           out_size: Tuple,
+                           fill: int = 0,
+                           centralize: bool=False ) -> Tensor:
+    """
+    random crop to certain size. if the image is smaller than the size then its padded.
+    :param aug_input: The tensor to augment
+    :param out_size: shape of the output
+    :return: the augmented tensor
+    """
+    assert len(aug_input.shape) == len(out_size)
+    depth, height, width = aug_input.shape
+
+    aug_tensor = torch.full(out_size, fill)
+
+    if depth > out_size[0]:
+        crop_start = RandInt(0, depth - out_size[0]).sample()
+        if centralize:
+            crop_start = round((depth - out_size[0])/2)
+        aug_input = aug_input[crop_start:crop_start+out_size[0] , :,:]
+    if height > out_size[1]:
+        crop_start = RandInt(0, height - out_size[1]).sample()
+        if centralize:
+            crop_start = round((height - out_size[1])/2)
+        aug_input = aug_input[:, crop_start:crop_start+out_size[1],:]
+    if width > out_size[2]:
+        crop_start = RandInt(0, width - out_size[2]).sample()
+        if centralize:
+            crop_start = round((width - out_size[2])/2)
+        aug_input = aug_input[:,:,crop_start:crop_start+out_size[2]]
+
+    aug_tensor[:depth,:height,:width] = aug_input
+
+    return aug_tensor
 
 ######## Color augmentation
 def aug_op_clip(aug_input: Tensor, clip: Tuple[float, float] = (-1.0, 1.0)) -> Tensor:
