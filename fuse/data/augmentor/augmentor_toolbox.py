@@ -62,7 +62,7 @@ def aug_op_affine(aug_input: Tensor, rotate: float = 0.0, translate: Tuple[float
         channels = list(range(aug_input.shape[0]))
     aug_tensor = aug_input
     for channel in channels:
-        aug_channel_tensor = aug_input[channel].numpy()
+        aug_channel_tensor = aug_input[channel].numpy().astype(numpy.uint8)
         aug_channel_tensor = Image.fromarray(aug_channel_tensor)
         aug_channel_tensor = TTF.affine(aug_channel_tensor, angle=rotate, scale=scale, translate=translate, shear=shear)
         if flip[0]:
@@ -71,7 +71,7 @@ def aug_op_affine(aug_input: Tensor, rotate: float = 0.0, translate: Tuple[float
             aug_channel_tensor = TTF.hflip(aug_channel_tensor)
 
         # convert back to torch tensor
-        aug_channel_tensor = numpy.array(aug_channel_tensor)
+        aug_channel_tensor = numpy.array(aug_channel_tensor).astype(numpy.uint8)
         aug_channel_tensor = torch.from_numpy(aug_channel_tensor)
 
         # set the augmented channel
@@ -149,7 +149,7 @@ def aug_op_random_crop_and_pad(aug_input: Tensor,
     assert len(aug_input.shape) == len(out_size)
     depth, height, width = aug_input.shape
 
-    aug_tensor = torch.full(out_size, fill)
+    aug_tensor = torch.full(out_size, fill, dtype=torch.float32)
 
     if depth > out_size[0]:
         crop_start = RandInt(0, depth - out_size[0]).sample()

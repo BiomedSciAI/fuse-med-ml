@@ -30,8 +30,9 @@ import time
 # and vice versa, or set both to True to use both.
 # allocate gpus
 # uncomment if you want to use specific gpus instead of automatically looking for free ones
+experiment_num = 2
 task_num = 1 # 1 or 2
-force_gpus = [4,5] # specify the GPU indices you want to use
+force_gpus = [experiment_num*2,(experiment_num*2)+1] # specify the GPU indices you want to use
 use_data = {'imaging': True, 'clinical': False} # specify whether to use imaging, clinical data or both
 batch_size = 2
 resize_to = (256, 256, 110) 
@@ -67,7 +68,7 @@ def main():
 
     # read environment variables for data, cache and results locations
     data_path = os.environ['KNIGHT_DATA']
-    cache_path = "/data/usr/il018850/data/"#os.environ['KNIGHT_CACHE']
+    cache_path = f"/data/usr/il018850/data/{experiment_num}"#os.environ['KNIGHT_CACHE']
     results_path = "/data/usr/il018850/data/"#os.environ['KNIGHT_RESULTS'] 
 
     ## Basic settings:
@@ -94,7 +95,7 @@ def main():
     ##############################################################################
 
     train_dl, valid_dl, _, _, _, _ = knight_dataset(data_dir=data_path, cache_dir=cache_path, split=split, \
-                reset_cache=False, rand_gen=rand_gen, batch_size=batch_size, resize_to=resize_to, \
+                reset_cache=True, rand_gen=rand_gen, batch_size=batch_size, resize_to=resize_to, \
                 task_num=task_num, target_name=target_name, num_classes=num_classes)
 
     ## Simple data visualizations/analysis:

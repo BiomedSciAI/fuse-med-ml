@@ -76,28 +76,29 @@ class KiTSBasicInputProcessor(FuseProcessorBase):
             image = np.squeeze(image, axis=0)
 
             #CHANGE
-            # inner_image_height, inner_image_width, inner_image_depth = image.shape[0], image.shape[1], image.shape[2]
-            # h_ratio = self.resize_to[0] / inner_image_height
-            # w_ratio = self.resize_to[1] / inner_image_width
-            # if h_ratio>=1 and w_ratio>=1:
-            #     resize_ratio_xy = min(h_ratio, w_ratio)
-            # elif h_ratio<1 and w_ratio<1:
-            #     resize_ratio_xy = max(h_ratio, w_ratio)
-            # else:
-            #     resize_ratio_xy = 1
-            # #resize_ratio_z = self.resize_to[2] / inner_image_depth
-            # if resize_ratio_xy != 1 or inner_image_depth != self.resize_to[2]:
-            #     image = skimage.transform.resize(image,
-            #                                             output_shape=(int(inner_image_height * resize_ratio_xy),
-            #                                                             int(inner_image_width * resize_ratio_xy),
-            #                                                             int(self.resize_to[2])),
-            #                                             mode='reflect',
-            #                                             anti_aliasing=True
-            #                                             )
+            inner_image_height, inner_image_width, inner_image_depth = image.shape[0], image.shape[1], image.shape[2]
+            h_ratio = self.resize_to[0] / inner_image_height
+            w_ratio = self.resize_to[1] / inner_image_width
+            if h_ratio>=1 and w_ratio>=1:
+                resize_ratio_xy = min(h_ratio, w_ratio)
+            elif h_ratio<1 and w_ratio<1:
+                resize_ratio_xy = max(h_ratio, w_ratio)
+            else:
+                resize_ratio_xy = 1
+            #resize_ratio_z = self.resize_to[2] / inner_image_depth
+            if resize_ratio_xy != 1 or inner_image_depth != self.resize_to[2]:
+                image = skimage.transform.resize(image,
+                                                        output_shape=(round(inner_image_height * resize_ratio_xy),
+                                                                        round(inner_image_width * resize_ratio_xy),
+                                                                        int(self.resize_to[2])),
+                                                        mode='reflect',
+                                                        anti_aliasing=True
+                                                        )
 
             #CHANGE
             
-
+            if image.shape != (256,256,110):
+                print("problem")
             # take patch
             # convert image from shape (H x W x D) to shape (D x H x W) 
             image = np.moveaxis(image , -1, 0)
@@ -109,7 +110,7 @@ class KiTSBasicInputProcessor(FuseProcessorBase):
             # numpy to tensor
             sample = torch.from_numpy(image)
 
-            sample = aug_op_random_crop_and_pad(sample, (256,256,110),0, centralize=False)
+            # sample = aug_op_random_crop_and_pad(sample, (110,256,256),0, centralize=True)
             sample = torch.unsqueeze(sample, 0)
 
 
