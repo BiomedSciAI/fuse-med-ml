@@ -28,7 +28,7 @@ class TestDatasets(unittest.TestCase):
             sample = dataset[sample_index]
             self.assertEqual(get_sample_id(sample), f"case_{sample_index:05d}")
 
-    @testbook(notebook_path, execute=range(0,4))
+    @testbook(notebook_path, execute=range(0,4), timeout=120)
     def test_basic(tb, self):
         tb.execute_cell([4,5])
 
@@ -38,7 +38,7 @@ class TestDatasets(unittest.TestCase):
             """
         )
     
-    @testbook(notebook_path, execute=range(0,4))
+    @testbook(notebook_path, execute=range(0,4), timeout=120)
     def test_caching(tb, self):
         tb.execute_cell([9])
 
@@ -49,7 +49,7 @@ class TestDatasets(unittest.TestCase):
             """
         )
     
-    @testbook(notebook_path, execute=range(0,4))
+    @testbook(notebook_path, execute=range(0,4), timeout=120)
     def test_custom(tb, self):
         tb.execute_cell([25])
 

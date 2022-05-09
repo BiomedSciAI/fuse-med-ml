@@ -92,7 +92,6 @@ class FocalLoss(LossBase):
         :param resize_mode:             Resize mode- either using a max pooling kernel(default), or using PyTorch interpolation ('interpolate'/'maxpool')
         """
         super().__init__(pred_name, target_name, weight)
-        self.class_weights = class_weights # Should be deleted? -Sagi's TEMP note
         self.filter_func = filter_func
         self.resize_mode = resize_mode
         self.callable = WeightedFocalLoss(alpha=alpha, gamma=gamma)

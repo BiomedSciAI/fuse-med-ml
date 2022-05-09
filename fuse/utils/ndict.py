@@ -133,13 +133,13 @@ class NDict(dict):
 
     def merge(self, other: dict) -> NDict:
         """
-        returns a new NDict which is a merge between the current and the other NDict, common values are overridden 
+        inplace merge between self and other.
         """
-        self_flat = self.flatten()
         other_flat = NDict(other).flatten()
-        self_flat.update(other_flat)
+        for k,v in other_flat.items():
+            self[k] = v
 
-        return NDict(self_flat)
+        return
 
     def __getitem__(self, key: str) -> Any:        
         """
@@ -260,9 +260,9 @@ class NDict(dict):
     def __contains__(self, o: str) -> bool:
         return o == self.get_closest_key(o)
 
-    def get(self, key: str, defualt_value=None):
+    def get(self, key: str, default_value=None):
         if key not in self:
-            return defualt_value
+            return default_value
         return self[key]
     
     def get_multi(self, keys: Optional[List[str]]=None) -> NDict:

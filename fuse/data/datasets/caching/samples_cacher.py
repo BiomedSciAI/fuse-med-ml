@@ -268,7 +268,7 @@ class SamplesCacher:
                 loaded_sample = NDict(load_pickle(extension_less+'.pkl.gz'))
                 if os.path.isfile(extension_less+'.hdf5'):
                     loaded_sample_hdf5_part = load_hdf5(extension_less+'.hdf5')
-                    loaded_sample = loaded_sample.merge(loaded_sample_hdf5_part)
+                    loaded_sample.merge(loaded_sample_hdf5_part)
                 return loaded_sample
                                 
         raise Exception(f'Expected to find a cached sample for sample_id={sample_id} but could not find any!')
