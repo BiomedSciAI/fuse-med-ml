@@ -38,7 +38,7 @@ class TestDatasets(unittest.TestCase):
         SkinLesion.download(self.skin_lesion_data_dir)
 
         dataset = SkinLesion.dataset(data_path=self.skin_lesion_data_dir, cache_dir=self.skin_lesion_cache_dir, reset_cache=True)
-
+        
 
 
     @testbook(notebook_path, execute=range(0,4))

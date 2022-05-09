@@ -46,7 +46,7 @@ class OpLoadRGBImage(OpBase):
         self._dir_path = dir_path
         pass
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key_in: str, key_out: str, format: str="infer"):
+    def __call__(self, sample_dict: NDict, op_id: Optional[str], key_in: str, key_out: str):
         """
         :param key_in: the key name in sample_dict that holds the filename
         :param key_out: 

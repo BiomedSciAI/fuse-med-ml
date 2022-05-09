@@ -14,7 +14,7 @@ from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuse.utils import NDict
 
 from fuseimg.data.ops.image_loader import OpLoadRGBImage
-
+from fuseimg.data.ops.color import OpNormalizeAgainstSelfImpl
 
 class OpSkinLesionSampleIDDecode(OpBase):
 
@@ -25,8 +25,7 @@ class OpSkinLesionSampleIDDecode(OpBase):
         sid = get_sample_id(sample_dict)
 
         img_filename_key = 'data.input.img_path'
-
-        # TODO: FILL
+        sample_dict[img_filename_key] =   os.path.join(sid, 'imaging.nii.gz')
 
         return sample_dict
 
@@ -139,20 +138,61 @@ class SkinLesion:
         :param data_path: path to original kits21 data (can be downloaded by KITS21.download())
         """
         static_pipeline = PipelineDefault("static",[
-            # Should implement a decoder like kits? YES!
-            (OpSkinLesionSampleIDDecode(), NDict())
+            # TODO: Should implement a decoder like kits? YES!
+            (OpSkinLesionSampleIDDecode(), NDict()),
             
             # Load Image
-            (OpLoadRGBImage(data_path), dict(key_in="data.input.img_path", key_out="data.input.img", format="nib"))
+            (OpLoadRGBImage(data_path), dict(key_in="data.input.img_path", key_out="data.input.img")),
 
-            #
+            # Normalize Image to range [0, 1]
+            (OpNormalizeAgainstSelfImpl(), dict(key="data.input.img"))
         ])
         return static_pipeline
 
     
     @staticmethod
-    def dynamic_pipeline():
-        pass
+    def dynamic_pipeline() -> PipelineDefault:
+        """
+        Get suggested dynamic pipeline. including pre-processing that might be modified and augmentation operations. 
+        """
+
+        dynamic_pipeline = PipelineDefault("dynamic", [
+                
+                # Resize
+
+                # Padding
+
+                # Augmentation
+
+
+
+                # resize image to (110, 256, 256)
+                # (OpLambda(func=partial(my_resize, resize_to=(110, 256, 256)))),
+
+                # # Numpy to tensor
+                # (OpToTensor(), kwargs_per_step_to_add=repeat_for)),
+                
+                # # affine transformation per slice but with the same arguments
+                # (OpAugAffine2D(), dict(
+                #     rotate=Uniform(-180.0,180.0),        
+                #     scale=Uniform(0.8, 1.2),
+                #     flip=(RandBool(0.5), RandBool(0.5)),
+                #     translate=(RandInt(-15, 15), RandInt(-15, 15))
+                # )),
+
+                # # color augmentation - check if it is useful in CT images
+                # (OpSample(OpAugColor()), dict(
+                #     key="data.input.img",
+                #     gamma=Uniform(0.8,1.2), 
+                #     contrast=Uniform(0.9,1.1),
+                #     add=Uniform(-0.01, 0.01)
+                # )),
+
+                # # add channel dimension -> [C=1, D, H, W]
+                # (OpLambda(lambda x: x.unsqueeze(dim=0)), dict(key="data.input.img")),  
+        ])
+        return dynamic_pipeline
+
 
     @staticmethod
     def dataset(data_path: str, cache_dir: str, reset_cache: bool = False, num_workers:int = 10, sample_ids: Optional[Sequence[Hashable]] = None) -> DatasetDefault:
