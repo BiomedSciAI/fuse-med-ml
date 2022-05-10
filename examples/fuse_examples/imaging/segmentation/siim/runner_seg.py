@@ -81,9 +81,9 @@ from fuse.utils.ndict import NDict
 from fuseimg.data.ops.image_loader import OpLoadImage
 from fuseimg.data.ops.color import OpClip, OpToRange
 from fuseimg.data.ops.aug.color import OpAugColor
+from fuseimg.data.ops.aug.color import OpAugGaussian
 from fuseimg.data.ops.aug.geometry import OpAugAffine2D
 
-from fuseimg.datasets.kits21 import OpKits21SampleIDDecode, KITS21
 ##########################################
 # Debug modes
 ##########################################
@@ -213,6 +213,56 @@ def run_train(paths: dict, train_common_params: dict):
             dict(key_in="data.gt.seg_path", key_out="data.gt.seg")),
         ])
 
+    repeat_for = [dict(key="data.input.img"), dict(key="data.gt.seg")]
+
+    dynamic_pipeline = PipelineDefault("dynamic", [
+        (OpRepeat(OpToTensor(), kwargs_per_step_to_add=repeat_for), dict(dtype=torch.float32)),
+        (OpSampleAndRepeat(OpAugAffine2D(), kwargs_per_step_to_add=repeat_for), dict(
+                        rotate=Uniform(-20.0,20.0),        
+                        scale=Uniform(0.8, 1.2),
+                        flip=(RandBool(0.0), RandBool(0.5)),  # only flip right-to-left
+                        translate=(RandInt(-50, 50), RandInt(-50, 50))
+                    )),
+        (OpAugGaussian(), dict(key='data.input.img', 
+                               std=Uniform(0, 1.0))),
+        (OpAugColor(), dict(key='data.input.img',
+                            add=Uniform(-0.06, 0.06), 
+                            mul= Uniform(0.95, 1.05), 
+                            gamma=Uniform(0.9, 1.1),
+                            contrast=Uniform(0.85, 1.15))),
+
+    ])
+        # ('data.input.input_0','data.gt.gt_global'),
+        # aug_op_affine_group,
+        # {'rotate': Uniform(-20.0, 20.0),  
+        # 'flip': (RandBool(0.0), RandBool(0.5)),  # only flip right-to-left
+        # 'scale': Uniform(0.9, 1.1),
+        # 'translate': (RandInt(-50, 50), RandInt(-50, 50))},
+        # {'apply': RandBool(0.9)}
+    # ],
+    # [
+        # ('data.input.input_0','data.gt.gt_global'),
+        # aug_op_elastic_transform,
+        # {'sigma': 7,
+        #  'num_points': 3},
+        # {'apply': RandBool(0.7)}
+    # ],
+    # [
+        # ('data.input.input_0',),
+        # aug_op_color,
+        # {
+        #  'add': Uniform(-0.06, 0.06), 
+        #  'mul': Uniform(0.95, 1.05), 
+        #  'gamma': Uniform(0.9, 1.1),
+        #  'contrast': Uniform(0.85, 1.15)
+        # },
+        # {'apply': RandBool(0.7)}
+    # ],
+    # [
+        # ('data.input.input_0',),
+        # aug_op_gaussian,
+        # {'std': 0.05},
+        # {'apply': RandBool(0.7)}
 
     # cache_dir = mkdtemp(prefix="kits_21")
     cacher = SamplesCacher('siim_cache', 
@@ -220,66 +270,78 @@ def run_train(paths: dict, train_common_params: dict):
                            cache_dirs=[paths['cache_dir']], 
                            restart_cache=True)   
 
-    my_dataset = DatasetDefault(sample_ids=train_sample_ids[:5],
-                                static_pipeline=static_pipeline,
-                                dynamic_pipeline=None,
-                                cacher=cacher)            
-    my_dataset.create()
-
-    ## Create data processors:
-    input_processors = {
-        'input_0': SegInputProcessor(name='image',
-                                     size=train_common_params['data.image_size'])
-    }
-    gt_processors = {
-        'gt_global': SegInputProcessor(name='mask', 
-                                       data_csv=paths['train_rle_file'],
-                                       size=train_common_params['data.image_size'])
-    }
-
-    ## Create data augmentation (optional)
-    # augmentor = FuseAugmentorDefault(augmentation_pipeline=train_common_params['data.augmentation_pipeline'])
-    augmentor = []
-
-    # Create visualizer (optional)
-    # visualiser = FuseVisualizerDefault(image_name='data.input.input_0', 
-    #                                    mask_name='data.gt.gt_global',
-    #                                    pred_name='model.logits.segmentation')
-    visualiser = []
-
-    train_dataset = FuseDatasetDefault(cache_dest=paths['cache_dir'],
-                                       data_source=train_data_source,
-                                       input_processors=input_processors,
-                                       gt_processors=gt_processors,
-                                       augmentor=augmentor,
-                                       visualizer=visualiser)
+    train_dataset = DatasetDefault(sample_ids=train_sample_ids,
+                                   static_pipeline=static_pipeline,
+                                   dynamic_pipeline=dynamic_pipeline,
+                                   cacher=cacher)            
 
     lgr.info(f'- Load and cache data:')
     train_dataset.create()
     lgr.info(f'- Load and cache data: Done')
+
+    # ## Create data processors:
+    # input_processors = {
+    #     'input_0': SegInputProcessor(name='image',
+    #                                  size=train_common_params['data.image_size'])
+    # }
+    # gt_processors = {
+    #     'gt_global': SegInputProcessor(name='mask', 
+    #                                    data_csv=paths['train_rle_file'],
+    #                                    size=train_common_params['data.image_size'])
+    # }
+
+    # ## Create data augmentation (optional)
+    # # augmentor = FuseAugmentorDefault(augmentation_pipeline=train_common_params['data.augmentation_pipeline'])
+    # augmentor = []
+
+    # # Create visualizer (optional)
+    # # visualiser = FuseVisualizerDefault(image_name='data.input.input_0', 
+    # #                                    mask_name='data.gt.gt_global',
+    # #                                    pred_name='model.logits.segmentation')
+    # visualiser = []
+
+    # train_dataset = FuseDatasetDefault(cache_dest=paths['cache_dir'],
+    #                                    data_source=train_data_source,
+    #                                    input_processors=input_processors,
+    #                                    gt_processors=gt_processors,
+    #                                    augmentor=augmentor,
+    #                                    visualizer=visualiser)
+
+    # lgr.info(f'- Load and cache data:')
+    # train_dataset.create()
+    # lgr.info(f'- Load and cache data: Done')
 
     ## Create dataloader
     train_dataloader = DataLoader(dataset=train_dataset,
                                   shuffle=True, 
                                   drop_last=False,
                                   batch_size=train_common_params['data.batch_size'],
-                                  collate_fn=train_dataset.collate_fn,
+                                  # collate_fn=train_dataset.collate_fn,
                                   num_workers=train_common_params['data.train_num_workers'])
     lgr.info(f'Train Data: Done', {'attrs': 'bold'})
     # ==================================================================
     # Validation dataset
     lgr.info(f'Validation Data:', {'attrs': 'bold'})
 
-    valid_data_source = FuseDataSourceSeg(phase='validation',
+    valid_sample_ids = get_data_sample_ids(phase='validation',
                                           data_folder=paths['train_folder'],
                                           partition_file=train_common_params['partition_file'])
-    print(valid_data_source.summary())
 
-    valid_dataset = FuseDatasetDefault(cache_dest=paths['cache_dir'],
-                                       data_source=valid_data_source,
-                                       input_processors=input_processors,
-                                       gt_processors=gt_processors,
-                                       visualizer=visualiser)
+    # valid_data_source = FuseDataSourceSeg(phase='validation',
+    #                                       data_folder=paths['train_folder'],
+    #                                       partition_file=train_common_params['partition_file'])
+    # print(valid_data_source.summary())
+
+    valid_dataset = DatasetDefault(sample_ids=valid_sample_ids,
+                                   static_pipeline=static_pipeline,
+                                   dynamic_pipeline=None,
+                                   cacher=cacher)            
+
+    # valid_dataset = FuseDatasetDefault(cache_dest=paths['cache_dir'],
+    #                                    data_source=valid_data_source,
+    #                                    input_processors=input_processors,
+    #                                    gt_processors=gt_processors,
+    #                                    visualizer=visualiser)
 
     lgr.info(f'- Load and cache data:')
     valid_dataset.create()
@@ -290,7 +352,7 @@ def run_train(paths: dict, train_common_params: dict):
                                        shuffle=False, 
                                        drop_last=False,
                                        batch_size=train_common_params['data.batch_size'],
-                                       collate_fn=valid_dataset.collate_fn,
+                                       # collate_fn=valid_dataset.collate_fn,
                                        num_workers=train_common_params['data.validation_num_workers'])
 
     lgr.info(f'Validation Data: Done', {'attrs': 'bold'})
@@ -299,7 +361,7 @@ def run_train(paths: dict, train_common_params: dict):
     lgr.info('Model:', {'attrs': 'bold'})
     torch_model = UNet(n_channels=1, n_classes=1, bilinear=False)
 
-    model = FuseModelWrapper(model=torch_model,
+    model = ModelWrapper(model=torch_model,
                             model_inputs=['data.input.input_0'],
                             model_outputs=['logits.segmentation']
                             )
@@ -321,7 +383,7 @@ def run_train(paths: dict, train_common_params: dict):
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=5, factor=0.5)
 
     # train from scratch
-    manager = FuseManagerDefault(output_model_dir=paths['model_dir'], 
+    manager = ManagerDefault(output_model_dir=paths['model_dir'], 
                                 force_reset=paths['force_reset_model_dir'])
 
     # =====================================================================================
@@ -329,9 +391,9 @@ def run_train(paths: dict, train_common_params: dict):
     # =====================================================================================
     callbacks = [
         # default callbacks
-        # FuseTensorboardCallback(model_dir=paths['model_dir']),  # save statistics for tensorboard
-        FuseMetricStatisticsCallback(output_path=paths['model_dir'] + "/metrics.csv"),  # save statistics in a csv file
-        FuseTimeStatisticsCallback(num_epochs=train_common_params['manager.train_params']['num_epochs'], load_expected_part=0.1)  # time profiler
+        TensorboardCallback(model_dir=paths['model_dir']),  # save statistics for tensorboard
+        MetricStatisticsCallback(output_path=paths['model_dir'] + "/metrics.csv"),  # save statistics in a csv file
+        TimeStatisticsCallback(num_epochs=train_common_params['manager.train_params']['num_epochs'], load_expected_part=0.1)  # time profiler
     ]
 
     # Providing the objects required for the training process.
@@ -416,7 +478,7 @@ def run_infer(paths: dict, infer_common_params: dict):
     lgr.info(f'Test Data: Done', {'attrs': 'bold'})
 
     #### Manager for inference
-    manager = FuseManagerDefault()
+    manager = ManagerDefault()
     # extract just the global segmentation per sample and save to a file
     output_columns = ['model.logits.segmentation', 'data.gt.gt_global']
     manager.infer(data_loader=infer_dataloader,
