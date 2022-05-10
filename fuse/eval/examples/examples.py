@@ -31,7 +31,7 @@ from fuse.utils import set_seed
 from fuse.eval.metrics.metrics_common import GroupAnalysis, CI, Filter
 from fuse.eval.metrics.metrics_model_comparison import PairedBootstrap
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCPR, MetricAUCROC, MetricAccuracy, MetricConfusion, MetricConfusionMatrix, MetricBSS, MetricROCCurve
-from fuse.eval.metrics.classification.metrics_model_comparison_common import MetricDelongsTest, MetricMcnemarsTest
+from fuse.eval.metrics.classification.metrics_model_comparison_common import MetricContingencyTable, MetricDelongsTest, MetricMcnemarsTest
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 from fuse.eval.metrics.classification.metrics_calibration_common import MetricReliabilityDiagram, MetricECE, MetricFindTemperature, MetricApplyTemperature
 from fuse.eval.evaluator import EvaluatorDefault
@@ -399,7 +399,8 @@ def example_10() -> Dict:
 
     # list of metrics
     metrics = OrderedDict([
-            ("mcnemars_test", MetricMcnemarsTest(class_names=['negative', 'positive'], cls_pred1="cls_pred.cls_pred1", cls_pred2="cls_pred.cls_pred2")),
+            ("contingency_table", MetricContingencyTable(var1="cls_pred.cls_pred1", var2="cls_pred.cls_pred2")),
+            ("mcnemars_test", MetricMcnemarsTest(contingency_table="results:metrics.contingency_table")),
     ])
 
     evaluator = EvaluatorDefault()

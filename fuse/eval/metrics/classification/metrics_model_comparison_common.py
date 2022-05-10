@@ -25,6 +25,7 @@ import numpy as np
 from fuse.eval.metrics.metrics_common import MetricWithCollectorBase
 from .metrics_classification_common import MetricMultiClassDefault
 from fuse.eval.metrics.libs.model_comparison import ModelComparison
+from fuse.eval.metrics.metrics_common import MetricDefault
 
 class MetricDelongsTest(MetricMultiClassDefault):
     def __init__(self, pred1: str, pred2: str, target: str, class_names: Optional[Sequence[str]] = None, **kwargs):
@@ -36,17 +37,23 @@ class MetricDelongsTest(MetricMultiClassDefault):
         super().__init__(pred=None, target=target, metric_func=ModelComparison.delong_auc_test, \
                          class_names=class_names, pred1=pred1, pred2=pred2, **kwargs)
 
+class MetricContingencyTable(MetricDefault):
+    def __init__(self, var1: str, var2: str, **kwargs):
+        """
+        Create contingency table from two paired variables.
+        :param var1: key name for the first variable
+        :param var2: key name for the second variable
+        """
+        super().__init__(pred=None, target=None, metric_func=ModelComparison.contingency_table, \
+                            var1=var1, var2=var2, **kwargs)
+
 
 class MetricMcnemarsTest(MetricMultiClassDefault):
-    def __init__(self, cls_pred1: str, cls_pred2: str, sample_weight: Optional[Sequence[Union[np.ndarray, float]]] = None, \
-                 class_names: Optional[Sequence[str]] = None, **kwargs):
+    def __init__(self, contingency_table: str, **kwargs):
         """
-        McNemar's statistical test for comparing two models' predictions in the sense 
+        McNemar's statistical test for comparing two paired nominal data in the sense 
         of the statistics of their disagreements, as seen in the contingency table.
-        :param cls_pred1: key name for the class predictions of model 1
-        :param cls_pred2: key name for the class predictions of model 2
-        :param class_names: class names. required for multi-class classifiers
-        :param sample_weight: optional sample weights. not implemented at this time
+        :param contingency_table: key name for the contingency table
         """
         super().__init__(pred=None, target=None, metric_func=ModelComparison.mcnemars_test, \
-                         sample_weight=sample_weight, class_names=class_names, cls_pred1=cls_pred1, cls_pred2=cls_pred2, **kwargs)
+                           contingency_table=contingency_table, **kwargs)
