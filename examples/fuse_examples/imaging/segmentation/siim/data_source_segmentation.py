@@ -5,8 +5,8 @@ import pickle
 from typing import Sequence, Hashable, Union, Optional, List, Dict
 from pathlib import Path
 
-from fuse.data.data_source.data_source_base import FuseDataSourceBase
-from fuse.utils.utils_misc import autodetect_input_source
+# from fuse.data.data_source.data_source_base import FuseDataSourceBase
+# from fuse.utils.utils_misc import autodetect_input_source
 
 
 def filter_files(files, include=[], exclude=[]):
@@ -26,8 +26,9 @@ def ls(x, recursive=False, include=[], exclude=[]):
     return out
 
 
-class FuseDataSourceSeg(FuseDataSourceBase):
-    def __init__(self, 
+# class FuseDataSourceSeg():
+#     def __init__(self, 
+def get_data_sample_ids(            
                  phase: str, # can be ['train', 'validation']
                  data_folder: Optional[str] = None,
                  partition_file: Optional[str] = None,
@@ -107,12 +108,12 @@ class FuseDataSourceSeg(FuseDataSourceBase):
             #             'rle_encoding': rle_df.loc[I, ' EncodedPixels'].values}
             #     sample_descs.append(desc)
 
-        self.samples = sample_descs
+        return sample_descs
 
-    def get_samples_description(self):
-        return self.samples
+    # def get_samples_description(self):
+    #     return self.samples
 
-    def summary(self) -> str:
-        summary_str = ''
-        summary_str += 'FuseDataSourceSeg - %d samples\n' % len(self.samples)
-        return summary_str
+    # def summary(self) -> str:
+    #     summary_str = ''
+    #     summary_str += 'FuseDataSourceSeg - %d samples\n' % len(self.samples)
+    #     return summary_str

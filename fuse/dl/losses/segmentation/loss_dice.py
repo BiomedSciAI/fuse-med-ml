@@ -82,7 +82,7 @@ class BinaryDiceLoss(nn.Module):
             raise Exception('Unexpected reduction {}'.format(self.reduction))
 
 
-class DiceBCELoss(FuseLossBase):
+class DiceBCELoss(LossBase):
 
     def __init__(self, 
                  pred_name: str = None,
@@ -155,7 +155,7 @@ class DiceBCELoss(FuseLossBase):
         return self.weight*total_loss
 
 
-class FuseDiceLoss(FuseLossBase):
+class FuseDiceLoss(LossBase):
 
     def __init__(self, 
                  pred_name: str = None,

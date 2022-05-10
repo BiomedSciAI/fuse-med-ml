@@ -32,38 +32,63 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 from fuse.data.augmentor.augmentor_toolbox import aug_op_affine_group, aug_op_affine, aug_op_color, aug_op_gaussian, aug_op_elastic_transform
-from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerUniform as Uniform
-from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerRandBool as RandBool
-from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerRandInt as RandInt
-from fuse.utils.utils_gpu import FuseUtilsGPU
+# from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerUniform as Uniform
+# from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerRandBool as RandBool
+# from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerRandInt as RandInt
+# from fuse.utils.utils_gpu import FuseUtilsGPU
+import fuse.utils.gpu as FuseUtilsGPU
 from fuse.utils.utils_logger import fuse_logger_start
-from fuse.data.augmentor.augmentor_default import FuseAugmentorDefault
-from fuse.data.visualizer.visualizer_default import FuseVisualizerDefault
-from fuse.data.dataset.dataset_default import FuseDatasetDefault
-from fuse.models.model_wrapper import FuseModelWrapper
-from fuse.losses.segmentation.loss_dice import DiceBCELoss
-from fuse.losses.segmentation.loss_dice import FuseDiceLoss
-from fuse.losses.loss_default import FuseLossDefault
-from fuse.managers.manager_default import FuseManagerDefault
-from fuse.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
-from fuse.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
-from fuse.managers.callbacks.callback_time_statistics import FuseTimeStatisticsCallback
-from fuse.data.processor.processor_dataframe import FuseProcessorDataFrame
+# from fuse.data.augmentor.augmentor_default import FuseAugmentorDefault
+# from fuse.data.visualizer.visualizer_default import FuseVisualizerDefault
+# from fuse.data.dataset.dataset_default import FuseDatasetDefault
+from fuse.dl.models.model_wrapper import ModelWrapper
+from fuse.dl.losses.segmentation.loss_dice import DiceBCELoss
+from fuse.dl.losses.segmentation.loss_dice import FuseDiceLoss
+from fuse.dl.losses.loss_default import LossDefault
+from fuse.dl.managers.manager_default import ManagerDefault
+from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
+from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
+from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
+# from fuse.dl.data.processor.processor_dataframe import FuseProcessorDataFrame
 from fuse.eval.evaluator import EvaluatorDefault
 from fuse.eval.metrics.segmentation.metrics_segmentation_common import MetricDice, MetricIouJaccard, MetricOverlap, Metric2DHausdorff, MetricPixelAccuracy
-from fuse.utils.utils_debug import FuseUtilsDebug
+from fuse.utils.utils_debug import FuseDebug
 
-from data_source_segmentation import FuseDataSourceSeg
+from data_source_segmentation import get_data_sample_ids # FuseDataSourceSeg
 from seg_input_processor import SegInputProcessor
+from image_mask_loader import OpImageMaskLoader
 
 from unet import UNet
 
+# fuse2 imports
+from fuse.data.pipelines.pipeline_default import PipelineDefault
+from fuse.data.datasets.dataset_default import DatasetDefault
+from fuse.data.ops.op_base import OpBase
+from fuse.data.ops.ops_aug_common import OpSample
+from fuse.data.datasets.caching.samples_cacher import SamplesCacher
+from fuse.data.ops.ops_common import OpLambda
+from fuse.data.utils.samplers import BatchSamplerDefault
+from fuse.data import PipelineDefault, OpSampleAndRepeat, OpToTensor, OpRepeat
+from fuse.utils.rand.param_sampler import RandBool, RandInt, Uniform
+import torch
+import numpy as np
+from functools import partial
+from tempfile import mkdtemp
 
+import os
+from fuse.data.ops.ops_cast import OpToTensor
+from fuse.utils.ndict import NDict
+from fuseimg.data.ops.image_loader import OpLoadImage
+from fuseimg.data.ops.color import OpClip, OpToRange
+from fuseimg.data.ops.aug.color import OpAugColor
+from fuseimg.data.ops.aug.geometry import OpAugAffine2D
+
+from fuseimg.datasets.kits21 import OpKits21SampleIDDecode, KITS21
 ##########################################
 # Debug modes
 ##########################################
 mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseUtilsDebug
-debug = FuseUtilsDebug(mode)
+debug = FuseDebug(mode)
 
 ##########################################
 # Output and data Paths
@@ -176,10 +201,30 @@ def run_train(paths: dict, train_common_params: dict):
     #### Train Data
     lgr.info(f'Train Data:', {'attrs': 'bold'})
 
-    train_data_source = FuseDataSourceSeg(phase='train',
+    train_sample_ids = get_data_sample_ids(phase='train',
                                           data_folder=paths['train_folder'],
                                           partition_file=train_common_params['partition_file'])
-    print(train_data_source.summary())
+
+    static_pipeline = PipelineDefault("static", [
+        (OpImageMaskLoader(size=train_common_params['data.image_size']), 
+            dict(key_in="data.input.img_path", key_out="data.input.img")),
+        (OpImageMaskLoader(size=train_common_params['data.image_size'], 
+                           data_csv=paths['train_rle_file']), 
+            dict(key_in="data.gt.seg_path", key_out="data.gt.seg")),
+        ])
+
+
+    # cache_dir = mkdtemp(prefix="kits_21")
+    cacher = SamplesCacher('siim_cache', 
+                           static_pipeline,
+                           cache_dirs=[paths['cache_dir']], 
+                           restart_cache=True)   
+
+    my_dataset = DatasetDefault(sample_ids=train_sample_ids[:5],
+                                static_pipeline=static_pipeline,
+                                dynamic_pipeline=None,
+                                cacher=cacher)            
+    my_dataset.create()
 
     ## Create data processors:
     input_processors = {
@@ -193,12 +238,14 @@ def run_train(paths: dict, train_common_params: dict):
     }
 
     ## Create data augmentation (optional)
-    augmentor = FuseAugmentorDefault(augmentation_pipeline=train_common_params['data.augmentation_pipeline'])
+    # augmentor = FuseAugmentorDefault(augmentation_pipeline=train_common_params['data.augmentation_pipeline'])
+    augmentor = []
 
     # Create visualizer (optional)
-    visualiser = FuseVisualizerDefault(image_name='data.input.input_0', 
-                                       mask_name='data.gt.gt_global',
-                                       pred_name='model.logits.segmentation')
+    # visualiser = FuseVisualizerDefault(image_name='data.input.input_0', 
+    #                                    mask_name='data.gt.gt_global',
+    #                                    pred_name='model.logits.segmentation')
+    visualiser = []
 
     train_dataset = FuseDatasetDefault(cache_dest=paths['cache_dir'],
                                        data_source=train_data_source,
@@ -446,7 +493,7 @@ def run_eval(paths: dict, eval_common_params: dict):
 ######################################
 if __name__ == "__main__":
     # allocate gpus
-    NUM_GPUS = 1
+    NUM_GPUS = 0
     if NUM_GPUS == 0:
         TRAIN_COMMON_PARAMS['manager.train_params']['device'] = 'cpu'
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
