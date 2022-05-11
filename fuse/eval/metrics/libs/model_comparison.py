@@ -16,7 +16,7 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from typing import Dict, Optional, Sequence, Tuple
+from typing import Dict, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import scipy
@@ -216,22 +216,36 @@ class ModelComparison:
         return con_tab
 
     @staticmethod
-    def mcnemars_test(contingency_table: np.ndarray) -> Dict:
+    def mcnemars_test(pred1: Union[Sequence, np.ndarray], pred2: Union[Sequence, np.ndarray], 
+                        target: Optional[Union[Sequence, np.ndarray]], exact: bool=True) -> Dict:
         """
-        Compute p-value resulting from McNemar's statistical test to compare two paired nominal data.
-        As an example, these could be two binary classifiers' predictions.
+        Compute p-value resulting from McNemar's statistical test to compare two models' predictions or accuracies.
         The p-value represents likelihood for the (null) hypothesis that the two paired variables are similar
         in the sense that they have a similar proportion of disagreements.
         A small p-value means they are likely to be different.
-        :param contingency_table: 2x2 contingency table [numpy array].
+        :param pred1: predictions of the first model.
+        :param pred2: predictions of the second model.
+        :param target: ground truth vector
+        :param exact: If True, then the binomial distribution will be used. Otherwise, the chi-square distribution, which is the approximation to the distribution of the test statistic for large sample sizes.
+            The exact test is recommended for small (<25) number of discordants in the contingency table
         :return {'p-value', 'statistic', 'n1', 'n2'},
              'statistic' is the min(n1, n2), where n1, n2 are cases that are zero
                 in one classifier but one in the other. This statistic is used in the exact binomial distribution test.
              'n1' and 'n2' as just defined
         """
+        pred1 = np.array(pred1)
+        pred2 = np.array(pred2)
+        target = np.array(target)
+        
+        if target is not None:
+            pred1_correct = (pred1 == target)
+            pred2_correct = (pred2 == target)
+            contingency_table = ModelComparison.contingency_table(pred1_correct, pred2_correct)
+        else:
+            contingency_table = ModelComparison.contingency_table(pred1, pred2)
 
         # calculate mcnemar test
-        res = mcnemar(contingency_table, exact=True)
+        res = mcnemar(contingency_table, exact=exact)
 
         results = {'p_value': res.pvalue, 'statistic': res.statistic, \
                     'n1': contingency_table[0,1], 'n2': contingency_table[1,0]}

@@ -362,50 +362,27 @@ def example_10() -> Dict:
     Test of McNemar's test implementation
     """
 
-    # Create dummy "data" for contingency table [[30, 40],[12, 18]].
-    np.random.seed(1234)
-    inds = np.random.permutation(100)
-    inds00 = inds[0:30]
-    inds01 = inds[30:70]
-    inds10 = inds[70:82]
-    inds11 = inds[82:]
-    # "possible" prediction values:
-    neg_preds = np.array([0.1, 0.2, 0.3, 0.4])
-    pos_preds = np.array([0.6, 0.7, 0.8, 0.9])
+    # Toy example:     
 
-    pred1 = np.zeros((100))
-    pred2 = np.zeros((100))
-    pred1[inds00] = np.random.choice(pos_preds, 30)
-    pred2[inds00] = np.random.choice(pos_preds, 30)
-    pred1[inds01] = np.random.choice(pos_preds, 40)
-    pred2[inds01] = np.random.choice(neg_preds, 40)
-    pred1[inds10] = np.random.choice(neg_preds, 12)
-    pred2[inds10] = np.random.choice(pos_preds, 12)
-    pred1[inds11] = np.random.choice(neg_preds, 18)
-    pred2[inds11] = np.random.choice(neg_preds, 18)
-
-    threshold = 0.5
-    cls_pred1 = (pred1>threshold)*1
-    cls_pred2 = (pred2>threshold)*1
+    # The correct target (class) labels
+    ground_truth = [0, 0, 0, 0, 0, 1, 1, 1, 1, 1]
+    # Class labels predicted by model 1
+    cls_pred1 = [0, 1, 1, 1, 0, 1, 1, 0, 1, 1]
+    # Class labels predicted by model 2
+    cls_pred2 = [1, 1, 0, 1, 0, 1, 1, 0, 0, 1]
 
     index = np.arange(0,len(cls_pred1))
-
     # convert to dataframes:
-    cls_pred_df = pd.DataFrame(columns = ['cls_pred1','cls_pred2','id'])
-    cls_pred_df["cls_pred1"] = list(cls_pred1)
-    cls_pred_df["cls_pred2"] = list(cls_pred2)
-    cls_pred_df["id"] = index
-    data = {"cls_pred": cls_pred_df}
+    df = pd.DataFrame(columns = ['cls_pred1','cls_pred2','id'])
+    df["cls_pred1"] = cls_pred1
+    df["cls_pred2"] = cls_pred2
+    df["ground_truth"] = ground_truth
+    df["id"] = index
+    data = {"data": df}
 
-    # Note: in this example, we perform McNemar's test on the models' predictions.
-    # For classifiers, it may also be desired to compare the model accuracies, in case ground truth labels exist.
-    # Then, instead of the predicted binary class, MetricContingencyTable should get as input a vector specifying 
-    # whether each model's prediction is correct, i.e: cls_pred1_correct = (cls_pred1 == ground_truth)
-    
     # list of metrics
     metrics = OrderedDict([
-            ("contingency_table", MetricContingencyTable(var1="cls_pred.cls_pred1", var2="cls_pred.cls_pred2")),
-            ("mcnemars_test", MetricMcnemarsTest(contingency_table="results:metrics.contingency_table")),
+            ("mcnemars_test", MetricMcnemarsTest(pred1="data.cls_pred1", pred2="data.cls_pred2", target="data.ground_truth")),
     ])
 
     evaluator = EvaluatorDefault()

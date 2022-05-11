@@ -49,11 +49,15 @@ class MetricContingencyTable(MetricDefault):
 
 
 class MetricMcnemarsTest(MetricMultiClassDefault):
-    def __init__(self, contingency_table: str, **kwargs):
+    def __init__(self, pred1: str, pred2: str, target: Optional[str]=None, exact: Optional[bool]=True, **kwargs):
         """
-        McNemar's statistical test for comparing two paired nominal data in the sense 
-        of the statistics of their disagreements, as seen in the contingency table.
-        :param contingency_table: key name for the contingency table
+        McNemar's statistical test for comparing two model's predictions or accuracies
+        in the sense of the statistics of their disagreements, as seen in the contingency table.
+        :param pred1: key name for the class predictions of the first model
+        :param pred2: key name for the class predictions of the second model
+        :param target: (optional) key name for the ground truth
+        :param exact: If True, then the binomial distribution will be used. Otherwise, the chi-square distribution, which is the approximation to the distribution of the test statistic for large sample sizes.
+            The exact test is recommended for small (<25) number of discordants in the contingency table
         """
-        super().__init__(pred=None, target=None, metric_func=ModelComparison.mcnemars_test, \
-                           contingency_table=contingency_table, **kwargs)
+        super().__init__(pred=None, pred1=pred1, pred2=pred2, target=target, \
+                        exact=exact, metric_func=ModelComparison.mcnemars_test, **kwargs)
