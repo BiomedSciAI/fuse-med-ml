@@ -8,15 +8,12 @@ class HashableClass:
     
     #controls how values are converted to string, override if you want custom behavior
     #expected signature: foo(val:Any) -> str
-    value_to_string_func: Callable = value_to_string 
+    VALUE_TO_STRING_FUNC: Callable = value_to_string 
     
     def __init__(self):
         '''
         when init is called, a string representation of the caller(s) init args are recorded.
         This is used in get_hashable_string_representation which is used later for hashing in caching related tools (for example, SamplesCacher)
-        value_to_string_func allows to provide a custom function that converts a value to string.
-        This is useful if, for example, a custom behavior is desired for an object like numpy array or DataFrame.
-        The 
         '''        
         #the following is used to extract callers args, for __init__ calls up the stack of classes inheirting from OpBase
         #this way it can happen in the base class and then anyone creating new Ops will typically only need to add 
@@ -25,7 +22,7 @@ class HashableClass:
             max_look_up=4,
             expected_class=HashableClass,
             expected_function_name='__init__',
-            value_to_string_func = HashableClass.value_to_string_func,
+            value_to_string_func = HashableClass.VALUE_TO_STRING_FUNC,
             ignore_first_frame=3,
             )
         
