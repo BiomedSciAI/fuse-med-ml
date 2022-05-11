@@ -21,48 +21,16 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from collections import OrderedDict
 from fuse.data.patterns import Patterns
-from fuse.data.ops import get_function_call_str
-from inspect import stack
-from fuse.data.ops.caching_tools import get_callers_string_description, value_to_string
 from fuse.utils.ndict import NDict
+from fuse.data.ops.hashable_class import HashableClass
 
-class OpBase(ABC):
+class OpBase(HashableClass):
     """
     Operator Base Class
     Operators are the building blocks of the sample processing pipeline.
     Each operator gets as an input the sample_dict as created be the previous operators
     and can either add/delete/modify fields in sample_dict.
-    """
-
-    _MISSING_SUPER_INIT_ERR_MSG = 'Did you forget to call super().__init__() ? Also, make sure you call it BEFORE setting any attribute.'
-    
-    def __init__(self, value_to_string_func: Callable = value_to_string):
-        '''
-        :param value_to_string_func: when init is called, a string representation of the caller(s) init args are recorded.
-        This is used in __str__ which is used later for hashing in caching related tools (for example, SamplesCacher)
-        value_to_string_func allows to provide a custom function that converts a value to string.
-        This is useful if, for example, a custom behavior is desired for an object like numpy array or DataFrame.
-        The expected signature is: foo(val:Any) -> str
-        '''
-        
-        #the following is used to extract callers args, for __init__ calls up the stack of classes inheirting from OpBase
-        #this way it can happen in the base class and then anyone creating new Ops will typically only need to add 
-        #super().__init__ in their __init__ implementation
-        self._stored_init_str_representation = get_callers_string_description(
-            max_look_up=4,
-            expected_class=OpBase,
-            expected_function_name='__init__',
-            value_to_string_func = value_to_string_func
-            )
-        
-    def __setattr__(self, name, value):
-        '''
-        Verifies that super().__init__() is called before setting any attribute
-        '''
-        storage_name = '_stored_init_str_representation'
-        if name != storage_name and not hasattr(self, storage_name):
-            raise Exception(OpBase._MISSING_SUPER_INIT_ERR_MSG)
-        super().__setattr__(name, value)
+    """    
 
     @abstractmethod
     def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs) -> Union[None, dict, List[dict]]:
@@ -102,27 +70,6 @@ class OpBase(ABC):
         """
         raise NotImplemented
 
-    def __str__(self) -> str:
-        '''
-        A string representation of this operation, which will be used for hashing.
-        It includes recorded (string) data describing the args that were used in __init__()
-        you can override/extend it in the rare cases that it's needed
-
-        example:
-
-        class OpSomethingNew(OpBase):
-            def __init__(self):
-                super().__init__()
-            def __str__(self):
-                ans = super().__str__(self)
-                ans += 'whatever you want to add"
-
-        '''
-
-        if not hasattr(self, '_stored_init_str_representation'):
-            raise Exception(OpBase._MISSING_SUPER_INIT_ERR_MSG)       
-        call_repr = get_function_call_str(self.__call__, )
-
-        return f'init_{self._stored_init_str_representation}@call_{call_repr}'
+    
 
     
