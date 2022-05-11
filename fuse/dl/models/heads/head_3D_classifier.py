@@ -23,7 +23,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
+from fuse.utils.ndict import NDict
 from fuse.dl.models.heads.common import ClassifierMLP
 
 
@@ -85,7 +85,7 @@ class Head3dClassifier(nn.Module):
 
         self.do = nn.Dropout3d(p=self.dropout_rate)
     
-    def forward(self, batch_dict: Dict) -> Dict:
+    def forward(self, batch_dict: NDict) -> Dict:
         """
         Forward pass
         :param batch_dict: dictionary containing an input tensor representing spatial features with 3D context. shape: [batch_size, in_features, z, y, x]
@@ -93,17 +93,17 @@ class Head3dClassifier(nn.Module):
         """
         if self.conv_inputs is not None:
             conv_input = torch.cat(
-                [FuseUtilsHierarchicalDict.get(batch_dict, conv_input[0]) for conv_input in self.conv_inputs], dim=1)
+                [batch_dict[conv_input[0]] for conv_input in self.conv_inputs], dim=1)
             global_features = self.gmp(conv_input)
             # save global max pooling features in case needed (mostly to analyze)
-            FuseUtilsHierarchicalDict.set(batch_dict, 'model.' + self.head_name +'.gmp_features', global_features.squeeze(dim=4).squeeze(dim=3).squeeze(dim=2))
+            batch_dict['model.' + self.head_name +'.gmp_features'] = global_features.squeeze(dim=4).squeeze(dim=3).squeeze(dim=2)
             # backward compatibility
             if hasattr(self, 'do'):
                 global_features = self.do(global_features)
         # append global features if are used
         if self.append_features is not None:
             features = torch.cat(
-                [FuseUtilsHierarchicalDict.get(batch_dict, features[0]).reshape(-1, features[1]) for features in self.append_features], dim=1)
+                [batch_dict[features[0]].reshape(-1, features[1]) for features in self.append_features], dim=1)
             features = self.append_features_module(features)
             features = features.reshape(features.shape + (1,1,1))
             if self.conv_inputs is not None:
@@ -117,7 +117,7 @@ class Head3dClassifier(nn.Module):
         logits = logits.squeeze(dim=2)  # squeeze will change the shape to  [batch_size, channels']
 
         cls_preds = F.softmax(logits, dim=1)
-        FuseUtilsHierarchicalDict.set(batch_dict, 'model.logits.' + self.head_name, logits)
-        FuseUtilsHierarchicalDict.set(batch_dict, 'model.output.' + self.head_name, cls_preds)
+        batch_dict['model.logits.' + self.head_name] = logits
+        batch_dict['model.output.' + self.head_name] = cls_preds
 
         return batch_dict
