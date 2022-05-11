@@ -25,6 +25,7 @@ import numpy as np
 from fuse.eval.metrics.metrics_common import MetricWithCollectorBase
 from .metrics_classification_common import MetricMultiClassDefault
 from fuse.eval.metrics.libs.model_comparison import ModelComparison
+from fuse.eval.metrics.metrics_common import MetricDefault
 
 class MetricDelongsTest(MetricMultiClassDefault):
     def __init__(self, pred1: str, pred2: str, target: str, class_names: Optional[Sequence[str]] = None, **kwargs):
@@ -36,17 +37,31 @@ class MetricDelongsTest(MetricMultiClassDefault):
         super().__init__(pred=None, target=target, metric_func=ModelComparison.delong_auc_test, \
                          class_names=class_names, pred1=pred1, pred2=pred2, **kwargs)
 
+class MetricContingencyTable(MetricDefault):
+    def __init__(self, var1: str, var2: str, **kwargs):
+        """
+        Create contingency table from two paired variables.
+        :param var1: key name for the first variable
+        :param var2: key name for the second variable
+        """
+        super().__init__(pred=None, target=None, metric_func=ModelComparison.contingency_table, \
+                            var1=var1, var2=var2, **kwargs)
+
 
 class MetricMcnemarsTest(MetricMultiClassDefault):
-    def __init__(self, cls_pred1: str, cls_pred2: str, sample_weight: Optional[Sequence[Union[np.ndarray, float]]] = None, \
-                 class_names: Optional[Sequence[str]] = None, **kwargs):
+    def __init__(self, pred1: str, pred2: str, target: Optional[str]=None, exact: Optional[bool]=True, **kwargs):
         """
-        McNemar's statistical test for comparing two models' predictions in the sense 
-        of the statistics of their disagreements, as seen in the contingency table.
-        :param cls_pred1: key name for the class predictions of model 1
-        :param cls_pred2: key name for the class predictions of model 2
-        :param class_names: class names. required for multi-class classifiers
-        :param sample_weight: optional sample weights. not implemented at this time
+        McNemar's statistical test for comparing two model's predictions or accuracies
+        in the sense of the statistics of their disagreements, as seen in the contingency table.
+        For comparing two classifiers, it's possible to provide the ground truth and then the comparison
+        will be of the models' accuracies. It's also possible to perform significance test on the predictions only. 
+        This can be useful either for classifiers, or any other paired data, even in cases where ground truth 
+        may not be applicable/available (i.e patients' opinion surveys, unsupervised model predictions, etc'.).
+        :param pred1: key name for the class predictions of the first model
+        :param pred2: key name for the class predictions of the second model
+        :param target: (optional) key name for the ground truth
+        :param exact: If True, then the binomial distribution will be used. Otherwise, the chi-square distribution, which is the approximation to the distribution of the test statistic for large sample sizes.
+            The exact test is recommended for small (<25) number of discordants in the contingency table
         """
-        super().__init__(pred=None, target=None, metric_func=ModelComparison.mcnemars_test, \
-                         sample_weight=sample_weight, class_names=class_names, cls_pred1=cls_pred1, cls_pred2=cls_pred2, **kwargs)
+        super().__init__(pred=None, pred1=pred1, pred2=pred2, target=target, \
+                        exact=exact, metric_func=ModelComparison.mcnemars_test, **kwargs)
