@@ -397,6 +397,11 @@ def example_10() -> Dict:
     cls_pred_df["id"] = index
     data = {"cls_pred": cls_pred_df}
 
+    # Note: in this example, we perform McNemar's test on the models' predictions.
+    # For classifiers, it may also be desired to compare the model accuracies, in case ground truth labels exist.
+    # Then, instead of the predicted binary class, MetricContingencyTable should get as input a vector specifying 
+    # whether each model's prediction is correct, i.e: cls_pred1_correct = (cls_pred1 == ground_truth)
+    
     # list of metrics
     metrics = OrderedDict([
             ("contingency_table", MetricContingencyTable(var1="cls_pred.cls_pred1", var2="cls_pred.cls_pred2")),
