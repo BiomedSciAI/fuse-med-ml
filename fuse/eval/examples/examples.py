@@ -364,8 +364,11 @@ def example_10() -> Dict:
 
     # Toy example:     
 
-    # The correct target (class) labels
-    ground_truth = [0, 0, 0, 0, 0, 1, 1, 1, 1, 1]
+    # The correct target (class) labels (optional)
+    ground_truth = [0, 0, 0, 0, 0, 1, 1, 1, 1, 1] 
+    # in case ground_truth is not provided (variable set to None), 
+    # the significance test checks the similarity between model predictions only.
+
     # Class labels predicted by model 1
     cls_pred1 = [0, 1, 1, 1, 0, 1, 1, 0, 1, 1]
     # Class labels predicted by model 2

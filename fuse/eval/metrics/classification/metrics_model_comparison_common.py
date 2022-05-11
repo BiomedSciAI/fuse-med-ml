@@ -53,6 +53,10 @@ class MetricMcnemarsTest(MetricMultiClassDefault):
         """
         McNemar's statistical test for comparing two model's predictions or accuracies
         in the sense of the statistics of their disagreements, as seen in the contingency table.
+        For comparing two classifiers, it's possible to provide the ground truth and then the comparison
+        will be of the models' accuracies. It's also possible to perform significance test on the predictions only. 
+        This can be useful either for classifiers, or any other paired data, even in cases where ground truth 
+        may not be applicable/available (i.e patients' opinion surveys, unsupervised model predictions, etc'.).
         :param pred1: key name for the class predictions of the first model
         :param pred2: key name for the class predictions of the second model
         :param target: (optional) key name for the ground truth
