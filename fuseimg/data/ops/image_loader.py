@@ -44,7 +44,6 @@ class OpLoadRGBImage(OpBase):
     def __init__(self, dir_path: str, **kwargs):
         super().__init__(**kwargs)
         self._dir_path = dir_path
-        pass
 
     def __call__(self, sample_dict: NDict, op_id: Optional[str], key_in: str, key_out: str):
         """
@@ -58,5 +57,6 @@ class OpLoadRGBImage(OpBase):
         else:
             raise Exception(f"OpLoadRGBImage: {img_filename_suffix} is not supported.")
 
+        img = img.float()
         sample_dict[key_out] = img
         return sample_dict

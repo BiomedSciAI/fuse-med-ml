@@ -1,9 +1,12 @@
 import os
+from sqlite3 import SQLITE_CREATE_TEMP_TABLE
 import requests
-import zipfile
+from zipfile import ZipFile
 import io
 import wget
-from typing import Hashable, Optional, Sequence
+import logging
+from typing import Hashable, Optional, Sequence, List
+
 
 from fuse.data import DatasetDefault
 from fuse.data.utils.sample import get_sample_id
@@ -15,6 +18,7 @@ from fuse.utils import NDict
 
 from fuseimg.data.ops.image_loader import OpLoadRGBImage
 from fuseimg.data.ops.color import OpNormalizeAgainstSelfImpl
+from fuseimg.data.ops.aug.geometry import OpResize2D
 
 class OpSkinLesionSampleIDDecode(OpBase):
 
@@ -25,7 +29,7 @@ class OpSkinLesionSampleIDDecode(OpBase):
         sid = get_sample_id(sample_dict)
 
         img_filename_key = 'data.input.img_path'
-        sample_dict[img_filename_key] =   os.path.join(sid, 'imaging.nii.gz')
+        sample_dict[img_filename_key] =   sid # the sample id is the image's filename itself
 
         return sample_dict
 
@@ -38,97 +42,48 @@ class SkinLesion:
     DATASET_VER = 0
 
     @staticmethod
-    def download(data_path: str, year: str = '2016') -> None:
+    def download(data_path: str) -> None:
         """
         Download images and metadata from ISIC challenge
         :param data_path: path where data should be located
-        :param year: ISIC challenge year (2016 or 2017)
         """
+        lgr = logging.getLogger('Fuse')
+    
+        path = os.path.join(data_path, 'ISIC2019/ISIC_2019_Training_Input')
+        print(f"Training Input Path: {os.path.abspath(path)}")
+        if not os.path.exists(path):
+            lgr.info('\nExtract ISIC-2019 training input ... (this may take a few minutes)')
 
-        if year == '2016':
-            # 2016 - Train
-            if not os.path.exists(os.path.join(data_path, 'data/ISIC2016_Training_Data')):
+            url = 'https://isic-challenge-data.s3.amazonaws.com/2019/ISIC_2019_Training_Input.zip'
+            wget.download(url, ".")
+            
+            with ZipFile("ISIC_2019_Training_Input.zip", 'r') as zipObj:
+                # Extract all the contents of zip file in current directory
+                zipObj.extractall(path=os.path.join(data_path, 'ISIC2019'))
 
-                url = 'https://isic-challenge-data.s3.amazonaws.com/2016/ISBI2016_ISIC_Part3_Training_Data.zip'
-                r = requests.get(url)
-                z = zipfile.ZipFile(io.BytesIO(r.content))
-                z.extractall(os.path.join(data_path, 'data'))
-                os.rename(os.path.join(data_path, 'data/ISBI2016_ISIC_Part3_Training_Data'),
-                        os.path.join(data_path, 'data/ISIC2016_Training_Data'))
+            lgr.info('Extracting ISIC-2019 training input: done')
 
+        path = os.path.join(data_path, 'ISIC2019/ISIC_2019_Training_GroundTruth.csv')
 
-            if not os.path.exists(os.path.join(data_path, 'data/ISIC2016_Training_GroundTruth.csv')):
-                url = 'https://isic-challenge-data.s3.amazonaws.com/2016/ISBI2016_ISIC_Part3_Training_GroundTruth.csv'
-                wget.download(url, os.path.join(data_path, 'data/ISIC2016_Training_GroundTruth.csv'))
+        if not os.path.exists(path):
+            lgr.info('\nExtract ISIC-2019 training gt ... (this may take a few minutes)')
 
-            # 2016 - Test
-            if not os.path.exists(os.path.join(data_path, 'data/ISIC2016_Test_Data')):
+            url = 'https://isic-challenge-data.s3.amazonaws.com/2019/ISIC_2019_Training_GroundTruth.csv'
+            wget.download(url, path)
 
-                url = 'https://isic-challenge-data.s3.amazonaws.com/2016/ISBI2016_ISIC_Part3_Test_Data.zip'
-                r = requests.get(url)
-                z = zipfile.ZipFile(io.BytesIO(r.content))
-                z.extractall(os.path.join(data_path, 'data'))
-                os.rename(os.path.join(data_path, 'data/ISBI2016_ISIC_Part3_Test_Data'),
-                        os.path.join(data_path, 'data/ISIC2016_Test_Data'))
-
-
-            if not os.path.exists(os.path.join(data_path, 'data/ISIC2016_Test_GroundTruth.csv')):
-                url = 'https://isic-challenge-data.s3.amazonaws.com/2016/ISBI2016_ISIC_Part3_Test_GroundTruth.csv'
-                wget.download(url, os.path.join(data_path, 'data/ISIC2016_Test_GroundTruth.csv'))
-
-        if year == '2017':
-            # 2017 - Train
-            if not os.path.exists(os.path.join(data_path, 'data/ISIC2017_Training_Data')):
-
-                url = 'https://isic-challenge-data.s3.amazonaws.com/2017/ISIC-2017_Training_Data.zip'
-                r = requests.get(url)
-                z = zipfile.ZipFile(io.BytesIO(r.content))
-                z.extractall(os.path.join(data_path, 'data'))
-                os.rename(os.path.join(data_path, 'data/ISIC-2017_Training_Data'),
-                        os.path.join(data_path, 'data/ISIC2017_Training_Data'))
-
-
-            if not os.path.exists(os.path.join(data_path, 'data/ISIC2017_Training_GroundTruth.csv')):
-                url = 'https://isic-challenge-data.s3.amazonaws.com/2017/ISIC-2017_Training_Part3_GroundTruth.csv'
-                wget.download(url, os.path.join(data_path, 'data/ISIC2017_Training_GroundTruth.csv'))
-
-            # 2017 - Validation
-            if not os.path.exists(os.path.join(data_path, 'data/ISIC2017_Validation_Data')):
-
-                url = 'https://isic-challenge-data.s3.amazonaws.com/2017/ISIC-2017_Validation_Data.zip'
-                r = requests.get(url)
-                z = zipfile.ZipFile(io.BytesIO(r.content))
-                z.extractall(os.path.join(data_path, 'data'))
-                os.rename(os.path.join(data_path, 'data/ISIC-2017_Validation_Data'),
-                        os.path.join(data_path, 'data/ISIC2017_Validation_Data'))
-
-
-            if not os.path.exists(os.path.join(data_path, 'data/ISIC2017_Validation_GroundTruth.csv')):
-                url = 'https://isic-challenge-data.s3.amazonaws.com/2017/ISIC-2017_Validation_Part3_GroundTruth.csv'
-                wget.download(url, os.path.join(data_path, 'data/ISIC2017_Validation_GroundTruth.csv'))
-
-            # 2017 - Test
-            if not os.path.exists(os.path.join(data_path, 'data/ISIC2017_Test_Data')):
-
-                url = 'https://isic-challenge-data.s3.amazonaws.com/2017/ISIC-2017_Test_v2_Data.zip'
-                r = requests.get(url)
-                z = zipfile.ZipFile(io.BytesIO(r.content))
-                z.extractall(os.path.join(data_path, 'data'))
-                os.rename(os.path.join(data_path, 'data/ISIC-2017_Test_v2_Data'),
-                        os.path.join(data_path, 'data/ISIC2017_Test_Data'))
-
-
-            if not os.path.exists(os.path.join(data_path, 'data/ISIC2017_Test_GroundTruth.csv')):
-                url = 'https://isic-challenge-data.s3.amazonaws.com/2017/ISIC-2017_Test_v2_Part3_GroundTruth.csv'
-                wget.download(url, os.path.join(data_path, 'data/ISIC2017_Test_GroundTruth.csv'))
+            lgr.info('Extracting ISIC-2019 training gt: done')
 
     @staticmethod
-    def sample_ids():
+    def sample_ids(data_dir: str) -> List[str]:
         """
         get all the sample ids in trainset
         sample_id is case_{id:05d} (for example case_00001 or case_00100)
         """
-        pass
+        test_mode = True
+        samples = [f for f in os.listdir(data_dir) if f.split(".")[-1] == 'jpg']
+        if test_mode:
+            return ['ISIC_0000000.jpg']
+        return samples
 
     
     @staticmethod
@@ -139,7 +94,7 @@ class SkinLesion:
         """
         static_pipeline = PipelineDefault("static",[
             # TODO: Should implement a decoder like kits? YES!
-            (OpSkinLesionSampleIDDecode(), NDict()),
+            (OpSkinLesionSampleIDDecode(), dict()),
             
             # Load Image
             (OpLoadRGBImage(data_path), dict(key_in="data.input.img_path", key_out="data.input.img")),
@@ -159,6 +114,7 @@ class SkinLesion:
         dynamic_pipeline = PipelineDefault("dynamic", [
                 
                 # Resize
+                (OpResize2D(), dict(key="data.input.img", resize_to=(299,299)))
 
                 # Padding
 
@@ -204,19 +160,26 @@ class SkinLesion:
         :param num_workers: number of processes used for caching 
         :param sample_ids: dataset including the specified sample_ids or None for all the samples. sample_id is case_{id:05d} (for example case_00001 or case_00100).
         """
+        train_data_path = os.path.join(data_path, 'ISIC2019/ISIC_2019_Training_Input')
+        if sample_ids == None:
+            sample_ids = SkinLesion.sample_ids(train_data_path)
 
-        static_pipeline = SkinLesion.static_pipeline(data_path)
+        print("sample_ids' length:", len(sample_ids))
+
+        static_pipeline = SkinLesion.static_pipeline(train_data_path)
         dynamic_pipeline = SkinLesion.dynamic_pipeline()
 
-        cacher = SamplesCacher(f'skin_lesion_cache_ver{SkinLesion.DATASET_VER}', 
-            static_pipeline,
-            [cache_dir], restart_cache=reset_cache, workers=num_workers)  
+        # cacher = SamplesCacher(f'skin_lesion_cache_ver{SkinLesion.DATASET_VER}', 
+        #     static_pipeline,
+        #     [cache_dir], restart_cache=reset_cache, workers=num_workers)  
 
         my_dataset = DatasetDefault(sample_ids=sample_ids,
             static_pipeline=static_pipeline,
             dynamic_pipeline=dynamic_pipeline,
-            cacher=cacher,            
+            cacher=None, #CHANGE    
         )
 
         my_dataset.create()
+        print("my_dataset's length:", len(my_dataset))
+        print(my_dataset[0])
         return my_dataset

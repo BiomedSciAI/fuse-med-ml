@@ -219,3 +219,39 @@ class OpAugUnsqueeze3DFrom2D(OpBase):
         
         sample_dict[key] = aug_output
         return sample_dict
+
+class OpResize2D(OpBase):
+    def __init__(self, verify_arguments: bool = True):
+        """
+        :param verify_arguments: this op expects #TODO
+        """
+        super().__init__()
+        self._verify_arguments = verify_arguments
+
+    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str, resize_to: List[int]) -> NDict:
+        """
+        :param key: key to a tensor stored in sample_dict
+        :param resize_to: #TODO
+        :param channels: #TODO channels not to resize??
+        """
+        aug_input = sample_dict[key]
+        input_dim = len(aug_input.shape)
+
+        # verify
+        if self._verify_arguments:
+            assert isinstance(aug_input, torch.Tensor), f"Error: OpResizeTo expects torch Tensor, got {type(aug_input)}"
+            assert input_dim == 2 or input_dim == 3, f"Error: OpResizeTo expects tensor with 2 or 3 dimensions. got {len(aug_input.shape)}"
+        
+        if input_dim == 2:
+            aug_output = aug_input.resize(size=resize_to, antialias=True)
+        
+        else:
+            for color in range(aug_input.shape[0]): # Iterating over the "color" layers
+                img_2d = aug_input[color]
+                img_2d = img_2d.resize(size=resize_to, antialias=True)
+                aug_input[color] = img_2d
+            aug_output = aug_input
+        
+        sample_dict[key] = aug_output
+        return sample_dict
+

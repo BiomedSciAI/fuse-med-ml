@@ -56,7 +56,16 @@ class OpNormalizeAgainstSelfImpl(OpBase):
     def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str,
         ):
         img = sample_dict[key]
+        img = img.float()
+        print(img.shape)
+        print(img[0][0][0])
+        print(type(img.numpy().shape))
+        print(img.numpy().shape)
+        print(type(img[0]))
+        print(img[0].shape)
         img -= img.min()
+        print(img.max())
+        print(type(img.max()))
         img /= img.max()
         sample_dict[key] = img
         return sample_dict

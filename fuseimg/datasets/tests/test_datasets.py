@@ -6,6 +6,7 @@ import unittest
 from fuse.data.utils.sample import get_sample_id
 from fuse.utils.file_io.file_io import create_dir
 
+
 from fuseimg.datasets.kits21 import KITS21
 from tqdm import trange
 from testbook import testbook
@@ -18,10 +19,13 @@ class TestDatasets(unittest.TestCase):
 
     def setUp(self) -> None:
         super().setUp()
+        tmpdir = gettempdir()
+
         self.kits21_cache_dir = mkdtemp(prefix="kits21_cache")
         self.kits21_data_dir = mkdtemp(prefix="kits21_data")
         self.skin_lesion_cache_dir = mkdtemp(prefix="skin_lesion_cache")
-        self.skin_lesion_data_dir = mkdtemp(prefix="skin_lesion_data")
+        # self.skin_lesion_data_dir = mkdtemp(prefix="skin_lesion_data")
+        self.skin_lesion_data_dir = os.path.join(tmpdir, 'skin_lesion_data_dir')
 
 
     def test_kits32(self):
@@ -37,6 +41,7 @@ class TestDatasets(unittest.TestCase):
     def test_skin_lesion(self):
         SkinLesion.download(self.skin_lesion_data_dir)
 
+        create_dir(self.skin_lesion_cache_dir)
         dataset = SkinLesion.dataset(data_path=self.skin_lesion_data_dir, cache_dir=self.skin_lesion_cache_dir, reset_cache=True)
         pass
 
