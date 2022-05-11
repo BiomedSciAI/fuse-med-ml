@@ -22,7 +22,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from fuse.dl.losses.loss_base import LossBase
-from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
+from fuse.utils.ndict import NDict
 from typing import Callable, Dict, Optional
 
 
@@ -112,12 +112,12 @@ class DiceLoss(LossBase):
         self.resize_mode = resize_mode
         self.dice = BinaryDiceLoss(**self.kwargs)
 
-    def __call__(self, batch_dict):
+    def __call__(self, batch_dict: NDict):
 
         if self.filter_func is not None:
             batch_dict = self.filter_func(batch_dict)
-        predict = FuseUtilsHierarchicalDict.get(batch_dict, self.pred_name).float()
-        target = FuseUtilsHierarchicalDict.get(batch_dict, self.target_name).long()
+        predict = batch_dict[self.pred_name].float()
+        target = batch_dict[self.target_name].long()
 
         n, c, h, w = predict.shape
         tar_shape = target.shape

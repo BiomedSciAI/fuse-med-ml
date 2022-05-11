@@ -23,7 +23,7 @@ import torch
 
 from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
 from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
-from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
+from fuse.utils.ndict import NDict
 
 
 class ModelDefault(torch.nn.Module):
@@ -59,15 +59,15 @@ class ModelDefault(torch.nn.Module):
         self.add_module('heads', self.heads)
 
     def forward(self,
-                batch_dict: Dict) -> Dict:
+                batch_dict: NDict) -> Dict:
         if self.conv_inputs is not None:
-            conv_input = torch.cat([FuseUtilsHierarchicalDict.get(batch_dict, conv_input[0]) for conv_input in self.conv_inputs], 1)
+            conv_input = torch.cat([batch_dict[conv_input[0]] for conv_input in self.conv_inputs], 1)
             backbone_features = self.backbone.forward(conv_input)
         else:
-            backbone_args = [FuseUtilsHierarchicalDict.get(batch_dict, inp[0]) for inp in self.backbone_args]
+            backbone_args = [batch_dict[inp[0]] for inp in self.backbone_args]
             backbone_features = self.backbone.forward(*backbone_args)
 
-        FuseUtilsHierarchicalDict.set(batch_dict, 'model.backbone_features', backbone_features)
+        batch_dict['model.backbone_features'] = backbone_features
 
         for head in self.heads:
             batch_dict = head.forward(batch_dict)

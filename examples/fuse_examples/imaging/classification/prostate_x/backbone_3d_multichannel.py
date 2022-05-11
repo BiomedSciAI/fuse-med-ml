@@ -18,7 +18,7 @@ import torch
 import torch.nn as nn
 
 
-from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
+from fuse.utils.ndict import NDict
 import numpy as np
 from fuse.dl.models.heads.head_1d_classifier import Head1dClassifier
 
@@ -120,13 +120,13 @@ class ResNet(torch.nn.Module):
             layers.append(block(out_channels, out_channels))
         return nn.Sequential(*layers)
 
-    def forward(self,batch_dict):
+    def forward(self, batch_dict: NDict):
         if len(self.conv_inputs)>1:
-            tensors_list = [FuseUtilsHierarchicalDict.get(batch_dict, conv_input[0]).float() for conv_input in self.conv_inputs]
+            tensors_list = [batch_dict[conv_input[0]].float() for conv_input in self.conv_inputs]
             max_tensor_dim = max([len(tmp_tensor.shape) for tmp_tensor in tensors_list])
             conv_input = torch.cat([tmp_tensor.unsqueeze_(0) if len(tmp_tensor.shape)<max_tensor_dim else tmp_tensor for tmp_tensor in tensors_list], 1)
         else:
-            conv_input = torch.cat([FuseUtilsHierarchicalDict.get(batch_dict, conv_input[0]) for conv_input in self.conv_inputs], 1)
+            conv_input = torch.cat([batch_dict[conv_input[0]] for conv_input in self.conv_inputs], 1)
 
 
         if len(conv_input.shape)<4:
@@ -206,7 +206,7 @@ class Fuse_model_3d_multichannel(torch.nn.Module):
         """
 
         features = self.backbone(batch_dict)
-        FuseUtilsHierarchicalDict.set(batch_dict, 'model.backbone_features', features)
+        batch_dict['model.backbone_features'] = features
 
         for head in self.heads:
             batch_dict = head.forward(batch_dict)
@@ -250,17 +250,17 @@ if __name__ == '__main__':
         dummy_data = pickle.load(pickle_file)
         clinical_data = torch.rand([1]).to(DEVICE)
         clinical_data = clinical_data.unsqueeze(0)
-        input = FuseUtilsHierarchicalDict.get(dummy_data, 'data.input')
-        FuseUtilsHierarchicalDict.set(dummy_data,'data.input',input)
-        zone = FuseUtilsHierarchicalDict.get(dummy_data, 'data.zone')
+        input = dummy_data['data.input']
+        dummy_data['data.input'] = input
+        zone = dummy_data['data.zone']
         zone2feature = {
                         'PZ':torch.tensor(np.array([0,0,0]),dtype=torch.float32).unsqueeze(0),
                         'TZ': torch.tensor(np.array([0,0,1]), dtype=torch.float32).unsqueeze(0),
                         'AS': torch.tensor(np.array([0,1,0]), dtype=torch.float32).unsqueeze(0),
                         'SV': torch.tensor(np.array([1,0,0]), dtype=torch.float32).unsqueeze(0),
                         }
-        FuseUtilsHierarchicalDict.set(dummy_data, 'data.input', torch.cat((input.unsqueeze(0),input.unsqueeze(0)),dim=0))
-        FuseUtilsHierarchicalDict.set(dummy_data, 'data.tensor_clinical', torch.cat((zone2feature[zone],zone2feature[zone]),dim=0))
+        dummy_data['data.input'] = torch.cat((input.unsqueeze(0),input.unsqueeze(0)),dim=0)
+        dummy_data['data.tensor_clinical'] = torch.cat((zone2feature[zone],zone2feature[zone]),dim=0)
 
 
     res = {}

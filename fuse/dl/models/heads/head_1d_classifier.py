@@ -22,7 +22,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from typing import Dict, Tuple, Sequence, Optional
-from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
+from fuse.utils.ndict import NDict
 
 class ClassifierLinear(nn.Module):
     def __init__(self,
@@ -150,14 +150,14 @@ class Head1dClassifier(nn.Module):
     def forward(self,
                 batch_dict: Dict) -> Dict:
 
-        conv_input = torch.cat([FuseUtilsHierarchicalDict.get(batch_dict, conv_input[0]) for conv_input in self.conv_inputs])
+        conv_input = torch.cat([batch_dict[conv_input[0]] for conv_input in self.conv_inputs])
 
         res = conv_input
 
 
         if self.post_concat_inputs is not None:
             post_concat_input = torch.cat(
-                [FuseUtilsHierarchicalDict.get(batch_dict, post_concat_input[0]) for post_concat_input in self.post_concat_inputs])
+                [batch_dict[post_concat_input[0]] for post_concat_input in self.post_concat_inputs])
             if self.post_concat_model is None:
                 # concat post_concat_input directly to conv_input
                 res = torch.cat([res, post_concat_input],dim=1)
@@ -173,7 +173,7 @@ class Head1dClassifier(nn.Module):
 
         cls_preds = F.softmax(logits, dim=1)
 
-        FuseUtilsHierarchicalDict.set(batch_dict, 'model.logits.' + self.head_name, logits)
-        FuseUtilsHierarchicalDict.set(batch_dict, 'model.output.' + self.head_name, cls_preds)
+        batch_dict['model.logits.' + self.head_name] = logits
+        batch_dict['model.output.' + self.head_name] = cls_preds
 
         return batch_dict
