@@ -38,10 +38,9 @@ class TestDatasets(unittest.TestCase):
         SkinLesion.download(self.skin_lesion_data_dir)
 
         dataset = SkinLesion.dataset(data_path=self.skin_lesion_data_dir, cache_dir=self.skin_lesion_cache_dir, reset_cache=True)
-        
+        pass
 
-
-    @testbook(notebook_path, execute=range(0,4))
+    @testbook(notebook_path, execute=range(0,4), timeout=120)
     def test_basic(tb, self):
         tb.execute_cell([4,5])
 
@@ -51,7 +50,7 @@ class TestDatasets(unittest.TestCase):
             """
         )
     
-    @testbook(notebook_path, execute=range(0,4))
+    @testbook(notebook_path, execute=range(0,4), timeout=120)
     def test_caching(tb, self):
         tb.execute_cell([9])
 
@@ -62,7 +61,7 @@ class TestDatasets(unittest.TestCase):
             """
         )
     
-    @testbook(notebook_path, execute=range(0,4))
+    @testbook(notebook_path, execute=range(0,4), timeout=120)
     def test_custom(tb, self):
         tb.execute_cell([25])
 

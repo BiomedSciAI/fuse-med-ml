@@ -24,7 +24,7 @@ from typing import Dict
 import torch.nn as nn
 
 from fuse.dl.managers.callbacks.callback_base import Callback
-from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
+from fuse.utils.ndict import NDict
 from fuse.utils.misc.misc import Misc
 
 
@@ -66,9 +66,9 @@ class CallbackDebug(Callback):
             lgr.info(f'Step Results:', {'color': 'green', 'attrs': 'bold'})
             lgr.info(f'Learning Rate: {learning_rate}', {'color': 'green'})
             lgr.info(f'Train Results:', {'color': 'green', 'attrs': 'bold'})
-            lgr.info(f'{FuseUtilsHierarchicalDict.to_string(train_results)}', {'color': 'green'})
+            lgr.info(f'{train_results}', {'color': 'green'})
             lgr.info(f'Validation Results:', {'color': 'green', 'attrs': 'bold'})
-            lgr.info(f'{FuseUtilsHierarchicalDict.to_string(validation_results)}', {'color': 'green'})
+            lgr.info(f'{validation_results}', {'color': 'green'})
 
             self.time_step_begin = None
             self.first_step = False
@@ -91,7 +91,7 @@ class CallbackDebug(Callback):
             lgr.info(f'{mode.capitalize()}  epoch {epoch} - {current_time} (total time {total_time}) - END', {'color': 'green', 'attrs': ['bold', 'underline']})
 
             lgr.info(f'Epoch Results:', {'color': 'green', 'attrs': 'bold'})
-            lgr.info(f'{FuseUtilsHierarchicalDict.to_string(epoch_results)}', {'color': 'green'})
+            lgr.info(f'{epoch_results}', {'color': 'green'})
 
             self.time_epoch_begin = None
             self.first_epoch[mode] = False
@@ -114,7 +114,7 @@ class CallbackDebug(Callback):
             lgr.info(f'{mode.capitalize()} virtual batch {virtual_batch} - {current_time} (total time {total_time}) - END', {'color': 'green', 'attrs': ['bold', 'underline']})
 
             lgr.info(f'Virtual Batch Results:', {'color': 'green', 'attrs': 'bold'})
-            lgr.info(f'{FuseUtilsHierarchicalDict.to_string(virtual_batch_results)}', {'color': 'green'})
+            lgr.info(f'{virtual_batch_results}', {'color': 'green'})
 
             self.time_virtual_batch_begin = None
             self.first_virtual_batch[mode] = False

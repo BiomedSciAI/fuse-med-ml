@@ -4,9 +4,9 @@ To ensure maximum flexibility, FuseMedML defines a set of decoupled abstract obj
 The decoupling is achieved by the fact that, in most cases, the objects do not interact directly. Instead, the information and data are routed between components using *namespaces* (examples below). Meaning, each object extracts its input from and saves its output into a dictionary named `batch_dict`. `batch_dict` aggregates the outputs of all the objects through a single batch. When a batch is completed, only the required key-value pairs from `batch_dict`, such as the loss values, will be collected in another dictionary named `epoch_results`.
  
 
-Both `batch_dict` and `epoch_results` are nested dictionaries. To easily access the data stored in those dictionaries, use `FuseUtilsHierarchicalDict`:
+Both `batch_dict` and `epoch_results` are nested dictionaries. To easily access the data stored in those dictionaries, use `NDict`:
 ```python
-FuseUtilsHierarchicalDict.get(batch_dict, ‘model.output.classification’)
+batch_dict[‘model.output.classification’]
 ``` 
 will return `batch_dict[‘model’][‘output’][‘classification’]`
 

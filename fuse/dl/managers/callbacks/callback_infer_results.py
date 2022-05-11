@@ -28,7 +28,7 @@ from torch import Tensor
 
 from fuse.dl.managers.callbacks.callback_base import Callback
 from fuse.utils.file_io.file_io import create_dir
-from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
+from fuse.utils.ndict import NDict
 
 
 class InferResultsCallback(Callback):
@@ -52,7 +52,7 @@ class InferResultsCallback(Callback):
         pass
 
     def reset(self):
-        self.aggregated_dict = {'id': [], 'output': {}}
+        self.aggregated_dict = {'id': [], 'output': NDict()}
         self.infer_results_df = pd.DataFrame()
 
     def on_epoch_begin(self, mode: str, epoch: int) -> None:
@@ -84,9 +84,9 @@ class InferResultsCallback(Callback):
         infer_results_df = pd.DataFrame()
         infer_results_df['id'] = self.aggregated_dict['id']
 
-        for output in FuseUtilsHierarchicalDict.get_all_keys(self.aggregated_dict['output']):
+        for output in self.aggregated_dict['output'].keypaths():
             infer_results_df[output] = list(
-                FuseUtilsHierarchicalDict.get(self.aggregated_dict['output'], output))  # note- wrapping with list for pandas compatibility
+                self.aggregated_dict['output'][output])  # note- wrapping with list for pandas compatibility
 
         if self.output_file is not None:
             infer_results_df.to_pickle(self.output_file, compression='gzip')
@@ -96,7 +96,7 @@ class InferResultsCallback(Callback):
         self.infer_results_df = infer_results_df
         return
 
-    def on_batch_end(self, mode: str, batch: int, batch_dict: Dict = None) -> None:
+    def on_batch_end(self, mode: str, batch: int, batch_dict: NDict = None) -> None:
         """
         On batch end - save the descriptor data into a class member.
 
@@ -116,15 +116,15 @@ class InferResultsCallback(Callback):
         if self.output_columns is not None and len(self.output_columns) > 0:
             output_cols = self.output_columns
         else:
-            output_cols = FuseUtilsHierarchicalDict.get_all_keys(batch_dict)
+            output_cols = batch_dict.keypaths()
 
         for output_col in output_cols:
-            if output_col not in FuseUtilsHierarchicalDict.get_all_keys(self.aggregated_dict['output']):
-                FuseUtilsHierarchicalDict.set(self.aggregated_dict['output'], output_col, [])
-            output = FuseUtilsHierarchicalDict.get(batch_dict, output_col)
+            if output_col not in self.aggregated_dict['output'].keypaths():
+                self.aggregated_dict['output'][output_col] = []
+            output = batch_dict[output_col]
             if isinstance(output, torch.Tensor):
                 # no need to save tensors
                 output = output.cpu().numpy()
-            FuseUtilsHierarchicalDict.get(self.aggregated_dict['output'], output_col).extend(output)
+            self.aggregated_dict['output'][output_col].extend(output)
 
         pass

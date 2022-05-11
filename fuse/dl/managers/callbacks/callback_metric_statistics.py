@@ -26,7 +26,7 @@ import pandas as pd
 
 from fuse.dl.managers.callbacks.callback_base import Callback
 from fuse.utils.file_io.file_io import create_dir
-from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
+from fuse.utils.ndict import NDict
 
 
 class MetricStatisticsCallback(Callback):
@@ -53,7 +53,7 @@ class MetricStatisticsCallback(Callback):
 
         pass
 
-    def on_epoch_end(self, mode: str, epoch: int, epoch_results: Dict = None) -> None:
+    def on_epoch_end(self, mode: str, epoch: int, epoch_results: NDict = None) -> None:
         """
         Adds a line to a CSV with the metrics results of self.metrics.
         The CSV is saved under self.output_path
@@ -71,7 +71,7 @@ class MetricStatisticsCallback(Callback):
             return
 
         lgr = logging.getLogger('Fuse')
-        flat_results = FuseUtilsHierarchicalDict.flatten(epoch_results)
+        flat_results = epoch_results.flatten()
         # if this is step 0 - pre-training results should be logged in addition to the metrics csv
         if epoch == 0:
             lgr.info(f'Stats for Pre-Training:')

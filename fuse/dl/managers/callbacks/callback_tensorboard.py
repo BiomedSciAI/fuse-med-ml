@@ -22,7 +22,7 @@ from typing import Dict
 from fuse.dl.managers.callbacks.callback_base import Callback
 from fuse.dl.managers.manager_state import ManagerState
 from fuse.utils.file_io.file_io import create_dir
-from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
+from fuse.utils.ndict import NDict
 import torch
 import numpy as np
 
@@ -36,7 +36,7 @@ class TensorboardCallback(Callback):
         super().__init__()
         self.model_dir = model_dir
 
-    def on_step_end(self, step: int, train_results: Dict = None, validation_results: Dict = None, learning_rate: float = None) -> None:
+    def on_step_end(self, step: int, train_results: NDict = None, validation_results: NDict = None, learning_rate: float = None) -> None:
         """
         Writes the results into train and validation loggers
 
@@ -57,16 +57,16 @@ class TensorboardCallback(Callback):
         """
 
         # update train tensorboard logger
-        for evaluator_name in FuseUtilsHierarchicalDict.flatten(train_results).keys():
-            evaluator_value = FuseUtilsHierarchicalDict.get(train_results, evaluator_name)
+        for evaluator_name in train_results.flatten().keys():
+            evaluator_value = train_results[evaluator_name]
             if evaluator_value is not None and isinstance(evaluator_value, (int, float, np.ndarray, torch.Tensor)):
                 self.add_scalar(self.tensorboard_logger_train, tag=evaluator_name, scalar_value=evaluator_value, global_step=step)
         self.add_scalar(self.tensorboard_logger_train, 'learning_rate', learning_rate, step)
 
         # update train tensorboard logger
         if validation_results is not None:
-            for evaluator_name in FuseUtilsHierarchicalDict.flatten(validation_results).keys():
-                evaluator_value = FuseUtilsHierarchicalDict.get(validation_results, evaluator_name)
+            for evaluator_name in validation_results.flatten().keys():
+                evaluator_value = validation_results[evaluator_name]
                 if evaluator_value is not None and isinstance(evaluator_value, (int, float, np.ndarray, torch.Tensor)):
                     self.add_scalar(self.tensorboard_logger_validation, tag=evaluator_name, scalar_value=evaluator_value, global_step=step)
             self.add_scalar(self.tensorboard_logger_validation, 'learning_rate', learning_rate, step)
