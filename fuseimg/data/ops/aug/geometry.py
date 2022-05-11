@@ -202,7 +202,6 @@ class OpAugUnsqueeze3DFrom2D(OpBase):
         if self._verify_arguments:
             assert isinstance(aug_input, torch.Tensor), f"Error: OpAugUnsqueeze3DFrom2D expects torch Tensor, got {type(aug_input)}"
             assert len(aug_input.shape) == 3, f"Error: OpAugUnsqueeze3DFrom2D expects tensor with 3 dimensions. got {aug_input.shape}"
-        
 
         aug_output = aug_input.reshape((channels, aug_input.shape[0] // channels) + aug_input.shape[1:])
         
@@ -222,7 +221,8 @@ class OpAugUnsqueeze3DFrom2D(OpBase):
         sample_dict[key] = aug_output
         return sample_dict
 
-class OpResize(OpBase):
+
+class OpResizeTo(OpBase):
     def __init__(self, verify_arguments: bool = True):
         """
         :param verify_arguments: this ops expects torch / ndarray with d dimensions such that len(resize_to) == d.
@@ -239,14 +239,14 @@ class OpResize(OpBase):
         """
         aug_input = sample_dict[key]
 
-        # verify
+        # verify arguments
         if self._verify_arguments:
             input_dim = len(aug_input.shape)
             resize_dim = len(resize_to)
-            assert isinstance(aug_input, numpy.ndarray) or isinstance(aug_input, torch.Tensor), f"Error: OpResize expects torch Tensor, got {type(aug_input)}"
-            assert input_dim == resize_dim, f"Error, OpResize expects the user to specify values for all the dimensions. got tensor with {input_dim} but {resize_dim} dimensions were given"
+            assert isinstance(aug_input, numpy.ndarray) or isinstance(aug_input, torch.Tensor), f"Error: OpResizeTo expects torch Tensor, got {type(aug_input)}"
+            assert input_dim == resize_dim, f"Error, OpResizeTo expects the user to specify values for all the dimensions. got tensor with {input_dim} but {resize_dim} dimensions were given"
         
-        # aug_output = TTF.resize(aug_input, resize_to, antialias=True)
         aug_output = skimage.transform.resize(aug_input, resize_to, mode='reflect', anti_aliasing=True)
         sample_dict[key] = aug_output
+
         return sample_dict

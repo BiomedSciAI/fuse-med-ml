@@ -20,7 +20,7 @@ from fuse.utils import NDict
 from fuseimg.data.ops.image_loader import OpLoadRGBImage
 from fuseimg.data.ops.color import OpNormalizeAgainstSelfImpl, OpPad
 from fuseimg.data.ops.aug.color import OpAugColor, OpAugGaussian
-from fuseimg.data.ops.aug.geometry import OpResize, OpAugAffine2D
+from fuseimg.data.ops.aug.geometry import OpResizeTo, OpAugAffine2D
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
 
 
@@ -28,7 +28,7 @@ class OpSkinLesionSampleIDDecode(OpBase):
 
     def __call__(self, sample_dict: NDict, op_id: Optional[str]) -> NDict:
         """
-        
+        decodes sample id into image file name
         """
         sid = get_sample_id(sample_dict)
 
@@ -40,7 +40,7 @@ class OpSkinLesionSampleIDDecode(OpBase):
 
 class SkinLesion:
     """
-    TODO: describe
+    ISIC 2019 challenge to classify dermoscopic images and clinical data among nine different diagnostic categories.
     """
     # bump whenever the static pipeline modified
     DATASET_VER = 0
@@ -88,9 +88,6 @@ class SkinLesion:
         """
         samples = [f for f in os.listdir(data_dir) if f.split(".")[-1] == 'jpg']
 
-        test_mode = True #TODO: delete when finished
-        if test_mode:
-            return ['ISIC_0000000.jpg']
         return samples
 
     @staticmethod
@@ -122,8 +119,7 @@ class SkinLesion:
 
         dynamic_pipeline = PipelineDefault("dynamic", [
                 # Resize images to 3x300x300
-                # TODO: Fix issue: currently after resize we have values that are >1! it cause an error later!
-                (OpResize(), dict(key="data.input.img", resize_to=[3, 300, 300])),
+                (OpResizeTo(), dict(key="data.input.img", resize_to=[3, 300, 300])),
                 
                 # Cast to Tensor
                 (OpToTensor(), dict(key="data.input.img")),
@@ -152,6 +148,7 @@ class SkinLesion:
                 # Gaussian noise
                 (OpAugGaussian(), dict(key="data.input.img", std=0.03))
         ])
+
         return dynamic_pipeline
 
     @staticmethod
@@ -182,6 +179,4 @@ class SkinLesion:
         )
 
         my_dataset.create()
-        sd = my_dataset[0] # TODO: delete when finished. just to invoke the dynamic pipeline
-        print(sd["data.input.img"])
         return my_dataset

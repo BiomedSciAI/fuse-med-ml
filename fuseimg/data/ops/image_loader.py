@@ -30,11 +30,12 @@ class OpLoadImage(OpBase):
             raise Exception(f"OpLoadImage: case format {format} and {img_filename_suffix} is not supported")
         
         sample_dict[key_out] = img_np
-
+        
         return sample_dict
 
     def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:        
         return sample_dict          
+
 
 class OpLoadRGBImage(OpBase):
     """

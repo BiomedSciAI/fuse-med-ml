@@ -176,7 +176,8 @@ op_clip_img = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpClip(), {}) })
 
 class OpPad(OpBase):
     """
-    # TODO:
+    Pad the give image on all the sides. Currently supports only torch.Tensor objects.
+    #TODO: Add support to ndarray
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
