@@ -38,7 +38,7 @@ class OpLoadImage(OpBase):
 
 class OpLoadRGBImage(OpBase):
     """
-    Loads a RGB image (JPG, PNG) into a torch.Tensor object.
+    Loads a RGB image (JPG, PNG) into a torch.Tensor object. in (C x H x W) format.
     """
 
     def __init__(self, dir_path: str, **kwargs):

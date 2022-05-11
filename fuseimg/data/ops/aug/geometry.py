@@ -6,6 +6,8 @@ from PIL import Image
 import numpy
 import torch
 import torchvision.transforms.functional as TTF
+import skimage
+import skimage.transform
 
 from fuse.utils.ndict import NDict
 
@@ -220,38 +222,31 @@ class OpAugUnsqueeze3DFrom2D(OpBase):
         sample_dict[key] = aug_output
         return sample_dict
 
-class OpResize2D(OpBase):
+class OpResize(OpBase):
     def __init__(self, verify_arguments: bool = True):
         """
-        :param verify_arguments: this op expects #TODO
+        :param verify_arguments: this ops expects torch / ndarray with d dimensions such that len(resize_to) == d.
         """
         super().__init__()
         self._verify_arguments = verify_arguments
 
     def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str, resize_to: List[int]) -> NDict:
         """
-        :param key: key to a tensor stored in sample_dict
-        :param resize_to: #TODO
-        :param channels: #TODO channels not to resize??
+        :param key: key to a numpy array or tensor stored in the sample_dict
+        :param resize_to: the desired dimensions
+
+        outputs a numpy array
         """
         aug_input = sample_dict[key]
-        input_dim = len(aug_input.shape)
 
         # verify
         if self._verify_arguments:
-            assert isinstance(aug_input, torch.Tensor), f"Error: OpResizeTo expects torch Tensor, got {type(aug_input)}"
-            assert input_dim == 2 or input_dim == 3, f"Error: OpResizeTo expects tensor with 2 or 3 dimensions. got {len(aug_input.shape)}"
+            input_dim = len(aug_input.shape)
+            resize_dim = len(resize_to)
+            assert isinstance(aug_input, numpy.ndarray) or isinstance(aug_input, torch.Tensor), f"Error: OpResize expects torch Tensor, got {type(aug_input)}"
+            assert input_dim == resize_dim, f"Error, OpResize expects the user to specify values for all the dimensions. got tensor with {input_dim} but {resize_dim} dimensions were given"
         
-        if input_dim == 2:
-            aug_output = aug_input.resize(size=resize_to, antialias=True)
-        
-        else:
-            for color in range(aug_input.shape[0]): # Iterating over the "color" layers
-                img_2d = aug_input[color]
-                img_2d = img_2d.resize(size=resize_to, antialias=True)
-                aug_input[color] = img_2d
-            aug_output = aug_input
-        
+        # aug_output = TTF.resize(aug_input, resize_to, antialias=True)
+        aug_output = skimage.transform.resize(aug_input, resize_to, mode='reflect', anti_aliasing=True)
         sample_dict[key] = aug_output
         return sample_dict
-

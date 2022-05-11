@@ -23,10 +23,10 @@ class TestDatasets(unittest.TestCase):
 
         self.kits21_cache_dir = mkdtemp(prefix="kits21_cache")
         self.kits21_data_dir = mkdtemp(prefix="kits21_data")
-        self.skin_lesion_cache_dir = mkdtemp(prefix="skin_lesion_cache")
+        # self.skin_lesion_cache_dir = mkdtemp(prefix="skin_lesion_cache")
+        self.skin_lesion_cache_dir = os.path.join(tmpdir, 'skin_lesion_cache')
         # self.skin_lesion_data_dir = mkdtemp(prefix="skin_lesion_data")
         self.skin_lesion_data_dir = os.path.join(tmpdir, 'skin_lesion_data_dir')
-
 
     def test_kits32(self):
         KITS21.download(self.kits21_data_dir, cases=list(range(10)))
@@ -42,8 +42,12 @@ class TestDatasets(unittest.TestCase):
         SkinLesion.download(self.skin_lesion_data_dir)
 
         create_dir(self.skin_lesion_cache_dir)
-        dataset = SkinLesion.dataset(data_path=self.skin_lesion_data_dir, cache_dir=self.skin_lesion_cache_dir, reset_cache=True)
-        pass
+        dataset = SkinLesion.dataset(data_path=self.skin_lesion_data_dir, cache_dir=self.skin_lesion_cache_dir,
+                                     reset_cache=True, sample_ids=SkinLesion.TEN_GOLDEN_MEMBERS)
+        self.assertEqual(len(dataset), 10)
+        for sample_index in range(10):
+            sample = dataset[sample_index]
+            self.assertEqual(get_sample_id(sample), SkinLesion.TEN_GOLDEN_MEMBERS[sample_index])
 
     @testbook(notebook_path, execute=range(0,4), timeout=120)
     def test_basic(tb, self):

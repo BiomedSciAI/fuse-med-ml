@@ -6,19 +6,23 @@ import io
 import wget
 import logging
 from typing import Hashable, Optional, Sequence, List
-
+import skimage
 
 from fuse.data import DatasetDefault
+from fuse.data.ops.ops_cast import OpToNumpy, OpToTensor
 from fuse.data.utils.sample import get_sample_id
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.ops.op_base import OpBase
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
-
+from fuse.data.ops.ops_aug_common import OpSample
 from fuse.utils import NDict
 
 from fuseimg.data.ops.image_loader import OpLoadRGBImage
-from fuseimg.data.ops.color import OpNormalizeAgainstSelfImpl
-from fuseimg.data.ops.aug.geometry import OpResize2D
+from fuseimg.data.ops.color import OpNormalizeAgainstSelfImpl, OpPad
+from fuseimg.data.ops.aug.color import OpAugColor, OpAugGaussian
+from fuseimg.data.ops.aug.geometry import OpResize, OpAugAffine2D
+from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
+
 
 class OpSkinLesionSampleIDDecode(OpBase):
 
@@ -40,6 +44,9 @@ class SkinLesion:
     """
     # bump whenever the static pipeline modified
     DATASET_VER = 0
+    TEN_GOLDEN_MEMBERS = ['ISIC_0072637.jpg','ISIC_0072638.jpg','ISIC_0072639.jpg','ISIC_0072640.jpg',
+                        'ISIC_0072641.jpg','ISIC_0072642.jpg','ISIC_0072646.jpg','ISIC_0072647.jpg',
+                        'ISIC_0072648.jpg','ISIC_0072649.jpg']
 
     @staticmethod
     def download(data_path: str) -> None:
@@ -79,13 +86,13 @@ class SkinLesion:
         get all the sample ids in trainset
         sample_id is case_{id:05d} (for example case_00001 or case_00100)
         """
-        test_mode = True
         samples = [f for f in os.listdir(data_dir) if f.split(".")[-1] == 'jpg']
+
+        test_mode = True #TODO: delete when finished
         if test_mode:
             return ['ISIC_0000000.jpg']
         return samples
 
-    
     @staticmethod
     def static_pipeline(data_path: str) -> PipelineDefault:
         """
@@ -93,18 +100,20 @@ class SkinLesion:
         :param data_path: path to original kits21 data (can be downloaded by KITS21.download())
         """
         static_pipeline = PipelineDefault("static",[
-            # TODO: Should implement a decoder like kits? YES!
+            # Decoding sample ID
             (OpSkinLesionSampleIDDecode(), dict()),
             
             # Load Image
             (OpLoadRGBImage(data_path), dict(key_in="data.input.img_path", key_out="data.input.img")),
 
             # Normalize Image to range [0, 1]
-            (OpNormalizeAgainstSelfImpl(), dict(key="data.input.img"))
+            (OpNormalizeAgainstSelfImpl(), dict(key="data.input.img")),
+
+            # Cast to numpy array for caching purposes
+            (OpToNumpy(), dict(key="data.input.img"))
         ])
         return static_pipeline
 
-    
     @staticmethod
     def dynamic_pipeline() -> PipelineDefault:
         """
@@ -112,43 +121,38 @@ class SkinLesion:
         """
 
         dynamic_pipeline = PipelineDefault("dynamic", [
+                # Resize images to 3x300x300
+                # TODO: Fix issue: currently after resize we have values that are >1! it cause an error later!
+                (OpResize(), dict(key="data.input.img", resize_to=[3, 300, 300])),
                 
-                # Resize
-                (OpResize2D(), dict(key="data.input.img", resize_to=(299,299)))
+                # Cast to Tensor
+                (OpToTensor(), dict(key="data.input.img")),
 
                 # Padding
+                (OpPad(), dict(key="data.input.img", padding=1)),
 
-                # Augmentation
+                # Augmentation                
+                (OpSample(OpAugAffine2D()), dict(
+                    key="data.input.img",
+                    rotate=Uniform(-180.0,180.0),        
+                    scale=Uniform(0.9, 1.1),
+                    flip=(RandBool(0.5), RandBool(0.5)),
+                    translate=(RandInt(-50, 50), RandInt(-50, 50))
+                )),
 
+                # Color augmentation
+                (OpSample(OpAugColor()), dict(
+                    key="data.input.img",
+                    gamma=Uniform(0.9,1.1), 
+                    contrast=Uniform(0.85,1.15),
+                    add=Uniform(-0.06, 0.06),
+                    mul = Uniform(0.95, 1.05)
+                )),
 
-
-                # resize image to (110, 256, 256)
-                # (OpLambda(func=partial(my_resize, resize_to=(110, 256, 256)))),
-
-                # # Numpy to tensor
-                # (OpToTensor(), kwargs_per_step_to_add=repeat_for)),
-                
-                # # affine transformation per slice but with the same arguments
-                # (OpAugAffine2D(), dict(
-                #     rotate=Uniform(-180.0,180.0),        
-                #     scale=Uniform(0.8, 1.2),
-                #     flip=(RandBool(0.5), RandBool(0.5)),
-                #     translate=(RandInt(-15, 15), RandInt(-15, 15))
-                # )),
-
-                # # color augmentation - check if it is useful in CT images
-                # (OpSample(OpAugColor()), dict(
-                #     key="data.input.img",
-                #     gamma=Uniform(0.8,1.2), 
-                #     contrast=Uniform(0.9,1.1),
-                #     add=Uniform(-0.01, 0.01)
-                # )),
-
-                # # add channel dimension -> [C=1, D, H, W]
-                # (OpLambda(lambda x: x.unsqueeze(dim=0)), dict(key="data.input.img")),  
+                # Gaussian noise
+                (OpAugGaussian(), dict(key="data.input.img", std=0.03))
         ])
         return dynamic_pipeline
-
 
     @staticmethod
     def dataset(data_path: str, cache_dir: str, reset_cache: bool = False, num_workers:int = 10, sample_ids: Optional[Sequence[Hashable]] = None) -> DatasetDefault:
@@ -164,22 +168,20 @@ class SkinLesion:
         if sample_ids == None:
             sample_ids = SkinLesion.sample_ids(train_data_path)
 
-        print("sample_ids' length:", len(sample_ids))
-
         static_pipeline = SkinLesion.static_pipeline(train_data_path)
         dynamic_pipeline = SkinLesion.dynamic_pipeline()
 
-        # cacher = SamplesCacher(f'skin_lesion_cache_ver{SkinLesion.DATASET_VER}', 
-        #     static_pipeline,
-        #     [cache_dir], restart_cache=reset_cache, workers=num_workers)  
+        cacher = SamplesCacher(f'skin_lesion_cache_ver{SkinLesion.DATASET_VER}', 
+            static_pipeline,
+            [cache_dir], restart_cache=reset_cache, workers=num_workers)  
 
         my_dataset = DatasetDefault(sample_ids=sample_ids,
             static_pipeline=static_pipeline,
             dynamic_pipeline=dynamic_pipeline,
-            cacher=None, #CHANGE    
+            cacher=cacher   
         )
 
         my_dataset.create()
-        print("my_dataset's length:", len(my_dataset))
-        print(my_dataset[0])
+        sd = my_dataset[0] # TODO: delete when finished. just to invoke the dynamic pipeline
+        print(sd["data.input.img"])
         return my_dataset

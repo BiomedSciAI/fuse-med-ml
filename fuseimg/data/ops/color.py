@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, Sequence, List
 import numpy as np
 import torch
 
@@ -8,6 +8,13 @@ from fuse.data.ops.op_base import OpBase
 
 from fuseimg.utils.typing.key_types_imaging import DataTypeImaging 
 from fuseimg.data.ops.ops_common_imaging import OpApplyTypesImaging
+import torchvision.transforms.functional as TTF
+
+##
+import skimage
+import os
+import torchvision.transforms.functional as fn
+##
 
 
 
@@ -45,7 +52,8 @@ class OpClip(OpBase):
         return processed_img
 
 op_clip_img = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpClip(), {}) })
-        
+
+
 class OpNormalizeAgainstSelfImpl(OpBase):
     '''
     normalizes a tensor into [0.0, 1.0] using its own statistics (NOT against a dataset)
@@ -56,24 +64,15 @@ class OpNormalizeAgainstSelfImpl(OpBase):
     def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str,
         ):
         img = sample_dict[key]
-        img = img.float()
-        print(img.shape)
-        print(img[0][0][0])
-        print(type(img.numpy().shape))
-        print(img.numpy().shape)
-        print(type(img[0]))
-        print(img[0].shape)
         img -= img.min()
-        print(img.max())
-        print(type(img.max()))
         img /= img.max()
         sample_dict[key] = img
+
         return sample_dict
 
     def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
         return sample_dict
     
-
 op_normalize_against_self_img = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpNormalizeAgainstSelfImpl(), {}) })
 
         
@@ -99,6 +98,7 @@ class OpToIntImageSpace(OpBase):
         return sample_dict
     
 op_to_int_image_space_img = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpToIntImageSpace(), {}) })
+
 
 class OpToRange(OpBase):
     '''
@@ -138,6 +138,63 @@ class OpToRange(OpBase):
 op_to_range_img = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpToRange(), {}) })
         
 
-            
+class OpClip(OpBase):
+    """
+    Clip values - support both torh tensor and numpy array
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
-    
+    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str,
+            clip = (0.0, 1.0),
+        ):
+        """
+        Clip  values
+        :param key: key to an image in sample_dict: either torh tensor or numpy array and any dimension
+        :param clip: values for clipping from both sides
+        """
+
+        img = sample_dict[key]
+        
+        processed_img = self.clip(img, clip)
+        
+        sample_dict[key] = processed_img
+        return sample_dict
+
+    @staticmethod
+    def clip(img: Union[np.ndarray, torch.Tensor], clip: Tuple[float, float] = (0.0, 1.0)) -> Union[np.ndarray, torch.Tensor]:
+        if isinstance(img, np.ndarray):
+            processed_img = np.clip(img, clip[0], clip[1])
+        elif isinstance(img, torch.Tensor):
+            processed_img = torch.clamp(img, clip[0], clip[1], out=img)
+        else:
+            raise Exception(f"Error: unexpected type {type(img)}")
+        return processed_img
+
+op_clip_img = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpClip(), {}) })
+
+
+class OpPad(OpBase):
+    """
+    # TODO:
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str,
+            padding: List[int],
+            fill: int = 0,
+            padding_mode: str = 'constant'):
+        """
+        Clip  values
+        :param key: key to an image in sample_dict: either torh tensor or PIL image
+        :param clip: values for clipping from both sides
+        """
+
+        img = sample_dict[key]
+        
+        processed_img = TTF.pad(img, padding, fill, padding_mode)
+        sample_dict[key] = processed_img
+        return sample_dict
+
+op_pad_img = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpPad(), {}) }) # Why we use this?
