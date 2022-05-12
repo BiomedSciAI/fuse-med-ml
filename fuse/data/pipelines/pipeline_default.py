@@ -53,7 +53,7 @@ class PipelineDefault(OpBase):
     def __str__(self) -> str:
         text = []
         for (op, op_kwargs) in zip(self._op_ids, self._ops_and_kwargs):
-            text.append(str(op)+'@'+str(op_kwargs)+'@')
+            text.append(op.get_hashable_string_representation()+'@'+str(op_kwargs)+'@')
 
         return ''.join(text) #this is faster than accumulate_str+=new_str
     
