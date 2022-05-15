@@ -97,8 +97,6 @@ class KiTSBasicInputProcessor(FuseProcessorBase):
 
             #CHANGE
             
-            if image.shape != (256,256,110):
-                print("problem")
             # take patch
             # convert image from shape (H x W x D) to shape (D x H x W) 
             image = np.moveaxis(image , -1, 0)
