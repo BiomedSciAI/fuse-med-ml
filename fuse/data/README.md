@@ -117,7 +117,7 @@ cacher = SamplesCacher(unique_cacher_name,
     static_pipeline,
     cache_dirs=cache_dir)             
 
-sample_ids=[f"case_{id:05d}" for id in range(num_samples)]
+sample_ids=list(range(10))
 my_dataset = DatasetDefault(sample_ids=sample_ids,
     static_pipeline=static_pipeline,
     dynamic_pipeline=dynamic_pipeline,
@@ -150,7 +150,7 @@ cacher = SamplesCacher(unique_cacher_name,
     static_pipeline,
     cache_dirs=cache_dir)             
 
-sample_ids= sample_ids= list(range(10))
+sample_ids=list(range(10))
 my_dataset = DatasetDefault(sample_ids=sample_ids,
     static_pipeline=static_pipeline,
     dynamic_pipeline=dynamic_pipeline,
