@@ -39,7 +39,7 @@ resize_to = (256, 256, 110)
 print_and_visualize = True
 
 if task_num == 1:
-    num_epochs = 100
+    num_epochs = 200
     num_classes = 2
     learning_rate = 1e-4 if use_data['clinical'] else 1e-5
     imaging_dropout = 0.5

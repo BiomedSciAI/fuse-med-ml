@@ -76,24 +76,7 @@ class KiTSBasicInputProcessor(FuseProcessorBase):
             image = np.squeeze(image, axis=0)
 
             #CHANGE
-            inner_image_height, inner_image_width, inner_image_depth = image.shape[0], image.shape[1], image.shape[2]
-            h_ratio = self.resize_to[0] / inner_image_height
-            w_ratio = self.resize_to[1] / inner_image_width
-            if h_ratio>=1 and w_ratio>=1:
-                resize_ratio_xy = min(h_ratio, w_ratio)
-            elif h_ratio<1 and w_ratio<1:
-                resize_ratio_xy = max(h_ratio, w_ratio)
-            else:
-                resize_ratio_xy = 1
-            #resize_ratio_z = self.resize_to[2] / inner_image_depth
-            if resize_ratio_xy != 1 or inner_image_depth != self.resize_to[2]:
-                image = skimage.transform.resize(image,
-                                                        output_shape=(round(inner_image_height * resize_ratio_xy),
-                                                                        round(inner_image_width * resize_ratio_xy),
-                                                                        int(self.resize_to[2])),
-                                                        mode='reflect',
-                                                        anti_aliasing=True
-                                                        )
+            # image = self.second_resize(image)
 
             #CHANGE
             
@@ -108,8 +91,11 @@ class KiTSBasicInputProcessor(FuseProcessorBase):
             # numpy to tensor
             sample = torch.from_numpy(image)
 
-            # sample = aug_op_random_crop_and_pad(sample, (110,256,256),0, centralize=True)
+            sample = aug_op_random_crop_and_pad(sample, (110,256,256),0, centralize=True)
             sample = torch.unsqueeze(sample, 0)
+
+            if sample.shape[2] != 256 or sample.shape[3] != 256:
+                return None
 
 
 
@@ -121,6 +107,28 @@ class KiTSBasicInputProcessor(FuseProcessorBase):
             return None
 
         return sample
+
+    def second_resize(self, image):
+        inner_image_height, inner_image_width, inner_image_depth = image.shape[0], image.shape[1], image.shape[2]
+        h_ratio = self.resize_to[0] / inner_image_height
+        w_ratio = self.resize_to[1] / inner_image_width
+        if h_ratio>=1 and w_ratio>=1:
+            resize_ratio_xy = min(h_ratio, w_ratio)
+        elif h_ratio<1 and w_ratio<1:
+            resize_ratio_xy = max(h_ratio, w_ratio)
+        else:
+            resize_ratio_xy = 1
+            #resize_ratio_z = self.resize_to[2] / inner_image_depth
+        if resize_ratio_xy != 1 or inner_image_depth != self.resize_to[2]:
+            image = skimage.transform.resize(image,
+                                                        output_shape=(round(inner_image_height * resize_ratio_xy),
+                                                                        round(inner_image_width * resize_ratio_xy),
+                                                                        int(self.resize_to[2])),
+                                                        mode='reflect',
+                                                        anti_aliasing=True
+                                                        )
+                                                    
+        return image
 
 def kits_normalization(input_image: np.ndarray):
     # first, clip to [-62, 310] (corresponds to 0.5 and 99.5 percentile in the foreground regions)
