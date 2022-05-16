@@ -40,8 +40,7 @@ class TestDatasets(unittest.TestCase):
         ISIC.download(self.isic_data_dir)
 
         create_dir(self.isic_cache_dir)
-        dataset = ISIC.dataset(data_path=self.isic_data_dir, cache_dir=self.isic_cache_dir,
-                                     reset_cache=True, sample_ids=ISIC.TEN_GOLDEN_MEMBERS)
+        dataset = ISIC.dataset(data_path=self.isic_data_dir, cache_dir=self.isic_cache_dir, reset_cache=True, sample_ids=ISIC.TEN_GOLDEN_MEMBERS)
         self.assertEqual(len(dataset), 10)
         for sample_index in range(10):
             sample = dataset[sample_index]
@@ -82,7 +81,7 @@ class TestDatasets(unittest.TestCase):
     def tearDown(self) -> None:
         shutil.rmtree(self.kits21_cache_dir)
         shutil.rmtree(self.kits21_data_dir)
-        shutil.rmtree(self.isic_cache_dir)
+        # shutil.rmtree(self.isic_cache_dir)
         # shutil.rmtree(self.isic_data_dir)
 
         super().tearDown()

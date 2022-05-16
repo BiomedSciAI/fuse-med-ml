@@ -1,12 +1,10 @@
 import os
 from sqlite3 import SQLITE_CREATE_TEMP_TABLE
-import requests
 from zipfile import ZipFile
 import io
 import wget
 import logging
 from typing import Hashable, Optional, Sequence, List
-import skimage
 
 from fuse.data import DatasetDefault
 from fuse.data.ops.ops_cast import OpToNumpy, OpToTensor
@@ -17,8 +15,8 @@ from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuse.data.ops.ops_aug_common import OpSample
 from fuse.utils import NDict
 
-from fuseimg.data.ops.image_loader import OpLoadRGBImage
-from fuseimg.data.ops.color import OpNormalizeAgainstSelfImpl, OpPad
+from fuseimg.data.ops.image_loader import OpLoadImage
+from fuseimg.data.ops.color import OpNormalizeAgainstSelf, OpPad
 from fuseimg.data.ops.aug.color import OpAugColor, OpAugGaussian
 from fuseimg.data.ops.aug.geometry import OpResizeTo, OpAugAffine2D
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
@@ -33,7 +31,7 @@ class OpISICSampleIDDecode(OpBase):
         sid = get_sample_id(sample_dict)
 
         img_filename_key = 'data.input.img_path'
-        sample_dict[img_filename_key] =   sid # the sample id is the image's filename itself
+        sample_dict[img_filename_key] =   sid + '.jpg'
 
         return sample_dict
 
@@ -44,9 +42,9 @@ class ISIC:
     """
     # bump whenever the static pipeline modified
     DATASET_VER = 0
-    TEN_GOLDEN_MEMBERS = ['ISIC_0072637.jpg','ISIC_0072638.jpg','ISIC_0072639.jpg','ISIC_0072640.jpg',
-                        'ISIC_0072641.jpg','ISIC_0072642.jpg','ISIC_0072646.jpg','ISIC_0072647.jpg',
-                        'ISIC_0072648.jpg','ISIC_0072649.jpg']
+    TEN_GOLDEN_MEMBERS = ['ISIC_0072637','ISIC_0072638','ISIC_0072639','ISIC_0072640',
+                        'ISIC_0072641','ISIC_0072642','ISIC_0072646','ISIC_0072647',
+                        'ISIC_0072648','ISIC_0072649']
 
     @staticmethod
     def download(data_path: str) -> None:
@@ -88,7 +86,7 @@ class ISIC:
         get all the sample ids in trainset
         sample_id is case_{id:05d} (for example case_00001 or case_00100)
         """
-        samples = [f for f in os.listdir(data_dir) if f.split(".")[-1] == 'jpg']
+        samples = [f[0] for f in os.listdir(data_dir) if f.split(".")[-1] == 'jpg']
 
         return samples
 
@@ -103,10 +101,10 @@ class ISIC:
             (OpISICSampleIDDecode(), dict()),
             
             # Load Image
-            (OpLoadRGBImage(data_path), dict(key_in="data.input.img_path", key_out="data.input.img")),
+            (OpLoadImage(data_path), dict(key_in="data.input.img_path", key_out="data.input.img")),
 
             # Normalize Image to range [0, 1]
-            (OpNormalizeAgainstSelfImpl(), dict(key="data.input.img")),
+            (OpNormalizeAgainstSelf(), dict(key="data.input.img")),
 
             # Cast to numpy array for caching purposes
             (OpToNumpy(), dict(key="data.input.img"))
@@ -170,14 +168,14 @@ class ISIC:
         static_pipeline = ISIC.static_pipeline(train_data_path)
         dynamic_pipeline = ISIC.dynamic_pipeline()
 
-        cacher = SamplesCacher(f'skin_lesion_cache_ver{ISIC.DATASET_VER}', 
+        cacher = SamplesCacher(f'isic_cache_ver{ISIC.DATASET_VER}', 
             static_pipeline,
             [cache_dir], restart_cache=reset_cache, workers=num_workers)  
 
         my_dataset = DatasetDefault(sample_ids=sample_ids,
             static_pipeline=static_pipeline,
             dynamic_pipeline=dynamic_pipeline,
-            cacher=cacher   
+            cacher=cacher
         )
 
         my_dataset.create()
