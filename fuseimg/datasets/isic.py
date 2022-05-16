@@ -51,7 +51,9 @@ class ISIC:
     @staticmethod
     def download(data_path: str) -> None:
         """
-        Download images and metadata from ISIC challenge
+        Download images and metadata from ISIC challenge.
+        Doesn't download again if data exists.
+
         :param data_path: path where data should be located
         """
         lgr = logging.getLogger('Fuse')
@@ -157,9 +159,9 @@ class ISIC:
         Get cached dataset
         :param data_path: path to store the original data
         :param cache_dir: path to store the cache
-        :param reset_cache: set to True tp reset the cache
+        :param reset_cache: set to True to reset the cache
         :param num_workers: number of processes used for caching 
-        :param sample_ids: dataset including the specified sample_ids or None for all the samples. sample_id is case_{id:05d} (for example case_00001 or case_00100).
+        :param sample_ids: dataset including the specified sample_ids or None for all the samples.
         """
         train_data_path = os.path.join(data_path, 'ISIC2019/ISIC_2019_Training_Input')
         if sample_ids == None:

@@ -23,8 +23,8 @@ class TestDatasets(unittest.TestCase):
 
         self.kits21_cache_dir = mkdtemp(prefix="kits21_cache")
         self.kits21_data_dir = mkdtemp(prefix="kits21_data")
-        self.skin_lesion_cache_dir = os.path.join(tmpdir, 'skin_lesion_cache')
-        self.skin_lesion_data_dir = os.path.join(tmpdir, 'skin_lesion_data')
+        self.isic_cache_dir = os.path.join(tmpdir, 'isic_cache')
+        self.isic_data_dir = os.path.join(tmpdir, 'isic_data')
 
     def test_kits32(self):
         KITS21.download(self.kits21_data_dir, cases=list(range(10)))
@@ -36,11 +36,11 @@ class TestDatasets(unittest.TestCase):
             sample = dataset[sample_index]
             self.assertEqual(get_sample_id(sample), f"case_{sample_index:05d}")
 
-    def test_skin_lesion(self):
-        ISIC.download(self.skin_lesion_data_dir)
+    def test_isic(self):
+        ISIC.download(self.isic_data_dir)
 
-        create_dir(self.skin_lesion_cache_dir)
-        dataset = ISIC.dataset(data_path=self.skin_lesion_data_dir, cache_dir=self.skin_lesion_cache_dir,
+        create_dir(self.isic_cache_dir)
+        dataset = ISIC.dataset(data_path=self.isic_data_dir, cache_dir=self.isic_cache_dir,
                                      reset_cache=True, sample_ids=ISIC.TEN_GOLDEN_MEMBERS)
         self.assertEqual(len(dataset), 10)
         for sample_index in range(10):
@@ -82,6 +82,8 @@ class TestDatasets(unittest.TestCase):
     def tearDown(self) -> None:
         shutil.rmtree(self.kits21_cache_dir)
         shutil.rmtree(self.kits21_data_dir)
+        shutil.rmtree(self.isic_cache_dir)
+        # shutil.rmtree(self.isic_data_dir)
 
         super().tearDown()
 
