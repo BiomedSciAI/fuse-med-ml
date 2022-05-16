@@ -1,21 +1,12 @@
 from typing import Optional, Tuple, Union, Sequence, List
 import numpy as np
 import torch
-
-from fuse.utils.ndict import NDict
-
-from fuse.data.ops.op_base import OpBase
-
-from fuseimg.utils.typing.key_types_imaging import DataTypeImaging 
-from fuseimg.data.ops.ops_common_imaging import OpApplyTypesImaging
 import torchvision.transforms.functional as TTF
 
-##
-import skimage
-import os
-import torchvision.transforms.functional as fn
-##
-
+from fuse.utils.ndict import NDict
+from fuse.data.ops.op_base import OpBase
+from fuseimg.utils.typing.key_types_imaging import DataTypeImaging 
+from fuseimg.data.ops.ops_common_imaging import OpApplyTypesImaging
 
 
 class OpClip(OpBase):
@@ -187,9 +178,11 @@ class OpPad(OpBase):
             fill: int = 0,
             padding_mode: str = 'constant'):
         """
-        Clip  values
+        Pad values
         :param key: key to an image in sample_dict: either torh tensor or PIL image
-        :param clip: values for clipping from both sides
+        :param padding: values for clipping from both sides
+        :param fill:
+        :param padding_mode:
         """
 
         img = sample_dict[key]

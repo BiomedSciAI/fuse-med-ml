@@ -49,7 +49,7 @@ class OpLoadRGBImage(OpBase):
     def __call__(self, sample_dict: NDict, op_id: Optional[str], key_in: str, key_out: str):
         """
         :param key_in: the key name in sample_dict that holds the filename
-        :param key_out: 
+        :param key_out: the key in sample_dict where the output will be located.
         """
         img_filename = os.path.join(self._dir_path, sample_dict[key_in])
         img_filename_suffix = img_filename.split(".")[-1]

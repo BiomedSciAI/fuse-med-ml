@@ -225,7 +225,9 @@ class OpAugUnsqueeze3DFrom2D(OpBase):
 class OpResizeTo(OpBase):
     def __init__(self, verify_arguments: bool = True):
         """
-        :param verify_arguments: this ops expects torch / ndarray with d dimensions such that len(resize_to) == d.
+        :param verify_arguments: 
+        
+        This Op expects torch / ndarray with d dimensions such that len(resize_to) == d.
         """
         super().__init__()
         self._verify_arguments = verify_arguments

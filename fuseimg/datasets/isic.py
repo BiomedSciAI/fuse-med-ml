@@ -24,7 +24,7 @@ from fuseimg.data.ops.aug.geometry import OpResizeTo, OpAugAffine2D
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
 
 
-class OpSkinLesionSampleIDDecode(OpBase):
+class OpISICSampleIDDecode(OpBase):
 
     def __call__(self, sample_dict: NDict, op_id: Optional[str]) -> NDict:
         """
@@ -38,7 +38,7 @@ class OpSkinLesionSampleIDDecode(OpBase):
         return sample_dict
 
 
-class SkinLesion:
+class ISIC:
     """
     ISIC 2019 challenge to classify dermoscopic images and clinical data among nine different diagnostic categories.
     """
@@ -98,7 +98,7 @@ class SkinLesion:
         """
         static_pipeline = PipelineDefault("static",[
             # Decoding sample ID
-            (OpSkinLesionSampleIDDecode(), dict()),
+            (OpISICSampleIDDecode(), dict()),
             
             # Load Image
             (OpLoadRGBImage(data_path), dict(key_in="data.input.img_path", key_out="data.input.img")),
@@ -163,12 +163,12 @@ class SkinLesion:
         """
         train_data_path = os.path.join(data_path, 'ISIC2019/ISIC_2019_Training_Input')
         if sample_ids == None:
-            sample_ids = SkinLesion.sample_ids(train_data_path)
+            sample_ids = ISIC.sample_ids(train_data_path)
 
-        static_pipeline = SkinLesion.static_pipeline(train_data_path)
-        dynamic_pipeline = SkinLesion.dynamic_pipeline()
+        static_pipeline = ISIC.static_pipeline(train_data_path)
+        dynamic_pipeline = ISIC.dynamic_pipeline()
 
-        cacher = SamplesCacher(f'skin_lesion_cache_ver{SkinLesion.DATASET_VER}', 
+        cacher = SamplesCacher(f'skin_lesion_cache_ver{ISIC.DATASET_VER}', 
             static_pipeline,
             [cache_dir], restart_cache=reset_cache, workers=num_workers)  
 
