@@ -11,7 +11,7 @@ pipeline {
         
         stage('Unit Test') {
             steps {
-                sh '''#!/bin/bash
+                bash '''
                 rm -rf test-reports/TEST-*.xml
                 jbsub -wait -out ccc_log.txt -queue x86_1h -mem 40g -cores "4+1" bash ./run_all_unit_tests.sh 11.3 /dccstor/fuse_med_ml/cicd/envs/
                 echo "------ printing ccc_log.txt ------"
