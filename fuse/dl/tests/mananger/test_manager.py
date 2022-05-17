@@ -27,6 +27,7 @@ from fuse.utils.utils_logger import fuse_logger_start
 
 from fuse.dl.managers.manager_default import ManagerDefault
 from fuse.utils.file_io.file_io import create_or_reset_dir
+from fuse.utils.ndict import NDict
 
 
 class ManagerTestCase(unittest.TestCase):
@@ -39,8 +40,8 @@ class ManagerTestCase(unittest.TestCase):
         fuse_logger_start(output_path=self.tempdir, console_verbose_level=logging.INFO)
 
         self.manager = ManagerDefault(self.tempdir, force_reset=True)
-        self.train_dict = {'metric_1': 100, 'metric_2': 80, 'metric_3': 75}
-        self.validation_dict = {'metric_1': 90, 'metric_2': 70, 'metric_3': 60}
+        self.train_dict = NDict({'metric_1': 100, 'metric_2': 80, 'metric_3': 75})
+        self.validation_dict = NDict({'metric_1': 90, 'metric_2': 70, 'metric_3': 60})
         self.manager.state.current_epoch = 7
         pass
 
@@ -89,8 +90,8 @@ class ManagerTestCase(unittest.TestCase):
     def test_epoch_summary_none_values(self):
         self.manager.state.best_epoch_function = ['metric_1']
         self.manager.state.best_epoch = [5]
-        train_dict = {'metric_1': 100, 'metric_2': 80, 'metric_3': None}
-        validation_dict = {'metric_1': 90, 'metric_2': None, 'metric_3': None}
+        train_dict = NDict({'metric_1': 100, 'metric_2': 80, 'metric_3': None})
+        validation_dict = NDict({'metric_1': 90, 'metric_2': None, 'metric_3': None})
         self.manager.state.best_epoch_values = [{'metric_1': None, 'metric_2': 84, 'metric_3': None}]
         self.manager._write_epoch_summary_table(train_dict, validation_dict, 0)
 
@@ -103,8 +104,8 @@ class ManagerTestCase(unittest.TestCase):
     def test_epoch_summary_string_values(self):
         self.manager.state.best_epoch_function = ['metric_1']
         self.manager.state.best_epoch = [5]
-        train_dict = {'metric_1': 100, 'metric_2': 80, 'metric_3': 'lala'}
-        validation_dict = {'metric_1': 90, 'metric_2': 'lili', 'metric_3': 'lolo'}
+        train_dict = NDict({'metric_1': 100, 'metric_2': 80, 'metric_3': 'lala'})
+        validation_dict = NDict({'metric_1': 90, 'metric_2': 'lili', 'metric_3': 'lolo'})
         self.manager.state.best_epoch_values = [{'metric_1': 14, 'metric_2': 84, 'metric_3': 'kiki'}]
         self.manager._write_epoch_summary_table(train_dict, validation_dict, 0)
 
@@ -151,8 +152,8 @@ class ManagerTestCase(unittest.TestCase):
         self.manager.state.best_epoch_function = ['wrong_metric', 'metric_2']
         self.manager.state.best_epoch_values = [{'metric_1': 85, 'metric_2': 84, 'metric_3': 71},
                                           {'metric_1': 81, 'metric_2': 89, 'metric_3': 65}]
-        train_dict = {}
-        validation_dict = {'metric_1': 90, 'metric_2': 95, 'metric_3': 'lolo'}
+        train_dict = NDict()
+        validation_dict = NDict({'metric_1': 90, 'metric_2': 95, 'metric_3': 'lolo'})
 
         with self.assertRaises(KeyError):
             self.manager._is_best_epoch_so_far(train_dict, validation_dict, 0)

@@ -16,11 +16,11 @@ from typing import Dict
 
 import torch
 
-from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
+from fuse.utils.ndict import NDict
 import numpy as np
 
 
-def post_processing(batch_dict: Dict,
+def post_processing(batch_dict: NDict,
                 ) -> None:
     """
     post_processing updates batch_dict on the post processing phase
@@ -28,17 +28,17 @@ def post_processing(batch_dict: Dict,
     :return:
     """
     # transform gt information to tensor
-    label_tensor = torch.tensor(FuseUtilsHierarchicalDict.get(batch_dict, 'data.ClinSig')+0,dtype=torch.int64)
-    FuseUtilsHierarchicalDict.set(batch_dict, 'data.ground_truth', label_tensor)
+    label_tensor = torch.tensor(batch_dict['data.ClinSig']+0,dtype=torch.int64)
+    batch_dict['data.ground_truth'] = label_tensor
 
 
 
     # extract zone of lesion (one of four possible zones) as possible feature to use
-    zone = FuseUtilsHierarchicalDict.get(batch_dict, 'data.zone')
+    zone = batch_dict['data.zone']
     zone2feature = {
         'PZ': torch.tensor(np.array([0, 0, 0]), dtype=torch.float32),
         'TZ': torch.tensor(np.array([0, 0, 1]), dtype=torch.float32),
         'AS': torch.tensor(np.array([0, 1, 0]), dtype=torch.float32),
         'SV': torch.tensor(np.array([1, 0, 0]), dtype=torch.float32),
     }
-    FuseUtilsHierarchicalDict.set(batch_dict, 'data.tensor_clinical', zone2feature[zone])
+    batch_dict['data.tensor_clinical'] = zone2feature[zone]

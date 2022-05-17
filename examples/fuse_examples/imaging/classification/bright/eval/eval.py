@@ -10,7 +10,6 @@ from fuse.utils.ndict import NDict
 import pandas as pd
 import numpy as np
 
-from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 from fuse.utils.file_io.file_io import create_or_reset_dir
 
 from fuse.eval.evaluator import EvaluatorDefault
@@ -31,7 +30,7 @@ TASK2_CLASS_NAMES = ("PB", "UDH", "FEA", "ADH", "DCIS", "IC") # must be aligned 
 
 
 
-def process(sample_dict: dict) -> dict:
+def process(sample_dict: NDict) -> dict:
     """
     post caching processing. Will group together to an array the per class scores and verify it sums up to 1.0
     :param sample_dict: a dictionary that contais all the extracted values of a single sample
@@ -41,26 +40,26 @@ def process(sample_dict: dict) -> dict:
     expected_keys = [f"task1_pred.{key}" for key in EXPECTED_TASK1_PRED_KEYS]
     expected_keys += [f"task2_pred.{key}" for key in EXPECTED_TASK2_PRED_KEYS]
     expected_keys += [f"target.{key}" for key in EXPECTED_TARGET_KEYS]
-    set(expected_keys).issubset(set(FuseUtilsHierarchicalDict.get_all_keys(sample_dict)))
+    set(expected_keys).issubset(set(sample_dict.keypaths()))
 
     # convert scores to numpy array
     # task 1 
     task1_pred = []
     for cls_name in TASK1_CLASS_NAMES:
-        task1_pred.append(FuseUtilsHierarchicalDict.get(sample_dict, f"task1_pred.{cls_name}-score" ))
+        task1_pred.append(sample_dict[f"task1_pred.{cls_name}-score"])
     task1_pred_array = np.array(task1_pred)
     if not np.isclose(task1_pred_array.sum(), 1.0, rtol=0.05):
-        raise Exception(f"Error: expecting task 1 prediction for case {FuseUtilsHierarchicalDict.get(sample_dict, 'descriptor')} to sum up to almost 1.0, got {task1_pred_array}")
-    FuseUtilsHierarchicalDict.set(sample_dict, 'task1_pred.array', task1_pred_array)
+        raise Exception(f"Error: expecting task 1 prediction for case {sample_dict['descriptor']} to sum up to almost 1.0, got {task1_pred_array}")
+    sample_dict['task1_pred.array'] = task1_pred_array
 
     # task 2
     task2_pred = []
     for cls_name in TASK2_CLASS_NAMES:
-        task2_pred.append(FuseUtilsHierarchicalDict.get(sample_dict, f"task2_pred.{cls_name}-score" ))
+        task2_pred.append(sample_dict[f"task2_pred.{cls_name}-score"])
     task2_pred_array = np.array(task2_pred)
     if not np.isclose(task2_pred_array.sum(), 1.0, rtol=0.05):
-        raise Exception(f"Error: expecting task 2 prediction for case {FuseUtilsHierarchicalDict.get(sample_dict, 'descriptor')} to sum up to almost 1.0, got {task2_pred_array}")
-    FuseUtilsHierarchicalDict.set(sample_dict, 'task2_pred.array', task2_pred_array)
+        raise Exception(f"Error: expecting task 2 prediction for case {sample_dict['descriptor']} to sum up to almost 1.0, got {task2_pred_array}")
+    sample_dict['task2_pred.array'] = task2_pred_array
 
     return sample_dict
 
@@ -76,22 +75,22 @@ def decode_results(results: dict, output_dir: str) -> Tuple[OrderedDict, str]:
     results_table = OrderedDict()
     # Table
     ## task1
-    results_table['Task1-F1'] = f"{FuseUtilsHierarchicalDict.get(results, 'task1_f1.f1.macro_avg.org'):.3f}"
-    results_table['Task1-F1-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, 'task1_f1.f1.macro_avg.conf_lower'):.3f}-{FuseUtilsHierarchicalDict.get(results, 'task1_f1.f1.macro_avg.conf_upper'):.3f}]"
+    results_table['Task1-F1'] = f"{results['task1_f1.f1.macro_avg.org']:.3f}"
+    results_table['Task1-F1-CI'] = f"[{results['task1_f1.f1.macro_avg.conf_lower']:.3f}-{results['task1_f1.f1.macro_avg.conf_upper']:.3f}]"
     for cls_name in TASK1_CLASS_NAMES:
-        results_table[f'Task1-F1-{cls_name}VsRest'] = f"{FuseUtilsHierarchicalDict.get(results, f'task1_f1.f1.{cls_name}.org'):.3f}"
-        results_table[f'Task1-F1-{cls_name}VsRest-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, f'task1_f1.f1.{cls_name}.conf_lower'):.3f}-{FuseUtilsHierarchicalDict.get(results, f'task1_f1.f1.{cls_name}.conf_upper'):.3f}]"
-    results_table['Task1-BSS'] = f"{FuseUtilsHierarchicalDict.get(results, 'task1_bss.org'):.3f}"
-    results_table['Task1-BSS-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, 'task1_bss.conf_lower'):.3f}-{FuseUtilsHierarchicalDict.get(results, 'task1_bss.conf_upper'):.3f}]"
+        results_table[f'Task1-F1-{cls_name}VsRest'] = f"{results[f'task1_f1.f1.{cls_name}.org']:.3f}"
+        results_table[f'Task1-F1-{cls_name}VsRest-CI'] = f"[{results[f'task1_f1.f1.{cls_name}.conf_lower']:.3f}-{results[f'task1_f1.f1.{cls_name}.conf_upper']:.3f}]"
+    results_table['Task1-BSS'] = f"{results['task1_bss.org']:.3f}"
+    results_table['Task1-BSS-CI'] = f"[{results['task1_bss.conf_lower']:.3f}-{results['task1_bss.conf_upper']:.3f}]"
 
     ## task2
-    results_table['Task2-F1'] = f"{FuseUtilsHierarchicalDict.get(results, 'task2_f1.f1.macro_avg.org'):.3f}"
-    results_table['Task2-F1-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, 'task2_f1.f1.macro_avg.conf_lower'):.3f}-{FuseUtilsHierarchicalDict.get(results, 'task2_f1.f1.macro_avg.conf_upper'):.3f}]"
+    results_table['Task2-F1'] = f"{results['task2_f1.f1.macro_avg.org']:.3f}"
+    results_table['Task2-F1-CI'] = f"[{results['task2_f1.f1.macro_avg.conf_lower']:.3f}-{results['task2_f1.f1.macro_avg.conf_upper']:.3f}]"
     for cls_name in TASK2_CLASS_NAMES:
-        results_table[f'Task2-F1-{cls_name}VsRest'] = f"{FuseUtilsHierarchicalDict.get(results, f'task2_f1.f1.{cls_name}.org'):.3f}"
-        results_table[f'Task2-F1-{cls_name}VsRest-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, f'task2_f1.f1.{cls_name}.conf_lower'):.3f}-{FuseUtilsHierarchicalDict.get(results, f'task2_f1.f1.{cls_name}.conf_upper'):.3f}]"
-    results_table['Task2-BSS'] = f"{FuseUtilsHierarchicalDict.get(results, 'task2_bss.org'):.3f}"
-    results_table['Task2-BSS-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, 'task2_bss.conf_lower'):.3f}-{FuseUtilsHierarchicalDict.get(results, 'task2_bss.conf_upper'):.3f}]"
+        results_table[f'Task2-F1-{cls_name}VsRest'] = f"{results[f'task2_f1.f1.{cls_name}.org']:.3f}"
+        results_table[f'Task2-F1-{cls_name}VsRest-CI'] = f"[{results[f'task2_f1.f1.{cls_name}.conf_lower']:.3f}-{results[f'task2_f1.f1.{cls_name}.conf_upper']:.3f}]"
+    results_table['Task2-BSS'] = f"{results['task2_bss.org']:.3f}"
+    results_table['Task2-BSS-CI'] = f"[{results['task2_bss.conf_lower']:.3f}-{results['task2_bss.conf_upper']:.3f}]"
 
 
     # mark down text

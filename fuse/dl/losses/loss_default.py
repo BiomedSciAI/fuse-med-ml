@@ -22,7 +22,7 @@ from typing import Callable, Dict, Optional
 import torch
 
 from fuse.dl.losses.loss_base import LossBase
-from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
+from fuse.utils.ndict import NDict
 
 
 class LossDefault(LossBase):
@@ -63,13 +63,13 @@ class LossDefault(LossBase):
         self.filter_func = filter_func
         self.kwargs = kwargs
 
-    def __call__(self, batch_dict: Dict) -> torch.Tensor:
+    def __call__(self, batch_dict: NDict) -> torch.Tensor:
         # filter batch_dict if required
         if self.filter_func is not None:
             batch_dict = self.filter_func(batch_dict)
-        preds = FuseUtilsHierarchicalDict.get(batch_dict, self.pred_name)
-        targets = FuseUtilsHierarchicalDict.get(batch_dict, self.target_name)
-        batch_kwargs = FuseUtilsHierarchicalDict.get(batch_dict, self.batch_kwargs_name) if self.batch_kwargs_name is not None else {}
+        preds = batch_dict[self.pred_name]
+        targets = batch_dict[self.target_name]
+        batch_kwargs = batch_dict[self.batch_kwargs_name] if self.batch_kwargs_name is not None else {}
         kwargs_copy = self.kwargs.copy()
         kwargs_copy.update(batch_kwargs)
         if self.sample_weight_name is not None:
@@ -77,7 +77,7 @@ class LossDefault(LossBase):
             kwargs_copy.update({'reduction': 'none'})
         loss_obj = self.callable(preds, targets, **kwargs_copy) * self.weight
         if self.sample_weight_name is not None:
-            sample_weight = FuseUtilsHierarchicalDict.get(batch_dict, self.sample_weight_name)
+            sample_weight = batch_dict[self.sample_weight_name]
             weighted_loss = loss_obj*sample_weight
             loss_obj = torch.mean(weighted_loss)
 

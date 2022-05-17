@@ -14,11 +14,11 @@ Created on June 30, 2021
 
 from typing import Dict
 import torch
-from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
+from fuse.utils.ndict import NDict
 import numpy as np
 
 
-def post_processing(batch_dict: Dict, label: str, is_concat_features_to_input: bool = False,
+def post_processing(batch_dict: NDict, label: str, is_concat_features_to_input: bool = False,
                 ) -> None:
     """
     post_processing updates batch_dict on the post processing phase
@@ -33,15 +33,15 @@ def post_processing(batch_dict: Dict, label: str, is_concat_features_to_input: b
     """
 
     # select input channel
-    input_tensor = FuseUtilsHierarchicalDict.get(batch_dict, 'data.input')
-    FuseUtilsHierarchicalDict.set(batch_dict, 'data.input', input_tensor[[0],:,:,:])
-    clinical_features = FuseUtilsHierarchicalDict.get(batch_dict, 'data.add_data')
+    input_tensor = batch_dict['data.input']
+    batch_dict['data.input'] = input_tensor[[0],:,:,:]
+    clinical_features = batch_dict['data.add_data']
 
 
 
     # select label
     mylabel = label
-    FuseUtilsHierarchicalDict.set(batch_dict, 'data.filter', False)
+    batch_dict['data.filter'] = False
 
     if mylabel == 'ispCR':
         features_to_use = ['Skin Invovlement', 'Tumor Size US', 'Tumor Size MG', 'Field of View', 'Contrast Bolus Volume',
@@ -49,14 +49,14 @@ def post_processing(batch_dict: Dict, label: str, is_concat_features_to_input: b
 
         ispCR = clinical_features['Near pCR Strict'] + 0
         if ispCR>2:
-            FuseUtilsHierarchicalDict.set(batch_dict, 'data.filter', True)
+            batch_dict['data.filter'] = True
             return
         elif ispCR==0 or ispCR==2:
             ispCR = 0
         else:
             ispCR = 1
         label_tensor = torch.tensor(ispCR, dtype = torch.int64)
-        FuseUtilsHierarchicalDict.set(batch_dict, 'data.ground_truth', label_tensor)
+        batch_dict['data.ground_truth'] = label_tensor
 
 
     if mylabel == 'Staging Tumor Size':
@@ -69,7 +69,7 @@ def post_processing(batch_dict: Dict, label: str, is_concat_features_to_input: b
         else:
             TumorSize=0
         label_tensor = torch.tensor(TumorSize, dtype = torch.int64)
-        FuseUtilsHierarchicalDict.set(batch_dict, 'data.ground_truth', label_tensor)
+        batch_dict['data.ground_truth'] = label_tensor
 
     if mylabel == 'Histology Type':
         features_to_use = ['Skin Invovlement', 'Tumor Size US', 'Tumor Size MG', 'Field of View', 'Contrast Bolus Volume',
@@ -80,10 +80,10 @@ def post_processing(batch_dict: Dict, label: str, is_concat_features_to_input: b
         elif type==10:
             type=1
         else:
-            FuseUtilsHierarchicalDict.set(batch_dict, 'data.filter', True)
+            batch_dict['data.filter'] = True
 
         label_tensor = torch.tensor(type, dtype = torch.int64)
-        FuseUtilsHierarchicalDict.set(batch_dict, 'data.ground_truth', label_tensor)
+        batch_dict['data.ground_truth'] = label_tensor
 
 
     if mylabel == 'is High Tumor Grade Total':
@@ -95,7 +95,7 @@ def post_processing(batch_dict: Dict, label: str, is_concat_features_to_input: b
             grade = 0
 
         label_tensor = torch.tensor(grade, dtype = torch.int64)
-        FuseUtilsHierarchicalDict.set(batch_dict, 'data.ground_truth', label_tensor)
+        batch_dict['data.ground_truth'] = label_tensor
 
 
 
@@ -103,12 +103,12 @@ def post_processing(batch_dict: Dict, label: str, is_concat_features_to_input: b
     # add clinical
 
     clinical_features_to_use = torch.tensor([float(clinical_features[feature]) for feature in features_to_use],dtype = torch.float32)
-    FuseUtilsHierarchicalDict.set(batch_dict, 'data.clinical_features', clinical_features_to_use)
+    batch_dict['data.clinical_features'] = clinical_features_to_use
 
     if is_concat_features_to_input:
     # select input channel
-        input_tensor = FuseUtilsHierarchicalDict.get(batch_dict, 'data.input')
+        input_tensor = batch_dict['data.input']
         input_shape = input_tensor.shape
         for feature in clinical_features_to_use:
             input_tensor = torch.cat((input_tensor,feature.repeat(input_shape[1],input_shape[2],input_shape[3]).unsqueeze(0)),dim=0)
-        FuseUtilsHierarchicalDict.set(batch_dict, 'data.input', input_tensor)
+        batch_dict['data.input'] = input_tensor
