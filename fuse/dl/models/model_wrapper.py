@@ -23,7 +23,7 @@ import torch
 
 from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
 from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
-from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
+from fuse.utils.ndict import NDict
 
 
 class ModelWrapper(torch.nn.Module):
@@ -60,9 +60,9 @@ class ModelWrapper(torch.nn.Module):
 
     
     def forward(self,
-                batch_dict: Dict) -> Dict:
+                batch_dict: NDict) -> Dict:
         # convert input to the model's expected input
-        model_input = [FuseUtilsHierarchicalDict.get(batch_dict, conv_input) for conv_input in self.model_inputs]
+        model_input = [batch_dict[conv_input] for conv_input in self.model_inputs]
 
         # convert input to model expected input
         if self.pre_forward_processing_function is not None:
@@ -76,10 +76,10 @@ class ModelWrapper(torch.nn.Module):
             model_output = self.post_forward_processing_function(model_output)
 
         if len(self.model_outputs) == 1:
-            FuseUtilsHierarchicalDict.set(batch_dict, 'model.' + self.model_outputs[0], model_output)
+            batch_dict['model.' + self.model_outputs[0]] = model_output
         else:
             for i, output_name in enumerate(self.model_outputs):
-                FuseUtilsHierarchicalDict.set(batch_dict, 'model.' + output_name, model_output[i])
+                batch_dict['model.' + output_name] = model_output[i]
 
         return batch_dict['model']
 
