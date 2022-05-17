@@ -25,3 +25,6 @@ pycocotools>=2.0.1
 xmlrunner
 paramiko
 tables
+psutil
+testbook
+ipykernel

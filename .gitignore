@@ -29,10 +29,10 @@ lib64
 **/*.log
 Result
 __pycache__
-fuse_examples/classification/knight/baseline/*.csv
-fuse_examples/classification/knight/baseline/clinical_data/*
-fuse_examples/classification/knight/baseline/model_dir
+fuse_examples/imaging/classification/knight/baseline/*.csv
+fuse_examples/imaging/classification/knight/baseline/clinical_data/*
+fuse_examples/imaging/classification/knight/baseline/model_dir
 .gitignore.save
-fuse_examples/classification/mnist/examples
-fuse_examples/tutorials/hello_world/examples/
+fuse_examples/imaging/classification/mnist/examples
+fuse_examples/imaging/hello_world/examples/
 .vscode/
