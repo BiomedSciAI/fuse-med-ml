@@ -1,4 +1,5 @@
 #!/bin/bash
+source ~/.bashrc
 
 # check if current env already exist
 find_in_conda_env(){
