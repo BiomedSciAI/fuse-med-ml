@@ -5,9 +5,6 @@ import pickle
 from typing import Sequence, Hashable, Union, Optional, List, Dict
 from pathlib import Path
 
-# from fuse.data.data_source.data_source_base import FuseDataSourceBase
-# from fuse.utils.utils_misc import autodetect_input_source
-
 
 def filter_files(files, include=[], exclude=[]):
     for incl in include:
@@ -26,8 +23,6 @@ def ls(x, recursive=False, include=[], exclude=[]):
     return out
 
 
-# class FuseDataSourceSeg():
-#     def __init__(self, 
 def get_data_sample_ids(            
                  phase: str, # can be ['train', 'validation']
                  data_folder: Optional[str] = None,
@@ -53,19 +48,10 @@ def get_data_sample_ids(
             if phase == 'train':
                 if override_partition:
 
-                    # rle_df = pd.read_csv(data_source)
-
                     Path.ls = ls
                     files = Path(data_folder).ls(recursive=True, include=['.dcm'])
 
                     sample_descs = [str(fn) for fn in files]
-                    # sample_descs = []
-                    # for fn in files:
-                    #     I = rle_df.ImageId == fn.stem
-                    #     desc = {'name': fn.stem,
-                    #             'dcm': str(fn),
-                    #             'rle_encoding': rle_df.loc[I, ' EncodedPixels'].values}
-                    #     sample_descs.append(desc)
                     
                     if len(sample_descs) == 0:
                         raise Exception('Error detecting input source in FuseDataSourceDefault')
@@ -100,20 +86,5 @@ def get_data_sample_ids(
             files = Path(data_folder).ls(recursive=True, include=['.dcm'])
 
             sample_descs = [str(fn) for fn in files]
-            # sample_descs = []
-            # for fn in files:
-            #     I = rle_df.ImageId == fn.stem
-            #     desc = {'name': rle_df.loc[I, 'ImageId'].values[0],
-            #             'dcm': fn,
-            #             'rle_encoding': rle_df.loc[I, ' EncodedPixels'].values}
-            #     sample_descs.append(desc)
 
         return sample_descs
-
-    # def get_samples_description(self):
-    #     return self.samples
-
-    # def summary(self) -> str:
-    #     summary_str = ''
-    #     summary_str += 'FuseDataSourceSeg - %d samples\n' % len(self.samples)
-    #     return summary_str

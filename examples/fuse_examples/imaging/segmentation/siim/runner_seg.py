@@ -31,16 +31,8 @@ from torch.utils.data import DataLoader
 import torch.optim as optim
 import torch.nn.functional as F
 
-# from fuse.data.augmentor.augmentor_toolbox import aug_op_affine_group, aug_op_affine, aug_op_color, aug_op_gaussian, aug_op_elastic_transform
-# from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerUniform as Uniform
-# from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerRandBool as RandBool
-# from fuse.utils.utils_param_sampler import FuseUtilsParamSamplerRandInt as RandInt
-# from fuse.utils.utils_gpu import FuseUtilsGPU
 import fuse.utils.gpu as FuseUtilsGPU
 from fuse.utils.utils_logger import fuse_logger_start
-# from fuse.data.augmentor.augmentor_default import FuseAugmentorDefault
-# from fuse.data.visualizer.visualizer_default import FuseVisualizerDefault
-# from fuse.data.dataset.dataset_default import FuseDatasetDefault
 from fuse.dl.models.model_wrapper import ModelWrapper
 from fuse.dl.losses.segmentation.loss_dice import DiceBCELoss
 from fuse.dl.losses.segmentation.loss_dice import FuseDiceLoss
@@ -49,13 +41,11 @@ from fuse.dl.managers.manager_default import ManagerDefault
 from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
 from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
 from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
-# from fuse.dl.data.processor.processor_dataframe import FuseProcessorDataFrame
 from fuse.eval.evaluator import EvaluatorDefault
 from fuse.eval.metrics.segmentation.metrics_segmentation_common import MetricDice, MetricIouJaccard, MetricOverlap, Metric2DHausdorff, MetricPixelAccuracy
 from fuse.utils.utils_debug import FuseDebug
 
-from data_source_segmentation import get_data_sample_ids # FuseDataSourceSeg
-# from seg_input_processor import SegInputProcessor
+from data_source_segmentation import get_data_sample_ids 
 from image_mask_loader import OpImageMaskLoader
 
 from unet import UNet
@@ -78,7 +68,6 @@ from tempfile import mkdtemp
 import os
 from fuse.data.ops.ops_cast import OpToTensor
 from fuse.utils.ndict import NDict
-# from fuseimg.data.ops.image_loader import OpLoadImage
 from fuseimg.data.ops.color import OpClip, OpToRange
 from fuseimg.data.ops.aug.color import OpAugColor
 from fuseimg.data.ops.aug.color import OpAugGaussian
@@ -87,7 +76,7 @@ from fuseimg.data.ops.aug.geometry import OpAugAffine2D
 ##########################################
 # Debug modes
 ##########################################
-mode = 'debug'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseUtilsDebug
+mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseUtilsDebug
 debug = FuseDebug(mode)
 
 ##########################################
@@ -129,47 +118,12 @@ TRAIN_COMMON_PARAMS['data.image_size'] = 512
 TRAIN_COMMON_PARAMS['data.batch_size'] = 8
 TRAIN_COMMON_PARAMS['data.train_num_workers'] = 8
 TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 8
-# TRAIN_COMMON_PARAMS['data.augmentation_pipeline'] = [
-#     [
-#         ('data.input.input_0','data.gt.gt_global'),
-#         aug_op_affine_group,
-#         {'rotate': Uniform(-20.0, 20.0),  
-#         'flip': (RandBool(0.0), RandBool(0.5)),  # only flip right-to-left
-#         'scale': Uniform(0.9, 1.1),
-#         'translate': (RandInt(-50, 50), RandInt(-50, 50))},
-#         {'apply': RandBool(0.9)}
-#     ],
-#     [
-#         ('data.input.input_0','data.gt.gt_global'),
-#         aug_op_elastic_transform,
-#         {'sigma': 7,
-#          'num_points': 3},
-#         {'apply': RandBool(0.7)}
-#     ],
-#     [
-#         ('data.input.input_0',),
-#         aug_op_color,
-#         {
-#          'add': Uniform(-0.06, 0.06), 
-#          'mul': Uniform(0.95, 1.05), 
-#          'gamma': Uniform(0.9, 1.1),
-#          'contrast': Uniform(0.85, 1.15)
-#         },
-#         {'apply': RandBool(0.7)}
-#     ],
-#     [
-#         ('data.input.input_0',),
-#         aug_op_gaussian,
-#         {'std': 0.05},
-#         {'apply': RandBool(0.7)}
-#     ],
-# ]
 
 # ===============
 # Manager - Train1
 # ===============
 TRAIN_COMMON_PARAMS['manager.train_params'] = {
-    'num_epochs': 3,
+    'num_epochs': 10,
     'virtual_batch_size': 1,  # number of batches in one virtual batch
     'start_saving_epochs': 10,  # first epoch to start saving checkpoints from
     'gap_between_saving_epochs': 1, #5,  # number of epochs between saved checkpoint
@@ -238,39 +192,7 @@ def run_train(paths: dict, train_common_params: dict):
                             contrast=Uniform(0.85, 1.15))),
 
     ])
-        # ('data.input.input_0','data.gt.gt_global'),
-        # aug_op_affine_group,
-        # {'rotate': Uniform(-20.0, 20.0),  
-        # 'flip': (RandBool(0.0), RandBool(0.5)),  # only flip right-to-left
-        # 'scale': Uniform(0.9, 1.1),
-        # 'translate': (RandInt(-50, 50), RandInt(-50, 50))},
-        # {'apply': RandBool(0.9)}
-    # ],
-    # [
-        # ('data.input.input_0','data.gt.gt_global'),
-        # aug_op_elastic_transform,
-        # {'sigma': 7,
-        #  'num_points': 3},
-        # {'apply': RandBool(0.7)}
-    # ],
-    # [
-        # ('data.input.input_0',),
-        # aug_op_color,
-        # {
-        #  'add': Uniform(-0.06, 0.06), 
-        #  'mul': Uniform(0.95, 1.05), 
-        #  'gamma': Uniform(0.9, 1.1),
-        #  'contrast': Uniform(0.85, 1.15)
-        # },
-        # {'apply': RandBool(0.7)}
-    # ],
-    # [
-        # ('data.input.input_0',),
-        # aug_op_gaussian,
-        # {'std': 0.05},
-        # {'apply': RandBool(0.7)}
 
-    # cache_dir = mkdtemp(prefix="kits_21")
     train_dataset = DatasetDefault(sample_ids=train_sample_ids,
                                    static_pipeline=static_pipeline,
                                    dynamic_pipeline=dynamic_pipeline,
@@ -280,44 +202,11 @@ def run_train(paths: dict, train_common_params: dict):
     train_dataset.create()
     lgr.info(f'- Load and cache data: Done')
 
-    # ## Create data processors:
-    # input_processors = {
-    #     'input_0': SegInputProcessor(name='image',
-    #                                  size=train_common_params['data.image_size'])
-    # }
-    # gt_processors = {
-    #     'gt_global': SegInputProcessor(name='mask', 
-    #                                    data_csv=paths['train_rle_file'],
-    #                                    size=train_common_params['data.image_size'])
-    # }
-
-    # ## Create data augmentation (optional)
-    # # augmentor = FuseAugmentorDefault(augmentation_pipeline=train_common_params['data.augmentation_pipeline'])
-    # augmentor = []
-
-    # # Create visualizer (optional)
-    # # visualiser = FuseVisualizerDefault(image_name='data.input.input_0', 
-    # #                                    mask_name='data.gt.gt_global',
-    # #                                    pred_name='model.logits.segmentation')
-    # visualiser = []
-
-    # train_dataset = FuseDatasetDefault(cache_dest=paths['cache_dir'],
-    #                                    data_source=train_data_source,
-    #                                    input_processors=input_processors,
-    #                                    gt_processors=gt_processors,
-    #                                    augmentor=augmentor,
-    #                                    visualizer=visualiser)
-
-    # lgr.info(f'- Load and cache data:')
-    # train_dataset.create()
-    # lgr.info(f'- Load and cache data: Done')
-
     ## Create dataloader
     train_dataloader = DataLoader(dataset=train_dataset,
                                   shuffle=True, 
                                   drop_last=False,
                                   batch_size=train_common_params['data.batch_size'],
-                                  # collate_fn=train_dataset.collate_fn,
                                   num_workers=train_common_params['data.train_num_workers'])
     lgr.info(f'Train Data: Done', {'attrs': 'bold'})
     # ==================================================================
@@ -327,23 +216,11 @@ def run_train(paths: dict, train_common_params: dict):
     valid_sample_ids = get_data_sample_ids(phase='validation',
                                           data_folder=paths['train_folder'],
                                           partition_file=train_common_params['partition_file'])
-    valid_sample_ids = valid_sample_ids[:10]
-
-    # valid_data_source = FuseDataSourceSeg(phase='validation',
-    #                                       data_folder=paths['train_folder'],
-    #                                       partition_file=train_common_params['partition_file'])
-    # print(valid_data_source.summary())
 
     valid_dataset = DatasetDefault(sample_ids=valid_sample_ids,
                                    static_pipeline=static_pipeline,
                                    dynamic_pipeline=None,
                                    cacher=cacher)            
-
-    # valid_dataset = FuseDatasetDefault(cache_dest=paths['cache_dir'],
-    #                                    data_source=valid_data_source,
-    #                                    input_processors=input_processors,
-    #                                    gt_processors=gt_processors,
-    #                                    visualizer=visualiser)
 
     lgr.info(f'- Load and cache data:')
     valid_dataset.create()
@@ -354,7 +231,6 @@ def run_train(paths: dict, train_common_params: dict):
                                        shuffle=False, 
                                        drop_last=False,
                                        batch_size=train_common_params['data.batch_size'],
-                                       # collate_fn=valid_dataset.collate_fn,
                                        num_workers=train_common_params['data.validation_num_workers'])
 
     lgr.info(f'Validation Data: Done', {'attrs': 'bold'})
@@ -418,7 +294,7 @@ def run_train(paths: dict, train_common_params: dict):
 ######################################
 INFER_COMMON_PARAMS = {}
 INFER_COMMON_PARAMS['infer_filename'] = os.path.join(PATHS['inference_dir'], 'validation_set_infer.gz')
-INFER_COMMON_PARAMS['checkpoint'] = 'last'  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
+INFER_COMMON_PARAMS['checkpoint'] = 'best'  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
 INFER_COMMON_PARAMS['data.train_num_workers'] = TRAIN_COMMON_PARAMS['data.train_num_workers']
 INFER_COMMON_PARAMS['partition_file'] = TRAIN_COMMON_PARAMS['partition_file']
 INFER_COMMON_PARAMS['data.image_size'] = TRAIN_COMMON_PARAMS['data.image_size']
@@ -438,42 +314,9 @@ def run_infer(paths: dict, infer_common_params: dict):
     # Validation dataset
     lgr.info(f'Test Data:', {'attrs': 'bold'})
 
-    # infer_data_source = FuseDataSourceSeg(phase='validation',
-    #                                       data_folder=paths['train_folder'],
-    #                                       partition_file=infer_common_params['partition_file'])
-    # print(infer_data_source.summary())
-
-    # ## Create data processors:
-    # input_processors = {
-    #     'input_0': SegInputProcessor(name='image',
-    #                                  size=infer_common_params['data.image_size'])
-    # }
-    # gt_processors = {
-    #     'gt_global': SegInputProcessor(name='mask', 
-    #                                    data_csv=paths['train_rle_file'],
-    #                                    size=infer_common_params['data.image_size'])
-    # }
-
-    # # Create visualizer (optional)
-    # visualiser = FuseVisualizerDefault(image_name='data.input.img', 
-    #                                    mask_name='data.gt.seg',
-    #                                    pred_name='model.logits.segmentation')
-
-    # infer_dataset = FuseDatasetDefault(cache_dest=paths['cache_dir'],
-    #                                    data_source=infer_data_source,
-    #                                    input_processors=input_processors,
-    #                                    gt_processors=gt_processors,
-    #                                    visualizer=visualiser)
-
     infer_sample_ids = get_data_sample_ids(phase='validation',
                                           data_folder=paths['train_folder'],
                                           partition_file=infer_common_params['partition_file'])
-    infer_sample_ids = infer_sample_ids[:20]
-
-    # valid_data_source = FuseDataSourceSeg(phase='validation',
-    #                                       data_folder=paths['train_folder'],
-    #                                       partition_file=train_common_params['partition_file'])
-    # print(valid_data_source.summary())
 
     infer_dataset = DatasetDefault(sample_ids=infer_sample_ids,
                                    static_pipeline=static_pipeline,
@@ -488,7 +331,6 @@ def run_infer(paths: dict, infer_common_params: dict):
                                   shuffle=False, 
                                   drop_last=False,
                                   batch_size=infer_common_params['data.batch_size'],
-                                  # collate_fn=infer_dataset.collate_fn,
                                   num_workers=infer_common_params['data.train_num_workers'])
 
     lgr.info(f'Test Data: Done', {'attrs': 'bold'})
@@ -503,24 +345,6 @@ def run_infer(paths: dict, infer_common_params: dict):
                   output_columns=output_columns,
                   output_file_name=infer_common_params["infer_filename"])
 
-    # # visualize the predictions
-    import ipdb; ipdb.set_trace(context=7) # BREAKPOINT
-    df = pd.read_pickle(infer_common_params['infer_filename'])
-    # infer_processor = FuseProcessorDataFrame(data_pickle_filename=infer_common_params['infer_filename'])
-    # descriptors_list = infer_processor.get_samples_descriptors()
-    # out_name = 'model.logits.segmentation'
-    # gt_name = 'data.gt.seg' 
-    # for desc in descriptors_list[:10]:
-    #     data = infer_processor(desc)
-    #     pred = np.squeeze(data[out_name])
-    #     gt = np.squeeze(data[gt_name])
-    #     _, ax = plt.subplots(1,2)
-    #     ax[0].imshow(pred)
-    #     ax[0].set_title('prediction')
-    #     ax[1].imshow(gt)
-    #     ax[1].set_title('gt')
-    #     fn = os.path.join(paths["inference_dir"], Path(desc[0]).name)
-    #     plt.savefig(fn)
 
 ######################################
 # Evaluation Common Params
@@ -573,7 +397,7 @@ def run_eval(paths: dict, eval_common_params: dict):
 ######################################
 if __name__ == "__main__":
     # allocate gpus
-    NUM_GPUS = 0
+    NUM_GPUS = 1
     if NUM_GPUS == 0:
         TRAIN_COMMON_PARAMS['manager.train_params']['device'] = 'cpu'
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
@@ -581,7 +405,6 @@ if __name__ == "__main__":
     FuseUtilsGPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
     RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
-    RUNNING_MODES = ['infer', 'eval']  # Options: 'train', 'infer', 'eval'
 
     # train
     if 'train' in RUNNING_MODES:

@@ -114,12 +114,6 @@ class OpImageMaskLoader(OpBase):
         else:
             image = np.expand_dims(image, 0)
 
-        # numpy to tensor
-        # sample = torch.from_numpy(image)
-
-        # except:
-        #     return None
-
         sample_dict[key_out] = image
         return sample_dict
 
