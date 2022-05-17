@@ -124,10 +124,12 @@ class OpAugGaussian(OpBase):
         
         aug_tensor = aug_input
         if channels is None:
-            rand_patch = Gaussian(aug_tensor.shape, mean, std).sample()
+            rand_patch = torch.tensor(Gaussian(aug_tensor.shape, mean, std).sample())
+            rand_patch = rand_patch.to(dtype=aug_tensor.dtype)
             aug_tensor = aug_tensor + rand_patch
         else:
-            rand_patch = Gaussian(aug_tensor[channels].shape, mean, std).sample()
+            rand_patch = torch.tensor(Gaussian(aug_tensor.shape, mean, std).sample())
+            rand_patch = rand_patch.to(dtype=aug_tensor.dtype)
             aug_tensor[channels] = aug_tensor[channels] + rand_patch
         
         sample_dict[key] = aug_tensor
