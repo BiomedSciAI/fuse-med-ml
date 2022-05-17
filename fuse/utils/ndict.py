@@ -71,7 +71,9 @@ class NDict(dict):
             self._stored = {}
         elif isinstance(d, NDict):
             self._stored = d._stored
-        else:    
+        else:
+            if not isinstance(d, dict):
+                d = dict(d)    
             for k,d in d.items():
                 self[k] = d
     

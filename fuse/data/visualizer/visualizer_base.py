@@ -1,45 +1,51 @@
-"""
-(C) Copyright 2021 IBM Corp.
+from abc import ABC, abstractclassmethod, abstractmethod
+from typing import Dict, Any, List
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-   http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-Created on June 30, 2021
-
-"""
-
-from abc import ABC, abstractmethod
-from typing import Any
-
-
-class FuseVisualizerBase(ABC):
+class VisualizerBase(ABC):
+    
+    def __init__(self) -> None:
+        super().__init__()
+        
+    def _preprocess(self, vis_data: Dict[str, Any]):
+        """
+        get the collected data from the sample, that the visProbe has collected and generated data for actual visualization
+        that the _show method can process
+        
+        :param vis_data: the collected data
+        """
+        return vis_data
 
     @abstractmethod
-    def visualize(self, sample: Any, block: bool = True) -> None:
+    def _show(self, vis_data: List):
         """
-        visualize sample
-        :param sample: sample
-        :param block: set to False if the process should not be blocked until the plot will be closed
-        :return: None
+        actual visualization function, gets a preprocessed collection of items to visualize/compare and shows
+        a visualization window that is blocking.
+        should be overriden by a specific visualizer
+        
+        :param vis_data: preprocessed visualization items to display
         """
-        raise NotImplementedError
+        raise "should implement abstract method"
 
-    @abstractmethod
-    def visualize_aug(self, orig_sample: Any, aug_sample: Any, block: bool = True) -> None:
-        """
-        Visualise and compare augmented and non-augmented version of the sample
-        :param orig_sample: original sample
-        :param aug_sample: augmented sample
-        :param block: set to False if the process should not be blocked until the plot will be closed
-        :return: None
-        """
-        raise NotImplementedError
+    def show(self, vis_data):
+        data = self._preprocess(vis_data)
+        self._show(data)
+
+class PrintVisual(VisualizerBase):
+    """
+    basic visualizer example that just prints the data string representation to the console
+    """    
+    def __init__(self) -> None:
+        super().__init__()
+        
+    def _show(self, vis_data):
+        if type(vis_data) is dict:
+            print("showing single item")
+            print(vis_data)
+        else:
+            print(f"comparing {len(vis_data)} items:")
+            for item in vis_data:
+                print(item)
+
+    def show(self, vis_data):
+        data = self._preprocess(vis_data)
+        self._show(data)

@@ -22,7 +22,7 @@ from typing import Any
 from fuse.utils.misc.misc import Singleton
 
 
-class FuseUtilsDebug(metaclass=Singleton):
+class FuseDebug(metaclass=Singleton):
     """
     Debug settings. See __init__() for available modes
     """
