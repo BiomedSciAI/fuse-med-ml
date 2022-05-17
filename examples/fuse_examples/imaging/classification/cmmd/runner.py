@@ -31,7 +31,7 @@ from torch.utils.data.dataloader import DataLoader
 from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils import NDict
 from fuse.data.utils.samplers import BatchSamplerDefault
-
+from fuse.data.utils.collates import CollateDefault
 from fuse.dl.models.model_default import ModelDefault
 from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
 
@@ -86,6 +86,7 @@ def run_train(paths : NDict , train: NDict ):
                                        balanced_class_name='data.gt.classification',
                                        num_balanced_classes=2,
                                        batch_size=train["batch_size"],
+                                       mode = "approx",
                                        balanced_class_weights=None)
 
     lgr.info(f'- Create sampler: Done')
@@ -93,7 +94,7 @@ def run_train(paths : NDict , train: NDict ):
     ## Create dataloader
     train_dataloader = DataLoader(dataset=train_dataset,
                                   shuffle=False, drop_last=False,
-                                  batch_sampler=sampler, collate_fn=train_dataset.collate_fn,
+                                  batch_sampler=sampler, collate_fn=CollateDefault(),
                                   num_workers=train["num_workers"])
     lgr.info(f'Train Data: Done', {'attrs': 'bold'})
 
@@ -110,7 +111,7 @@ def run_train(paths : NDict , train: NDict ):
                                        batch_sampler=None,
                                        batch_size=train["batch_size"],
                                        num_workers=train["num_workers"],
-                                       collate_fn=validation_dataset.collate_fn)
+                                       collate_fn=CollateDefault())
     lgr.info(f'Validation Data: Done', {'attrs': 'bold'})
 
     # ===================================================================
@@ -120,7 +121,7 @@ def run_train(paths : NDict , train: NDict ):
     lgr.info('Model:', {'attrs': 'bold'})
 
     model = ModelDefault(
-        conv_inputs=(('data.input.image', 1),),
+        conv_inputs=(('data.input.img', 1),),
         backbone=BackboneInceptionResnetV2(input_channels_num=1),
         heads=[
             HeadGlobalPoolingClassifier(head_name='head_0',
@@ -220,7 +221,7 @@ def run_infer(paths : NDict , infer: NDict):
     ## Create dataloader
     infer_dataloader = DataLoader(dataset=test_dataset,
                                   shuffle=False, drop_last=False,
-                                  collate_fn=test_dataset.collate_fn,
+                                  collate_fn=CollateDefault(),
                                   num_workers=infer["num_workers"])
     lgr.info(f'Test Data: Done', {'attrs': 'bold'})
 

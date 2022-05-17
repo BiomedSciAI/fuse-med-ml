@@ -12,6 +12,7 @@ from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuseimg.data.ops.image_loader import OpLoadImage , OpLoadDicom
 from fuseimg.data.ops.color import OpClip, OpToRange
+from fuseimg.data.ops.shape_ops import OpFlipBrightSideOnLeft2D , OpRemoveDarkBackgroundRectangle2D, OpResizeAndPad2D
 from fuse.data import PipelineDefault, OpSampleAndRepeat, OpToTensor, OpRepeat
 from fuseimg.data.ops.aug.color import OpAugColor
 from fuseimg.data.ops.aug.geometry import OpAugAffine2D , OpAugCropAndResize2D
@@ -75,6 +76,52 @@ def create_folds(input_source: str,
                 create_folds.folds_df = pd.read_csv(partition_file_name)
 
     return create_folds.folds_df[create_folds.folds_df['fold'].isin(folds)]
+
+def create_dataset_partition(data_dir, data_source, restart_cache) :
+    
+    static_pipeline = PipelineDefault("static", [
+        (OpReadDataframe(data_source,key_column = None , columns_to_extract = ['file','classification'] , rename_columns=dict(file="data.input.img_path",classification="data.gt.classification")), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path" 
+        (OpLoadDicom(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", format="nib")),
+        (OpFlipBrightSideOnLeft2D(), dict(key="data.input.img")),
+        (OpRemoveDarkBackgroundRectangle2D(), dict(key="data.input.img")),
+        (OpToRange(), dict(key="data.input.img", from_range=(0.0, 255.0), to_range=(0.0, 1.0))),
+        (OpResizeAndPad2D(), dict(key="data.input.img", resize_to=(2200, 1200), padding=(60, 60))),
+        ])
+
+    dynamic_pipeline = PipelineDefault("dynamic", [
+        (OpToTensor(), dict(key="data.input.img",dtype=torch.float32)),
+        (OpSample(OpAugAffine2D()), dict(
+                        key="data.input.img",
+                        rotate=Uniform(-30.0,30.0),        
+                        scale=Uniform(0.9, 1.1),
+                        flip=(RandBool(0.3), RandBool(0.5)),
+                        translate=(RandInt(-10, 10), RandInt(-10, 10))
+                    )),
+        (OpSample(OpAugColor()), dict(
+                    key="data.input.img",
+                    gamma=Uniform(0.9, 1.1), 
+                    contrast=Uniform(0.85, 1.15),
+                    mul =  Uniform(0.95, 1.05),
+                    add=Uniform(-0.06, 0.06)
+                )),
+    ])
+                                       
+    cache_dir = mkdtemp(prefix="cmmd")
+    cacher = SamplesCacher(f'cmmd_cache_ver', 
+        static_pipeline,
+        cache_dirs=[cache_dir], restart_cache=restart_cache)   
+    
+    sample_ids=[id for id in data_source.index]
+    
+    my_dataset = DatasetDefault(sample_ids=sample_ids,
+        static_pipeline=static_pipeline,
+        dynamic_pipeline=dynamic_pipeline,
+        cacher=cacher,            
+    )
+
+    my_dataset.create()
+    return my_dataset
+    
     
 def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache', reset_cache: bool = False,
                       post_cache_processing_func: Optional[Callable] = None) -> Tuple[DatasetDefault, DatasetDefault]:
@@ -124,45 +171,34 @@ def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache
                                             folds=[0,1,2],
                                             num_folds=5,
                                             partition_file_name=partition_file_path)
-    sample_ids=[id for id in range(len(train_data_source))]
-
-    static_pipeline = PipelineDefault("static", [
-        (OpReadDataframe(train_data_source,key_column = None , columns_to_extract = ['file','classification'] , rename_columns=dict(file="data.input.img_path",classification="data.gt.classification")), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path" 
-        (OpLoadDicom(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", format="nib")),
-        (OpToRange(), dict(key="data.input.img", from_range=(0, 255), to_range=(0, 1))),
-        (OpAugCropAndResize2D(), dict(key="data.input.img", from_range=(0, 255), to_range=(0, 1))),
-        ])
-
-    dynamic_pipeline = PipelineDefault("dynamic", [
-        (OpToTensor(), dict(dtype=torch.float32)),
-        (OpSample(OpAugAffine2D()), dict(
-                        rotate=Uniform(-30.0,30.0),        
-                        scale=Uniform(0.9, 1.1),
-                        flip=(RandBool(0.3), RandBool(0.5)),
-                        translate=(RandInt(-10, 10), RandInt(-10, 10))
-                    )),
-        (OpSample(OpAugColor()), dict(
-                    key="data.input.img",
-                    gamma=Uniform(0.9, 1.1), 
-                    contrast=Uniform(0.85, 1.15),
-                    mul =  Uniform(0.95, 1.05),
-                    add=Uniform(-0.06, 0.06)
-                )),
-    ])
-                                       
-    cache_dir = mkdtemp(prefix="cmmd")
-    cacher = SamplesCacher(f'cmmd_cache_ver', 
-        static_pipeline,
-        cache_dirs=[cache_dir], restart_cache=True)   
     
-    my_dataset = DatasetDefault(sample_ids=sample_ids,
-        static_pipeline=static_pipeline,
-        dynamic_pipeline=dynamic_pipeline,
-        cacher=cacher,            
-    )
+    validation_data_source = create_folds(input_source=input_source_gt,
+                                            input_df=None,
+                                            phase='train',
+                                            no_mixture_id='ID1',
+                                            balance_keys=[target],
+                                            reset_partition_file=True,
+                                            folds=[3],
+                                            num_folds=5,
+                                            partition_file_name=partition_file_path)
+    
+    test_data_source = create_folds(input_source=input_source_gt,
+                                            input_df=None,
+                                            phase='train',
+                                            no_mixture_id='ID1',
+                                            balance_keys=[target],
+                                            reset_partition_file=True,
+                                            folds=[4],
+                                            num_folds=5,
+                                            partition_file_name=partition_file_path)
+    
+    lgr.info(f'- Load and cache data:')
+    train_dataset = create_dataset_partition(data_dir,train_data_source,True)
+    lgr.info(f'- Load and cache data: Done')
+    validation_dataset = create_dataset_partition(data_dir,validation_data_source,False)
+    test_dataset = create_dataset_partition(data_dir,test_data_source,False)
 
 
-    my_dataset.create()
     
     # partition_file_path = os.path.join(data_misc_dir, 'data_fold_new.csv')
     
@@ -242,7 +278,7 @@ def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache
 
     lgr.info(f'- Load and cache data: Done')
 
-    return my_dataset, my_dataset, my_dataset
+    return train_dataset, validation_dataset, test_dataset
 
 
 def merge_clinical_data_with_dicom_tags(data_dir: str, data_misc_dir:str, target: str) -> str:
@@ -271,6 +307,7 @@ def merge_clinical_data_with_dicom_tags(data_dir: str, data_misc_dir:str, target
     dicom_tags = pd.DataFrame(scans)
     merged_clinical_data = pd.merge(clinical_data, dicom_tags, how='outer', on=['ID1', 'LeftRight'])
     merged_clinical_data = merged_clinical_data[merged_clinical_data[target].notna()]
+    merged_clinical_data.classification = np.where(merged_clinical_data.classification == 'Benign', 0, 1)
     merged_clinical_data.to_csv(combined_file_path)
     return combined_file_path
 

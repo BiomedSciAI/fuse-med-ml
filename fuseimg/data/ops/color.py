@@ -109,7 +109,7 @@ class OpToRange(OpBase):
         to_range_end = to_range[1]
 
         img = sample_dict[key]
-
+        img = img.astype(np.float32)
         # shift to start at 0
         img -= from_range_start            
 
