@@ -17,19 +17,20 @@ Created on June 30, 2021
 
 """
 from typing import Optional, Sequence
-import pandas as pds
+import pandas as pd
 
-from fuse.data.datasets.dataset_base import DatasetBase
+from fuse.data.dataset.dataset_base import FuseDatasetBase
 
 from fuse.utils.file_io.file_io import save_dataframe
+from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 
-class ExportDataset:
+class DatasetExport:
     """
     Export data
     """
 
     @staticmethod
-    def export_to_dataframe(dataset: DatasetBase, keys: Sequence[str], output_filename: Optional[str] = None, sample_id_key: str = "data.sample_id", **dataset_get_kwargs) -> pds.DataFrame:
+    def export_to_dataframe(dataset: FuseDatasetBase, keys: Sequence[str], output_filename: Optional[str] = None, sample_id_key: str = "data.descriptor", **dataset_get_kwargs) -> pd.DataFrame:
         """
         extract from dataset the specified and keys and create a dataframe. 
         If output_filename will be specified, the dataframe will also be saved in a file. 
@@ -49,14 +50,14 @@ class ExportDataset:
             all_keys = None
 
         # read all the data
-        data = dataset.get_multi(keys=all_keys, **dataset_get_kwargs)
+        data = dataset.get(None, **dataset_get_kwargs)
 
 
         # store in dataframe
-        df = pds.DataFrame()
+        df = pd.DataFrame()
         
         for key in all_keys:
-            values = [sample_dict[key] for sample_dict in data]
+            values = [FuseUtilsHierarchicalDict.get(sample_dict, key) for sample_dict in data]
             df[key] = values
         
         # set sample_id as index

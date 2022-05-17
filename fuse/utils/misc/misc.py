@@ -34,7 +34,7 @@ import numpy as np
 import pandas as pd
 from torch import Tensor
 
-from fuse.utils.ndict import NDict
+from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 
 
 class Misc:
@@ -111,16 +111,16 @@ class Misc:
         return obj
 
     @staticmethod
-    def batch_dict_to_string(batch_dict: NDict) -> str:
+    def batch_dict_to_string(batch_dict: dict) -> str:
         """
         Convert batch dict to string, including the keys, types and shapes.
         :param batch_dict: might be any dict
         :return: string representation of the batch dict
         """
         res = ''
-        all_keys = batch_dict.keypaths()
+        all_keys = FuseUtilsHierarchicalDict.get_all_keys(batch_dict)
         for key in all_keys:
-            value = batch_dict[key]
+            value = FuseUtilsHierarchicalDict.get(batch_dict, key)
             res += f'{key} : type={type(value)}'
             if isinstance(value, (np.ndarray, Tensor)):
                 res += f', dtype={value.dtype}, shape={value.shape}'

@@ -3,8 +3,6 @@ import os
 import pathlib
 from setuptools import setup, find_packages
 
-import sys
-
 # The directory containing this file
 HERE = pathlib.Path(__file__).parent
 
@@ -19,19 +17,15 @@ with open(os.path.join(HERE, 'requirements.txt'), 'r') as fh:
         if not line.startswith('#'):
             requirements.append(line.strip())
 
-# version
-version_file = open(os.path.join(HERE, 'VERSION.txt'))
-version = version_file.read().strip()
-
 setup(name='fuse-med-ml',
-      version=version,
+      version='0.1.12',
       description='Open-source PyTorch based framework designed to facilitate deep learning R&D in medical imaging',
       long_description=long_description,
       long_description_content_type="text/markdown",
       url='https://github.com/IBM/fuse-med-ml/',
-      author='IBM Research - Machine Learning for Healthcare and Life Sciences',
+      author='IBM Research Haifa Labs - Machine Learning for Healthcare and Life Sciences',
       author_email='moshiko.raboh@ibm.com',
-      packages=find_packages(),
+      packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
       license='Apache License 2.0',
       install_requires=requirements
       )

@@ -25,7 +25,7 @@ from typing import Any, List, Optional
 
 import torch
 
-from fuse.utils.utils_debug import FuseDebug
+from fuse.utils.utils_debug import FuseUtilsDebug
 
 
 def get_available_gpu_ids() -> List[int]:
@@ -53,7 +53,7 @@ def choose_and_enable_multiple_gpus(num_gpus_needed: int, force_gpus: Optional[L
     """
     # debug - num gpus
     try:
-        override_num_gpus = FuseDebug().get_setting('manager_override_num_gpus')
+        override_num_gpus = FuseUtilsDebug().get_setting('manager_override_num_gpus')
         if override_num_gpus != 'default':
             num_gpus_needed = min(override_num_gpus, num_gpus_needed)
             logging.getLogger('Fuse').info(f'Manager - debug mode - override num_gpus to {num_gpus_needed}', {'color': 'red'})
@@ -67,13 +67,13 @@ def choose_and_enable_multiple_gpus(num_gpus_needed: int, force_gpus: Optional[L
             available_gpu_ids = force_gpus
 
         if available_gpu_ids is None:
-            raise Exception('could not auto-detect available GPUs')
+            raise Exception('FuseUtilsGPU: could not auto-detect available GPUs')
         elif len(available_gpu_ids) < num_gpus_needed:
-            raise Exception('not enough GPUs available, requested %d GPUs but only IDs %s are available!' % (
+            raise Exception('FuseUtilsGPU: not enough GPUs available, requested %d GPUs but only IDs %s are available!' % (
                 num_gpus_needed, str(available_gpu_ids)))
         else:
             selected_gpu_ids = sorted(available_gpu_ids, reverse=True)[:num_gpus_needed]
-            logging.getLogger('Fuse').info('selecting GPUs %s' % str(selected_gpu_ids))
+            logging.getLogger('Fuse').info('FuseUtilsGPU: selecting GPUs %s' % str(selected_gpu_ids))
             set_cuda_visible_devices(selected_gpu_ids)
 
         torch.backends.cudnn.benchmark = False  # to prevent gpu illegal instruction exceptions
@@ -139,7 +139,7 @@ def run_nvidia_smi() -> str:
     nvidia_smi_output, stderr = process.communicate()
     status = process.poll()
     if status != 0:
-        print("Failed to run nvidia-smi")
+        print("FuseUtilsGPU: Failed to run nvidia-smi")
         return None
     nvidia_smi_output = str(nvidia_smi_output)
     return nvidia_smi_output

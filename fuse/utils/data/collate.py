@@ -16,7 +16,6 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-import logging
 from typing import Any, Callable, Dict, List, Sequence, Tuple
 
 from fuse.utils import NDict
@@ -125,11 +124,7 @@ def uncollate(batch: Dict) -> List[Dict]:
         sample = NDict()
         for key in keys:
             if isinstance(batch[key], (np.ndarray, torch.Tensor, list, tuple)):
-                try:
-                    sample[key] = batch[key][sample_index]
-                except IndexError:
-                    logging.error(f"Error - IndexError - key={key}, batch_size={batch_size}, len={batch[key]}")
-                    raise
+                sample[key] = batch[key][sample_index]
             else:
                 sample[key] = batch[key] # broadcast single value for all batch
         

@@ -51,35 +51,31 @@ $ pip install -e .
 ```
 This mode, allows to edit the source code and easily contribute back to the open-source project.
 
-In this mode  you can also install and run our end to end examples using:
-```bash
-$ pip install -e examples
-```
 An alternative, is to simply install using PyPI 
 ```bash
 $ pip install fuse-med-ml
 ```
  
- FuseMedML supports Python 3.7 or later and PyTorch 1.5 or later. A full list of dependencies can be found in [**requirements.txt**](https://github.com/IBM/fuse-med-ml/tree/master/requirements.txt).
+ FuseMedML supports Python 3.6 or later and PyTorch 1.5 or later. A full list of dependencies can be found in [**requirements.txt**](https://github.com/IBM/fuse-med-ml/tree/master/requirements.txt).
  
 
 # Ready to get started?
 ## FuseMedML from the ground up
 [**User Guide**](https://github.com/IBM/fuse-med-ml/tree/master/fuse/doc/user_guide.md) - including detailed explanation about FuseMedML modules, structure, concept, and more.
 
-[**Hello World**](https://colab.research.google.com/github/IBM/fuse-med-ml/blob/master/fuse_examples/imaging/hello_world/hello_world.ipynb) - Introductory hands-on notebook on the well-known MNIST dataset. 
+[**Hello World**](https://colab.research.google.com/github/IBM/fuse-med-ml/blob/master/fuse_examples/tutorials/hello_world/hello_world.ipynb) - Introductory hands-on notebook on the well-known MNIST dataset. 
 
 [**High Level Code Example**](https://github.com/IBM/fuse-med-ml/tree/master/fuse/doc/high_level_example.md) - example of binary classifier for mammography with an auxiliary segmentation loss and clinical data
 
 ## Examples
 * classification
-    * [**MNIST**](https://github.com/IBM/fuse-med-ml/tree/master/examples/fuse_examples/imaging/classification/mnist/)  - a simple example, including training, inference and evaluation over [MNIST dataset](http://yann.lecun.com/exdb/mnist/)
-    * [**KNIGHT Challenge**](https://github.com/IBM/fuse-med-ml/tree/master/examples/fuse_examples/imaging/classification/knight) - preoperative prediction of risk class for patients with renal masses identified in clinical Computed Tomography (CT) imaging of the kidneys. Including data pre-processing, baseline implementation and evaluation pipeline for the challenge.
-    * [**Multimodality tutorial**](https://github.com/IBM/fuse-med-ml/blob/master/examples/fuse_examples/multimodality/image_clinical/multimodality_image_clinical.ipynb) - demonstration of two popular simple methods integrating imaging and clinical data (tabular) using FuseMedML  
-    * [**Skin Lesion**](https://github.com/IBM/fuse-med-ml/tree/master/examples/fuse_examples/imaging/classification/skin_lesion/) - skin lesion classification , including training, inference and evaluation over the public dataset introduced in [ISIC challenge](https://challenge.isic-archive.com/landing/2017)
-    * [**Prostate Gleason Classification**](https://github.com/IBM/fuse-med-ml/tree/master/example/fuse_examples/imaging/classification/prostate_x/) - lesions classification of Gleason score in prostate over the public dataset introduced in [SPIE-AAPM-NCI PROSTATEx challenge](https://wiki.cancerimagingarchive.net/display/Public/SPIE-AAPM-NCI+PROSTATEx+Challenges#23691656d4622c5ad5884bdb876d6d441994da38)
-    * [**Lesion Stage Classification**](https://github.com/IBM/fuse-med-ml/tree/master/examples/fuse_examples/imaging/classification/duke_breast_cancer/) - lesions classification of Tumor Stage (Size) in breast MRI over the public dataset introduced in [Dynamic contrast-enhanced magnetic resonance images of breast cancer patients with tumor locations (Duke-Breast-Cancer-MRI)](https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70226903)
-    * [**Breast Cancer Lesion Classification**](https://github.com/IBM/fuse-med-ml/tree/master/examples/fuse_examples/imaging/classification/MG_CMMD) - lesions classification of tumor ( benign, malignant) in breast mammography over the public dataset introduced in [The Chinese Mammography Database (CMMD)](https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508)
+    * [**MNIST**](https://github.com/IBM/fuse-med-ml/tree/master/fuse_examples/classification/mnist/)  - a simple example, including training, inference and evaluation over [MNIST dataset](http://yann.lecun.com/exdb/mnist/)
+    * [**KNIGHT Challenge**](https://github.com/IBM/fuse-med-ml/tree/master/fuse_examples/classification/knight) - preoperative prediction of risk class for patients with renal masses identified in clinical Computed Tomography (CT) imaging of the kidneys. Including data pre-processing, baseline implementation and evaluation pipeline for the challenge.
+    * [**Multimodality tutorial**](https://github.com/IBM/fuse-med-ml/blob/master/fuse_examples/tutorials/multimodality_image_clinical/multimodality_image_clinical.ipynb) - demonstration of two popular simple methods integrating imaging and clinical data (tabular) using FuseMedML  
+    * [**Skin Lesion**](https://github.com/IBM/fuse-med-ml/tree/master/fuse_examples/classification/skin_lesion/) - skin lesion classification , including training, inference and evaluation over the public dataset introduced in [ISIC challenge](https://challenge.isic-archive.com/landing/2017)
+    * [**Prostate Gleason Classifiaction**](https://github.com/IBM/fuse-med-ml/tree/master/fuse_examples/classification/prostate_x/) - lesions classification of Gleason score in prostate over the public dataset introduced in [SPIE-AAPM-NCI PROSTATEx challenge](https://wiki.cancerimagingarchive.net/display/Public/SPIE-AAPM-NCI+PROSTATEx+Challenges#23691656d4622c5ad5884bdb876d6d441994da38)
+    * [**Lesion Stage Classification**](https://github.com/IBM/fuse-med-ml/tree/master/fuse_examples/classification/duke_breast_cancer/) - lesions classification of Tumor Stage (Size) in breast MRI over the public dataset introduced in [Dynamic contrast-enhanced magnetic resonance images of breast cancer patients with tumor locations (Duke-Breast-Cancer-MRI)](https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70226903)
+    * [**Breast Cancer Lesion Classification**](https://github.com/IBM/fuse-med-ml/tree/master/fuse_examples/classification/MG_CMMD) - lesions classification of tumor ( benign, malignant) in breast mammography over the public dataset introduced in [The Chinese Mammography Database (CMMD)](https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508)
     
 ## Walkthrough template
 * [**Walkthrough Template**](https://github.com/IBM/fuse-med-ml/tree/master/fuse/templates/walkthrough_template.py) - includes several TODO notes, marking the minimal scope of code required to get your pipeline up and running. The template also includes useful explanations and tips.

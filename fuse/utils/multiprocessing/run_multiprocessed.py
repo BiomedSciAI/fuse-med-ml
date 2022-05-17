@@ -90,7 +90,7 @@ def run_multiprocessed(worker_func, args_list, workers=0, verbose=0,
                 return ans
         args_list: a list in which each element is the input to func
         workers: number of processes to use. Use 0 for no spawning of processes (helpful when debugging)
-        copy_to_global_storage: Optional - to optimize the running time - the provided dict will be stored in a way that is accessible to worker_func.                    
+        copy_to_global_storage: Optional - to optimize the running time - the provided dict will be stored in a way that is accesible to worker_func.                    
          calling get_from_global_storage(...) will allow access to it from within any worker_func
         This allows to create a significant speedup in certain cases, and the main idea is that it allows to drastically reduce the amount of data
          that gets (automatically) pickled by python's multiprocessing library.
@@ -134,12 +134,12 @@ def _run_multiprocessed_as_iterator_impl(worker_func, args_list, workers=0, verb
         worker_func: a worker function, must accept only a single positional argument and no optional args.
             For example:
             def some_worker(args):
-                speed: height, banana = args
+                speed, height, banana = args
                 ...
                 return ans
         args_list: a list in which each element is the input to func
         workers: number of processes to use. Use 0 for no spawning of processes (helpful when debugging)
-        copy_to_global_storage: Optional - to optimize the running time - the provided dict will be stored in a way that is accessible to worker_func.                    
+        copy_to_global_storage: Optional - to optimize the running time - the provided dict will be stored in a way that is accesible to worker_func.                    
             calling get_from_global_storage(...) will allow access to it from within any worker_func
         This allows to create a significant speedup in certain cases, and the main idea is that it allows to drastically reduce the amount of data
             that gets (automatically) pickled by python's multiprocessing library.

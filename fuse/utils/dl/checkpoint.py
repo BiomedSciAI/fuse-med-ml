@@ -23,7 +23,7 @@ import torch
 import torch.nn as nn
 
 
-class Checkpoint():
+class FuseCheckpoint():
     def __init__(self, net: Union[nn.Module, dict], epoch_idx: int, learning_rate: float):
         if isinstance(net, nn.Module):
             self.net_state_dict = net.state_dict()
