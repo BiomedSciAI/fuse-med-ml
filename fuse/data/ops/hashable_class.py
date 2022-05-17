@@ -23,7 +23,7 @@ class HashableClass:
             expected_class=HashableClass,
             expected_function_name='__init__',
             value_to_string_func = HashableClass.VALUE_TO_STRING_FUNC,
-            ignore_first_frame=3,
+            ignore_first_frames=3,
             )
         
     def __setattr__(self, name, value):
