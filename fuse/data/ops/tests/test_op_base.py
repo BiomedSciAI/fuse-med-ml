@@ -3,7 +3,7 @@ import unittest
 from typing import Union, List
 from fuse.utils.ndict import NDict
 
-from fuse.data.ops.op_base import OpBase
+from fuse.data.ops.op_base import OpBase, op_call
 from fuse.data.key_types import DataTypeBasic
 from fuse.data import create_initial_sample
 from fuse.data.key_types_for_testing import DataTypeForTesting, type_detector_for_testing
@@ -31,7 +31,7 @@ class TestOpBase(unittest.TestCase):
 
         op = OpImp()
         sample_dict = {}
-        sample_dict = op(sample_dict, "id")
+        sample_dict = op_call(op, sample_dict, "id")
         self.assertTrue("data.cc.seg_for_testing" in sample_dict)
         self.assertTrue(sample_dict["data.cc.seg_for_testing"] == 5)
         self.assertTrue(type_detector_for_testing.get_type(sample_dict, "data.cc.seg_for_testing")== DataTypeForTesting.SEG_FOR_TESTING)

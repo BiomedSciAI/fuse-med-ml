@@ -4,13 +4,13 @@ from typing import Optional, OrderedDict, Union, List
 
 from fuse.utils.ndict import NDict
 
-from fuse.data.ops.op_base import OpBase
+from fuse.data.ops.op_base import OpBase, OpReverseableBase, op_call
 from fuse.data.key_types_for_testing import DataTypeForTesting
 
 from fuse.data.ops.ops_common import OpApplyPatterns, OpFunc, OpLambda, OpRepeat
 from fuse.data.ops.ops_common_for_testing import OpApplyTypesImaging
 
-class OpIncrForTest(OpBase):
+class OpIncrForTest(OpReverseableBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
     
@@ -120,14 +120,14 @@ class TestOpsCommon(unittest.TestCase):
         sample_dict = NDict({})
         sample_dict["data.first"] = 5
         sample_dict["data.second"] = 9
-        sample_dict = single_output_op(sample_dict, "_.test_func", c=2, inputs={"data.first": "a", "data.second": "b"}, outputs="data.out")
+        sample_dict = op_call(single_output_op, sample_dict, "_.test_func", c=2, inputs={"data.first": "a", "data.second": "b"}, outputs="data.out")
         self.assertEqual(sample_dict['data.out'], 16)
 
         multi_output_op = OpFunc(func=func_multi_output)
         sample_dict = NDict({})
         sample_dict["data.first"] = 5
         sample_dict["data.second"] = 9
-        sample_dict = multi_output_op(sample_dict, "_.test_func", c=2, inputs={"data.first": "a", "data.second": "b"}, outputs=["data.out", "data.more"])
+        sample_dict = op_call(multi_output_op, sample_dict, "_.test_func", c=2, inputs={"data.first": "a", "data.second": "b"}, outputs=["data.out", "data.more"])
         self.assertEqual(sample_dict['data.out'], 14)
         self.assertEqual(sample_dict['data.more'], 7)
 

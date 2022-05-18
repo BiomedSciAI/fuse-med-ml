@@ -5,11 +5,11 @@ from typing import Any, Union, List
 import copy
 from unittest.case import expectedFailure
 
-from fuse.data.ops.op_base import OpBase
+from fuse.data.ops.op_base import OpBase, OpReverseableBase
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 
 
-class OpSetForTest(OpBase):
+class OpSetForTest(OpReverseableBase):
     def __call__(self, sample_dict: NDict, op_id: str, key: str, val: Any) -> Union[None, dict, List[dict]]:
         # store information for reverse operation
         sample_dict[f"{op_id}.key"] = key

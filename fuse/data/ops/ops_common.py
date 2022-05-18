@@ -3,11 +3,11 @@ from fuse.data.key_types import TypeDetectorBase
 import copy
 from enum import Enum
 from fuse.data.key_types import TypeDetectorBase
-from .op_base import OpBase, Patterns #DataType, 
+from .op_base import OpBase, OpReverseableBase, Patterns, op_call, op_reverse #DataType, 
 from fuse.utils.ndict import NDict
 
 
-class OpRepeat(OpBase):
+class OpRepeat(OpReverseableBase):
     """
     Repeat an op multiple times
 
@@ -53,7 +53,7 @@ class OpRepeat(OpBase):
             step_kwargs.update(step_kwargs_to_add)
             full_step_id = f"{op_id}_{step_index}"
             sample_dict[full_step_id+'_debug_info.op_name'] = self._op.__class__.__name__
-            sample_dict = self._op(sample_dict, full_step_id,  **step_kwargs)
+            sample_dict = op_call(self._op, sample_dict, full_step_id,  **step_kwargs)
 
             assert not isinstance(sample_dict, list), f"splitting samples within {type(self).__name__} operation is not supported"
             
@@ -69,11 +69,11 @@ class OpRepeat(OpBase):
         See super class
         """
         for step_index in reversed(range(len(self._kwargs_per_step_to_add))):
-            sample_dict = self._op.reverse(sample_dict, key_to_reverse, key_to_follow, f"{op_id}_{step_index}")
+            sample_dict = op_reverse(self._op, sample_dict, key_to_reverse, key_to_follow, f"{op_id}_{step_index}")
 
         return sample_dict
 
-class OpLambda(OpBase):
+class OpLambda(OpReverseableBase):
     """
     Apply simple lambda function / function to transform single value from sample_dict (or the all dictionary)
     Optionally add reverse method if required.
@@ -118,7 +118,7 @@ class OpLambda(OpBase):
         
         return sample_dict
 
-class OpFunc(OpBase):
+class OpFunc(OpReverseableBase):
     '''
     Helps to wrap an existing simple python function without writing boilerplate code.
 
@@ -180,7 +180,7 @@ class OpFunc(OpBase):
         
         return sample_dict
 
-class OpApplyPatterns(OpBase):
+class OpApplyPatterns(OpReverseableBase):
     """
     Select and apply an operation according to key name.
     Instead of specifying every relevant key, the op will be applied for every key that matched a specified pattern
@@ -210,7 +210,7 @@ class OpApplyPatterns(OpBase):
 
             op_kwargs = copy.copy(kwargs)
             op_kwargs.update(op_kwargs_to_add)
-            sample_dict = op(sample_dict, f"{op_id}_{key}", key=key, **op_kwargs)
+            sample_dict = op_call(op, sample_dict, f"{op_id}_{key}", key=key, **op_kwargs)
 
             assert not isinstance(sample_dict, list), f"splitting samples within {type(self).__name__} operation is not supported"
             
@@ -229,11 +229,11 @@ class OpApplyPatterns(OpBase):
         if op is None:
             return
 
-        sample_dict = op.reverse(sample_dict, key_to_reverse, key_to_follow, f"{op_id}_{key_to_follow}")
+        sample_dict = op_reverse(op, sample_dict, key_to_reverse, key_to_follow, f"{op_id}_{key_to_follow}")
 
         return sample_dict
 
-class OpApplyTypes(OpBase):
+class OpApplyTypes(OpReverseableBase):
     """
     Select and apply an operation according value type (inferred from key name). See OpBase for more information about how it is inferred.
     Instead of specifying every relevant key, the op will be applied for every key that matched a specified pattern
@@ -270,7 +270,7 @@ class OpApplyTypes(OpBase):
             op_kwargs.update(op_kwargs_to_add)
             if 'key' in op_kwargs:
                 raise Exception('OpApplyTypes::"key" is already found in kwargs. Are you calling OpApplyTypes from within OpApplyTypes? it is not supported.')
-            sample_dict = op(sample_dict, f"{op_id}_{key}", key, **op_kwargs)
+            sample_dict = op_call(op, sample_dict, f"{op_id}_{key}", key, **op_kwargs)
 
             assert not isinstance(sample_dict, list), f"splitting samples within {type(self).__name__} operation is not supported"
             
@@ -290,13 +290,13 @@ class OpApplyTypes(OpBase):
         if op is None:
             return
 
-        sample_dict = op.reverse(sample_dict, key_to_reverse, key_to_follow, f"{op_id}_{key_to_follow}")
+        sample_dict = op_call(op, sample_dict, key_to_reverse, key_to_follow, f"{op_id}_{key_to_follow}")
 
         return sample_dict
 
-class OpCollectMarker(OpBase):
+class OpCollectMarker(OpReverseableBase):
     """
-    Use this op within the dynamic pipeline to optimizer the reading time for components such as sampler, export and stats that don't need to read the entire sample.
+    Use this op within the dynamic pipeline to optimize the reading time for components such as sampler, export and stats that don't need to read the entire sample.
     OpCollectMarker will specify the last op to call to get all the required information from sample.
     In addition, to avoid from reading the entire sample including images, OpCollectMarker can also specify the list of keys required for the relevant part of the dynamic pipeline.
 
@@ -332,16 +332,15 @@ class OpCollectMarker(OpBase):
         }
 
     def __call__(self, sample_dict: dict, op_id: Optional[str], **kwargs) -> Union[None, dict, List[dict]]:
-        pass
+        return sample_dict
 
     def reverse(self, sample_dict: dict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
-        pass
-    
+        return sample_dict
 
 class OpKeepKeypaths(OpBase):
     '''
     Use this op to keep only the defined keypaths in the sample
-    A case where this is useful is if you want to limit the amount of data that gets transfered by multiprocessing by DataLoader workers.
+    A case where this is useful is if you want to limit the amount of data that gets transferred by multiprocessing by DataLoader workers.
     You can keep only what you want to enter the collate.
     '''
     def __init__(self, **kwargs):

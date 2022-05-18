@@ -3,14 +3,14 @@ import unittest
 from typing import Optional, Union, List
 from fuse.utils.ndict import NDict
 
-from fuse.data.ops.op_base import OpBase
+from fuse.data.ops.op_base import OpBase, OpReverseableBase, op_call, op_reverse
 from fuse.data import create_initial_sample
 from fuse.data import OpRepeat
 from fuse.data.ops.ops_aug_common import OpRandApply, OpSample, OpSampleAndRepeat, OpRepeatAndSample
 from fuse.utils.rand.param_sampler import Choice, RandBool, RandInt, Uniform
 from fuse.utils import Seed
 
-class OpArgsForTest(OpBase):
+class OpArgsForTest(OpReverseableBase):
     def __init__(self):
         super().__init__()
     def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs) -> Union[None, dict, List[dict]]:
@@ -38,7 +38,7 @@ class TestOpsAugCommon(unittest.TestCase):
         Seed.set_seed(0)
         a = {"a": 5, "b": [3, RandInt(1, 5), 9], "c": {"d": 3, "f": [1, 2, RandBool(0.5), {"h": RandInt(10, 15)}]}, "e": {"g": Choice([6, 7, 8])}}
         op = OpSample(OpArgsForTest())
-        result = op({}, "op_id", **a)
+        result = op_call(op, {}, "op_id", **a)
         b = result["kwargs"]
         call_op_id = result["op_id"] 
         # make sure the same op_id passed to internal op
@@ -56,7 +56,7 @@ class TestOpsAugCommon(unittest.TestCase):
         self.assertIn(b["e"]["g"], [6, 7, 8])
 
         # make sure the same op_id passed also in reverse
-        result = op.reverse({}, "", "", "op_id")
+        result = op_reverse(op, {}, "", "", "op_id")
         reversed_op_id = result["op_id"]
         self.assertEqual(reversed_op_id, "op_id")
 
@@ -64,13 +64,13 @@ class TestOpsAugCommon(unittest.TestCase):
         Seed.set_seed(1337)                
         sample_1 = create_initial_sample(0)
         op = OpSampleAndRepeat(OpBasicSetter(), [dict(key='data.input.img'), dict(key='data.gt.seg')])
-        sample_1 = op(sample_1, op_id='testing_sample_and_repeat', set_key_to_val=Uniform(3.0,6.0))
+        sample_1 = op_call(op, sample_1, op_id='testing_sample_and_repeat', set_key_to_val=Uniform(3.0,6.0))
                 
         Seed.set_seed(1337)
         sample_2 = create_initial_sample(0)
         op = OpSample(OpRepeat(OpBasicSetter(),
             [dict(key='data.input.img'), dict(key='data.gt.seg')]))            
-        sample_2 = op(sample_2, op_id='testing_sample_and_repeat', set_key_to_val=Uniform(3.0,6.0))
+        sample_2 = op_call(op, sample_2, op_id='testing_sample_and_repeat', set_key_to_val=Uniform(3.0,6.0))
 
         self.assertEqual(sample_1['data.input.img'], sample_1['data.gt.seg'])
         self.assertEqual(sample_1['data.input.img'], sample_2['data.input.img'])
@@ -80,7 +80,7 @@ class TestOpsAugCommon(unittest.TestCase):
         Seed.set_seed(1337)                
         sample_1 = create_initial_sample(0)
         op = OpRepeatAndSample(OpBasicSetter(), [dict(key='data.input.img'), dict(key='data.gt.seg')])
-        sample_1 = op(sample_1, op_id='testing_sample_and_repeat', set_key_to_val=Uniform(3.0,6.0))
+        sample_1 = op_call(op, sample_1, op_id='testing_sample_and_repeat', set_key_to_val=Uniform(3.0,6.0))
 
         Seed.set_seed(1337)
         sample_2 = create_initial_sample(0)
@@ -88,7 +88,7 @@ class TestOpsAugCommon(unittest.TestCase):
             OpSample(OpBasicSetter(), ),
             [dict(key='data.input.img'), dict(key='data.gt.seg')]
         )            
-        sample_2 = op(sample_2, op_id='testing_sample_and_repeat', set_key_to_val=Uniform(3.0,6.0))
+        sample_2 = op_call(op, sample_2, op_id='testing_sample_and_repeat', set_key_to_val=Uniform(3.0,6.0))
                 
         self.assertEqual(sample_1['data.input.img'], sample_2['data.input.img'])
         self.assertEqual(sample_1['data.gt.seg'], sample_2['data.gt.seg'])
@@ -101,7 +101,7 @@ class TestOpsAugCommon(unittest.TestCase):
         op = OpRandApply(OpArgsForTest(), 0.5)
         
         def sample(op):
-            return "kwargs" in op({}, "op_id", a=5)
+            return "kwargs" in op_call(op, {}, "op_id", a=5)
         
         # test range
         self.assertIn(sample(op), [True, False])

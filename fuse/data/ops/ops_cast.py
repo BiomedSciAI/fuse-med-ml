@@ -19,6 +19,7 @@ Created on June 30, 2021
 from abc import abstractmethod
 from os import stat
 from typing import Any, List, Optional, Sequence, Union
+from fuse.data.ops.op_base import OpReverseableBase
 import numpy as np
 
 from fuse.data import OpBase
@@ -119,7 +120,7 @@ class Cast:
             return Cast.to_list(value)
 
 
-class OpCast(OpBase):    
+class OpCast(OpReverseableBase):    
      
     def __call__(self, sample_dict: NDict, op_id: Optional[str], key: Union[str, Sequence[str]], **kwargs) -> Union[None, dict, List[dict]]:
         """
