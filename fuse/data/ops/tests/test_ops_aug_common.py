@@ -3,14 +3,14 @@ import unittest
 from typing import Optional, Union, List
 from fuse.utils.ndict import NDict
 
-from fuse.data.ops.op_base import OpBase, OpReverseableBase, op_call, op_reverse
+from fuse.data.ops.op_base import OpBase, OpReversibleBase, op_call, op_reverse
 from fuse.data import create_initial_sample
 from fuse.data import OpRepeat
 from fuse.data.ops.ops_aug_common import OpRandApply, OpSample, OpSampleAndRepeat, OpRepeatAndSample
 from fuse.utils.rand.param_sampler import Choice, RandBool, RandInt, Uniform
 from fuse.utils import Seed
 
-class OpArgsForTest(OpReverseableBase):
+class OpArgsForTest(OpReversibleBase):
     def __init__(self):
         super().__init__()
     def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs) -> Union[None, dict, List[dict]]:

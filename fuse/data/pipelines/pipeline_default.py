@@ -17,12 +17,12 @@ Created on June 30, 2021
 
 """
 from typing import List, Tuple, Union, Optional
-from fuse.data.ops.op_base import OpBase, OpReverseableBase, op_call, op_reverse
+from fuse.data.ops.op_base import OpBase, OpReversibleBase, op_call, op_reverse
 from fuse.utils.misc.context import DummyContext
 from fuse.utils.ndict import NDict
 from fuse.utils.cpu_profiling.timer import Timer
 
-class PipelineDefault(OpReverseableBase):
+class PipelineDefault(OpReversibleBase):
     """
     Pipeline default implementation
     Pipeline to run sequence of ops with a dictionary passing information between the ops.

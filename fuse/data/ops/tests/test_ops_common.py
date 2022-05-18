@@ -4,13 +4,13 @@ from typing import Optional, OrderedDict, Union, List
 
 from fuse.utils.ndict import NDict
 
-from fuse.data.ops.op_base import OpBase, OpReverseableBase, op_call
+from fuse.data.ops.op_base import OpBase, OpReversibleBase, op_call
 from fuse.data.key_types_for_testing import DataTypeForTesting
 
 from fuse.data.ops.ops_common import OpApplyPatterns, OpFunc, OpLambda, OpRepeat
 from fuse.data.ops.ops_common_for_testing import OpApplyTypesImaging
 
-class OpIncrForTest(OpReverseableBase):
+class OpIncrForTest(OpReversibleBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
     

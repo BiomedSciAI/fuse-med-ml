@@ -3,12 +3,12 @@ from typing import List, Optional, Sequence, Union
 
 from fuse.utils.rand.param_sampler import RandBool, draw_samples_recursively
 
-from fuse.data.ops.op_base import OpBase, OpReverseableBase, op_call, op_reverse
+from fuse.data.ops.op_base import OpBase, OpReversibleBase, op_call, op_reverse
 from fuse.data.ops.ops_common import OpRepeat
 
 from fuse.utils.ndict import NDict
 
-class OpRandApply(OpReverseableBase):
+class OpRandApply(OpReversibleBase):
     def __init__(self, op: OpBase, probability: float):
         """
         Randomly apply the op (according to the given probability) 
@@ -38,7 +38,7 @@ class OpRandApply(OpReverseableBase):
         
         return sample_dict
 
-class OpSample(OpReverseableBase):
+class OpSample(OpReversibleBase):
     """
     recursively searches for ParamSamplerBase instances in kwargs, and replaces the drawn values inplace before calling to op.__call__()
 

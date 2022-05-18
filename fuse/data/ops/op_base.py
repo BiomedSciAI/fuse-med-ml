@@ -49,11 +49,12 @@ class OpBase(HashableClass):
 
 
     
-class OpReverseableBase(OpBase):
+class OpReversibleBase(OpBase):
     """
     Special case of op - declaring that the operation can be reversed when required 
     (useful to reverse processing steps before presenting the output)
-    If there is nothing to reverse - to just declare that the op is reversable inherit from  OpReverseableBase instead of OpBase.
+    If there is nothing to reverse - to just declare that the op is reversible inherit from  OpReversibleBase instead of OpBase and implement simple reverse method that returns sample_dict as is.
+
     If some logic required to reverse the operation:
         (1) record the information required to reverse the operation in __call__ function. Use op_id to store it in sample_dict (sample_dict[op_id] = <information to record?).
         (2) override reverse() method: read the recorded information from sample_dict[op_id] and use it to reverse the operation
@@ -74,7 +75,7 @@ class OpReverseableBase(OpBase):
         """
         reverse operation
         If a reverse operation is not necessary (for example operator that reads an image),
-        keep the original implementation
+        implement simple reverse method that returns sample_dict as is
 
         If reverse operation is necessary but not required by the project so far,
         inherit from OpBase (will throw an NotImplementedError in case the reverse operation will be called).
@@ -89,14 +90,14 @@ class OpReverseableBase(OpBase):
         :param key_to_follow: run the reverse according to the operation applied on this value
         :return: modified sample_dict
         """
-        raise sample_dict
+        raise NotImplementedError(f"op {self} is not reversible. If there is nothing to reverse, just implement simple reverse method that returns sample_dict as is. If extra logic required to reverse follow the instructions in OpReversibleBase")
 
     
 def op_call(op: OpBase, sample_dict: NDict, op_id: str, **kwargs):
     try:
-        if isinstance(op, OpReverseableBase):
+        if isinstance(op, OpReversibleBase):
             return op(sample_dict, op_id=op_id, **kwargs)
-        else: # OpBase but note reversable
+        else: # OpBase but note reversible
             return op(sample_dict, **kwargs)
     except:
         # error messages are cryptic without this. For example, you can get "TypeError: __call__() got an unexpected keyword argument 'key_out_input'" , without any reference to the relevant op!
@@ -104,7 +105,7 @@ def op_call(op: OpBase, sample_dict: NDict, op_id: str, **kwargs):
         raise 
 
 def op_reverse(op, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]):
-    if isinstance(op, OpReverseableBase):
+    if isinstance(op, OpReversibleBase):
         try:
             return op.reverse(sample_dict, key_to_reverse, key_to_follow, op_id)
         except:
@@ -112,5 +113,5 @@ def op_reverse(op, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, 
             print(f'error in reverse method of op={op}, op_id={op_id}, sample_id={get_sample_id(sample_dict)} - more details above')   
             raise 
     
-    else: # OpBase but note reversable
-        raise NotImplementedError(f"op {op} is not reversable. If there is nothing to reverse, just inherit from OpReversableBase instead of OpBase. If extra logic required to reverse follow the instructions in OpReversableBase")
+    else: # OpBase but note reversible
+        raise NotImplementedError(f"op {op} is not reversible. If there is nothing to reverse, just inherit OpReversibleBase instead of OpBase and implement simple reverse method that returns sample_dict as is. If extra logic required to reverse follow the instructions in OpReversibleBase")

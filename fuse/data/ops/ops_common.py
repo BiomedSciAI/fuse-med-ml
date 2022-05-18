@@ -3,11 +3,11 @@ from fuse.data.key_types import TypeDetectorBase
 import copy
 from enum import Enum
 from fuse.data.key_types import TypeDetectorBase
-from .op_base import OpBase, OpReverseableBase, Patterns, op_call, op_reverse #DataType, 
+from .op_base import OpBase, OpReversibleBase, Patterns, op_call, op_reverse #DataType, 
 from fuse.utils.ndict import NDict
 
 
-class OpRepeat(OpReverseableBase):
+class OpRepeat(OpReversibleBase):
     """
     Repeat an op multiple times
 
@@ -73,7 +73,7 @@ class OpRepeat(OpReverseableBase):
 
         return sample_dict
 
-class OpLambda(OpReverseableBase):
+class OpLambda(OpReversibleBase):
     """
     Apply simple lambda function / function to transform single value from sample_dict (or the all dictionary)
     Optionally add reverse method if required.
@@ -118,7 +118,7 @@ class OpLambda(OpReverseableBase):
         
         return sample_dict
 
-class OpFunc(OpReverseableBase):
+class OpFunc(OpReversibleBase):
     '''
     Helps to wrap an existing simple python function without writing boilerplate code.
 
@@ -180,7 +180,7 @@ class OpFunc(OpReverseableBase):
         
         return sample_dict
 
-class OpApplyPatterns(OpReverseableBase):
+class OpApplyPatterns(OpReversibleBase):
     """
     Select and apply an operation according to key name.
     Instead of specifying every relevant key, the op will be applied for every key that matched a specified pattern
@@ -233,7 +233,7 @@ class OpApplyPatterns(OpReverseableBase):
 
         return sample_dict
 
-class OpApplyTypes(OpReverseableBase):
+class OpApplyTypes(OpReversibleBase):
     """
     Select and apply an operation according value type (inferred from key name). See OpBase for more information about how it is inferred.
     Instead of specifying every relevant key, the op will be applied for every key that matched a specified pattern
@@ -294,7 +294,7 @@ class OpApplyTypes(OpReverseableBase):
 
         return sample_dict
 
-class OpCollectMarker(OpReverseableBase):
+class OpCollectMarker(OpReversibleBase):
     """
     Use this op within the dynamic pipeline to optimize the reading time for components such as sampler, export and stats that don't need to read the entire sample.
     OpCollectMarker will specify the last op to call to get all the required information from sample.
