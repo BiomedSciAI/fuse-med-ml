@@ -65,7 +65,7 @@ class PipelineDefault(OpBase):
         """
         # set op_id if not specified
         if op_id is None:
-            op_id = self._name
+            op_id = f"internal.{self._name}"
 
         samples_to_process = [sample_dict]
         for sub_op_id, (op, op_kwargs) in zip(self._op_ids, self._ops_and_kwargs):

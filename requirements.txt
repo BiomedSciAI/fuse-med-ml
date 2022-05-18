@@ -28,3 +28,4 @@ tables
 psutil
 testbook
 ipykernel
+medpy
