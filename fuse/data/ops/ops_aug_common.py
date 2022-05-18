@@ -74,7 +74,7 @@ class OpSample(OpReverseableBase):
         """
         return op_reverse(self._op, sample_dict, key_to_reverse, key_to_follow, op_id)          
 
-class OpSampleAndRepeat(OpReverseableBase):
+class OpSampleAndRepeat(OpSample):
     """
     First sample kwargs and then repeat op with the exact same sampled arguments.
     This is the equivalent of using OpSample around an OpRepeat.
