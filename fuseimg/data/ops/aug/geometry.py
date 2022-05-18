@@ -22,7 +22,7 @@ class OpAugAffine2D(OpBase):
         super().__init__()
         self._verify_arguments = verify_arguments
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str, rotate: float = 0.0, translate: Tuple[float, float] = (0.0, 0.0),
+    def __call__(self, sample_dict: NDict, key: str, rotate: float = 0.0, translate: Tuple[float, float] = (0.0, 0.0),
                     scale: Tuple[float, float] = 1.0, flip: Tuple[bool, bool] = (False, False), shear: float = 0.0,
                     channels: Optional[List[int]] = None) -> Union[None, dict, List[dict]]:
         """
