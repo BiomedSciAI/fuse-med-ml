@@ -42,6 +42,8 @@ class ISIC:
     """
     # bump whenever the static pipeline modified
     DATASET_VER = 0
+    
+    # Small subset of samples for testing
     TEN_GOLDEN_MEMBERS = ['ISIC_0072637','ISIC_0072638','ISIC_0072639','ISIC_0072640',
                         'ISIC_0072641','ISIC_0072642','ISIC_0072646','ISIC_0072647',
                         'ISIC_0072648','ISIC_0072649']
