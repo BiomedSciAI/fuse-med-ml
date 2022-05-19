@@ -119,43 +119,7 @@ class OpToRange(OpBase):
 
 op_to_range_img = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpToRange(), {}) })
         
-
-class OpClip(OpBase):
-    """
-    Clip values - support both torh tensor and numpy array
-    """
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str,
-            clip = (0.0, 1.0),
-        ):
-        """
-        Clip  values
-        :param key: key to an image in sample_dict: either torh tensor or numpy array and any dimension
-        :param clip: values for clipping from both sides
-        """
-
-        img = sample_dict[key]
         
-        processed_img = self.clip(img, clip)
-        
-        sample_dict[key] = processed_img
-        return sample_dict
-
-    @staticmethod
-    def clip(img: Union[np.ndarray, torch.Tensor], clip: Tuple[float, float] = (0.0, 1.0)) -> Union[np.ndarray, torch.Tensor]:
-        if isinstance(img, np.ndarray):
-            processed_img = np.clip(img, clip[0], clip[1])
-        elif isinstance(img, torch.Tensor):
-            processed_img = torch.clamp(img, clip[0], clip[1], out=img)
-        else:
-            raise Exception(f"Error: unexpected type {type(img)}")
-        return processed_img
-
-op_clip_img = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpClip(), {}) })
-
-
 class OpPad(OpBase):
     """
     Pad the give image on all the sides. Currently supports only torch.Tensor objects.
@@ -164,7 +128,7 @@ class OpPad(OpBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str,
+    def __call__(self, sample_dict: NDict, key: str,
             padding: List[int],
             fill: int = 0,
             padding_mode: str = 'constant'):

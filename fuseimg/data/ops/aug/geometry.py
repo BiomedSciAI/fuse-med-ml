@@ -232,7 +232,7 @@ class OpResizeTo(OpBase):
         super().__init__()
         self._verify_arguments = verify_arguments
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str, resize_to: List[int], mode: str='reflect', anti_aliasing: bool=True) -> NDict:
+    def __call__(self, sample_dict: NDict, key: str, resize_to: List[int], mode: str='reflect', anti_aliasing: bool=True) -> NDict:
         """
         :param key: key to a numpy array or tensor stored in the sample_dict
         :param resize_to: the desired dimensions
