@@ -121,7 +121,7 @@ class STOIC21:
 
             # fixed image normalization
             (OpClip(), dict(key="data.input.img", clip=(-800, 200))),
-            (OpToRange(), dict(key="data.input.img", from_range=(-800, 200), to_range=(0, 1))),
+            (OpToRange(is_int=True), dict(key="data.input.img", from_range=(-800, 200), to_range=(0, 1))),
             
             # transposing so the depth channel will be first
             (OpLambda(partial(np.moveaxis, source=-1, destination=0)), dict(key="data.input.img")), # convert image from shape [H, W, D] to shape [D, H, W] 
