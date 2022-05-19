@@ -44,7 +44,7 @@ class OpReadDataset(OpBase):
         self._sample_keys = sample_keys
         self._dataset = dataset
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str]) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict) -> Union[None, dict, List[dict]]:
         """
         See super class
         """

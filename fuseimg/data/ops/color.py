@@ -18,7 +18,7 @@ class OpClip(OpBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str,
+    def __call__(self, sample_dict: NDict, key: str,
             clip = (0.0, 1.0),
         ):
         """
@@ -53,15 +53,11 @@ class OpNormalizeAgainstSelfImpl(OpBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str,
-        ):
+    def __call__(self, sample_dict: NDict, key: str):
         img = sample_dict[key]
         img -= img.min()
         img /= img.max()
         sample_dict[key] = img
-        return sample_dict
-
-    def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
         return sample_dict
     
 
@@ -75,7 +71,7 @@ class OpToIntImageSpace(OpBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str,
+    def __call__(self, sample_dict: NDict, key: str,
         ):
         img = sample_dict[key]
         img -= img.min()
@@ -86,9 +82,6 @@ class OpToIntImageSpace(OpBase):
         sample_dict[key] = img
         return sample_dict
 
-    def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
-        return sample_dict
-    
 op_to_int_image_space_img = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpToIntImageSpace(), {}) })
 
 class OpToRange(OpBase):
@@ -99,7 +92,7 @@ class OpToRange(OpBase):
         super().__init__(**kwargs)
         self._is_int = is_int
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str,
+    def __call__(self, sample_dict: NDict, key: str,
         from_range: Tuple[float, float],
         to_range: Tuple[float, float],
         ):
@@ -131,8 +124,6 @@ class OpToRange(OpBase):
         
         return sample_dict
 
-    def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
-        return sample_dict
 
 op_to_range_img = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpToRange(), {}) })
         

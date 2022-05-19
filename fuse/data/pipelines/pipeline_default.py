@@ -17,12 +17,12 @@ Created on June 30, 2021
 
 """
 from typing import List, Tuple, Union, Optional
-from fuse.data.ops.op_base import OpBase
+from fuse.data.ops.op_base import OpBase, OpReversibleBase, op_call, op_reverse
 from fuse.utils.misc.context import DummyContext
 from fuse.utils.ndict import NDict
 from fuse.utils.cpu_profiling.timer import Timer
 
-class PipelineDefault(OpBase):
+class PipelineDefault(OpReversibleBase):
     """
     Pipeline default implementation
     Pipeline to run sequence of ops with a dictionary passing information between the ops.
@@ -52,9 +52,9 @@ class PipelineDefault(OpBase):
 
     def __str__(self) -> str:
         text = []
-        for (op, op_kwargs) in zip(self._op_ids, self._ops_and_kwargs):
-            text.append(str(op)+'@'+str(op_kwargs)+'@')
-
+        for (op_id, op_kwargs) in zip(self._op_ids, self._ops_and_kwargs):
+            op, kwargs = op_kwargs
+            text.append(str(op_id)+'@'+op.get_hashable_string_representation() + '@' + str(kwargs)+'@')            
         return ''.join(text) #this is faster than accumulate_str+=new_str
     
     def __call__(self, sample_dict: NDict, op_id: Optional[str] = None, until_op_id: Optional[str] = None) -> Union[None, dict, List[dict]]:
@@ -74,18 +74,13 @@ class PipelineDefault(OpBase):
             else:
                 context = DummyContext()
             with context:
-                try:
                     samples_to_process_next = []
 
                     for sample in samples_to_process:
 
-                        try:
-                            sample = op(sample, f"{op_id}.{sub_op_id}", **op_kwargs)
-                        except:
-                            #error messages are cryptic without this. For example, you can get "TypeError: __call__() got an unexpected keyword argument 'key_out_input'" , without any reference to the relevant op!
-                            print(f'error in op={op}')   
-                            raise 
-
+                        
+                        sample = op_call(op, sample, f"{op_id}.{sub_op_id}", **op_kwargs)
+          
                         # three options for return value:
                         # None - ignore the sample
                         # List of dicts - split sample
@@ -99,8 +94,6 @@ class PipelineDefault(OpBase):
                         else:
                             raise Exception(
                                 f"unexpected sample type returned by {type(op)}: {type(sample)}")
-                except Exception as e:
-                    raise Exception(f"Error: op {type(op).__name__}, op_id {sub_op_id} failed ") from e
                 
             # continue to process with next op
             samples_to_process = samples_to_process_next
@@ -124,7 +117,7 @@ class PipelineDefault(OpBase):
             op_id = self._name
 
         for sub_op_id, (op, _) in zip(reversed(self._op_ids), reversed(self._ops_and_kwargs)):
-            sample_dict = op.reverse(
+            sample_dict = op_reverse(op,
                 sample_dict, f"{op_id}.{sub_op_id}", key_to_reverse, key_to_follow)
 
         return sample_dict
