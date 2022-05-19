@@ -169,7 +169,7 @@ class EvaluatorDefault:
         elif isinstance(data, Sequence) and isinstance(data[0], (str, pd.DataFrame)): # data is a sequence of folds
             data_lst = []
             for fold, data_elem in enumerate(data):
-                data_elem_df = self.read_data(data_elem, ids_df, error_missing_ids=False)
+                data_elem_df = self.read_data(data_elem, ids_df, error_missing_ids=False, id_key=id_key)
                 # add "fold" number to dataframe 
                 data_elem_df["evaluator_fold"] = fold
                 data_lst.append(data_elem_df)
@@ -181,7 +181,7 @@ class EvaluatorDefault:
             for key, data_elem in data.items():
                 
                 try:
-                    data_elem_df = self.read_data(data_elem, ids_df)
+                    data_elem_df = self.read_data(data_elem, ids_df, id_key=id_key)
                     all_ids = all_ids.union(set(data_elem_df.index))
                 except:
                     print(f"Error: key={key}")
