@@ -18,6 +18,7 @@ Created on June 30, 2021
 """
 
 import unittest
+from fuse.data.ops.op_base import op_call
 
 import pandas as pd
 from fuse.utils.ndict import NDict
@@ -44,7 +45,7 @@ class TestOpsRead(unittest.TestCase):
                 "sample_id": "c"
             }
         })
-        sample_dict = op(sample_dict, "id")
+        sample_dict = op_call(op, sample_dict, "id")
         self.assertEqual(sample_dict["data.value1"], 3)
         self.assertEqual(sample_dict["data.value2"], "3")
        
@@ -56,7 +57,7 @@ class TestOpsRead(unittest.TestCase):
                 "sample_id": "c"
             }
         })
-        sample_dict = op(sample_dict, "id")
+        sample_dict = op_call(op, sample_dict, "id")
         self.assertFalse("data.value1" in sample_dict)
         self.assertEqual(sample_dict["data.value2"], "3")
 
@@ -67,7 +68,7 @@ class TestOpsRead(unittest.TestCase):
                 "sample_id": "c"
             }
         })
-        sample_dict = op(sample_dict, "id")
+        sample_dict = op_call(op, sample_dict, "id")
         self.assertFalse("data.value1" in sample_dict)
         self.assertFalse("data.value2" in sample_dict)
         self.assertEqual(sample_dict["data.value3"], "3")

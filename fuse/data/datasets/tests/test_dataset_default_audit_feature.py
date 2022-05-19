@@ -33,7 +33,7 @@ class OpFakeLoad(OpBase):
     def __init__(self):
         super().__init__()
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, **kwargs) -> Union[None, dict, List[dict]]:
         sid = get_sample_id(sample_dict)
         if 'case_1' == sid:
             sample_dict.merge(_generate_sample_1())            
@@ -53,12 +53,6 @@ class OpFakeLoad(OpBase):
             raise Exception(f'unfamiliar sample_id: {sid}')
         sample_dict = ForMonkeyPatching.identity_transform(sample_dict) 
         return sample_dict
-
-    def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
-        return sample_dict
-
-    def __repr__(self):
-        return __class__.__name__
                     
 class ForMonkeyPatching:
     @staticmethod
@@ -74,7 +68,7 @@ class OpPrintContents(OpBase):
     def __init__(self):
         super().__init__()
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, **kwargs) -> Union[None, dict, List[dict]]:
         sid = get_sample_id(sample_dict)
         print(f'sid={sid}')
         for k in sample_dict.keypaths():
@@ -82,12 +76,6 @@ class OpPrintContents(OpBase):
         print('-------------------------\n')
 
         return sample_dict
-        
-    def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
-        return sample_dict
-
-    def __repr__(self):
-        return __class__.__name__
 
 
 class TestDatasetDefault(unittest.TestCase):
