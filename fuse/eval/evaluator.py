@@ -43,7 +43,7 @@ class EvaluatorDefault:
                    data: Union[str, pd.DataFrame, Sequence[str], Sequence[pd.DataFrame], Iterable, 
                                Dict[str, Union[str, pd.DataFrame, Sequence[str], Sequence[pd.DataFrame]]]], 
                    metrics: OrderedDict[str, MetricBase],
-                   id_key = "id",
+                   id_key: str = "id",
                    batch_size: Optional[int] = None,
                    output_dir: Optional[str] = None) -> NDict:
         """
@@ -59,6 +59,7 @@ class EvaluatorDefault:
                                                    A prefix of "<key>." will be automatically added to each column name to avoid from collisions.                
                         (5) Iterator - either sample iterator or batch iterator. See param batch_size documentation for more details.
 
+        :param id_key: the column name or key that include the sample id (unique identifier)
         :param batch_size: Optional. Use when the data is too big to read together,
                            Options: 
                                 None - read all the data together
