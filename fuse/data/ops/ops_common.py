@@ -365,7 +365,7 @@ class OpMap(OpBase):
         super().__init__()
         self._map = map
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key_in: str, key_out: str) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, key_in: str, key_out: str) -> Union[None, dict, List[dict]]:
         value = sample_dict[key_in]
         sample_dict[key_out] = self._map[value]
 
@@ -380,7 +380,7 @@ class OpToOneHot(OpBase):
         super().__init__()
         self._num_classes = num_classes
         
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key_in: str, key_out: str) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, key_in: str, key_out: str) -> Union[None, dict, List[dict]]:
         value = sample_dict[key_in]
         one_hot = np.zeros(self._num_classes)
         one_hot[value] = 1.0
@@ -390,7 +390,7 @@ class OpToOneHot(OpBase):
 
 
 class OpConcat(OpBase):
-    def __call__(self, sample_dict: NDict, op_id, keys_in: Sequence[str], key_out: str, axis:int = 0) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, keys_in: Sequence[str], key_out: str, axis:int = 0) -> Union[None, dict, List[dict]]:
         values = [np.asarray(sample_dict[key_in]) for key_in in keys_in]
         values = [v if len(v.shape) > 0 else np.expand_dims(v, axis=0) for v in values]
         sample_dict[key_out] = np.concatenate(values, axis=axis)

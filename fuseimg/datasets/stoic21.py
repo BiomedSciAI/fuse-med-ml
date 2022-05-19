@@ -54,7 +54,7 @@ class OpSTOIC21SampleIDDecode(OpBase):
     decodes sample id into image and segmentation filename
     '''
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str]) -> NDict:
+    def __call__(self, sample_dict: NDict) -> NDict:
         '''
         
         '''
