@@ -30,7 +30,7 @@ from fuse_examples.imaging.classification.isic.runner import TRAIN_COMMON_PARAMS
 
 import fuse.utils.gpu as GPU
 
-# @unittest.skipIf(True, "Under Construction")
+@unittest.skipIf(True, "Under Construction")
 class ClassificationISICTestCase(unittest.TestCase):
 
     def setUp(self):
