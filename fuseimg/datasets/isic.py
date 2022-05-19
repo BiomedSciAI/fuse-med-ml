@@ -48,17 +48,26 @@ class ISIC:
                         'ISIC_0072641','ISIC_0072642','ISIC_0072646','ISIC_0072647',
                         'ISIC_0072648','ISIC_0072649']
 
-    @staticmethod
-    def download(data_path: str) -> None:
+    def __init__(self,
+                 data_path: str,
+                 cache_path: str,
+                 train_portion: float=0.7, 
+                 override_partition: bool=True) -> None:
+        self.data_path = data_path
+        self.cache_path = cache_path
+        self.train_portion = train_portion
+        self.override_partition = override_partition
+        self._downloaded = False
+
+    def download(self) -> None:
         """
         Download images and metadata from ISIC challenge.
         Doesn't download again if data exists.
 
-        :param data_path: path where data should be located
         """
         lgr = logging.getLogger('Fuse')
     
-        path = os.path.join(data_path, 'ISIC2019/ISIC_2019_Training_Input')
+        path = os.path.join(self.data_path, 'ISIC2019/ISIC_2019_Training_Input')
         print(f"Training Input Path: {os.path.abspath(path)}")
         if not os.path.exists(path):
             lgr.info('\nExtract ISIC-2019 training input ... (this may take a few minutes)')
@@ -68,11 +77,11 @@ class ISIC:
             
             with ZipFile("ISIC_2019_Training_Input.zip", 'r') as zipObj:
                 # Extract all the contents of zip file in current directory
-                zipObj.extractall(path=os.path.join(data_path, 'ISIC2019'))
+                zipObj.extractall(path=os.path.join(self.data_path, 'ISIC2019'))
 
             lgr.info('Extracting ISIC-2019 training input: done')
 
-        path = os.path.join(data_path, 'ISIC2019/ISIC_2019_Training_GroundTruth.csv')
+        path = os.path.join(self.data_path, 'ISIC2019/ISIC_2019_Training_GroundTruth.csv')
 
         if not os.path.exists(path):
             lgr.info('\nExtract ISIC-2019 training gt ... (this may take a few minutes)')
@@ -81,6 +90,8 @@ class ISIC:
             wget.download(url, path)
 
             lgr.info('Extracting ISIC-2019 training gt: done')
+        
+        self._downloaded = True
 
     @staticmethod
     def sample_ids(data_dir: str) -> List[str]:
@@ -153,8 +164,11 @@ class ISIC:
 
         return dynamic_pipeline
 
-    @staticmethod
-    def dataset(data_path: str, cache_dir: str, reset_cache: bool = False, num_workers:int = 10, sample_ids: Optional[Sequence[Hashable]] = None) -> DatasetDefault:
+    def dataset(self,
+                train: bool=True,
+                reset_cache: bool = False, 
+                num_workers:int = 10, 
+                sample_ids: Optional[Sequence[Hashable]] = None) -> DatasetDefault:
         """
         Get cached dataset
         :param data_path: path to store the original data
@@ -163,7 +177,7 @@ class ISIC:
         :param num_workers: number of processes used for caching 
         :param sample_ids: dataset including the specified sample_ids or None for all the samples.
         """
-        train_data_path = os.path.join(data_path, 'ISIC2019/ISIC_2019_Training_Input')
+        train_data_path = os.path.join(self.data_path, 'ISIC2019/ISIC_2019_Training_Input')
         if sample_ids == None:
             sample_ids = ISIC.sample_ids(train_data_path)
 
@@ -172,7 +186,7 @@ class ISIC:
 
         cacher = SamplesCacher(f'isic_cache_ver{ISIC.DATASET_VER}', 
             static_pipeline,
-            [cache_dir], restart_cache=reset_cache, workers=num_workers)  
+            [self.cache_path], restart_cache=reset_cache, workers=num_workers)  
 
         my_dataset = DatasetDefault(sample_ids=sample_ids,
             static_pipeline=static_pipeline,

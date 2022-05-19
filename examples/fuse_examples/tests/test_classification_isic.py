@@ -24,9 +24,9 @@ import tempfile
 import shutil
 from fuse.utils.utils_logger import fuse_logger_end
 
-# FIXME: data_package
-#from fuse_examples.imaging.classification.skin_lesion.runner import TRAIN_COMMON_PARAMS, \
-#    INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS, run_train, run_eval, run_infer
+from fuse_examples.imaging.classification.isic.runner_new import TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS,\
+                                                                 run_train, run_infer, run_eval
+
 
 import fuse.utils.gpu as GPU
 
