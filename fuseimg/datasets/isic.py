@@ -24,7 +24,7 @@ from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
 
 class OpISICSampleIDDecode(OpBase):
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str]) -> NDict:
+    def __call__(self, sample_dict: NDict) -> NDict:
         """
         decodes sample id into image file name
         """
