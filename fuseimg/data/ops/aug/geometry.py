@@ -232,12 +232,14 @@ class OpResizeTo(OpBase):
         super().__init__()
         self._verify_arguments = verify_arguments
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str, resize_to: List[int]) -> NDict:
+    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str, resize_to: List[int], mode: str='reflect', anti_aliasing: bool=True) -> NDict:
         """
         :param key: key to a numpy array or tensor stored in the sample_dict
         :param resize_to: the desired dimensions
+        :param mode:
+        :param anti_aliasing:
 
-        outputs a numpy array
+        Outputs a numpy array to 'sample_dict[key]'
         """
         aug_input = sample_dict[key]
 
@@ -248,7 +250,7 @@ class OpResizeTo(OpBase):
             assert isinstance(aug_input, numpy.ndarray) or isinstance(aug_input, torch.Tensor), f"Error: OpResizeTo expects torch Tensor, got {type(aug_input)}"
             assert input_dim == resize_dim, f"Error, OpResizeTo expects the user to specify values for all the dimensions. got tensor with {input_dim} but {resize_dim} dimensions were given"
         
-        aug_output = skimage.transform.resize(aug_input, resize_to, mode='reflect', anti_aliasing=True)
+        aug_output = skimage.transform.resize(image=aug_input, output_shape=resize_to, mode=mode, anti_aliasing=anti_aliasing)
         sample_dict[key] = aug_output
 
         return sample_dict

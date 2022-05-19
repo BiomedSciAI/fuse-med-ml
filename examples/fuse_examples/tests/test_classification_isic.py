@@ -30,7 +30,7 @@ from fuse.utils.utils_logger import fuse_logger_end
 
 import fuse.utils.gpu as GPU
 
-@unittest.skipIf(True, "Long test")
+@unittest.skipIf(True, "Under Construction")
 class ClassificationSkinLesionTestCase(unittest.TestCase):
 
     def setUp(self):

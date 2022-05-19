@@ -1,11 +1,12 @@
 import unittest
 
 from fuse.data.pipelines.pipeline_default import PipelineDefault
-from fuseimg.data.ops.color import OpClip, OpToRange
+from fuseimg.data.ops.color import OpClip, OpToRange, OpPad
 
 from fuse.utils.ndict import NDict
 
 import numpy as np
+import torch
 
 
 class TestOps(unittest.TestCase):
@@ -29,6 +30,27 @@ class TestOps(unittest.TestCase):
         self.assertLessEqual(sample['data.input.img'].max(), 3.5)
         self.assertGreaterEqual(sample['data.input.img'].min(), -3.5)
         self.assertEqual(sample['data.input.img'][-1], 3.5)
+    
+    def test_op_pad(self):
+        """
+        Test OpPad
+        """
+        sample = NDict()
+        sample["data.input.img"] = torch.Tensor([[1]])
+
+        pipeline = PipelineDefault('test_pipeline', [
+            (OpPad(), dict(key='data.input.img', padding=1))
+        ])
+        
+        pipeline(sample)
+        res = [[0, 0, 0],
+               [0, 1, 0],
+               [0, 0, 0]]
+
+        self.assertTrue(np.array_equal(sample['data.input.img'], res))
+
+    def test_op_resize_to(self):
+        pass
 
     # FIXME: visualizer        
     # def test_basic_show(self):

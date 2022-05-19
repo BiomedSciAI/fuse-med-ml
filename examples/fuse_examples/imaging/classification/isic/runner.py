@@ -55,10 +55,10 @@ from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCa
 from fuse.dl.managers.manager_default import ManagerDefault
 
 
-from fuse_examples.imaging.classification.skin_lesion.data_source import SkinDataSource
-from fuse_examples.imaging.classification.skin_lesion.input_processor import SkinInputProcessor
-from fuse_examples.imaging.classification.skin_lesion.ground_truth_processor import SkinGroundTruthProcessor
-from fuse_examples.imaging.classification.skin_lesion.download import download_and_extract_isic
+from fuse_examples.imaging.classification.isic.data_source import SkinDataSource
+from fuse_examples.imaging.classification.isic.input_processor import SkinInputProcessor
+from fuse_examples.imaging.classification.isic.ground_truth_processor import SkinGroundTruthProcessor
+from fuse_examples.imaging.classification.isic.download import download_and_extract_isic
 
 
 ##########################################
