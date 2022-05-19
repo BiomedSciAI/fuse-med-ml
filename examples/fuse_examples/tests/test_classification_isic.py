@@ -24,24 +24,23 @@ import tempfile
 import shutil
 from fuse.utils.utils_logger import fuse_logger_end
 
-from fuse_examples.imaging.classification.isic.runner_new import TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS,\
+from fuse_examples.imaging.classification.isic.runner import TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS,\
                                                                  run_train, run_infer, run_eval
 
 
 import fuse.utils.gpu as GPU
 
-@unittest.skipIf(True, "Under Construction")
-class ClassificationSkinLesionTestCase(unittest.TestCase):
+# @unittest.skipIf(True, "Under Construction")
+class ClassificationISICTestCase(unittest.TestCase):
 
     def setUp(self):
         self.train_common_params = TRAIN_COMMON_PARAMS
-        self.train_common_params['data.year'] = '2016'
         self.train_common_params['manager.train_params']['num_epochs'] = 5
 
         # Path to save model
         self.ROOT = tempfile.mkdtemp()
         # Path to store the data
-        self.ROOT_DATA = tempfile.mkdtemp(prefix="skin_data")
+        self.ROOT_DATA = tempfile.mkdtemp(prefix="isic_data")
         # Name of the experiment
         EXPERIMENT = 'InceptionResnetV2_2016_test'
         # Path to cache data

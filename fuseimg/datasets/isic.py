@@ -5,6 +5,8 @@ import io
 import wget
 import logging
 from typing import Hashable, Optional, Sequence, List
+from sklearn.model_selection import train_test_split
+import pickle
 
 from fuse.data import DatasetDefault
 from fuse.data.ops.ops_cast import OpToNumpy, OpToTensor
@@ -51,13 +53,25 @@ class ISIC:
     def __init__(self,
                  data_path: str,
                  cache_path: str,
-                 train_portion: float=0.7, 
-                 override_partition: bool=True) -> None:
+                 val_portion: float=0.3, 
+                 partition_file: Optional[str]=None) -> None:
+        """
+        
+        :param data_path:
+        :param cache_path:
+        :param val_portion:
+        :param override_partition:
+        :param partition_file:
+        """
         self.data_path = data_path
         self.cache_path = cache_path
-        self.train_portion = train_portion
-        self.override_partition = override_partition
+        self.val_portion = val_portion
+        self.partition_file = partition_file
         self._downloaded = False
+
+        if partition_file is None:
+            self.partition_file = os.path.join(data_path, 'ISIC2019/partition.pickle')
+
 
     def download(self) -> None:
         """
@@ -93,13 +107,18 @@ class ISIC:
         
         self._downloaded = True
 
-    @staticmethod
-    def sample_ids(data_dir: str) -> List[str]:
+    def sample_ids(self, size: Optional[int] = None) -> List[str]:
         """
         get all the sample ids in trainset
         sample_id is case_{id:05d} (for example case_00001 or case_00100)
         """
-        samples = [f[0] for f in os.listdir(data_dir) if f.split(".")[-1] == 'jpg']
+        images_path = os.path.join(self.data_path, 'ISIC2019/ISIC_2019_Training_Input')
+        
+        samples = [f.split('.')[0] for f in os.listdir(images_path) if f.split('.')[-1] == 'jpg']
+
+        # Take only size elements
+        if size is not None:
+            samples = samples[-1 * size:]
 
         return samples
 
@@ -166,9 +185,11 @@ class ISIC:
 
     def dataset(self,
                 train: bool=True,
+                size: Optional[int] = None,
                 reset_cache: bool = False, 
                 num_workers:int = 10, 
-                sample_ids: Optional[Sequence[Hashable]] = None) -> DatasetDefault:
+                sample_ids: Optional[Sequence[Hashable]] = None,
+                override_partition: bool = True) -> DatasetDefault:
         """
         Get cached dataset
         :param data_path: path to store the original data
@@ -178,8 +199,34 @@ class ISIC:
         :param sample_ids: dataset including the specified sample_ids or None for all the samples.
         """
         train_data_path = os.path.join(self.data_path, 'ISIC2019/ISIC_2019_Training_Input')
+
         if sample_ids == None:
-            sample_ids = ISIC.sample_ids(train_data_path)
+            samples_ids = self.sample_ids(size)
+
+            if train: 
+                if override_partition or not os.path.exists(self.partition_file):
+                    train_samples, val_samples = train_test_split(samples_ids, test_size=self.val_portion, random_state=42)
+                    splits = {'train': train_samples, 'val': val_samples}
+
+                    with open(self.partition_file, "wb") as pickle_out:
+                        pickle.dump(splits, pickle_out)
+                        out_samples_ids = splits['train']
+
+                else:
+                    # read from a previous split to evaluate on the same partition
+                    with open(self.partition_file, "rb") as splits:
+                        repartition = pickle.load(splits)
+                        out_samples_ids = repartition['train']
+
+            else:
+                # return validation set according to the partition
+                with open(self.partition_file, "rb") as splits:
+                    repartition = pickle.load(splits)
+                    out_samples_ids = repartition['val']
+        
+        else:
+            # return the specified sample_ids
+            out_samples_ids = sample_ids
 
         static_pipeline = ISIC.static_pipeline(train_data_path)
         dynamic_pipeline = ISIC.dynamic_pipeline()
@@ -188,7 +235,7 @@ class ISIC:
             static_pipeline,
             [self.cache_path], restart_cache=reset_cache, workers=num_workers)  
 
-        my_dataset = DatasetDefault(sample_ids=sample_ids,
+        my_dataset = DatasetDefault(sample_ids=out_samples_ids,
             static_pipeline=static_pipeline,
             dynamic_pipeline=dynamic_pipeline,
             cacher=cacher
