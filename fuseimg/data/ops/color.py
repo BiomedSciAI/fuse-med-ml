@@ -88,7 +88,7 @@ class OpToRange(OpBase):
     '''
     linearly project from a range to a different range
     '''
-    def __init__(self, is_int: bool = True, **kwargs):
+    def __init__(self, is_int: bool = False, **kwargs):
         super().__init__(**kwargs)
         self._is_int = is_int
 
