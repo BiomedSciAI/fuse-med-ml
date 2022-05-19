@@ -8,12 +8,12 @@ from fuse.utils.ndict import NDict
 
 from fuse.data.ops.ops_visprobe import VisFlag, VisProbe 
 from fuse.data.visualizer.visualizer_base import VisualizerBase
-from fuse.data.ops.op_base import OpBase
+from fuse.data.ops.op_base import OpBase, OpReversibleBase
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.key_types_for_testing import type_detector_for_testing
 
 
-class OpSetForTest(OpBase):
+class OpSetForTest(OpReversibleBase):
     def __init__(self):
         super().__init__()
     def __call__(self, sample_dict: NDict, op_id: str, key: str, val: Any) -> Union[None, dict, List[dict]]:

@@ -24,7 +24,7 @@ class OpAugAffine2D(OpBase):
         super().__init__()
         self._verify_arguments = verify_arguments
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str, rotate: float = 0.0, translate: Tuple[float, float] = (0.0, 0.0),
+    def __call__(self, sample_dict: NDict, key: str, rotate: float = 0.0, translate: Tuple[float, float] = (0.0, 0.0),
                     scale: Tuple[float, float] = 1.0, flip: Tuple[bool, bool] = (False, False), shear: float = 0.0,
                     channels: Optional[List[int]] = None) -> Union[None, dict, List[dict]]:
         """
@@ -90,7 +90,7 @@ class OpAugCropAndResize2D(OpBase):
         super().__init__()
         self._verify_arguments = verify_arguments
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str,
+    def __call__(self, sample_dict: NDict, key: str,
                                 scale: Tuple[float, float],
                                 channels: Optional[List[int]] = None) ->  Union[None, dict, List[dict]]:
         """
@@ -150,7 +150,7 @@ class OpAugSqueeze3Dto2D(OpBase):
         super().__init__()
         self._verify_arguments = verify_arguments
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str, axis_squeeze: int) -> NDict:
+    def __call__(self, sample_dict: NDict, key: str, axis_squeeze: int) -> NDict:
         """
         :param key: key to a tensor stored in sample_dict: 3D tensor representing an image to augment, shape [num_channels, spatial axis 1, spatial axis 2, spatial axis 3]
         :param axis_squeeze: the axis (1, 2 or 3) to squeeze into channel dimension - typically z axis
@@ -190,7 +190,7 @@ class OpAugUnsqueeze3DFrom2D(OpBase):
     """
     Unsqueeze selected axis of volume image from channel dimension, restore the original shape squeezed by OpAugSqueeze3Dto2D
     """
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str, axis_squeeze: int, channels: int) -> NDict:
+    def __call__(self, sample_dict: NDict, key: str, axis_squeeze: int, channels: int) -> NDict:
         """
         :param key: key to a tensor stored in sample_dict and squeezed by OpAugSqueeze3Dto2D
         :param axis_squeeze: axis squeeze as specified in OpAugSqueeze3Dto2D
