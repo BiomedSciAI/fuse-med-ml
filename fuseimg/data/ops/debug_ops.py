@@ -66,15 +66,11 @@ class OpDrawGrid(OpBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str, grid_size
-        ):
+    def __call__(self, sample_dict: NDict, key: str, grid_size):
         img = sample_dict[key]
         draw_grid(img, grid_size=grid_size)
         
         sample_dict[key] = img
-        return sample_dict
-
-    def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
         return sample_dict
 
 op_draw_grid_img = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpDrawGrid(), {}) })

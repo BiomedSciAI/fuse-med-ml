@@ -1,3 +1,5 @@
+test-reports/
+*.png
 *.py[cod]
 **.snapshots
 **/*.snapshots
