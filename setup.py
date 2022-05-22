@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import os
 import pathlib
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, find_namespace_packages
 
 # The directory containing this file
 HERE = pathlib.Path(__file__).parent
@@ -25,7 +25,7 @@ setup(name='fuse-med-ml',
       url='https://github.com/IBM/fuse-med-ml/',
       author='IBM Research Haifa Labs - Machine Learning for Healthcare and Life Sciences',
       author_email='moshiko.raboh@ibm.com',
-      packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
+      packages=find_namespace_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
       license='Apache License 2.0',
       install_requires=requirements
       )
