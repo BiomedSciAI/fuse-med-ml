@@ -18,6 +18,7 @@ Created on June 30, 2021
 """
 
 from typing import Hashable, List, Optional, Dict, Union
+from fuse.utils.file_io.file_io import read_dataframe
 import pandas as pd
 
 from fuse.data import OpBase
@@ -64,7 +65,7 @@ class OpReadDataframe(OpBase):
 
         # read dataframe
         if self._data_filename is not None:
-            df = pd.read_pickle(self._data_filename)
+            df = read_dataframe(self._data_filename)
 
         # extract only specified columns (in case not specified, extract all)
         if self._columns_to_extract is not None:
@@ -78,18 +79,22 @@ class OpReadDataframe(OpBase):
         df = df.set_index(self._key_column)
         self._data = df.to_dict(orient='index')
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, **kwargs) -> Union[None, dict, List[dict]]:
         """
         See base class
         """
+        print("_key_name=", self._key_name)
+        print("_key_column=", self._key_column)
         key = sample_dict[self._key_name]
+
         # locate the required item
         sample_data = self._data[key].copy()
 
         # add values tp sample_dict
         for name, value in sample_data.items():
-            sample_dict[f"data.{name}"] = value
+            sample_dict[name] = value
 
+        print("key=", key)
         return sample_dict
 
     def get_all_keys(self) -> List[Hashable]:
@@ -99,3 +104,73 @@ class OpReadDataframe(OpBase):
         return list(self.data.keys())
 
     
+class OpReadLabelsFromDF(OpBase):
+    """
+    TODO Sagi
+    """
+    def __init__(self,
+                    data: Optional[pd.DataFrame] = None,
+                    data_filename: Optional[str] = None,
+                    columns_to_extract: Optional[List[str]] = None,
+                    key_name: str = 'data.sample_id',
+                    key_column: str = 'sample_id',
+                    key_label:str = 'data.label'):
+        """
+        TODO Sagi
+        """
+        super().__init__()
+
+        # Store input
+        self._data_filename = data_filename
+        self._columns_to_extract = columns_to_extract
+        self._key_name = key_name
+        self._key_column = key_column
+        self._key_label = key_label
+
+        df = data
+
+        # Verify input
+        if data is None and data_filename is None:
+            msg = "Error: need to provide either in-memory DataFrame or a path to file."
+            raise Exception(msg)
+        elif data is not None and data_filename is not None:
+            msg = "Error: need to provide either 'data' or 'data_filename' args, bot not both."
+            raise Exception(msg)
+
+        # read dataframe
+        if self._data_filename is not None:
+            df = read_dataframe(self._data_filename)
+
+        # extract only specified columns (in case not specified, extract all)
+        if self._columns_to_extract is not None:
+            df = df[self._columns_to_extract]
+
+        # convert to dictionary: {index -> {column -> value}}
+        df = df.set_index(self._key_column)
+        self._data = df.to_dict(orient='index')
+
+    def __call__(self, sample_dict: NDict, **kwargs) -> Union[None, dict, List[dict]]:
+        """
+        See base class
+        """
+        print("_key_name=", self._key_name)
+        print("_key_column=", self._key_column)
+        key = sample_dict[self._key_name]
+
+        # locate the required item
+        sample_data = self._data[key].copy()
+
+        # add values tp sample_dict
+        data_values = sample_data.values()
+        if self._columns_to_extract is not None:
+            label = [value for value in self._columns_to_extract if value in data_values]
+        else:
+            label = list(data_values)
+
+        sample_dict[self._key_label] = label
+
+        print("key=", key)
+        print("label=", label)
+        return sample_dict
+
+

@@ -51,11 +51,11 @@ DATA_YEAR = '2019'
 # TODO: Path to save model
 ROOT = 'examples/isic/'
 # TODO: Path to store the data
-ROOT_DATA = os.path.join(tmpdir, 'isic_data')
+ROOT_DATA = os.path.join(tmpdir, 'isic_data') # TODO change '.' to tmpdir
 # TODO: Name of the experiment
 EXPERIMENT = 'InceptionResnetV2_2017_test' # TODO sagi delete?
 # TODO: Path to cache data
-CACHE_PATH = os.path.join(tmpdir, 'isic_cache')
+CACHE_PATH = os.path.join(tmpdir, 'isic_cache') # TODO change '.' to tmpdir
 # TODO: Name of the cached data folder
 EXPERIMENT_CACHE = 'ISIC_'+ DATA_YEAR
 
@@ -127,7 +127,7 @@ def run_train(paths: dict, train_params: dict, isic: ISIC):
     # Train Data
     lgr.info(f'Train Data:', {'attrs': 'bold'})
 
-    train_dataset = isic.dataset(train=True, reset_cache=True, num_workers=train_params['data.train_num_workers'])
+    train_dataset = isic.dataset(train=True, reset_cache=True, num_workers=train_params['data.train_num_workers'], sample_ids=ISIC.TEN_GOLDEN_MEMBERS)
 
     lgr.info(f'- Create sampler:')
     sampler = BatchSamplerDefault(dataset=train_dataset,
@@ -320,14 +320,12 @@ def run_eval(paths: dict, eval_common_params: dict):
 if __name__ == "__main__":
     # allocate gpus
     # To use cpu - set NUM_GPUS to 0
-    NUM_GPUS = 1
+    NUM_GPUS = 0 # TODO return to 1. debugging.
     if NUM_GPUS == 0:
         TRAIN_COMMON_PARAMS['manager.train_params']['device'] = 'cpu' 
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None  # [0]
     GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
-
-    tmpdir = gettempdir()
 
     isic = ISIC(data_path = ROOT_DATA, 
                 cache_path = CACHE_PATH,

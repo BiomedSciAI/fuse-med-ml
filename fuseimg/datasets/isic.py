@@ -7,6 +7,7 @@ import logging
 from typing import Hashable, Optional, Sequence, List
 from sklearn.model_selection import train_test_split
 import pickle
+import pandas as pd
 
 from fuse.data import DatasetDefault
 from fuse.data.ops.ops_cast import OpToNumpy, OpToTensor
@@ -15,6 +16,7 @@ from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.ops.op_base import OpBase
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuse.data.ops.ops_aug_common import OpSample
+from fuse.data.ops.ops_read import OpReadDataframe, OpReadLabelsFromDF
 from fuse.utils import NDict
 
 from fuseimg.data.ops.image_loader import OpLoadImage
@@ -49,6 +51,8 @@ class ISIC:
     TEN_GOLDEN_MEMBERS = ['ISIC_0072637','ISIC_0072638','ISIC_0072639','ISIC_0072640',
                         'ISIC_0072641','ISIC_0072642','ISIC_0072646','ISIC_0072647',
                         'ISIC_0072648','ISIC_0072649']
+
+    FULL_GOLDEN_MEMBERS = 
 
     def __init__(self,
                  data_path: str,
@@ -139,7 +143,12 @@ class ISIC:
             (OpNormalizeAgainstSelf(), dict(key="data.input.img")),
 
             # Cast to numpy array for caching purposes
-            (OpToNumpy(), dict(key="data.input.img"))
+            (OpToNumpy(), dict(key="data.input.img")),
+
+            # Read labels
+            (OpReadLabelsFromDF(data_filename=os.path.join(data_path, '../ISIC_2019_Training_GroundTruth.csv'),
+                             key_column="image"
+            ), dict())
         ])
         return static_pipeline
 
@@ -160,13 +169,13 @@ class ISIC:
                 (OpPad(), dict(key="data.input.img", padding=1)),
 
                 # Augmentation                
-                (OpSample(OpAugAffine2D()), dict(
-                    key="data.input.img",
-                    rotate=Uniform(-180.0,180.0),        
-                    scale=Uniform(0.9, 1.1),
-                    flip=(RandBool(0.5), RandBool(0.5)),
-                    translate=(RandInt(-50, 50), RandInt(-50, 50))
-                )),
+                # (OpSample(OpAugAffine2D()), dict(
+                #     key="data.input.img",
+                #     rotate=Uniform(-180.0,180.0),        
+                #     scale=Uniform(0.9, 1.1),
+                #     flip=(RandBool(0.5), RandBool(0.5)),
+                #     translate=(RandInt(-50, 50), RandInt(-50, 50))
+                # )),
 
                 # Color augmentation
                 (OpSample(OpAugColor()), dict(
@@ -187,7 +196,7 @@ class ISIC:
                 train: bool=True,
                 size: Optional[int] = None,
                 reset_cache: bool = False, 
-                num_workers:int = 10, 
+                num_workers:int = 10,
                 sample_ids: Optional[Sequence[Hashable]] = None,
                 override_partition: bool = True) -> DatasetDefault:
         """
@@ -199,6 +208,8 @@ class ISIC:
         :param sample_ids: dataset including the specified sample_ids or None for all the samples.
         """
         train_data_path = os.path.join(self.data_path, 'ISIC2019/ISIC_2019_Training_Input')
+        labels_path = os.path.join(self.data_path, 'ISIC2019/ISIC_2019_Training_GroundTruth.csv')
+        self._labels_df = pd.read_csv(labels_path)
 
         if sample_ids == None:
             samples_ids = self.sample_ids(size)
