@@ -116,11 +116,9 @@ class BatchSamplerDefault(Sampler):
         # get balanced classes per each sample
         collected_data = dataset.get_multi(None, **self._dataset_get_multi_kwargs)
         self._balanced_classes = self._extract_balanced_classes(collected_data)
-        print("len(self._balanced_classes)=", len(self._balanced_classes))
         
         # split samples to groups
         self._balanced_class_indices = [np.where(self._balanced_classes == cls_i)[0] for cls_i in range(self._num_balanced_classes)]
-        print("len(self._balanced_class_indices)=", len(self._balanced_class_indices))
         self._balanced_class_sizes = [len(self._balanced_class_indices[cls_i]) for cls_i in range(self._num_balanced_classes)]
 
         # make sure that size != 0 for all balanced classes

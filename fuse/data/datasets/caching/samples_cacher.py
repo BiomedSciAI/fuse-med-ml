@@ -182,7 +182,7 @@ class SamplesCacher:
         all_ans = run_multiprocessed(
             SamplesCacher._cache_worker,
             orig_sample_ids,
-            workers=1,
+            workers=0,
             copy_to_global_storage=for_global_storage,
             verbose=1,
         )      

@@ -169,23 +169,49 @@ class OpToNumpy(OpCast):
 
 class OpOneHotToNumber(OpBase):
     """
-    Convert one-hot encoding into numbers
-    TODO add input validation option
+    Convert one-hot encoding into numbers.
+    for example:
+        [1, 0, 0, 0] -> 0
+        [0, 0, 1, 0] -> 2
+
+    TODO make it reversible?
     """
 
-    def __init__(self, num_classes):
+    def __init__(self, num_classes, verify_arguments: bool = True):
         """
+        :param num_classes: Number of class the Op should expect.
+        :param verify_arguments: Defualt is True - can be set to False for a speedup.
         """
         super().__init__()
         self._num_classes = num_classes
+        self._verify_arguments = verify_arguments
+
 
     def __call__(self, sample_dict: NDict, key:str, **kwargs) -> Union[None, dict, List[dict]]:
         """
+        :param key:
         """
-        one_hot_vector = sample_dict[key]
-        assert self._num_classes == len(one_hot_vector), f"Error: One-hot vector length is {len(one_hot_vector)} but number of classes is {self._num_classes}"
+        one_hot_vector = np.array(sample_dict[key])
+        
+        if self._verify_arguments:
+            assert self._num_classes == len(one_hot_vector), f"Error: One-hot vector length is {len(one_hot_vector)} but number of classes is {self._num_classes}"
+            assert self.is_one_hot_vector(one_hot_vector), f"expect one-hot vector, instead got: {one_hot_vector} ."
 
-        value = np.argmax(one_hot_vector)
+        value = one_hot_vector.argmax()
         sample_dict[key] = value
 
         return sample_dict
+
+    def is_one_hot_vector(self, vector: np.ndarray) -> bool:
+        """
+        Return true iff vector is one-hot with unique class. (not multiple features)
+
+        :param vector:
+        """
+
+        max_value = vector.max()
+        min_value = vector.min()
+        sum_value = vector.sum()
+
+        ans = (max_value == 1) and (min_value == 0) and (sum_value == 1)
+        return ans

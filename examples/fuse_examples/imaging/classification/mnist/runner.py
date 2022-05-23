@@ -138,7 +138,7 @@ def run_train(paths: dict, train_params: dict):
     lgr.info(f'- Create sampler:')
     sampler = BatchSamplerDefault(dataset=train_dataset,
                                        balanced_class_name='data.label',
-                                       num_balanced_classes=9,
+                                       num_balanced_classes=10,
                                        batch_size=train_params['data.batch_size'],
                                        balanced_class_weights=None)
     lgr.info(f'- Create sampler: Done')

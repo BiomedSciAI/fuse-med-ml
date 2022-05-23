@@ -199,7 +199,7 @@ class DatasetDefault(DatasetBase):
         return dataset.getitem(item, **kwargs)
 
 
-    def get_multi(self, items: Optional[Sequence[Union[int, Hashable]]] = None, workers: int = 1, verbose: int = 1, **kwargs) -> List[Dict]:
+    def get_multi(self, items: Optional[Sequence[Union[int, Hashable]]] = None, workers: int = 0, verbose: int = 1, **kwargs) -> List[Dict]:
         """
         See super class
         :param workers: number of processes to read the data. set to 0 for a single process.  

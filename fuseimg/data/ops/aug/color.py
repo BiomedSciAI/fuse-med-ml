@@ -130,5 +130,5 @@ class OpAugGaussian(OpBase):
             rand_patch = Gaussian(aug_tensor[channels].shape, mean, std).sample()
             aug_tensor[channels] = aug_tensor[channels] + rand_patch
         
-        sample_dict[key] = aug_tensor.float()
+        sample_dict[key] = aug_tensor.float() # TEMP SAGI
         return sample_dict

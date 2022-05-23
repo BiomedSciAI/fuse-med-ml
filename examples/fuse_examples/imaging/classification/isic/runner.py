@@ -127,7 +127,7 @@ def run_train(paths: dict, train_params: dict, isic: ISIC):
     # Train Data
     lgr.info(f'Train Data:', {'attrs': 'bold'})
 
-    train_dataset = isic.dataset(train=True, reset_cache=True, num_workers=train_params['data.train_num_workers'], samples_ids=TEN_GOLDEN_MEMBERS)
+    train_dataset = isic.dataset(train=True, reset_cache=True, num_workers=train_params['data.train_num_workers'], samples_ids=FULL_GOLDEN_MEMBERS)
 
     lgr.info(f'- Create sampler:')
     # sampler = BatchSamplerDefault(dataset=train_dataset,
@@ -270,7 +270,7 @@ def run_infer(paths: dict, infer_common_params: dict, isic: ISIC):
     ## Manager for inference
     manager = ManagerDefault()
     # extract just the global classification per sample and save to a file
-    output_columns = ['model.output.head_0', 'data.gt.gt_global.tensor']
+    output_columns = ['model.output.head_0', 'data.label']
     manager.infer(data_loader=validation_dataloader,
                   input_model_dir=paths['model_dir'],
                   checkpoint=infer_common_params['checkpoint'],
@@ -298,9 +298,9 @@ def run_eval(paths: dict, eval_common_params: dict):
     # metrics
     metrics = OrderedDict([
         ('op', MetricApplyThresholds(pred='model.output.head_0')), # will apply argmax
-        ('auc', MetricAUCROC(pred='model.output.head_0', target='data.gt.gt_global.tensor')),
-        ('accuracy', MetricAccuracy(pred='results:metrics.op.cls_pred', target='data.gt.gt_global.tensor')),
-        ('roc', MetricROCCurve(pred='model.output.head_0', target='data.gt.gt_global.tensor',
+        ('auc', MetricAUCROC(pred='model.output.head_0', target='data.label')),
+        ('accuracy', MetricAccuracy(pred='results:metrics.op.cls_pred', target='data.label')),
+        ('roc', MetricROCCurve(pred='model.output.head_0', target='data.label',
                                   output_filename=os.path.join(paths["inference_dir"], "roc_curve.png"))),
     ])
    
@@ -334,8 +334,8 @@ if __name__ == "__main__":
                 val_portion = 0.3)
     isic.download()
 
-    # RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
-    RUNNING_MODES = ['train']  # Options: 'train', 'infer', 'eval'
+    RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
+    # RUNNING_MODES = ['train']  # Options: 'train', 'infer', 'eval'
 
     # train
     if 'train' in RUNNING_MODES:

@@ -223,6 +223,9 @@ class OpAugUnsqueeze3DFrom2D(OpBase):
 
 
 class OpResizeTo(OpBase):
+    """
+    TODO sagi: elaborate
+    """
     def __init__(self, verify_arguments: bool = True):
         """
         :param verify_arguments: 
