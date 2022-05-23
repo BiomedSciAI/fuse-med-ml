@@ -51,11 +51,11 @@ DATA_YEAR = '2019'
 # TODO: Path to save model
 ROOT = 'examples/isic/'
 # TODO: Path to store the data
-ROOT_DATA = os.path.join(tmpdir, 'isic_data') # TODO change '.' to tmpdir
+ROOT_DATA = os.path.join(tmpdir, 'isic_data')
 # TODO: Name of the experiment
-EXPERIMENT = 'InceptionResnetV2_2017_test' # TODO sagi delete?
+EXPERIMENT = 'InceptionResnetV2_2017_test' # TODO sagi - meaning
 # TODO: Path to cache data
-CACHE_PATH = os.path.join(tmpdir, 'isic_cache') # TODO change '.' to tmpdir
+CACHE_PATH = os.path.join(tmpdir, 'isic_cache')
 # TODO: Name of the cached data folder
 EXPERIMENT_CACHE = 'ISIC_'+ DATA_YEAR
 
@@ -74,7 +74,7 @@ TRAIN_COMMON_PARAMS = {}
 # ============
 # Model
 # ============
-TRAIN_COMMON_PARAMS['model'] = '' # TODO sagi
+TRAIN_COMMON_PARAMS['model'] = '' # TODO sagi - ?
 
 # ============
 # Data
