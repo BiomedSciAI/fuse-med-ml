@@ -80,7 +80,6 @@ class MetricMultiClassDefault(MetricWithCollectorBase):
                         is_dict = True
                         for sub_metric_name in cls_res:
                             metric_results[f"{sub_metric_name}.{cls_name}"] = cls_res[sub_metric_name]
-                            # metric_results[sub_metric_name][cls_name] = cls_res[sub_metric_name]
                     else:
                         assert is_dict == False, "expect all sub metric results to either return dictionary or single value"
                         metric_results[f"{cls_name}"] = cls_res
