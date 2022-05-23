@@ -13,7 +13,7 @@ from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolin
 from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
 
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
-from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
+from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve, MetricConfusion
 
 from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.utils_logger import fuse_logger_start
@@ -89,7 +89,7 @@ TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 1
 TRAIN_COMMON_PARAMS['manager.train_params'] = {
     # 'num_gpus': 1,
     'device': 'cuda', 
-    'num_epochs': 15,
+    'num_epochs': 3,
     'virtual_batch_size': 1,  # number of batches in one virtual batch
     'start_saving_epochs': 10,  # first epoch to start saving checkpoints from
     'gap_between_saving_epochs': 10,  # number of epochs between saved checkpoint
@@ -97,7 +97,7 @@ TRAIN_COMMON_PARAMS['manager.train_params'] = {
 # best_epoch_source
 # if an epoch values are the best so far, the epoch is saved as a checkpoint.
 TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = {
-    'source': 'metrics.accuracy',  # can be any key from 'epoch_results'
+    'source': 'metrics.balanced_acc.sensitivity.macro_avg',  # can be any key from 'epoch_results'
     'optimization': 'max',  # can be either min/max
     'on_equal_values': 'better',
     # can be either better/worse - whether to consider best epoch when values are equal
@@ -162,7 +162,7 @@ def run_train(paths: dict, train_params: dict, isic: ISIC):
     lgr.info('Model:', {'attrs': 'bold'})
 
     model = ModelDefault(
-        conv_inputs=(('data.input.img', 1),),
+        conv_inputs=(('data.input.img', 3),),
         backbone={'Resnet18': BackboneResnet(pretrained=True, in_channels=3, name='resnet18'),
                   'InceptionResnetV2': BackboneInceptionResnetV2(input_channels_num=3, logical_units_num=43)}['InceptionResnetV2'],
         heads=[
@@ -186,10 +186,12 @@ def run_train(paths: dict, train_params: dict, isic: ISIC):
     # ====================================================================================
     # Metrics
     # ====================================================================================
+    class_names = ['MEL', 'NV', 'BCC', 'AK', 'BKL', 'DF', 'VASC', 'SCC']
     metrics = OrderedDict([
         ('op', MetricApplyThresholds(pred='model.output.head_0')), # will apply argmax
-        ('auc', MetricAUCROC(pred='model.output.head_0', target='data.label')),
-        ('accuracy', MetricAccuracy(pred='results:metrics.op.cls_pred', target='data.label')),
+        ('auc', MetricAUCROC(pred='model.output.head_0', target='data.label', class_names=class_names)),
+        # ('accuracy', MetricAccuracy(pred='results:metrics.op.cls_pred', target='data.label', class_names=class_names)),
+        ('balanced_acc', MetricConfusion(pred='results:metrics.op.cls_pred', target='data.label', metrics=('sensitivity',), class_names=class_names))
     ])
 
     # =====================================================================================
@@ -198,8 +200,8 @@ def run_train(paths: dict, train_params: dict, isic: ISIC):
     callbacks = [
         # default callbacks
         TensorboardCallback(model_dir=paths['model_dir']),  # save statistics for tensorboard
-        MetricStatisticsCallback(output_path=paths['model_dir'] + "/metrics.csv"),  # save statistics a csv file
-        TimeStatisticsCallback(num_epochs=train_params['manager.train_params']['num_epochs'], load_expected_part=0.1)  # time profiler
+        # MetricStatisticsCallback(output_path=paths['model_dir'] + "/metrics.csv"),  # save statistics a csv file
+        # TimeStatisticsCallback(num_epochs=train_params['manager.train_params']['num_epochs'], load_expected_part=0.1)  # time profiler
     ]
 
     # =====================================================================================
