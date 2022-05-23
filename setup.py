@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import os
 import pathlib
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, find_namespace_packages
 
 import sys
 
@@ -31,7 +31,7 @@ setup(name='fuse-med-ml',
       url='https://github.com/IBM/fuse-med-ml/',
       author='IBM Research - Machine Learning for Healthcare and Life Sciences',
       author_email='moshiko.raboh@ibm.com',
-      packages=find_packages(),
+      packages=find_namespace_packages(),
       license='Apache License 2.0',
       install_requires=requirements
       )

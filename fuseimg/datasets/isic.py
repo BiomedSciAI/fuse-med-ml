@@ -52,8 +52,6 @@ class ISIC:
                         'ISIC_0072641','ISIC_0072642','ISIC_0072646','ISIC_0072647',
                         'ISIC_0072648','ISIC_0072649']
 
-    FULL_GOLDEN_MEMBERS = 
-
     def __init__(self,
                  data_path: str,
                  cache_path: str,

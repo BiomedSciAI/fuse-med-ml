@@ -32,7 +32,7 @@ from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
 from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
 
 from fuseimg.datasets.isic import ISIC
-
+from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS
 
 ###########################################################################################################
 # Fuse
@@ -127,7 +127,7 @@ def run_train(paths: dict, train_params: dict, isic: ISIC):
     # Train Data
     lgr.info(f'Train Data:', {'attrs': 'bold'})
 
-    train_dataset = isic.dataset(train=True, reset_cache=True, num_workers=train_params['data.train_num_workers'], sample_ids=ISIC.TEN_GOLDEN_MEMBERS)
+    train_dataset = isic.dataset(train=True, reset_cache=True, num_workers=train_params['data.train_num_workers'], sample_ids=FULL_GOLDEN_MEMBERS)
 
     lgr.info(f'- Create sampler:')
     sampler = BatchSamplerDefault(dataset=train_dataset,

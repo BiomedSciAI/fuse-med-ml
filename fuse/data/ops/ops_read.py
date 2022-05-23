@@ -83,8 +83,6 @@ class OpReadDataframe(OpBase):
         """
         See base class
         """
-        print("_key_name=", self._key_name)
-        print("_key_column=", self._key_column)
         key = sample_dict[self._key_name]
 
         # locate the required item
@@ -94,7 +92,6 @@ class OpReadDataframe(OpBase):
         for name, value in sample_data.items():
             sample_dict[name] = value
 
-        print("key=", key)
         return sample_dict
 
     def get_all_keys(self) -> List[Hashable]:
@@ -153,8 +150,6 @@ class OpReadLabelsFromDF(OpBase):
         """
         See base class
         """
-        print("_key_name=", self._key_name)
-        print("_key_column=", self._key_column)
         key = sample_dict[self._key_name]
 
         # locate the required item
@@ -169,8 +164,6 @@ class OpReadLabelsFromDF(OpBase):
 
         sample_dict[self._key_label] = label
 
-        print("key=", key)
-        print("label=", label)
         return sample_dict
 
 
