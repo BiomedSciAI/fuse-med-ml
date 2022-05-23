@@ -166,3 +166,26 @@ class OpToNumpy(OpCast):
     """
     def _cast(self, value: Any, dtype: Optional[np.dtype] = None) -> np.ndarray:
         return Cast.to_numpy(value)
+
+class OpOneHotToNumber(OpBase):
+    """
+    Convert one-hot encoding into numbers
+    TODO add input validation option
+    """
+
+    def __init__(self, num_classes):
+        """
+        """
+        super().__init__()
+        self._num_classes = num_classes
+
+    def __call__(self, sample_dict: NDict, key:str, **kwargs) -> Union[None, dict, List[dict]]:
+        """
+        """
+        one_hot_vector = sample_dict[key]
+        assert self._num_classes == len(one_hot_vector), f"Error: One-hot vector length is {len(one_hot_vector)} but number of classes is {self._num_classes}"
+
+        value = np.argmax(one_hot_vector)
+        sample_dict[key] = value
+
+        return sample_dict

@@ -10,7 +10,7 @@ import pickle
 import pandas as pd
 
 from fuse.data import DatasetDefault
-from fuse.data.ops.ops_cast import OpToNumpy, OpToTensor
+from fuse.data.ops.ops_cast import OpToNumpy, OpToTensor, OpOneHotToNumber
 from fuse.data.utils.sample import get_sample_id
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.ops.op_base import OpBase
@@ -47,11 +47,6 @@ class ISIC:
     # bump whenever the static pipeline modified
     DATASET_VER = 0
     
-    # Small subset of samples for testing
-    TEN_GOLDEN_MEMBERS = ['ISIC_0072637','ISIC_0072638','ISIC_0072639','ISIC_0072640',
-                        'ISIC_0072641','ISIC_0072642','ISIC_0072646','ISIC_0072647',
-                        'ISIC_0072648','ISIC_0072649']
-
     def __init__(self,
                  data_path: str,
                  cache_path: str,
@@ -111,14 +106,15 @@ class ISIC:
 
     def sample_ids(self, size: Optional[int] = None) -> List[str]:
         """
-        get all the sample ids in trainset
-        sample_id is case_{id:05d} (for example case_00001 or case_00100)
+        Gets the samples ids in trainset.
+        If size is not None, return only the first 'size' ids.
         """
         images_path = os.path.join(self.data_path, 'ISIC2019/ISIC_2019_Training_Input')
         
         samples = [f.split('.')[0] for f in os.listdir(images_path) if f.split('.')[-1] == 'jpg']
 
         # Take only size elements
+        # TODO: input validation
         if size is not None:
             samples = samples[-1 * size:]
 
@@ -145,8 +141,8 @@ class ISIC:
 
             # Read labels
             (OpReadLabelsFromDF(data_filename=os.path.join(data_path, '../ISIC_2019_Training_GroundTruth.csv'),
-                             key_column="image"
-            ), dict())
+                                key_column="image"), dict()),
+            (OpOneHotToNumber(num_classes=9), dict(key="data.label"))
         ])
         return static_pipeline
 
@@ -195,7 +191,7 @@ class ISIC:
                 size: Optional[int] = None,
                 reset_cache: bool = False, 
                 num_workers:int = 10,
-                sample_ids: Optional[Sequence[Hashable]] = None,
+                samples_ids: Optional[Sequence[Hashable]] = None,
                 override_partition: bool = True) -> DatasetDefault:
         """
         Get cached dataset
@@ -209,34 +205,32 @@ class ISIC:
         labels_path = os.path.join(self.data_path, 'ISIC2019/ISIC_2019_Training_GroundTruth.csv')
         self._labels_df = pd.read_csv(labels_path)
 
-        if sample_ids == None:
+        if samples_ids is None:
             samples_ids = self.sample_ids(size)
 
-            if train: 
-                if override_partition or not os.path.exists(self.partition_file):
-                    train_samples, val_samples = train_test_split(samples_ids, test_size=self.val_portion, random_state=42)
-                    splits = {'train': train_samples, 'val': val_samples}
+        if train: 
+            print("path exist?", os.path.exists(self.partition_file))
+            if override_partition or not os.path.exists(self.partition_file):
+                train_samples, val_samples = train_test_split(samples_ids, test_size=self.val_portion, random_state=42)
+                splits = {'train': train_samples, 'val': val_samples}
 
-                    with open(self.partition_file, "wb") as pickle_out:
-                        pickle.dump(splits, pickle_out)
-                        out_samples_ids = splits['train']
-
-                else:
-                    # read from a previous split to evaluate on the same partition
-                    with open(self.partition_file, "rb") as splits:
-                        repartition = pickle.load(splits)
-                        out_samples_ids = repartition['train']
+                with open(self.partition_file, "wb") as pickle_out:
+                    pickle.dump(splits, pickle_out)
+                    out_samples_ids = splits['train']
+                    print("Dumped pickle!")
 
             else:
-                # return validation set according to the partition
+                # read from a previous split to evaluate on the same partition
                 with open(self.partition_file, "rb") as splits:
                     repartition = pickle.load(splits)
-                    out_samples_ids = repartition['val']
-        
-        else:
-            # return the specified sample_ids
-            out_samples_ids = sample_ids
+                    out_samples_ids = repartition['train']
 
+        else:
+            # return validation set according to the partition
+            with open(self.partition_file, "rb") as splits:
+                repartition = pickle.load(splits)
+                out_samples_ids = repartition['val']
+        
         static_pipeline = ISIC.static_pipeline(train_data_path)
         dynamic_pipeline = ISIC.dynamic_pipeline()
 

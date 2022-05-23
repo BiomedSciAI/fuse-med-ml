@@ -20,6 +20,7 @@ Created on June 30, 2021
 from typing import Hashable, List, Optional, Dict, Union
 from fuse.utils.file_io.file_io import read_dataframe
 import pandas as pd
+import numpy as np
 
 from fuse.data import OpBase
 from fuse.utils.ndict import NDict
@@ -162,7 +163,7 @@ class OpReadLabelsFromDF(OpBase):
         else:
             label = list(data_values)
 
-        sample_dict[self._key_label] = label
+        sample_dict[self._key_label] = np.array(label)
 
         return sample_dict
 

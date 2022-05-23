@@ -32,7 +32,7 @@ from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
 from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
 
 from fuseimg.datasets.isic import ISIC
-from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS
+from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS, TEN_GOLDEN_MEMBERS
 
 ###########################################################################################################
 # Fuse
@@ -79,9 +79,9 @@ TRAIN_COMMON_PARAMS['model'] = '' # TODO sagi
 # ============
 # Data
 # ============
-TRAIN_COMMON_PARAMS['data.batch_size'] = 100
-TRAIN_COMMON_PARAMS['data.train_num_workers'] = 8
-TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 8
+TRAIN_COMMON_PARAMS['data.batch_size'] = 10
+TRAIN_COMMON_PARAMS['data.train_num_workers'] = 1
+TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 1
 
 # ===============
 # Manager - Train
@@ -127,19 +127,19 @@ def run_train(paths: dict, train_params: dict, isic: ISIC):
     # Train Data
     lgr.info(f'Train Data:', {'attrs': 'bold'})
 
-    train_dataset = isic.dataset(train=True, reset_cache=True, num_workers=train_params['data.train_num_workers'], sample_ids=FULL_GOLDEN_MEMBERS)
+    train_dataset = isic.dataset(train=True, reset_cache=True, num_workers=train_params['data.train_num_workers'], samples_ids=TEN_GOLDEN_MEMBERS)
 
     lgr.info(f'- Create sampler:')
-    sampler = BatchSamplerDefault(dataset=train_dataset,
-                                       balanced_class_name='data.label',
-                                       num_balanced_classes=10,
-                                       batch_size=train_params['data.batch_size'],
-                                       balanced_class_weights=None)
+    # sampler = BatchSamplerDefault(dataset=train_dataset,
+    #                                    balanced_class_name='data.label',
+    #                                    num_balanced_classes=10,
+    #                                    batch_size=train_params['data.batch_size'],
+    #                                    balanced_class_weights=None)
     lgr.info(f'- Create sampler: Done')
 
     # Create dataloader
     train_dataloader = DataLoader(dataset=train_dataset,
-                                  batch_sampler=sampler,
+                                  batch_sampler=None, # TODO sagi, change to sampler once done handling the pre-proc
                                   collate_fn=CollateDefault(),
                                   num_workers=train_params['data.train_num_workers'])
     lgr.info(f'Train Data: Done', {'attrs': 'bold'})
@@ -162,14 +162,14 @@ def run_train(paths: dict, train_params: dict, isic: ISIC):
     lgr.info('Model:', {'attrs': 'bold'})
 
     model = ModelDefault(
-        conv_inputs=(('data.input.input_0', 1),),
+        conv_inputs=(('data.input.img', 1),),
         backbone={'Resnet18': BackboneResnet(pretrained=True, in_channels=3, name='resnet18'),
                   'InceptionResnetV2': BackboneInceptionResnetV2(input_channels_num=3, logical_units_num=43)}['InceptionResnetV2'],
         heads=[
             HeadGlobalPoolingClassifier(head_name='head_0',
                                             dropout_rate=0.5,
                                             conv_inputs=[('model.backbone_features', 1536)],
-                                            num_classes=2,
+                                            num_classes=9,
                                             pooling="avg"),
         ]
     )
@@ -188,8 +188,8 @@ def run_train(paths: dict, train_params: dict, isic: ISIC):
     # ====================================================================================
     metrics = OrderedDict([
         ('op', MetricApplyThresholds(pred='model.output.head_0')), # will apply argmax
-        ('auc', MetricAUCROC(pred='model.output.head_0', target='data.gt.gt_global.tensor')),
-        ('accuracy', MetricAccuracy(pred='results:metrics.op.cls_pred', target='data.gt.gt_global.tensor')),
+        ('auc', MetricAUCROC(pred='model.output.head_0', target='data.label')),
+        ('accuracy', MetricAccuracy(pred='results:metrics.op.cls_pred', target='data.label')),
     ])
 
     # =====================================================================================
@@ -282,7 +282,7 @@ def run_infer(paths: dict, infer_common_params: dict, isic: ISIC):
 EVAL_COMMON_PARAMS = {}
 EVAL_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
 EVAL_COMMON_PARAMS['output_filename'] = 'all_metrics.txt'
-EVAL_COMMON_PARAMS['num_workers'] = 4
+EVAL_COMMON_PARAMS['num_workers'] = 1
 EVAL_COMMON_PARAMS['batch_size'] = 8
 
 ######################################

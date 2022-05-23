@@ -68,7 +68,7 @@ class LossDefault(LossBase):
         if self.filter_func is not None:
             batch_dict = self.filter_func(batch_dict)
         preds = batch_dict[self.pred_name]
-        targets = batch_dict[self.target_name]
+        targets = torch.tensor(batch_dict[self.target_name], dtype=int)
         batch_kwargs = batch_dict[self.batch_kwargs_name] if self.batch_kwargs_name is not None else {}
         kwargs_copy = self.kwargs.copy()
         kwargs_copy.update(batch_kwargs)
