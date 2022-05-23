@@ -28,7 +28,6 @@ from fuse.eval.metrics.libs.classification import MetricsLibClass
 from fuse.utils.ndict import NDict
 
 
-
 class MetricMultiClassDefault(MetricWithCollectorBase):
     """
     Default generic impelemtation for metric

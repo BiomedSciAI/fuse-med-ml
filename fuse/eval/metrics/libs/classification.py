@@ -20,7 +20,6 @@ from typing import Dict, Optional, Sequence, Tuple, Union
 
 import pandas as pd
 import numpy as np
-from fuse.utils.ndict import NDict
 
 from sklearn import metrics
 import sklearn
@@ -167,7 +166,7 @@ class MetricsLibClass:
         if sample_weight is None:
             sample_weight = np.ones_like(class_target_t)
 
-        res = NDict()
+        res = {}
         tp = (np.logical_and(class_target_t, class_pred_t)*sample_weight).sum()
         fn = (np.logical_and(class_target_t, np.logical_not(class_pred_t))*sample_weight).sum()
         fp = (np.logical_and(np.logical_not(class_target_t), class_pred_t)*sample_weight).sum()

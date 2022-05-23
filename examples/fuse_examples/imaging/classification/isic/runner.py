@@ -334,7 +334,9 @@ if __name__ == "__main__":
                 val_portion = 0.3)
     isic.download()
 
-    RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
+    # RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
+    RUNNING_MODES = ['train']  # Options: 'train', 'infer', 'eval'
+
     # train
     if 'train' in RUNNING_MODES:
         run_train(paths=PATHS, train_params=TRAIN_COMMON_PARAMS, isic=isic)
