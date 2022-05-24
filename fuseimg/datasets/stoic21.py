@@ -98,34 +98,19 @@ class STOIC21:
         Get suggested static pipeline (which will be cached), typically loading the data plus design choices that we won't experiment with.
         :param data_path: path to original STOIC21 data (See in STOIC21 header the instructions to download)
         """
-        age_map = {'035Y': 0, '045Y': 1,  '055Y': 2, '065Y': 3, '075Y':  4, '085Y': 5}
-        gender_map = {"F": 0, "M": 1}
         static_pipeline = PipelineDefault("stoic21_static", [
             # decoding sample ID
             (OpSTOIC21SampleIDDecode(), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path" 
             
             # loading data
             (OpLoadImage(data_path), dict(key_in="data.input.img_path", key_out="data.input.img", key_metadata_out="data.metadata")),
-            
-            # cast thickness to float
-            (OpToFloat(), dict(key="data.metadata.SliceThickness")),
 
-            # map input to categories
-            (OpMap(age_map), dict(key_in="data.metadata.PatientAge", key_out="data.input.age")),
-            (OpToOneHot(len(age_map)), dict(key_in="data.input.age", key_out="data.input.age_one_hot")),
+            # resize
+            (OpLambda(partial(skimage.transform.resize,
+                                                output_shape=(32, 256, 256),
+                                                mode='reflect',
+                                                anti_aliasing=True)), dict(key="data.input.img")),
             
-            (OpMap(gender_map), dict(key_in="data.metadata.PatientSex", key_out="data.input.gender")),
-            
-            # create clinical data vector
-            (OpConcat(), dict(keys_in=["data.input.gender", "data.input.age_one_hot", "data.metadata.SliceThickness"], key_out="data.input.clinical")),
-
-            # fixed image normalization
-            (OpClip(), dict(key="data.input.img", clip=(-800, 200))),
-            (OpToRange(is_int=True), dict(key="data.input.img", from_range=(-800, 200), to_range=(0, 1))),
-            
-            # transposing so the depth channel will be first
-            (OpLambda(partial(np.moveaxis, source=-1, destination=0)), dict(key="data.input.img")), # convert image from shape [H, W, D] to shape [D, H, W] 
-
             # read labels
             (OpToInt(), dict(key="data.metadata.PatientID")),
             (OpReadDataframe(data_filename=os.path.join(data_path, "metadata/reference.csv"),
@@ -135,17 +120,48 @@ class STOIC21:
         return static_pipeline
 
     @staticmethod
-    def dynamic_pipeline():
+    def dynamic_pipeline(train: bool = False):
         """
         Get suggested dynamic pipeline. including pre-processing that might be modified and augmentation operations. 
         """
+        age_map = {'035Y': 0, '045Y': 1,  '055Y': 2, '065Y': 3, '075Y':  4, '085Y': 5}
+        gender_map = {"F": 0, "M": 1}
         dynamic_pipeline = PipelineDefault("stoic21_dynamic", [
 
-                # set target labels
+                # cast thickness to float
+                (OpToFloat(), dict(key="data.metadata.SliceThickness")),
+
+                # map input to categories
+                (OpMap(age_map), dict(key_in="data.metadata.PatientAge", key_out="data.input.age")),
+                (OpToOneHot(len(age_map)), dict(key_in="data.input.age", key_out="data.input.age_one_hot")),
+                
+                (OpMap(gender_map), dict(key_in="data.metadata.PatientSex", key_out="data.input.gender")),
+                
+                # create clinical data vector
+                (OpConcat(), dict(keys_in=["data.input.gender", "data.input.age_one_hot", "data.metadata.SliceThickness"], key_out="data.input.clinical")),
+
+                # fixed image normalization
+                (OpClip(), dict(key="data.input.img", clip=(-800, 200))),
+                (OpToRange(is_int=True), dict(key="data.input.img", from_range=(-800, 200), to_range=(0, 1))),
+                
+                # transposing so the depth channel will be first
+                (OpLambda(partial(np.moveaxis, source=-1, destination=0)), dict(key="data.input.img")), # convert image from shape [H, W, D] to shape [D, H, W] 
+
                 
                 # Numpy to tensor
                 (OpToTensor(), dict(key="data.input.img", dtype=torch.float32)),
+                (OpToTensor(), dict(key="data.input.clinical", dtype=torch.float32)),
                 
+
+                # add channel dimension -> [C=1, D, H, W]
+                (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")),  
+        ])
+
+        # augmentation
+        if train:
+            dynamic_pipeline.extend([ 
+                (OpLambda(partial(torch.squeeze, dim=0)), dict(key="data.input.img")),  
+
                 # affine augmentation - will apply the same affine transformation on each slice
                 (OpSample(OpAugAffine2D()), dict(
                     key="data.input.img",
@@ -166,10 +182,11 @@ class STOIC21:
                 # add channel dimension -> [C=1, D, H, W]
                 (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")),  
         ])
+
         return dynamic_pipeline
 
     @staticmethod
-    def dataset(data_path: str, cache_dir: str, reset_cache: bool = False, num_workers:int = 10, sample_ids: Optional[Sequence[Hashable]] = None) -> DatasetDefault:
+    def dataset(data_path: str, cache_dir: str, reset_cache: bool = False, num_workers:int = 10, sample_ids: Optional[Sequence[Hashable]] = None, train: bool = False) -> DatasetDefault:
         """
         Get cached dataset
         :param data_path: path to store the original data
@@ -177,13 +194,14 @@ class STOIC21:
         :param reset_cache: set to True tp reset the cache
         :param num_workers: number of processes used for caching 
         :param sample_ids: dataset including the specified sample_ids or None for all the samples. sample_id is case_{id:05d} (for example case_00001 or case_00100).
+        :param train: True if used for training  - adds augmentation operations to the pipeline
         """
         
         if sample_ids is None:
             sample_ids = STOIC21.sample_ids(data_path)
         
         static_pipeline = STOIC21.static_pipeline(data_path)
-        dynamic_pipeline = STOIC21.dynamic_pipeline()
+        dynamic_pipeline = STOIC21.dynamic_pipeline(train=train)
         
         cacher = SamplesCacher(f'stoic_cache_ver{STOIC21.STOIC21_DATASET_VER}', 
             static_pipeline,
