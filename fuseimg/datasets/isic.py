@@ -241,7 +241,7 @@ class ISIC:
         my_dataset = DatasetDefault(sample_ids=out_samples_ids,
             static_pipeline=static_pipeline,
             dynamic_pipeline=dynamic_pipeline,
-            cacher=cacher
+            cacher=None
         )
 
         my_dataset.create()

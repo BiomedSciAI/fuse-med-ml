@@ -12,6 +12,8 @@ from tqdm import trange
 from testbook import testbook
 
 from fuseimg.datasets.isic import ISIC
+from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS, TEN_GOLDEN_MEMBERS
+
 
 notebook_path = os.path.join(pathlib.Path(__file__).parent.resolve(), "../kits21_example.ipynb")
 
@@ -36,12 +38,13 @@ class TestDatasets(unittest.TestCase):
             sample = dataset[sample_index]
             self.assertEqual(get_sample_id(sample), f"case_{sample_index:05d}")
 
+    @unittest.skipIf(True, "Under Construction")
     def test_isic(self):
         isic = ISIC(data_path = self.isic_data_dir, cache_path=self.isic_cache_dir)
         isic.download()
 
         create_dir(self.isic_cache_dir)
-        dataset = isic.dataset(reset_cache=True, sample_ids=ISIC.TEN_GOLDEN_MEMBERS)
+        dataset = isic.dataset(reset_cache=True, sample_ids=TEN_GOLDEN_MEMBERS)
         self.assertEqual(len(dataset), 10)
         for sample_index in range(10):
             sample = dataset[sample_index]
