@@ -1,23 +1,18 @@
 """
 (C) Copyright 2021 IBM Corp.
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
    http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
 Created on June 30, 2021
-
 """
 from typing import Hashable, List, Optional, Sequence, Union, Callable, Dict, Callable, Any, Tuple
-
+from functools import partial
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.utils.sample import set_initial_sample_id
 import numpy as np
@@ -82,7 +77,7 @@ class SamplesCacher:
             self._write_dir_logic = custom_write_dir_callable        
 
         if custom_read_dirs_callable is None:
-            self._read_dirs_logic = lambda : self._cache_dirs
+            self._read_dirs_logic = partial(default_read_dirs_logic, cache_dirs=self._cache_dirs)
         else:
             self._read_dirs_logic = custom_read_dirs_callable      
 
@@ -154,11 +149,9 @@ class SamplesCacher:
     def cache_samples(self, orig_sample_ids:List[Any]) -> List[Tuple[str,Union[None,List[str]],str]]:
         '''
         Go over all of orig_sample_ids, and cache resulting samples
-
         returns information that helps to map from original sample id to the resulting sample id
         (an op might return None, discarding a sample, or optional generate different one or more samples from an original single sample_id)
         #TODO: have a single doc location that explains this concept and can be pointed to from any related location
-
         '''
         #TODO: remember that it means that we need proper extraction of args (pos or kwargs...)
         #possibly by extracting info from __call__ signature or process() if we modify from call to it
@@ -202,10 +195,8 @@ class SamplesCacher:
     def get_final_sample_id_hash(sample_id):
         '''
         sample_id is the final sample_id that came out of the pipeline
-
         note: our pipeline supports Ops returning None, thus, discarding a sample (in that case, it will not have any final sample_id),
         additionally, the pipeline may return *multiple* samples, each with their own sample_id
-
         '''
         curr_sample_id_str = str(sample_id) #TODO repr or str ?                
         output_sample_hash = hashlib.md5(curr_sample_id_str.encode('utf-8')).hexdigest()        
@@ -344,7 +335,7 @@ class SamplesCacher:
     
         
 
-def _get_available_write_location(cache_dirs:List[str], max_allowed_used_space=0.95):               
+def _get_available_write_location(cache_dirs:List[str], max_allowed_used_space=None):   
     '''
     :param cache_dirs: write directories. Directories are checked in order that they are provided.
     :param max_allowed_used_space: set to a value between 0.0 to 1.0. 
@@ -366,10 +357,5 @@ def _get_available_write_location(cache_dirs:List[str], max_allowed_used_space=0
         f'max_allowed_used_space={max_allowed_used_space}'
     )
 
-
-
-        
-
-
-     
-
+def default_read_dirs_logic(cache_dirs: List[str]):
+    return cache_dirs

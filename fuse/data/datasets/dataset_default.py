@@ -205,16 +205,14 @@ class DatasetDefault(DatasetBase):
         :param workers: number of processes to read the data. set to 0 for a single process.  
         """
         if items is None:
-            sample_ids = self._final_sample_ids
-        else:
-            sample_ids = items
+            items = range(len(self))
 
         for_global_storage = {"dataset_default_get_multi_dataset": self, "dataset_default_get_multi_kwargs": kwargs}
 
         list_sample_dict = run_multiprocessed(
             worker_func=self._getitem_multiprocess, 
             copy_to_global_storage=for_global_storage, 
-            args_list=sample_ids, workers=workers, verbose=verbose)
+            args_list=items, workers=workers, verbose=verbose)
         return list_sample_dict
 
     def __len__(self):

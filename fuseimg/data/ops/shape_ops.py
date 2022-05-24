@@ -1,16 +1,15 @@
-
-from typing import Optional
+from typing import Optional, Tuple
 import numpy as np
 from torch import Tensor
-
+import skimage
+import skimage.transform as transform
 
 from fuse.utils.ndict import NDict
 
 from fuse.data.ops.op_base import OpBase
-
+from skimage import measure
 from fuseimg.utils.typing.key_types_imaging import DataTypeImaging
 from fuseimg.data.ops.ops_common_imaging import OpApplyTypesImaging
-import torch
 
 def sanity_check_HWC(input_tensor):
     if 3!=input_tensor.ndim:
@@ -82,7 +81,214 @@ class OpSelectSlice(OpBase):
         img = img[slice_idx]
         sample_dict[key] = img
         return sample_dict
+    
+class OpResizeAndPad2D(OpBase):
+    '''
+    Resize and Pad a 2D image
+    '''
+    def __init__(self, number_of_channels : int =1, pad_value :int =0, **kwargs):
+        super().__init__(**kwargs)
+        self.number_of_channels = number_of_channels
+        self.pad_value = pad_value
+    def pad_image(self,inner_image: np.ndarray, padding: Tuple[float, float], resize_to: Tuple[int, int]) -> np.ndarray :
+        """
+        pads image to requested size ,
+        pads both side equally by the same input padding size (left = right = padding[1] , up = down= padding[0] )  ,
+        padding default value is zero or minimum value in normalized target range
+        :param inner_image: image of shape [H, W, C]
+        :param padding: required padding [x,y]
+        :param resize_to: original requested resolution
+        :param normalized_target_range: requested normalized image pixels range
+        :param number_of_channels: number of color channels in the image
+        :return: padded image
+        """
+        inner_image = inner_image.astype('float32')
+        # "Pad" around inner image
+        inner_image_height, inner_image_width = inner_image.shape[0], inner_image.shape[1]
+        inner_image[0:inner_image_height, 0] = 0
+        inner_image[0:inner_image_height, inner_image_width - 1] = 0
+        inner_image[0, 0:inner_image_width] = 0
+        inner_image[inner_image_height - 1, 0:inner_image_width] = 0
+
+        image = self.pad_inner_image(inner_image, outer_height=resize_to[0] + 2 * padding[0],
+                                                           outer_width=resize_to[1] + 2 * padding[1], pad_value=self.pad_value)
+        return image
+        
+    def pad_inner_image(self,image: np.ndarray, outer_height: int, outer_width: int, pad_value: float) -> np.ndarray :
+        """
+        Pastes input image in the middle of a larger one
+        :param image:        image of shape [H, W, C]
+        :param outer_height: final outer height
+        :param outer_width:  final outer width
+        :param pad_value:    value for padding around inner image
+        :number_of_channels  final number of channels in the image
+        :return:             padded image
+        """
+        inner_height, inner_width = image.shape[0], image.shape[1]
+        h_offset = int((outer_height - inner_height) / 2.0)
+        w_offset = int((outer_width - inner_width) / 2.0)
+        if self.number_of_channels > 1 :
+            outer_image = np.ones((outer_height, outer_width, self.number_of_channels), dtype=image.dtype) * pad_value
+            outer_image[h_offset:h_offset + inner_height, w_offset:w_offset + inner_width, :] = image
+        elif self.number_of_channels == 1 :
+            outer_image = np.ones((outer_height, outer_width), dtype=image.dtype) * pad_value
+            outer_image[h_offset:h_offset + inner_height, w_offset:w_offset + inner_width] = image
+        return outer_image    
+    
+    def resize_image(self,inner_image: np.ndarray, resize_to: Tuple[int,int]) -> np.ndarray :
+        """
+        resize image to the required resolution
+        :param inner_image: image of shape [H, W, C]
+        :param resize_to: required resolution [height, width]
+        :return: resized image
+        """
+        inner_image_height, inner_image_width = inner_image.shape[0], inner_image.shape[1]
+        if inner_image_height > resize_to[0]:
+            h_ratio = resize_to[0] / inner_image_height
+        else:
+            h_ratio = 1
+        if inner_image_width > resize_to[1]:
+            w_ratio = resize_to[1] / inner_image_width
+        else:
+            w_ratio = 1
+    
+        resize_ratio = min(h_ratio, w_ratio)
+        if resize_ratio != 1:
+            inner_image = skimage.transform.resize(inner_image,
+                                                   output_shape=(int(inner_image_height * resize_ratio),
+                                                                 int(inner_image_width * resize_ratio)),
+                                                   mode='reflect',
+                                                   anti_aliasing=True
+                                                   )
+        return inner_image
+    
+    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str , resize_to: Tuple,
+                 padding: Tuple
+        ):
+        '''
+        :param resize_to:               new size of input images, keeping proportions
+        :param padding:                 padding size
+        ''' 
+        
+        img = sample_dict[key]
+        # resize
+        if resize_to is not None:
+            img = self.resize_image(img, resize_to)
+
+        # padding
+        if padding is not None:
+            img = self.pad_image(img, padding, resize_to)
+        sample_dict[key] = img
+        return sample_dict
+        
+class OpRemoveDarkBackgroundRectangle2D(OpBase):
+    '''
+     removes dark background in a rectangle patch from a 2d image
+    '''
+    def __init__(self, dark_area_threshold : int = 10, blocks_num : int = 30, **kwargs):
+        super().__init__(**kwargs)
+        self.dark_area_threshold = dark_area_threshold
+        self.blocks_num = blocks_num
+
+    def find_breast_aabb(self,img : np.ndarray) -> Tuple[int ,int, int, int]:
+        """
+        split the images into blocks, each block containing (1/30 x 1/30) of the image.
+        All blocks above a threshold (10) are considered non-empty.
+        Then, the biggest connected component (at the blocks level) is extracted, and its axis-aligned bbox is returned.
+        :param img: Image instance , expected 2d breast integer grayscale image where 0 is black background color
+        :param dark_area_threshold: defines grayscale level from which lower is consider dark / outside of body
+        :param blocks_num: number of blocks the algorithm split the images into
+        :return: four coordinates
+        """
+        bl_rows = img.shape[0]//self.blocks_num
+        bl_cols = img.shape[1]//self.blocks_num
+
+        rows_starts = list(range(self.blocks_num))
+        cols_starts = list(range(self.blocks_num))
+
+        rows_starts = list(map(lambda x:x*bl_rows, rows_starts))
+        cols_starts = list(map(lambda x: x * bl_cols, cols_starts))
+
+        cells = np.zeros((self.blocks_num,self.blocks_num))
+
+        for ri,r in enumerate(rows_starts):
+            for ci,c in enumerate(cols_starts):
+                r_end = min(img.shape[0]-1,r+bl_rows)
+                c_end = min(img.shape[1] - 1, c + bl_cols)
+                cells[ri,ci] = np.mean(img[r:r_end,c:c_end])
+
+        cells_binary = np.zeros((self.blocks_num,self.blocks_num),dtype=bool)
+        cells_binary[cells>self.dark_area_threshold] = True #TODO: this is a hardcoded threshold, see if there's a better alternative
+        blobs_labels = measure.label(cells_binary, background=0)
+        regions = measure.regionprops(blobs_labels)
+
+        regions_areas = [r.area for r in regions]
+        if len(regions)<1:
+            # expected to have at least background and one object. TODO: consider reporting error and returning AABB of the full image.
+            print('Warning: could not crop properly! fallbacking to full image')
+            return 0,0,img.shape[0]-1,img.shape[1]-1
+
+
+        for i,r in enumerate(regions):
+            if r.label==0:
+                regions_areas[i]=-1
+                break
+        max_ind = np.argmax(regions_areas)
+        bbox = regions[max_ind].bbox
+
+        full_img_bbox = [bbox[0]*bl_rows,bbox[1]*bl_cols,(bbox[2]+1)*bl_rows,(bbox[3]+1)*bl_cols]
+        minr, minc, maxr, maxc = full_img_bbox
+        maxr = min(maxr, img.shape[0]-1)
+        maxc = min(maxc, img.shape[1]-1)
+
+        return minr, minc, maxr, maxc
+
+    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str
+        ):
+        '''
+        ''' 
+        
+        img = sample_dict[key]
+        aabb = self.find_breast_aabb(img)
+        img = img[aabb[0]: aabb[2], aabb[1]: aabb[3]].copy()
+        sample_dict[key] = img
+        return sample_dict
+    
+class OpFlipBrightSideOnLeft2D(OpBase):
+    '''
+     checks if the image needed to be flipped to the left
+    '''
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.max_pixel_value = 255.0
+        self.dark_region_ratio = 15.0
+        
+    def check_breast_side_is_left_MG(self,image : np.ndarray) -> bool:
+        '''
+        checks if the breast is in the left of the image
+        :param image: numpy image , expected 2d grayscale image
+        :param max_pixel_value: maximum possible value in the image grayscale format
+        :param dark_region_ratio: the raito of possible grayscale values which are considered dark
+        :return: True iff the breast side is left
+        '''
+        cols = image.shape[1]
+        left_side = image[:, :cols // 2]
+        right_side = image[:,cols//2:]
+        dark_region = self.max_pixel_value / self.dark_region_ratio
+        return np.count_nonzero(left_side<dark_region) < np.count_nonzero(right_side<dark_region)
+
+    def __call__(self, sample_dict: NDict, key: str
+        ):
+        '''
+        :param image: numpy image , expected 2d grayscale image
+        :return: image where the breast is in the left
+        '''
+        
+        image = sample_dict[key]
+        if not self.check_breast_side_is_left_MG(image): #orig
+            image = np.fliplr(image)
+            sample_dict[key] = image
+        return sample_dict
 
 op_select_slice_img_and_seg = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpSelectSlice(), {}),
                                 DataTypeImaging.SEG : (OpSelectSlice(), {}) })
-        
