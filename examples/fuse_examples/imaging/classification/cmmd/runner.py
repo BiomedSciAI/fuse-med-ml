@@ -180,7 +180,7 @@ def run_train(paths : NDict , train: NDict ):
 
     # train from scratch
 
-    manager = ManagerDefault(output_model_dir=paths['model_dir'], force_reset=paths['force_reset_model_dir'])
+    manager = ManagerDefault(output_model_dir=paths['model_dir'], force_reset=train['force_reset_model_dir'])
 
     # Providing the objects required for the training process.
     manager.set_objects(net=model,

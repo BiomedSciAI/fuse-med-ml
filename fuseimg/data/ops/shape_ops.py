@@ -162,7 +162,7 @@ class OpResizeAndPad2D(OpBase):
                                                    )
         return inner_image
     
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str , resize_to: Tuple,
+    def __call__(self, sample_dict: NDict, key: str , resize_to: Tuple,
                  padding: Tuple
         ):
         '''
@@ -243,7 +243,7 @@ class OpRemoveDarkBackgroundRectangle2D(OpBase):
 
         return minr, minc, maxr, maxc
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str
+    def __call__(self, sample_dict: NDict, key: str
         ):
         '''
         ''' 
