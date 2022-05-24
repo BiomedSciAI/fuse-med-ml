@@ -1,0 +1,30 @@
+paths:
+  data_dir: /projects/msieve3/CMMD
+  model_dir : ${hydra:runtime.cwd}/model_new/InceptionResnetV2_2017_test
+  inference_dir : ${hydra:runtime.cwd}/model_new/infer_dir
+  eval_dir : ${hydra:runtime.cwd}/model_new/eval_dir
+  cache_dir : ${hydra:runtime.cwd}/examples/CMMD_cache_dir
+  data_misc_dir : ${hydra:runtime.cwd}/data_misc
+train:
+  force_reset_model_dir: True
+  reset_cache: False
+  num_workers : 8
+  batch_size: 2
+  learning_rate : 1e-5
+  weight_decay :  0.001
+  resume_checkpoint_filename : 
+  manager_train_params:
+    num_gpus : 1
+    device : cuda
+    num_epochs : 100
+    virtual_batch_size: 1
+    start_saving_epochs: 10
+    gap_between_saving_epochs : 100
+  manager_best_epoch_source:
+    source: metrics.auc
+    optimization: max
+    on_equal_values: better
+infer:
+  infer_filename : validation_set_infer.gz
+  checkpoint : best
+  num_workers : 8
