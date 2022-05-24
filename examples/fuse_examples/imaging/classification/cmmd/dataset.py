@@ -1,5 +1,3 @@
-import sys
-from typing import Callable, Optional , Sequence
 import logging
 import pandas as pd
 import pydicom
@@ -10,27 +8,21 @@ from functools import partial
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
-from fuseimg.data.ops.image_loader import OpLoadImage , OpLoadDicom
-from fuseimg.data.ops.color import OpClip, OpNormalizeAgainstSelfImpl
+from fuseimg.data.ops.image_loader import OpLoadDicom
+from fuseimg.data.ops.color import OpNormalizeAgainstSelfImpl
 from fuseimg.data.ops.shape_ops import OpFlipBrightSideOnLeft2D , OpRemoveDarkBackgroundRectangle2D, OpResizeAndPad2D
-from fuse.data import PipelineDefault, OpSampleAndRepeat, OpToTensor, OpRepeat
+from fuse.data import PipelineDefault, OpToTensor
 from fuse.data.ops.ops_common import OpLambda
 from fuseimg.data.ops.aug.color import OpAugColor
-from fuseimg.data.ops.aug.geometry import OpAugAffine2D , OpAugCropAndResize2D
+from fuseimg.data.ops.aug.geometry import OpAugAffine2D 
 from fuse.data.ops.ops_aug_common import OpSample
-from fuse.data.ops.op_base import OpBase
 from fuse.data.ops.ops_read import OpReadDataframe
-from fuse.utils.ndict import NDict
 import torch
 from fuse.utils.rand.param_sampler import RandBool, RandInt, Uniform
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
 import numpy as np
-# from fuse_examples.imaging.classification.cmmd.input_processor import MGInputProcessor
-# from fuse_examples.imaging.classification.cmmd.ground_truth_processor import MGGroundTruthProcessor
 from fuse.data.utils.split import SplitDataset
-from tempfile import mkdtemp
 from typing import Tuple
-from fuse.data.utils.sample import get_sample_id
 
 def create_folds(input_source: str,
                 input_df : pd.DataFrame,
@@ -78,8 +70,17 @@ def create_folds(input_source: str,
 
     return create_folds.folds_df[create_folds.folds_df['fold'].isin(folds)]
 
-def create_dataset_partition(phase, data_dir, data_source, cache_dir, restart_cache, specific_id= []) :
-    
+def create_dataset_partition(phase, data_dir, data_source, cache_dir = None, restart_cache = True, specific_ids= []) :
+    """
+    Creates Fuse Dataset single object (either for training, validation and test or user defined set)
+    :param phase:                       parition name (training / validation / test)
+    :param data_dir:                    dataset root path
+    :param data_source                  csv file containing all samples file paths and ground truth
+    :param cache_dir:                   Optional, name of the cache folder
+    :param reset_cache:                 Optional,specifies if we want to clear the cache first
+    :param specific_ids                 Otional, specify which sample ids to include in this set instead of all given in dataframe
+    :return: DatasetDefault object
+    """
     static_pipeline = PipelineDefault("static", [
         
         (OpReadDataframe(data_source,key_column = None , columns_to_extract = ['file','classification'] , rename_columns=dict(file="data.input.img_path",classification="data.gt.classification")), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path" 
@@ -116,8 +117,8 @@ def create_dataset_partition(phase, data_dir, data_source, cache_dir, restart_ca
         cache_dirs=[phase_cahce_dir], restart_cache=restart_cache)   
     
     sample_ids=[id for id in data_source.index]
-    if specific_id != []:
-        sample_ids = specific_id
+    if specific_ids != []:
+        sample_ids = specific_ids
     my_dataset = DatasetDefault(sample_ids=sample_ids,
         static_pipeline=static_pipeline,
         dynamic_pipeline=dynamic_pipeline,
