@@ -58,9 +58,6 @@ class ExportDataset:
         for key in all_keys:
             values = [sample_dict[key] for sample_dict in data]
             df[key] = values
-        
-        # set sample_id as index
-        df = df.set_index(sample_id_key)
 
         if output_filename is not None:
             save_dataframe(df, output_filename)
