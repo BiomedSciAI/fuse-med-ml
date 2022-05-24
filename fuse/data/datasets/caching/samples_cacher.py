@@ -17,7 +17,7 @@ Created on June 30, 2021
 
 """
 from typing import Hashable, List, Optional, Sequence, Union, Callable, Dict, Callable, Any, Tuple
-
+from functools import partial
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.utils.sample import set_initial_sample_id
 import numpy as np
@@ -82,7 +82,7 @@ class SamplesCacher:
             self._write_dir_logic = custom_write_dir_callable        
 
         if custom_read_dirs_callable is None:
-            self._read_dirs_logic = lambda : self._cache_dirs
+            self._read_dirs_logic = partial(default_read_dirs_logic, cache_dirs=self._cache_dirs)
         else:
             self._read_dirs_logic = custom_read_dirs_callable      
 
@@ -344,7 +344,7 @@ class SamplesCacher:
     
         
 
-def _get_available_write_location(cache_dirs:List[str], max_allowed_used_space=0.95):               
+def _get_available_write_location(cache_dirs:List[str], max_allowed_used_space=None):   
     '''
     :param cache_dirs: write directories. Directories are checked in order that they are provided.
     :param max_allowed_used_space: set to a value between 0.0 to 1.0. 
@@ -366,7 +366,8 @@ def _get_available_write_location(cache_dirs:List[str], max_allowed_used_space=0
         f'max_allowed_used_space={max_allowed_used_space}'
     )
 
-
+def default_read_dirs_logic(cache_dirs: List[str]):
+    return cache_dirs
 
         
 
