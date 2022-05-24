@@ -23,7 +23,7 @@ import torch
 
 from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
 from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
-from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
+from fuse.utils.ndict import NDict
 
 
 class ModelMultistream(torch.nn.Module):
@@ -61,13 +61,13 @@ class ModelMultistream(torch.nn.Module):
         self.add_module('heads', self.heads)
 
     def forward(self,
-                batch_dict: Dict) -> Dict:
+                batch_dict: NDict) -> Dict:
 
         # Forward pass through multiple streams
         # -------------------------------------
         if self.split_logic is None:
             # If no split logic is provided, send each channel to different stream
-            conv_input = FuseUtilsHierarchicalDict.get(batch_dict, self.conv_inputs[0])  # shape = [batch_size, num_channels, height, width]
+            conv_input = batch_dict[self.conv_inputs[0]]  # shape = [batch_size, num_channels, height, width]
             stream_outputs = []
             for ch_idx in range(conv_input.shape[1]):
                 single_channel_batch = conv_input[:, ch_idx, :, :].unsqueeze(dim=1)  # shape = [batch_size, 1, height, width]
@@ -88,7 +88,7 @@ class ModelMultistream(torch.nn.Module):
         else:
             raise Exception('Error in ModelMultistream - bad join logic provided')
 
-        FuseUtilsHierarchicalDict.set(batch_dict, 'model.backbone_features', backbone_features)
+        batch_dict['model.backbone_features'] = backbone_features
         for head in self.heads:
             batch_dict = head.forward(batch_dict)
 

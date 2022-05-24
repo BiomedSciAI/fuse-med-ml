@@ -24,7 +24,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from fuse.dl.models.heads.common import ClassifierFCN
-from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
+from fuse.utils.ndict import NDict
 
 
 class HeadDenseSegmentation(nn.Module):
@@ -73,15 +73,15 @@ class HeadDenseSegmentation(nn.Module):
                                                         dropout_rate=dropout_rate)
 
     def forward(self,
-                batch_dict: Dict) -> Dict:
-        conv_input = torch.cat([FuseUtilsHierarchicalDict.get(batch_dict, conv_input[0]) for conv_input in self.conv_inputs])
+                batch_dict: NDict) -> Dict:
+        conv_input = torch.cat([batch_dict[conv_input[0]] for conv_input in self.conv_inputs])
         if self.maxpool_kernel is not None:
             conv_input = F.max_pool2d(conv_input, kernel_size=self.maxpool_kernel)
 
         logits = self.classifier_head_module(conv_input)
         score_map = F.softmax(logits, dim=1)  # --> score_map.shape = [batch_size, 2, height, width]
 
-        FuseUtilsHierarchicalDict.set(batch_dict, 'model.logits.' + self.head_name, logits)
-        FuseUtilsHierarchicalDict.set(batch_dict, 'model.output.' + self.head_name, score_map)
+        batch_dict['model.logits.' + self.head_name] = logits
+        batch_dict['model.output.' + self.head_name] = score_map
 
         return batch_dict

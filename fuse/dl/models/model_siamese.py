@@ -24,7 +24,7 @@ import torch
 from fuse.dl.models.model_default import ModelDefault
 from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
 from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
-from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
+from fuse.utils.ndict import NDict
 
 
 class ModelSiamese(ModelDefault):
@@ -49,18 +49,18 @@ class ModelSiamese(ModelDefault):
         self.conv_inputs_1 = conv_inputs_1
 
     def forward(self,
-                batch_dict: Dict) -> Dict:
-        backbone_input_0 = [FuseUtilsHierarchicalDict.get(batch_dict, conv_input[0]) for conv_input in self.conv_inputs_0]  #[batch,channels(1),h,w]
-        backbone_input_1 = [FuseUtilsHierarchicalDict.get(batch_dict, conv_input[0]) for conv_input in self.conv_inputs_1]  #[batch,channels(1),h,w]
+                batch_dict: NDict) -> Dict:
+        backbone_input_0 = [batch_dict[conv_input[0]] for conv_input in self.conv_inputs_0]  #[batch,channels(1),h,w]
+        backbone_input_1 = [batch_dict[conv_input[0]] for conv_input in self.conv_inputs_1]  #[batch,channels(1),h,w]
 
         backbone_features_0 = self.backbone.forward(torch.stack(backbone_input_0, dim=1))  #batch, features, h', w'
         backbone_features_1 = self.backbone.forward(torch.stack(backbone_input_1, dim=1))  #batch, features, h', w'
 
         backbone_features = torch.cat([backbone_features_0, backbone_features_1], dim=1)
 
-        FuseUtilsHierarchicalDict.set(batch_dict, 'model.backbone_features', backbone_features)
-        FuseUtilsHierarchicalDict.set(batch_dict, 'model.backbone_features_0', backbone_features_0)
-        FuseUtilsHierarchicalDict.set(batch_dict, 'model.backbone_features_1', backbone_features_1)
+        batch_dict['model.backbone_features'] = backbone_features
+        batch_dict['model.backbone_features_0'] = backbone_features_0
+        batch_dict['model.backbone_features_1'] = backbone_features_1
 
         for head in self.heads:
             batch_dict = head.forward(batch_dict)

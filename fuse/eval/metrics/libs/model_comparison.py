@@ -16,7 +16,7 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from typing import Dict, Optional, Sequence, Tuple
+from typing import Dict, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import scipy
@@ -196,47 +196,59 @@ class ModelComparison:
         return results
 
     @staticmethod
-    def mcnemars_test(cls_pred1: Sequence[np.ndarray],
-                      cls_pred2: Sequence[np.ndarray],
-                      pos_class_index: int = -1) -> Dict:
+    def contingency_table(var1: Sequence[bool],
+                          var2: Sequence[bool]) -> np.ndarray:
         """
-        Compute p-value resulting from McNemar's statistical test to compare two binary classifier predictions.
-        The p-value represents likelihood for the (null) hypothesis that the two classifiers are similar
+        Compute contingency table from two paired variables
+        :param var1: first variable [list of 0's and 1's or booleans]
+        :param var2: second variable [list of 0's and 1's or booleans]
+        :return contingency table [2x2 numpy array]
+        """
+        var1 = np.array(var1, dtype=bool)
+        var2 = np.array(var2, dtype=bool)
+
+        con_tab = np.zeros((2,2))
+        con_tab[0,0] = (np.logical_and(var1, var2)).sum()
+        con_tab[0,1] = (np.logical_and(var1, ~var2)).sum()
+        con_tab[1,0] = (np.logical_and(~var1, var2)).sum()
+        con_tab[1,1] = (np.logical_and(~var1, ~var2)).sum()
+
+        return con_tab
+
+    @staticmethod
+    def mcnemars_test(pred1: Union[Sequence, np.ndarray], pred2: Union[Sequence, np.ndarray], 
+                        target: Optional[Union[Sequence, np.ndarray]], exact: bool=True) -> Dict:
+        """
+        Compute p-value resulting from McNemar's statistical test to compare two models' predictions or accuracies.
+        The p-value represents likelihood for the (null) hypothesis that the two paired variables are similar
         in the sense that they have a similar proportion of disagreements.
-        A small p-value means the models are likely to be different.
-        :param cls_pred1: class predictions for the first classifier. Each element is an integer in range [0 - num_classes).
-        :param cls_pred2: class predictions for the second classifier. Each element is an integer in range [0 - num_classes).
-        :param pos_class_index: index of the positive class (for one vs. rest). 
-            If the classifier is binary (no use for one vs. rest), then this parameter should be left as its default (-1).
-            Otherwise, it denotes which class index is treated as positive (for one vs. rest)
+        A small p-value means they are likely to be different.
+        :param pred1: predictions of the first model.
+        :param pred2: predictions of the second model.
+        :param target: ground truth vector
+        :param exact: If True, then the binomial distribution will be used. Otherwise, the chi-square distribution, which is the approximation to the distribution of the test statistic for large sample sizes.
+            The exact test is recommended for small (<25) number of discordants in the contingency table
         :return {'p-value', 'statistic', 'n1', 'n2'},
              'statistic' is the min(n1, n2), where n1, n2 are cases that are zero
                 in one classifier but one in the other. This statistic is used in the exact binomial distribution test.
              'n1' and 'n2' as just defined
         """
-        cls_predictions_1 = np.array(cls_pred1)
-        cls_predictions_2 = np.array(cls_pred2)
-        if pos_class_index>=0:
-            cls_predictions_1 = (cls_predictions_1 == pos_class_index)*1
-            cls_predictions_2 = (cls_predictions_2 == pos_class_index)*1
-
-        # create contingency table:
-        cls_pred1_bin = cls_predictions_1 == 1
-        cls_pred2_bin = cls_predictions_2 == 1
-
-        con_tab = np.zeros((2,2))
-
-        con_tab[0,0] = (np.logical_and(cls_pred1_bin, cls_pred2_bin)).sum()
-        con_tab[0,1] = (np.logical_and(cls_pred1_bin, ~cls_pred2_bin)).sum()
-        con_tab[1,0] = (np.logical_and(~cls_pred1_bin, cls_pred2_bin)).sum()
-        con_tab[1,1] = (np.logical_and(~cls_pred1_bin, ~cls_pred2_bin)).sum()
-
-        con_tab = np.round(con_tab) # round to obtain integer values for the weighted contingency table
+        pred1 = np.array(pred1)
+        pred2 = np.array(pred2)
+        target = np.array(target)
+        
+        if target is not None:
+            pred1_correct = (pred1 == target)
+            pred2_correct = (pred2 == target)
+            contingency_table = ModelComparison.contingency_table(pred1_correct, pred2_correct)
+        else:
+            contingency_table = ModelComparison.contingency_table(pred1, pred2)
 
         # calculate mcnemar test
-        res = mcnemar(con_tab, exact=True)
+        res = mcnemar(contingency_table, exact=exact)
 
-        results = {'p_value': res.pvalue, 'statistic': res.statistic, 'n1': con_tab[0,1], 'n2': con_tab[1,0]}
+        results = {'p_value': res.pvalue, 'statistic': res.statistic, \
+                    'n1': contingency_table[0,1], 'n2': contingency_table[1,0]}
         
         return results
 

@@ -27,7 +27,7 @@ import csv
 import pandas as pd
 import numpy as np
 
-from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
+from fuse.utils.ndict import NDict
 from fuse.utils.file_io.file_io import create_dir
 
 from fuse.eval.evaluator import EvaluatorDefault
@@ -49,7 +49,7 @@ TASK2_CLASS_NAMES = ("B", "LR", "IR", "HR", "VHR") # must be aligned with task2 
 
 
 
-def post_processing(sample_dict: dict, task1: bool = True, task2: bool = True) -> dict:
+def post_processing(sample_dict: NDict, task1: bool = True, task2: bool = True) -> dict:
     """
     post caching processing. Will group together to an array the per class scores and verify it sums up to 1.0
     :param sample_dict: a dictionary that contais all the extracted values of a single sample
@@ -63,32 +63,32 @@ def post_processing(sample_dict: dict, task1: bool = True, task2: bool = True) -
         expected_keys += [f"task1_pred.{key}" for key in EXPECTED_TASK1_PRED_KEYS]
     if task2:
         expected_keys += [f"task2_pred.{key}" for key in EXPECTED_TASK2_PRED_KEYS]
-    set(expected_keys).issubset(set(FuseUtilsHierarchicalDict.get_all_keys(sample_dict)))
+    set(expected_keys).issubset(set(sample_dict.keypaths()))
 
     # convert scores to numpy array
     # task 1 
     if task1:
         task1_pred = []
         for cls_name in TASK1_CLASS_NAMES:
-            task1_pred.append(FuseUtilsHierarchicalDict.get(sample_dict, f"task1_pred.{cls_name}-score" ))
+            task1_pred.append(sample_dict[f"task1_pred.{cls_name}-score"])
         task1_pred_array = np.array(task1_pred)
         if not np.isclose(task1_pred_array.sum(), 1.0, rtol=0.05):
-            print(f"Warning: expecting task 1 prediction for case {FuseUtilsHierarchicalDict.get(sample_dict, 'descriptor')} to sum up to almost 1.0, got {task1_pred_array}")
-        FuseUtilsHierarchicalDict.set(sample_dict, 'task1_pred.array', task1_pred_array)
+            print(f"Warning: expecting task 1 prediction for case {sample_dict['descriptor']} to sum up to almost 1.0, got {task1_pred_array}")
+        sample_dict['task1_pred.array'] = task1_pred_array
 
     # task 2
     if task2:
         task2_pred = []
         for cls_name in TASK2_CLASS_NAMES:
-            task2_pred.append(FuseUtilsHierarchicalDict.get(sample_dict, f"task2_pred.{cls_name}-score" ))
+            task2_pred.append(sample_dict[f"task2_pred.{cls_name}-score"])
         task2_pred_array = np.array(task2_pred)
         if not np.isclose(task2_pred_array.sum(), 1.0, rtol=0.05):
-            print(f"Error: expecting task 2 prediction for case {FuseUtilsHierarchicalDict.get(sample_dict, 'descriptor')} to sum up to almost 1.0, got {task2_pred_array}")
-        FuseUtilsHierarchicalDict.set(sample_dict, 'task2_pred.array', task2_pred_array)
+            print(f"Error: expecting task 2 prediction for case {sample_dict['descriptor']} to sum up to almost 1.0, got {task2_pred_array}")
+        sample_dict['task2_pred.array'] = task2_pred_array
 
     return sample_dict
 
-def decode_results(results: dict, output_dir: str, task1: bool, task2: bool) -> Tuple[OrderedDict, str]:
+def decode_results(results: NDict, output_dir: str, task1: bool, task2: bool) -> Tuple[OrderedDict, str]:
     """
     Gets the results computed by the dictionary and summarize it in a markdown text and dictionary.
     The dictionary will be saved in <output_dir>/results.csv and the markdown text in <output_dir>/results.md
@@ -103,16 +103,16 @@ def decode_results(results: dict, output_dir: str, task1: bool, task2: bool) -> 
     # Table
     ## task1
     if task1:
-        results_table['Task1-AUC'] = f"{FuseUtilsHierarchicalDict.get(results, 'task1_auc.macro_avg.org'):.3f}"
-        results_table['Task1-AUC-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, 'task1_auc.macro_avg.conf_lower'):.3f}-{FuseUtilsHierarchicalDict.get(results, 'task1_auc.macro_avg.conf_upper'):.3f}]"
+        results_table['Task1-AUC'] = f"{results['task1_auc.macro_avg.org']:.3f}"
+        results_table['Task1-AUC-CI'] = f"[{results['task1_auc.macro_avg.conf_lower']:.3f}-{results['task1_auc.macro_avg.conf_upper']:.3f}]"
         
     ## task2
     if task2:
-        results_table['Task2-AUC'] = f"{FuseUtilsHierarchicalDict.get(results, 'task2_auc.macro_avg.org'):.3f}"
-        results_table['Task2-AUC-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, 'task2_auc.macro_avg.conf_lower'):.3f}-{FuseUtilsHierarchicalDict.get(results, 'task2_auc.macro_avg.conf_upper'):.3f}]"
+        results_table['Task2-AUC'] = f"{results['task2_auc.macro_avg.org']:.3f}"
+        results_table['Task2-AUC-CI'] = f"[{results['task2_auc.macro_avg.conf_lower']:.3f}-{results['task2_auc.macro_avg.conf_upper']:.3f}]"
         for cls_name in TASK2_CLASS_NAMES:
-            results_table[f'Task2-AUC-{cls_name}VsRest'] = f"{FuseUtilsHierarchicalDict.get(results, f'task2_auc.{cls_name}.org'):.3f}"
-            results_table[f'Task2-AUC-{cls_name}VsRest-CI'] = f"[{FuseUtilsHierarchicalDict.get(results, f'task2_auc.{cls_name}.conf_lower'):.3f}-{FuseUtilsHierarchicalDict.get(results, f'task2_auc.{cls_name}.conf_upper'):.3f}]"
+            results_table[f'Task2-AUC-{cls_name}VsRest'] = f"{results[f'task2_auc.{cls_name}.org']:.3f}"
+            results_table[f'Task2-AUC-{cls_name}VsRest-CI'] = f"[{results[f'task2_auc.{cls_name}.conf_lower']:.3f}-{results[f'task2_auc.{cls_name}.conf_upper']:.3f}]"
 
 
     # mark down text
