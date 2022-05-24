@@ -5,15 +5,16 @@ import pandas as pd
 import pydicom
 import os, glob
 from pathlib import Path
-
+from functools import partial
 
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuseimg.data.ops.image_loader import OpLoadImage , OpLoadDicom
-from fuseimg.data.ops.color import OpClip, OpToRange
+from fuseimg.data.ops.color import OpClip, OpNormalizeAgainstSelfImpl
 from fuseimg.data.ops.shape_ops import OpFlipBrightSideOnLeft2D , OpRemoveDarkBackgroundRectangle2D, OpResizeAndPad2D
 from fuse.data import PipelineDefault, OpSampleAndRepeat, OpToTensor, OpRepeat
+from fuse.data.ops.ops_common import OpLambda
 from fuseimg.data.ops.aug.color import OpAugColor
 from fuseimg.data.ops.aug.geometry import OpAugAffine2D , OpAugCropAndResize2D
 from fuse.data.ops.ops_aug_common import OpSample
@@ -77,14 +78,15 @@ def create_folds(input_source: str,
 
     return create_folds.folds_df[create_folds.folds_df['fold'].isin(folds)]
 
-def create_dataset_partition(data_dir, data_source, restart_cache) :
+def create_dataset_partition(phase, data_dir, data_source, cache_dir, restart_cache, specific_id= []) :
     
     static_pipeline = PipelineDefault("static", [
+        
         (OpReadDataframe(data_source,key_column = None , columns_to_extract = ['file','classification'] , rename_columns=dict(file="data.input.img_path",classification="data.gt.classification")), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path" 
         (OpLoadDicom(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", format="nib")),
         (OpFlipBrightSideOnLeft2D(), dict(key="data.input.img")),
         (OpRemoveDarkBackgroundRectangle2D(), dict(key="data.input.img")),
-        (OpToRange(), dict(key="data.input.img", from_range=(0.0, 255.0), to_range=(0.0, 1.0))),
+        (OpNormalizeAgainstSelfImpl(), dict(key="data.input.img")),
         (OpResizeAndPad2D(), dict(key="data.input.img", resize_to=(2200, 1200), padding=(60, 60))),
         ])
 
@@ -104,15 +106,18 @@ def create_dataset_partition(data_dir, data_source, restart_cache) :
                     mul =  Uniform(0.95, 1.05),
                     add=Uniform(-0.06, 0.06)
                 )),
+        (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")), 
+         
     ])
-                                       
-    cache_dir = mkdtemp(prefix="cmmd")
+
+    phase_cahce_dir = os.path.join(cache_dir,phase)                                   
     cacher = SamplesCacher(f'cmmd_cache_ver', 
         static_pipeline,
-        cache_dirs=[cache_dir], restart_cache=restart_cache)   
+        cache_dirs=[phase_cahce_dir], restart_cache=restart_cache)   
     
     sample_ids=[id for id in data_source.index]
-    
+    if specific_id != []:
+        sample_ids = specific_id
     my_dataset = DatasetDefault(sample_ids=sample_ids,
         static_pipeline=static_pipeline,
         dynamic_pipeline=dynamic_pipeline,
@@ -123,158 +128,57 @@ def create_dataset_partition(data_dir, data_source, restart_cache) :
     return my_dataset
     
     
-def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache', reset_cache: bool = False,
-                      post_cache_processing_func: Optional[Callable] = None) -> Tuple[DatasetDefault, DatasetDefault]:
+def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache', reset_cache: bool = False) -> Tuple[DatasetDefault, DatasetDefault]:
     """
     Creates Fuse Dataset object for training, validation and test
     :param data_dir:                    dataset root path
     :param data_misc_dir                path to save misc files to be used later
     :param cache_dir:                   Optional, name of the cache folder
     :param reset_cache:                 Optional,specifies if we want to clear the cache first
-    :param post_cache_processing_func:  Optional, function run post cache processing
     :return: training, validation and test DatasetDefault objects
     """
-    # augmentation_pipeline = [
-    #     [
-    #         ('data.input.image',),
-    #         aug_op_affine,
-    #         {'rotate': Uniform(-30.0, 30.0), 'translate': (RandInt(-10, 10), RandInt(-10, 10)),
-    #          'flip': (RandBool(0.3), RandBool(0.3)), 'scale': Uniform(0.9, 1.1)},
-    #         {'apply': RandBool(0.5)}
-    #     ],
-    #     [
-    #         ('data.input.image',),
-    #         aug_op_color,
-    #         {'add': Uniform(-0.06, 0.06), 'mul': Uniform(0.95, 1.05), 'gamma': Uniform(0.9, 1.1),
-    #          'contrast': Uniform(0.85, 1.15)},
-    #         {'apply': RandBool(0.5)}
-    #     ],
-    #     [
-    #         ('data.input.image',),
-    #         aug_op_gaussian,
-    #         {'std': 0.03},
-    #         {'apply': RandBool(0.5)}
-    #     ],
-    # ]
-
 
     lgr = logging.getLogger('Fuse')
     target = 'classification'
     input_source_gt = merge_clinical_data_with_dicom_tags(data_dir, data_misc_dir, target)
     partition_file_path = os.path.join(data_misc_dir, 'data_fold_new.csv')
+    
+    lgr.info(f'- Load and cache data:')
+    
     train_data_source = create_folds(input_source=input_source_gt,
                                             input_df=None,
                                             phase='train',
                                             no_mixture_id='ID1',
                                             balance_keys=[target],
-                                            reset_partition_file=True,
+                                            reset_partition_file=False,
                                             folds=[0,1,2],
                                             num_folds=5,
                                             partition_file_name=partition_file_path)
+    train_dataset = create_dataset_partition('train',data_dir,train_data_source, cache_dir, reset_cache )
     
     validation_data_source = create_folds(input_source=input_source_gt,
                                             input_df=None,
-                                            phase='train',
+                                            phase='validation',
                                             no_mixture_id='ID1',
                                             balance_keys=[target],
-                                            reset_partition_file=True,
+                                            reset_partition_file=False,
                                             folds=[3],
                                             num_folds=5,
                                             partition_file_name=partition_file_path)
+    validation_dataset = create_dataset_partition('validation',data_dir,validation_data_source, cache_dir, False)
     
     test_data_source = create_folds(input_source=input_source_gt,
                                             input_df=None,
-                                            phase='train',
+                                            phase='test',
                                             no_mixture_id='ID1',
                                             balance_keys=[target],
-                                            reset_partition_file=True,
+                                            reset_partition_file=False,
                                             folds=[4],
                                             num_folds=5,
                                             partition_file_name=partition_file_path)
     
-    lgr.info(f'- Load and cache data:')
-    train_dataset = create_dataset_partition(data_dir,train_data_source,True)
-    lgr.info(f'- Load and cache data: Done')
-    validation_dataset = create_dataset_partition(data_dir,validation_data_source,False)
-    test_dataset = create_dataset_partition(data_dir,test_data_source,False)
+    test_dataset = create_dataset_partition('test',data_dir,test_data_source, cache_dir, False )
 
-
-    
-    # partition_file_path = os.path.join(data_misc_dir, 'data_fold_new.csv')
-    
-    # train_data_source = DataSourceFolds(input_source=input_source_gt,
-    #                                         input_df=None,
-    #                                         phase='train',
-    #                                         no_mixture_id='ID1',
-    #                                         balance_keys=[target],
-    #                                         reset_partition_file=True,
-    #                                         folds=[0,1,2],
-    #                                         num_folds=5,
-    #                                         partition_file_name=partition_file_path)
-
-    
-
-    # # Create data processors:
-    # input_processors = {
-    #     'image': MGInputProcessor(input_data=data_dir)
-    # }
-    # gt_processors = {
-    #     'classification': MGGroundTruthProcessor(input_data=input_source_gt)
-    # }
-
-
-
-    # # Create train dataset
-    # train_dataset = DatasetDefault(cache_dest=cache_dir,
-    #                                    data_source=train_data_source,
-    #                                    input_processors=input_processors,
-    #                                    gt_processors=gt_processors,
-    #                                    post_processing_func=post_cache_processing_func,
-    #                                    augmentor=augmentor)
-
-    # lgr.info(f'- Load and cache data:')
-    # train_dataset.create(reset_cache=reset_cache)
-    # lgr.info(f'- Load and cache data: Done')
-
-    # # Create validation data source
-    # validation_data_source = DataSourceFolds(input_source=input_source_gt,
-    #                                         input_df=None,
-    #                                         phase='validation',
-    #                                         no_mixture_id='ID1',
-    #                                         balance_keys=[target],
-    #                                         reset_partition_file=False,
-    #                                         folds=[3],
-    #                                         num_folds=5,
-    #                                         partition_file_name=partition_file_path)
-
-    # ## Create dataset
-    # validation_dataset = DatasetDefault(cache_dest=cache_dir,
-    #                                         data_source=validation_data_source,
-    #                                         input_processors=input_processors,
-    #                                         gt_processors=gt_processors,
-    #                                         post_processing_func=post_cache_processing_func,
-    #                                         augmentor=None)
-    # validation_dataset.create( pool_type='thread')  # use ThreadPool to create this dataset, to avoid cv2 problems in multithreading
-
-    # test_data_source =  DataSourceFolds(input_source=input_source_gt,
-    #                                         input_df=None,
-    #                                         phase='test',
-    #                                         no_mixture_id='ID1',
-    #                                         balance_keys=[target],
-    #                                         reset_partition_file=False,
-    #                                         folds=[4],
-    #                                         num_folds=5,
-    #                                         partition_file_name=partition_file_path)
-    # test_dataset = DatasetDefault(cache_dest=cache_dir,
-    #                                         data_source=test_data_source,
-    #                                         input_processors=input_processors,
-    #                                         gt_processors=gt_processors,
-    #                                         post_processing_func=post_cache_processing_func,
-    #                                         augmentor=None)
-    
-    # test_dataset.create( pool_type='thread')  # use ThreadPool to create this dataset, to avoid cv2 problems in multithreading
-
-    lgr.info(f'- Load and cache data:')
 
     lgr.info(f'- Load and cache data: Done')
 
@@ -293,7 +197,9 @@ def merge_clinical_data_with_dicom_tags(data_dir: str, data_misc_dir:str, target
     input_source = os.path.join(data_dir, 'CMMD_clinicaldata_revision.csv')
     combined_file_path = os.path.join(data_misc_dir, 'files_combined.csv')
     if os.path.isfile(combined_file_path):
+        print("Found partition file:",combined_file_path )
         return combined_file_path
+    print("Did not find exising partition file!")
     Path(data_misc_dir).mkdir(parents=True, exist_ok=True)
     clinical_data = pd.read_csv(input_source)
     scans = []

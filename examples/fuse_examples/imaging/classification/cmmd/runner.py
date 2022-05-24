@@ -17,6 +17,7 @@ Created on June 30, 2021
 
 from collections import OrderedDict
 import os
+import sys
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 
 from fuse.utils.utils_debug import FuseDebug
@@ -78,7 +79,10 @@ def run_train(paths : NDict , train: NDict ):
 
     #### Train Data
     lgr.info(f'Train Data:', {'attrs': 'bold'})
-    train_dataset, validation_dataset , _ = CMMD_2021_dataset(paths["data_dir"], paths["data_misc_dir"], reset_cache=train["reset_cache"])
+    train_dataset, validation_dataset , _ = CMMD_2021_dataset(data_dir = paths["data_dir"],
+                                                              data_misc_dir = paths["data_misc_dir"],
+                                                              cache_dir = paths["cache_dir"],
+                                                              reset_cache=train["reset_cache"])
 
     ## Create sampler
     lgr.info(f'- Create sampler:')
@@ -101,9 +105,6 @@ def run_train(paths : NDict , train: NDict ):
     #### Validation data
     lgr.info(f'Validation Data:', {'attrs': 'bold'})
 
-
-
-
     ## Create dataloader
     validation_dataloader = DataLoader(dataset=validation_dataset,
                                        shuffle=False,
@@ -113,7 +114,6 @@ def run_train(paths : NDict , train: NDict ):
                                        num_workers=train["num_workers"],
                                        collate_fn=CollateDefault())
     lgr.info(f'Validation Data: Done', {'attrs': 'bold'})
-
     # ===================================================================
     # ==============================================================================
     # Model
@@ -292,4 +292,5 @@ def main(cfg : DictConfig) -> None:
     if 'analyze' in RUNNING_MODES:
         run_eval(cfg["paths"] ,cfg["infer"])
 if __name__ == "__main__":
+    sys.argv.append('hydra.run.dir=working_dir')
     main()

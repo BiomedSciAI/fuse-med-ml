@@ -32,8 +32,11 @@ class OpAugColor(OpBase):
 
         # verify
         if self._verify_arguments:
+            print(aug_input.max())
             assert isinstance(aug_input, torch.Tensor), f"Error: OpAugColor expects torch Tensor, got {type(aug_input)}"
-            assert aug_input.min() >= 0.0 and aug_input.max() <= 1.0 , f"Error: OpAugColor expects tensor in range [0.0-1.0]. got [{aug_input.min()}-{aug_input.max()}]"
+            if not(aug_input.min() >= 0.0 and  aug_input.max() <= 1.0) :
+                print(aug_input.min(),aug_input.max())
+                assert aug_input.min() >= 0.0 and aug_input.max() <= 1.0 , f"Error: OpAugColor expects tensor in range [0.0-1.0]. got [{aug_input.min()}-{aug_input.max()}]"
 
         aug_tensor = aug_input
         if channels is None:
