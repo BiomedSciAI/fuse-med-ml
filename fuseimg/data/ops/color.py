@@ -56,7 +56,7 @@ class OpNormalizeAgainstSelfImpl(OpBase):
     def __call__(self, sample_dict: NDict, key: str):
         img = sample_dict[key]
         img -= img.min()
-        img /= img.max()
+        img /= float(img.max())
         sample_dict[key] = img
         return sample_dict
     
@@ -102,13 +102,12 @@ class OpToRange(OpBase):
         to_range_end = to_range[1]
 
         img = sample_dict[key]
-
+        img = img.astype(np.float32)
         # shift to start at 0
         img -= from_range_start            
 
         #scale to be in desired range
         img *= (to_range_end-to_range_start) / (from_range_end-from_range_start)
-
         #shift to start in desired start val
         img += to_range_start
         
