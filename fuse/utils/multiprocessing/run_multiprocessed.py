@@ -78,7 +78,7 @@ def __orig__run_multiprocessed(worker_func, args_list, workers=0, verbose=0,
 def run_multiprocessed(worker_func, args_list, workers=0, verbose=0, 
     copy_to_global_storage: Optional[dict] = None,
     keep_results_order:bool=True,
-    as_iterator=False, mp_context: str = "spawn"
+    as_iterator=False, mp_context: Optional[str] = None
     ) -> List[Any]:
     '''
     Args:
@@ -100,6 +100,7 @@ def run_multiprocessed(worker_func, args_list, workers=0, verbose=0,
         as_iterator: if True, a lightweight iterator is returned. This is useful in the cases that the entire returned answer doesn't fit in memory.
          or in the case that you want to parallelize some calculation with the generation.
          if False, the answers will be accumulated to a list and returned.
+    :param mp_context: "fork", "spawn", "thread" or None for multiprocessing default
 
 
     Returns:
@@ -126,7 +127,7 @@ def run_multiprocessed(worker_func, args_list, workers=0, verbose=0,
 
 def _run_multiprocessed_as_iterator_impl(worker_func, args_list, workers=0, verbose=0, 
     copy_to_global_storage: Optional[dict] = None,
-    keep_results_order:bool=True, mp_context: str = "spawn"
+    keep_results_order:bool=True, mp_context: Optional[str] = None
     ) -> List[Any]:
     '''
     an iterator version of run_multiprocessed - useful when the accumulated answer is too large to fit in memory
@@ -147,6 +148,7 @@ def _run_multiprocessed_as_iterator_impl(worker_func, args_list, workers=0, verb
         Instead of copying it for each worker_func invocation, it will be copied once, upon worker process initialization.
         keep_results_order: determined if imap or imap_unordered is used. if strict_answers_order is set to False, then results will be ordered by their readiness.
             if strict_answers_order is set to True, the answers will be provided at the same order as defined in the args_list
+    :param mp_context: "fork", "spawn", "thread" or None for multiprocessing default
     '''
     if 'DEBUG_SINGLE_PROCESS' in os.environ and os.environ['DEBUG_SINGLE_PROCESS'] in ['T','t','True','true',1]:
         workers = None
@@ -175,7 +177,15 @@ def _run_multiprocessed_as_iterator_impl(worker_func, args_list, workers=0, verb
         assert isinstance(workers, int)
         assert workers>=0
 
-        with mp.get_context(mp_context).Pool(processes=workers, initializer=_store_in_global_storage, initargs=(copy_to_global_storage,), maxtasksperchild=400) as pool:
+        if mp_context == "thread":
+            from multiprocessing.pool import ThreadPool
+            pool = ThreadPool
+        elif mp_context is None: # os default
+            pool = mp.Pool
+        else:
+            pool = mp.get_context(mp_context).Pool
+        
+        with pool(processes=workers, initializer=_store_in_global_storage, initargs=(copy_to_global_storage,), maxtasksperchild=400) as pool:
             if verbose>0:
                 cprint(f'multiprocess pool created with {workers} workers.', 'cyan')            
             map_func = pool.imap if keep_results_order else pool.iunordered
