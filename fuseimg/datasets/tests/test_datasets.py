@@ -29,7 +29,7 @@ class TestDatasets(unittest.TestCase):
         super().setUp()
         
         self.kits21_cache_dir = mkdtemp(prefix="kits21_cache")
-        self.kits21_data_dir = mkdtemp(prefix="kits21_data")
+        self.kits21_data_dir = os.environ["KITS21_DATA_PATH"] if "KITS21_DATA_PATH" in os.environ else mkdtemp(prefix="kits21_data")
 
         self.stoic21_cache_dir = mkdtemp(prefix="stoic_cache")
 
@@ -102,7 +102,8 @@ class TestDatasets(unittest.TestCase):
     
     def tearDown(self) -> None:
         shutil.rmtree(self.kits21_cache_dir)
-        shutil.rmtree(self.kits21_data_dir)
+        if "KITS21_DATA_PATH" not in os.environ:
+            shutil.rmtree(self.kits21_data_dir)
 
         shutil.rmtree(self.stoic21_cache_dir)
         
