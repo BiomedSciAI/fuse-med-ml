@@ -78,7 +78,7 @@ class TestDatasets(unittest.TestCase):
             """
         )
     
-    @testbook(notebook_path, execute=range(0,4), timeout=120)
+    @testbook(notebook_path, execute=range(0,4), timeout=240)
     def test_caching(tb, self):
         tb.execute_cell([9])
 
@@ -89,7 +89,7 @@ class TestDatasets(unittest.TestCase):
             """
         )
     
-    @testbook(notebook_path, execute=range(0,4), timeout=120)
+    @testbook(notebook_path, execute=range(0,4), timeout=240)
     def test_custom(tb, self):
         tb.execute_cell([25])
 
