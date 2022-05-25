@@ -78,7 +78,7 @@ def __orig__run_multiprocessed(worker_func, args_list, workers=0, verbose=0,
 def run_multiprocessed(worker_func, args_list, workers=0, verbose=0, 
     copy_to_global_storage: Optional[dict] = None,
     keep_results_order:bool=True,
-    as_iterator=False,
+    as_iterator=False, mp_context: str = "spawn"
     ) -> List[Any]:
     '''
     Args:
@@ -114,6 +114,7 @@ def run_multiprocessed(worker_func, args_list, workers=0, verbose=0,
         verbose=verbose,
         copy_to_global_storage=copy_to_global_storage,
         keep_results_order=keep_results_order,
+        mp_context=mp_context
     )
 
     if as_iterator:
@@ -125,7 +126,7 @@ def run_multiprocessed(worker_func, args_list, workers=0, verbose=0,
 
 def _run_multiprocessed_as_iterator_impl(worker_func, args_list, workers=0, verbose=0, 
     copy_to_global_storage: Optional[dict] = None,
-    keep_results_order:bool=True,
+    keep_results_order:bool=True, mp_context: str = "spawn"
     ) -> List[Any]:
     '''
     an iterator version of run_multiprocessed - useful when the accumulated answer is too large to fit in memory
@@ -174,7 +175,7 @@ def _run_multiprocessed_as_iterator_impl(worker_func, args_list, workers=0, verb
         assert isinstance(workers, int)
         assert workers>=0
 
-        with mp.Pool(processes=workers, initializer=_store_in_global_storage, initargs=(copy_to_global_storage,), maxtasksperchild=400) as pool:
+        with mp.get_context(mp_context).Pool(processes=workers, initializer=_store_in_global_storage, initargs=(copy_to_global_storage,), maxtasksperchild=400) as pool:
             if verbose>0:
                 cprint(f'multiprocess pool created with {workers} workers.', 'cyan')            
             map_func = pool.imap if keep_results_order else pool.iunordered

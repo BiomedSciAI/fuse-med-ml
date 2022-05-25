@@ -47,8 +47,6 @@ class TestDatasets(unittest.TestCase):
     
     @unittest.skipIf("STOIC21_DATA_PATH" not in os.environ, "Expecting environment variable STOIC21_DATA_PATH to be defined")
     def test_stoic21(self):
-        mp.set_start_method('spawn')
-        
         data_path = os.environ["STOIC21_DATA_PATH"]
         sids = STOIC21.sample_ids(data_path)[:10]
         ds = STOIC21.dataset(sample_ids=sids, data_path=data_path, cache_dir=self.stoic21_cache_dir, reset_cache=True)
