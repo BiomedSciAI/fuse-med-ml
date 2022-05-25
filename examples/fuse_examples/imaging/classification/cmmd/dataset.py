@@ -22,7 +22,7 @@ from fuse.utils.rand.param_sampler import RandBool, RandInt, Uniform
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
 import numpy as np
 from fuse.data.utils.split import SplitDataset
-from typing import Tuple
+from typing import Tuple, List
 
 def create_folds(input_source: str,
                 input_df : pd.DataFrame,
@@ -70,7 +70,12 @@ def create_folds(input_source: str,
 
     return create_folds.folds_df[create_folds.folds_df['fold'].isin(folds)]
 
-def create_dataset_partition(phase, data_dir, data_source, cache_dir = None, restart_cache = True, specific_ids= []) :
+def create_dataset_partition(phase : str,
+                             data_dir: str,
+                             data_source : pd.DataFrame,
+                             cache_dir : str = None,
+                             restart_cache : bool = True,
+                             specific_ids : List = []) :
     """
     Creates Fuse Dataset single object (either for training, validation and test or user defined set)
     :param phase:                       parition name (training / validation / test)
