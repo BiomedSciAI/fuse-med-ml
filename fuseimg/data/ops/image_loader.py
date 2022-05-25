@@ -1,5 +1,5 @@
 import os
-from fuse.data.ops.op_base import OpBase
+from fuse.data.ops.op_base import OpBase, OpReversibleBase
 from typing import Optional
 import numpy as np
 from fuse.data.ops.ops_common import OpApplyTypes
@@ -7,7 +7,7 @@ import nibabel as nib
 from fuse.utils.ndict import NDict
 import skimage.io as io
 
-class OpLoadImage(OpBase):
+class OpLoadImage(OpReversibleBase):
     '''
     Loads a medical image, currently only nii is supported
     '''
@@ -32,7 +32,11 @@ class OpLoadImage(OpBase):
         sample_dict[key_out] = img_np
 
         return sample_dict
+    
+    def reverse(self, sample_dict: dict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
+        return sample_dict
 
+<<<<<<< HEAD
     def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:        
         return sample_dict 
     
@@ -56,3 +60,5 @@ class OpDownloadImage(OpBase):
 
     def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:        
         return sample_dict           
+=======
+>>>>>>> 5a68105ea23c7dab6532e74cc9b3e73ce7bc2cb3
