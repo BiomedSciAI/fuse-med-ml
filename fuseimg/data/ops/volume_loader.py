@@ -1,6 +1,5 @@
 import os
 
-print(os.environ["LD_LIBRARY_PATH"])
 from fuse.data.ops.op_base import OpBase
 from typing import Optional
 import numpy as np
@@ -14,13 +13,77 @@ import h5py
 import SimpleITK as sitk
 from typing import Tuple
 from tqdm import tqdm
+from fuse.data.utils.sample import get_sample_id
+
+
+def main():
+    root_data = '/projects/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI/manifest-1607053360376/'
+    data_path = os.path.join(root_data, 'Duke-Breast-Cancer-MRI')
+    data_metadata_path = os.path.join(root_data, 'metadata.csv')
+
+    seq_ids = ['DCE_mix_ph1', 'DCE_mix_ph3']
+    TEST_PATIENT_ID, TEST_STUDY_ID = 'Breast_MRI_900', '01-01-1990-BREASTROUTINE DYNAMICS-51487'
+    sample_dict = {}
+    sample_dict['data.sample_id'] = (TEST_PATIENT_ID, TEST_STUDY_ID)
+
+    seq_dict, SER_INX_TO_USE, exp_patients, _, _ = process_mri_series(data_metadata_path)
+
+    # ------------------------------------------------MRI processor
+    op_extract_dicom_per_seq = OpExtractDicomsPerSeq(dir_path=data_path, use_order_indicator=False)
+
+    op_load_dicom_stk_vol = OpLoadDicomAsStkVol(data_path, reverse_order=False, is_path=False)
+
+
+    # Load volumes dict
+    for seq_desc1 in tqdm(seq_ids):
+        sample_dict = op_extract_dicom_per_seq(sample_dict,
+                                               seq_desc=seq_desc1,
+                                               seq_dict=seq_dict,
+                                               )
+
+        sample_dict = op_load_dicom_stk_vol(sample_dict,
+                                            key_img_path=f'data.input.sequence_path.{seq_desc1}',
+                                            key_img_list=f'data.input.img_list.{seq_desc1}',
+                                            key_out=f'data.input.sequence_volumes.{seq_desc1}')  #todo: change to seq_volume_list
+
+
+
+
+
+    ###########
+
+    # get list
+
+
+    op = OpMakeListOfVol(ser_inx_to_use=SER_INX_TO_USE, subseq_to_use=['DCE_mix'], exp_patients=exp_patients) #todo: special
+    sample_dict = op(sample_dict, key_sequence_volumes_prefix='data.input.sequence_volumes.', 
+                     key_sequence_path_prefix='data.input.sequence_path.',
+                     key_sequence_series_num_prefix='data.input.sequence_series_num.',
+                     key_sequence_ids='data.input.sequence_ids')
+
+    op_resample_stk_vols_based_ref = OpResampleStkVolsBasedRef(reference_inx=0, interpolation='bspline')
+    sample_dict = op_resample_stk_vols_based_ref(sample_dict, key_seq_volumes_prefix=f'data.input.sequence_volumes.',
+                                                 key_out_prefix=f'data.input.sequence_volumes_resampled.',
+                                                 key_seq_ids='data.input.sequence_ids')
+
+
+
+    # op = OpStackListStk(reference_inx=0)
+    # sample = op.__call__(sample,sample['vols_list'])
+    #
+    # op = OpRescale4DStk(mask_ch_inx=None)
+    # sample = op.__call__(sample,sample['vol4D'])
+
+    # -------------------------------------------------processor
+
+    a = 1
 
 
 # put in dataset
 def process_mri_series(metadata_path: str):  # specific for DUKE data?
-    exp_patients = ['Breast_MRI_120', 'Breast_MRI_596']
+    special_patients = ['Breast_MRI_120', 'Breast_MRI_596']
 
-    seq_to_use = ['DCE_mix_ph1',
+    seq_to_use = ['DCE_mix_ph1',  #first sequence in the reference volume
                   'DCE_mix_ph2',
                   'DCE_mix_ph3',
                   'DCE_mix_ph4',
@@ -36,7 +99,7 @@ def process_mri_series(metadata_path: str):  # specific for DUKE data?
     }
 
     opt_seq = [
-        '1st', '1ax', '1Ax', '1/ax',  # todo: why don't add '1/AX'?
+        '1st', '1ax', '1Ax', '1/ax',  # todo: why don't add '1/AX'?  check if need to be added
         '2nd', '2ax', '2Ax', '2/ax',
         '3rd', '3ax', '3Ax', '3/ax',
         '4th', '4ax', '4Ax', '4/ax',
@@ -46,7 +109,7 @@ def process_mri_series(metadata_path: str):  # specific for DUKE data?
     metadata_df = pd.read_csv(metadata_path)
     all_seq_ids = metadata_df['Series Description'].unique()
 
-    all_seq_ids_slash = [s.replace('ax', '/ax').replace('Ax', '/Ax') for s in all_seq_ids]
+    all_seq_ids_slash = [s.replace('ax', '/ax').replace('Ax', '/Ax') for s in all_seq_ids] #todo: maybe we can remove this
 
     seq_to_use_dict = {}
     for opt_seq_tmp, my_key in zip(opt_seq, my_keys):
@@ -55,19 +118,17 @@ def process_mri_series(metadata_path: str):  # specific for DUKE data?
         seq_to_use_dict[my_key] += [s for s in all_seq_ids if opt_seq_tmp in s] + [s for s in all_seq_ids_slash
                                                                                    if opt_seq_tmp in s]
 
+
     if 'DCE_mix_ph' not in seq_to_use_dict.keys():
         seq_to_use_dict['DCE_mix_ph'] = []
-    seq_to_use_dict['DCE_mix_ph'] += ['ax dyn']
+    seq_to_use_dict['DCE_mix_ph'] += ['ax dyn']  #todo: at the end this will be part of DCE_mix
 
     # todo: MASK in subseq_to_use but not in seq_to_use_dict. why do we need subset_to_use?
     # todo: why do we generate all_seq_ids_slash?  they may appear on disk but not in metadata?
-    return seq_to_use_dict, SER_INX_TO_USE, exp_patients, seq_to_use, subseq_to_use  # todo: can delete the last two items?
+    return seq_to_use_dict, SER_INX_TO_USE, special_patients, seq_to_use, subseq_to_use  # todo: can delete the last two items?
 
 
-# sequences with special fix
-B_SER_FIX = ['diffusie-3Scan-4bval_fs',
-             'ep2d_DIFF_tra_b50_500_800_1400_alle_spoelen',
-             'diff tra b 50 500 800 WIP511b alle spoelen']
+
 
 
 # ------------------------------------------------MRI processor
@@ -87,41 +148,41 @@ class OpExtractDicomsPerSeq(OpBase):
     :param key_out:
     '''
 
-    def __call__(self, sample_dict: NDict, key_in: (str, str), key_out: (str, str), seq_desc: str, seq_dict: dict):
-
-        patient_id = sample_dict[key_in[0]]
-        study_id = sample_dict[key_in[1]]
-        sample_path = os.path.join(self._dir_path, patient_id, study_id)
+    def __call__(self, sample_dict: NDict, seq_desc: str, seq_dict: dict):
+        sample_id = get_sample_id(sample_dict)
+        if isinstance(sample_id, str):
+            sample_path = os.path.join(self._dir_path, sample_id)
+        else:
+            sample_path = os.path.join(self._dir_path, *sample_id)
 
         seq_path = self.extract_seq_dir(sample_path, seq_desc, seq_dict)
 
-        seq_dicom_path = os.path.join(seq_path,os.listdir(seq_path)[0])
+        seq_dicom_path = os.path.join(seq_path, os.listdir(seq_path)[0])
         dcm_ds = pydicom.dcmread(seq_dicom_path)
 
         series_num = self.extract_ser_num(dcm_ds)
         dicom_field = self.extract_dicom_field(dcm_ds, seq_desc)
         sorted_dicom_list = self.sort_dicoms_by_field(seq_path, dicom_field)
 
-        dicom_list = sorted_dicom_list[0]
-        for key in key_out:
-            if key not in sample_dict:
-                sample_dict[key] = {}
+        dicom_list = sorted_dicom_list
 
-
-        sample_dict[key_out[0]][seq_desc] = seq_path
-        sample_dict[key_out[1]][seq_desc] = series_num
-        sample_dict[key_out[2]][seq_desc] = dicom_list
+        sample_dict[f'data.input.sequence_path.{seq_desc}'] = seq_path  #todo: change img to seq
+        sample_dict[f'data.input.img_list.{seq_desc}'] = dicom_list  #seq_dicom_list
+        sample_dict[f'data.input.sequence_series_num.{seq_desc}'] = series_num
+        if 'data.input.sequence_ids' not in sample_dict:
+            sample_dict['data.input.sequence_ids'] = []
+        sample_dict['data.input.sequence_ids'].append(seq_desc)
 
         return sample_dict
 
     def extract_seq_dir(self, sample_path, seq_desc, seq_dict):
-        seq_list = os.listdir(sample_path)
+        seq_dir_files = os.listdir(sample_path)
 
-        for seq_pattern in seq_dict[seq_desc]:
-            match_seq = [seq for seq in seq_list if seq_pattern in seq]
-            assert len(match_seq) <=1
-            if len(match_seq) > 0:
-                return os.path.join(sample_path, match_seq[0])
+        for seq_desc in seq_dict[seq_desc]:
+            match_seq_dirs = [seq for seq in seq_dir_files if seq_desc in seq]
+            assert len(match_seq_dirs) <= 1
+            if len(match_seq_dirs) > 0:
+                return os.path.join(sample_path, match_seq_dirs[0])
 
         raise Exception(f"OpExtractSeqInfo: no {seq_desc} was found under path")
 
@@ -129,9 +190,8 @@ class OpExtractDicomsPerSeq(OpBase):
 
         # series number
         if hasattr(dcm_ds, 'AcquisitionNumber'):
-            return  int(dcm_ds.AcquisitionNumber)
+            return int(dcm_ds.AcquisitionNumber)
         return int(dcm_ds.SeriesNumber)
-
 
     def extract_dicom_field(self, dcm_ds, seq_desc):
 
@@ -224,7 +284,7 @@ class OpLoadDicomAsStkVol(OpBase):
     Return location dir of requested sequence
     '''
 
-    def __init__(self, dir_path: str, reverse_order: bool, is_path: bool, **kwargs):
+    def __init__(self, dir_path: str, reverse_order: bool=False, is_path: bool=False, **kwargs):  #todo: change to is_file
         """
 
         :param dir_path:
@@ -238,15 +298,15 @@ class OpLoadDicomAsStkVol(OpBase):
         self._reverse_order = reverse_order
         self._is_path = is_path
 
-    def __call__(self, sample_dict: NDict, img_path: str, img_list: list, seq_desc: str):
+    def __call__(self, sample_dict: NDict, key_img_path: str, key_img_list: str, key_out: str): #todo: add optional paramter to override is_path and reverse_order
         """
         extract_stk_vol loads dicoms into sitk vol
         :param img_path: path to dicoms - load all dicoms from this path
         :param img_list: list of dicoms to load
         :return: list of stk vols
         """
-        if 'seq_vol' not in sample_dict.keys():
-            sample_dict['seq_vol'] = {}
+        img_path = sample_dict[key_img_path]
+        img_list = sample_dict[key_img_list]#todo: change to seq_dicom_list
 
         stk_vols = []
 
@@ -278,7 +338,7 @@ class OpLoadDicomAsStkVol(OpBase):
                 if img_list == []:
                     img_list = [series_reader.GetGDCMSeriesFileNames(img_path)]
 
-                for n, imgs_names in enumerate(img_list):
+                for i_img, imgs_names in enumerate(img_list):
                     if isinstance(imgs_names, str):
                         imgs_names = [imgs_names]
                     if img_path not in imgs_names[0]:
@@ -288,7 +348,7 @@ class OpLoadDicomAsStkVol(OpBase):
                     imgs = series_reader.Execute()
                     stk_vols.append(imgs)
 
-            sample_dict['seq_vol'][seq_desc] = stk_vols
+            sample_dict[key_out] = stk_vols
             return sample_dict
 
         except Exception as e:
@@ -302,10 +362,8 @@ class OpMakeListOfVol(OpBase):
         self._subseq_to_use = subseq_to_use
         self._exp_patients = exp_patients
 
-    def __call__(self, sample_dict: NDict,
-                 vols_dict: dict,
-                 seq_info: dict
-                 ):
+    def __call__(self, sample_dict: NDict, key_sequence_volumes_prefix: str, key_sequence_path_prefix: str,
+                 key_sequence_series_num_prefix: str, key_sequence_ids: str):
         """
         extract_list_of_rel_vol extract the volume per seq based on SER_INX_TO_USE
         and put in one list
@@ -313,6 +371,8 @@ class OpMakeListOfVol(OpBase):
         :param seq_info: dict of seq description per seq
         :return:
         """
+        vols_dict = {k[len(key_sequence_volumes_prefix):]: sample_dict[k] for k in sample_dict if k.startswith(key_sequence_volumes_prefix)}
+        img_path_dict = {k[len(key_sequence_path_prefix):]: sample_dict[k] for k in sample_dict if k.startswith(key_sequence_path_prefix)}
 
         def get_zeros_vol(vol):
 
@@ -326,12 +386,15 @@ class OpMakeListOfVol(OpBase):
             return zeros_vol
 
         def stack_rel_vol_in_list(vols, series_inx_to_use, seq):
+            # sequences with special fix
+            B_SER_FIX = ['diffusie-3Scan-4bval_fs',
+                         'ep2d_DIFF_tra_b50_500_800_1400_alle_spoelen',
+                         'diff tra b 50 500 800 WIP511b alle spoelen']   #TODO: explain
             vols_list = []
+            patient_id = sample_dict['data.sample_id'][0]
+            use_series_index = patient_id in self._exp_patients  #todo: explain
             for s, v0 in vols.items():
-                vol_inx_to_use = series_inx_to_use['all'][s]
-
-                if sample_dict['sample_id'] in self._exp_patients:
-                    vol_inx_to_use = series_inx_to_use[sample_dict['sample_id']][s]
+                vol_inx_to_use = series_inx_to_use[patient_id][s] if use_series_index else series_inx_to_use['all'][s]
 
                 if isinstance(vol_inx_to_use, list):
                     for inx in vol_inx_to_use:
@@ -359,8 +422,8 @@ class OpMakeListOfVol(OpBase):
                         if self._verbose:
                             print('\n - problem with reading %s volume!' % s)
 
-            if ('b' in seq_info.keys()):
-                if (seq_info['b'][0] in B_SER_FIX):
+            if ('b' in img_path_dict):
+                if (img_path_dict['b'][0] in B_SER_FIX):
                     vols_list[seq.index('b800')].CopyInformation(vols_list[seq.index('ADC')])
                     vols_list[seq.index('b400')].CopyInformation(vols_list[seq.index('ADC')])
 
@@ -372,80 +435,84 @@ class OpMakeListOfVol(OpBase):
         # ------------------------
         # stack volumes by  seq order,
         # keep only vol as defined in series_inx_to_use
-        if 'b_mix' in sample_dict['seq_vol'].keys():
-            vols_dict.pop('b_mix')
-            seq_info.pop('b_mix')
+        if 'b_mix' in vols_dict:
+            vols_dict.pop('b_mix') #todo: remove from sample_dictinary
+            img_path_dict.pop('b_mix')
 
         # handle multiphase DCE in different series
         if (('DCE_mix_ph1' in vols_dict.keys()) and (len(vols_dict['DCE_mix_ph1']) > 0)) | \
                 (('DCE_mix_ph2' in vols_dict.keys()) and (len(vols_dict['DCE_mix_ph2']) > 0)) | \
                 (('DCE_mix_ph3' in vols_dict.keys()) and (len(vols_dict['DCE_mix_ph3']) > 0)):
 
-            keys_list = [tmp for tmp in list(vols_dict.keys()) if 'DCE_mix_' in tmp]
-            vols_dict['DCE_mix'] = []
-            seq_info['DCE_mix'] = []
-            for key in keys_list:
+            new_seq_id = 'DCE_mix'  # todo: add assert that does not exist
+            seq_ids_to_group = [seq_id for seq_id in list(vols_dict) if f'{new_seq_id}_' in seq_id]
+            vols_dict[new_seq_id] = []
+            img_path_dict[new_seq_id] = []
+            img_path_key = f'{key_sequence_path_prefix}{new_seq_id}'
+            sample_dict[img_path_key] = []
+            for key in seq_ids_to_group:
                 stk_vols = vols_dict[key]
-                series_desc = seq_info[key]
-                vols_dict['DCE_mix'] += stk_vols
-                sample_dict['seq_dir']['DCE_mix'] += [series_desc]
-                vols_dict.pop(key)
-                seq_info.pop(key)
+                series_path = img_path_dict[key]
+                vols_dict[new_seq_id] += stk_vols  #todo: append to sample_dict
+                sample_dict[img_path_key].append(series_path)
+                vols_dict.pop(key) #todo: remove from sample_dictinary
+                img_path_dict.pop(key)
 
-        if ('DCE_mix_ph' in vols_dict.keys()):
-            if (len(vols_dict['DCE_mix_ph']) > 0):
-                keys_list = [tmp for tmp in list(sample_dict['ser_num'].keys()) if 'DCE_mix_' in tmp]
-                for key in keys_list:
-                    stk_vols = sample_dict['seq_vol'][key]
-                    if (len(stk_vols) > 0):
-                        inx_sorted = np.argsort(sample_dict['ser_num'][key])
-                        for ser_num_inx in inx_sorted:
-                            vols_dict['DCE_mix'] += [stk_vols[int(ser_num_inx)]]
-                            seq_info['DCE_mix'] += [series_desc]
+        if ('DCE_mix_ph' in vols_dict.keys()) and (len(vols_dict['DCE_mix_ph']) > 0):  #todo: can this if happen but not the former?
+            new_seq_id = 'DCE_mix'
+            seq_ids_to_group = [seq_id for seq_id in sample_dict[key_sequence_ids] if f'{new_seq_id}_' in seq_id]
+            img_path_key = f'{key_sequence_path_prefix}{new_seq_id}'
+            if img_path_key not in sample_dict:
+                sample_dict[img_path_key] = []
+                vols_dict[new_seq_id] = []
+                img_path_dict[new_seq_id] = []
+            for seq_id in seq_ids_to_group:
+                stk_vols = sample_dict[f'{key_sequence_volumes_prefix}{seq_id}']
+                series_path = img_path_dict[seq_id]
+                if (len(stk_vols) > 0):
+                    inx_sorted = np.argsort(sample_dict[f'{key_sequence_series_num_prefix}{seq_id}'])
+                    for ser_num_inx in inx_sorted:
+                        vols_dict[new_seq_id] += [stk_vols[int(ser_num_inx)]]
+                        img_path_dict[new_seq_id].append(series_path)
 
-                    vols_dict.pop(key)
-                    seq_info.pop(key)
+                vols_dict.pop(key)  #todo: remove from sample_dictinary
+                img_path_dict.pop(key)
 
         vols_list = stack_rel_vol_in_list(vols_dict, self._ser_inx_to_use, self._subseq_to_use)
         sample_dict['vols_list'] = vols_list
-        sample_dict['seq_dir'] = seq_info
+        sample_dict['seq_dir'] = img_path_dict
         return sample_dict
 
 
 class OpResampleStkVolsBasedRef(OpBase):
     def __init__(self, reference_inx: int, interpolation: str, **kwargs):
         super().__init__(**kwargs)
+        assert reference_inx is not None #todo: redundant??
         self.reference_inx = reference_inx
         self.interpolation = interpolation
 
-    def __call__(self, sample_dict: NDict,
-                 vols: list
-                 ):
-
-        # ------------------------
-        # casting to float32
-        vols = [sitk.Cast(im, sitk.sitkFloat32) for im in vols]
+    def __call__(self, sample_dict: NDict, key_seq_volumes_prefix:str, key_out_prefix:str, key_seq_ids: str):
 
         # ------------------------
         # create resampling operator based on ref vol
+        seq_ids = sample_dict[key_seq_ids]
+        ref_seq_id = seq_ids[self.reference_inx]
+        ref_seq_volumes = sample_dict[f'{key_seq_volumes_prefix}{ref_seq_id}']
+        assert len(ref_seq_volumes) == 1
+        ref_seq_volume = sitk.Cast(ref_seq_volumes[0], sitk.sitkFloat32) #todo: verify
 
-        if self.reference_inx is not None:
-            # define the reference volume
-            vol_ref = vols[self.reference_inx]
-            other_inx = list(set(range(0, len(vols))) - set([self.reference_inx]))
 
-            resample = self.create_resample(vol_ref, self.interpolation, size=vol_ref.GetSize(),
-                                            spacing=vol_ref.GetSpacing())
+        resample = self.create_resample(ref_seq_volume, self.interpolation, size=ref_seq_volume.GetSize(),
+                                        spacing=ref_seq_volume.GetSpacing())
 
-            vols_res = []
-            for i, vol in enumerate(vols):
-                if i in other_inx:
-                    vol_res = resample.Execute(vol)
-                else:
-                    vol_res = vol_ref
-                vols_res.append(vol_res)
+        for i_seq, seq_id in enumerate(seq_ids):
+            seq_volumes = sample_dict[f'{key_seq_volumes_prefix}{seq_id}']
+            if i_seq == self.reference_inx:
+                seq_volumes_resampled = [ref_seq_volume] # do nothing
+            else:
+                seq_volumes_resampled = [resample.Execute( sitk.Cast(vol, sitk.sitkFloat32)) for vol in seq_volumes]
+            sample_dict[f'{key_out_prefix}{seq_id}'] = seq_volumes_resampled
 
-        sample_dict['vols_res'] = vols_res
         return sample_dict
 
     def create_resample(self, vol_ref: sitk.sitkFloat32, interpolation: str, size: Tuple[int, int, int],
@@ -570,58 +637,6 @@ class OpRescale4DStk(OpBase):
 # -------------------------------------------------processor
 
 
-def main():
-    path_to_db = '.'
-    root_data = '/projects/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI/manifest-1607053360376/'
-    data_path = os.path.join(root_data, 'Duke-Breast-Cancer-MRI')
-    data_metadata_path = os.path.join(root_data, 'metadata.csv')
-
-    seq_ids = ['DCE_mix_ph1', 'DCE_mix_ph3']
-
-    sample_dict = {}
-    sample_dict['sample_id'] = 'Breast_MRI_900'
-    sample_dict['study_id'] = '01-01-1990-BREASTROUTINE DYNAMICS-51487'
-
-    seq_dict, SER_INX_TO_USE, exp_patients, _, _ = process_mri_series(data_metadata_path)
-
-    # ------------------------------------------------MRI processor
-    op_extract_dicom_per_seq = OpExtractDicomsPerSeq(dir_path=data_path, use_order_indicator=False)
-
-    op_load_dicom_stk_vol = OpLoadDicomAsStkVol(data_path, reverse_order=False, is_path=False)
-
-    op_resample_stk_vols_based_ref = OpResampleStkVolsBasedRef(reference_inx=0, interpolation='bspline')
-
-    # Load volumes dict
-    for seq_desc1 in tqdm(seq_ids):
-        sample_dict = op_extract_dicom_per_seq(sample_dict,
-                                               key_in=('sample_id', 'study_id'),
-                                               key_out=('seq_dir', 'seq_num', 'dicom_list'),
-                                               seq_desc=seq_desc1,
-                                               seq_dict=seq_dict,
-                                               )
-
-        sample_dict = op_load_dicom_stk_vol(sample_dict,
-                                            img_path=sample_dict['seq_dir'][seq_desc1],
-                                            img_list=sample_dict['dicom_list'][seq_desc1],
-                                            seq_desc=seq_desc1)
-
-        sample_dict = op_resample_stk_vols_based_ref(sample_dict, sample_dict['seq_vol'][seq_desc1])
-
-    ###########
-    # get list
-
-    op = OpMakeListOfVol(SER_INX_TO_USE, ['DCE_mix'], exp_patients)
-    sample_dict = op.__call__(sample_dict, sample_dict['seq_vol'], sample_dict['seq_dir'])
-
-    # op = OpStackListStk(reference_inx=0)
-    # sample = op.__call__(sample,sample['vols_list'])
-    #
-    # op = OpRescale4DStk(mask_ch_inx=None)
-    # sample = op.__call__(sample,sample['vol4D'])
-
-    # -------------------------------------------------processor
-
-    a = 1
 
 
 if __name__ == "__main__":
