@@ -36,11 +36,7 @@ class OpLoadImage(OpReversibleBase):
     def reverse(self, sample_dict: dict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
         return sample_dict
 
-<<<<<<< HEAD
-    def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:        
-        return sample_dict 
-    
-class OpDownloadImage(OpBase):
+class OpDownloadImage(OpReversibleBase):
     '''
     Loads a medical image, currently only nii is supported
     '''
@@ -59,6 +55,4 @@ class OpDownloadImage(OpBase):
         return sample_dict
 
     def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:        
-        return sample_dict           
-=======
->>>>>>> 5a68105ea23c7dab6532e74cc9b3e73ce7bc2cb3
+        return sample_dict  

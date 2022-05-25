@@ -25,17 +25,3 @@ class TypedElement:
         self.ucrle = ucrle
         self.labels = labels
         self.metadata = metadata
-
-def typedElementFromSample(sample_dict, key_pattern, td):
-    patterns = Patterns({key_pattern: True}, False)
-    all_keys = [k for k in NDict.get_all_keys(sample_dict) if patterns.get_value(k)]
-    
-    content = {td.get_type(sample_dict, k).value: sample_dict[k] for k in all_keys if td.get_type(sample_dict, k) != DataTypeBasic.UNKNOWN}
-    keymap = {td.get_type(sample_dict, k): k for k in all_keys if td.get_type(sample_dict, k) != DataTypeBasic.UNKNOWN}
-    elem = TypedElement(**content)
-    return elem, keymap
-
-def typedElementToSample(sample_dict, typed_element, keymap):
-    for k,v in keymap.items():
-        NDict.set(sample_dict, v, typed_element.__getattribute__(k.value))
-    return sample_dict
