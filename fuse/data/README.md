@@ -127,6 +127,7 @@ pipeline = PipelineDefault('test_pipeline', [
 sample = pipeline(sample)
 
 ```
+The images will be displayed to the screen using matplotlib library.
 
 ## Caching
 **The original code is in example_cache_pipeline() in fuse/data/examples/examples_readme.py**
