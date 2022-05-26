@@ -16,6 +16,7 @@ import pickle
 import os
 from typing import Hashable, Sequence
 from fuse.data.datasets.dataset_base import DatasetBase
+from fuse.utils.file_io.file_io import load_pickle, save_pickle
 from sklearn.utils import shuffle
 import pandas as pd
 import numpy as np
@@ -118,8 +119,7 @@ def dataset_balanced_division_to_folds(dataset: DatasetBase, output_split_filena
     Support balancing, exclusion and radom seed (with a small improvement could support no mixture criterion).  
     """ 
     if os.path.exists(output_split_filename) and not reset_split:
-        with open(output_split_filename, "rb") as f:
-            return pickle.load(f)
+        return load_pickle(output_split_filename)
     else:
         keys = [get_sample_id_key()]
         if keys_to_balance is not None:
@@ -130,8 +130,7 @@ def dataset_balanced_division_to_folds(dataset: DatasetBase, output_split_filena
         folds = {}
         for fold in range(nfolds):
             folds[fold] = list(df_folds[df_folds["fold"] == fold][get_sample_id_key()])
-        with open(output_split_filename, "wb") as f:
-            pickle.dump(folds, f)
+        save_pickle(folds, output_split_filename)
         return folds
 
             

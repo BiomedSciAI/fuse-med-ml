@@ -20,14 +20,12 @@ Created on June 30, 2021
 import logging
 import os
 from typing import OrderedDict
-import multiprocessing
+from fuse.utils.file_io.file_io import load_pickle
 
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-import torchvision.models as models
 from torch.utils.data.dataloader import DataLoader
-from torchvision import transforms
 
 from fuse.eval.evaluator import EvaluatorDefault 
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
@@ -63,13 +61,15 @@ debug = FuseDebug(mode)
 ##########################################
 # Output Paths
 ##########################################
+assert "STOIC21_DATA_PATH" in os.environ, "Expecting environment variable STOIC21_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
 ROOT = 'examples' # TODO: fill path here
-PATHS = {'model_dir': os.path.join(ROOT, 'stoic21_2/model_dir'),
+PATHS = {'model_dir': os.path.join(ROOT, 'stoic21_3/model_dir'),
          'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
-         'cache_dir': os.path.join(ROOT, 'stoic21_2/cache_dir'),
+         'cache_dir': os.path.join(ROOT, 'stoic21_3/cache_dir'),
+         'data_split_filename': os.path.join(ROOT, 'stoic21_split.pkl'),
          'data_dir': os.environ["STOIC21_DATA_PATH"],
-         'inference_dir': os.path.join(ROOT, 'stoic21_2/infer_dir'),
-         'eval_dir': os.path.join(ROOT, 'stoic21_2/eval_dir')}
+         'inference_dir': os.path.join(ROOT, 'stoic21_3/infer_dir'),
+         'eval_dir': os.path.join(ROOT, 'stoic21_3/eval_dir')}
 
 ##########################################
 # Train Common Params
@@ -82,18 +82,22 @@ TRAIN_COMMON_PARAMS = {}
 # ============
 # Data
 # ============
-TRAIN_COMMON_PARAMS['data.batch_size'] = 2
-TRAIN_COMMON_PARAMS['data.train_num_workers'] = 8
-TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 8
+TRAIN_COMMON_PARAMS['data.batch_size'] = 4
+TRAIN_COMMON_PARAMS['data.train_num_workers'] = 16
+TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 16
+TRAIN_COMMON_PARAMS['data.num_folds'] = 5
+TRAIN_COMMON_PARAMS['data.train_folds'] = [0, 1, 2]
+TRAIN_COMMON_PARAMS['data.validation_folds'] = [3]
+
 
 # ===============
 # Manager - Train
 # ===============
 TRAIN_COMMON_PARAMS['manager.train_params'] = {
     'device': 'cuda', 
-    'num_epochs': 5,
+    'num_epochs': 50,
     'virtual_batch_size': 1,  # number of batches in one virtual batch
-    'start_saving_epochs': 10,  # first epoch to start saving checkpoints from
+    'start_saving_epochs': 50,  # first epoch to start saving checkpoints from
     'gap_between_saving_epochs': 5,  # number of epochs between saved checkpoint
 }
 TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = {
@@ -105,16 +109,6 @@ TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = {
 TRAIN_COMMON_PARAMS['manager.learning_rate'] = 1e-4
 TRAIN_COMMON_PARAMS['manager.weight_decay'] = 0.001
 TRAIN_COMMON_PARAMS['manager.resume_checkpoint_filename'] = None  # if not None, will try to load the checkpoint
-
-
-def perform_softmax(output):
-    if isinstance(output, torch.Tensor):  # validation
-        logits = output
-    else:  # train
-        logits = output.logits
-    cls_preds = F.softmax(logits, dim=1)
-    return logits, cls_preds
-
 
 #################################
 # Train Template
@@ -140,18 +134,16 @@ def run_train(paths: dict, train_params: dict):
     dataset_all = STOIC21.dataset(paths["data_dir"], paths["cache_dir"])
     from fuse.data.utils.split import dataset_balanced_division_to_folds
     folds = dataset_balanced_division_to_folds(dataset=dataset_all,
-                                        output_split_filename="split.pkl", 
+                                        output_split_filename=paths["data_split_filename"], 
                                         keys_to_balance=["data.gt.probSevere"], 
-                                        nfolds=5)
+                                        nfolds=train_params["data.num_folds"])
 
-    train_folds = [0, 1, 2]
-    validation_folds = [3]
     # folds = {fold: sample_ids[len(sample_ids)//n_folds*fold: len(sample_ids)//n_folds*(fold + 1)] for fold in range(n_folds)}
     train_sample_ids = []
-    for fold in train_folds:
+    for fold in train_params["data.train_folds"]:
         train_sample_ids += folds[fold]
     validation_sample_ids = []
-    for fold in validation_folds:
+    for fold in train_params["data.validation_folds"]:
         validation_sample_ids += folds[fold]
 
     train_dataset = STOIC21.dataset(paths["data_dir"], paths["cache_dir"], sample_ids=train_sample_ids, train=True)
@@ -262,6 +254,9 @@ def run_train(paths: dict, train_params: dict):
 INFER_COMMON_PARAMS = {}
 INFER_COMMON_PARAMS['infer_filename'] = 'validation_set_infer.gz'
 INFER_COMMON_PARAMS['checkpoint'] = 'best'  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
+INFER_COMMON_PARAMS['data.infer_folds'] = TRAIN_COMMON_PARAMS['data.validation_folds']  # infer validation set
+INFER_COMMON_PARAMS['data.batch_size'] = 4
+INFER_COMMON_PARAMS['data.num_workers'] = 16
 
 
 ######################################
@@ -275,14 +270,18 @@ def run_infer(paths: dict, infer_common_params: dict):
     lgr.info(f'infer_filename={os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])}', {'color': 'magenta'})
 
     ## Data
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
-    ])
-    # Create dataset
-    validation_dataset = STOIC21.dataset(paths["cache_dir"], train=False)
+    folds = load_pickle(paths["data_split_filename"]) # assume exists and created in train func
+
+    infer_sample_ids = []                              
+    for fold in infer_common_params["data.infer_folds"]:
+        infer_sample_ids += folds[fold]
+
+    validation_dataset = STOIC21.dataset(paths["data_dir"], paths["cache_dir"], sample_ids=infer_sample_ids, train=False)
+
     # dataloader
-    validation_dataloader = DataLoader(dataset=validation_dataset, collate_fn=CollateDefault(), batch_size=2, num_workers=2)
+    validation_dataloader = DataLoader(dataset=validation_dataset, batch_size=infer_common_params['data.batch_size'], collate_fn=CollateDefault(),
+                                       num_workers=infer_common_params['data.num_workers'])
+
 
     ## Manager for inference
     manager = ManagerDefault()
@@ -310,13 +309,11 @@ def run_eval(paths: dict, eval_common_params: dict):
     lgr.info('Fuse Analyze', {'attrs': ['bold', 'underline']})
 
     # metrics
-    class_names = [str(i) for i in range(10)]
-
     metrics = OrderedDict([
         ('operation_point', MetricApplyThresholds(pred='model.output.classification')), # will apply argmax
         ('accuracy', MetricAccuracy(pred='results:metrics.operation_point.cls_pred', target='data.gt.probSevere')),
-        ('roc', MetricROCCurve(pred='model.output.classification', target='data.gt.probSevere', class_names=class_names, output_filename=os.path.join(paths['inference_dir'], 'roc_curve.png'))),
-        ('auc', MetricAUCROC(pred='model.output.classification', target='data.gt.probSevere', class_names=class_names)),
+        ('roc', MetricROCCurve(pred='model.output.classification', target='data.gt.probSevere', output_filename=os.path.join(paths['inference_dir'], 'roc_curve.png'))),
+        ('auc', MetricAUCROC(pred='model.output.classification', target='data.gt.probSevere')),
     ])
    
     # create evaluator
@@ -335,14 +332,13 @@ def run_eval(paths: dict, eval_common_params: dict):
 # Run
 ######################################
 if __name__ == "__main__":
-    multiprocessing.set_start_method('spawn')
     # allocate gpus
     # To use cpu - set NUM_GPUS to 0
     NUM_GPUS = 1
     if NUM_GPUS == 0:
         TRAIN_COMMON_PARAMS['manager.train_params']['device'] = 'cpu' 
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
-    force_gpus = [0]
+    force_gpus = [1]
     GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
     RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'

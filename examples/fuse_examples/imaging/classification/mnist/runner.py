@@ -258,10 +258,6 @@ def run_infer(paths: dict, infer_common_params: dict):
     lgr.info(f'infer_filename={os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])}', {'color': 'magenta'})
 
     ## Data
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
-    ])
     # Create dataset
     validation_dataset = MNIST.dataset(paths["cache_dir"], train=False)
     # dataloader
