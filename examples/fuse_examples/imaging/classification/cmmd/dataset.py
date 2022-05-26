@@ -3,23 +3,9 @@ import pandas as pd
 import pydicom
 import os, glob
 from pathlib import Path
-from functools import partial
 
-from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.datasets.dataset_default import DatasetDefault
-from fuse.data.datasets.caching.samples_cacher import SamplesCacher
-from fuseimg.data.ops.image_loader import OpLoadDicom
-from fuseimg.data.ops.color import OpNormalizeAgainstSelfImpl
-from fuseimg.data.ops.shape_ops import OpFlipBrightSideOnLeft2D , OpRemoveDarkBackgroundRectangle2D, OpResizeAndPad2D
-from fuse.data import PipelineDefault, OpToTensor
-from fuse.data.ops.ops_common import OpLambda
-from fuseimg.data.ops.aug.color import OpAugColor
-from fuseimg.data.ops.aug.geometry import OpAugAffine2D 
-from fuse.data.ops.ops_aug_common import OpSample
-from fuse.data.ops.ops_read import OpReadDataframe
-import torch
-from fuse.utils.rand.param_sampler import RandBool, RandInt, Uniform
-from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
+from fuseimg.datasets.cmmd import CMMD
 import numpy as np
 from fuse.data.utils.split import SplitDataset
 from typing import Tuple, List
@@ -70,71 +56,9 @@ def create_folds(input_source: str,
 
     return create_folds.folds_df[create_folds.folds_df['fold'].isin(folds)]
 
-def create_dataset_partition(phase : str,
-                             data_dir: str,
-                             data_source : pd.DataFrame,
-                             cache_dir : str = None,
-                             restart_cache : bool = True,
-                             specific_ids : List = []) :
-    """
-    Creates Fuse Dataset single object (either for training, validation and test or user defined set)
-    :param phase:                       parition name (training / validation / test)
-    :param data_dir:                    dataset root path
-    :param data_source                  csv file containing all samples file paths and ground truth
-    :param cache_dir:                   Optional, name of the cache folder
-    :param reset_cache:                 Optional,specifies if we want to clear the cache first
-    :param specific_ids                 Otional, specify which sample ids to include in this set instead of all given in dataframe
-    :return: DatasetDefault object
-    """
-    static_pipeline = PipelineDefault("static", [
-        
-        (OpReadDataframe(data_source,key_column = None , columns_to_extract = ['file','classification'] , rename_columns=dict(file="data.input.img_path",classification="data.gt.classification")), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path" 
-        (OpLoadDicom(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", format="nib")),
-        (OpFlipBrightSideOnLeft2D(), dict(key="data.input.img")),
-        (OpRemoveDarkBackgroundRectangle2D(), dict(key="data.input.img")),
-        (OpNormalizeAgainstSelfImpl(), dict(key="data.input.img")),
-        (OpResizeAndPad2D(), dict(key="data.input.img", resize_to=(2200, 1200), padding=(60, 60))),
-        ])
 
-    dynamic_pipeline = PipelineDefault("dynamic", [
-        (OpToTensor(), dict(key="data.input.img",dtype=torch.float32)),
-        (OpSample(OpAugAffine2D()), dict(
-                        key="data.input.img",
-                        rotate=Uniform(-30.0,30.0),        
-                        scale=Uniform(0.9, 1.1),
-                        flip=(RandBool(0.3), RandBool(0.5)),
-                        translate=(RandInt(-10, 10), RandInt(-10, 10))
-                    )),
-        (OpSample(OpAugColor()), dict(
-                    key="data.input.img",
-                    gamma=Uniform(0.9, 1.1), 
-                    contrast=Uniform(0.85, 1.15),
-                    mul =  Uniform(0.95, 1.05),
-                    add=Uniform(-0.06, 0.06)
-                )),
-        (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")), 
-         
-    ])
-
-    phase_cahce_dir = os.path.join(cache_dir,phase)                                   
-    cacher = SamplesCacher(f'cmmd_cache_ver', 
-        static_pipeline,
-        cache_dirs=[phase_cahce_dir], restart_cache=restart_cache)   
     
-    sample_ids=[id for id in data_source.index]
-    if specific_ids != []:
-        sample_ids = specific_ids
-    my_dataset = DatasetDefault(sample_ids=sample_ids,
-        static_pipeline=static_pipeline,
-        dynamic_pipeline=dynamic_pipeline,
-        cacher=cacher,            
-    )
-
-    my_dataset.create()
-    return my_dataset
-    
-    
-def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache', reset_cache: bool = False) -> Tuple[DatasetDefault, DatasetDefault]:
+def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache', reset_cache: bool = False) -> Tuple[DatasetDefault, DatasetDefault, DatasetDefault]:
     """
     Creates Fuse Dataset object for training, validation and test
     :param data_dir:                    dataset root path
@@ -160,7 +84,7 @@ def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache
                                             folds=[0,1,2],
                                             num_folds=5,
                                             partition_file_name=partition_file_path)
-    train_dataset = create_dataset_partition('train',data_dir,train_data_source, cache_dir, reset_cache )
+    train_dataset = CMMD.create_dataset_partition('train',data_dir,train_data_source, cache_dir, reset_cache )
     
     validation_data_source = create_folds(input_source=input_source_gt,
                                             input_df=None,
@@ -171,7 +95,7 @@ def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache
                                             folds=[3],
                                             num_folds=5,
                                             partition_file_name=partition_file_path)
-    validation_dataset = create_dataset_partition('validation',data_dir,validation_data_source, cache_dir, False)
+    validation_dataset = CMMD.create_dataset_partition('validation',data_dir,validation_data_source, cache_dir, False)
     
     test_data_source = create_folds(input_source=input_source_gt,
                                             input_df=None,
@@ -183,7 +107,7 @@ def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache
                                             num_folds=5,
                                             partition_file_name=partition_file_path)
     
-    test_dataset = create_dataset_partition('test',data_dir,test_data_source, cache_dir, False )
+    test_dataset = CMMD.create_dataset_partition('test',data_dir,test_data_source, cache_dir, False )
 
 
     lgr.info(f'- Load and cache data: Done')
