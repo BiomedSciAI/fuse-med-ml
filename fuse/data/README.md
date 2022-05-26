@@ -63,13 +63,14 @@ In other case than Kits21 you would have to implement your custome MySampleIDDec
 Finally, OpClip() and OpToRange() pre-process the image.
 
 ## Visualization - VisProbOp
-This op can be placed between different steps at the pipeline , it must be used only in the pipeline
-each step can have an optional name which will appear in every image and file created by the visualizer.
+This op can be placed between different steps at the pipeline , it must be used only in the pipeline.
+
+Each step can have an optional name which will appear in every image and file created by the visualizer.
 
 This op requires the following inputs in each call :
 1. give the input keys that define a "namespace" which included your input ( e.g `sample_dict[“data.input.img”]` and `sample_dict[“data.input.seg"]`)
 2. type detector object of class TypeDetectorPatternsBased - used to detect the input type from previous step and convert it to the right class 
-3. visualizer - instance of a class that inherits from VisualizerBase ( SaveVisual - to save to nifti file , Imaging2dVisualizer - to save multiple 2d images in one file)
+3. visualizer - instance of a class that inherits from VisualizerBase ( SaveToFormat - to save to nifti file , Imaging2dVisualizer - to save multiple 2d images in one file)
 4. output_path - path to save the images
 5. VisFlag - indicates what to do in the current step  
 
