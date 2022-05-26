@@ -61,7 +61,71 @@ A pipeline is created from a list of tuples. Each tuple includes an op and op ar
 In this example "sample_id" is a running index. OpKits21SampleIDDecode() is a custom op for Kits21 challenge converting the index to image path and segmentation path which are then loaded by OpLoadImage().
 In other case than Kits21 you would have to implement your custome MySampleIDDecode() operator.
 Finally, OpClip() and OpToRange() pre-process the image.
- 
+
+## Visualization - VisProbOp
+This op can be placed between different steps at the pipeline , it must be used only in the dynamic part of the pipeline
+each step can have an optional name which will appear in every image and file created by the visualizer.
+
+This op requires the following inputs in each call :
+1. give the input keys that define a "namespace" which included your input ( e.g `sample_dict[“data.input.img”]` and `sample_dict[“data.input.seg"]`)
+2. type detector object of class TypeDetectorPatternsBased - used to detect the input type from previous step and convert it to the right class 
+3. visualizer - instance of a class that inherits from VisualizerBase ( SaveVisual - to save to nifti file , Imaging2dVisualizer - to save multiple 2d images in one file)
+4. output_path - path to save the images
+5. VisFlag - indicates what to do in the current step  
+
+    A.  VisFlag.VISUALIZE_CURRENT - visualize only current step 
+
+    B.  VisFlag.COLLECT - save the image in stack and show later
+
+    C.  VisFlag.VISUALIZE_COLLECTED - visualize current step and all collected before it
+
+    D.  VisFlag.CLEAR - clear the stack of collected images
+
+The default behaviour is to save to file the visualization, 
+Alternatively you can change to show it online by using original_flag | VisFlag.ONLINE
+
+## Basic example - using Imaging2dVisualizer
+in each step we call VisProbe with same flag VisFlag.COLLECT and in the end we call with VisFlag.SHOW_COLLECTED
+
+because we are using ONLINE mode images will be displayed in console.
+
+The follwing example donwloads kits21 image and segmentation and visualize it's rotation and in a specific slice ( so we can use 2d visualizer)
+
+**The original code is in fuseimg/utils/visualization/visualization_example.ipynb**
+```python 
+
+sample , data_dir = create_sample_1(views=1)
+visual = Imaging2dVisualizer(cmap = 'gray')
+VProbe = partial(VisProbe, 
+                    keys=  ["data.viewpoint1.img", "data.viewpoint1.seg" ], 
+                    type_detector=type_detector_imaging,
+                    visualizer = visual)
+repeat_for = [dict(key="data.viewpoint1.img"), dict(key="data.viewpoint1.seg")]
+slice_idx = 190
+pipeline = PipelineDefault('test_pipeline', [
+    (OpLoadImage(data_dir), dict(key_in = 'data.viewpoint1.img_filename', key_out='data.viewpoint1.img', format="nib")),
+    (OpLoadImage(data_dir), dict(key_in = 'data.viewpoint1.seg_filename', key_out='data.viewpoint1.seg', format="nib")),
+    (OpSelectSlice(), dict(key="data.viewpoint1.img", slice_idx = slice_idx)),
+    (OpSelectSlice(), dict(key="data.viewpoint1.seg", slice_idx = slice_idx)),
+    (OpToIntImageSpace(), dict(key="data.viewpoint1.img") ),
+    (OpRepeat(OpToTensor(), kwargs_per_step_to_add=repeat_for), dict(dtype=torch.float32)),
+    (VProbe( VisFlag.COLLECT , name = "first"), {}),
+    (OpToRange(), dict(key="data.viewpoint1.img", from_range=(-500, 500), to_range=(0, 1))),
+    (VProbe( VisFlag.COLLECT , name = "second"), {}),
+    (OpSampleAndRepeat(OpAugAffine2D (), kwargs_per_step_to_add=repeat_for), dict(
+        rotate=30.0
+    )),
+    (VProbe( VisFlag.COLLECT, name = "third"), {}),
+    (OpSampleAndRepeat(OpAugAffine2D (), kwargs_per_step_to_add=repeat_for), dict(
+        rotate=30.0
+    )),
+    (VProbe( flags=VisFlag.VISUALIZE_COLLECTED | VisFlag.ONLINE , name = "last" ), {}),
+    
+])
+
+sample = pipeline(sample)
+
+```
 
 ## Caching
 **The original code is in example_cache_pipeline() in fuse/data/examples/examples_readme.py**
@@ -310,6 +374,11 @@ The following operators are useful when implementing a common pipeline:
 * OpToNumpy - convert many different types to NumPy array
 * OpToTensor - convert many different types to PyTorch tensor
 
+**Visualization and debugging operators**
+
+* OpVisProb - Handle visualization, saves, shows and compares the sample with respect to the current state inside a pipeline
+    In most cases VisProbe can be used regardless of the domain, and the domain specific code will be implemented 
+    as a Visualizer inheriting from VisualizerBase.
 **Imaging operators**
 See fuseimg package
 
