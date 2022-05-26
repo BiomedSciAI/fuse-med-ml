@@ -6,7 +6,7 @@ from fuseimg.utils.typing.typed_element import TypedElement
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Polygon
 
-def show_multiple_images(plot_label : Callable , imgs : List, base_resolution :int = 5, **args ):
+def show_multiple_images(plot_seg : Callable , imgs : List, base_resolution :int = 5, **args ):
     '''
     Show multiple images with shared zoom/translation controls
     everything passed as kwargs (for example - cmap='gray') will be passed to the individual imshow calls
@@ -20,7 +20,7 @@ def show_multiple_images(plot_label : Callable , imgs : List, base_resolution :i
     imshowmultiple(img1,img2,img3, cmap='gray', vmin=0.0, vmax=1.0)
     imshowmultiple(img1,img2,img3, cmap0='gray')   #will use grayscale color map only on the first image and default cmap on the rest
     imshowmultiple(img1,img2,img3, unify_size='blah')   #will resize all images to match
-    :param plot_label : function to plot the ground truth segmentation
+    :param plot_seg : function to plot the ground truth segmentation
     :param imgs: list of images in TypedElement format
     :param base_resolution : base pixel resolution we want to maintain per image
     :param args: additional parameters to the plot function of matplotlib
@@ -49,7 +49,7 @@ def show_multiple_images(plot_label : Callable , imgs : List, base_resolution :i
         else:
             axis[i].imshow(im, interpolation='none', **pass_kwargs)
            
-        plot_label(axis[i], m )
+        plot_seg(axis[i], m )
                 
         if m.metadata:
             axis[i].set_title(str(i)+":"+m.metadata)
@@ -67,7 +67,7 @@ def plot_color_mask(mask , ax ) :
     ax.imshow(np.dstack( (img, masked*0.5) )) 
     
     
-def plot_seg(ax : Any, sample : TypedElement ):
+def plot_seg_coco_style(ax : Any, sample : TypedElement ):
     if sample.seg is not None : 
         mask = sample.seg
         masked = np.ma.masked_where(mask == 0, mask)
@@ -96,4 +96,4 @@ def plot_seg(ax : Any, sample : TypedElement ):
              
     
 
-show_multiple_images_seg = partial(show_multiple_images, plot_label=plot_seg)
+show_multiple_images_seg = partial(show_multiple_images, plot_seg=plot_seg_coco_style)

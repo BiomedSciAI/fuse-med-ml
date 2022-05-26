@@ -4,7 +4,7 @@ import numpy as np
 from copy import deepcopy
 
 from fuse.utils.ndict import NDict
-from fuseimg.utils.visualization.visualizer_base import VisualizerBase
+from fuse.data.visualizer.visualizer_base import VisualizerBase
 from fuseimg.utils.typing.key_types_imaging import DataTypeImaging
 from torch import Tensor
 from .op_base import OpReversibleBase
@@ -36,7 +36,7 @@ class VisProbe(OpReversibleBase):
     def __init__(self,flags: VisFlag, 
                  keys: Union[List, dict] ,
                  type_detector: TypeDetectorBase,
-                 visualizer: VisualizerBase = None,
+                 visualizer: VisualizerBase,
                  name : str ="",
                  output_path: str = "~/"):
         """ 
