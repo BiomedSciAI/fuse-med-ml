@@ -63,7 +63,7 @@ In other case than Kits21 you would have to implement your custome MySampleIDDec
 Finally, OpClip() and OpToRange() pre-process the image.
 
 ## Visualization - VisProbOp
-This op can be placed between different steps at the pipeline , it must be used only in the dynamic part of the pipeline
+This op can be placed between different steps at the pipeline , it must be used only in the pipeline
 each step can have an optional name which will appear in every image and file created by the visualizer.
 
 This op requires the following inputs in each call :
