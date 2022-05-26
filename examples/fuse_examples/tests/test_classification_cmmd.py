@@ -17,15 +17,16 @@ Created on June 30, 2021
 
 """
 # FIXME: data_package
-#from fuse_examples.imaging.classification.cmmd.runner import TRAIN_COMMON_PARAMS, \
-#    INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS, run_train, run_eval, run_infer
-
+from fuse_examples.imaging.classification.cmmd.runner import run_train, run_eval, run_infer
+from omegaconf import DictConfig, OmegaConf
+from fuse.utils import NDict
 import unittest
 import os
 import tempfile
 import shutil
-
-
+import hydra
+import sys
+config = None
 
 from fuse.utils.gpu import choose_and_enable_multiple_gpus
 
@@ -34,53 +35,40 @@ from fuse.utils.gpu import choose_and_enable_multiple_gpus
 # 1. Get the path to data as an env variable
 # 2. Consider reducing the number of samples
 class ClassificationMGCmmdTestCase(unittest.TestCase):
-
     def setUp(self):
-        self.train_common_params = TRAIN_COMMON_PARAMS
-        self.train_common_params['manager.train_params']['num_epochs'] = 5
+        global config
+        self.cfg = NDict(OmegaConf.to_container(config))
+        print(self.cfg)
+        
+        # Path to the stored dataset location
+        # dataset should be download from https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508
+        # download requires NBIA data retriever https://wiki.cancerimagingarchive.net/display/NBIA/Downloading+TCIA+Images
+        # put on the folliwing in the main folder  - 
+        # 1. CMMD_clinicaldata_revision.csv which is a converted version of CMMD_clinicaldata_revision.xlsx 
+        # 2. folder named CMMD which is the downloaded data folder
 
-        # Path to save model
-        self.ROOT = tempfile.mkdtemp()
-        # Path to store the data
-        self.ROOT_DATA = '/projects/msieve3/CMMD'
-        # Name of the experiment
-        EXPERIMENT = 'MG_CMMD_test'
-        # Path to cache data
-        self.CACHE_PATH = tempfile.mkdtemp(prefix="cache_data")
-        # Name of the cached data folder
-        EXPERIMENT_CACHE = 'CMMD_cache'
-
-        self.paths = {'data_dir': self.ROOT_DATA,
-                      'model_dir': os.path.join(self.ROOT, EXPERIMENT, 'model_dir'),
-                      'data_misc_dir' : os.path.join(self.ROOT, 'data_misc'),
-                      'force_reset_model_dir': True,
-                      'cache_dir': os.path.join(self.CACHE_PATH, EXPERIMENT_CACHE + '_cache_dir'),
-                      'inference_dir': os.path.join(self.ROOT, EXPERIMENT, 'infer_dir'),
-                      'eval_dir': os.path.join(self.ROOT, EXPERIMENT, 'eval_dir')}
-
-        self.infer_common_params = INFER_COMMON_PARAMS
-
-        self.eval_common_params = EVAL_COMMON_PARAMS
 
     def test_runner(self):
-        self.assertIsNot(os.path.isdir(self.ROOT_DATA),False)
-        num_gpus_allocated = choose_and_enable_multiple_gpus(1, use_cpu_if_fail=True)
-        if num_gpus_allocated == 0:
-            self.train_common_params['manager.train_params']['device'] = 'cpu'
+        # uncomment if you want to use specific gpus instead of automatically looking for free ones
+        force_gpus = None  # [0]
+        choose_and_enable_multiple_gpus(self.cfg["train.manager_train_params.num_gpus"], force_gpus=force_gpus)
 
-        run_train(self.paths, self.train_common_params, reset_cache=True)
-        run_infer(self.paths, self.infer_common_params)
-        results = run_eval(self.paths, self.eval_common_params)
+        run_train(self.cfg["paths"] ,self.cfg["train"])
+        run_infer(self.cfg["paths"] , self.cfg["infer"])
+        results = run_eval(self.cfg["paths"] , self.cfg["infer"])
 
         threshold = 0.6
         self.assertGreaterEqual(results['metrics.auc'], threshold)
 
-    def tearDown(self):
-        # Delete temporary directories
-        shutil.rmtree(self.ROOT)
-        shutil.rmtree(self.CACHE_PATH)
-
-
-if __name__ == '__main__':
+    # def tearDown(self):
+    #     # Delete temporary directories
+    #     # shutil.rmtree(self.working_dir)
+        
+@hydra.main(config_path="conf", config_name="config")
+def main(cfg : DictConfig) -> None:
+    global config
+    config = cfg
     unittest.main()
+if __name__ == '__main__':
+    main()
 
