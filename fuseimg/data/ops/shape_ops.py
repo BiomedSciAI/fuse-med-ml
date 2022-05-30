@@ -181,9 +181,9 @@ class OpResizeAndPad2D(OpBase):
         sample_dict[key] = img
         return sample_dict
         
-class OpRemoveDarkBackgroundRectangle2D(OpBase):
+class OpFindBiggestNonEmptyBbox2D(OpBase):
     '''
-     removes dark background in a rectangle patch from a 2d image
+    Finds the the biggest connected component bounding box in the image that is non empty (dark)
     '''
     def __init__(self, dark_area_threshold : int = 10, blocks_num : int = 30, **kwargs):
         super().__init__(**kwargs)
@@ -218,13 +218,12 @@ class OpRemoveDarkBackgroundRectangle2D(OpBase):
                 cells[ri,ci] = np.mean(img[r:r_end,c:c_end])
 
         cells_binary = np.zeros((self.blocks_num,self.blocks_num),dtype=bool)
-        cells_binary[cells>self.dark_area_threshold] = True #TODO: this is a hardcoded threshold, see if there's a better alternative
+        cells_binary[cells>self.dark_area_threshold] = True
         blobs_labels = measure.label(cells_binary, background=0)
         regions = measure.regionprops(blobs_labels)
 
         regions_areas = [r.area for r in regions]
         if len(regions)<1:
-            # expected to have at least background and one object. TODO: consider reporting error and returning AABB of the full image.
             print('Warning: could not crop properly! fallbacking to full image')
             return 0,0,img.shape[0]-1,img.shape[1]-1
 

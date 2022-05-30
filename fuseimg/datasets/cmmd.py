@@ -3,7 +3,7 @@ from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuseimg.data.ops.image_loader import OpLoadDicom
 from fuseimg.data.ops.color import OpNormalizeAgainstSelfImpl
-from fuseimg.data.ops.shape_ops import OpFlipBrightSideOnLeft2D , OpRemoveDarkBackgroundRectangle2D, OpResizeAndPad2D
+from fuseimg.data.ops.shape_ops import OpFlipBrightSideOnLeft2D , OpFindBiggestNonEmptyBbox2D, OpResizeAndPad2D
 from fuse.data import PipelineDefault, OpToTensor
 from fuse.data.ops.ops_common import OpLambda
 from fuseimg.data.ops.aug.color import OpAugColor
@@ -43,7 +43,7 @@ class CMMD:
             (OpReadDataframe(data_source,key_column = None , columns_to_extract = ['file','classification'] , rename_columns=dict(file="data.input.img_path",classification="data.gt.classification")), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path" 
             (OpLoadDicom(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", format="nib")),
             (OpFlipBrightSideOnLeft2D(), dict(key="data.input.img")),
-            (OpRemoveDarkBackgroundRectangle2D(), dict(key="data.input.img")),
+            (OpFindBiggestNonEmptyBbox2D(), dict(key="data.input.img")),
             (OpNormalizeAgainstSelfImpl(), dict(key="data.input.img")),
             (OpResizeAndPad2D(), dict(key="data.input.img", resize_to=(2200, 1200), padding=(60, 60))),
             ])
