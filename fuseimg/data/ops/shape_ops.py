@@ -190,15 +190,15 @@ class OpRemoveDarkBackgroundRectangle2D(OpBase):
         self.dark_area_threshold = dark_area_threshold
         self.blocks_num = blocks_num
 
-    def find_breast_aabb(self,img : np.ndarray) -> Tuple[int ,int, int, int]:
+    def find_biggest_non_emtpy_bbox(self,img : np.ndarray) -> Tuple[int ,int, int, int]:
         """
         split the images into blocks, each block containing (1/30 x 1/30) of the image.
         All blocks above a threshold (10) are considered non-empty.
         Then, the biggest connected component (at the blocks level) is extracted, and its axis-aligned bbox is returned.
-        :param img: Image instance , expected 2d breast integer grayscale image where 0 is black background color
+        :param img: Image instance , expected 2d integer grayscale image where 0 is black background color
         :param dark_area_threshold: defines grayscale level from which lower is consider dark / outside of body
         :param blocks_num: number of blocks the algorithm split the images into
-        :return: four coordinates
+        :return: four coordinates of the bounding box
         """
         bl_rows = img.shape[0]//self.blocks_num
         bl_cols = img.shape[1]//self.blocks_num
@@ -249,7 +249,7 @@ class OpRemoveDarkBackgroundRectangle2D(OpBase):
         ''' 
         
         img = sample_dict[key]
-        aabb = self.find_breast_aabb(img)
+        aabb = self.find_biggest_non_emtpy_bbox(img)
         img = img[aabb[0]: aabb[2], aabb[1]: aabb[3]].copy()
         sample_dict[key] = img
         return sample_dict
