@@ -8,6 +8,7 @@ from typing import Hashable, Optional, Sequence, List
 from sklearn.model_selection import train_test_split
 import pickle
 import pandas as pd
+import torch
 
 from fuse.data import DatasetDefault
 from fuse.data.ops.ops_cast import OpToNumpy, OpToTensor, OpOneHotToNumber
@@ -132,6 +133,9 @@ class ISIC:
             
             # Load Image
             (OpLoadImage(data_path), dict(key_in="data.input.img_path", key_out="data.input.img")),
+            
+            # To Tensor debugging
+            # (OpToTensor(), dict(key="data.input.img", dtype=torch.int)),
 
             # Normalize Image to range [0, 1]
             (OpNormalizeAgainstSelf(), dict(key="data.input.img")),
@@ -140,9 +144,7 @@ class ISIC:
             (OpToNumpy(), dict(key="data.input.img")),
 
             # Read labels
-            (OpReadLabelsFromDF(data_filename=os.path.join(data_path, '../ISIC_2019_Training_GroundTruth.csv'),
-                                key_column="image"), dict()),
-            (OpOneHotToNumber(num_classes=9), dict(key="data.label"))
+            (OpReadLabelsFromDF(data_filename=os.path.join(data_path, '../ISIC_2019_Training_GroundTruth.csv'), key_column="image"), dict()),
         ])
         return static_pipeline
 
@@ -154,15 +156,15 @@ class ISIC:
 
         dynamic_pipeline = PipelineDefault("dynamic", [
                 # Resize images to 3x300x300
-                (OpResizeTo(), dict(key="data.input.img", resize_to=[3, 300, 300])),
+                (OpResizeTo(), dict(key="data.input.img", resize_to=[3, 500, 500])),
                 
                 # Cast to Tensor
                 (OpToTensor(), dict(key="data.input.img")),
 
                 # Padding
-                (OpPad(), dict(key="data.input.img", padding=1)),
+                # (OpPad(), dict(key="data.input.img", padding=1)),
 
-                # Augmentation                
+                # # Augmentation                
                 # (OpSample(OpAugAffine2D()), dict(
                 #     key="data.input.img",
                 #     rotate=Uniform(-180.0,180.0),        
@@ -171,17 +173,19 @@ class ISIC:
                 #     translate=(RandInt(-50, 50), RandInt(-50, 50))
                 # )),
 
-                # Color augmentation
-                (OpSample(OpAugColor()), dict(
-                    key="data.input.img",
-                    gamma=Uniform(0.9,1.1), 
-                    contrast=Uniform(0.85,1.15),
-                    add=Uniform(-0.06, 0.06),
-                    mul = Uniform(0.95, 1.05)
-                )),
+                # # Color augmentation
+                # (OpSample(OpAugColor()), dict(
+                #     key="data.input.img",
+                #     gamma=Uniform(0.9,1.1), 
+                #     contrast=Uniform(0.85,1.15),
+                #     add=Uniform(-0.06, 0.06),
+                #     mul = Uniform(0.95, 1.05)
+                # )),
 
-                # Gaussian noise
-                (OpAugGaussian(), dict(key="data.input.img", std=0.03))
+                # # Gaussian noise
+                # (OpAugGaussian(), dict(key="data.input.img", std=0.03)),
+
+                (OpOneHotToNumber(num_classes=9), dict(key="data.label"))
         ])
 
         return dynamic_pipeline
@@ -203,13 +207,14 @@ class ISIC:
         """
         train_data_path = os.path.join(self.data_path, 'ISIC2019/ISIC_2019_Training_Input')
         labels_path = os.path.join(self.data_path, 'ISIC2019/ISIC_2019_Training_GroundTruth.csv')
-        self._labels_df = pd.read_csv(labels_path)
+        labels_df = pd.read_csv(labels_path)
+        self._labels_df = labels_df #.drop(axis=1, labels=['UNK']) # UNK label has 0 instances TODO
 
         if samples_ids is None:
             samples_ids = self.sample_ids(size)
 
         if train: 
-            print("path exist?", os.path.exists(self.partition_file))
+            print("partition's path exist?", os.path.exists(self.partition_file))
             if override_partition or not os.path.exists(self.partition_file):
                 train_samples, val_samples = train_test_split(samples_ids, test_size=self.val_portion, random_state=42)
                 splits = {'train': train_samples, 'val': val_samples}
@@ -241,7 +246,7 @@ class ISIC:
         my_dataset = DatasetDefault(sample_ids=out_samples_ids,
             static_pipeline=static_pipeline,
             dynamic_pipeline=dynamic_pipeline,
-            cacher=None
+            cacher=cacher
         )
 
         my_dataset.create()

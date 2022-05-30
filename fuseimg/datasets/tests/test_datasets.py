@@ -38,7 +38,6 @@ class TestDatasets(unittest.TestCase):
             sample = dataset[sample_index]
             self.assertEqual(get_sample_id(sample), f"case_{sample_index:05d}")
 
-    @unittest.skipIf(True, "Under Construction")
     def test_isic(self):
         isic = ISIC(data_path = self.isic_data_dir, cache_path=self.isic_cache_dir)
         isic.download()

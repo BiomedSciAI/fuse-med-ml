@@ -79,9 +79,9 @@ TRAIN_COMMON_PARAMS['model'] = '' # TODO sagi - ?
 # ============
 # Data
 # ============
-TRAIN_COMMON_PARAMS['data.batch_size'] = 10
-TRAIN_COMMON_PARAMS['data.train_num_workers'] = 1
-TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 1
+TRAIN_COMMON_PARAMS['data.batch_size'] = 5
+TRAIN_COMMON_PARAMS['data.train_num_workers'] = 0
+TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 0
 
 # ===============
 # Manager - Train
@@ -89,7 +89,7 @@ TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 1
 TRAIN_COMMON_PARAMS['manager.train_params'] = {
     # 'num_gpus': 1,
     'device': 'cuda', 
-    'num_epochs': 3,
+    'num_epochs': 10,
     'virtual_batch_size': 1,  # number of batches in one virtual batch
     'start_saving_epochs': 10,  # first epoch to start saving checkpoints from
     'gap_between_saving_epochs': 10,  # number of epochs between saved checkpoint
@@ -97,12 +97,12 @@ TRAIN_COMMON_PARAMS['manager.train_params'] = {
 # best_epoch_source
 # if an epoch values are the best so far, the epoch is saved as a checkpoint.
 TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = {
-    'source': 'metrics.balanced_acc.sensitivity.macro_avg',  # can be any key from 'epoch_results'
+    'source': 'metrics.auc.macro_avg',  # can be any key from 'epoch_results'
     'optimization': 'max',  # can be either min/max
     'on_equal_values': 'better',
     # can be either better/worse - whether to consider best epoch when values are equal
 }
-TRAIN_COMMON_PARAMS['manager.learning_rate'] = 1e-5
+TRAIN_COMMON_PARAMS['manager.learning_rate'] = 0.0003
 TRAIN_COMMON_PARAMS['manager.weight_decay'] = 0.001
 TRAIN_COMMON_PARAMS['manager.resume_checkpoint_filename'] = None  # if not None, will try to load the checkpoint
 
@@ -130,11 +130,11 @@ def run_train(paths: dict, train_params: dict, isic: ISIC):
     train_dataset = isic.dataset(train=True, reset_cache=True, num_workers=train_params['data.train_num_workers'], samples_ids=FULL_GOLDEN_MEMBERS)
 
     lgr.info(f'- Create sampler:')
-    # sampler = BatchSamplerDefault(dataset=train_dataset,
-    #                                    balanced_class_name='data.label',
-    #                                    num_balanced_classes=10,
-    #                                    batch_size=train_params['data.batch_size'],
-    #                                    balanced_class_weights=None)
+    sampler = BatchSamplerDefault(dataset=train_dataset,
+                                       balanced_class_name='data.label',
+                                       num_balanced_classes=8,
+                                       batch_size=train_params['data.batch_size'],
+                                       balanced_class_weights=None)
     lgr.info(f'- Create sampler: Done')
 
     # Create dataloader
@@ -169,7 +169,7 @@ def run_train(paths: dict, train_params: dict, isic: ISIC):
             HeadGlobalPoolingClassifier(head_name='head_0',
                                             dropout_rate=0.5,
                                             conv_inputs=[('model.backbone_features', 1536)],
-                                            num_classes=9,
+                                            num_classes=8,
                                             pooling="avg"),
         ]
     )
@@ -191,7 +191,7 @@ def run_train(paths: dict, train_params: dict, isic: ISIC):
         ('op', MetricApplyThresholds(pred='model.output.head_0')), # will apply argmax
         ('auc', MetricAUCROC(pred='model.output.head_0', target='data.label', class_names=class_names)),
         # ('accuracy', MetricAccuracy(pred='results:metrics.op.cls_pred', target='data.label', class_names=class_names)),
-        ('balanced_acc', MetricConfusion(pred='results:metrics.op.cls_pred', target='data.label', metrics=('sensitivity',), class_names=class_names))
+        # ('balanced_acc', MetricConfusion(pred='results:metrics.op.cls_pred', target='data.label', metrics=('sensitivity',), class_names=class_names))
     ])
 
     # =====================================================================================
@@ -284,7 +284,7 @@ def run_infer(paths: dict, infer_common_params: dict, isic: ISIC):
 EVAL_COMMON_PARAMS = {}
 EVAL_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
 EVAL_COMMON_PARAMS['output_filename'] = 'all_metrics.txt'
-EVAL_COMMON_PARAMS['num_workers'] = 1
+EVAL_COMMON_PARAMS['num_workers'] = 8
 EVAL_COMMON_PARAMS['batch_size'] = 8
 
 ######################################
@@ -322,7 +322,7 @@ def run_eval(paths: dict, eval_common_params: dict):
 if __name__ == "__main__":
     # allocate gpus
     # To use cpu - set NUM_GPUS to 0
-    NUM_GPUS = 0 # TODO return to 1. debugging.
+    NUM_GPUS = 1 # TODO return to 1. debugging.
     if NUM_GPUS == 0:
         TRAIN_COMMON_PARAMS['manager.train_params']['device'] = 'cpu' 
     # uncomment if you want to use specific gpus instead of automatically looking for free ones

@@ -198,7 +198,7 @@ class OpOneHotToNumber(OpBase):
             assert self.is_one_hot_vector(one_hot_vector), f"expect one-hot vector, instead got: {one_hot_vector} ."
 
         value = one_hot_vector.argmax()
-        sample_dict[key] = value
+        sample_dict[key] = torch.tensor(value)
 
         return sample_dict
 
