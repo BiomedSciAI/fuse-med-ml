@@ -65,7 +65,7 @@ Finally, OpClip() and OpToRange() pre-process the image.
 ## Visualization - VisProbOp
 This op can be placed between different steps at the pipeline , it registers an object in the pipeline to be visualized now/later.
 
-Each step can have an optional name which will appear in every image and file created by the visualizer.
+Each op call can have an optional name which will appear in the image or file produced by the visualizer.
 
 This op requires the following inputs in each call :
 1. give the input keys that define a "namespace" which included your input ( e.g `sample_dict[“data.input.img”]` and `sample_dict[“data.input.seg"]`)
