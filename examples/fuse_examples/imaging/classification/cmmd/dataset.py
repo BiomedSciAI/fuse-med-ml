@@ -84,7 +84,7 @@ def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache
                                             folds=[0,1,2],
                                             num_folds=5,
                                             partition_file_name=partition_file_path)
-    train_dataset = CMMD.create_dataset_partition('train',data_dir,train_data_source, cache_dir, reset_cache )
+    train_dataset = CMMD.dataset('train',data_dir,train_data_source, cache_dir, reset_cache )
     
     validation_data_source = create_folds(input_source=input_source_gt,
                                             input_df=None,
@@ -95,7 +95,7 @@ def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache
                                             folds=[3],
                                             num_folds=5,
                                             partition_file_name=partition_file_path)
-    validation_dataset = CMMD.create_dataset_partition('validation',data_dir,validation_data_source, cache_dir, False)
+    validation_dataset = CMMD.dataset('validation',data_dir,validation_data_source, cache_dir, False)
     
     test_data_source = create_folds(input_source=input_source_gt,
                                             input_df=None,
@@ -107,7 +107,7 @@ def CMMD_2021_dataset(data_dir: str, data_misc_dir: str ,cache_dir: str = 'cache
                                             num_folds=5,
                                             partition_file_name=partition_file_path)
     
-    test_dataset = CMMD.create_dataset_partition('test',data_dir,test_data_source, cache_dir, False )
+    test_dataset = CMMD.dataset('test',data_dir,test_data_source, cache_dir, False )
 
 
     lgr.info(f'- Load and cache data: Done')
