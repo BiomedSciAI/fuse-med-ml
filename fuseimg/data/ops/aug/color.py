@@ -18,7 +18,7 @@ class OpAugColor(OpBase):
         super().__init__()
         self._verify_arguments = verify_arguments
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str],  key: str, add: Optional[float] = None, mul: Optional[float] = None,
+    def __call__(self, sample_dict: NDict,  key: str, add: Optional[float] = None, mul: Optional[float] = None,
                     gamma: Optional[float] = None, contrast: Optional[float] = None, channels: Optional[List[int]] = None):
         """
         :param key: key to a image stored in sample_dict: torch tensor of range [0, 1] representing an image to , 
@@ -113,7 +113,7 @@ class OpAugGaussian(OpBase):
     """
     Add gaussian noise to numpy array or torch tensor of any dimensions
     """
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str, mean: float = 0.0, std: float = 0.03, channels: Optional[List[int]] = None) -> Tensor:
+    def __call__(self, sample_dict: NDict, key: str, mean: float = 0.0, std: float = 0.03, channels: Optional[List[int]] = None) -> Tensor:
         """
         :param key: key to a tensor or numpy array stored in sample_dict: any dimension and any range
         :param mean: mean gaussian distribution

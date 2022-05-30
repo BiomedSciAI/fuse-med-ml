@@ -66,6 +66,7 @@ def get_callers_string_description(
     expected_class: Type,
     expected_function_name: str,
     value_to_string_func: Callable = value_to_string,    
+    ignore_first_frames=3, #one for this function, one for HashableCallable, and one for OpBase
     ):
     '''
     iterates on the callstack, and accumulates a string representation of the callers args.
@@ -102,7 +103,7 @@ def get_callers_string_description(
         curr_locals = None
         #note: frame 0 is this function, frame 1 is whoever called this (and wanted to know about its callers),
         #so both frames 0+1 are skipped.        
-        for i in range(2, min(len(curr_stack),max_look_up+2)):
+        for i in range(ignore_first_frames, min(len(curr_stack),max_look_up+ignore_first_frames)):
             curr_locals = curr_stack[i].frame.f_locals
             if expected_class is not None:
                 if 'self' not in curr_locals:

@@ -21,58 +21,24 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from collections import OrderedDict
 from fuse.data.patterns import Patterns
-from fuse.data.ops import get_function_call_str
-from inspect import stack
-from fuse.data.ops.caching_tools import get_callers_string_description, value_to_string
+from fuse.data.utils.sample import get_sample_id
 from fuse.utils.ndict import NDict
+from fuse.data.ops.hashable_class import HashableClass
 
-class OpBase(ABC):
+class OpBase(HashableClass):
     """
     Operator Base Class
     Operators are the building blocks of the sample processing pipeline.
-    Each operator gets as an input the sample_dict as created be the previous operators
-    and can either add/delete/modify fields in sample_dict.
-    """
-
-    _MISSING_SUPER_INIT_ERR_MSG = 'Did you forget to call super().__init__() ? Also, make sure you call it BEFORE setting any attribute.'
-    
-    def __init__(self, value_to_string_func: Callable = value_to_string):
-        '''
-        :param value_to_string_func: when init is called, a string representation of the caller(s) init args are recorded.
-        This is used in __str__ which is used later for hashing in caching related tools (for example, SamplesCacher)
-        value_to_string_func allows to provide a custom function that converts a value to string.
-        This is useful if, for example, a custom behavior is desired for an object like numpy array or DataFrame.
-        The expected signature is: foo(val:Any) -> str
-        '''
-        
-        #the following is used to extract callers args, for __init__ calls up the stack of classes inheirting from OpBase
-        #this way it can happen in the base class and then anyone creating new Ops will typically only need to add 
-        #super().__init__ in their __init__ implementation
-        self._stored_init_str_representation = get_callers_string_description(
-            max_look_up=4,
-            expected_class=OpBase,
-            expected_function_name='__init__',
-            value_to_string_func = value_to_string_func
-            )
-        
-    def __setattr__(self, name, value):
-        '''
-        Verifies that super().__init__() is called before setting any attribute
-        '''
-        storage_name = '_stored_init_str_representation'
-        if name != storage_name and not hasattr(self, storage_name):
-            raise Exception(OpBase._MISSING_SUPER_INIT_ERR_MSG)
-        super().__setattr__(name, value)
+    Each operator gets as an input the sample_dict as created by the previous operator in pipeline, 
+    modify sample_dict (can either add/delete/modify fields in sample_dict)before passing it to the next operator in pipeline. 
+    """    
 
     @abstractmethod
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, **kwargs) -> Union[None, dict, List[dict]]:
         """
         call function that apply the operation
         :param sample_dict: the generated dictionary generated so far (generated be the previous ops in the pipeline)
                             The first op will typically get just the sample_id stored in sample_dict['data']['sample_id']
-        :param op_id: unique identifier for an operation.
-        Might be used to support reverse operation as sample_dict key in case information should be stored in sample_dict.
-        In such a case use sample_dict[op_id] = info_to_store
         :param kwargs: additional arguments defined per operation
         :return: Typically modified sample_dict.
                 There are two special cases supported only if the operation is in static pipeline:
@@ -81,14 +47,38 @@ class OpBase(ABC):
         """
         raise NotImplementedError
 
+
+    
+class OpReversibleBase(OpBase):
+    """
+    Special case of op - declaring that the operation can be reversed when required 
+    (useful to reverse processing steps before presenting the output)
+    If there is nothing to reverse - to just declare that the op is reversible inherit from  OpReversibleBase instead of OpBase and implement simple reverse method that returns sample_dict as is.
+
+    If some logic required to reverse the operation:
+        (1) record the information required to reverse the operation in __call__ function. Use op_id to store it in sample_dict (sample_dict[op_id] = <information to record?).
+        (2) override reverse() method: read the recorded information from sample_dict[op_id] and use it to reverse the operation
+    """
+
+    @abstractmethod
+    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs) -> Union[None, dict, List[dict]]:
+        """
+        See OpBase.__call__ for more infomation. The only difference is the extra argument that can be used to "record" the information required to reverse the operation.
+        :param op_id: unique identifier for an operation.
+                      Might be used to support reverse operation as sample_dict key.
+                      In such a case use sample_dict[op_id] = info_to_store
+
+        """
+        raise NotImplementedError
+
     def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
         """
         reverse operation
         If a reverse operation is not necessary (for example operator that reads an image),
-        just implement a reverse method that does nothing.
+        implement simple reverse method that returns sample_dict as is
 
-        If reverse operation is necessary but not required by the project,
-        keep the base implementation which will throw an NotImplementedError in case the reverse operation will be called.
+        If reverse operation is necessary but not required by the project so far,
+        inherit from OpBase (will throw an NotImplementedError in case the reverse operation will be called).
 
         To support reverse operation, store the parameters which necessary to apply the reverse operation
         such as key to the transformed value and the argument to the transform operation in sample_dict[op_id].
@@ -100,29 +90,28 @@ class OpBase(ABC):
         :param key_to_follow: run the reverse according to the operation applied on this value
         :return: modified sample_dict
         """
-        raise NotImplemented
-
-    def __str__(self) -> str:
-        '''
-        A string representation of this operation, which will be used for hashing.
-        It includes recorded (string) data describing the args that were used in __init__()
-        you can override/extend it in the rare cases that it's needed
-
-        example:
-
-        class OpSomethingNew(OpBase):
-            def __init__(self):
-                super().__init__()
-            def __str__(self):
-                ans = super().__str__(self)
-                ans += 'whatever you want to add"
-
-        '''
-
-        if not hasattr(self, '_stored_init_str_representation'):
-            raise Exception(OpBase._MISSING_SUPER_INIT_ERR_MSG)       
-        call_repr = get_function_call_str(self.__call__, )
-
-        return f'init_{self._stored_init_str_representation}@call_{call_repr}'
+        raise NotImplementedError(f"op {self} is not reversible. If there is nothing to reverse, just implement simple reverse method that returns sample_dict as is. If extra logic required to reverse follow the instructions in OpReversibleBase")
 
     
+def op_call(op: OpBase, sample_dict: NDict, op_id: str, **kwargs):
+    try:
+        if isinstance(op, OpReversibleBase):
+            return op(sample_dict, op_id=op_id, **kwargs)
+        else: # OpBase but note reversible
+            return op(sample_dict, **kwargs)
+    except:
+        # error messages are cryptic without this. For example, you can get "TypeError: __call__() got an unexpected keyword argument 'key_out_input'" , without any reference to the relevant op!
+        print(f'error in __call__ method of op={op}, op_id={op_id}, sample_id={get_sample_id(sample_dict)} - more details above')   
+        raise 
+
+def op_reverse(op, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]):
+    if isinstance(op, OpReversibleBase):
+        try:
+            return op.reverse(sample_dict, key_to_reverse, key_to_follow, op_id)
+        except:
+            # error messages are cryptic without this. For example, you can get "TypeError: __call__() got an unexpected keyword argument 'key_out_input'" , without any reference to the relevant op!
+            print(f'error in reverse method of op={op}, op_id={op_id}, sample_id={get_sample_id(sample_dict)} - more details above')   
+            raise 
+    
+    else: # OpBase but note reversible
+        raise NotImplementedError(f"op {op} is not reversible. If there is nothing to reverse, just inherit OpReversibleBase instead of OpBase and implement simple reverse method that returns sample_dict as is. If extra logic required to reverse follow the instructions in OpReversibleBase")

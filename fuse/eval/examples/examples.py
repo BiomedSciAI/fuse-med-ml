@@ -19,6 +19,7 @@ Created on June 30, 2021
 
 import os
 import pathlib
+from tempfile import mkdtemp
 from typing import Any, Dict
 
 from collections import OrderedDict
@@ -336,7 +337,9 @@ def example_9():
     set_seed(1234)
 
     # Create dataset
-    torch_dataset = torchvision.datasets.MNIST('/tmp/mnist', download=True, train=False)
+    # mnist download path - MNIST_DATA_PATH defined in cicd pipeline
+    mnist_data_path = os.environ.get("MNIST_DATA_PATH", mkdtemp(prefix="mnist"))
+    torch_dataset = torchvision.datasets.MNIST(mnist_data_path, download=True, train=False)
 
     # define iterator
     def data_iter():

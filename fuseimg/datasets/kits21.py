@@ -34,7 +34,7 @@ import wget
 from fuse.data import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuse.data import PipelineDefault, OpSampleAndRepeat, OpToTensor, OpRepeat
-from fuse.data.ops.op_base import OpBase
+from fuse.data.ops.op_base import OpBase, OpReversibleBase
 from fuse.data.ops.ops_aug_common import OpSample
 from fuse.data.ops.ops_common import OpLambda
 
@@ -45,7 +45,7 @@ from fuseimg.data.ops.aug.geometry import OpAugAffine2D
 from fuseimg.data.ops.image_loader import OpLoadImage 
 from fuseimg.data.ops.color import OpClip, OpToRange
 
-class OpKits21SampleIDDecode(OpBase):
+class OpKits21SampleIDDecode(OpReversibleBase):
     '''
     decodes sample id into image and segmentation filename
     '''
@@ -63,6 +63,10 @@ class OpKits21SampleIDDecode(OpBase):
         sample_dict[seg_filename_key] = os.path.join(sid, 'aggregated_MAJ_seg.nii.gz')
 
         return sample_dict
+    
+    def reverse(self, sample_dict: dict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
+        return sample_dict
+
 
 def my_resize(input_tensor: torch.Tensor, resize_to: Tuple[int, int, int]) -> torch.Tensor:
     """

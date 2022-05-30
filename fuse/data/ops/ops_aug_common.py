@@ -3,12 +3,12 @@ from typing import List, Optional, Sequence, Union
 
 from fuse.utils.rand.param_sampler import RandBool, draw_samples_recursively
 
-from fuse.data.ops.op_base import OpBase
+from fuse.data.ops.op_base import OpBase, OpReversibleBase, op_call, op_reverse
 from fuse.data.ops.ops_common import OpRepeat
 
 from fuse.utils.ndict import NDict
 
-class OpRandApply(OpBase):
+class OpRandApply(OpReversibleBase):
     def __init__(self, op: OpBase, probability: float):
         """
         Randomly apply the op (according to the given probability) 
@@ -25,7 +25,7 @@ class OpRandApply(OpBase):
         apply = self._param_sampler.sample()
         sample_dict[op_id] = apply
         if apply:
-            sample_dict = self._op(sample_dict, f"{op_id}.apply", **kwargs)
+            sample_dict = op_call(self._op, sample_dict, f"{op_id}.apply", **kwargs)
         return sample_dict
 
     def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
@@ -34,11 +34,11 @@ class OpRandApply(OpBase):
         """
         apply = sample_dict[op_id]
         if apply:
-            sample_dict = self._op.reverse(sample_dict, key_to_reverse, key_to_follow, f"{op_id}.apply")
+            sample_dict = op_reverse(self._op, sample_dict, key_to_reverse, key_to_follow, f"{op_id}.apply")
         
         return sample_dict
 
-class OpSample(OpBase):
+class OpSample(OpReversibleBase):
     """
     recursively searches for ParamSamplerBase instances in kwargs, and replaces the drawn values inplace before calling to op.__call__()
 
@@ -66,13 +66,13 @@ class OpSample(OpBase):
         See super class
         """
         sampled_kwargs = draw_samples_recursively(kwargs)
-        return self._op(sample_dict, op_id, **sampled_kwargs)
+        return op_call(self._op, sample_dict, op_id, **sampled_kwargs)
     
     def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
         """
         See super class
         """
-        return self._op.reverse(sample_dict, key_to_reverse, key_to_follow, op_id)          
+        return op_reverse(self._op, sample_dict, key_to_reverse, key_to_follow, op_id)          
 
 class OpSampleAndRepeat(OpSample):
     """
@@ -101,7 +101,7 @@ class OpSampleAndRepeat(OpSample):
         #...
     ]
 
-    #note: this is a convinience op, and it is the equivalent of composing OpSample and OpRepeat yourself.
+    #note: this is a convenience op, and it is the equivalent of composing OpSample and OpRepeat yourself.
     The previous example is effectively the same as:
 
     pipeline_desc = [
