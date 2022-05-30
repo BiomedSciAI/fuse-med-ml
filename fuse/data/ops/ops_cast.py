@@ -165,4 +165,4 @@ class OpToNumpy(OpCast):
     Convert many types to numpy
     """
     def _cast(self, value: Any, dtype: Optional[np.dtype] = None) -> np.ndarray:
-        return Cast.to_numpy(value)
+        return Cast.to_numpy(value, dtype)

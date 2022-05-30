@@ -46,7 +46,7 @@ class OpClip(OpBase):
 
 op_clip_img = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpClip(), {}) })
         
-class OpNormalizeAgainstSelfImpl(OpBase):
+class OpNormalizeAgainstSelf(OpBase):
     '''
     normalizes a tensor into [0.0, 1.0] using its own statistics (NOT against a dataset)
     '''
@@ -61,7 +61,7 @@ class OpNormalizeAgainstSelfImpl(OpBase):
         return sample_dict
     
 
-op_normalize_against_self_img = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpNormalizeAgainstSelfImpl(), {}) })
+op_normalize_against_self_img = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpNormalizeAgainstSelf(), {}) })
 
         
 class OpToIntImageSpace(OpBase):

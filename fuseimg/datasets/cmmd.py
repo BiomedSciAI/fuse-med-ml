@@ -2,7 +2,7 @@ from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuseimg.data.ops.image_loader import OpLoadDicom
-from fuseimg.data.ops.color import OpNormalizeAgainstSelfImpl
+from fuseimg.data.ops.color import OpNormalizeAgainstSelf
 from fuseimg.data.ops.shape_ops import OpFlipBrightSideOnLeft2D , OpFindBiggestNonEmptyBbox2D, OpResizeAndPad2D
 from fuse.data import PipelineDefault, OpToTensor
 from fuse.data.ops.ops_common import OpLambda
@@ -10,9 +10,11 @@ from fuseimg.data.ops.aug.color import OpAugColor
 from fuseimg.data.ops.aug.geometry import OpAugAffine2D 
 from fuse.data.ops.ops_aug_common import OpSample
 from fuse.data.ops.ops_read import OpReadDataframe
+from fuse.data.ops.ops_cast import OpToNumpy
 from functools import partial
 import torch
 import pandas as pd
+import numpy as np
 from typing import Tuple, List
 import os
 
@@ -41,10 +43,11 @@ class CMMD:
         static_pipeline = PipelineDefault("static", [
             
             (OpReadDataframe(data_source,key_column = None , columns_to_extract = ['file','classification'] , rename_columns=dict(file="data.input.img_path",classification="data.gt.classification")), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path" 
-            (OpLoadDicom(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", format="nib")),
+            (OpLoadDicom(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", format="dcm")),
             (OpFlipBrightSideOnLeft2D(), dict(key="data.input.img")),
             (OpFindBiggestNonEmptyBbox2D(), dict(key="data.input.img")),
-            (OpNormalizeAgainstSelfImpl(), dict(key="data.input.img")),
+            (OpNormalizeAgainstSelf(), dict(key="data.input.img")),
+            (OpToNumpy(), dict(key='data.input.img', dtype=np.float32)), 
             (OpResizeAndPad2D(), dict(key="data.input.img", resize_to=(2200, 1200), padding=(60, 60))),
             ])
         return static_pipeline
@@ -76,20 +79,18 @@ class CMMD:
         return dynamic_pipeline
 
     @staticmethod
-    def create_dataset_partition(phase : str,
-                                data_dir: str,
-                                data_source : pd.DataFrame,
-                                cache_dir : str = None,
-                                restart_cache : bool = True,
-                                specific_ids : List = []) :
+    def dataset(phase : str,
+                data_dir: str,
+                data_source : pd.DataFrame,
+                cache_dir : str = None,
+                restart_cache : bool = True) :
         """
         Creates Fuse Dataset single object (either for training, validation and test or user defined set)
         :param phase:                       parition name (training / validation / test)
         :param data_dir:                    dataset root path
         :param data_source                  csv file containing all samples file paths and ground truth
         :param cache_dir:                   Optional, name of the cache folder
-        :param reset_cache:                 Optional,specifies if we want to clear the cache first
-        :param specific_ids                 Otional, specify which sample ids to include in this set instead of all given in dataframe
+        :param restart_cache:                 Optional,specifies if we want to clear the cache first
         :return: DatasetDefault object
         """
 
@@ -103,8 +104,6 @@ class CMMD:
             cache_dirs=[phase_cahce_dir], restart_cache=restart_cache)   
         
         sample_ids=[id for id in data_source.index]
-        if specific_ids != []:
-            sample_ids = specific_ids
         my_dataset = DatasetDefault(sample_ids=sample_ids,
             static_pipeline=static_pipeline,
             dynamic_pipeline=dynamic_pipeline,

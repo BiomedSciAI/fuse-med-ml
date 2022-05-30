@@ -95,20 +95,23 @@ class OpResizeAndPad2D(OpBase):
         pads image to requested size ,
         pads both side equally by the same input padding size (left = right = padding[1] , up = down= padding[0] )  ,
         padding default value is zero or minimum value in normalized target range
-        :param inner_image: image of shape [H, W, C]
+        :param inner_image: image of shape [H, W, C] of type numpy float32
         :param padding: required padding [x,y]
         :param resize_to: original requested resolution
         :param normalized_target_range: requested normalized image pixels range
         :param number_of_channels: number of color channels in the image
         :return: padded image
         """
-        inner_image = inner_image.astype('float32')
-        # "Pad" around inner image
+        # "Pad" around inner image with background value 
         inner_image_height, inner_image_width = inner_image.shape[0], inner_image.shape[1]
-        inner_image[0:inner_image_height, 0] = 0
-        inner_image[0:inner_image_height, inner_image_width - 1] = 0
-        inner_image[0, 0:inner_image_width] = 0
-        inner_image[inner_image_height - 1, 0:inner_image_width] = 0
+        # pad first row
+        inner_image[0:inner_image_height, 0] = self.pad_value
+        # pad last row
+        inner_image[0:inner_image_height, inner_image_width - 1] = self.pad_value
+        # pad first column
+        inner_image[0, 0:inner_image_width] = self.pad_value
+        # pad last column
+        inner_image[inner_image_height - 1, 0:inner_image_width] = self.pad_value
 
         image = self.pad_inner_image(inner_image, outer_height=resize_to[0] + 2 * padding[0],
                                                            outer_width=resize_to[1] + 2 * padding[1], pad_value=self.pad_value)
@@ -257,10 +260,10 @@ class OpFlipBrightSideOnLeft2D(OpBase):
     '''
     Returns an image where the brigheter half side is on the left, flips the image if the condition does nt hold.
     '''
-    def __init__(self, **kwargs):
+    def __init__(self,max_pixel_value : float= 255.0, dark_region_ratio : float = 15.0,  **kwargs):
         super().__init__(**kwargs)
-        self.max_pixel_value = 255.0
-        self.dark_region_ratio = 15.0
+        self.max_pixel_value = max_pixel_value
+        self.dark_region_ratio = dark_region_ratio
         
     def check_bright_side_is_left(self,image : np.ndarray) -> bool:
         '''
