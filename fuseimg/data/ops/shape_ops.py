@@ -255,20 +255,20 @@ class OpFindBiggestNonEmptyBbox2D(OpBase):
     
 class OpFlipBrightSideOnLeft2D(OpBase):
     '''
-     checks if the image needed to be flipped to the left
+    Returns an image where the brigheter half side is on the left, flips the image if the condition does nt hold.
     '''
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.max_pixel_value = 255.0
         self.dark_region_ratio = 15.0
         
-    def check_breast_side_is_left_MG(self,image : np.ndarray) -> bool:
+    def check_bright_side_is_left(self,image : np.ndarray) -> bool:
         '''
-        checks if the breast is in the left of the image
+        checks if the bright side is in the left of the image
         :param image: numpy image , expected 2d grayscale image
         :param max_pixel_value: maximum possible value in the image grayscale format
         :param dark_region_ratio: the raito of possible grayscale values which are considered dark
-        :return: True iff the breast side is left
+        :return: True iff the bright side is left
         '''
         cols = image.shape[1]
         left_side = image[:, :cols // 2]
@@ -284,7 +284,7 @@ class OpFlipBrightSideOnLeft2D(OpBase):
         '''
         
         image = sample_dict[key]
-        if not self.check_breast_side_is_left_MG(image): #orig
+        if not self.check_bright_side_is_left(image): #orig
             image = np.fliplr(image)
             sample_dict[key] = image
         return sample_dict
