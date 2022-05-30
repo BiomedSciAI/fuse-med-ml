@@ -68,7 +68,7 @@ class OpSelectSlice(OpBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str,
+    def __call__(self, sample_dict: NDict, key: str,
         slice_idx: int
         ):
         '''
