@@ -30,12 +30,12 @@ import time
 # and vice versa, or set both to True to use both.
 # allocate gpus
 # uncomment if you want to use specific gpus instead of automatically looking for free ones
+experiment_num = 0
 task_num = 1 # 1 or 2
-force_gpus = [0,1] # specify the GPU indices you want to use
+force_gpus = [experiment_num*2,(experiment_num*2)+1] # specify the GPU indices you want to use
 use_data = {'imaging': True, 'clinical': True} # specify whether to use imaging, clinical data or both
 batch_size = 2
 resize_to = (256, 256, 110) 
-print_and_visualize = True
 
 if task_num == 1:
     num_epochs = 100
@@ -64,11 +64,13 @@ def main():
     splits=pd.read_pickle(os.path.join(dir_path, 'splits_final.pkl'))
     # For this example, we use split 0 out of the 5 available cross validation splits
     split = splits[0]
+    # split["train"] = split["train"][:10]
+    # split["val"] = split["val"][:10]
 
     # read environment variables for data, cache and results locations
-    data_path = os.environ['KNIGHT_DATA']
-    cache_path = os.environ['KNIGHT_CACHE']
-    results_path = os.environ['KNIGHT_RESULTS'] 
+    data_path = os.path.join(os.environ['KNIGHT_DATA'], "knight", "data")
+    cache_path = os.path.join("/data/usr/liam", str(experiment_num))#os.environ['KNIGHT_CACHE']
+    results_path = "/data/usr/liam"# os.environ['KNIGHT_RESULTS'] 
 
     ## Basic settings:
     ##############################################################################
@@ -97,25 +99,6 @@ def main():
                 reset_cache=False, rand_gen=rand_gen, batch_size=batch_size, resize_to=resize_to, \
                 task_num=task_num, target_name=target_name, num_classes=num_classes)
 
-    ## Simple data visualizations/analysis:
-    ##############################################################################
-
-    if print_and_visualize:
-        # an example of printing a sample from the data:
-        sample_index = 10
-        #print(train_dl.dataset[sample_index]['data']['input']['clinical']['all'])
-        print(train_dl.dataset[sample_index])
-
-        # print a summary of the label distribution:
-        #print(train_dl.dataset.summary(["data.gt.gt_global.task_1_label"]))
-        #print(valid_dl.dataset.summary(["data.gt.gt_global.task_1_label"]))
-
-        # visualize a sample 
-        # this will only do anything if a matplotlib gui backend is set appropriately, or in "notebook mode"
-        train_dl.dataset.visualize(sample_index)
-
-        # visualize a sample with augmentations applied:
-        train_dl.dataset.visualize_augmentation(sample_index)
 
     ## Model definition
     ##############################################################################
@@ -132,7 +115,7 @@ def main():
         append_features = None
 
     model = ModelDefault(
-        conv_inputs=(('data.input.image', 1),),
+        conv_inputs=(('data.input.img', 1),),
         backbone=backbone,
         heads=[
             Head3dClassifier(head_name='head_0',

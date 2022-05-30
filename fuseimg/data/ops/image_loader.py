@@ -5,6 +5,7 @@ import numpy as np
 from fuse.data.ops.ops_common import OpApplyTypes
 import nibabel as nib
 from fuse.utils.ndict import NDict
+import SimpleITK as sitk
 
 class OpLoadImage(OpBase):
     '''
@@ -23,12 +24,13 @@ class OpLoadImage(OpBase):
         img_filename_suffix = img_filename.split(".")[-1]
         if (format == "infer" and img_filename_suffix in ["nii"]) or \
             (format in ["nii", "nib"]):  
-            img = nib.load(img_filename)
-            img_np = img.get_fdata()
+            img = sitk.ReadImage(img_filename)
+            img_np = sitk.GetArrayFromImage(img)
         else:
             raise Exception(f"OpLoadImage: case format {format} and {img_filename_suffix} is not supported")
         
         sample_dict[key_out] = img_np
+        sample_dict["spacings"] = img.GetSpacing()
 
         return sample_dict
 
