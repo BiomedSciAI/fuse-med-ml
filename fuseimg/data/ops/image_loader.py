@@ -46,7 +46,7 @@ class OpLoadDicom(OpBase):
         super().__init__(**kwargs)
         self._dir_path = dir_path
 
-    def __call__(self, sample_dict: NDict, key_in:str, key_out: str, format:str="infer", metadata_keys: NDict=None, key_metadata_out: str="data.input.metadata"):
+    def __call__(self, sample_dict: NDict, key_in:str, key_out: str, format: str="infer", metadata_keys: Dict=None, key_metadata_out: str=None):
         '''
         :param key_in: the key name in sample_dict that holds the filename
         :param key_out: 
