@@ -203,7 +203,7 @@ class DatasetDefault(DatasetBase):
     def get_multi(self, items: Optional[Sequence[Union[int, Hashable]]] = None, workers: int = 10, verbose: int = 1, mp_context: Optional[str] = None, **kwargs) -> List[Dict]:
         """
         See super class
-        :param workers: number of processes to read the data. set to 0 for a single process.
+        :param workers: number of processes to read the data. set to 0 to not use multi processing (useful when debugging).
         :param mp_context: "fork", "spawn", "thread" or None for multiprocessing default  
         """
         if items is None:
