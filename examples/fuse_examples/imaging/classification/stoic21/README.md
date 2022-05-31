@@ -7,7 +7,7 @@ More details about the challenge can be found here: https://stoic2021.grand-chal
 The STOIC Dataset (see https://pubs.rsna.org/doi/10.1148/radiol.2021210384 for a full description) contains Computed Tomography scans from 10,735 patients.  For this challenge, one CT scan from each patient has been selected, and the dataset has been divided randomly into a public training set (2,000 patients), a test set (~1,000 patients)
 More details can be found here: https://stoic2021.grand-challenge.org/stoic-db/
 
-FuseMedML provide an implementation of PyTorch Dataset, easy to follow and to customizable - the implementation can be found in (fuseimg/datasets/stoic21.py)[https://github.com/IBM/fuse-med-ml/blob/fuse2/fuseimg/datasets/stoic21.py]
+FuseMedML provides an easy to follow implementation of a PyTorch Dataset. The implementation can be found in (fuseimg/datasets/stoic21.py)[https://github.com/IBM/fuse-med-ml/blob/fuse2/fuseimg/datasets/stoic21.py]
 
 
 # Model
