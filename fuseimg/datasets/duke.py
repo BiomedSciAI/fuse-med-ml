@@ -1,35 +1,27 @@
 from functools import partial
 import os
 from typing import Hashable, List, Optional, Sequence, Tuple, Union
+import glob
 
 import numpy as np
 import pandas as pd
-import torch
-from tqdm import tqdm
-import skimage
-import skimage.transform
+import pickle
 
 
 from fuse.utils import NDict
-from fuse.utils.rand.param_sampler import RandBool, RandInt, Uniform
 
 
 from fuse.data import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
-from fuse.data import PipelineDefault, OpSampleAndRepeat, OpToTensor, OpRepeat
+from fuse.data import PipelineDefault
 from fuse.data.ops.op_base import OpBase, OpReversibleBase
-from fuse.data.ops.ops_aug_common import OpSample
-from fuse.data.ops.ops_common import OpLambda
+
 
 from fuse.data.utils.sample import get_sample_id
 
-from fuseimg.data.ops.aug.color import OpAugColor
-from fuseimg.data.ops.aug.geometry import OpAugAffine2D
-from fuseimg.data.ops.image_loader import OpLoadImage
-from fuseimg.data.ops.color import OpClip, OpToRange
-from fuseimg.data.ops.ops_mri import OpExtractDicomsPerSeq, OpLoadDicomAsStkVol, OpGroupDCESequences, OpSelectVolumes, OpResampleStkVolsBasedRef
 
-
+from fuseimg.data.ops.ops_mri import OpExtractDicomsPerSeq, OpLoadDicomAsStkVol, OpGroupDCESequences, OpSelectVolumes, \
+    OpResampleStkVolsBasedRef, OpStackList4DStk, OpRescale4DStk, OpCreatePatch
 
 
 class OpDukeSampleIDDecode(OpReversibleBase):
@@ -45,7 +37,10 @@ class OpDukeSampleIDDecode(OpReversibleBase):
 
         sid = get_sample_id(sample_dict)
 
-        sample_dict[key_out] = os.path.join(self._data_path, *sid)
+        sample_path_pattern = os.path.join(self._data_path, sid, '*')
+        sample_path = glob.glob(sample_path_pattern)
+        assert len(sample_path)==1
+        sample_dict[key_out] = sample_path[0]
 
         return sample_dict
 
@@ -61,34 +56,49 @@ def get_selected_series_index(sample_id, seq_id):
         map = {'DCE_mix': [1], 'MASK': [0]}
     return map[seq_id]
 
+
+
+
 class Duke:
     DUKE_DATASET_VER = 0
     @staticmethod
     def sample_ids():
-        TEST_PATIENT_ID, TEST_STUDY_ID = 'Breast_MRI_900', '01-01-1990-BREASTROUTINE DYNAMICS-51487'
+        if False:
+            # TEST_PATIENT_ID, TEST_STUDY_ID = 'Breast_MRI_900', '01-01-1990-BREASTROUTINE DYNAMICS-51487'
+            TEST_PATIET_ID = 'Breast_MRI_900'
 
-        test_sample_id = (TEST_PATIENT_ID, TEST_STUDY_ID)
-        return [test_sample_id]
+            test_sample_id = TEST_PATIENT_ID
+            return [test_sample_id]
+        return [f'Breast_MRI_{i:03d}' for i in range(1,923)]
 
     @staticmethod
-    def static_pipeline(root_path: Optional[str]=None, seq_ids: Optional[List]=None,
-                        select_series_func=get_selected_series_index) -> PipelineDefault:
-
-        if root_path is None:
-            root_path= '/projects/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI/manifest-1607053360376/'
-        if seq_ids is None:
-            seq_ids = ['DCE_mix_ph1', 'DCE_mix_ph3']
+    def static_pipeline(root_path, select_series_func) -> PipelineDefault:
 
         data_path = os.path.join(root_path, 'Duke-Breast-Cancer-MRI')
         metadata_path = os.path.join(root_path, 'metadata.csv')
-        sequence_2_series_desc_map = _get_sequence_2_series_desc_mapping(metadata_path)
+        annotations_path = os.path.join('/user/ozery/msieve_dev3_ozery/workspace/whi/fuse-med-ml1/fuse_examples/classification/duke_breast_cancer/dataset_DUKE_folds_ver11102021TumorSize_seed1.pickle')
+        with open(annotations_path, 'rb') as infile:
+            fold_annotations_dict= pickle.load(infile)
+            annotations_df = pd.concat([fold_annotations_dict[f'data_fold{fold}'] for fold in range(len(fold_annotations_dict))])
+
+        def get_annotations(sample_id):
+            patient_annotations_df = annotations_df[annotations_df['Patient ID'] == sample_id]
+            return patient_annotations_df
+        series_desc_2_sequence_map = _get_sequence_2_series_desc_mapping(metadata_path)
+        seq_ids = ['DCE_mix_ph1',
+                  'DCE_mix_ph2',
+                  'DCE_mix_ph3',
+                  'DCE_mix_ph4',
+                  'DCE_mix',
+                  'DCE_mix_ph',
+                  'MASK']
 
         static_pipeline = PipelineDefault("static", [
             # step 1: map sample_ids to
             (OpDukeSampleIDDecode(data_path=data_path),
                     dict(key_out='data.input.mri_path')),
             # step 2: read files info for the sequences
-            (OpExtractDicomsPerSeq(seq_ids=seq_ids, seq_dict=sequence_2_series_desc_map, use_order_indicator=False),
+            (OpExtractDicomsPerSeq(seq_ids=seq_ids, series_desc_2_sequence_map=series_desc_2_sequence_map, use_order_indicator=False),
                     dict(key_in='data.input.mri_path',
                                 key_out_sequences='data.input.sequence_ids',
                                 key_out_path_prefix='data.input.path.',
@@ -109,17 +119,30 @@ class Duke:
                      key_volumes_prefix='data.input.volumes.')),
 
             # step 5: select single volume from DCE_mix sequence
-            (OpSelectVolumes(subseq_to_use=['DCE_mix'], get_indexes_func=select_series_func),
-                    dict(key_in_path_prefix='data.input.path.',
+            (OpSelectVolumes(get_indexes_func=select_series_func),
+                    dict(key_in_sequence_ids='data.input.sequence_ids',
+                         key_in_path_prefix='data.input.path.',
                          key_in_volumes_prefix='data.input.volumes.',
-                         key_out_path_prefix='data.input.selected_path.',
-                         key_out_volumes_prefix='data.input.selected_volumes.')),
+                         key_out_paths='data.input.selected_paths',
+                         key_out_volumes='data.input.selected_volumes')),
 
+            # step 6: set reference volume to be first and register other volumes with respect to it
             (OpResampleStkVolsBasedRef(reference_inx=0, interpolation='bspline'),
-                    dict( key_seq_ids='data.input.sequence_ids',
-                                                 key_seq_volumes_prefix='data.input.selected_volumes.',
-                                                 key_out_prefix='data.input.selected_volumes_resampled.')),
+                    dict(key_in='data.input.selected_volumes',
+                         key_out='data.input.selected_volumes_resampled')),
 
+            # step 7: create 4D volume from all the sequences
+            (OpStackList4DStk(), dict(key_in='data.input.selected_volumes',
+                                      key_out_volume4d='data.input.volume4D',
+                                      key_out_ref_volume='data.input.ref_volume')),
+
+            # step 8:
+            (OpRescale4DStk(), dict(key='data.input.volume4D')),
+
+            (OpCreatePatch(get_annotations_func=get_annotations, lsn_shape=(9, 100, 100), lsn_spacing=(1, 0.5, 0.5)),
+                    dict(key_in_volume4d='data.input.volume4D',
+                        key_in_ref_volume='data.input.ref_volume',
+                        key_out='data.input.patches'))
         ])
 
 
@@ -130,7 +153,9 @@ class Duke:
         return None
 
     @staticmethod
-    def dataset(cache_dir: str, data_path: Optional[str]=None, reset_cache: bool = False, num_workers: int = 10,
+    def dataset(cache_dir: str, data_path: Optional[str]=None,
+                select_series_func=get_selected_series_index,
+                reset_cache: bool = False, num_workers: int = 10,
                 sample_ids: Optional[Sequence[Hashable]] = None) -> DatasetDefault:
         """
         Get cached dataset
@@ -141,13 +166,15 @@ class Duke:
         :param sample_ids: dataset including the specified sample_ids or None for all the samples. sample_id is case_{id:05d} (for example case_00001 or case_00100).
         """
 
-        if sample_ids is None:
-            sample_ids = Duke.sample_ids()
 
         if data_path is None:
             data_path = '/projects/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI/manifest-1607053360376/'
 
-        static_pipeline = Duke.static_pipeline(data_path)
+        if sample_ids is None:
+            sample_ids = Duke.sample_ids()
+
+
+        static_pipeline = Duke.static_pipeline(data_path, select_series_func=select_series_func)
         dynamic_pipeline = Duke.dynamic_pipeline()
 
         cacher = SamplesCacher(f'duke_cache_ver{Duke.DUKE_DATASET_VER}',
@@ -157,7 +184,7 @@ class Duke:
         my_dataset = DatasetDefault(sample_ids=sample_ids,
                                     static_pipeline=static_pipeline,
                                     dynamic_pipeline=dynamic_pipeline,
-                                    cacher=cacher,
+                                    cacher=None, #cacher, todo: change
                                     )
         my_dataset.create()
         return my_dataset
@@ -169,19 +196,21 @@ def _get_sequence_2_series_desc_mapping(metadata_path: str):
     metadata_df = pd.read_csv(metadata_path)
     series_description_list = metadata_df['Series Description'].unique()
 
-    sequence_2_series_desc_mapping = {'DCE_mix_ph': ['ax dyn']}
+    series_desc_2_sequence_mapping = {'ax dyn':'DCE_mix_ph'}
+
     patterns = ['1st', '2nd', '3rd', '4th']
     for i_phase in range(1,5):
         seq_id = f'DCE_mix_ph{i_phase}'
-        sequence_2_series_desc_mapping[seq_id] = []
+        series_desc_2_sequence_mapping[seq_id] = []
         phase_patterns = [patterns[i_phase-1], f'{i_phase}ax', f'{i_phase}Ax' ,f'{i_phase}/ax', f'{i_phase}/Ax']
 
         for series_desc in series_description_list:
             has_match =any(p in series_desc for p in phase_patterns)
             if has_match:
+
                 series_desc2 = series_desc.replace(f'{i_phase}ax', f'{i_phase}/ax').replace(f'{i_phase}Ax', f'{i_phase}/Ax')
-                sequence_2_series_desc_mapping[seq_id] += [series_desc, series_desc2]
+                series_desc_2_sequence_mapping[series_desc]=seq_id
+                series_desc_2_sequence_mapping[series_desc2] = seq_id
 
-
-    return sequence_2_series_desc_mapping
+    return series_desc_2_sequence_mapping
 
