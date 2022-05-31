@@ -5,15 +5,12 @@ from copy import deepcopy
 
 from fuse.utils.ndict import NDict
 from fuse.data.visualizer.visualizer_base import VisualizerBase
-from fuseimg.utils.typing.key_types_imaging import DataTypeImaging
-from torch import Tensor
 from .op_base import OpReversibleBase
-from fuse.data.key_types import TypeDetectorBase
 from fuse.data.utils.sample import get_sample_id
 class VisFlag(enum.IntFlag):
-    COLLECT = 1                     #save current state for future comparison        
+    COLLECT = 1                     #save current state for future visualization        
     VISUALIZE_CURRENT = 2           #show current state                                    
-    VISUALIZE_COLLECTED = 4          #show comparison of all previuosly collected states
+    VISUALIZE_COLLECTED = 4         #show visualization of all previuosly collected states
     CLEAR = 8                       #clear all collected states until this point in the pipeline
     ONLINE = 16                     #show operations will prompt the user with the releveant plot 
     # REVERSE = 32                  #visualization operation will be activated on reverse pipeline execution flow
@@ -25,41 +22,25 @@ class VisProbe(OpReversibleBase):
     Handle visualization, saves, shows and compares the sample with respect to the current state inside a pipeline
     In most cases VisProbe can be used regardless of the domain, and the domain specific code will be implemented 
     as a Visualizer inheriting from VisualizerBase. In some cases there might be need to also inherit from VisProbe.
-
-    Important notes:
-    - running in a cached environment is dangerous and is prohibited
-    - this Operation is not thread safe and so multithreading is also discouraged
-
     "
     """
 
     def __init__(self,flags: VisFlag, 
                  keys: Union[List, dict] ,
-                 type_detector: TypeDetectorBase,
                  visualizer: VisualizerBase,
                  name : str ="",
                  output_path: str = "~/"):
         """ 
           :param flags: operation flags (or possible concatentation of flags using IntFlag), details:   
-              COLLECT - save current state for future comparison                                                                                               
+              COLLECT - save current state for future visualization                                                                                               
               VISUALIZE_CURRENT - visualize current state                                                                                                                        
-              VISUALIZE_COLLECTED - visualize comparison of all previuosly collected states                                                                              
+              VISUALIZE_COLLECTED - visualize all previuosly collected states                                                                              
               CLEAR - clear all collected states until this point in the pipeline                                                                              
-              ONLINE - visualize operations will prompt the user with the releveant plot                                                                        
-              OFFLINE - visualize operations will write to disk (using the caching mechanism) the relevant info (state or states for comparison)                
-              FORWARD - visualization operation will be activated on forward pipeline execution flow                                                       
-              REVERSE - visualization operation will be activated on reverse pipeline execution flow
+              ONLINE - visualize operations will prompt the user with the releveant plot                                                                                   
           :param keys: for which sample keys to handle visualization, also can be grouped in a dictionary
-          :param type_detector : class used to identify objects from the keys
-          :param coco_converter : function that convert the input format to COCO type format
           :param visualizer: the actual visualization handler, depands on domain and use case, should implement Visualizer Base
           :param name : image name to represnt, if not given a number will be shown.
           :param output_path: root dir to save the visualization outputs in offline mode
-          
-          few issues to be aware of, detailed in github issues regarding static cached pipeline and multiprocessing
-          note - if both forward and reverse are on, then by default, on forward we do collect and on reverse we do show_collected to 
-          compare reverse operations
-          for each domain we inherit for VisProbe like ImagingVisProbe,...
 """
         super().__init__()
         self._keys  = keys
@@ -68,7 +49,6 @@ class VisProbe(OpReversibleBase):
         self._name = name
         self._output_path = output_path
         self._visualizer = visualizer
-        self._type_detector = type_detector
 
     def _extract_collected(self, sample_dict: NDict):
         res = []
@@ -79,16 +59,11 @@ class VisProbe(OpReversibleBase):
                 res.append(vdata)
         return res
     
-    def _extract_data(self, sample_dict: NDict, keys : List , name : str):
+    def _extract_data(self, sample_dict: NDict, keys : dict , name : str):
         res = NDict()
-        for key in keys:
-            prekey = key.replace(".", "_")
-            res[f'{prekey}.value'] =  deepcopy(sample_dict[key])
-            res[f'{prekey}.type'] = self._type_detector.get_type(sample_dict, key)
-            if 'height' in sample_dict.keys() and 'width' in sample_dict.keys() :
-                res[f'{prekey}.height'] = sample_dict['height']
-                res[f'{prekey}.width'] = sample_dict['width']
-            res[f'{prekey}.name'] = name
+        for arg_name, key in keys.items():
+            res[arg_name] =  deepcopy(sample_dict[key])
+        res['name'] = name
         return res
 
     def _handle_flags(self, sample_dict: NDict, op_id: Optional[str]):

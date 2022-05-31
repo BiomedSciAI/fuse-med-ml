@@ -1,4 +1,5 @@
 from typing import List , Callable , Any
+from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import numpy as np
 from functools import partial
@@ -6,51 +7,29 @@ from fuseimg.utils.typing.typed_element import TypedElement
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Polygon
 
-def show_multiple_images(plot_seg : Callable , imgs : List, base_resolution :int = 5, **args ):
+def show_multiple_images(plot_seg : Callable , imgs : List, base_resolution :int = 5, **kwargs ) -> Figure:
     '''
     Show multiple images with shared zoom/translation controls
     everything passed as kwargs (for example - cmap='gray') will be passed to the individual imshow calls
-    special possible values are:
-        * cmap[image_index] = value
-            for example - cmap0='gray' will only change the cmap of the first image
-        * unify_size = 'dont_care'
-            will make sure that all images are resized to the same size
-    example usage:
-    imshowmultiple([img1, img2])
-    imshowmultiple(img1,img2,img3, cmap='gray', vmin=0.0, vmax=1.0)
-    imshowmultiple(img1,img2,img3, cmap0='gray')   #will use grayscale color map only on the first image and default cmap on the rest
-    imshowmultiple(img1,img2,img3, unify_size='blah')   #will resize all images to match
     :param plot_seg : function to plot the ground truth segmentation
     :param imgs: list of images in TypedElement format
     :param base_resolution : base pixel resolution we want to maintain per image
-    :param args: additional parameters to the plot function of matplotlib
-    :return:
+    :param kwargs: additional parameters to the plot function of matplotlib
+    :return: matplotlib figure object with the images grid and segmentation
     '''
     assert len(imgs)>0
     grid_size = int(np.sqrt(len(imgs))) + 1
     fig = plt.figure(figsize=(base_resolution*grid_size,base_resolution*grid_size))
     axis = []
     
-    do_not_pass = ['unify_size','color']
-    do_not_pass += [ 'cmap'+str(i) for i in range(20)]
-    pass_kwargs = { k:d for k,d in args.items() if k not in do_not_pass }
     for i,m in enumerate(imgs):
-
         im = m.image
-        if 0==i:
+        if i == 0 :
             axis.append(fig.add_subplot(grid_size,grid_size,i+1))
         else:
             axis.append(fig.add_subplot(grid_size, grid_size, i + 1, sharex=axis[0],sharey=axis[0]))
-            
-        img_cmap = 'cmap'+str(i+1)
-        if img_cmap in args:
-            pass_kwargs['cmap'] = args[img_cmap]      
-            axis[i].imshow(im, interpolation='none', **pass_kwargs)
-        else:
-            axis[i].imshow(im, interpolation='none', **pass_kwargs)
-           
-        plot_seg(axis[i], m )
-                
+        axis[i].imshow(im, **kwargs) 
+        plot_seg(axis[i], m )      
         if m.metadata:
             axis[i].set_title(str(i)+":"+m.metadata)
         else:
@@ -58,15 +37,7 @@ def show_multiple_images(plot_seg : Callable , imgs : List, base_resolution :int
 
     return fig
 
-def plot_color_mask(mask , ax ) :
-    color_mask = np.random.random((1, 3)).tolist()[0]
-    masked = np.ma.masked_where(mask == 0, mask)
-    img = np.ones( (masked.shape[0], masked.shape[1], 3) )
-    for i in range(3):
-        img[:,:,i] = color_mask[i]
-    ax.imshow(np.dstack( (img, masked*0.5) )) 
-    
-    
+ 
 def plot_seg_coco_style(ax : Any, sample : TypedElement ):
     if sample.seg is not None : 
         mask = sample.seg
