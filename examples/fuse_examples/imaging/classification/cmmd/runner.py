@@ -33,9 +33,10 @@ from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils import NDict
 from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.collates import CollateDefault
+from fuse.data.utils.split import dataset_balanced_division_to_folds
 from fuse.dl.models.model_default import ModelDefault
 from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
-
+from fuse.utils.file_io.file_io import load_pickle
 from fuse.dl.losses.loss_default import LossDefault
 
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy, MetricROCCurve
@@ -44,8 +45,7 @@ from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
 from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
 from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
 from fuse.dl.managers.manager_default import ManagerDefault
-
-from fuse_examples.imaging.classification.cmmd.dataset import CMMD_2021_dataset
+from fuseimg.datasets.cmmd import CMMD
 from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
 
 import hydra
@@ -78,11 +78,25 @@ def run_train(paths : NDict , train: NDict ):
     lgr.info(f'cache_dir={paths["cache_dir"]}', {'color': 'magenta'})
 
     #### Train Data
-    lgr.info(f'Train Data:', {'attrs': 'bold'})
-    train_dataset, validation_dataset , _ = CMMD_2021_dataset(data_dir = paths["data_dir"],
-                                                              data_misc_dir = paths["data_misc_dir"],
-                                                              cache_dir = paths["cache_dir"],
-                                                              reset_cache=train["reset_cache"])
+    # split to folds randomly - temp
+    dataset_all = CMMD.dataset(paths["data_dir"], paths["data_misc_dir"], train['target'], paths["cache_dir"], reset_cache=False, train=True)
+    folds = dataset_balanced_division_to_folds(dataset=dataset_all,
+                                        output_split_filename=os.path.join( paths["data_misc_dir"], paths["data_split_filename"]), 
+                                        id = 'data.patientID',
+                                        keys_to_balance=["data.gt.classification"], 
+                                        nfolds=train["num_folds"])
+
+    train_sample_ids = []
+    for fold in train["train_folds"]:
+        train_sample_ids += folds[fold]
+    validation_sample_ids = []
+    for fold in train["validation_folds"]:
+        validation_sample_ids += folds[fold]
+
+    train_dataset = CMMD.dataset(paths["data_dir"], paths["data_misc_dir"], train['target'], paths["cache_dir"], reset_cache=False, sample_ids=train_sample_ids, train=True)
+    # for _ in train_dataset:
+    #     pass
+    validation_dataset = CMMD.dataset(paths["data_dir"], paths["data_misc_dir"], train['target'], paths["cache_dir"],  reset_cache=False, sample_ids=validation_sample_ids, train=True)
 
     ## Create sampler
     lgr.info(f'- Create sampler:')
@@ -214,9 +228,15 @@ def run_infer(paths : NDict , infer: NDict):
     lgr.info('Fuse Inference', {'attrs': ['bold', 'underline']})
     lgr.info(f'infer_filename={os.path.join(paths["inference_dir"], infer["infer_filename"])}', {'color': 'magenta'})
 
-    # Create data source:
-    _, _ , test_dataset = CMMD_2021_dataset(paths["data_dir"], paths["data_misc_dir"])
 
+    ## Data
+    folds = load_pickle(paths["data_split_filename"]) # assume exists and created in train func
+
+    infer_sample_ids = []                              
+    for fold in infer["infer_folds"]:
+        infer_sample_ids += folds[fold]
+
+    test_dataset = CMMD.dataset(paths["data_dir"], paths["data_misc_dir"], infer['target'], paths["cache_dir"], sample_ids=infer_sample_ids, train=False)
 
     ## Create dataloader
     infer_dataloader = DataLoader(dataset=test_dataset,

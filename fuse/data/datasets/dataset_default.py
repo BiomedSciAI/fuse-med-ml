@@ -207,14 +207,16 @@ class DatasetDefault(DatasetBase):
         :param mp_context: "fork", "spawn", "thread" or None for multiprocessing default  
         """
         if items is None:
-            items = range(len(self))
+            sample_ids = self._final_sample_ids
+        else:
+            sample_ids = items
 
         for_global_storage = {"dataset_default_get_multi_dataset": self, "dataset_default_get_multi_kwargs": kwargs}
 
         list_sample_dict = run_multiprocessed(
             worker_func=self._getitem_multiprocess, 
-            copy_to_global_storage=for_global_storage, 
-            args_list=items, workers=workers, verbose=verbose)
+            copy_to_global_storage=for_global_storage,
+            args_list=sample_ids, workers=workers, verbose=verbose, mp_context=mp_context)
         return list_sample_dict
 
     def __len__(self):
