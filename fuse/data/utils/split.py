@@ -116,7 +116,13 @@ def balanced_division(df : pd.DataFrame, no_mixture_id : str, keys_to_balance: S
 def dataset_balanced_division_to_folds(dataset: DatasetBase, output_split_filename: str, keys_to_balance: Sequence[str], nfolds: int, reset_split: bool = False, **kwargs):
     """
     Split dataset to folds.
-    Support balancing, exclusion and radom seed (with a small improvement could support no mixture criterion).  
+    Support balancing, exclusion and radom seed (with a small improvement could support no mixture criterion).
+    :param dataset: FuseMedML style dataset implementation.
+    :param output_split_filename: filename to save/read the split from. If the file exist and reset_split=False - this function will return the split stored in reset_split.
+    :param keys_to_balance: balancing any possible combination of values. For example for ["data.gender", "data.cancer"], the algorithm will balance each one of the following groups between the folds.
+                            (gender=male, cancer=True), (gender=male, cancer=False), (gender=female, cancer=True), (gender=female, cancer=False)
+    :param reset_split: delete output_split_filename and recompute the split
+    :param kwargs: more arguments controlling the split. See function balanced_division() for details
     """ 
     if os.path.exists(output_split_filename) and not reset_split:
         return load_pickle(output_split_filename)

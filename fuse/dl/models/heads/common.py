@@ -46,6 +46,31 @@ class ClassifierFCN(nn.Module):
         x = self.classifier(x)
         return x
 
+class ClassifierFCN3D(nn.Module):
+    def __init__(self, in_ch: int, num_classes: Optional[int], layers_description: Sequence[int]=(256,), dropout_rate: float = 0.1):
+        super().__init__()
+        layer_list = []
+        layer_list.append(nn.Conv3d(in_ch, layers_description[0], kernel_size=1, stride=1))
+        layer_list.append(nn.ReLU())
+        if dropout_rate is not None and dropout_rate > 0:
+            layer_list.append(nn.Dropout(p=dropout_rate))
+        last_layer_size = layers_description[0]
+        for curr_layer_size in layers_description[1:]:
+            layer_list.append(nn.Conv3d(last_layer_size, curr_layer_size, kernel_size=1, stride=1))
+            layer_list.append(nn.ReLU())
+            if dropout_rate is not None and dropout_rate > 0:
+                layer_list.append(nn.Dropout(p=dropout_rate))
+            last_layer_size = curr_layer_size
+
+        if num_classes is not None:
+            layer_list.append(nn.Conv3d(last_layer_size, num_classes, kernel_size=1, stride=1))
+        
+        self.classifier = nn.Sequential(*layer_list)
+
+    def forward(self, x):
+        x = self.classifier(x)
+        return x
+
 class ClassifierMLP(nn.Module):
     def __init__(self, in_ch: int, num_classes: Optional[int], layers_description: Sequence[int]=(256,), dropout_rate: float = 0.1):
         super().__init__()

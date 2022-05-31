@@ -33,7 +33,8 @@ from fuse.eval.metrics.classification.metrics_classification_common import Metri
 
 from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.collates import CollateDefault
-
+from fuse.data.utils.split import dataset_balanced_division_to_folds
+    
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
 from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
@@ -62,14 +63,14 @@ debug = FuseDebug(mode)
 # Output Paths
 ##########################################
 assert "STOIC21_DATA_PATH" in os.environ, "Expecting environment variable STOIC21_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
-ROOT = 'examples' # TODO: fill path here
-PATHS = {'model_dir': os.path.join(ROOT, 'stoic21_3/model_dir'),
+ROOT = 'examples/stoic21_sgd_fixed_2' # TODO: fill path here
+PATHS = {'model_dir': os.path.join(ROOT, 'model_dir'),
          'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
-         'cache_dir': os.path.join(ROOT, 'stoic21_3/cache_dir'),
+         'cache_dir': os.path.join(ROOT, '../stoic21_adam_fixed_2/cache_dir'),
          'data_split_filename': os.path.join(ROOT, 'stoic21_split.pkl'),
          'data_dir': os.environ["STOIC21_DATA_PATH"],
-         'inference_dir': os.path.join(ROOT, 'stoic21_3/infer_dir'),
-         'eval_dir': os.path.join(ROOT, 'stoic21_3/eval_dir')}
+         'inference_dir': os.path.join(ROOT, 'infer_dir'),
+         'eval_dir': os.path.join(ROOT, 'eval_dir')}
 
 ##########################################
 # Train Common Params
@@ -95,9 +96,9 @@ TRAIN_COMMON_PARAMS['data.validation_folds'] = [3]
 # ===============
 TRAIN_COMMON_PARAMS['manager.train_params'] = {
     'device': 'cuda', 
-    'num_epochs': 50,
+    'num_epochs': 150,
     'virtual_batch_size': 1,  # number of batches in one virtual batch
-    'start_saving_epochs': 50,  # first epoch to start saving checkpoints from
+    'start_saving_epochs': 150,  # first epoch to start saving checkpoints from
     'gap_between_saving_epochs': 5,  # number of epochs between saved checkpoint
 }
 TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = {
@@ -106,9 +107,12 @@ TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = {
     'on_equal_values': 'better',
     # can be either better/worse - whether to consider best epoch when values are equal
 }
-TRAIN_COMMON_PARAMS['manager.learning_rate'] = 1e-4
+TRAIN_COMMON_PARAMS['manager.learning_rate'] = 1e-3
 TRAIN_COMMON_PARAMS['manager.weight_decay'] = 0.001
 TRAIN_COMMON_PARAMS['manager.resume_checkpoint_filename'] = None  # if not None, will try to load the checkpoint
+TRAIN_COMMON_PARAMS['imaging_dropout'] = 0.2
+TRAIN_COMMON_PARAMS['fused_dropout'] = 0.0
+TRAIN_COMMON_PARAMS['clinical_dropout'] = 0.0
 
 #################################
 # Train Template
@@ -131,14 +135,12 @@ def run_train(paths: dict, train_params: dict):
     lgr.info(f'Train Data:', {'attrs': 'bold'})
 
     # split to folds randomly - temp
-    dataset_all = STOIC21.dataset(paths["data_dir"], paths["cache_dir"])
-    from fuse.data.utils.split import dataset_balanced_division_to_folds
+    dataset_all = STOIC21.dataset(paths["data_dir"], paths["cache_dir"], reset_cache=False)
     folds = dataset_balanced_division_to_folds(dataset=dataset_all,
                                         output_split_filename=paths["data_split_filename"], 
                                         keys_to_balance=["data.gt.probSevere"], 
                                         nfolds=train_params["data.num_folds"])
 
-    # folds = {fold: sample_ids[len(sample_ids)//n_folds*fold: len(sample_ids)//n_folds*(fold + 1)] for fold in range(n_folds)}
     train_sample_ids = []
     for fold in train_params["data.train_folds"]:
         train_sample_ids += folds[fold]
@@ -147,6 +149,8 @@ def run_train(paths: dict, train_params: dict):
         validation_sample_ids += folds[fold]
 
     train_dataset = STOIC21.dataset(paths["data_dir"], paths["cache_dir"], sample_ids=train_sample_ids, train=True)
+    # for _ in train_dataset:
+    #     pass
     validation_dataset = STOIC21.dataset(paths["data_dir"], paths["cache_dir"], sample_ids=validation_sample_ids, train=False)
 
     lgr.info(f'- Create sampler:')
@@ -178,11 +182,12 @@ def run_train(paths: dict, train_params: dict):
     heads=[
         Head3dClassifier(head_name='classification',
                              conv_inputs=[("model.backbone_features", 512)],
-                             dropout_rate=0.5,
+                             dropout_rate=train_params['imaging_dropout'],
+                             append_dropout_rate=train_params['clinical_dropout'],
+                             fused_dropout_rate=train_params['fused_dropout'],
                              num_classes=2,
                              append_features=[("data.input.clinical", 8)],
                              append_layers_description=(256,128),
-                             append_dropout_rate=0,
                              ),
     ]
 )
@@ -220,7 +225,8 @@ def run_train(paths: dict, train_params: dict):
     lgr.info('Train:', {'attrs': 'bold'})
 
     # create optimizer
-    optimizer = optim.Adam(model.parameters(), lr=train_params['manager.learning_rate'], weight_decay=train_params['manager.weight_decay'])
+    # optimizer = optim.Adam(model.parameters(), lr=train_params['manager.learning_rate'], weight_decay=train_params['manager.weight_decay'])
+    optimizer = optim.SGD(model.parameters(), lr=train_params['manager.learning_rate'], weight_decay=train_params['manager.weight_decay'], momentum=0.99, nesterov=True)
 
     # create learning scheduler
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
@@ -254,7 +260,7 @@ def run_train(paths: dict, train_params: dict):
 INFER_COMMON_PARAMS = {}
 INFER_COMMON_PARAMS['infer_filename'] = 'validation_set_infer.gz'
 INFER_COMMON_PARAMS['checkpoint'] = 'best'  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
-INFER_COMMON_PARAMS['data.infer_folds'] = TRAIN_COMMON_PARAMS['data.validation_folds']  # infer validation set
+INFER_COMMON_PARAMS['data.infer_folds'] = [4]  # infer validation set
 INFER_COMMON_PARAMS['data.batch_size'] = 4
 INFER_COMMON_PARAMS['data.num_workers'] = 16
 
@@ -335,10 +341,8 @@ if __name__ == "__main__":
     # allocate gpus
     # To use cpu - set NUM_GPUS to 0
     NUM_GPUS = 1
-    if NUM_GPUS == 0:
-        TRAIN_COMMON_PARAMS['manager.train_params']['device'] = 'cpu' 
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
-    force_gpus = [1]
+    force_gpus = None # [0]
     GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
     RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
