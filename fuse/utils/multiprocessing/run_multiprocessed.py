@@ -233,3 +233,24 @@ def get_from_global_storage(key: str) -> Any:
     """
     global _multiprocess_global_storage
     return _multiprocess_global_storage[key]
+
+
+def run_in_subprocess(f, timeout=600):
+    """A decorator that makes function run in a subprocess.
+    This can be useful when you want allocate GPU and memory and to release it when you're done.
+    """
+
+    def inner(*args, **kwargs):
+        # create the machinery python uses to fork a subprocess
+        # and run a function in it.
+        p = mp.Process(target=f, args=args, kwargs=kwargs)
+        # Because the use of this is avoiding crashes, rather than performance / parallelization
+        # we wait for the subproces result immediately.
+        p.start()
+        try:
+            p.join(timeout=timeout)
+        except:
+            p.terminate()
+            raise
+            
+    return inner

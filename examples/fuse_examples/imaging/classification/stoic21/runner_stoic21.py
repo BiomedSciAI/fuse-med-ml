@@ -63,14 +63,15 @@ debug = FuseDebug(mode)
 # Output Paths
 ##########################################
 assert "STOIC21_DATA_PATH" in os.environ, "Expecting environment variable STOIC21_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
-ROOT = 'examples/stoic21_sgd_fixed_2' # TODO: fill path here
-PATHS = {'model_dir': os.path.join(ROOT, 'model_dir'),
+ROOT = 'examples/stoic21' # TODO: fill path here
+model_dir = os.path.join(ROOT, 'model_dir')
+PATHS = {'model_dir': model_dir,
          'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
-         'cache_dir': os.path.join(ROOT, '../stoic21_adam_fixed_2/cache_dir'),
+         'cache_dir': os.path.join(ROOT, 'cache_dir'),
          'data_split_filename': os.path.join(ROOT, 'stoic21_split.pkl'),
          'data_dir': os.environ["STOIC21_DATA_PATH"],
-         'inference_dir': os.path.join(ROOT, 'infer_dir'),
-         'eval_dir': os.path.join(ROOT, 'eval_dir')}
+         'inference_dir': os.path.join(model_dir, 'infer_dir'),
+         'eval_dir': os.path.join(model_dir, 'eval_dir')}
 
 ##########################################
 # Train Common Params
@@ -96,9 +97,9 @@ TRAIN_COMMON_PARAMS['data.validation_folds'] = [3]
 # ===============
 TRAIN_COMMON_PARAMS['manager.train_params'] = {
     'device': 'cuda', 
-    'num_epochs': 150,
+    'num_epochs': 30,
     'virtual_batch_size': 1,  # number of batches in one virtual batch
-    'start_saving_epochs': 150,  # first epoch to start saving checkpoints from
+    'start_saving_epochs': 30,  # first epoch to start saving checkpoints from
     'gap_between_saving_epochs': 5,  # number of epochs between saved checkpoint
 }
 TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = {
@@ -226,7 +227,7 @@ def run_train(paths: dict, train_params: dict):
 
     # create optimizer
     # optimizer = optim.Adam(model.parameters(), lr=train_params['manager.learning_rate'], weight_decay=train_params['manager.weight_decay'])
-    optimizer = optim.SGD(model.parameters(), lr=train_params['manager.learning_rate'], weight_decay=train_params['manager.weight_decay'], momentum=0.99, nesterov=True)
+    optimizer = optim.SGD(model.parameters(), lr=train_params['manager.learning_rate'], weight_decay=train_params['manager.weight_decay'], momentum=0.9, nesterov=True)
 
     # create learning scheduler
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)

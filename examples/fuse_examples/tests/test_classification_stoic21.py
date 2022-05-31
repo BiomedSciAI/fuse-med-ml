@@ -21,6 +21,7 @@ import shutil
 import tempfile
 import unittest
 import os
+from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 
 from fuse.utils.rand.seed import Seed
 import fuse.utils.gpu as GPU
@@ -50,7 +51,8 @@ class ClassificationStoic21TestCase(unittest.TestCase):
         self.infer_common_params = INFER_COMMON_PARAMS
 
         self.analyze_common_params = EVAL_COMMON_PARAMS
-
+        
+    @run_in_subprocess
     def test_template(self):
         GPU.choose_and_enable_multiple_gpus(1)
     

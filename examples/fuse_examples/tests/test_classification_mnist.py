@@ -21,13 +21,13 @@ import shutil
 import tempfile
 import unittest
 import os
+from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 
 from fuse.utils.rand.seed import Seed
 import fuse.utils.gpu as GPU
 
 from fuse_examples.imaging.classification.mnist.runner import TRAIN_COMMON_PARAMS, run_train, run_infer, run_eval, INFER_COMMON_PARAMS, \
    EVAL_COMMON_PARAMS
-
 
 class ClassificationMnistTestCase(unittest.TestCase):
 
@@ -48,11 +48,13 @@ class ClassificationMnistTestCase(unittest.TestCase):
 
         self.analyze_common_params = EVAL_COMMON_PARAMS
 
+    
+    @run_in_subprocess
     def test_template(self):
         num_gpus_allocated = GPU.choose_and_enable_multiple_gpus(1, use_cpu_if_fail=True)
         if num_gpus_allocated == 0:
             self.train_common_params['manager.train_params']['device'] = 'cpu'
-        Seed.set_seed(0, False) # previous test (in the pipeline) changed the deterministic behaviour to True
+        Seed.set_seed(0, False) # previous test (in the pipeline) changed the deterministic behavior to True
         run_train(self.paths, self.train_common_params)
         run_infer(self.paths, self.infer_common_params)
         results = run_eval(self.paths, self.analyze_common_params)
