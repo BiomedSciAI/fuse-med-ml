@@ -35,18 +35,16 @@ from fuse.data import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuse.data import PipelineDefault, OpToTensor
 from fuse.data.ops.op_base import OpBase
-from fuse.data.ops.ops_aug_common import OpSample
-from fuse.data.ops.ops_common import OpConcat, OpLambda, OpMap, OpToOneHot
+from fuse.data.ops.ops_aug_common import OpSample, OpRandApply
+from fuse.data.ops.ops_common import OpConcat, OpLambda, OpLookup, OpToOneHot
 from fuse.data.ops.ops_read import OpReadDataframe
-from fuse.data.ops.ops_cast import OpToFloat, OpToInt
+from fuse.data.ops.ops_cast import OpToFloat, OpToInt, OpToNumpy
 from fuse.data.utils.sample import get_sample_id
 
 from fuseimg.data.ops.aug.color import OpAugColor
 from fuseimg.data.ops.aug.geometry import OpAugAffine2D
 from fuseimg.data.ops.image_loader import OpLoadImage 
 from fuseimg.data.ops.color import OpClip, OpToRange
-
-
 
 
 class OpSTOIC21SampleIDDecode(OpBase):
@@ -85,8 +83,8 @@ class STOIC21:
     @staticmethod
     def sample_ids(path: str):
         """
-        get all the sample ids in trainset
-        sample_id is case_{id:05d} (for example case_00001 or case_00100)
+        get all the sample ids in train-set
+        sample_id is *.mha file found in the specified path
         """
         files = [os.path.join("data/mha/", os.path.basename(f)) for f in glob(os.path.join(path, "data/mha/*.mha"))]
         assert len(files) > 0, f"Expecting mha files in {os.path.join(path, 'data/mha/*.mha')}"
@@ -106,11 +104,14 @@ class STOIC21:
             (OpLoadImage(data_path), dict(key_in="data.input.img_path", key_out="data.input.img", key_metadata_out="data.metadata")),
 
             # resize
+            # transposing so the depth channel will be first
+            (OpLambda(partial(np.moveaxis, source=-1, destination=0)), dict(key="data.input.img")), # convert image from shape [H, W, D] to shape [D, H, W] 
             (OpLambda(partial(skimage.transform.resize,
                                                 output_shape=(32, 256, 256),
                                                 mode='reflect',
-                                                anti_aliasing=True)), dict(key="data.input.img")),
-            
+                                                anti_aliasing=True,
+                                                preserve_range=True)), dict(key="data.input.img")),
+
             # read labels
             (OpToInt(), dict(key="data.metadata.PatientID")),
             (OpReadDataframe(data_filename=os.path.join(data_path, "metadata/reference.csv"),
@@ -132,29 +133,26 @@ class STOIC21:
                 (OpToFloat(), dict(key="data.metadata.SliceThickness")),
 
                 # map input to categories
-                (OpMap(age_map), dict(key_in="data.metadata.PatientAge", key_out="data.input.age")),
+                (OpLookup(age_map), dict(key_in="data.metadata.PatientAge", key_out="data.input.age")),
                 (OpToOneHot(len(age_map)), dict(key_in="data.input.age", key_out="data.input.age_one_hot")),
                 
-                (OpMap(gender_map), dict(key_in="data.metadata.PatientSex", key_out="data.input.gender")),
+                (OpLookup(gender_map), dict(key_in="data.metadata.PatientSex", key_out="data.input.gender")),
                 
                 # create clinical data vector
                 (OpConcat(), dict(keys_in=["data.input.gender", "data.input.age_one_hot", "data.metadata.SliceThickness"], key_out="data.input.clinical")),
 
                 # fixed image normalization
-                (OpClip(), dict(key="data.input.img", clip=(-800, 200))),
-                (OpToRange(is_int=True), dict(key="data.input.img", from_range=(-800, 200), to_range=(0, 1))),
-                
-                # transposing so the depth channel will be first
-                (OpLambda(partial(np.moveaxis, source=-1, destination=0)), dict(key="data.input.img")), # convert image from shape [H, W, D] to shape [D, H, W] 
-
+                (OpToNumpy(), dict(key="data.input.img", dtype=np.float32)), # cast to float
+                (OpClip(), dict(key="data.input.img", clip=(-800.0, 200.0))),
+                (OpToRange(), dict(key="data.input.img", from_range=(-800.0, 200.0), to_range=(0.0, 1.0))),
                 
                 # Numpy to tensor
                 (OpToTensor(), dict(key="data.input.img", dtype=torch.float32)),
                 (OpToTensor(), dict(key="data.input.clinical", dtype=torch.float32)),
-                
 
                 # add channel dimension -> [C=1, D, H, W]
-                (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")),  
+                (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")),
+                  
         ])
 
         # augmentation
@@ -163,7 +161,7 @@ class STOIC21:
                 (OpLambda(partial(torch.squeeze, dim=0)), dict(key="data.input.img")),  
 
                 # affine augmentation - will apply the same affine transformation on each slice
-                (OpSample(OpAugAffine2D()), dict(
+                (OpRandApply(OpSample(OpAugAffine2D()), 0.5), dict(
                     key="data.input.img",
                     rotate=Uniform(-180.0,180.0),        
                     scale=Uniform(0.8, 1.2),
@@ -172,15 +170,16 @@ class STOIC21:
                 )),
                 
                 # color augmentation - check if it is useful in CT images
-                (OpSample(OpAugColor()), dict(
-                    key="data.input.img",
-                    gamma=Uniform(0.8,1.2), 
-                    contrast=Uniform(0.9,1.1),
-                    add=Uniform(-0.01, 0.01)
-                )),
+                # (OpSample(OpAugColor()), dict(
+                #     key="data.input.img",
+                #     gamma=Uniform(0.8,1.2), 
+                #     contrast=Uniform(0.9,1.1),
+                #     add=Uniform(-0.01, 0.01)
+                # )),
 
                 # add channel dimension -> [C=1, D, H, W]
-                (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")),  
+                (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")),
+                  
         ])
 
         return dynamic_pipeline

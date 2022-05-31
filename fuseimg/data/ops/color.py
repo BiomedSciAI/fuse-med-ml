@@ -108,15 +108,9 @@ class OpToRange(OpBase):
         img -= from_range_start            
 
         #scale to be in desired range
-        if self._is_int:
-            img *= int((to_range_end-to_range_start) / (from_range_end-from_range_start))
-            #shift to start in desired start val
-            img += int(to_range_start)
-        
-        else:
-            img *= (to_range_end-to_range_start) / (from_range_end-from_range_start)
-            #shift to start in desired start val
-            img += to_range_start
+        img *= (to_range_end-to_range_start) / (from_range_end-from_range_start)
+        #shift to start in desired start val
+        img += to_range_start
         
 
         

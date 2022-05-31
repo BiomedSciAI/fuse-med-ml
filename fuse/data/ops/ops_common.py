@@ -357,15 +357,23 @@ class OpKeepKeypaths(OpBase):
         return sample_dict
 
 
-class OpMap(OpBase):
+class OpLookup(OpBase):
     """
-    Mapping values. The mapping specified in a dictionary
+    Convert a value to another value. It should be specified in a dictionary mapping old value to a new value
+    Example:
+    To read the gender represented by strings "male" and "female" and convert it to int do the following
+    (OpLookup(map={"male": 0, "female": 1}). dict(key_in="data.input.gender", key_out="data.input,gender"))
+
     """
     def __init__(self, map: dict):
         super().__init__()
         self._map = map
 
     def __call__(self, sample_dict: NDict, key_in: str, key_out: str) -> Union[None, dict, List[dict]]:
+        """
+        :param key_in: key to a value
+        :param key_out: key to store the converted vale
+        """
         value = sample_dict[key_in]
         sample_dict[key_out] = self._map[value]
 
@@ -377,10 +385,17 @@ class OpToOneHot(OpBase):
     Map category value to one hot vector
     """
     def __init__(self, num_classes: int):
+        """
+        :param num_classes: the size of the one hot vector
+        """
         super().__init__()
         self._num_classes = num_classes
         
     def __call__(self, sample_dict: NDict, key_in: str, key_out: str) -> Union[None, dict, List[dict]]:
+        """
+        :param key_in: key to a class number (int)
+        :param key_out: key to store the one hot vector
+        """
         value = sample_dict[key_in]
         one_hot = np.zeros(self._num_classes)
         one_hot[value] = 1.0
@@ -390,7 +405,17 @@ class OpToOneHot(OpBase):
 
 
 class OpConcat(OpBase):
+    """
+    Concatenate list of numpy arrays along a given axis.
+    To create clinical vector that includes all the clinical information about a patient and save into "data.input.clinical" do:
+    (OpConcat(), dict(keys_int=["data.input.age", "data.input.gender_one_hot", "data.input.smoking_history"], key_out="data.input_clinical", axis=0)
+    """
     def __call__(self, sample_dict: NDict, keys_in: Sequence[str], key_out: str, axis:int = 0) -> Union[None, dict, List[dict]]:
+        """
+        :param keys_in: sequence of keys to numpy arrays we want to concatenate
+        :param key_out: the key to store the concatenated vector
+        :param axis: concatenate along the specified axis   
+        """
         values = [np.asarray(sample_dict[key_in]) for key_in in keys_in]
         values = [v if len(v.shape) > 0 else np.expand_dims(v, axis=0) for v in values]
         sample_dict[key_out] = np.concatenate(values, axis=axis)
