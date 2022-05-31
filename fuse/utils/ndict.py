@@ -59,7 +59,7 @@ class NDict(dict):
 
     """
     
-    def __init__(self, d: Union[dict, tuple, types.GeneratorType, NDict, None]=None):        
+    def __init__(self, dict_like: Union[dict, tuple, types.GeneratorType, NDict, None]=None):        
         """
         :param d: the data with which to populate the nested dictionary, in case of NDict it acts as view constructor, 
             otherwise we just set all the keys and values using the setitem function
@@ -67,14 +67,14 @@ class NDict(dict):
 
         self._stored = dict()
         
-        if d is None:
+        if dict_like is None:
             self._stored = {}
-        elif isinstance(d, NDict):
-            self._stored = d._stored
+        elif isinstance(dict_like, NDict):
+            self._stored = dict_like._stored
         else:
-            if not isinstance(d, dict):
-                d = dict(d)    
-            for k,d in d.items():
+            if not isinstance(dict_like, dict):
+                dict_like = dict(dict_like)    
+            for k,d in dict_like.items():
                 self[k] = d
         
     def items(self):

@@ -11,6 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 Created on June 30, 2021
 """
+from functools import partial
 from typing import Hashable, List, Optional, Sequence, Union, Callable, Dict, Callable, Any, Tuple
 from functools import partial
 from fuse.data.pipelines.pipeline_default import PipelineDefault
@@ -359,3 +360,11 @@ def _get_available_write_location(cache_dirs:List[str], max_allowed_used_space=N
 
 def default_read_dirs_logic(cache_dirs: List[str]):
     return cache_dirs
+<<<<<<< HEAD
+=======
+        
+
+
+     
+
+>>>>>>> origin/fuse2
