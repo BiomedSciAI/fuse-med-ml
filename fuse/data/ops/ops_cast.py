@@ -169,9 +169,6 @@ class OpToNumpy(OpCast):
     Convert many types to numpy
     """
     def _cast(self, value: Any, dtype: Optional[np.dtype] = None) -> np.ndarray:
-<<<<<<< HEAD
-        return Cast.to_numpy(value, dtype)
-=======
         return Cast.to_numpy(value, dtype)
 
 class OpToInt(OpCast):
@@ -187,4 +184,3 @@ class OpToFloat(OpCast):
     """
     def _cast(self, value: Any) -> float:
         return Cast.to_float(value)
->>>>>>> origin/fuse2

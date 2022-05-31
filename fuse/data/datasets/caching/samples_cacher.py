@@ -360,11 +360,3 @@ def _get_available_write_location(cache_dirs:List[str], max_allowed_used_space=N
 
 def default_read_dirs_logic(cache_dirs: List[str]):
     return cache_dirs
-<<<<<<< HEAD
-=======
-        
-
-
-     
-
->>>>>>> origin/fuse2
