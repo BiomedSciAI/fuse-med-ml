@@ -33,10 +33,10 @@ from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
 from fuse.eval.evaluator import EvaluatorDefault
 
 from fuse_examples.classification.multimodality.multimodel_parameters import multimodal_parameters
-from fuse_examples.classification.knight.baseline.dataset import knight_dataset
-
 from fuse_examples.classification.multimodality.multimodal_paths import multimodal_paths
 from fuse_examples.classification.multimodality.model_tabular_imaging import project_imaging, project_tabular
+from fuse_examples.classification.multimodality.dataset_knight import knight_dataset
+
 
 def tabular_feature_knight():
     features_dict = {}
@@ -74,13 +74,13 @@ root = ''
 root_data = '/projects/msieve_dev3/usr/Tal/my_research/multi-modality/'  # TODO: add path to the data folder
 assert root_data is not None, "Error: please set root_data, the path to the stored MM dataset location"
 # Name of the experiment
-experiment = 'interactive'
+experiment = 'mono_tabular_'
 # Path to cache data
 cache_path = root_data+'/knight/cache_knight_256_256_64/'
 
 paths = multimodal_paths(dataset_name, root_data, root, experiment, cache_path)
 TRAIN_COMMON_PARAMS['paths'] = paths
-TRAIN_COMMON_PARAMS['fusion_type'] = 'interactive'
+TRAIN_COMMON_PARAMS['fusion_type'] = 'mono_tabular'
 ######################################
 # Inference Common Params
 ######################################
