@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple
+from typing import Any, Callable, List, Optional, Tuple
 from tqdm import tqdm,trange
 import multiprocessing as mp
 from termcolor import cprint
@@ -233,3 +233,24 @@ def get_from_global_storage(key: str) -> Any:
     """
     global _multiprocess_global_storage
     return _multiprocess_global_storage[key]
+
+
+def run_in_subprocess(f: Callable, timeout: int = 600):
+    """A decorator that makes function run in a subprocess.
+    This can be useful when you want allocate GPU and memory and to release it when you're done.
+    :param f: the function to run in a subprocess
+    :param timeout: the maximum time to wait for the process to complete
+    """
+
+    def inner(*args, **kwargs):
+        # create the machinery python uses to fork a subprocess
+        # and run a function in it.
+        p = mp.Process(target=f, args=args, kwargs=kwargs)
+        p.start()
+        try:
+            p.join(timeout=timeout)
+        except:
+            p.terminate()
+            raise
+            
+    return inner

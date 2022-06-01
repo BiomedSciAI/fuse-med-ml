@@ -88,9 +88,6 @@ class OpToRange(OpBase):
     '''
     linearly project from a range to a different range
     '''
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
     def __call__(self, sample_dict: NDict, key: str,
         from_range: Tuple[float, float],
         to_range: Tuple[float, float],
