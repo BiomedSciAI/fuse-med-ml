@@ -49,7 +49,7 @@ def balanced_division(df : pd.DataFrame, no_mixture_id : str, keys_to_balance: S
     it creates the folds so each fold will have about same proportions of ID level labeling while each ID will appear only in one fold
     For example - patient with ID 1234 has 2 images , each image has a binary classification (benign / malignant) .
     it can be that both of his images are benign or both are malignant or one is benign and the other is malignant.
-    For example 
+    
     :param df:                 dataframe containing all samples including id and keys_to_balance
     :param no_mixture_id:      The key column for which no mixture between folds should be forced
     :param keys_to_balance:        keys for which balancing is forced

@@ -22,7 +22,16 @@ import torch.nn as nn
 
 
 class ClassifierFCN(nn.Module):
+    """
+    Sequence of (Conv2D 1X1 , ReLU, Dropout). The length of the sequence and layers size defined by layers_description
+    """
     def __init__(self, in_ch: int, num_classes: Optional[int], layers_description: Sequence[int]=(256,), dropout_rate: float = 0.1):
+        """
+        :param in_ch: Number of input channels
+        :param num_classes: Appends Conv2D(last_layer_size, num_classes, kernel_size=1, stride=1) if num_classes is not None
+        :param layers_description: defines the length of the sequence and layers size.
+        :param dropout_rate: if 0 will not include the dropout layers 
+        """
         super().__init__()
         layer_list = []
         layer_list.append(nn.Conv2d(in_ch, layers_description[0], kernel_size=1, stride=1))
@@ -47,7 +56,16 @@ class ClassifierFCN(nn.Module):
         return x
 
 class ClassifierFCN3D(nn.Module):
+    """
+    Sequence of (Conv3D 1X1 , ReLU, Dropout). The length of the sequence and layers size defined by layers_description
+    """
     def __init__(self, in_ch: int, num_classes: Optional[int], layers_description: Sequence[int]=(256,), dropout_rate: float = 0.1):
+        """
+        :param in_ch: Number of input channels
+        :param num_classes: Appends Conv2D(last_layer_size, num_classes, kernel_size=1, stride=1) if num_classes is not None
+        :param layers_description: defines the length of the sequence and layers size.
+        :param dropout_rate: if 0 will not include the dropout layers 
+        """
         super().__init__()
         layer_list = []
         layer_list.append(nn.Conv3d(in_ch, layers_description[0], kernel_size=1, stride=1))
@@ -72,7 +90,16 @@ class ClassifierFCN3D(nn.Module):
         return x
 
 class ClassifierMLP(nn.Module):
+    """
+    Sequence of (Linear , ReLU, Dropout). The length of the sequence and layers size defined by layers_description
+    """
     def __init__(self, in_ch: int, num_classes: Optional[int], layers_description: Sequence[int]=(256,), dropout_rate: float = 0.1):
+        """
+        :param in_ch: Number of input channels
+        :param num_classes: Appends Conv2D(last_layer_size, num_classes, kernel_size=1, stride=1) if num_classes is not None
+        :param layers_description: defines the length of the sequence and layers size.
+        :param dropout_rate: if 0 will not include the dropout layers 
+        """
         super().__init__()
         layer_list = []
         layer_list.append(nn.Linear(in_ch, layers_description[0]))
