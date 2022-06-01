@@ -101,7 +101,7 @@ def op_call(op: OpBase, sample_dict: NDict, op_id: str, **kwargs):
             return op(sample_dict, **kwargs)
     except:
         # error messages are cryptic without this. For example, you can get "TypeError: __call__() got an unexpected keyword argument 'key_out_input'" , without any reference to the relevant op!
-        print(f'error in __call__ method of op={op}, op_id={op_id}, sample_id={get_sample_id(sample_dict)} - more details above')   
+        print(f'error in __call__ method of op={op}, op_id={op_id}, sample_id={get_sample_id(sample_dict)} - more details below')   
         raise 
 
 def op_reverse(op, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]):
@@ -110,7 +110,7 @@ def op_reverse(op, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, 
             return op.reverse(sample_dict, key_to_reverse, key_to_follow, op_id)
         except:
             # error messages are cryptic without this. For example, you can get "TypeError: __call__() got an unexpected keyword argument 'key_out_input'" , without any reference to the relevant op!
-            print(f'error in reverse method of op={op}, op_id={op_id}, sample_id={get_sample_id(sample_dict)} - more details above')   
+            print(f'error in reverse method of op={op}, op_id={op_id}, sample_id={get_sample_id(sample_dict)} - more details below')   
             raise 
     
     else: # OpBase but note reversible
