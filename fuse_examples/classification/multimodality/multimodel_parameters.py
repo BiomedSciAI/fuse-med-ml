@@ -30,10 +30,9 @@ def multimodal_parameters(train_common_params: dict,infer_common_params: dict,an
     model_projection_tabular = train_common_params['tabular_projector']
 
     model_interactive_3d =  FuseBackboneResnet3DInteractive(
-            conv_inputs=(('data.image', 1),),
-            fcn_inputs=(('data.input.clinical.all', 1),),
-        )
-
+                                                             conv_inputs=(('data.image', 1),),
+                                                             fcn_inputs=(('data.input.clinical.all', 1),),
+                                                             )
 
     heads_for_multimodal = {
                          'multimodal_head':
@@ -257,10 +256,7 @@ def multimodal_parameters(train_common_params: dict,infer_common_params: dict,an
 
     if train_common_params['fusion_type'] == 'interactive':
 
-        train_common_params['model'] = FuseModelDefaultInteractive(backbone=FuseBackboneResnet3DInteractive(
-                                                                                        conv_inputs=(('data.image', 1),),
-                                                                                        fcn_inputs=(('data.input.clinical.all', 1),),
-                                                                                        ),
+        train_common_params['model'] = FuseModelDefaultInteractive(backbone=model_interactive_3d,
                                                                     heads=heads_for_multimodal['interactive_head_3d'],
                                                                     )
 
