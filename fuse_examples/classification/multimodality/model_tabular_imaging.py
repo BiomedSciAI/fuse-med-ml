@@ -1,10 +1,17 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from fuse.models.backbones.backbone_mlp import FuseMultilayerPerceptronBackbone
+from torch import Tensor
+from torch.hub import load_state_dict_from_url
+from torchvision.models.video.resnet import VideoResNet, BasicBlock, Conv3DSimple, BasicStem, model_urls
+from typing import Dict, Tuple, Any, List, Sequence, Callable
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
-from typing import Dict, Tuple, Sequence
-from fuse.models.backbones.backbone_inception_resnet_v2 import FuseBackboneInceptionResnetV2
+from fuse.models.model_default import FuseModelDefault
+from fuse.models.heads.head_3D_classifier import FuseHead3dClassifier
+
+#-----------------------------------------------------------------
+#Encoders fusion models
+#-----------------------------------------------------------------
 
 class project_imaging(nn.Module):
 
@@ -22,19 +29,20 @@ class project_imaging(nn.Module):
                 imaging_features = F.max_pool2d(imaging_features, kernel_size=imaging_features.shape[2:])
             else:
                 imaging_features = F.max_pool3d(imaging_features, kernel_size=imaging_features.shape[2:])
+                imaging_features = torch.squeeze(imaging_features,len(imaging_features.shape)-1)
 
         elif self.pooling == 'avg':
             if self.dim == '2d':
                 imaging_features = F.avg_pool2d(imaging_features, kernel_size=imaging_features.shape[2:])
             else:
                 imaging_features = F.max_pool3d(imaging_features, kernel_size=imaging_features.shape[2:])
+                imaging_features = torch.squeeze(imaging_features,len(imaging_features.shape)-1)
 
         if self.projection_imaging is not None:
             imaging_features = self.projection_imaging.forward(imaging_features)
             imaging_features = torch.squeeze(torch.squeeze(imaging_features,dim=3),dim=2)
 
         return imaging_features
-
 
 class project_tabular(nn.Module):
 
@@ -172,3 +180,193 @@ class FuseMultiModalityModel(torch.nn.Module):
                 batch_dict = head.forward(batch_dict)
 
         return batch_dict['model']
+
+
+#-----------------------------------------------------------------
+#Interactive models
+#-----------------------------------------------------------------
+
+def channel_multiplication(vector, matrix):
+    return matrix * vector.unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)
+
+class FuseBackboneResnet3DInteractive(VideoResNet):
+    """
+    3D model classifier (ResNet architecture"
+    """
+
+    def __init__(self,
+                 conv_inputs: Tuple[Tuple[str, int], ...] = (('data.image', 1),),
+                 fcn_inputs: Tuple[Tuple[str, int], ...] = (('data.input.clinical.all', 1),),
+                 fcn_layers: List[int] = [64, 64, 128, 256, 512], #VideoResNet layers
+                 fcn_input_size: int = 11,
+                 interact_function: Callable = channel_multiplication,
+                 cnn_interact_function: Callable = None,
+                 fcn_cnn_layers_interactions: List[int] = None,
+                 fcn_cnn_layers_parallels: List[int] = None,
+                 use_relu_in_fcn: bool = True,
+                 use_batcn_norm_in_fcn: bool = False,
+                 pretrained: bool = False, in_channels: int = 1,
+                 name: str = "r3d_18") -> None:
+        """
+        Create 3D ResNet model
+        :param pretrained: Use pretrained weights
+        :param in_channels: number of input channels
+        :param name: model name. currently only 'r3d_18' is supported
+        """
+        # init parameters per required backbone
+        init_parameters = {
+            'r3d_18': {'block': BasicBlock,
+                       'conv_makers': [Conv3DSimple] * 4,
+                       'layers': [2, 2, 2, 2],
+                       'stem': BasicStem},
+        }[name]
+
+        # init original model
+        super().__init__(**init_parameters)
+
+        # load pretrained parameters if required
+        if pretrained:
+            state_dict = load_state_dict_from_url(model_urls[name])
+            self.load_state_dict(state_dict)
+
+        # =================================
+        self.use_relu_in_fcn = use_relu_in_fcn
+        self.use_batcn_norm_in_fcn = use_batcn_norm_in_fcn
+        self.cnn_interact_function = cnn_interact_function
+
+        fcn_data = [nn.Linear(fcn_input_size, fcn_layers[0])]
+        if self.use_relu_in_fcn:
+            fcn_data.append(nn.ReLU(inplace=False))
+        if self.use_batcn_norm_in_fcn:
+            fcn_data.append(nn.BatchNorm1d(fcn_layers[0], eps=0.001, momentum=0.01, affine=True))
+
+        for layer_idx in range(len(fcn_layers) - 1):
+            fcn_data.append(nn.Linear(fcn_layers[layer_idx], fcn_layers[layer_idx + 1]))
+            fcn_data.append(nn.ReLU(inplace=False)) if self.use_relu_in_fcn else None
+            fcn_data.append(nn.BatchNorm1d(fcn_layers[layer_idx + 1], eps=0.001, momentum=0.01,
+                                           affine=True)) if self.use_batcn_norm_in_fcn else None
+
+        self.interactive_fcn = nn.ModuleList(fcn_data)
+        if interact_function is None and fcn_cnn_layers_interactions is not None:
+            assert "fcn_cnn_layers_interactions are defined but no interactive function is provided"
+        self.fcn_interact_function = interact_function
+        self.fcn_cnn_layers_parallels = fcn_cnn_layers_parallels or range(
+            len(self.interactive_fcn))  # either specified or all cnn layers
+        self.fcn_cnn_layers_interactions = fcn_cnn_layers_interactions or self.fcn_cnn_layers_parallels  # either specified or all parallel layers
+
+        #=================================
+        # save input parameters
+        self.pretrained = pretrained
+        self.in_channels = in_channels
+        # override the first convolution layer to support any number of input channels
+        self.stem = nn.Sequential(
+            nn.Conv3d(self.in_channels, 64, kernel_size=(3, 7, 7), stride=(1, 2, 2),
+                      padding=(1, 3, 3), bias=False),
+            nn.BatchNorm3d(64),
+            nn.ReLU(inplace=True)
+        )
+        self.conv_inputs = conv_inputs
+        self.fcn_inputs = fcn_inputs
+
+    def features(self, batch_dict: Dict) -> Any:
+        """
+        Extract spatial features - given a 3D tensor
+        :param x: Input tensor - shape: [batch_size, channels, z, y, x]
+        :return: spatial features - shape [batch_size, n_features, z', y', x']
+        """
+
+        conv_input = torch.cat([FuseUtilsHierarchicalDict.get(batch_dict, conv_input[0]) for conv_input in self.conv_inputs], 1)
+        fcn_input = torch.cat([FuseUtilsHierarchicalDict.get(batch_dict, fcn_input[0]) for fcn_input in self.fcn_inputs], 1)
+
+
+        interactive_idx=0
+        x = self.stem(conv_input)
+        out, y, interactive_idx = self.apply_interactive_fcn(interactive_idx, x, fcn_input, 0)
+        out = self.layer1(out)
+        out, y, interactive_idx = self.apply_interactive_fcn(interactive_idx, out, y, 1)
+        out = self.layer2(out)
+        out, y, interactive_idx = self.apply_interactive_fcn(interactive_idx, out, y, 2)
+        out = self.layer3(out)
+        out, y, interactive_idx = self.apply_interactive_fcn(interactive_idx, out, y, 3)
+        out = self.layer4(out)
+        out, y, interactive_idx = self.apply_interactive_fcn(interactive_idx, out, y, 4)
+
+        return out
+
+    def apply_interactive_fcn(self, interactive_idx, x, y, cnn_layer_idx):
+        if cnn_layer_idx in self.fcn_cnn_layers_parallels:  # only if this resnet layer should be interacted with fcn
+            if interactive_idx < len(self.interactive_fcn):
+                y = self.interactive_fcn[interactive_idx](y)  # fully connected layer
+                interactive_idx += 1
+                if self.use_relu_in_fcn:
+                    y = self.interactive_fcn[interactive_idx](y)  # ReLU
+                    interactive_idx += 1
+                if self.use_batcn_norm_in_fcn:
+                    y = self.interactive_fcn[interactive_idx](y)  # BatchNorm
+                    interactive_idx += 1
+            if self.fcn_interact_function is not None:
+                # only apply interact function if the layer is in the resnet layer we want to interact with
+                if cnn_layer_idx in self.fcn_cnn_layers_interactions:
+                    x = self.fcn_interact_function(y, x)
+            if self.cnn_interact_function is not None:
+                # only apply interact function if the layer is in the resnet layer we want to interact with
+                if cnn_layer_idx in self.fcn_cnn_layers_interactions:
+                    y = self.cnn_interact_function(y, x)
+
+        return x, y, interactive_idx
+
+    def forward(self, x: Tensor) -> Tuple[Tensor, None, None, None]:  # type: ignore
+        """
+        Forward pass. 3D global classification given a volume
+        :param x: Input volume. shape: [batch_size, channels, z, y, x]
+        :return: logits for global classification. shape: [batch_size, n_classes].
+        """
+        x = self.features(x)
+        return x
+
+class FuseModelDefaultInteractive(FuseModelDefault):
+    def __init__(self,
+                 conv_inputs: Tuple[Tuple[str, int], ...] = (('data.input', 1),),
+                 cnn_inputs: Tuple[Tuple[str, int], ...] = (('data.clinical', 1),),
+                 backbone: torch.nn.Module = None,
+                 heads: Sequence[torch.nn.Module] = None,
+                 freeze_backbone=False,
+                 ) -> None:
+        """
+        Default Fuse model - convolutional neural network with multiple heads
+        :param conv_inputs:     batch_dict name for model input and its number of input channels, imaging
+        :param cnn_inputs:     batch_dict name for model input and its number of input channels, tabular feature
+
+        :param backbone:        PyTorch backbone module - a convolutional neural network
+        :param heads:           Sequence of head modules
+        """
+        FuseModelDefault.__init__(self,conv_inputs=conv_inputs,heads=heads,backbone=backbone)
+
+        self.cnn_inputs = cnn_inputs
+        self.freeze_backbone = freeze_backbone
+
+    def train(self, model: bool=True):
+        if self.freeze_backbone:
+            self.backbone.eval()
+            self.backbone.interactive_fcn.train()
+            self.heads.train()
+        else:
+            self.backbone.train()
+            self.heads.train()
+
+    def forward(self,
+                batch_dict: Dict) -> Dict:
+        """
+        Forward function of the model
+        :param input: Tensor [BATCH_SIZE, 1, H, W]
+        :return: classification scores - [BATCH_SIZE, num_classes]
+        """
+
+        features = self.backbone(batch_dict)
+        FuseUtilsHierarchicalDict.set(batch_dict, 'model.backbone_features', features)
+
+        for head in self.heads:
+            batch_dict = head.forward(batch_dict)
+
+        return batch_dict['model']
+

@@ -7,10 +7,12 @@ from fuse_examples.classification.multimodality.loss_multimodal_contrastive_lear
 from fuse.models.heads.head_global_pooling_classifier import FuseHeadGlobalPoolingClassifier
 from fuse.models.heads.head_1d_classifier import FuseHead1dClassifier
 from fuse.models.model_ensemble import FuseModelEnsemble
+from fuse.models.heads.head_3D_classifier import FuseHead3dClassifier
 
 def multimodal_parameters(train_common_params: dict,infer_common_params: dict,analyze_common_params: dict):
 
-
+    num_classes = train_common_params['num_classes']
+    target_metric = train_common_params['target_metric'].replace('metrics.','')
     ################################################
     # backbone_models
     model_tabular = FuseModelTabularContinuousCategorical(
@@ -27,6 +29,12 @@ def multimodal_parameters(train_common_params: dict,infer_common_params: dict,an
     model_projection_imaging = train_common_params['imaging_projector']
     model_projection_tabular = train_common_params['tabular_projector']
 
+    model_interactive_3d =  FuseBackboneResnet3DInteractive(
+            conv_inputs=(('data.image', 1),),
+            fcn_inputs=(('data.input.clinical.all', 1),),
+        )
+
+
     heads_for_multimodal = {
                          'multimodal_head':
                              [
@@ -34,7 +42,7 @@ def multimodal_parameters(train_common_params: dict,infer_common_params: dict,an
                                     head_name='multimodal',
                                     conv_inputs=(('model.multimodal_features',
                                                   train_common_params['tabular_feature_size'] * 2),),
-                                    num_classes=2,
+                                    num_classes=num_classes,
                                 )
                             ],
                          'tabular_head':
@@ -43,7 +51,7 @@ def multimodal_parameters(train_common_params: dict,infer_common_params: dict,an
                                      head_name='tabular',
                                      conv_inputs=(('model.tabular_features',
                                                    train_common_params['tabular_feature_size']),),
-                                     num_classes=2,
+                                     num_classes=num_classes,
                                  )
                              ],
                          'imaging_head':
@@ -54,8 +62,32 @@ def multimodal_parameters(train_common_params: dict,infer_common_params: dict,an
                                     layers_description=(256,),
                                     conv_inputs=(('model.imaging_features',
                                                   train_common_params['imaging_feature_size']),),
-                                    num_classes=2,
+                                    num_classes=num_classes,
                                     pooling="avg",
+                                )
+                            ],
+
+                        'imaging_head_3d':
+                            [
+                                FuseHead3dClassifier(
+                                        head_name='imaging',
+                                        dropout_rate=0.5,
+                                        layers_description=(256,),
+                                        conv_inputs=(('model.imaging_features',
+                                                      train_common_params['imaging_feature_size']),),
+                                        num_classes=num_classes,
+                                    )
+                            ],
+
+                        'interactive_head_3d':
+                            [
+                                FuseHead3dClassifier(
+                                    head_name='interactive',
+                                    dropout_rate=0.5,
+                                    layers_description=(256,),
+                                    conv_inputs=(('model.backbone_features',
+                                                  train_common_params['imaging_feature_size']),),
+                                    num_classes=num_classes,
                                 )
                             ],
 
@@ -68,6 +100,8 @@ def multimodal_parameters(train_common_params: dict,infer_common_params: dict,an
                                                                         callable=F.cross_entropy, weight=1.0),
                         'imaging_loss':FuseLossDefault(pred_name='model.logits.imaging', target_name='data.gt',
                                                                         callable=F.cross_entropy, weight=1.0),
+                        'interactive_loss': FuseLossDefault(pred_name='model.logits.interactive', target_name='data.gt',
+                                                        callable=F.cross_entropy, weight=1.0),
                         'ensemble_loss':FuseLossDefault(pred_name='model.output.tabular_ensemble_average', target_name='data.gt',
                                                                         callable=F.nll_loss, weight=1.0,reduction='sum'),
 
@@ -76,6 +110,7 @@ def multimodal_parameters(train_common_params: dict,infer_common_params: dict,an
                         'multimodal_auc': MetricAUCROC(pred='model.output.multimodal', target='data.gt'),
                         'tabular_auc': MetricAUCROC(pred='model.output.tabular', target='data.gt'),
                         'imaging_auc': MetricAUCROC(pred='model.output.imaging', target='data.gt'),
+                        'interactive_auc': MetricAUCROC(pred='model.output.interactive', target='data.gt'),
                         'ensemble_auc':MetricAUCROC(pred='model.output.tabular_ensemble_average', target='data.gt'),
                         }
     ################################################
@@ -92,7 +127,7 @@ def multimodal_parameters(train_common_params: dict,infer_common_params: dict,an
             'cls_loss': loss_for_multimodal['tabular_loss'],
         }
         train_common_params['metrics'] = {
-            'auc': metric_for_multimodal['tabular_auc'],
+            target_metric: metric_for_multimodal['tabular_auc'],
         }
 
         train_common_params['manager.learning_rate'] = 1e-4
@@ -106,19 +141,21 @@ def multimodal_parameters(train_common_params: dict,infer_common_params: dict,an
                   weight_decay=train_common_params['manager.weight_decay'])
         train_common_params['scheduler'] = optim.lr_scheduler.StepLR(train_common_params['optimizer'], step_size=train_common_params['manager.step_size'],
                                   gamma=train_common_params['manager.gamma'])
+        analyze_common_params['metrics'] =  train_common_params['metrics']
+        infer_common_params['output_keys'] = ['model.output.tabular', 'data.gt']
 
     if train_common_params['fusion_type'] == 'mono_imaging':
 
         train_common_params['model'] = FuseMultiModalityModel(
                                             imaging_inputs=(('data.image', 1),),
                                             imaging_backbone=model_imaging,
-                                            heads=heads_for_multimodal['imaging_head'],
+                                            heads=heads_for_multimodal['imaging_head_3d'],
                                         )
         train_common_params['loss'] = {
             'cls_loss': loss_for_multimodal['imaging_loss'],
         }
         train_common_params['metrics'] = {
-            'auc': metric_for_multimodal['imaging_auc'],
+            target_metric: metric_for_multimodal['imaging_auc'],
         }
         train_common_params['manager.learning_rate'] = 1e-5
         train_common_params['manager.weight_decay'] = 0.001
@@ -126,6 +163,8 @@ def multimodal_parameters(train_common_params: dict,infer_common_params: dict,an
         train_common_params['optimizer'] = optim.Adam(train_common_params['model'].parameters(), lr=train_common_params['manager.learning_rate'],
                                                          weight_decay=train_common_params['manager.weight_decay'])
         train_common_params['scheduler'] = optim.lr_scheduler.ReduceLROnPlateau(train_common_params['optimizer'])
+        analyze_common_params['metrics'] =  train_common_params['metrics']
+        infer_common_params['output_keys'] = ['model.output.imaging', 'data.gt']
 
     if train_common_params['fusion_type'] == 'late_fusion':
 
@@ -144,7 +183,7 @@ def multimodal_parameters(train_common_params: dict,infer_common_params: dict,an
             'cls_loss': loss_for_multimodal['multimodal_loss'],
         }
         train_common_params['metrics'] = {
-            'auc': metric_for_multimodal['multimodal_auc'],
+            target_metric: metric_for_multimodal['multimodal_auc'],
         }
         train_common_params['manager.learning_rate'] = 1e-4
         train_common_params['manager.weight_decay'] = 1e-4
@@ -158,10 +197,15 @@ def multimodal_parameters(train_common_params: dict,infer_common_params: dict,an
         train_common_params['scheduler'] = optim.lr_scheduler.StepLR(train_common_params['optimizer'], step_size=train_common_params['manager.step_size'],
                                   gamma=train_common_params['manager.gamma'])
 
+        analyze_common_params['metrics'] =  train_common_params['metrics'] =  {
+            target_metric: metric_for_multimodal['multimodal_auc'],
+        }
+        infer_common_params['output_keys'] = ['model.output.multimodal', 'data.gt']
+
     if train_common_params['fusion_type'] == 'ensemble':
 
-        train_common_params['tabular_dir'] = '/projects/msieve_dev3/usr/Tal/my_research/multi-modality/model_mg_radiologist_usa/mono_tabular/'
-        train_common_params['imaging_dir'] = '/projects/msieve_dev3/usr/Tal/my_research/multi-modality/model_mg_radiologist_usa/mono_imaging_no_aug/'
+        train_common_params['tabular_dir'] = '/projects/msieve_dev3/usr/Tal/my_research/multi-modality/knight/mono_tabular/'
+        train_common_params['imaging_dir'] = '/projects/msieve_dev3/usr/Tal/my_research/multi-modality/knight/mono_imaging/'
         train_common_params['model'] = FuseModelEnsemble(input_model_dirs=[train_common_params['tabular_dir'],
                                                                            train_common_params['imaging_dir']])
         infer_common_params['model_dir'] = [train_common_params['tabular_dir'],
@@ -175,9 +219,8 @@ def multimodal_parameters(train_common_params: dict,infer_common_params: dict,an
                                               'model.output.tabular_ensemble_majority_vote']
 
         analyze_common_params['metrics'] =  train_common_params['metrics'] = {
-                                                    'auc': metric_for_multimodal['ensemble_auc'],
+                                                    target_metric: metric_for_multimodal['ensemble_auc'],
                                                 }
-
 
     if train_common_params['fusion_type'] == 'contrastive':
         train_common_params['model'] = FuseMultiModalityModel(
@@ -209,5 +252,34 @@ def multimodal_parameters(train_common_params: dict,infer_common_params: dict,an
                   weight_decay=train_common_params['manager.weight_decay'])
         train_common_params['scheduler'] = optim.lr_scheduler.StepLR(train_common_params['optimizer'], step_size=train_common_params['manager.step_size'],
                                   gamma=train_common_params['manager.gamma'])
+
+
+
+    if train_common_params['fusion_type'] == 'interactive':
+
+        train_common_params['model'] = FuseModelDefaultInteractive(backbone=FuseBackboneResnet3DInteractive(
+                                                                                        conv_inputs=(('data.image', 1),),
+                                                                                        fcn_inputs=(('data.input.clinical.all', 1),),
+                                                                                        ),
+                                                                    heads=heads_for_multimodal['interactive_head_3d'],
+                                                                    )
+
+        train_common_params['loss'] = {
+            'cls_loss': loss_for_multimodal['interactive_loss'],
+        }
+        train_common_params['metrics'] = {
+            target_metric: metric_for_multimodal['interactive_auc'],
+        }
+        train_common_params['manager.learning_rate'] = 1e-5
+        train_common_params['manager.weight_decay'] = 0.001
+
+        train_common_params['optimizer'] = optim.Adam(train_common_params['model'].parameters(), lr=train_common_params['manager.learning_rate'],
+                                                         weight_decay=train_common_params['manager.weight_decay'])
+        train_common_params['scheduler'] = optim.lr_scheduler.ReduceLROnPlateau(train_common_params['optimizer'])
+        analyze_common_params['metrics'] =  train_common_params['metrics']
+        infer_common_params['output_keys'] = ['model.output.interactive', 'data.gt']
+
+
+
 
     return train_common_params,infer_common_params,analyze_common_params

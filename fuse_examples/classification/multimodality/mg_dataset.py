@@ -14,7 +14,7 @@ from MedicalAnalyticsCore.DatabaseUtils import db_utils as db
 from fuse_examples.classification.multimodality.dataset import imaging_tabular_dataset
 from fuse.data.dataset.dataset_default import FuseDatasetDefault
 
-from fuse_examples.classification.MG_CMMD.input_processor import FuseMGInputProcessor
+from fuse_examples.classification.cmmd.input_processor import FuseMGInputProcessor
 from fuse.data.processor.processor_dataframe import FuseProcessorDataFrame
 
 

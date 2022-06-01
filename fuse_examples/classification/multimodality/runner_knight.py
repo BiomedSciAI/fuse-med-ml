@@ -26,20 +26,25 @@ from fuse.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
 from fuse.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
 from fuse.managers.callbacks.callback_time_statistics import FuseTimeStatisticsCallback
 from fuse.managers.manager_default import FuseManagerDefault
-from fuse.models.backbones.backbone_inception_resnet_v2 import FuseBackboneInceptionResnetV2
+from fuse.models.backbones.backbone_resnet_3d import FuseBackboneResnet3D
+
 from fuse.models.backbones.backbone_mlp import FuseMultilayerPerceptronBackbone
 from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
 from fuse.eval.evaluator import EvaluatorDefault
-from fuse.data.processor.processor_dataframe import FuseProcessorDataFrame
 
-from fuse_examples.classification.cmmd.input_processor import FuseMGInputProcessor
-from fuse_examples.classification.multimodality.mg_dataset_clinical_and_annotations import PostProcessing,tabular_feature_mg
 from fuse_examples.classification.multimodality.multimodel_parameters import multimodal_parameters
-from fuse_examples.classification.multimodality.mg_dataset_clinical_and_annotations import mg_clinical_annotations_dataset
+from fuse_examples.classification.knight.baseline.dataset import knight_dataset
+
 from fuse_examples.classification.multimodality.multimodal_paths import multimodal_paths
 from fuse_examples.classification.multimodality.model_tabular_imaging import project_imaging, project_tabular
 
+def tabular_feature_knight():
+    features_dict = {}
 
+    features_dict['continuous_clinical_feat'] = ['smoking_history', 'comorbidities', 'gender'] #14 continuous clinical features
+    features_dict['categorical_clinical_feat'] = ['last_preop_egfr', 'radiographic_size', 'body_mass_index','age_at_nephrectomy'] #63 categorical clinical features
+
+    return features_dict
 
 
 ##########################################
@@ -54,6 +59,7 @@ debug = FuseUtilsDebug(mode)
 # ============
 # Data
 # ============
+
 TRAIN_COMMON_PARAMS = {}
 
 TRAIN_COMMON_PARAMS['data.train_num_workers'] = 8
@@ -62,18 +68,19 @@ TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 8
 ##########################################
 # Dataset
 ##########################################
-dataset_name = 'mg_radiologic'
+dataset_name = 'knight'
+TRAIN_COMMON_PARAMS['task_num'] = 1
 root = ''
-root_data = '/projects/msieve_dev3/usr/Tal/my_research/multi-modality/mg/'  # TODO: add path to the data folder
+root_data = '/projects/msieve_dev3/usr/Tal/my_research/multi-modality/'  # TODO: add path to the data folder
 assert root_data is not None, "Error: please set root_data, the path to the stored MM dataset location"
 # Name of the experiment
-experiment = 'late_fusion2'
+experiment = 'interactive'
 # Path to cache data
-cache_path = root_data+'/mg_radiologic/'
+cache_path = root_data+'/knight/cache_knight_256_256_64/'
 
 paths = multimodal_paths(dataset_name, root_data, root, experiment, cache_path)
 TRAIN_COMMON_PARAMS['paths'] = paths
-TRAIN_COMMON_PARAMS['fusion_type'] = 'late_fusion'
+TRAIN_COMMON_PARAMS['fusion_type'] = 'interactive'
 ######################################
 # Inference Common Params
 ######################################
@@ -81,7 +88,6 @@ INFER_COMMON_PARAMS = {}
 INFER_COMMON_PARAMS['infer_filename'] = os.path.join(TRAIN_COMMON_PARAMS['paths']['inference_dir'],'validation_set_infer.gz')
 INFER_COMMON_PARAMS['checkpoint'] = 'best'  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
 INFER_COMMON_PARAMS['data.train_num_workers'] = TRAIN_COMMON_PARAMS['data.train_num_workers']
-INFER_COMMON_PARAMS['output_keys'] = ['model.output.multimodal','data.gt']
 INFER_COMMON_PARAMS['model_dir'] = TRAIN_COMMON_PARAMS['paths']['model_dir']
 # Analyze Common Params
 ######################################
@@ -89,25 +95,38 @@ ANALYZE_COMMON_PARAMS = {}
 ANALYZE_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
 ANALYZE_COMMON_PARAMS['output_filename'] = os.path.join(TRAIN_COMMON_PARAMS['paths']['inference_dir'],'all_metrics.txt')
 ANALYZE_COMMON_PARAMS['num_workers'] = 4
-ANALYZE_COMMON_PARAMS['batch_size'] = 8
+ANALYZE_COMMON_PARAMS['batch_size'] = 2
+
+#----------------------
+# task related parameters
+
+if TRAIN_COMMON_PARAMS['task_num'] == 1:
+    TRAIN_COMMON_PARAMS['num_classes'] = 2
+    TRAIN_COMMON_PARAMS['target_name']='data.gt.gt_global.task_1_label'
+    TRAIN_COMMON_PARAMS['target_metric']='metrics.auc'
+
+elif TRAIN_COMMON_PARAMS['task_num'] == 2:
+    TRAIN_COMMON_PARAMS['num_classes'] = 5
+    TRAIN_COMMON_PARAMS['target_name']='data.gt.gt_global.task_2_label'
+    TRAIN_COMMON_PARAMS['target_metric']='metrics.auc.macro_avg'
 
 # ===============
 # Manager - Train
 # ===============
 NUM_GPUS = 2
-TRAIN_COMMON_PARAMS['data.batch_size'] = 2 * NUM_GPUS
+TRAIN_COMMON_PARAMS['data.batch_size'] =2 * NUM_GPUS
 TRAIN_COMMON_PARAMS['manager.train_params'] = {
     'num_gpus': NUM_GPUS,
     'num_epochs': 300,
     'virtual_batch_size': 1,  # number of batches in one virtual batch
-    'start_saving_epochs': 10,  # first epoch to start saving checkpoints from
+    'start_saving_epochs': 10,  # fyirst epoch to start saving checkpoints from
     'gap_between_saving_epochs': 5,  # number of epochs between saved checkpoint
 }
 
 # best_epoch_source
 # if an epoch values are the best so far, the epoch is saved as a checkpoint.
 TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = {
-    'source':'metrics.auc',#'losses.cls_loss',# 'metrics.auc.macro_avg',  # can be any key from losses or metrics dictionaries
+    'source':TRAIN_COMMON_PARAMS['target_metric'],#'losses.cls_loss',# 'metrics.auc.macro_avg',  # can be any key from losses or metrics dictionaries
     'optimization': 'max',  # can be either min/max
     'on_equal_values': 'better',
     # can be either better/worse - whether to consider best epoch when values are equal
@@ -118,50 +137,40 @@ TRAIN_COMMON_PARAMS['manager.resume_checkpoint_filename'] = None
 
 
 #define postprocessing function
-features_dic = tabular_feature_mg()
-TRAIN_COMMON_PARAMS['post_processing'] = PostProcessing(features_dic['continuous_clinical_feat'],
-                                                        features_dic['categorical_clinical_feat'],
-                                                        ['gt'],
-                                                        features_dic['annotated_feat'],
-                                                        features_dic['non_annotated_feat'],
-                                                        use_annotated=True, use_non_annotated=True)
-
-#define processors
-TRAIN_COMMON_PARAMS['imaging_processor'] = FuseMGInputProcessor
-TRAIN_COMMON_PARAMS['tabular_processor'] = FuseProcessorDataFrame
+features_dic = tabular_feature_knight()
+TRAIN_COMMON_PARAMS['post_processing'] = None
 
 #define encoders
-TRAIN_COMMON_PARAMS['imaging_feature_size'] = 384
+TRAIN_COMMON_PARAMS['imaging_feature_size'] = 512
 TRAIN_COMMON_PARAMS['tabular_feature_size'] = 256
 TRAIN_COMMON_PARAMS['tabular_encoder_categorical'] = FuseMultilayerPerceptronBackbone(
-                                                       layers=[128, len(features_dic['categorical_clinical_feat'])],
-                                                       mlp_input_size=len(features_dic['categorical_clinical_feat']))
+                                                       layers=[128, 3+len(features_dic['categorical_clinical_feat'])],
+                                                       mlp_input_size=3+len(features_dic['categorical_clinical_feat']))
 TRAIN_COMMON_PARAMS['tabular_encoder_continuous'] = None
 TRAIN_COMMON_PARAMS['tabular_encoder_cat'] = FuseMultilayerPerceptronBackbone(
                                                        layers=[TRAIN_COMMON_PARAMS['tabular_feature_size']],
-                                                       mlp_input_size=len(features_dic['categorical_clinical_feat'])+\
+                                                       mlp_input_size=4+len(features_dic['categorical_clinical_feat'])+\
                                                        len(features_dic['continuous_clinical_feat']))
 
-TRAIN_COMMON_PARAMS['imaging_encoder'] = FuseBackboneInceptionResnetV2(input_channels_num=1)
-TRAIN_COMMON_PARAMS['imaging_projector'] = project_imaging(projection_imaging=nn.Conv2d(TRAIN_COMMON_PARAMS['imaging_feature_size'], TRAIN_COMMON_PARAMS['tabular_feature_size'], kernel_size=1, stride=1))
+
+
+TRAIN_COMMON_PARAMS['imaging_encoder'] = FuseBackboneResnet3D(in_channels=1)
+TRAIN_COMMON_PARAMS['imaging_projector'] = project_imaging(projection_imaging=nn.Conv2d(TRAIN_COMMON_PARAMS['imaging_feature_size'], TRAIN_COMMON_PARAMS['tabular_feature_size'], kernel_size=1, stride=1),dim='3d')
 TRAIN_COMMON_PARAMS['tabular_projector'] = None
 
-TRAIN_COMMON_PARAMS['dataset_func'] = mg_clinical_annotations_dataset(
-                                                          tabular_filename=TRAIN_COMMON_PARAMS['paths']['tabular_filename'],
-                                                          imaging_filename=TRAIN_COMMON_PARAMS['paths']['imaging_filename'],
-                                                          train_val_test_filenames=TRAIN_COMMON_PARAMS['paths']['train_val_test_filenames'],
-                                                          key_columns=TRAIN_COMMON_PARAMS['paths']['key_columns'],
-                                                          label_key=TRAIN_COMMON_PARAMS['paths']['label_key'],
-                                                          img_key=TRAIN_COMMON_PARAMS['paths']['img_key'],
-                                                          sample_key=TRAIN_COMMON_PARAMS['paths']['sample_key'],
+TRAIN_COMMON_PARAMS['dataset_func'] = knight_dataset(
+                                            data_dir=TRAIN_COMMON_PARAMS['paths']['data_dir'],
+                                            cache_dir=TRAIN_COMMON_PARAMS['paths']['cache_dir'],
+                                            split=TRAIN_COMMON_PARAMS['paths']['split'],
+                                            reset_cache=TRAIN_COMMON_PARAMS['paths']['force_reset_model_dir'],
+                                            rand_gen=TRAIN_COMMON_PARAMS['paths']['rand_gen'],
+                                            batch_size=TRAIN_COMMON_PARAMS['data.batch_size'],
+                                            resize_to=(256, 256, 64),
+                                            task_num=TRAIN_COMMON_PARAMS['task_num'],
+                                            target_name=TRAIN_COMMON_PARAMS['target_name'],
+                                            num_classes=TRAIN_COMMON_PARAMS['num_classes'])
 
-                                                          imaging_processor=TRAIN_COMMON_PARAMS['imaging_processor'],
-                                                          tabular_processor=TRAIN_COMMON_PARAMS['tabular_processor'],
 
-                                                          cache_dir=TRAIN_COMMON_PARAMS['paths']['cache_dir'],
-                                                          reset_cache=False,
-                                                          post_cache_processing_func=TRAIN_COMMON_PARAMS['post_processing'],
-                                                          )
 
 TRAIN_COMMON_PARAMS,INFER_COMMON_PARAMS,ANALYZE_COMMON_PARAMS = multimodal_parameters(TRAIN_COMMON_PARAMS,INFER_COMMON_PARAMS,ANALYZE_COMMON_PARAMS)
 
@@ -185,15 +194,14 @@ def run_train(paths: dict, train_common_params: dict, reset_cache: bool):
 
     #### Train Data
     lgr.info(f'Train Data:', {'attrs': 'bold'})
-    #Mo: function that returns dataset datasetfun in train_params, kwargs
-    train_dataset, validation_dataset, _ = train_common_params['dataset_func']
 
-
+    train_dataloader, validation_dataloader, test_dataloader, train_dataset, validation_dataset, test_dataset = train_common_params['dataset_func']
     ## Create sampler
     lgr.info(f'- Create sampler:')
     sampler = FuseSamplerBalancedBatch(dataset=train_dataset,
                                        balanced_class_name='data.gt',
-                                       num_balanced_classes=2,
+                                       num_balanced_classes = train_common_params['num_classes'],
+                                       balanced_class_probs=[1.0 / train_common_params['num_classes']] * train_common_params['num_classes'] if train_common_params['task_num'] == 2 else None,
                                        batch_size=train_common_params['data.batch_size'],
                                        use_dataset_cache=True)
 
@@ -301,12 +309,13 @@ def run_infer(paths: dict, train_common_params: dict,infer_common_params: dict):
              {'color': 'magenta'})
 
     # Create data source:
-    _, val_dataset, test_dataset = train_common_params['dataset_func']
+    train_dataloader, validation_dataloader, test_dataloader, \
+    train_dataset, validation_dataset, test_dataset= train_common_params['dataset_func']
 
     ## Create dataloader
-    infer_dataloader = DataLoader(dataset=val_dataset,
+    infer_dataloader = DataLoader(dataset=validation_dataset,
                                   shuffle=False, drop_last=False,
-                                  collate_fn=test_dataset.collate_fn,
+                                  collate_fn=validation_dataset.collate_fn,
                                   num_workers=infer_common_params['data.train_num_workers'])
     lgr.info(f'Test Data: Done', {'attrs': 'bold'})
 
