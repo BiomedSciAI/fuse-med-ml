@@ -1,20 +1,20 @@
 import pandas as pd
 from functools import partial
-from fuse.data.augmentor.augmentor_default import AugmentorDefault
+from fuse.data.augmentor.augmentor_default import FuseAugmentorDefault
 from fuse.data.augmentor.augmentor_toolbox import unsqueeze_2d_to_3d, aug_op_affine, squeeze_3d_to_2d, \
     rotation_in_3d
-from fuse.data.dataset.dataset_generator import DatasetGenerator
+from fuse.data.dataset.dataset_generator import FuseDatasetGenerator
 
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
 from fuse.data.visualizer.visualizer_default_3d import Fuse3DVisualizerDefault
 
 from fuse.data.processor.processor_dicom_mri import DicomMRIProcessor
 
-from fuse_examples.imaging.classification.prostate_x.patient_data_source import ProstateXDataSourcePatient
+from examples.fuse_examples.imaging.classification.prostate_x.patient_data_source import ProstateXDataSourcePatient
 
 
-from fuse_examples.imaging.classification.duke_breast_cancer.post_processor import post_processing
-from fuse_examples.imaging.classification.duke_breast_cancer.processor import PatchProcessor
+from examples.fuse_examples.imaging.classification.duke_breast_cancer.post_processor import post_processing
+from examples.fuse_examples.imaging.classification.duke_breast_cancer.processor import PatchProcessor
 
 
 def process_mri_series(metadata_path: str):
@@ -144,11 +144,11 @@ def duke_breast_cancer_dataset(paths,train_common_params,lgr):
             {}
         ],
     ]
-    augmentor = AugmentorDefault(augmentation_pipeline=aug_pipeline)
+    augmentor = FuseAugmentorDefault(augmentation_pipeline=aug_pipeline)
 
     visualizer = Fuse3DVisualizerDefault(image_name='data.input', label_name='data.isLargeTumorSize')
     # Create dataset
-    train_dataset = DatasetGenerator(cache_dest=paths['cache_dir'],
+    train_dataset = FuseDatasetGenerator(cache_dest=paths['cache_dir'],
                                          data_source=train_data_source,
                                          processor=generate_processor,
                                          post_processing_func=train_post_processor,
