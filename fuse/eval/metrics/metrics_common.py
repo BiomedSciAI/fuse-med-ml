@@ -221,7 +221,7 @@ class MetricCollector(MetricBase):
 
     def eval(self, results: Dict[str, Any] = None) -> Union[Dict[str, Any], Any]:
         """
-        Empty impelmentation - do nothing
+        Empty implementation - do nothing
         """
         pass 
 
@@ -309,7 +309,7 @@ class MetricWithCollectorBase(MetricBase):
 
 class MetricDefault(MetricWithCollectorBase):
     """
-    Default generic impelemtation for metric
+    Default generic implementation for metric
     Can be used for any metric getting as an input list of prediction, list of targets and optionally additional parameters
     """
     def __init__(self, metric_func: Callable, pred: Optional[str] = None, target: Optional[str] = None, **kwargs):
@@ -344,7 +344,7 @@ class MetricDefault(MetricWithCollectorBase):
     
 class MetricPerSampleDefault(MetricWithCollectorBase):
     """
-    Default generic impelemtation for a case that is better to compute the metric per sample and then aggregate the results.
+    Default generic implementation for a case that is better to compute the metric per sample and then aggregate the results.
     Can be used for any metric getting as an input list of prediction, list of targets and optionally additional parameters
     """
     def __init__(self, pred: str, target: str, 
@@ -377,7 +377,7 @@ class MetricPerSampleDefault(MetricWithCollectorBase):
 class GroupAnalysis(MetricWithCollectorBase):
     """
     Evaluate a metric per group and compute basic statistics about the different per group results.
-    eval() method returns a dictionary of the follwing format:
+    eval() method returns a dictionary of the following format:
     {'mean': <>, 'std': <>, 'median': <>, <group 0>: <>, <group 1>: <>, ...}
     """
     def __init__(self, metric: MetricBase, group: str, **super_kwargs) -> None:
@@ -407,7 +407,7 @@ class GroupAnalysis(MetricWithCollectorBase):
     def eval(self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None) -> Dict[str, Any]:
         """
         See super class
-        :return: a dictionary of the follwing format {'mean': <>, 'std': <>, 'median': <>, <group 0>: <>, <group 1>: <>, ...}
+        :return: a dictionary of the following format {'mean': <>, 'std': <>, 'median': <>, <group 0>: <>, <group 1>: <>, ...}
         """
         data = self._collector.get(ids)
         if ids is None:
@@ -486,7 +486,7 @@ class Filter(MetricWithCollectorBase):
     def eval(self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None) -> Dict[str, Any]:
         """
         See super class
-        :return: a dictionary of the follwing format {'mean': <>, 'std': <>, 'median': <>, <group 0>: <>, <group 1>: <>, ...}
+        :return: a dictionary of the following format {'mean': <>, 'std': <>, 'median': <>, <group 0>: <>, <group 1>: <>, ...}
         """
         data = self._collector.get()
         if ids is None:
@@ -504,7 +504,7 @@ class Filter(MetricWithCollectorBase):
 class CI(MetricWithCollectorBase):
     """
     Compute confidence interval for a metric
-    eval() method returns a dictionary of the follwing format:
+    eval() method returns a dictionary of the following format:
     {'org': <>, 'mean': <>, 'std': <>, 'conf_interval': <>, 'conf_lower': <>, 'conf_upper': <>}
     """
 

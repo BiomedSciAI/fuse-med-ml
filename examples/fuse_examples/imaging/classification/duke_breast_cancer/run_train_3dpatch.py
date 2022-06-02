@@ -15,14 +15,15 @@ Created on June 30, 2021
 import logging
 import os
 import pathlib
-from fuse.data.dataset.dataset_base import DatasetBase
+from fuse.data.dataset.dataset_base import FuseDatasetBase
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
 
 from fuse.eval.metrics.classification.metrics_classification_common import MetricROCCurve, MetricAUCROC
 from fuse.eval.evaluator import EvaluatorDefault
-from fuse.data.sampler.sampler_balanced_batch import SamplerBalancedBatch
+from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
+
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
 from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
@@ -34,13 +35,13 @@ from fuse.utils.utils_logger import fuse_logger_start
 
 from fuse.dl.models.heads.head_1d_classifier import Head1dClassifier
 
-from fuse_examples.imaging.classification.prostate_x.backbone_3d_multichannel import Fuse_model_3d_multichannel,ResNet
-from fuse_examples.imaging.classification.prostate_x.patient_data_source import ProstateXDataSourcePatient
+from examples.fuse_examples.imaging.classification.prostate_x.backbone_3d_multichannel import Fuse_model_3d_multichannel,ResNet
+from examples.fuse_examples.imaging.classification.prostate_x.patient_data_source import ProstateXDataSourcePatient
 
 
 
-from fuse_examples.imaging.classification.duke_breast_cancer.dataset import duke_breast_cancer_dataset
-from fuse_examples.imaging.classification.duke_breast_cancer.tasks import Task
+from examples.fuse_examples.imaging.classification.duke_breast_cancer.dataset import duke_breast_cancer_dataset
+from examples.fuse_examples.imaging.classification.duke_breast_cancer.tasks import Task
 
 
 ##########################################
@@ -155,7 +156,7 @@ def train_template(paths: dict, train_common_params: dict):
     ## Create dataloader
     lgr.info(f'- Create sampler:')
 
-    sampler = SamplerBalancedBatch(dataset=train_dataset,
+    sampler = FuseSamplerBalancedBatch(dataset=train_dataset,
                                        balanced_class_name='data.ground_truth',
                                        num_balanced_classes=train_common_params['class_num'],
                                        batch_size=train_common_params['data.batch_size'],
@@ -192,13 +193,13 @@ def train_template(paths: dict, train_common_params: dict):
         # hence we use Head1dClassifier as classification head
         heads=[
         Head1dClassifier(head_name='isLargeTumorSize',
-                                        conv_inputs=[('model.backbone_features',  train_common_params['num_backbone_features'])],
-                                        post_concat_inputs = train_common_params['post_concat_inputs'],
-                                        post_concat_model = train_common_params['post_concat_model'],
-                                        dropout_rate=0.25,
-                                        shared_classifier_head=None,
-                                        layers_description=None,
-                                        num_classes=2),
+                            conv_inputs=[('model.backbone_features',  train_common_params['num_backbone_features'])],
+                            post_concat_inputs = train_common_params['post_concat_inputs'],
+                            post_concat_model = train_common_params['post_concat_model'],
+                            dropout_rate=0.25,
+                            shared_classifier_head=None,
+                            layers_description=None,
+                            num_classes=2),
 
         ]
     )
@@ -228,7 +229,7 @@ def train_template(paths: dict, train_common_params: dict):
     }
 
 
-    ()# =====================================================================================
+    # =====================================================================================
     #  Callbacks
     # =====================================================================================
     callbacks = [
@@ -310,7 +311,7 @@ def infer_template(paths: dict, infer_common_params: dict):
     lgr.info(f'db_name={infer_common_params["db_name"]}', {'color': 'magenta'})
     ### load dataset
     data_set_filename = os.path.join(paths["model_dir"], "inference_dataset.pth")
-    dataset = DatasetBase.load(filename=data_set_filename, override_datasource=infer_data_source, override_cache_dest=paths["cache_dir"], num_workers=0)
+    dataset = FuseDatasetBase.load(filename=data_set_filename, override_datasource=infer_data_source, override_cache_dest=paths["cache_dir"], num_workers=0)
     dataloader  = DataLoader(dataset=dataset,
                                        shuffle=False,
                                        drop_last=False,
