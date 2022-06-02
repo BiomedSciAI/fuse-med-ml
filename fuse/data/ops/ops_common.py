@@ -365,17 +365,23 @@ class OpLookup(OpBase):
     (OpLookup(map={"male": 0, "female": 1}). dict(key_in="data.input.gender", key_out="data.input,gender"))
 
     """
-    def __init__(self, map: dict):
+    def __init__(self, map: dict, not_exist_error : bool = True):
         super().__init__()
         self._map = map
+        self._not_exist_error = not_exist_error
 
     def __call__(self, sample_dict: NDict, key_in: str, key_out: str) -> Union[None, dict, List[dict]]:
         """
         :param key_in: key to a value
         :param key_out: key to store the converted vale
+        :param not_exist_error: false iff if the value does not exist it will keep the previous value
         """
         value = sample_dict[key_in]
-        sample_dict[key_out] = self._map[value]
+        if value in self._map :
+            sample_dict[key_out] = self._map[value]
+        elif self._not_exist_error:
+            raise Exception(f"value {value} does not exist in mapping")
+        
 
         return sample_dict
 

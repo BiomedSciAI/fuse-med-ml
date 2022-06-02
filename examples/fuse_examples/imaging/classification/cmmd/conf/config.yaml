@@ -19,7 +19,7 @@ train:
   weight_decay :  0.001
   resume_checkpoint_filename : 
   manager_train_params:
-    num_gpus : 1
+    num_gpus : 7
     device : cuda
     num_epochs : 100
     virtual_batch_size: 1

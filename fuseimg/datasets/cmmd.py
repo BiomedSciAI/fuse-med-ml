@@ -1,3 +1,4 @@
+from cmath import nan
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
@@ -5,7 +6,7 @@ from fuseimg.data.ops.image_loader import OpLoadDicom
 from fuseimg.data.ops.color import OpNormalizeAgainstSelf
 from fuseimg.data.ops.shape_ops import OpFlipBrightSideOnLeft2D , OpFindBiggestNonEmptyBbox2D, OpResizeAndPad2D
 from fuse.data import PipelineDefault, OpToTensor
-from fuse.data.ops.ops_common import OpLambda
+from fuse.data.ops.ops_common import OpLambda, OpLookup
 from fuseimg.data.ops.aug.color import OpAugColor
 from fuseimg.data.ops.aug.geometry import OpAugAffine2D 
 from fuse.data.ops.ops_aug_common import OpSample
@@ -71,6 +72,7 @@ class CMMD:
             (OpReadDataframe(data_source,
                     key_column="file",key_name="data.input.img_path",
                     rename_columns=dict(ID1="data.patientID", classification="data.gt.classification")), dict()),
+            # (OpLookup({float('nan') : "NaN"}), dict(key_in="subtype", key_out="subtype")),
             ])
         return static_pipeline
 
@@ -136,6 +138,7 @@ class CMMD:
         merged_clinical_data = pd.merge(clinical_data, dicom_tags, how='outer', on=['ID1', 'LeftRight'])
         merged_clinical_data = merged_clinical_data[merged_clinical_data[target].notna()]
         merged_clinical_data[target] = np.where(merged_clinical_data[target] == 'Benign', 0, 1)
+        merged_clinical_data['subtype'] = merged_clinical_data['subtype'].replace(np.nan, "NaN")
         merged_clinical_data.to_csv(combined_file_path)
         all_sample_ids = merged_clinical_data['file'].to_list()
         return merged_clinical_data, all_sample_ids
