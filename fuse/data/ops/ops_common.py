@@ -88,7 +88,7 @@ class OpLambda(OpReversibleBase):
         self._func = func
         self._func_reverse = func_reverse
     
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str, **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: Optional[str] = None, **kwargs) -> Union[None, dict, List[dict]]:
         """        
         More details in super class
         :param key: apply lambda func on sample_dict[key]. If none the input and output of the lambda function are the entire sample_dict

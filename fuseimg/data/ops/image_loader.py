@@ -41,4 +41,3 @@ class OpLoadImage(OpReversibleBase):
     
     def reverse(self, sample_dict: dict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
         return sample_dict
-

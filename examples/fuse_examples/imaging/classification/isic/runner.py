@@ -79,8 +79,8 @@ TRAIN_COMMON_PARAMS['model'] = '' # TODO sagi - ?
 # ============
 # Data
 # ============
-TRAIN_COMMON_PARAMS['data.batch_size'] = 5
-TRAIN_COMMON_PARAMS['data.train_num_workers'] = 0
+TRAIN_COMMON_PARAMS['data.batch_size'] = 8
+TRAIN_COMMON_PARAMS['data.train_num_workers'] = 10
 TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 0
 
 # ===============
@@ -89,7 +89,7 @@ TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 0
 TRAIN_COMMON_PARAMS['manager.train_params'] = {
     # 'num_gpus': 1,
     'device': 'cuda', 
-    'num_epochs': 10,
+    'num_epochs': 15,
     'virtual_batch_size': 1,  # number of batches in one virtual batch
     'start_saving_epochs': 10,  # first epoch to start saving checkpoints from
     'gap_between_saving_epochs': 10,  # number of epochs between saved checkpoint
@@ -102,7 +102,7 @@ TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = {
     'on_equal_values': 'better',
     # can be either better/worse - whether to consider best epoch when values are equal
 }
-TRAIN_COMMON_PARAMS['manager.learning_rate'] = 0.0003
+TRAIN_COMMON_PARAMS['manager.learning_rate'] = 1e-5
 TRAIN_COMMON_PARAMS['manager.weight_decay'] = 0.001
 TRAIN_COMMON_PARAMS['manager.resume_checkpoint_filename'] = None  # if not None, will try to load the checkpoint
 
@@ -139,16 +139,17 @@ def run_train(paths: dict, train_params: dict, isic: ISIC):
 
     # Create dataloader
     train_dataloader = DataLoader(dataset=train_dataset,
-                                  batch_sampler=None, # TODO sagi, change to sampler once done handling the pre-proc
+                                  batch_sampler=sampler, # TODO sagi, change to sampler once done handling the pre-proc
                                   collate_fn=CollateDefault(),
                                   num_workers=train_params['data.train_num_workers'])
+    print(len(train_dataloader))
     lgr.info(f'Train Data: Done', {'attrs': 'bold'})
 
     ## Validation data
     lgr.info(f'Validation Data:', {'attrs': 'bold'})
     # wrapping torch dataset
     validation_dataset = isic.dataset(train=False, num_workers=train_params['data.validation_num_workers'])
-    
+
     # dataloader
     validation_dataloader = DataLoader(dataset=validation_dataset,
                                        batch_size=train_params['data.batch_size'],

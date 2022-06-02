@@ -1,4 +1,5 @@
 import os
+from functools import partial
 from sqlite3 import SQLITE_CREATE_TEMP_TABLE
 from zipfile import ZipFile
 import io
@@ -8,6 +9,7 @@ from typing import Hashable, Optional, Sequence, List
 from sklearn.model_selection import train_test_split
 import pickle
 import pandas as pd
+import numpy as np
 import torch
 
 from fuse.data import DatasetDefault
@@ -18,6 +20,8 @@ from fuse.data.ops.op_base import OpBase
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuse.data.ops.ops_aug_common import OpSample
 from fuse.data.ops.ops_read import OpReadDataframe, OpReadLabelsFromDF
+from fuse.data.ops.ops_common import OpLambda
+
 from fuse.utils import NDict
 
 from fuseimg.data.ops.image_loader import OpLoadImage
@@ -25,6 +29,9 @@ from fuseimg.data.ops.color import OpNormalizeAgainstSelf, OpPad
 from fuseimg.data.ops.aug.color import OpAugColor, OpAugGaussian
 from fuseimg.data.ops.aug.geometry import OpResizeTo, OpAugAffine2D
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
+
+
+
 
 
 class OpISICSampleIDDecode(OpBase):
@@ -39,6 +46,20 @@ class OpISICSampleIDDecode(OpBase):
         sample_dict[img_filename_key] =   sid + '.jpg'
 
         return sample_dict
+
+
+def derive_label(sample_dict: NDict, classes_names):
+    """
+    
+    """
+
+    label = 0
+    for idx, cls_name in enumerate(classes_names):
+        if sample_dict[cls_name] == 1:
+            label = idx
+        del sample_dict[cls_name]
+
+    sample_dict['data.label'] = label
 
 
 class ISIC:
@@ -108,7 +129,7 @@ class ISIC:
     def sample_ids(self, size: Optional[int] = None) -> List[str]:
         """
         Gets the samples ids in trainset.
-        If size is not None, return only the first 'size' ids.
+        :param size: If not None, returns only the first 'size' ids.
         """
         images_path = os.path.join(self.data_path, 'ISIC2019/ISIC_2019_Training_Input')
         
@@ -134,17 +155,17 @@ class ISIC:
             # Load Image
             (OpLoadImage(data_path), dict(key_in="data.input.img_path", key_out="data.input.img")),
             
-            # To Tensor debugging
-            # (OpToTensor(), dict(key="data.input.img", dtype=torch.int)),
-
             # Normalize Image to range [0, 1]
             (OpNormalizeAgainstSelf(), dict(key="data.input.img")),
 
             # Cast to numpy array for caching purposes
             (OpToNumpy(), dict(key="data.input.img")),
 
-            # Read labels
+            # Read labels using 'data_path'
             (OpReadLabelsFromDF(data_filename=os.path.join(data_path, '../ISIC_2019_Training_GroundTruth.csv'), key_column="image"), dict()),
+            # (OpReadDataframe(data_filename=os.path.join(data_path, '../ISIC_2019_Training_GroundTruth.csv'), key_column='image'), dict()),
+            #
+            # (OpLambda(func=partial(derive_label, classes_names=['MEL', 'NV', 'BCC', 'AK', 'BKL', 'DF', 'VASC', 'SCC'])), dict())
         ])
         return static_pipeline
 
@@ -155,37 +176,37 @@ class ISIC:
         """
 
         dynamic_pipeline = PipelineDefault("dynamic", [
-                # Resize images to 3x300x300
-                (OpResizeTo(), dict(key="data.input.img", resize_to=[3, 500, 500])),
-                
-                # Cast to Tensor
-                (OpToTensor(), dict(key="data.input.img")),
+            # Resize images to 3x300x300
+            (OpResizeTo(), dict(key="data.input.img", resize_to=[3, 600, 600])),
+            
+            # Cast to Tensor
+            (OpToTensor(), dict(key="data.input.img")),
 
-                # Padding
-                # (OpPad(), dict(key="data.input.img", padding=1)),
+            # Padding
+            # (OpPad(), dict(key="data.input.img", padding=1)),
 
-                # # Augmentation                
-                # (OpSample(OpAugAffine2D()), dict(
-                #     key="data.input.img",
-                #     rotate=Uniform(-180.0,180.0),        
-                #     scale=Uniform(0.9, 1.1),
-                #     flip=(RandBool(0.5), RandBool(0.5)),
-                #     translate=(RandInt(-50, 50), RandInt(-50, 50))
-                # )),
+            # Augmentation                
+            (OpSample(OpAugAffine2D()), dict(
+                key="data.input.img",
+                rotate=Uniform(-180.0,180.0),        
+                scale=Uniform(0.9, 1.1),
+                flip=(RandBool(0.5), RandBool(0.5)),
+                translate=(RandInt(-50, 50), RandInt(-50, 50))
+            )),
 
-                # # Color augmentation
-                # (OpSample(OpAugColor()), dict(
-                #     key="data.input.img",
-                #     gamma=Uniform(0.9,1.1), 
-                #     contrast=Uniform(0.85,1.15),
-                #     add=Uniform(-0.06, 0.06),
-                #     mul = Uniform(0.95, 1.05)
-                # )),
+            # Color augmentation
+            (OpSample(OpAugColor()), dict(
+                key="data.input.img",
+                gamma=Uniform(0.9,1.1), 
+                contrast=Uniform(0.85,1.15),
+                add=Uniform(-0.06, 0.06),
+                mul = Uniform(0.95, 1.05)
+            )),
 
-                # # Gaussian noise
-                # (OpAugGaussian(), dict(key="data.input.img", std=0.03)),
+            # Add Gaussian noise
+            (OpAugGaussian(), dict(key="data.input.img", std=0.03)),
 
-                (OpOneHotToNumber(num_classes=9), dict(key="data.label"))
+            (OpOneHotToNumber(num_classes=9), dict(key="data.label"))
         ])
 
         return dynamic_pipeline
