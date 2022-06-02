@@ -193,13 +193,13 @@ def train_template(paths: dict, train_common_params: dict):
         # hence we use Head1dClassifier as classification head
         heads=[
         Head1dClassifier(head_name='isLargeTumorSize',
-                                        conv_inputs=[('model.backbone_features',  train_common_params['num_backbone_features'])],
-                                        post_concat_inputs = train_common_params['post_concat_inputs'],
-                                        post_concat_model = train_common_params['post_concat_model'],
-                                        dropout_rate=0.25,
-                                        shared_classifier_head=None,
-                                        layers_description=None,
-                                        num_classes=2),
+                            conv_inputs=[('model.backbone_features',  train_common_params['num_backbone_features'])],
+                            post_concat_inputs = train_common_params['post_concat_inputs'],
+                            post_concat_model = train_common_params['post_concat_model'],
+                            dropout_rate=0.25,
+                            shared_classifier_head=None,
+                            layers_description=None,
+                            num_classes=2),
 
         ]
     )
@@ -229,7 +229,7 @@ def train_template(paths: dict, train_common_params: dict):
     }
 
 
-    ()# =====================================================================================
+    # =====================================================================================
     #  Callbacks
     # =====================================================================================
     callbacks = [

@@ -1,12 +1,14 @@
 # import nibabel as nib
 
 from fuse.utils.file_io.file_io import load_pickle, save_pickle_safe
-from fuseimg.datasets.duke import Duke, get_selected_series_index
+from fuseimg.datasets import duke
 from fuse.data.utils.sample import create_initial_sample
 
 import time
 import numpy as np
 from tqdm import tqdm
+
+import getpass
 import os
 
 def main():
@@ -29,18 +31,35 @@ def main():
             print("wrote", output_file)
     else:
         sample_id = 'Breast_MRI_596'  # 'Breast_MRI_120'#'Breast_MRI_900' #'Breast_MRI_127'
-        sample_ids = Duke.sample_ids()
+        sample_ids = duke.Duke.sample_ids()[:5]
         for sample_id in tqdm(sample_ids):
             output_file = f'/user/ozery/output/{sample_id}_v0.pkl'
             if os.path.exists(output_file):
                 continue
-            static_pipeline = Duke.static_pipeline(root_path=root_path, select_series_func=get_selected_series_index)
+            static_pipeline = duke.Duke.static_pipeline(root_path=root_path, select_series_func=duke.get_selected_series_index)
 
             sample_dict = create_initial_sample(sample_id)
             sample_dict = static_pipeline(sample_dict)
             # print("ok", sample_dict.flatten().keys())
             # save_pickle_safe(sample_dict, output_file)
             # print("saved", output_file)
+
+def derive_fuse2_folds_files():
+    input_filename_pattern = os.path.join(duke.DUKE_PROCESSED_FILE_DIR, "dataset_DUKE_folds_ver{name}_seed1.pickle")
+    output_path = f'/projects/msieve_dev3/usr/{getpass.getuser()}/fuse_examples/duke'
+    output_filename_pattern = os.path.join(output_path, "DUKE_folds_fuse2_{name}_seed1.pkl")
+
+    for name in ['10012022Recurrence', '11102021TumorSize']:
+        input_filename = input_filename_pattern.format(name=name)
+        output_filename = output_filename_pattern.format(name=name)
+        dict_in = load_pickle(input_filename)
+
+        dict_out = {fold: dict_in[f'data_fold{fold}']['Patient ID'].values.tolist() for fold in range(5)}
+        a = [len(v) for v in dict_out.values()]
+        print(sum(a), a)
+        save_pickle_safe(dict_out, output_filename)
+        print("wrote", output_filename)
+
 
 def compare_sample_dicts(file1, file2):
     d1 = load_pickle(file1).flatten()
@@ -85,3 +104,4 @@ if __name__ == "__main__":
 
 
     # compare_sample_dicts('/user/ozery/output/Breast_MRI_900_v0.pkl','/user/ozery/output/Breast_MRI_900_20220531-232611.pkl')
+    # derive_fuse2_folds_files()
