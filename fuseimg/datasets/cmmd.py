@@ -82,25 +82,26 @@ class CMMD:
         Get suggested dynamic pipeline. including pre-processing that might be modified and augmentation operations. 
         :param train : True iff we request dataset for train purpouse
         """
-        dynamic_pipeline = PipelineDefault("cmmd_dynamic", [])
+        dynamic_pipeline = PipelineDefault("cmmd_dynamic", [(OpToTensor(), dict(key="data.input.img",dtype=torch.float32)),
+                                                            (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")) ])
         if train:
             dynamic_pipeline.extend([
-                (OpToTensor(), dict(key="data.input.img",dtype=torch.float32)),
-                (OpSample(OpAugAffine2D()), dict(
-                                key="data.input.img",
-                                rotate=Uniform(-30.0,30.0),        
-                                scale=Uniform(0.9, 1.1),
-                                flip=(RandBool(0.3), RandBool(0.5)),
-                                translate=(RandInt(-10, 10), RandInt(-10, 10))
-                            )),
-                (OpSample(OpAugColor()), dict(
-                            key="data.input.img",
-                            gamma=Uniform(0.9, 1.1), 
-                            contrast=Uniform(0.85, 1.15),
-                            mul =  Uniform(0.95, 1.05),
-                            add=Uniform(-0.06, 0.06)
-                        )),
-                (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")) 
+                # 
+                # (OpSample(OpAugAffine2D()), dict(
+                #                 key="data.input.img",
+                #                 rotate=Uniform(-30.0,30.0),        
+                #                 scale=Uniform(0.9, 1.1),
+                #                 flip=(RandBool(0.3), RandBool(0.5)),
+                #                 translate=(RandInt(-10, 10), RandInt(-10, 10))
+                #             )),
+                # (OpSample(OpAugColor()), dict(
+                #             key="data.input.img",
+                #             gamma=Uniform(0.9, 1.1), 
+                #             contrast=Uniform(0.85, 1.15),
+                #             mul =  Uniform(0.95, 1.05),
+                #             add=Uniform(-0.06, 0.06)
+                #         )),
+                
                 
             ])
         return dynamic_pipeline
