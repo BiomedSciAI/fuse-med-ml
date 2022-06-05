@@ -183,8 +183,6 @@ class DatasetDefault(DatasetBase):
             sample = sample.get_multi(keys)
 
         return sample
-    
-    
 
     def _get_multi_multiprocess_func(self, args):
         sid, kwargs = args

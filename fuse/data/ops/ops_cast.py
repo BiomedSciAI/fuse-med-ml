@@ -169,8 +169,25 @@ class OpToNumpy(OpCast):
     Convert many types to numpy
     """
     def _cast(self, value: Any, dtype: Optional[np.dtype] = None) -> np.ndarray:
-<<<<<<< HEAD
-        return Cast.to_numpy(value)
+
+        return Cast.to_numpy(value, dtype)
+        
+
+class OpToInt(OpCast):
+    """
+    Convert many types to int
+    """
+    def _cast(self, value: Any) -> int:
+        return Cast.to_int(value)
+
+
+class OpToFloat(OpCast):
+    """
+    Convert many types to float
+    """
+    def _cast(self, value: Any) -> float:
+        return Cast.to_float(value)
+
 
 class OpOneHotToNumber(OpBase):
     """
@@ -218,20 +235,3 @@ class OpOneHotToNumber(OpBase):
 
         ans = (max_value == 1) and (min_value == 0) and (sum_value == 1)
         return ans
-=======
-        return Cast.to_numpy(value, dtype)
-
-class OpToInt(OpCast):
-    """
-    Convert many types to int
-    """
-    def _cast(self, value: Any) -> int:
-        return Cast.to_int(value)
-
-class OpToFloat(OpCast):
-    """
-    Convert many types to float
-    """
-    def _cast(self, value: Any) -> float:
-        return Cast.to_float(value)
->>>>>>> fuse2
