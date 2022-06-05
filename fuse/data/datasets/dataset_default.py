@@ -213,7 +213,7 @@ class DatasetDefault(DatasetBase):
         list_sample_dict = run_multiprocessed(
             worker_func=self._getitem_multiprocess, 
             copy_to_global_storage=for_global_storage,
-            args_list=sample_ids, workers=workers, verbose=verbose, mp_context=mp_context)
+            args_list=sample_ids, workers=0, verbose=verbose, mp_context=mp_context)
         return list_sample_dict
 
     def __len__(self):
