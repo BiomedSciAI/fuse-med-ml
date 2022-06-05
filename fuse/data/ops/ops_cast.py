@@ -173,8 +173,6 @@ class OpOneHotToNumber(OpBase):
     for example:
         [1, 0, 0, 0] -> 0
         [0, 0, 1, 0] -> 2
-
-    TODO make it reversible?
     """
 
     def __init__(self, num_classes, verify_arguments: bool = True):

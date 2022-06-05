@@ -13,13 +13,13 @@ import numpy as np
 import torch
 
 from fuse.data import DatasetDefault
-from fuse.data.ops.ops_cast import OpToNumpy, OpToTensor, OpOneHotToNumber
+from fuse.data.ops.ops_cast import OpToNumpy, OpToTensor
 from fuse.data.utils.sample import get_sample_id
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.ops.op_base import OpBase
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuse.data.ops.ops_aug_common import OpSample
-from fuse.data.ops.ops_read import OpReadDataframe, OpReadLabelsFromDF
+from fuse.data.ops.ops_read import OpReadDataframe
 from fuse.data.ops.ops_common import OpLambda
 
 from fuse.utils import NDict
@@ -48,18 +48,28 @@ class OpISICSampleIDDecode(OpBase):
         return sample_dict
 
 
-def derive_label(sample_dict: NDict, classes_names):
+def derive_label(sample_dict: NDict) -> NDict:
     """
-    
+    Takes the sample's ndict with the labels as key:value and assigns to sample_dict['data.label'] the index of the sample's class.
+    Also delete all the labels' keys from sample_dict.
+
+    for example: 
+        If the sample contains {'MEL': 0, 'NV': 1, 'BCC': 0, 'AK': 0, ... }
+        will assign, sample_dict['data.label'] = 1 ('NV's index).
+        Afterwards the sample_dict won't contain the class' names & values.
     """
+    classes_names=['MEL', 'NV', 'BCC', 'AK', 'BKL', 'DF', 'VASC', 'SCC']
 
     label = 0
     for idx, cls_name in enumerate(classes_names):
-        if sample_dict[cls_name] == 1:
+        if int(sample_dict[cls_name]) == 1:
             label = idx
+        
         del sample_dict[cls_name]
+    
+    sample_dict['data.label'] = np.array(label)
 
-    sample_dict['data.label'] = label
+    return sample_dict
 
 
 class ISIC:
@@ -161,11 +171,11 @@ class ISIC:
             # Cast to numpy array for caching purposes
             (OpToNumpy(), dict(key="data.input.img")),
 
-            # Read labels using 'data_path'
-            (OpReadLabelsFromDF(data_filename=os.path.join(data_path, '../ISIC_2019_Training_GroundTruth.csv'), key_column="image"), dict()),
-            # (OpReadDataframe(data_filename=os.path.join(data_path, '../ISIC_2019_Training_GroundTruth.csv'), key_column='image'), dict()),
-            #
-            # (OpLambda(func=partial(derive_label, classes_names=['MEL', 'NV', 'BCC', 'AK', 'BKL', 'DF', 'VASC', 'SCC'])), dict())
+            # Read labels into dict
+            (OpReadDataframe(data_filename=os.path.join(data_path, '../ISIC_2019_Training_GroundTruth.csv'), key_column='image'), dict()),
+
+            # Squeeze labels into sample_dict['data.label']
+            (OpLambda(func=derive_label), dict())
         ])
         return static_pipeline
 
@@ -202,11 +212,6 @@ class ISIC:
                 add=Uniform(-0.06, 0.06),
                 mul = Uniform(0.95, 1.05)
             )),
-
-            # Add Gaussian noise
-            (OpAugGaussian(), dict(key="data.input.img", std=0.03)),
-
-            (OpOneHotToNumber(num_classes=9), dict(key="data.label"))
         ])
 
         return dynamic_pipeline
