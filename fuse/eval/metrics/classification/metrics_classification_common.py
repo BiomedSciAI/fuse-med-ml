@@ -30,7 +30,7 @@ from fuse.utils.ndict import NDict
 
 class MetricMultiClassDefault(MetricWithCollectorBase):
     """
-    Default generic impelemtation for metric
+    Default generic implementation for metric
     Can be used for any metric getting as an input list of prediction, list of targets and optionally additional parameters
     """
     def __init__(self, pred: str, target: str, 
@@ -41,6 +41,7 @@ class MetricMultiClassDefault(MetricWithCollectorBase):
         :param target: target key to collect
         :param metric_func: function getting as a input list of predictions, targets and optionally more arguments specified in kwargs
                             the function should return a result or a dictionary of results
+        :param class_names: class names for multi-class evaluation or None for binary evaluation
         :param class_weight: weight per class - the macro_average result will be a weighted sum rather than an average
         :param kwargs: additional kw arguments for MetricWithCollectorBase 
         """

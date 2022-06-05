@@ -43,6 +43,7 @@ class EvaluatorDefault:
                    data: Union[str, pd.DataFrame, Sequence[str], Sequence[pd.DataFrame], Iterable, 
                                Dict[str, Union[str, pd.DataFrame, Sequence[str], Sequence[pd.DataFrame]]]], 
                    metrics: OrderedDict[str, MetricBase],
+                   id_key: str = "id",
                    batch_size: Optional[int] = None,
                    output_dir: Optional[str] = None) -> NDict:
         """
@@ -58,6 +59,7 @@ class EvaluatorDefault:
                                                    A prefix of "<key>." will be automatically added to each column name to avoid from collisions.                
                         (5) Iterator - either sample iterator or batch iterator. See param batch_size documentation for more details.
 
+        :param id_key: the column name or key that include the sample id (unique identifier)
         :param batch_size: Optional. Use when the data is too big to read together,
                            Options: 
                                 None - read all the data together
@@ -72,12 +74,13 @@ class EvaluatorDefault:
         """
         
         if ids is not None:
-            ids_df = pd.DataFrame(ids, columns=["id"]).set_index("id") # use the specified samples
+            ids_df = pd.DataFrame(ids, columns=[id_key]).set_index(id_key) # use the specified samples
         else:
             ids_df = None # use all samples 
 
         if batch_size is None:
-            data_df = self.read_data(data, ids_df)
+            data_df = self.read_data(data, ids_df, id_key=id_key)
+            data_df["id"] = data_df[id_key]
 
             # pass data
             for metric_name, metric in metrics.items():
@@ -95,7 +98,9 @@ class EvaluatorDefault:
                 samples = []
                 try:
                     for _ in range(batch_size):
-                        samples.append(next(data_iter))
+                        sample = next(data_iter)
+                        sample["id"] = sample[id_key]
+                        samples.append(sample)
                 except StopIteration:
                     break
                 finally:
@@ -134,6 +139,7 @@ class EvaluatorDefault:
     def read_data(self, 
                   data: Union[str, pd.DataFrame, Sequence[str], Sequence[pd.DataFrame], Dict[str, Union[str, pd.DataFrame, Sequence[str], Sequence[pd.DataFrame], Iterable]]],
                   ids_df: pd.DataFrame,
+                  id_key: str,
                   error_missing_ids: bool = True,
                   error_duplicate: bool = True):
         """
@@ -146,24 +152,24 @@ class EvaluatorDefault:
         if isinstance(data, pd.DataFrame): # data is already a dataframe
             result_data = data
             # make sure "id" column exist and set it as index
-            if "id" not in result_data.keys():
+            if id_key not in result_data.keys():
                 raise Exception("Error: 'id' column/key wasn't found in data. Index column specify unique identifier per sample")
-            result_data = result_data.set_index(keys="id", drop=False)
+            result_data = result_data.set_index(keys=id_key, drop=False)
 
             
         elif isinstance(data, str): # data is path to a file
 
             result_data = read_dataframe(data)
             # make sure "id" column exist and set it as index
-            if "id" not in result_data.keys():
+            if id_key not in result_data.keys():
                 raise Exception("Error: 'id' column/key wasn't found in data. Index column specify unique identifier per sample")
-            result_data = result_data.set_index(keys="id", drop=False)
+            result_data = result_data.set_index(keys=id_key, drop=False)
 
             
         elif isinstance(data, Sequence) and isinstance(data[0], (str, pd.DataFrame)): # data is a sequence of folds
             data_lst = []
             for fold, data_elem in enumerate(data):
-                data_elem_df = self.read_data(data_elem, ids_df, error_missing_ids=False)
+                data_elem_df = self.read_data(data_elem, ids_df, error_missing_ids=False, id_key=id_key)
                 # add "fold" number to dataframe 
                 data_elem_df["evaluator_fold"] = fold
                 data_lst.append(data_elem_df)
@@ -175,7 +181,7 @@ class EvaluatorDefault:
             for key, data_elem in data.items():
                 
                 try:
-                    data_elem_df = self.read_data(data_elem, ids_df)
+                    data_elem_df = self.read_data(data_elem, ids_df, id_key=id_key)
                     all_ids = all_ids.union(set(data_elem_df.index))
                 except:
                     print(f"Error: key={key}")
@@ -191,16 +197,15 @@ class EvaluatorDefault:
                     raise Exception(f"Error: ids {missing_ids} are missing in data['{data_elem_df.keys()[0].split('.')[0]}']")
 
             result_data = pd.concat(df_list, axis=1, join="inner")
-            result_data["id"] = result_data.index
+            result_data[id_key] = result_data.index
         
         elif isinstance(data, Iterable):
-            result_data = pd.DataFrame([elem for elem in data])
+            result_data = pd.DataFrame([dict(elem) for elem in data])
 
-            
             # make sure "id" column exist and set it as index
-            if "id" not in result_data.keys():
-                raise Exception("Error: 'id' column/key wasn't found in data. Index column specify unique identifier per sample")
-            result_data = result_data.set_index(keys="id", drop=False)
+            if id_key not in result_data.keys():
+                raise Exception(f"Error: {id_key} column/key wasn't found in data. Index column specify unique identifier per sample - available keys are {result_data.keys()}")
+            result_data = result_data.set_index(keys=id_key, drop=False)
         
         else:
             raise Exception(f"Error: unexpected data type {type(data)}")

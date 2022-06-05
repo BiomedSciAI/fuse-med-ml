@@ -5,6 +5,7 @@ from enum import Enum
 from fuse.data.key_types import TypeDetectorBase
 from .op_base import OpBase, OpReversibleBase, Patterns, op_call, op_reverse #DataType, 
 from fuse.utils.ndict import NDict
+import numpy as np
 
 
 class OpRepeat(OpReversibleBase):
@@ -146,8 +147,6 @@ class OpFunc(OpReversibleBase):
     def __init__(self, func: Callable, **kwargs):
         """
         :param func: a callable to call in  __call__() 
-        :param inputs: benedictionary that map between the key_name of a value stored in sample_dict the the input argument name in func
-        :param outputs: sequence of key_names to store each return value of func.
         """
         super().__init__(**kwargs)
         self._func = func
@@ -155,6 +154,9 @@ class OpFunc(OpReversibleBase):
     def __call__(self, sample_dict: NDict, op_id: Optional[str], inputs: Dict[str, str], outputs: Union[Sequence[str], str], **kwargs) -> Union[None, dict, List[dict]]:
         """
         See super class
+        :param inputs: dictionary that map between the key_name of a value stored in sample_dict the the input argument name in func
+        :param outputs: sequence of key_names to store each return value of func.
+
         """
         # extract inputs from sample dict 
         kwargs_from_sample_dict = {}
@@ -338,11 +340,11 @@ class OpCollectMarker(OpReversibleBase):
         return sample_dict
 
 class OpKeepKeypaths(OpBase):
-    '''
+    """
     Use this op to keep only the defined keypaths in the sample
     A case where this is useful is if you want to limit the amount of data that gets transferred by multiprocessing by DataLoader workers.
     You can keep only what you want to enter the collate.
-    '''
+    """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -351,6 +353,71 @@ class OpKeepKeypaths(OpBase):
         sample_dict = NDict()
         for k in keep_keypaths:
             sample_dict[k] = prev_sample_dict[k]
+
         return sample_dict
 
 
+class OpLookup(OpBase):
+    """
+    Convert a value to another value. It should be specified in a dictionary mapping old value to a new value
+    Example:
+    To read the gender represented by strings "male" and "female" and convert it to int do the following
+    (OpLookup(map={"male": 0, "female": 1}). dict(key_in="data.input.gender", key_out="data.input,gender"))
+
+    """
+    def __init__(self, map: dict):
+        super().__init__()
+        self._map = map
+
+    def __call__(self, sample_dict: NDict, key_in: str, key_out: str) -> Union[None, dict, List[dict]]:
+        """
+        :param key_in: key to a value
+        :param key_out: key to store the converted vale
+        """
+        value = sample_dict[key_in]
+        sample_dict[key_out] = self._map[value]
+
+        return sample_dict
+
+
+class OpToOneHot(OpBase):
+    """
+    Map category value to one hot vector
+    """
+    def __init__(self, num_classes: int):
+        """
+        :param num_classes: the size of the one hot vector
+        """
+        super().__init__()
+        self._num_classes = num_classes
+        
+    def __call__(self, sample_dict: NDict, key_in: str, key_out: str) -> Union[None, dict, List[dict]]:
+        """
+        :param key_in: key to a class number (int)
+        :param key_out: key to store the one hot vector
+        """
+        value = sample_dict[key_in]
+        one_hot = np.zeros(self._num_classes)
+        one_hot[value] = 1.0
+        sample_dict[key_out] = one_hot
+
+        return sample_dict
+
+
+class OpConcat(OpBase):
+    """
+    Concatenate list of numpy arrays along a given axis.
+    To create clinical vector that includes all the clinical information about a patient and save into "data.input.clinical" do:
+    (OpConcat(), dict(keys_int=["data.input.age", "data.input.gender_one_hot", "data.input.smoking_history"], key_out="data.input_clinical", axis=0)
+    """
+    def __call__(self, sample_dict: NDict, keys_in: Sequence[str], key_out: str, axis:int = 0) -> Union[None, dict, List[dict]]:
+        """
+        :param keys_in: sequence of keys to numpy arrays we want to concatenate
+        :param key_out: the key to store the concatenated vector
+        :param axis: concatenate along the specified axis   
+        """
+        values = [np.asarray(sample_dict[key_in]) for key_in in keys_in]
+        values = [v if len(v.shape) > 0 else np.expand_dims(v, axis=0) for v in values]
+        sample_dict[key_out] = np.concatenate(values, axis=axis)
+
+        return sample_dict

@@ -16,6 +16,7 @@ limitations under the License.
 Created on June 30, 2021
 
 """
+from functools import partial
 from typing import Hashable, List, Optional, Sequence, Union, Callable, Dict, Callable, Any, Tuple
 
 from fuse.data.pipelines.pipeline_default import PipelineDefault
@@ -82,7 +83,7 @@ class SamplesCacher:
             self._write_dir_logic = custom_write_dir_callable        
 
         if custom_read_dirs_callable is None:
-            self._read_dirs_logic = lambda : self._cache_dirs
+            self._read_dirs_logic = partial(default_read_dirs_logic, cache_dirs=self._cache_dirs)
         else:
             self._read_dirs_logic = custom_read_dirs_callable      
 
@@ -366,8 +367,8 @@ def _get_available_write_location(cache_dirs:List[str], max_allowed_used_space=0
         f'max_allowed_used_space={max_allowed_used_space}'
     )
 
-
-
+def default_read_dirs_logic(cache_dirs: List[str]):
+    return cache_dirs
         
 
 

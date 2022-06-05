@@ -81,12 +81,13 @@ class DatasetDefault(DatasetBase):
         self._created = False
 
 
-    def create(self, num_workers:int = 0) -> None:
+    def create(self, num_workers:int = 0, mp_context: Optional[str] = None) -> None:
         """
         Create the data set, including caching
         :param num_workers: number of workers. used only when caching is disabled and allow_uncached_sample_morphing is enabled
             set num_workers=0 to disable multiprocessing (more convenient for debugging)
             Setting num_workers for caching is done in cacher constructor.
+        :param mp_context: "fork", "spawn", "thread" or None for multiprocessing default
         :return: None
         """
         
@@ -96,7 +97,7 @@ class DatasetDefault(DatasetBase):
         elif self._allow_uncached_sample_morphing:
             _output_sample_ids_info_list = run_multiprocessed(DatasetDefault._process_orig_sample_id, 
                 [(sid, self._static_pipeline, False) for sid in self._orig_sample_ids], 
-                workers=num_workers)    
+                workers=num_workers, mp_context=mp_context)    
             
             self._output_sample_ids_info = OrderedDict()
             self._final_sid_to_orig_sid = {}
@@ -198,11 +199,11 @@ class DatasetDefault(DatasetBase):
         kwargs = get_from_global_storage("dataset_default_get_multi_kwargs")
         return dataset.getitem(item, **kwargs)
 
-
-    def get_multi(self, items: Optional[Sequence[Union[int, Hashable]]] = None, workers: int = 0, verbose: int = 1, **kwargs) -> List[Dict]:
+    def get_multi(self, items: Optional[Sequence[Union[int, Hashable]]] = None, workers: int = 10, verbose: int = 1, mp_context: Optional[str] = None, **kwargs) -> List[Dict]:
         """
         See super class
-        :param workers: number of processes to read the data. set to 0 for a single process.  
+        :param workers: number of processes to read the data. set to 0 to not use multi processing (useful when debugging).
+        :param mp_context: "fork", "spawn", "thread" or None for multiprocessing default  
         """
         if items is None:
             sample_ids = self._final_sample_ids
@@ -213,8 +214,8 @@ class DatasetDefault(DatasetBase):
 
         list_sample_dict = run_multiprocessed(
             worker_func=self._getitem_multiprocess, 
-            copy_to_global_storage=for_global_storage, 
-            args_list=sample_ids, workers=workers, verbose=verbose)
+            copy_to_global_storage=for_global_storage,
+            args_list=sample_ids, workers=workers, verbose=verbose, mp_context=mp_context)
         return list_sample_dict
 
     def __len__(self):
