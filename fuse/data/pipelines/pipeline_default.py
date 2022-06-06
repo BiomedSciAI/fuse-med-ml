@@ -47,6 +47,23 @@ class PipelineDefault(OpReversibleBase):
             self._op_ids = op_ids
         self._verbose = verbose
 
+    def extend(self,  ops_and_kwargs: List[Tuple[OpBase, dict]], op_ids: Optional[List[str]] = None):
+        """
+        Extends pipeline
+        :param ops_and_args: Ops to append, List of tuples. Each tuple include op and dictionary includes op specific arguments.
+        :param op_ids: Optional, set op_id - unique name for every op. If not set, an index will be used
+        """
+        if op_ids is None:
+            op_ids = [str(index + len(self._ops_and_kwargs)) for index in range(len(ops_and_kwargs))]
+        else:
+            assert len(ops_and_kwargs) == len(op_ids), "Expecting op_id for every op"
+            all_op_ids = self._op_ids + op_ids
+            assert len(set(all_op_ids)) == len(all_op_ids), "Expecting unique op id for every op."
+        
+        self._ops_and_kwargs.extend(ops_and_kwargs)
+        self._op_ids.extend(op_ids)
+        
+
     def get_name(self) -> str:
         return self._name
 
@@ -65,7 +82,7 @@ class PipelineDefault(OpReversibleBase):
         """
         # set op_id if not specified
         if op_id is None:
-            op_id = self._name
+            op_id = f"internal.{self._name}"
 
         samples_to_process = [sample_dict]
         for sub_op_id, (op, op_kwargs) in zip(self._op_ids, self._ops_and_kwargs):

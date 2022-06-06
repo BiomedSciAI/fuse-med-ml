@@ -68,7 +68,7 @@ class Cast:
         """
         if isinstance(value, int):
             pass # do nothing
-        elif isinstance(value, (torch.Tensor, np.ndarray, float)):
+        elif isinstance(value, (torch.Tensor, np.ndarray, float, str)):
             value = int(value)
         else:
             raise Exception(f"Unsupported type {type(value)} - add here support for this type")
@@ -83,12 +83,13 @@ class Cast:
 
         if isinstance(value, float):
             pass # do nothing
-        elif isinstance(value, (torch.Tensor, np.ndarray, int)):
+        elif isinstance(value, (torch.Tensor, np.ndarray, int, str)):
             value = float(value)
         else:
             raise Exception(f"Unsupported type {type(value)} - add here support for this type")
         
         return value
+
 
     @staticmethod
     def to_list(value: Any) -> np.ndarray:
@@ -104,7 +105,8 @@ class Cast:
             raise Exception(f"Unsupported type {type(value)} - add here support for this type")
         
         return value
-    
+
+    @staticmethod
     def to(value: Any, type_name: str) -> Any:
         """
         Convert any type to type specified in type_name
@@ -116,6 +118,8 @@ class Cast:
             return Cast.to_tensor(value)
         if type_name == "float":
             return Cast.to_float(value)
+        if type_name == "int":
+            return Cast.to_int(value)
         if type_name == "list":
             return Cast.to_list(value)
 
@@ -165,4 +169,18 @@ class OpToNumpy(OpCast):
     Convert many types to numpy
     """
     def _cast(self, value: Any, dtype: Optional[np.dtype] = None) -> np.ndarray:
-        return Cast.to_numpy(value)
+        return Cast.to_numpy(value, dtype)
+
+class OpToInt(OpCast):
+    """
+    Convert many types to int
+    """
+    def _cast(self, value: Any) -> int:
+        return Cast.to_int(value)
+
+class OpToFloat(OpCast):
+    """
+    Convert many types to float
+    """
+    def _cast(self, value: Any) -> float:
+        return Cast.to_float(value)

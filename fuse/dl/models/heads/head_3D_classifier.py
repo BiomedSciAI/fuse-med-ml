@@ -24,7 +24,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from fuse.utils.ndict import NDict
-from fuse.dl.models.heads.common import ClassifierMLP
+from fuse.dl.models.heads.common import ClassifierFCN3D, ClassifierMLP
 
 
 class Head3dClassifier(nn.Module):
@@ -51,7 +51,7 @@ class Head3dClassifier(nn.Module):
         :param append_features: Sequence of tuples, each indication features name in batch_dict and size of features (channels).
                                 Those are global features that appended after the global max pooling operation
         :param layers_description:          Layers description for the classifier module - sequence of hidden layers sizes (Not used currently)
-        :param append_layers_description: Layers description for the tabular data, before the concatination with the features extracted from the image - sequence of hidden layers sizes
+        :param append_layers_description: Layers description for the tabular data, before the concatenation with the features extracted from the image - sequence of hidden layers sizes
         :param append_dropout_rate: Dropout rate for tabular layers
         """
         super().__init__()
@@ -76,12 +76,7 @@ class Head3dClassifier(nn.Module):
                                                     layers_description=append_layers_description,
                                                     dropout_rate=append_dropout_rate)                
 
-        self.conv_classifier_3d = nn.Sequential(
-            nn.Conv3d(self.features_size, 256, kernel_size=1),
-            nn.ReLU(),
-            nn.Dropout3d(p=fused_dropout_rate), 
-            nn.Conv3d(256, self.num_classes, kernel_size=1),
-        )
+        self.conv_classifier_3d = ClassifierFCN3D(self.features_size, self.num_classes, layers_description, fused_dropout_rate)
 
         self.do = nn.Dropout3d(p=self.dropout_rate)
     

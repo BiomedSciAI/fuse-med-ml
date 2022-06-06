@@ -170,7 +170,7 @@ class KITS21:
             (OpToRange(), dict(key="data.input.img", from_range=(-500, 500), to_range=(0, 1))),
             
             # transposing so the depth channel will be first
-            (OpLambda(lambda x: np.moveaxis(x, -1, 0)), dict(key="data.input.img")), # convert image from shape [H, W, D] to shape [D, H, W] 
+            (OpLambda(partial(np.moveaxis,  source=-1, destination=0)), dict(key="data.input.img")), # convert image from shape [H, W, D] to shape [D, H, W] 
         ])
         return static_pipeline
 
@@ -206,7 +206,7 @@ class KITS21:
                 )),
 
                 # add channel dimension -> [C=1, D, H, W]
-                (OpLambda(lambda x: x.unsqueeze(dim=0)), dict(key="data.input.img")),  
+                (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")),  
         ])
         return dynamic_pipeline
 
