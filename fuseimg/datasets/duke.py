@@ -3,6 +3,7 @@ from typing import Hashable, Optional, Sequence
 import glob
 import os
 import pickle
+import numpy as np
 from typing import Hashable, Optional, Sequence
 
 import pandas as pd
@@ -52,26 +53,60 @@ class DukeLabelType(Enum):
             return ['Breast Density MG', 'PR', 'HER2', 'ER']
         raise NotImplementedError(self)
 
-    def get_value(self, clinical_features):
+    def get_column_name(self):
         if self == DukeLabelType.ispCR:
-            ispCR = clinical_features['Near pCR Strict'] + 0
-            if ispCR == 0 or ispCR == 2:
-                ispCR = 0
-            elif ispCR <=2:
-                ispCR = 1
-            return ispCR
+            return 'Near pCR Strict'
         if self == DukeLabelType.STAGING_TUMOR_SIZE:
-            val = clinical_features['Staging Tumor Size'] + 0
-            val = 1 if val > 1 else 0
-            return val
+            return 'Staging Tumor Size'
         if self == DukeLabelType.HISTOLOGY_TYPE:
-            return clinical_features['Histologic type'] + 0
+            return 'Histologic type'
+        if self == DukeLabelType.IS_HIGH_TUMOR_GRADE_TOTAL:
+             return 'Tumor Grade Total'
+        raise NotImplementedError(self)
+
+    def get_process_func(self):
+        if self == DukeLabelType.ispCR:
+            def update_func(ispCR):
+                if ispCR>2:
+                    return np.NaN
+                if ispCR == 0 or ispCR == 2:
+                    return 0
+                else:
+                    return 1
+            return update_func
+
+        if self == DukeLabelType.STAGING_TUMOR_SIZE:
+            return lambda val: 1 if val > 1 else 0
+
+        if self == DukeLabelType.HISTOLOGY_TYPE:
+            def update_func(histology_type):
+                if histology_type == 1:
+                    return 0
+                elif histology_type == 10:
+                    return 1
+                else:
+                    return np.NaN
+            return update_func
 
         if self == DukeLabelType.IS_HIGH_TUMOR_GRADE_TOTAL:
-            grade = clinical_features['Tumor Grade Total'] + 0
-            grade = 1 if grade >= 7 else 0
-            return grade
+            return lambda grade: 1 if grade >= 7 else 0
         raise NotImplementedError(self)
+
+
+    def get_value(self, clinical_features):
+        col_name = self.get_column_name()
+        value = clinical_features[col_name] + 0 # why should be add 0??
+        process_func = self.get_process_func()
+        if process_func is None:
+            return value
+        if isinstance(value, pd.Series):
+            value = value.apply(process_func)
+        else:
+            value = process_func(value)
+        return value
+
+    def get_num_classes(self):
+        return 2 # currrently all are binary classification tasks
 
 class Duke:
     DUKE_DATASET_VER = 0
@@ -90,8 +125,9 @@ class Duke:
         annotations_df = get_duke_annotations_df()
 
         def get_annotations(sample_id):
-            patient_annotations_df = annotations_df[annotations_df['Patient ID'] == sample_id]
-            return patient_annotations_df
+            patient_annotations = annotations_df[annotations_df['Patient ID'] == sample_id]
+            assert patient_annotations.shape[0] == 1
+            return patient_annotations.iloc[0]
 
         series_desc_2_sequence_map = get_series_desc_2_sequence_mapping(metadata_path)
         seq_ids = ['DCE_mix_ph1',
@@ -150,26 +186,27 @@ class Duke:
 
             # step 9: read tabular data for each patch
             (ops_mri.OpAddPatchesData(get_annotations_func=get_annotations),
-             dict(key_out='data.input.patches_tab_data')),
+             dict(key_out='data.input.patch_tab_data')),
 
             # step 10: create patch volumes: (i) fixed size around center of annotatins (orig), and (ii) entire annotations
-            (ops_mri.OpCreatePatcheVolumes(lsn_shape=(9, 100, 100), lsn_spacing=(1, 0.5, 0.5)),
+            (ops_mri.OpCreatePatchVolumes(lsn_shape=(9, 100, 100), lsn_spacing=(1, 0.5, 0.5), delete_input_volumes=True),
              dict(key_in_volume4D='data.input.volume4D',
                   key_in_ref_volume='data.input.ref_volume',
-                  key_in_patch_rows='data.input.patches_tab_data',
-                  key_out_cropped_vol='data.input.patches_volumes_orig',
-                  key_out_cropped_vol_by_mask='data.input.patches_volumes'))
+                  key_in_patch_row='data.input.patch_tab_data',
+                  key_out_cropped_vol='data.input.patch_volume_orig',
+                  key_out_cropped_vol_by_mask='data.input.patch_volume'))
         ])
 
         return static_pipeline
 
     @staticmethod
     def dynamic_pipeline(label_type: Optional[DukeLabelType]=None):
-        steps = [ (ops_mri.OpStk2Torch(), dict(keys=['data.input.patches_volumes_orig',
-                              'data.input.patches_volumes']))]
+
+        steps = [ (ops_mri.OpStk2Torch(),
+                   dict(keys=['data.input.patch_volume_orig','data.input.patch_volume']))]
         if label_type is not None: #todo: wasn't checked!!!
             steps.append((OpAddDukeLabelAndClinicalFeatures(label_type=label_type),
-                            dict(key_in='data.input.patches_tab_data',  key_out_gt='data.ground_truth',
+                            dict(key_in='data.input.patch_tab_data',  key_out_gt='data.ground_truth',
                                  key_out_clinical_features='data.clinical_features', key_out_filter='data.filter')))
         dynamic_pipeline = PipelineDefault("dynamic", steps)
 
@@ -177,7 +214,7 @@ class Duke:
 
 
     @staticmethod
-    def dataset(label_type: Optional[DukeLabelType]=None, cache_dir: Optional[str]=None, data_path: Optional[str] = None,
+    def dataset(label_type: Optional[DukeLabelType]=None, cache_dir: Optional[str]=None, data_dir: Optional[str] = None,
                 select_series_func=get_selected_series_index,
                 reset_cache: bool = False, num_workers: int = 10,
                 sample_ids: Optional[Sequence[Hashable]] = None) -> DatasetDefault:
@@ -185,7 +222,7 @@ class Duke:
         """
         :param label_type: type of label to use
         :param cache_dir: path to store the cache of the static pipeline
-        :param data_path: path to the original data
+        :param data_dir: path to the original data
         :param select_series_func: which series to select for DCE_mix sequences
         :param reset_cache:
         :param num_workers:  number of processes used for caching
@@ -193,13 +230,13 @@ class Duke:
         :return:
         """
 
-        if data_path is None:
-            data_path = '/projects/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI/manifest-1607053360376/'
+        if data_dir is None:
+            data_dir = '/projects/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI/manifest-1607053360376/'
 
         if sample_ids is None:
             sample_ids = Duke.sample_ids()
 
-        static_pipeline = Duke.static_pipeline(data_path, select_series_func=select_series_func)
+        static_pipeline = Duke.static_pipeline(data_dir, select_series_func=select_series_func)
         dynamic_pipeline = Duke.dynamic_pipeline(label_type)
 
         if cache_dir is None:
@@ -207,7 +244,8 @@ class Duke:
         else:
             cacher = SamplesCacher(f'duke_cache_ver{Duke.DUKE_DATASET_VER}',
                                    static_pipeline,
-                                   [cache_dir], restart_cache=reset_cache, workers=num_workers)
+                                   [cache_dir], restart_cache=reset_cache, workers=num_workers,
+                                   ignore_nan_inequality=True)
 
         my_dataset = DatasetDefault(sample_ids=sample_ids,
                                     static_pipeline=static_pipeline,
@@ -253,20 +291,9 @@ class OpAddDukeLabelAndClinicalFeatures(OpBase):
                  key_out_gt: str, key_out_clinical_features: str, key_out_filter:str) -> NDict:
         clinical_features = sample_dict[key_in]
         label_val = self._label_type.get_value(clinical_features)
-        if self._label_type == DukeLabelType.ispCR:
-            if label_val > 2:
-                label_val = None  # should filter example: sample_dict['data.filter'] = True
-        if self._label_type == DukeLabelType.HISTOLOGY_TYPE:
-            if label_val == 1:
-                label_val = 0
-            elif label_val == 10:
-                label_val = 1
-            else:
-                label_val = None  # should filter example: sample_dict['data.filter'] = True
+        if np.isnan(label_val):
+            return None # should filter example (instead of sample_dict['data.filter'] = True )
 
-        if label_val is None:
-            sample_dict[key_out_filter] = True
-            return sample_dict   #todo: anohter option is to return null
         sample_dict[key_out_filter] = False
         label_tensor = torch.tensor(label_val, dtype=torch.int64)
         sample_dict[key_out_gt] = label_tensor #'data.ground_truth'
@@ -300,7 +327,14 @@ def get_duke_annotations_df():  # todo: change!!!
         [fold_annotations_dict[f'data_fold{fold}'] for fold in range(len(fold_annotations_dict))])
     return annotations_df
 
-
+def get_samples_for_debug(n_pos, n_neg, label_type):
+    annotations_df = get_duke_annotations_df()
+    label_values = label_type.get_value(annotations_df)
+    patient_ids = annotations_df['Patient ID']
+    sample_ids = []
+    for label_val, n_vals in  zip([True, False], [n_pos, n_neg]):
+        sample_ids += patient_ids[label_values == label_val].values.tolist()[:n_vals]
+    return sample_ids
 def get_series_desc_2_sequence_mapping(metadata_path: str):
     # read metadata file and match between series_desc in metadata file and sequence
     metadata_df = pd.read_csv(metadata_path)

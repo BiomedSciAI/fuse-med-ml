@@ -96,6 +96,8 @@ class SamplesCacher:
             self.delete_cache()
 
         self._audit_kwargs = audit_kwargs
+        if 'ignore_nan_inequality' not in self._audit_kwargs:
+            self._audit_kwargs['ignore_nan_inequality'] = True  #as DeepDiff(float('nan'), float('nan')) reports difference
         self._audit = SampleCachingAudit(**self._audit_kwargs)
 
         self._workers = workers

@@ -31,12 +31,11 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
 
-from fuse.eval.evaluator import EvaluatorDefault
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
 
 from fuse.eval.evaluator import EvaluatorDefault
-from fuse.data.sampler.sampler_balanced_batch import FuseSamplerBalancedBatch
+from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.split import dataset_balanced_division_to_folds
     
@@ -45,9 +44,7 @@ from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisti
 from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
 from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
 from fuse.dl.managers.manager_default import ManagerDefault
-from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
-from fuse.dl.models.model_default import ModelDefault
-from fuse.dl.models.heads.head_3D_classifier import Head3dClassifier
+
 
 from fuse.utils.utils_debug import FuseDebug
 import fuse.utils.gpu as GPU
@@ -58,12 +55,9 @@ from fuseimg.datasets import duke
 from fuse.dl.models.heads.head_1d_classifier import Head1dClassifier
 
 from examples.fuse_examples.imaging.classification.prostate_x.backbone_3d_multichannel import Fuse_model_3d_multichannel,ResNet
-from examples.fuse_examples.imaging.classification.prostate_x.patient_data_source import ProstateXDataSourcePatient
 
 
 
-from examples.fuse_examples.imaging.classification.duke_breast_cancer.dataset import duke_breast_cancer_dataset
-from examples.fuse_examples.imaging.classification.duke_breast_cancer.tasks import Task
 
 
 ###########################################################################################################
@@ -72,7 +66,7 @@ from examples.fuse_examples.imaging.classification.duke_breast_cancer.tasks impo
 ##########################################
 # Debug modes
 ##########################################
-mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
+mode = 'debug' # 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
 debug = FuseDebug(mode)
 
 ##########################################
@@ -81,10 +75,24 @@ debug = FuseDebug(mode)
 assert "DUKE_DATA_PATH" in os.environ, "Expecting environment variable DUKE_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
 ROOT = f'/projects/msieve_dev3/usr/{getpass.getuser()}/fuse_examples/duke'
 model_dir = os.path.join(ROOT, 'model_dir')
+label_type = duke.DukeLabelType.STAGING_TUMOR_SIZE
+
+if mode == 'debug':
+    data_split_file = os.path.join(ROOT, 'DUKE_folds_debug.pkl')
+    selected_sample_ids = duke.get_samples_for_debug(n_pos=10, n_neg=10, label_type=label_type)
+    cache_dir = os.path.join(ROOT, 'cache_dir_debug')
+    num_workers = 0
+    batch_size = 2
+else:
+    data_split_file =  os.path.join(ROOT, 'DUKE_folds_fuse2_11102021TumorSize_seed1.pkl')
+    selected_sample_ids = None
+    cache_dir =  os.path.join(ROOT, 'cache_dir')
+    num_workers = 10
+    batch_size = 50
 PATHS = {'model_dir': model_dir,
          'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
-         'cache_dir': os.path.join(ROOT, 'cache_dir'),
-         'data_split_filename': os.path.join(ROOT, 'DUKE_folds_fuse2_11102021TumorSize_seed1.pkl'),
+         'cache_dir': cache_dir,
+         'data_split_filename': os.path.join(ROOT, data_split_file),
          'data_dir': os.environ["DUKE_DATA_PATH"],
          'inference_dir': os.path.join(model_dir, 'infer_dir'),
          'eval_dir': os.path.join(model_dir, 'eval_dir'),
@@ -101,9 +109,9 @@ TRAIN_COMMON_PARAMS = {}
 # ============
 # Data
 # ============
-TRAIN_COMMON_PARAMS['data.batch_size'] = 4
-TRAIN_COMMON_PARAMS['data.train_num_workers'] = 16
-TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 16
+TRAIN_COMMON_PARAMS['data.batch_size'] = batch_size
+TRAIN_COMMON_PARAMS['data.train_num_workers'] = num_workers
+TRAIN_COMMON_PARAMS['data.validation_num_workers'] = num_workers
 TRAIN_COMMON_PARAMS['data.num_folds'] = 5
 TRAIN_COMMON_PARAMS['data.train_folds'] = [0, 1, 2]
 TRAIN_COMMON_PARAMS['data.validation_folds'] = [3]
@@ -113,7 +121,6 @@ TRAIN_COMMON_PARAMS['data.validation_folds'] = [3]
 # Manager - Train
 # ===============
 TRAIN_COMMON_PARAMS['manager.train_params'] = {
-    'device': 'cuda', 
     'num_epochs': 5,
     'virtual_batch_size': 1,  # number of batches in one virtual batch
     'start_saving_epochs': 120,  # first epoch to start saving checkpoints from
@@ -150,10 +157,8 @@ else:
 
 # classification_task:
 # supported tasks are: 'Staging Tumor Size','Histology Type','is High Tumor Grade Total','PCR'
-
-TRAIN_COMMON_PARAMS['classification_task'] = 'Staging Tumor Size'
-TRAIN_COMMON_PARAMS['task'] = Task(TRAIN_COMMON_PARAMS['classification_task'], 0)
-TRAIN_COMMON_PARAMS['class_num'] = TRAIN_COMMON_PARAMS['task'].num_classes()
+TRAIN_COMMON_PARAMS['classification_task'] = label_type
+TRAIN_COMMON_PARAMS['class_num'] = label_type.get_num_classes()
 
 # backbone parameters
 TRAIN_COMMON_PARAMS['backbone_model_dict'] = \
@@ -182,7 +187,7 @@ def run_train(paths: dict, train_params: dict):
     lgr.info(f'Train Data:', {'attrs': 'bold'})
 
     # split to folds randomly - temp
-    dataset_all = duke.Duke.dataset(paths["data_dir"], paths["cache_dir"], reset_cache=False)
+    dataset_all = duke.Duke.dataset(label_type=label_type, data_dir=paths["data_dir"], cache_dir=paths["cache_dir"], reset_cache=False, sample_ids=selected_sample_ids, num_workers=num_workers)
     folds = dataset_balanced_division_to_folds(dataset=dataset_all,
                                         output_split_filename=paths["data_split_filename"], 
                                         keys_to_balance=["data.ground_truth"],
@@ -195,24 +200,24 @@ def run_train(paths: dict, train_params: dict):
     for fold in train_params["data.validation_folds"]:
         validation_sample_ids += folds[fold]
 
-    train_dataset = duke.Duke.dataset(paths["data_dir"], paths["cache_dir"], sample_ids=train_sample_ids, train=True)
+    train_dataset = duke.Duke.dataset(label_type=train_params['classification_task'], data_dir=paths["data_dir"], cache_dir=paths["cache_dir"], sample_ids=train_sample_ids, num_workers=num_workers)
     # for _ in train_dataset:
     #     pass
-    validation_dataset = duke.Duke.dataset(paths["data_dir"], paths["cache_dir"], sample_ids=validation_sample_ids, train=False)
+    validation_dataset = duke.Duke.dataset(label_type=train_params['classification_task'], data_dir=paths["data_dir"], cache_dir=paths["cache_dir"], sample_ids=validation_sample_ids, num_workers=num_workers)
 
     lgr.info(f'- Create sampler:')
-    sampler = FuseSamplerBalancedBatch(dataset=train_dataset,
+    sampler = BatchSamplerDefault(dataset=train_dataset,
                                        balanced_class_name='data.ground_truth',
-                                       num_balanced_classes=2,
+                                       num_balanced_classes=train_params['class_num'],
                                        batch_size=train_params['data.batch_size'],
-                                       balanced_class_weights=None,
-                                       use_dataset_cache=True)
+                                       workers=num_workers
+                                  )
     lgr.info(f'- Create sampler: Done')
 
     # Create dataloader
     train_dataloader = DataLoader(dataset=train_dataset,
                                   batch_sampler=sampler,
-                                  collate_fn=train_dataset.collate_fn, #previously: CollateDefault(),
+                                  collate_fn=CollateDefault(),
                                   num_workers=train_params['data.train_num_workers'])
     lgr.info(f'Train Data: Done', {'attrs': 'bold'})
 
@@ -220,7 +225,7 @@ def run_train(paths: dict, train_params: dict):
     # dataloader
     validation_dataloader = DataLoader(dataset=validation_dataset,
                                        batch_size=train_params['data.batch_size'],
-                                       collate_fn=validation_dataset.collate_fn, #CollateDefault(),
+                                       collate_fn=CollateDefault(),
                                        num_workers=train_params['data.validation_num_workers'])
     lgr.info(f'Validation Data: Done', {'attrs': 'bold'})
 
@@ -229,13 +234,14 @@ def run_train(paths: dict, train_params: dict):
     # ==============================================================================
     lgr.info('Model:', {'attrs': 'bold'})
 
+    conv_inputs = (('data.input.patch_volume', 1),) #todo: discuss with Tal
     model = Fuse_model_3d_multichannel(
-    conv_inputs=(('data.input', 1),),
-    backbone=ResNet(ch_num=TRAIN_COMMON_PARAMS['backbone_model_dict']['input_channels_num']),
+    conv_inputs=conv_inputs, #previously 'data.input'. could be either 'data.input.patch_volume' or  'data.input.patch_volume_orig'
+    backbone=ResNet(conv_inputs=conv_inputs, ch_num=TRAIN_COMMON_PARAMS['backbone_model_dict']['input_channels_num']),
     # since backbone resnet contains pooling and fc, the feature output is 1D,
     # hence we use Head1dClassifier as classification head
     heads=[
-        Head1dClassifier(head_name='isLargeTumorSize',
+        Head1dClassifier(head_name='classification',
                          conv_inputs=[('model.backbone_features', train_params['num_backbone_features'])],
                          post_concat_inputs=train_params['post_concat_inputs'],
                          post_concat_model=train_params['post_concat_model'],
@@ -267,7 +273,7 @@ def run_train(paths: dict, train_params: dict):
     # ====================================================================================
     lgr.info('Metrics:', {'attrs': 'bold'})
     metrics = OrderedDict([
-        ('auc', MetricAUCROC(pred='model.output.isLargeTumorSize', target='data.ground_truth')),
+        ('auc', MetricAUCROC(pred='model.output.classification', target='data.ground_truth'))
     ])
 
     # =====================================================================================
@@ -318,7 +324,6 @@ def run_train(paths: dict, train_params: dict):
 ######################################
 # Inference Common Params
 ######################################
-#todo: I'm here !!!
 INFER_COMMON_PARAMS = {}
 INFER_COMMON_PARAMS['infer_filename'] = 'validation_set_infer.gz'
 INFER_COMMON_PARAMS['checkpoint'] = 'best'  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
@@ -344,7 +349,8 @@ def run_infer(paths: dict, infer_common_params: dict):
     for fold in infer_common_params["data.infer_folds"]:
         infer_sample_ids += folds[fold]
 
-    validation_dataset = STOIC21.dataset(paths["data_dir"], paths["cache_dir"], sample_ids=infer_sample_ids, train=False)
+    validation_dataset = duke.Duke.dataset(label_type=infer_common_params['classification_task'], data_dir=paths["data_dir"], cache_dir=paths["cache_dir"],
+                                           sample_ids=infer_sample_ids)
 
     # dataloader
     validation_dataloader = DataLoader(dataset=validation_dataset, batch_size=infer_common_params['data.batch_size'], collate_fn=CollateDefault(),
@@ -353,7 +359,7 @@ def run_infer(paths: dict, infer_common_params: dict):
 
     ## Manager for inference
     manager = ManagerDefault()
-    output_columns = ['model.output.classification', 'data.gt.probSevere']
+    output_columns = ['model.output.classification', 'data.ground_truth']
     manager.infer(data_loader=validation_dataloader,
                   input_model_dir=paths['model_dir'],
                   checkpoint=infer_common_params['checkpoint'],
@@ -380,8 +386,8 @@ def run_eval(paths: dict, eval_common_params: dict):
     metrics = OrderedDict([
         ('operation_point', MetricApplyThresholds(pred='model.output.classification')), # will apply argmax
         ('accuracy', MetricAccuracy(pred='results:metrics.operation_point.cls_pred', target='data.gt.probSevere')),
-        ('roc', MetricROCCurve(pred='model.output.classification', target='data.gt.probSevere', output_filename=os.path.join(paths['inference_dir'], 'roc_curve.png'))),
-        ('auc', MetricAUCROC(pred='model.output.classification', target='data.gt.probSevere')),
+        ('roc', MetricROCCurve(pred='model.output.classification', target='data.ground_truth', output_filename=os.path.join(paths['inference_dir'], 'roc_curve.png'))),
+        ('auc', MetricAUCROC(pred='model.output.classification', target='data.ground_truth')),
     ])
    
     # create evaluator

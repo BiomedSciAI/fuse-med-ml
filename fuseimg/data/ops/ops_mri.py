@@ -396,73 +396,70 @@ class OpAddPatchesData(OpBase):
 
     def __call__(self, sample_dict: NDict, key_out: str):
         sample_id  = get_sample_id(sample_dict)
-        annotations_df = self._get_annotations_func(sample_id)
-        sample_dict[key_out] = [annotations_df.iloc[i] for i in range(annotations_df.shape[0])]
+        sample_dict[key_out] = self._get_annotations_func(sample_id)
 
         return sample_dict
 
 
 
-class OpCreatePatcheVolumes(OpBase):
-    def __init__(self, lsn_shape, lsn_spacing, longtd_inx: Optional[int] = 0, **kwargs):
+class OpCreatePatchVolumes(OpBase):
+    def __init__(self, lsn_shape, lsn_spacing, longtd_inx: Optional[int] = 0, delete_input_volumes=True, **kwargs):
         super().__init__(**kwargs)
         self._lsn_shape = lsn_shape
         self._lsn_spacing = lsn_spacing
         self._longtd_inx = longtd_inx
+        self._delete_input_volumes = delete_input_volumes
 
-    def __call__(self, sample_dict: NDict, key_in_volume4D: str, key_in_ref_volume: str, key_in_patch_rows: str,
+    def __call__(self, sample_dict: NDict, key_in_volume4D: str, key_in_ref_volume: str, key_in_patch_row: str,
                  key_out_cropped_vol_by_mask: str, key_out_cropped_vol: str):
 
         vol_ref = sample_dict[key_in_ref_volume]
         vol_4D = sample_dict[key_in_volume4D]
-        patch_row_list = sample_dict[key_in_patch_rows]
+        patch_row = sample_dict[key_in_patch_row]
 
-        sample_dict[key_out_cropped_vol_by_mask] = []
-        sample_dict[key_out_cropped_vol] = []
+        # read original position
+        pos_orig = np.fromstring(patch_row[f'centroid_T{self._longtd_inx}'][1:-1], dtype=np.float32, sep=',')
 
-        for row in patch_row_list:
-            # read original position
-            pos_orig = np.fromstring(row[f'centroid_T{self._longtd_inx}'][1:-1], dtype=np.float32, sep=',')
+        # transform to pixel coordinate in ref coords
+        pos_vol = np.array(vol_ref.TransformPhysicalPointToContinuousIndex(pos_orig.astype(np.float64)))
 
-            # transform to pixel coordinate in ref coords
-            pos_vol = np.array(vol_ref.TransformPhysicalPointToContinuousIndex(pos_orig.astype(np.float64)))
+        vol_4d_tmp = sitk.GetArrayFromImage(vol_4D)
+        if sum(sum(sum(vol_4d_tmp[:, :, :, -1]))) == 0:  # if the mast does not exist
+            bbox_coords = np.fromstring(patch_row[f'bbox_T{self._longtd_inx}'][1:-1], dtype=np.int32, sep=',')
+            mask = extract_mask_from_annotation(vol_ref, bbox_coords)
+            vol_4d_tmp[:, :, :, -1] = mask
+            vol_4d_new = sitk.GetImageFromArray(vol_4d_tmp)
+            vol_4D = vol_4d_new
 
-            vol_4d_tmp = sitk.GetArrayFromImage(vol_4D)
-            if sum(sum(sum(vol_4d_tmp[:, :, :, -1]))) == 0:  # if the mast does not exist
-                bbox_coords = np.fromstring(row[f'bbox_T{self._longtd_inx}'][1:-1], dtype=np.int32, sep=',')
-                mask = extract_mask_from_annotation(vol_ref, bbox_coords)
-                vol_4d_tmp[:, :, :, -1] = mask
-                vol_4d_new = sitk.GetImageFromArray(vol_4d_tmp)
-                vol_4D = vol_4d_new
+        for is_use_mask in [False, True]:
+            if is_use_mask:
+                cropped_vol_size=(self._lsn_shape[2], self._lsn_shape[1], self._lsn_shape[0])
+            else:
+                cropped_vol_size = (2 * self._lsn_shape[2], 2 * self._lsn_shape[1], self._lsn_shape[0])
 
-            for is_use_mask in [False, True]:
-                if is_use_mask:
-                    cropped_vol_size=(self._lsn_shape[2], self._lsn_shape[1], self._lsn_shape[0])
-                else:
-                    cropped_vol_size = (2 * self._lsn_shape[2], 2 * self._lsn_shape[1], self._lsn_shape[0])
+            vol_cropped = crop_lesion_vol_mask_based(vol_4D, pos_vol, vol_ref,
+                                    size=cropped_vol_size,
+                                    spacing=(self._lsn_spacing[2], self._lsn_spacing[1], self._lsn_spacing[0]),
+                                    mask_inx=-1,
+                                    is_use_mask=is_use_mask)
 
-                vol_cropped = crop_lesion_vol_mask_based(vol_4D, pos_vol, vol_ref,
-                                        size=cropped_vol_size,
-                                        spacing=(self._lsn_spacing[2], self._lsn_spacing[1], self._lsn_spacing[0]),
-                                        mask_inx=-1,
-                                        is_use_mask=is_use_mask)
+            vol_cropped_arr = sitk.GetArrayFromImage(vol_cropped)
+            if len(vol_cropped_arr.shape) < 4:
+                # fix dimensions in case of one seq
+                vol_cropped_arr = vol_cropped_arr[:, :, :, np.newaxis]
+                vol_cropped_arr = np.moveaxis(vol_cropped_arr, 3, 0)
+            else:
+                vol_cropped_arr = np.moveaxis(vol_cropped_arr, 3, 0)
 
-                vol_cropped_arr = sitk.GetArrayFromImage(vol_cropped)
-                if len(vol_cropped_arr.shape) < 4:
-                    # fix dimensions in case of one seq
-                    vol_cropped_arr = vol_cropped_arr[:, :, :, np.newaxis]
-                    vol_cropped_arr = np.moveaxis(vol_cropped_arr, 3, 0)
-                else:
-                    vol_cropped_arr = np.moveaxis(vol_cropped_arr, 3, 0)
+            if np.isnan(vol_cropped_arr).any():
+                input[np.isnan(input)] = 0
 
-                if np.isnan(vol_cropped_arr).any():
-                    input[np.isnan(input)] = 0
+            key_out = key_out_cropped_vol_by_mask if is_use_mask else key_out_cropped_vol
+            sample_dict[key_out] = vol_cropped_arr
 
-
-                key_out = key_out_cropped_vol_by_mask if is_use_mask else key_out_cropped_vol
-                sample_dict[key_out].append(vol_cropped_arr)
-
-
+        if self._delete_input_volumes:
+            del sample_dict[key_in_volume4D]
+            del sample_dict[key_in_ref_volume]
         return sample_dict
 
 
@@ -476,12 +473,9 @@ class OpStk2Torch(OpBase):
 
     def __call__(self, sample_dict: NDict, keys: list ):
         for key in keys:
-            vols = sample_dict[key]
-            vol_tensors = []
-            for vol in vols:
-                vol_tensor = torch.from_numpy(vol).type(torch.FloatTensor)
-                vol_tensors.append(vol_tensor)
-            sample_dict[key] = vol_tensors
+            vol = sample_dict[key]
+            vol_tensor = torch.from_numpy(vol).type(torch.FloatTensor)
+            sample_dict[key] = vol_tensor
         return sample_dict
 
 

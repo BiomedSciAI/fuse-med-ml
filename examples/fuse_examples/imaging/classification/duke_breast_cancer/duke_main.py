@@ -18,17 +18,14 @@ def main():
 
     timestr = time.strftime("%Y%m%d-%H%M%S")
 
-    if False:
-        output_file = f'/user/ozery/output/duke_{timestr}.pkl'
-        cache_dir = '/tmp/duke_cache_ps4y2jk'  # mkdtemp(prefix="duke_cache")
-        duke_dataset = Duke.dataset(cache_dir=cache_dir, num_workers=0)
+    if True:
+        duke_dataset = duke.Duke.dataset(label_type=duke.DukeLabelType.STAGING_TUMOR_SIZE,
+                                         cache_dir=None, num_workers=0, sample_ids=['Breast_MRI_900'])
         print("finished creating dataset")
         arr = [d.flatten() for d in duke_dataset]
         print(len(arr))
         print(arr[0].keys())
-        if output_file is not None:
-            save_pickle(arr, output_file)
-            print("wrote", output_file)
+
     else:
         sample_id = 'Breast_MRI_596'  # 'Breast_MRI_120'#'Breast_MRI_900' #'Breast_MRI_127'
         sample_ids = duke.Duke.sample_ids()[:5]
