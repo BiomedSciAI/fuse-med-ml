@@ -20,6 +20,7 @@ from enum import Enum, auto
 import torch
 
 DUKE_PROCESSED_FILE_DIR = '/projects/msieve_dev3/usr/common/duke_processed_files'
+DUKE_DATA_DIR = '/projects/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI/'
 
 def get_selected_series_index(sample_id, seq_id):
     patient_id = sample_id[0]
@@ -298,6 +299,11 @@ def get_duke_annotations_df():  # todo: change!!!
         fold_annotations_dict = pickle.load(infile)
     annotations_df = pd.concat(
         [fold_annotations_dict[f'data_fold{fold}'] for fold in range(len(fold_annotations_dict))])
+    return annotations_df
+
+def get_duke_raw_annotations_df():  # todo: change!!!
+    annotations_path = os.path.join(DUKE_DATA_DIR, 'Annotation_Boxes.csv')
+    annotations_df =  pd.read_csv(annotations_path)
     return annotations_df
 
 

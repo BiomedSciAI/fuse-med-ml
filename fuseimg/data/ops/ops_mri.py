@@ -548,8 +548,6 @@ def get_zeros_vol(vol):
     return zeros_vol
 
 
-
-
 def crop_lesion_vol_mask_based(vol:sitk.sitkFloat32, position:tuple, ref:sitk.sitkFloat32, size:Tuple[int,int,int]=(160, 160, 32),
                     spacing:Tuple[int,int,int]=(1, 1, 3), mask_inx = -1,is_use_mask=True):
     """
@@ -608,7 +606,6 @@ def crop_lesion_vol_mask_based(vol:sitk.sitkFloat32, position:tuple, ref:sitk.si
 
     img = sitk.GetImageFromArray(vol_np_resized)
     return img
-
 
 
 
@@ -787,3 +784,67 @@ def _get_as_list(x):
     if isinstance(x, list):
         return x
     return [x]
+
+############################
+class OpExtractLesionPropFromBBoxAnotation(OpBase):
+    def __init__(self, get_annotations_func, **kwargs):
+        super().__init__(**kwargs)
+        self._get_annotations_func = get_annotations_func
+
+    def __call__(self, sample_dict: NDict, key_in_ref_volume: str, key_out_lesion_prop: str, key_out_cols: str):
+
+        sample_id  = get_sample_id(sample_dict)
+        annotations_df = self._get_annotations_func(sample_id)
+
+        vol_ref = sample_dict[key_in_ref_volume]
+        sample_dict[key_out_lesion_prop] = []
+
+        bbox_coords = ((annotations_df[annotations_df['Patient ID'] == sample_id]['Start Column'].values[0],
+                        annotations_df[annotations_df['Patient ID'] == sample_id]['Start Row'].values[0]),
+                       (annotations_df[annotations_df['Patient ID'] == sample_id]['End Column'].values[0],
+                        annotations_df[annotations_df['Patient ID'] == sample_id]['End Row'].values[0]))
+
+        start_slice = annotations_df[annotations_df['Patient ID'] == sample_id]['Start Slice'].values[0]
+        end_slice = annotations_df[annotations_df['Patient ID'] == sample_id]['End Slice'].values[0]
+        lesion_prop, cols = extarct_lesion_prop_from_annotation(vol_ref, bbox_coords, start_slice,
+                                                                end_slice)
+
+        sample_dict[key_out_lesion_prop] = lesion_prop
+        sample_dict[key_out_cols] = cols
+
+        return sample_dict
+
+
+def extarct_lesion_prop_from_mask(mask):
+    ma_centroid = mask > 0.5
+
+    dist_img = sitk.SignedMaurerDistanceMap(ma_centroid,insideIsPositive=False,squaredDistance=False,useImageSpacing=False)
+    seeds = sitk.ConnectedComponent(dist_img<40)
+    seeds = sitk.RelabelComponent(seeds,minimumObjectSize=3)
+    ws = sitk.MorphologicalWatershedFromMarkers(dist_img,seeds,markWatershedLine=True)
+    ws = sitk.Mask(ws,sitk.Cast(ma_centroid,ws.GetPixelID()))
+
+    shape_stats = sitk.LabelShapeStatisticsImageFilter()
+    shape_stats.ComputeOrientedBoundingBoxOn()
+    shape_stats.Execute(ws)
+    stats_list = [(shape_stats.GetCentroid(i),
+                   shape_stats.GetBoundingBox(i),
+                   shape_stats.GetPhysicalSize(i),
+                   shape_stats.GetElongation(i),
+                   shape_stats.GetOrientedBoundingBoxSize(i)[0],
+                   shape_stats.GetOrientedBoundingBoxSize(i)[1],
+                   shape_stats.GetOrientedBoundingBoxSize(i)[2],
+                   )
+                  for i in shape_stats.GetLabels()]
+
+    cols = ["centroid","bbox","volume","elongation","size_bbox_x","size_bbox_y","size_bbox_z"]
+    return stats_list,cols
+
+def extarct_lesion_prop_from_annotation(vol_ref,bbox_coords,start_slice,end_slice):
+    mask = get_zeros_vol(vol_ref)
+    mask_np = sitk.GetArrayFromImage(mask)
+    mask_np[start_slice:end_slice,bbox_coords[0][1]:bbox_coords[1][1],bbox_coords[0][0]:bbox_coords[1][0]] = 1.0
+    mask_final = sitk.GetImageFromArray(mask_np)
+    mask_final.CopyInformation(vol_ref)
+    mask_final = sitk.Image(mask_final)
+    return extarct_lesion_prop_from_mask(mask_final)
