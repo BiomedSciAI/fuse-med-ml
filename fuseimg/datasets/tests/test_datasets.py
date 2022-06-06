@@ -6,7 +6,6 @@ import unittest
 from fuse.data.utils.sample import get_sample_id
 from fuse.utils.file_io.file_io import create_dir
 
-
 from fuseimg.datasets.kits21 import KITS21
 from fuseimg.datasets.stoic21 import STOIC21
 import numpy as np
@@ -38,8 +37,8 @@ class TestDatasets(unittest.TestCase):
 
         self.stoic21_cache_dir = mkdtemp(prefix="stoic_cache")
 
-        self.isic_cache_dir = os.path.join(tmpdir, 'isic_cache')
-        self.isic_data_dir = os.path.join(tmpdir, 'isic_data')
+        self.isic_cache_dir = os.path.join(tmpdir, 'test_isic_cache')
+        self.isic_data_dir = os.path.join(tmpdir, 'test_isic_data')
 
     def test_kits21(self):
         KITS21.download(self.kits21_data_dir, cases=list(range(10)))
@@ -83,7 +82,7 @@ class TestDatasets(unittest.TestCase):
         self.assertEqual(len(dataset), 10)
         for sample_index in range(10):
             sample = dataset[sample_index]
-            self.assertEqual(get_sample_id(sample), ISIC.TEN_GOLDEN_MEMBERS[sample_index])
+            self.assertEqual(get_sample_id(sample), TEN_GOLDEN_MEMBERS[sample_index])
 
     @testbook(notebook_path, execute=range(0,4), timeout=120)
     def test_basic(tb, self):
@@ -124,8 +123,8 @@ class TestDatasets(unittest.TestCase):
 
         shutil.rmtree(self.stoic21_cache_dir)
         
-        # shutil.rmtree(self.isic_cache_dir)
-        # shutil.rmtree(self.isic_data_dir)
+        shutil.rmtree(self.isic_cache_dir)
+        shutil.rmtree(self.isic_data_dir)
 
         super().tearDown()
 

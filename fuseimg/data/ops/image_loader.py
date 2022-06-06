@@ -12,7 +12,7 @@ from medpy.io import load
 class OpLoadImage(OpReversibleBase):
     '''
     Loads a medical image, currently supports:
-            'nii', 'nib', 'jpg', 'jpeg', 'png'
+            'nii', 'nib', 'jpg', 'jpeg', 'png', 'mha'
     '''
     def __init__(self, dir_path: str, **kwargs):
         super().__init__(**kwargs)

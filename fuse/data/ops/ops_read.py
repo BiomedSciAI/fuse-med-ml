@@ -20,7 +20,6 @@ Created on June 30, 2021
 from typing import Hashable, List, Optional, Dict, Union
 from fuse.utils.file_io.file_io import read_dataframe
 import pandas as pd
-import numpy as np
 
 from fuse.data import OpBase
 from fuse.utils.ndict import NDict

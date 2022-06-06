@@ -136,7 +136,6 @@ class ISIC:
     def sample_ids(self, size: Optional[int] = None) -> List[str]:
         """
         Gets the samples ids in trainset.
-        :param size: If not None, returns only the first 'size' ids.
         """
         images_path = os.path.join(self.data_path, 'ISIC2019/ISIC_2019_Training_Input')
         
@@ -145,10 +144,7 @@ class ISIC:
 
     @staticmethod
     def static_pipeline(data_path: str) -> PipelineDefault:
-        """
-        Get suggested static pipeline (which will be cached), typically loading the data plus design choices that we won't experiment with.
-        :param data_path: path to original kits21 data (can be downloaded by KITS21.download())
-        """
+
         static_pipeline = PipelineDefault("static",[
             # Decoding sample ID
             (OpISICSampleIDDecode(), dict()),
@@ -162,7 +158,7 @@ class ISIC:
             # Cast to numpy array for caching purposes
             (OpToNumpy(), dict(key="data.input.img")),
 
-            # Read labels into dict
+            # Read labels into sample_dict. Each class will have a different entry.
             (OpReadDataframe(data_filename=os.path.join(data_path, '../ISIC_2019_Training_GroundTruth.csv'), key_column='image'), dict()),
 
             # Squeeze labels into sample_dict['data.label']
@@ -206,6 +202,9 @@ class ISIC:
             
             # Add Gaussian noise
             (OpAugGaussian(), dict(key="data.input.img", std=0.03)),
+
+            # Convert to float so the tensor will have the same dtype as model
+            (OpToTensor(), dict(key="data.input.img", dtype=torch.float)),
         ])
 
         return dynamic_pipeline
@@ -218,8 +217,6 @@ class ISIC:
                 override_partition: bool = True) -> DatasetDefault:
         """
         Get cached dataset
-        :param data_path: path to store the original data
-        :param cache_dir: path to store the cache
         :param reset_cache: set to True to reset the cache
         :param num_workers: number of processes used for caching 
         :param sample_ids: dataset including the specified sample_ids or None for all the samples.

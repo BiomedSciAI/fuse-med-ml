@@ -43,15 +43,14 @@ class ClassificationISICTestCase(unittest.TestCase):
             'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
             'data_dir': PATHS["data_dir"],
             'cache_dir': os.path.join(self.root, 'isic/cache_dir'),
-            'data_split_filename': os.path.join(self.root, 'split.pkl'),
             'inference_dir': os.path.join(self.root, 'isic/infer_dir'),
-            'eval_dir': os.path.join(self.root, 'isic/analyze_dir')}
-        self.train_common_params = TRAIN_COMMON_PARAMS
-        self.train_common_params['manager.train_params']['num_epochs'] = 15
+            'eval_dir': os.path.join(self.root, 'isic/eval_dir')}
 
         self.train_common_params = TRAIN_COMMON_PARAMS
         self.infer_common_params = INFER_COMMON_PARAMS
         self.eval_common_params = EVAL_COMMON_PARAMS
+
+        self.train_common_params['manager.train_params']['num_epochs'] = 15
 
         self.isic = ISIC(data_path = self.paths['data_dir'], 
                     cache_path = self.paths['cache_dir'],
@@ -79,6 +78,3 @@ class ClassificationISICTestCase(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
-
-

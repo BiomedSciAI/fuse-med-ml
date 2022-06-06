@@ -209,7 +209,8 @@ class OpOneHotToNumber(OpBase):
 
     def __call__(self, sample_dict: NDict, key:str, **kwargs) -> Union[None, dict, List[dict]]:
         """
-        :param key:
+        :param key: the sample_dict's key where the one-hot vector is located.
+                    The corresponding number will be save in the same key (instead of the one-hot)
         """
         one_hot_vector = np.array(sample_dict[key])
         

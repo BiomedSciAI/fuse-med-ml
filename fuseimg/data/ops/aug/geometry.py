@@ -1,6 +1,5 @@
 from typing import List, Optional, Tuple, Union
 
-from torch import Tensor
 from PIL import Image
 
 import numpy
@@ -224,7 +223,7 @@ class OpAugUnsqueeze3DFrom2D(OpBase):
 
 class OpResizeTo(OpBase):
     """
-    TODO sagi: elaborate
+    Resizes an image into the given dimensions.
     """
     def __init__(self, verify_arguments: bool = True):
         """
@@ -242,7 +241,7 @@ class OpResizeTo(OpBase):
         :param mode:
         :param anti_aliasing:
 
-        Outputs a numpy array to 'sample_dict[key]'
+        Stores the resized image in sample_dict[key]
         """
         aug_input = sample_dict[key]
 

@@ -1,10 +1,12 @@
-from typing import Optional, Tuple, Union, Sequence, List
+from typing import Optional, Tuple, Union, List
 import numpy as np
 import torch
 import torchvision.transforms.functional as TTF
 
 from fuse.utils.ndict import NDict
+
 from fuse.data.ops.op_base import OpBase
+
 from fuseimg.utils.typing.key_types_imaging import DataTypeImaging 
 from fuseimg.data.ops.ops_common_imaging import OpApplyTypesImaging
 
@@ -121,7 +123,6 @@ op_to_range_img = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpToRange(), {})
 class OpPad(OpBase):
     """
     Pad the give image on all the sides. Currently supports only torch.Tensor objects.
-    #TODO: Add support to ndarray
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -144,4 +145,4 @@ class OpPad(OpBase):
         sample_dict[key] = processed_img
         return sample_dict
 
-op_pad_img = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpPad(), {}) }) # Why we use this?
+op_pad_img = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpPad(), {}) })

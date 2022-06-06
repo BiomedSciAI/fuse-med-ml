@@ -1,19 +1,19 @@
 import os
 import logging
 from typing import OrderedDict
-from tempfile import gettempdir, mkdtemp
+from tempfile import gettempdir
 
-import torch
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data.dataloader import DataLoader
+
 from fuse.dl.models.model_default import ModelDefault
 from fuse.dl.models.backbones.backbone_resnet import BackboneResnet
 from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
 from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
 
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
-from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve, MetricConfusion
+from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
 
 from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.utils_logger import fuse_logger_start
@@ -25,14 +25,13 @@ from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.collates import CollateDefault
 
 from fuse.dl.losses.loss_default import LossDefault
-from fuse.dl.models.model_wrapper import ModelWrapper
 from fuse.dl.managers.manager_default import ManagerDefault
 from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
 from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
 from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
 
 from fuseimg.datasets.isic import ISIC
-from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS, TEN_GOLDEN_MEMBERS
+from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS
 
 
 ###########################################################################################################
@@ -68,14 +67,14 @@ TRAIN_COMMON_PARAMS = {}
 # ============
 # Model
 # ============
-TRAIN_COMMON_PARAMS['model'] = '' # TODO sagi - ?
+TRAIN_COMMON_PARAMS['model'] = ''
 
 # ============
 # Data
 # ============
 TRAIN_COMMON_PARAMS['data.batch_size'] = 8
 TRAIN_COMMON_PARAMS['data.train_num_workers'] = 8
-TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 10
+TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 8
 
 # ===============
 # Manager - Train
@@ -83,7 +82,7 @@ TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 10
 TRAIN_COMMON_PARAMS['manager.train_params'] = {
     # 'num_gpus': 1,
     'device': 'cuda', 
-    'num_epochs': 15,
+    'num_epochs': 20,
     'virtual_batch_size': 1,  # number of batches in one virtual batch
     'start_saving_epochs': 10,  # first epoch to start saving checkpoints from
     'gap_between_saving_epochs': 10,  # number of epochs between saved checkpoint
@@ -224,11 +223,6 @@ def run_train(paths: dict, train_common_params: dict, isic: ISIC):
                         train_params=train_common_params['manager.train_params'],
                         output_model_dir=paths['model_dir'])
 
-    ## Continue training TODO sagi - delete? old runner doesn't have it
-    if train_common_params['manager.resume_checkpoint_filename'] is not None:
-        # Loading the checkpoint including model weights, learning rate, and epoch_index.
-        manager.load_checkpoint(checkpoint=train_common_params['manager.resume_checkpoint_filename'], mode='train')
-
     # Start training
     manager.train(train_dataloader=train_dataloader, validation_dataloader=validation_dataloader)
 
@@ -242,7 +236,6 @@ INFER_COMMON_PARAMS['infer_filename'] = 'validation_set_infer.gz'
 INFER_COMMON_PARAMS['checkpoint'] = 'best'  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
 INFER_COMMON_PARAMS['data.train_num_workers'] = TRAIN_COMMON_PARAMS['data.train_num_workers']
 INFER_COMMON_PARAMS['data.validation_num_workers'] =  TRAIN_COMMON_PARAMS['data.validation_num_workers']
-
 
 
 ######################################
