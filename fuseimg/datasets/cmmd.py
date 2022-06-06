@@ -70,9 +70,8 @@ class CMMD:
             (OpToNumpy(), dict(key='data.input.img', dtype=np.float32)), 
             (OpResizeAndPad2D(), dict(key="data.input.img", resize_to=(2200, 1200), padding=(60, 60))),
             (OpReadDataframe(data_source,
-                    key_column="file",key_name="data.input.img_path",
+                    key_column="file",key_name="data.input.img_path", columns_to_extract=['file','classification'],
                     rename_columns=dict(ID1="data.patientID", classification="data.gt.classification")), dict()),
-            # (OpLookup({float('nan') : "NaN"}), dict(key_in="subtype", key_out="subtype")),
             ])
         return static_pipeline
 
@@ -86,21 +85,20 @@ class CMMD:
                                                             (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")) ])
         if train:
             dynamic_pipeline.extend([
-                # 
-                # (OpSample(OpAugAffine2D()), dict(
-                #                 key="data.input.img",
-                #                 rotate=Uniform(-30.0,30.0),        
-                #                 scale=Uniform(0.9, 1.1),
-                #                 flip=(RandBool(0.3), RandBool(0.5)),
-                #                 translate=(RandInt(-10, 10), RandInt(-10, 10))
-                #             )),
-                # (OpSample(OpAugColor()), dict(
-                #             key="data.input.img",
-                #             gamma=Uniform(0.9, 1.1), 
-                #             contrast=Uniform(0.85, 1.15),
-                #             mul =  Uniform(0.95, 1.05),
-                #             add=Uniform(-0.06, 0.06)
-                #         )),
+                (OpSample(OpAugAffine2D()), dict(
+                                key="data.input.img",
+                                rotate=Uniform(-30.0,30.0),        
+                                scale=Uniform(0.9, 1.1),
+                                flip=(RandBool(0.3), RandBool(0.5)),
+                                translate=(RandInt(-10, 10), RandInt(-10, 10))
+                            )),
+                (OpSample(OpAugColor()), dict(
+                            key="data.input.img",
+                            gamma=Uniform(0.9, 1.1), 
+                            contrast=Uniform(0.85, 1.15),
+                            mul =  Uniform(0.95, 1.05),
+                            add=Uniform(-0.06, 0.06)
+                        )),
                 
                 
             ])
