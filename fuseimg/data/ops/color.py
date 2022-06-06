@@ -88,9 +88,6 @@ class OpToRange(OpBase):
     '''
     linearly project from a range to a different range
     '''
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
     def __call__(self, sample_dict: NDict, key: str,
         from_range: Tuple[float, float],
         to_range: Tuple[float, float],
@@ -108,9 +105,10 @@ class OpToRange(OpBase):
 
         #scale to be in desired range
         img *= (to_range_end-to_range_start) / (from_range_end-from_range_start)
-
         #shift to start in desired start val
         img += to_range_start
+        
+
         
         sample_dict[key] = img
         
