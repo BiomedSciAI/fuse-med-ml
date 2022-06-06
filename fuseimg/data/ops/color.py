@@ -55,7 +55,6 @@ class OpNormalizeAgainstSelf(OpBase):
 
     def __call__(self, sample_dict: NDict, key: str):
         img = sample_dict[key]
-        img -= img.min()
         img = skimage.img_as_float(img)
         sample_dict[key] = img
         return sample_dict
