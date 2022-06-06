@@ -177,7 +177,7 @@ def _run_multiprocessed_as_iterator_impl(worker_func, args_list, workers=0, verb
         with mp.Pool(processes=workers, initializer=_store_in_global_storage, initargs=(copy_to_global_storage,), maxtasksperchild=400) as pool:
             if verbose>0:
                 cprint(f'multiprocess pool created with {workers} workers.', 'cyan')            
-            map_func = pool.imap if keep_results_order else pool.iunordered
+            map_func = pool.imap if keep_results_order else pool.imap_unordered
             for curr_ans in tqdm_func(map_func(
                     worker_func,
                     args_list), total=len(args_list), smoothing=0.1, disable=verbose<1):
