@@ -141,12 +141,6 @@ class ISIC:
         images_path = os.path.join(self.data_path, 'ISIC2019/ISIC_2019_Training_Input')
         
         samples = [f.split('.')[0] for f in os.listdir(images_path) if f.split('.')[-1] == 'jpg']
-
-        # Take only size elements
-        # TODO: input validation
-        if size is not None:
-            samples = samples[-1 * size:]
-
         return samples
 
     @staticmethod
@@ -184,20 +178,20 @@ class ISIC:
 
         dynamic_pipeline = PipelineDefault("dynamic", [
             # Resize images to 3x300x300
-            (OpResizeTo(), dict(key="data.input.img", resize_to=[3, 600, 600])),
+            (OpResizeTo(), dict(key="data.input.img", resize_to=[3, 300, 300])),
             
             # Cast to Tensor
             (OpToTensor(), dict(key="data.input.img")),
 
             # Padding
-            # (OpPad(), dict(key="data.input.img", padding=1)),
+            (OpPad(), dict(key="data.input.img", padding=1)),
 
             # Augmentation                
             (OpSample(OpAugAffine2D()), dict(
                 key="data.input.img",
                 rotate=Uniform(-180.0,180.0),        
                 scale=Uniform(0.9, 1.1),
-                flip=(RandBool(0.5), RandBool(0.5)),
+                flip=(RandBool(0.3), RandBool(0.3)),
                 translate=(RandInt(-50, 50), RandInt(-50, 50))
             )),
 
@@ -209,13 +203,15 @@ class ISIC:
                 add=Uniform(-0.06, 0.06),
                 mul = Uniform(0.95, 1.05)
             )),
+            
+            # Add Gaussian noise
+            (OpAugGaussian(), dict(key="data.input.img", std=0.03)),
         ])
 
         return dynamic_pipeline
 
     def dataset(self,
                 train: bool=True,
-                size: Optional[int] = None,
                 reset_cache: bool = False, 
                 num_workers:int = 10,
                 samples_ids: Optional[Sequence[Hashable]] = None,
@@ -234,7 +230,7 @@ class ISIC:
         self._labels_df = labels_df #.drop(axis=1, labels=['UNK']) # UNK label has 0 instances TODO
 
         if samples_ids is None:
-            samples_ids = self.sample_ids(size)
+            samples_ids = self.sample_ids()
 
         if train: 
             print("partition's path exist?", os.path.exists(self.partition_file))

@@ -34,6 +34,7 @@ from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCa
 from fuseimg.datasets.isic import ISIC
 from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS, TEN_GOLDEN_MEMBERS
 
+
 ###########################################################################################################
 # Fuse
 ###########################################################################################################
@@ -47,25 +48,18 @@ tmpdir = gettempdir()
 ##########################################
 # Output Paths
 ##########################################
-DATA_YEAR = '2019'
+
 # TODO: Path to save model
 ROOT = 'examples/isic/'
-# TODO: Path to store the data
-ROOT_DATA = os.path.join(tmpdir, 'isic_data')
 # TODO: Name of the experiment
-EXPERIMENT = 'InceptionResnetV2_2017_test' # TODO sagi - meaning
-# TODO: Path to cache data
-CACHE_PATH = os.path.join(tmpdir, 'isic_cache')
-# TODO: Name of the cached data folder
-EXPERIMENT_CACHE = 'ISIC_'+ DATA_YEAR
+EXPERIMENT = 'InceptionResnetV2_2019_test'
 
-PATHS = {'data_dir': ROOT_DATA,
+PATHS = {'data_dir': os.path.join(tmpdir, 'isic_data'),
          'model_dir': os.path.join(ROOT, 'isic/model_dir'),
          'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
-         'cache_dir': os.path.join(ROOT, 'isic/cache_dir'),
+         'cache_dir': os.path.join(tmpdir, 'isic_cache'),
          'inference_dir': os.path.join(ROOT, 'isic/infer_dir'),
          'eval_dir': os.path.join(ROOT, 'isic/eval_dir')}
-
 
 ##########################################
 # Train Common Params
@@ -80,7 +74,7 @@ TRAIN_COMMON_PARAMS['model'] = '' # TODO sagi - ?
 # Data
 # ============
 TRAIN_COMMON_PARAMS['data.batch_size'] = 8
-TRAIN_COMMON_PARAMS['data.train_num_workers'] = 10
+TRAIN_COMMON_PARAMS['data.train_num_workers'] = 8
 TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 10
 
 # ===============
@@ -110,7 +104,7 @@ TRAIN_COMMON_PARAMS['manager.resume_checkpoint_filename'] = None  # if not None,
 #################################
 # Train Template
 #################################
-def run_train(paths: dict, train_params: dict, isic: ISIC):
+def run_train(paths: dict, train_common_params: dict, isic: ISIC):
     # ==============================================================================
     # Logger
     # ==============================================================================
@@ -127,34 +121,33 @@ def run_train(paths: dict, train_params: dict, isic: ISIC):
     # Train Data
     lgr.info(f'Train Data:', {'attrs': 'bold'})
 
-    train_dataset = isic.dataset(train=True, reset_cache=True, num_workers=train_params['data.train_num_workers'], samples_ids=FULL_GOLDEN_MEMBERS)
+    train_dataset = isic.dataset(train=True, reset_cache=True, num_workers=train_common_params['data.train_num_workers'], samples_ids=FULL_GOLDEN_MEMBERS)
 
     lgr.info(f'- Create sampler:')
     sampler = BatchSamplerDefault(dataset=train_dataset,
                                        balanced_class_name='data.label',
                                        num_balanced_classes=8,
-                                       batch_size=train_params['data.batch_size'],
-                                       balanced_class_weights=None)
+                                       batch_size=train_common_params['data.batch_size'])
     lgr.info(f'- Create sampler: Done')
 
     # Create dataloader
     train_dataloader = DataLoader(dataset=train_dataset,
                                   batch_sampler=sampler,
                                   collate_fn=CollateDefault(),
-                                  num_workers=train_params['data.train_num_workers'])
-    print(len(train_dataloader))
+                                  num_workers=train_common_params['data.train_num_workers'])
+
     lgr.info(f'Train Data: Done', {'attrs': 'bold'})
 
     ## Validation data
     lgr.info(f'Validation Data:', {'attrs': 'bold'})
     # wrapping torch dataset
-    validation_dataset = isic.dataset(train=False, num_workers=train_params['data.validation_num_workers'])
+    validation_dataset = isic.dataset(train=False, num_workers=train_common_params['data.validation_num_workers'])
 
     # dataloader
     validation_dataloader = DataLoader(dataset=validation_dataset,
-                                       batch_size=train_params['data.batch_size'],
+                                       batch_size=train_common_params['data.batch_size'],
                                        collate_fn=CollateDefault(),
-                                       num_workers=train_params['data.validation_num_workers'])
+                                       num_workers=train_common_params['data.validation_num_workers'])
     lgr.info(f'Validation Data: Done', {'attrs': 'bold'})
 
     # ==============================================================================
@@ -191,8 +184,7 @@ def run_train(paths: dict, train_params: dict, isic: ISIC):
     metrics = OrderedDict([
         ('op', MetricApplyThresholds(pred='model.output.head_0')), # will apply argmax
         ('auc', MetricAUCROC(pred='model.output.head_0', target='data.label', class_names=class_names)),
-        # ('accuracy', MetricAccuracy(pred='results:metrics.op.cls_pred', target='data.label', class_names=class_names)),
-        # ('balanced_acc', MetricConfusion(pred='results:metrics.op.cls_pred', target='data.label', metrics=('sensitivity',), class_names=class_names))
+        ('accuracy', MetricAccuracy(pred='results:metrics.op.cls_pred', target='data.label')),
     ])
 
     # =====================================================================================
@@ -201,8 +193,8 @@ def run_train(paths: dict, train_params: dict, isic: ISIC):
     callbacks = [
         # default callbacks
         TensorboardCallback(model_dir=paths['model_dir']),  # save statistics for tensorboard
-        # MetricStatisticsCallback(output_path=paths['model_dir'] + "/metrics.csv"),  # save statistics a csv file
-        # TimeStatisticsCallback(num_epochs=train_params['manager.train_params']['num_epochs'], load_expected_part=0.1)  # time profiler
+        MetricStatisticsCallback(output_path=paths['model_dir'] + "/metrics.csv"),  # save statistics a csv file
+        TimeStatisticsCallback(num_epochs=train_common_params['manager.train_params']['num_epochs'], load_expected_part=0.1)  # time profiler
     ]
 
     # =====================================================================================
@@ -211,8 +203,8 @@ def run_train(paths: dict, train_params: dict, isic: ISIC):
     lgr.info('Train:', {'attrs': 'bold'})
 
     # create optimizer
-    optimizer = optim.Adam(model.parameters(), lr=train_params['manager.learning_rate'],
-                           weight_decay=train_params['manager.weight_decay'])
+    optimizer = optim.Adam(model.parameters(), lr=train_common_params['manager.learning_rate'],
+                           weight_decay=train_common_params['manager.weight_decay'])
 
     # create learning scheduler
     scheduler = {'ReduceLROnPlateau': optim.lr_scheduler.ReduceLROnPlateau(optimizer),
@@ -226,16 +218,16 @@ def run_train(paths: dict, train_params: dict, isic: ISIC):
                         optimizer=optimizer,
                         losses=losses,
                         metrics=metrics,
-                        best_epoch_source=train_params['manager.best_epoch_source'],
+                        best_epoch_source=train_common_params['manager.best_epoch_source'],
                         lr_scheduler=scheduler,
                         callbacks=callbacks,
-                        train_params=train_params['manager.train_params'],
+                        train_params=train_common_params['manager.train_params'],
                         output_model_dir=paths['model_dir'])
 
     ## Continue training TODO sagi - delete? old runner doesn't have it
-    if train_params['manager.resume_checkpoint_filename'] is not None:
+    if train_common_params['manager.resume_checkpoint_filename'] is not None:
         # Loading the checkpoint including model weights, learning rate, and epoch_index.
-        manager.load_checkpoint(checkpoint=train_params['manager.resume_checkpoint_filename'], mode='train')
+        manager.load_checkpoint(checkpoint=train_common_params['manager.resume_checkpoint_filename'], mode='train')
 
     # Start training
     manager.train(train_dataloader=train_dataloader, validation_dataloader=validation_dataloader)
@@ -285,7 +277,7 @@ def run_infer(paths: dict, infer_common_params: dict, isic: ISIC):
 EVAL_COMMON_PARAMS = {}
 EVAL_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
 EVAL_COMMON_PARAMS['output_filename'] = 'all_metrics.txt'
-EVAL_COMMON_PARAMS['num_workers'] = 8
+EVAL_COMMON_PARAMS['num_workers'] = 4
 EVAL_COMMON_PARAMS['batch_size'] = 8
 
 ######################################
@@ -323,24 +315,23 @@ def run_eval(paths: dict, eval_common_params: dict):
 if __name__ == "__main__":
     # allocate gpus
     # To use cpu - set NUM_GPUS to 0
-    NUM_GPUS = 1 # TODO return to 1. debugging.
+    NUM_GPUS = 1
     if NUM_GPUS == 0:
         TRAIN_COMMON_PARAMS['manager.train_params']['device'] = 'cpu' 
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None  # [0]
     GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
-    isic = ISIC(data_path = ROOT_DATA, 
-                cache_path = CACHE_PATH,
+    isic = ISIC(data_path = PATHS['data_dir'], 
+                cache_path = PATHS['cache_dir'],
                 val_portion = 0.3)
     isic.download()
 
     RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
-    # RUNNING_MODES = ['train']  # Options: 'train', 'infer', 'eval'
 
     # train
     if 'train' in RUNNING_MODES:
-        run_train(paths=PATHS, train_params=TRAIN_COMMON_PARAMS, isic=isic)
+        run_train(paths=PATHS, train_common_params=TRAIN_COMMON_PARAMS, isic=isic)
 
     # infer
     if 'infer' in RUNNING_MODES:
