@@ -66,7 +66,7 @@ class ResidualBlock(torch.nn.Module):
 # ResNet
 class ResNet(torch.nn.Module):
     def __init__(self,
-                 conv_inputs:Tuple[Tuple[str, int], ...] = (('data.input', 1),),
+                 conv_inputs:Tuple[Tuple[str, int], ...] ,
                  ch_num: int = None,
                  ) -> None:
 
@@ -176,9 +176,9 @@ class Fuse_model_3d_multichannel(torch.nn.Module):
     """
 
     def __init__(self,
-                 conv_inputs: Tuple[Tuple[str, int], ...] = (('data.input', 1),),
-                 backbone: ResNet = ResNet(),
-                 heads: Sequence[torch.nn.Module] = (Head1dClassifier(),),
+                 conv_inputs: Tuple[Tuple[str, int], ...] ,
+                 backbone: ResNet = None,
+                 heads: Sequence[torch.nn.Module] = None,
                  ch_num = None,
                  ) -> None:
         """
@@ -190,6 +190,10 @@ class Fuse_model_3d_multichannel(torch.nn.Module):
         super().__init__()
 
         self.conv_inputs = conv_inputs
+        if backbone is None:
+            backbone = ResNet(conv_inputs=conv_inputs)
+        if heads is None:
+            heads =  (Head1dClassifier(),)
         self.backbone = backbone
         self.heads = torch.nn.ModuleList(heads)
         self.add_module('heads', self.heads)
