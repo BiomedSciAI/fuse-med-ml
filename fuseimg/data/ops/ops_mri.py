@@ -13,8 +13,7 @@ from fuse.utils import NDict
 from typing import Tuple
 import torch
 import cv2
-
-
+import radiomics
 
 class OpExtractDicomsPerSeq(OpBase):
 
@@ -434,6 +433,8 @@ class OpCreatePatcheVolumes(OpBase):
                 vol_4d_tmp[:, :, :, -1] = mask
                 vol_4d_new = sitk.GetImageFromArray(vol_4d_tmp)
                 vol_4D = vol_4d_new
+                # update volume with mask
+                sample_dict[key_in_volume4D] = vol_4D
 
             for is_use_mask in [False, True]:
                 if is_use_mask:
@@ -848,3 +849,119 @@ def extarct_lesion_prop_from_annotation(vol_ref,bbox_coords,start_slice,end_slic
     mask_final.CopyInformation(vol_ref)
     mask_final = sitk.Image(mask_final)
     return extarct_lesion_prop_from_mask(mask_final)
+
+############################
+# radiomics operator
+
+class OpExtractRadiomics(OpBase):
+    def __init__(self,extractor,setting, **kwargs):
+        super().__init__(**kwargs)
+        self.seq_inx_list = setting['seq_inx_list']
+        self.seq_list = setting['seq_list']
+        self.setting = setting
+        self.extractor = extractor
+
+
+    def __call__(self, sample_dict: NDict, key_in_vol_4d: str, key_out_radiomics_results: str):
+
+        vol = sitk.GetArrayFromImage(sample_dict[key_in_vol_4d])
+        # fix vol to shape of tensor volume
+        vol_np = np.moveaxis(vol, 3, 0)
+
+        sample_dict[key_out_radiomics_results] = []
+
+        maskPath = get_maskpath(vol_np, mask_inx=-1, mask_type=self.setting['maskType'])
+        result_all = {}
+        for seq_inx,seq in zip(self.seq_inx_list,self.seq_list):
+            imagePath = get_imagepath(vol_np, seq_inx)
+            if self.setting['norm_method'] != 'default':
+                imagePath = norm_volume(vol_np, seq_inx, imagePath, maskPath, self.setting, normMethod=self.setting['norm_method'])
+
+            result = self.extractor.execute(imagePath, maskPath)
+            keys_ = list(result.keys())
+            for key in keys_:
+                new_key = key + '_seq=' + seq + '_' + self.setting['maskType']
+                result[new_key] = result.pop(key)
+            result_all.update(result)
+
+            if self.setting['applyLog']:
+                sigmaValues = np.arange(5., 0., -.5)[::1]
+                for logImage, imageTypeName, inputKwargs in radiomics.imageoperations.getLoGImage(imagePath, maskPath,
+                                                                                        sigma=sigmaValues):
+                    logFirstorderFeatures = radiomics.firstorder.RadiomicsFirstOrder(logImage, maskPath, **inputKwargs)
+                    logFirstorderFeatures.enableAllFeatures()
+                    result = logFirstorderFeatures.execute()
+                    keys_ = list(result.keys())
+                    for key in keys_:
+                        new_key = key + '_seq=' + seq + '_' + self.setting['maskType']
+                        result[new_key] = result.pop(key)
+                    result_all.update(result)
+
+            #
+            # Show FirstOrder features, calculated on a wavelet filtered image
+            #
+            if self.setting['applyWavelet']:
+                for decompositionImage, decompositionName, inputKwargs in radiomics.imageoperations.getWaveletImage(imagePath,
+                                                                                                          maskPath):
+                    waveletFirstOrderFeaturs = radiomics.firstorder.RadiomicsFirstOrder(decompositionImage, maskPath, **inputKwargs)
+                    waveletFirstOrderFeaturs.enableAllFeatures()
+                    result = waveletFirstOrderFeaturs.execute()
+                    keys_ = list(result.keys())
+                    for key in keys_:
+                        new_key = key + '_seq=' + seq + '_' + self.setting['maskType']
+                        result[new_key] = result.pop(key)
+                    result_all.update(result)
+
+        sample_dict[key_out_radiomics_results] = result_all
+
+        return sample_dict
+
+def norm_volume(vol_np, seq_inx, imagePath, maskPath,setting, normMethod='default',vol_inx_for_breast_seg=6):
+
+        if normMethod == 'default':
+            return imagePath
+
+        if normMethod == 'tumor_area':
+            dil_filter = sitk.BinaryDilateImageFilter()
+            dil_filter.SetKernelRadius(20)
+            maskPath_binary = sitk.Cast(maskPath, sitk.sitkInt8)
+            tumor_extand_mask = dil_filter.Execute(maskPath_binary)
+            firstorder_tmp = radiomics.firstorder.RadiomicsFirstOrder(imagePath, tumor_extand_mask, **setting)
+            firstorder_tmp.enableFeatureByName('Mean', True)
+            firstorder_tmp.enableFeatureByName('Variance', True)
+            results_tmp = firstorder_tmp.execute()
+            print(results_tmp)
+            imagePath = (imagePath - results_tmp['Mean']) / np.sqrt(results_tmp['Variance'])
+
+        if normMethod == 'breast_area':
+            vol_shape = vol_np.shape
+
+            image = vol_np[vol_inx_for_breast_seg, int(vol_shape[1] / 2), :, :]
+            image_norm = (image - image.min()) / (image.max() - image.min()) * 256
+            image_rgb = image_norm.astype(np.uint8)
+            image_seg = FCM(image=image_rgb, image_bit=8, n_clusters=2, m=2, epsilon=0.05, max_iter=100)
+            image_seg.form_clusters()
+            image_seg_res = image_seg.segmentImage()
+            breast_label = 1 - image_seg_res[2, 2]
+            mask_breast = np.zeros(image_seg_res.shape)
+            mask_breast[image_seg_res == breast_label] = 1
+
+            vol_slice = vol_np[seq_inx, int(vol_shape[1] / 2), :, :]
+            img_mean = np.mean(vol_slice[mask_breast == 1])
+            img_std = np.std(vol_slice[mask_breast == 1])
+            imagePath = (imagePath - img_mean) / img_std
+
+        return imagePath
+
+def get_maskpath(vol_np,mask_inx=-1,mask_type='full'):
+    maskPath = sitk.GetImageFromArray(vol_np[mask_inx,:,:,:])
+    if mask_type=='edge':
+        maskPath_binary = sitk.Cast(maskPath, sitk.sitkInt8)
+        maskPath_edge = sitk.BinaryDilate(maskPath_binary) - sitk.BinaryErode(maskPath_binary)
+        maskPath = maskPath_edge
+
+    return maskPath
+
+def get_imagepath(vol_np,seq_inx):
+    imagePath = sitk.GetImageFromArray(vol_np[seq_inx, :, :, :])
+    return imagePath
