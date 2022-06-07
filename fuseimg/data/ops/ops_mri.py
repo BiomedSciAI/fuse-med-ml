@@ -423,12 +423,12 @@ class OpCreatePatchVolumes(OpBase):
         # transform to pixel coordinate in ref coords
         pos_vol = np.array(vol_ref.TransformPhysicalPointToContinuousIndex(pos_orig.astype(np.float64)))
 
-        vol_4d_tmp = sitk.GetArrayFromImage(vol_4D)
-        if sum(sum(sum(vol_4d_tmp[:, :, :, -1]))) == 0:  # if the mast does not exist
+        vol_4d_arr = sitk.GetArrayFromImage(vol_4D)
+        if sum(sum(sum(vol_4d_arr[:, :, :, -1]))) == 0:  # if the mast does not exist
             bbox_coords = np.fromstring(patch_row[f'bbox_T{self._longtd_inx}'][1:-1], dtype=np.int32, sep=',')
             mask = extract_mask_from_annotation(vol_ref, bbox_coords)
-            vol_4d_tmp[:, :, :, -1] = mask
-            vol_4d_new = sitk.GetImageFromArray(vol_4d_tmp)
+            vol_4d_arr[:, :, :, -1] = mask
+            vol_4d_new = sitk.GetImageFromArray(vol_4d_arr)
             vol_4D = vol_4d_new
 
         for is_use_mask in [False, True]:
@@ -447,12 +447,12 @@ class OpCreatePatchVolumes(OpBase):
             if len(vol_cropped_arr.shape) < 4:
                 # fix dimensions in case of one seq
                 vol_cropped_arr = vol_cropped_arr[:, :, :, np.newaxis]
-                vol_cropped_arr = np.moveaxis(vol_cropped_arr, 3, 0)
-            else:
-                vol_cropped_arr = np.moveaxis(vol_cropped_arr, 3, 0)
+
+            vol_cropped_arr = np.moveaxis(vol_cropped_arr, 3, 0)  # move last dimension (sequences /  mask) to be first
 
             if np.isnan(vol_cropped_arr).any():
-                input[np.isnan(input)] = 0
+                input[np.isnan(input)] = 0 #Todo: ???
+
 
             key_out = key_out_cropped_vol_by_mask if is_use_mask else key_out_cropped_vol
             sample_dict[key_out] = vol_cropped_arr
@@ -460,6 +460,9 @@ class OpCreatePatchVolumes(OpBase):
         if self._delete_input_volumes:
             del sample_dict[key_in_volume4D]
             del sample_dict[key_in_ref_volume]
+        else:
+            sample_dict[key_in_volume4D] = sitk.GetArrayFromImage(vol_4D)
+            sample_dict[key_in_ref_volume]  =  sitk.GetArrayFromImage(vol_ref)
         return sample_dict
 
 
@@ -468,6 +471,22 @@ class OpCreatePatchVolumes(OpBase):
 
 #######
 
+class OpDeleteLastChannel(OpBase):
+    def __call__(self, sample_dict: NDict, keys: list ):
+        for key in keys:
+            vol = sample_dict[key]
+            vol = vol[:-1]
+            sample_dict[key] = vol
+        return sample_dict
+
+class OpSelectKeys(OpBase):
+    def __call__(self, sample_dict: NDict, keys_2_keep: list ):
+        keys_2_keep2 = set(['data.initial_sample_id',  'data.sample_id'] + keys_2_keep)
+
+        keys_2_delete = set(sample_dict.flatten().keys()) - keys_2_keep2
+        for key in keys_2_delete:
+            del sample_dict[key]
+        return sample_dict
 
 class OpStk2Torch(OpBase):
 

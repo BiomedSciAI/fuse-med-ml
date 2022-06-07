@@ -127,7 +127,7 @@ TRAIN_COMMON_PARAMS['manager.train_params'] = {
     'gap_between_saving_epochs': 1,  # number of epochs between saved checkpoint
 }
 TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = {
-    'source': 'metrics.auc.macro_avg',  # can be any key from 'epoch_results'
+    'source': 'metrics.auc',  # can be any key from 'epoch_results'
     'optimization': 'max',  # can be either min/max
     'on_equal_values': 'better',
     # can be either better/worse - whether to consider best epoch when values are equal
@@ -264,7 +264,7 @@ def run_train(paths: dict, train_params: dict):
     #  Loss
     # ====================================================================================
     losses = {
-        'cls_loss': LossDefault(pred='model.logits.isLargeTumorSize',
+        'cls_loss': LossDefault(pred='model.logits.classification',
                                 target='data.ground_truth', callable=F.cross_entropy, weight=1.0),
     }
 
@@ -330,6 +330,7 @@ INFER_COMMON_PARAMS['checkpoint'] = 'best'  # Fuse TIP: possible values are 'bes
 INFER_COMMON_PARAMS['data.infer_folds'] = [4]  # infer validation set
 INFER_COMMON_PARAMS['data.batch_size'] = 4
 INFER_COMMON_PARAMS['data.num_workers'] = 16
+INFER_COMMON_PARAMS['classification_task'] = TRAIN_COMMON_PARAMS['classification_task']
 
 
 ######################################
@@ -385,7 +386,7 @@ def run_eval(paths: dict, eval_common_params: dict):
     # metrics
     metrics = OrderedDict([
         ('operation_point', MetricApplyThresholds(pred='model.output.classification')), # will apply argmax
-        ('accuracy', MetricAccuracy(pred='results:metrics.operation_point.cls_pred', target='data.gt.probSevere')),
+        ('accuracy', MetricAccuracy(pred='results:metrics.operation_point.cls_pred', target='data.ground_truth')),
         ('roc', MetricROCCurve(pred='model.output.classification', target='data.ground_truth', output_filename=os.path.join(paths['inference_dir'], 'roc_curve.png'))),
         ('auc', MetricAUCROC(pred='model.output.classification', target='data.ground_truth')),
     ])

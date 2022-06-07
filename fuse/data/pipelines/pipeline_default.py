@@ -87,7 +87,7 @@ class PipelineDefault(OpReversibleBase):
         samples_to_process = [sample_dict]
         for sub_op_id, (op, op_kwargs) in zip(self._op_ids, self._ops_and_kwargs):
             if self._verbose:
-                context = Timer(f"Pipeline {self._name}: op {type(op).__name__}, op_id {sub_op_id}", self._verbose)
+                context = Timer(f"Pipeline {self._name}: op {type(op).__name__}, op_id {sub_op_id}")
             else:
                 context = DummyContext()
             with context:

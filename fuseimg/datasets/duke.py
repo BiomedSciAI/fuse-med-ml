@@ -1,4 +1,5 @@
 import os
+import numpy as np
 from typing import Hashable, Optional, Sequence
 import glob
 import os
@@ -29,6 +30,8 @@ def get_selected_series_index(sample_id, seq_id):
     else:
         map = {'DCE_mix': [1], 'MASK': [0]}
     return map[seq_id]
+
+
 
 class DukeLabelType(Enum):
     ispCR = 'ispCR'
@@ -118,7 +121,7 @@ class Duke:
         # return [f'Breast_MRI_{i:03d}' for i in range(1,923)]
 
     @staticmethod
-    def static_pipeline(root_path, select_series_func) -> PipelineDefault:
+    def static_pipeline(root_path, select_series_func, verbose:Optional[bool]=True) -> PipelineDefault:
 
         data_path = os.path.join(root_path, 'Duke-Breast-Cancer-MRI')
         metadata_path = os.path.join(root_path, 'metadata.csv')
@@ -138,7 +141,7 @@ class Duke:
                    'DCE_mix_ph',
                    'MASK']
 
-        static_pipeline = PipelineDefault("static", [
+        static_pipeline_steps = [
             # step 1: map sample_ids to
             (OpDukeSampleIDDecode(data_path=data_path),
              dict(key_out='data.input.mri_path')),
@@ -189,35 +192,46 @@ class Duke:
              dict(key_out='data.input.patch_tab_data')),
 
             # step 10: create patch volumes: (i) fixed size around center of annotatins (orig), and (ii) entire annotations
-            (ops_mri.OpCreatePatchVolumes(lsn_shape=(9, 100, 100), lsn_spacing=(1, 0.5, 0.5), delete_input_volumes=True),
+            (ops_mri.OpCreatePatchVolumes(lsn_shape=(9, 100, 100), lsn_spacing=(1, 0.5, 0.5), delete_input_volumes=False),
              dict(key_in_volume4D='data.input.volume4D',
                   key_in_ref_volume='data.input.ref_volume',
                   key_in_patch_row='data.input.patch_tab_data',
                   key_out_cropped_vol='data.input.patch_volume_orig',
                   key_out_cropped_vol_by_mask='data.input.patch_volume'))
-        ])
+        ]
+        static_pipeline = PipelineDefault("static", static_pipeline_steps, verbose=verbose)
 
         return static_pipeline
 
     @staticmethod
-    def dynamic_pipeline(label_type: Optional[DukeLabelType]=None):
+    def dynamic_pipeline(label_type: Optional[DukeLabelType]=None, verbose:Optional[bool]=True,
+                        include_patch_by_mask:Optional[bool]=True, include_patch_fixed:Optional[bool]=False):
+        assert include_patch_by_mask or include_patch_fixed
+        volume_keys = []
+        if include_patch_by_mask:
+            volume_keys.append('data.input.patch_volume')
+        if include_patch_fixed:
+            volume_keys.append('data.input.patch_volume_orig')
 
-        steps = [ (ops_mri.OpStk2Torch(),
-                   dict(keys=['data.input.patch_volume_orig','data.input.patch_volume']))]
+        dynamic_steps = [ (ops_mri.OpDeleteLastChannel(), dict(keys=volume_keys)) ,
+                          (ops_mri.OpStk2Torch(), dict(keys=volume_keys))]
+        keys_2_keep = list(volume_keys)
         if label_type is not None: #todo: wasn't checked!!!
-            steps.append((OpAddDukeLabelAndClinicalFeatures(label_type=label_type),
-                            dict(key_in='data.input.patch_tab_data',  key_out_gt='data.ground_truth',
-                                 key_out_clinical_features='data.clinical_features', key_out_filter='data.filter')))
-        dynamic_pipeline = PipelineDefault("dynamic", steps)
+            key_ground_truth = 'data.ground_truth'
+            dynamic_steps.append((OpAddDukeLabelAndClinicalFeatures(label_type=label_type),
+                            dict(key_in='data.input.patch_tab_data',  key_out_gt=key_ground_truth,
+                                 key_out_clinical_features='data.clinical_features')))
+            keys_2_keep.append(key_ground_truth)
+        dynamic_steps.append((ops_mri.OpSelectKeys(), dict(keys_2_keep=keys_2_keep)))
+        dynamic_pipeline = PipelineDefault("dynamic", dynamic_steps, verbose=verbose)
 
         return dynamic_pipeline
 
 
     @staticmethod
     def dataset(label_type: Optional[DukeLabelType]=None, cache_dir: Optional[str]=None, data_dir: Optional[str] = None,
-                select_series_func=get_selected_series_index,
-                reset_cache: bool = False, num_workers: int = 10,
-                sample_ids: Optional[Sequence[Hashable]] = None) -> DatasetDefault:
+                select_series_func=get_selected_series_index, reset_cache: bool = False, num_workers: int = 10,
+                sample_ids: Optional[Sequence[Hashable]] = None, verbose:Optional[bool]=True) -> DatasetDefault:
 
         """
         :param label_type: type of label to use
@@ -236,8 +250,8 @@ class Duke:
         if sample_ids is None:
             sample_ids = Duke.sample_ids()
 
-        static_pipeline = Duke.static_pipeline(data_dir, select_series_func=select_series_func)
-        dynamic_pipeline = Duke.dynamic_pipeline(label_type)
+        static_pipeline = Duke.static_pipeline(data_dir, select_series_func=select_series_func, verbose=verbose)
+        dynamic_pipeline = Duke.dynamic_pipeline(label_type, verbose=verbose)
 
         if cache_dir is None:
             cacher = None
@@ -288,13 +302,12 @@ class OpAddDukeLabelAndClinicalFeatures(OpBase):
         self._is_concat_features_to_input = is_concat_features_to_input
 
     def __call__(self, sample_dict: NDict, key_in: str,
-                 key_out_gt: str, key_out_clinical_features: str, key_out_filter:str) -> NDict:
+                 key_out_gt: str, key_out_clinical_features: str) -> NDict:
         clinical_features = sample_dict[key_in]
         label_val = self._label_type.get_value(clinical_features)
         if np.isnan(label_val):
             return None # should filter example (instead of sample_dict['data.filter'] = True )
 
-        sample_dict[key_out_filter] = False
         label_tensor = torch.tensor(label_val, dtype=torch.int64)
         sample_dict[key_out_gt] = label_tensor #'data.ground_truth'
 
