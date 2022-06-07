@@ -193,8 +193,8 @@ class DukeLesionProp(Duke):
         annotations_df = get_duke_raw_annotations_df()
 
         steps = [(ops_mri.OpExtractLesionPropFromBBoxAnotation(get_annotations), dict(key_in_ref_volume='data.input.ref_volume',
-                                                                                      key_out_lesion_prop='data.lesion_prop',
-                                                                                      key_out_cols='data.lesion_prop_col'))]
+                                                                                          key_out_lesion_prop='data.lesion_prop',
+                                                                                          key_out_cols='data.lesion_prop_col'))]
 
         dynamic_pipeline = PipelineDefault("dynamic", steps)
 
@@ -218,7 +218,7 @@ class DukeGetRadiomics(Duke):
     @staticmethod
     def dynamic_pipeline(extractor,setting):
 
-        steps = [(ops_mri.OpExtractRadiomics(extractor,setting), dict(key_in_vol_4d='data.input.volume4D',key_out_radiomics_results='data.radiomics'))]
+        steps = [(ops_mri.OpExtractRadiomics(extractor, setting), dict(key_in_vol_4d='data.input.volume4D', key_out_radiomics_results='data.radiomics'))]
 
         dynamic_pipeline = PipelineDefault("dynamic", steps)
 
