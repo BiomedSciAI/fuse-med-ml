@@ -189,7 +189,7 @@ class Duke:
              dict(key_out='data.input.patch_tab_data')),
 
             # step 10: create patch volumes: (i) fixed size around center of annotatins (orig), and (ii) entire annotations
-            (ops_mri.OpCreatePatchVolumes(lsn_shape=(9, 100, 100), lsn_spacing=(1, 0.5, 0.5), delete_input_volumes=True),
+            (ops_mri.OpCreatePatchVolumes(lsn_shape=(9, 100, 100), lsn_spacing=(1, 0.5, 0.5), delete_input_volumes=False),
              dict(key_in_volume4D='data.input.volume4D',
                   key_in_ref_volume='data.input.ref_volume',
                   key_in_patch_row='data.input.patch_tab_data',
