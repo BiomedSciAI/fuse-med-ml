@@ -403,7 +403,7 @@ class OpAddPatchesData(OpBase):
 
 
 class OpCreatePatchVolumes(OpBase):
-    def __init__(self, lsn_shape, lsn_spacing, longtd_inx: Optional[int] = 0, delete_input_volumes=True, **kwargs):
+    def __init__(self, lsn_shape, lsn_spacing, longtd_inx: Optional[int] = 0, delete_input_volumes=False, **kwargs):
         super().__init__(**kwargs)
         self._lsn_shape = lsn_shape
         self._lsn_spacing = lsn_spacing
@@ -430,6 +430,8 @@ class OpCreatePatchVolumes(OpBase):
             vol_4d_tmp[:, :, :, -1] = mask
             vol_4d_new = sitk.GetImageFromArray(vol_4d_tmp)
             vol_4D = vol_4d_new
+            # update volume with mask
+            sample_dict[key_in_volume4D] = vol_4D
 
         for is_use_mask in [False, True]:
             if is_use_mask:
