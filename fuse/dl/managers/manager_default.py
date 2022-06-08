@@ -374,7 +374,7 @@ class ManagerDefault:
 
             # if this is the best epoch yet
             for i in range(self.state.num_models_to_save):
-                if self._is_best_epoch_so_far(train_results, validation_results, i):
+                if self._is_best_epoch_so_far(train_results, validation_results, i) or self.state.current_epoch == 1: # consider the first epoch as the best one
                     best_val = self.state.best_epoch_values[i][self.state.best_epoch_function[i]]
                     self.logger.info(f"This is the best epoch ever ({self.state.best_epoch_function[i]} = {best_val})",
                                      {'color': 'green', 'attrs': 'bold'})
