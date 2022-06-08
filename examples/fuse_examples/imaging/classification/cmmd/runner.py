@@ -107,8 +107,7 @@ def run_train(paths : NDict , train: NDict ):
         validation_sample_ids += folds[fold]
 
     train_dataset = CMMD.dataset(paths["data_dir"], paths["data_misc_dir"], train['target'], paths["cache_dir"], reset_cache=False, num_workers=train["num_workers"], sample_ids=train_sample_ids, train=True)
-    # for _ in train_dataset:
-    #     pass
+    
     validation_dataset = CMMD.dataset(paths["data_dir"], paths["data_misc_dir"], train['target'], paths["cache_dir"],  reset_cache=False, num_workers=train["num_workers"], sample_ids=validation_sample_ids, train=True)
 
     ## Create sampler
@@ -305,11 +304,11 @@ def main(cfg : DictConfig) -> None:
     choose_and_enable_multiple_gpus(cfg["train.manager_train_params.num_gpus"], force_gpus=force_gpus)
 
 
-    RUNNING_MODES = ['train', 'infer', 'analyze']  # Options: 'train', 'infer', 'analyze'
+    RUNNING_MODES = ['train', 'infer', 'eval']
     # Path to the stored dataset location
     # dataset should be download from https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508
     # download requires NBIA data retriever https://wiki.cancerimagingarchive.net/display/NBIA/Downloading+TCIA+Images
-    # put on the folliwing in the main folder  - 
+    # put on the following in the main folder  - 
     # 1. CMMD_clinicaldata_revision.csv which is a converted version of CMMD_clinicaldata_revision.xlsx 
     # 2. folder named CMMD which is the downloaded data folder
 
@@ -322,7 +321,7 @@ def main(cfg : DictConfig) -> None:
         run_infer(cfg["paths"] , cfg["infer"])
     #
     # analyze
-    if 'analyze' in RUNNING_MODES:
+    if 'eval' in RUNNING_MODES:
         run_eval(cfg["paths"] ,cfg["infer"])
 if __name__ == "__main__":
     sys.argv.append('hydra.run.dir=working_dir')

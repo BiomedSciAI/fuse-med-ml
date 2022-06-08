@@ -13,7 +13,7 @@ Created on June 30, 2021
 """
 from functools import partial
 from typing import Hashable, List, Optional, Sequence, Union, Callable, Dict, Callable, Any, Tuple
-from functools import partial
+
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.utils.sample import set_initial_sample_id
 import numpy as np
@@ -336,7 +336,7 @@ class SamplesCacher:
     
         
 
-def _get_available_write_location(cache_dirs:List[str], max_allowed_used_space=None):   
+def _get_available_write_location(cache_dirs:List[str], max_allowed_used_space=0.95):               
     '''
     :param cache_dirs: write directories. Directories are checked in order that they are provided.
     :param max_allowed_used_space: set to a value between 0.0 to 1.0. 
@@ -360,3 +360,7 @@ def _get_available_write_location(cache_dirs:List[str], max_allowed_used_space=N
 
 def default_read_dirs_logic(cache_dirs: List[str]):
     return cache_dirs
+        
+
+
+     

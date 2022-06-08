@@ -170,7 +170,7 @@ class OpResizeAndPad2D(OpBase):
         ):
         '''
         :param resize_to:               new size of input images, keeping proportions
-        :param padding:                 padding size
+        :param padding:                 required padding size [x,y]
         ''' 
         
         img = sample_dict[key]

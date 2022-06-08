@@ -2,7 +2,7 @@ from cmath import nan
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
-from fuseimg.data.ops.image_loader import OpLoadDicom
+from fuseimg.data.ops.image_loader import OpLoadImage
 from fuseimg.data.ops.color import OpNormalizeAgainstSelf
 from fuseimg.data.ops.shape_ops import OpFlipBrightSideOnLeft2D , OpFindBiggestNonEmptyBbox2D, OpResizeAndPad2D
 from fuse.data import PipelineDefault, OpToTensor
@@ -63,7 +63,7 @@ class CMMD:
         static_pipeline = PipelineDefault("cmmd_static", [
          # decoding sample ID
             (OpCMMDSampleIDDecode(), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path"    
-            (OpLoadDicom(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", format="dcm")),
+            (OpLoadImage(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", format="dcm")),
             (OpFlipBrightSideOnLeft2D(), dict(key="data.input.img")),
             (OpFindBiggestNonEmptyBbox2D(), dict(key="data.input.img")),
             (OpNormalizeAgainstSelf(), dict(key="data.input.img")),
