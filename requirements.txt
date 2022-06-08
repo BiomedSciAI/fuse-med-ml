@@ -29,3 +29,4 @@ psutil
 testbook
 ipykernel
 medpy
+hydra-core
