@@ -147,7 +147,7 @@ class Duke:
              dict(key_out='data.input.mri_path')),
             # step 2: read files info for the sequences
             (ops_mri.OpExtractDicomsPerSeq(seq_ids=seq_ids, series_desc_2_sequence_map=series_desc_2_sequence_map,
-                                           use_order_indicator=False),
+                                               use_order_indicator=False),
              dict(key_in='data.input.mri_path',
                   key_out_sequences='data.input.sequence_ids',
                   key_out_path_prefix='data.input.path.',
@@ -181,8 +181,8 @@ class Duke:
 
             # step 7: create a single 4D volume from all the sequences (4th channel is the sequence)
             (ops_mri.OpStackList4DStk(delete_input_volumes=True), dict(key_in='data.input.selected_volumes',
-                                                                       key_out_volume4d='data.input.volume4D',
-                                                                       key_out_ref_volume='data.input.ref_volume')),
+                                                                           key_out_volume4d='data.input.volume4D',
+                                                                           key_out_ref_volume='data.input.ref_volume')),
 
             # step 8:
             (ops_mri.OpRescale4DStk(), dict(key='data.input.volume4D')),
