@@ -60,7 +60,7 @@ from examples.fuse_examples.imaging.classification.prostate_x.backbone_3d_multic
 
 
 def main():
-    mode = 'debug'  # 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
+    mode =  'default' #'debug'  # 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
 
     # allocate gpus
     # To use cpu - set NUM_GPUS to 0
@@ -74,18 +74,22 @@ def main():
 
 
     PATHS, TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS = get_setting(mode)
+    print(PATHS)
 
     RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
     # train
     if 'train' in RUNNING_MODES:
+        print(TRAIN_COMMON_PARAMS)
         run_train(paths=PATHS, train_params=TRAIN_COMMON_PARAMS)
 
     # infer
     if 'infer' in RUNNING_MODES:
+        print(INFER_COMMON_PARAMS)
         run_infer(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS)
 
     # eval
     if 'eval' in RUNNING_MODES:
+        print(EVAL_COMMON_PARAMS)
         run_eval(paths=PATHS, eval_common_params=EVAL_COMMON_PARAMS)
 
 
@@ -116,8 +120,8 @@ def get_setting(mode, label_type=duke.DukeLabelType.STAGING_TUMOR_SIZE, n_folds=
     else:
         data_split_file =  os.path.join(ROOT, 'DUKE_folds_fuse2_11102021TumorSize_seed1.pkl')
         selected_sample_ids = None
-        cache_dir =  os.path.join(ROOT, 'cache_dir')
-        num_workers = 10
+        cache_dir = os.path.join(ROOT, 'cache_dir')
+        num_workers = 16
         batch_size = 50
         num_epoch = 150
     PATHS = {'model_dir': model_dir,
