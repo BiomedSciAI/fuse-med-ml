@@ -30,3 +30,4 @@ testbook
 ipykernel
 medpy
 hydra-core
+omegaconf

@@ -84,7 +84,7 @@ class STOIC21:
     def sample_ids(path: str):
         """
         get all the sample ids in train-set
-        sample_id is *.mha file found in the specified path)
+        sample_id is *.mha file found in the specified path
         """
         files = [os.path.join("data/mha/", os.path.basename(f)) for f in glob(os.path.join(path, "data/mha/*.mha"))]
         assert len(files) > 0, f"Expecting mha files in {os.path.join(path, 'data/mha/*.mha')}"
