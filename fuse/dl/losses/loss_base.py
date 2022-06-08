@@ -17,20 +17,16 @@ Created on June 30, 2021
 
 """
 
+from abc import abstractmethod
+from fuse.utils.ndict import NDict
 import torch
 
 
 class LossBase(torch.nn.Module):
-    """
-    Base class for Fuse loss functions
-    """
-
-    def __init__(self,
-                 pred: str = None,
-                 target: str = None,
-                 weight: float = 1.0, ) -> None:
-        super().__init__()
-        self.pred_name = pred
-        self.target_name = target
-        self.weight = weight
-
+   """
+   Base class for Fuse loss functions. 
+   Essentially it is torch.nn.Module that it's forward method gets as an input batch_dict and returns loss tensor
+   """
+   @abstractmethod
+   def forward(self, batch_dict: NDict) -> torch.Tensor:
+      raise NotImplementedError
