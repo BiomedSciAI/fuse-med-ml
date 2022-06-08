@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import pathlib
+from pickle import TRUE
 from fuse.utils.utils_logger import fuse_logger_start
 import os
 import sys
@@ -33,12 +34,12 @@ import time
 experiment_num = 0
 task_num = 1 # 1 or 2
 force_gpus = [experiment_num*2,(experiment_num*2)+1] # specify the GPU indices you want to use
-use_data = {'imaging': True, 'clinical': True} # specify whether to use imaging, clinical data or both
+use_data = {'imaging': True, 'clinical': False} # specify whether to use imaging, clinical data or both
 batch_size = 2
-resize_to = (256, 256, 110) 
+resize_to = (110, 256, 256) 
 
 if task_num == 1:
-    num_epochs = 100
+    num_epochs = 150
     num_classes = 2
     learning_rate = 1e-4 if use_data['clinical'] else 1e-5
     imaging_dropout = 0.5
@@ -64,8 +65,6 @@ def main():
     splits=pd.read_pickle(os.path.join(dir_path, 'splits_final.pkl'))
     # For this example, we use split 0 out of the 5 available cross validation splits
     split = splits[0]
-    # split["train"] = split["train"][:10]
-    # split["val"] = split["val"][:10]
 
     # read environment variables for data, cache and results locations
     data_path = os.path.join(os.environ['KNIGHT_DATA'], "knight", "data")
@@ -96,7 +95,7 @@ def main():
     ##############################################################################
 
     train_dl, valid_dl, _, _, _, _ = knight_dataset(data_dir=data_path, cache_dir=cache_path, split=split, \
-                reset_cache=False, rand_gen=rand_gen, batch_size=batch_size, resize_to=resize_to, \
+                reset_cache=True, rand_gen=rand_gen, batch_size=batch_size, resize_to=resize_to, \
                 task_num=task_num, target_name=target_name, num_classes=num_classes)
 
 

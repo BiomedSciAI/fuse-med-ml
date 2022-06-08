@@ -1,4 +1,5 @@
 
+import json
 import os
 
 
@@ -11,12 +12,14 @@ from fuse.data import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuse.data import PipelineDefault, OpSampleAndRepeat, OpToTensor, OpRepeat
 from fuse.data.ops.op_base import OpBase
-from fuse.data.ops.ops_aug_common import OpSample
+from fuse.data.ops.ops_aug_common import OpSample, OpRandApply
 from fuse.data.ops.ops_common import OpLambda
 from fuseimg.data.ops.aug.color import OpAugColor
 from fuseimg.data.ops.aug.geometry import OpAugAffine2D, OpAugSqueeze3Dto2D, OpAugUnsqueeze3DFrom2D
 from fuseimg.data.ops.image_loader import OpLoadImage 
 from fuseimg.data.ops.color import OpClip, OpToRange
+from fuseimg.data.ops.shape_ops import OpRandomCrop
+
 import numpy as np
 from fuse.data.utils.sample import get_sample_id
 from typing import Hashable, List, Optional, Sequence, Tuple, Union
@@ -28,12 +31,15 @@ from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.samplers import BatchSamplerDefault
 
 
+
+
+
 class OpKnightSampleIDDecode(OpBase):
     '''
     decodes sample id into image and segmentation filename
     '''
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str]) -> NDict:
+    def __call__(self, sample_dict: NDict) -> NDict:#, op_id: Optional[str]) -> NDict:
         '''
         
         '''
@@ -46,10 +52,20 @@ class OpKnightSampleIDDecode(OpBase):
         seg_filename_key = 'data.gt.seg_path'
         sample_dict[seg_filename_key] = os.path.join(sid, 'aggregated_MAJ_seg.nii.gz')
 
+        
+        return sample_dict
+
+class OpClinicalLoad(OpBase):
+    def __init__(self, json_path: str):
+        super().__init__()
+        self.json_path = json_path
+
+    def __call__(self, sample_dict: NDict) -> NDict:
         cols = ['case_id', 'age_at_nephrectomy', 'body_mass_index', 'gender', 'comorbidities', \
                 'aua_risk_group', 'smoking_history', 'radiographic_size', 'last_preop_egfr']
 
-        json_data = pd.read_json("/projects/msieve/MedicalSieve/PatientData/KNIGHT/knight/data/knight.json")[cols]
+        json_data = pd.read_json(self.json_path)[cols]
+        sid = sample_dict['data.input.img_path'][:-15]
         row = json_data[json_data["case_id"]==sid].to_dict("records")[0]
 
         row['gender'] = int(row['gender'].lower() == 'female') #female:1 | male:0
@@ -69,46 +85,12 @@ class OpKnightSampleIDDecode(OpBase):
         sample_dict["data.gt.gt_global.task_2_label"] = ['benign','low_risk','intermediate_risk','high_risk', 'very_high_risk'].index(row["aua_risk_group"])
 
         sample_dict["data.input.clinical"] = row
+
         return sample_dict
-
-def aug_op_random_crop_and_pad(aug_input: Tensor,
-                           out_size: Tuple,
-                           fill: int = 0,
-                           centralize: bool=False ) -> Tensor:
-    """
-    random crop to certain size. if the image is smaller than the size then its padded.
-    :param aug_input: The tensor to augment
-    :param out_size: shape of the output
-    :return: the augmented tensor
-    """
-    assert len(aug_input.shape) == len(out_size)
-    depth, height, width = aug_input.shape #input is in the form [D,H,W]
-
-    aug_tensor = torch.full(out_size, fill, dtype=torch.float32)
-
-    if depth > out_size[0]:
-        crop_start = RandInt(0, depth - out_size[0]).sample()
-        if centralize:
-            crop_start = round((depth - out_size[0])/2)
-        aug_input = aug_input[crop_start:crop_start+out_size[0] , :,:]
-    if height > out_size[1]:
-        crop_start = RandInt(0, height - out_size[1]).sample()
-        if centralize:
-            crop_start = round((height - out_size[1])/2)
-        aug_input = aug_input[:, crop_start:crop_start+out_size[1],:]
-    if width > out_size[2]:
-        crop_start = RandInt(0, width - out_size[2]).sample()
-        if centralize:
-            crop_start = round((width - out_size[2])/2)
-        aug_input = aug_input[:,:,crop_start:crop_start+out_size[2]]
-
-    aug_tensor[:depth,:height,:width] = aug_input
-
-    return aug_tensor
-
+        
 class OpPrepare_Clinical(OpBase):
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str]) -> NDict:
+    def __call__(self, sample_dict: NDict) -> NDict:#, op_id: Optional[str]) -> NDict:, op_id: Optional[str]) -> NDict:
         age = sample_dict['data.input.clinical.age_at_nephrectomy']
         if age!=None and age > 0 and age < 120:
             age = np.array(age / 120.0).reshape(-1)
@@ -155,14 +137,14 @@ class OpPrepare_Clinical(OpBase):
 
 def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict = None, \
         reset_cache: bool = False, \
-        rand_gen = None, batch_size=8, resize_to=(256,256,110), task_num=1, \
+        rand_gen = None, batch_size=8, resize_to=(110,256,256), task_num=1, \
         target_name='data.gt.gt_global.task_1_label', num_classes=2, only_labels=False):
     
 
     static_pipeline = PipelineDefault("static", [
         # decoding sample ID
-        (OpKnightSampleIDDecode(), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path" 
-        
+        (OpKnightSampleIDDecode(), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path" and load json data
+        (OpClinicalLoad(os.path.join(data_dir, 'knight.json')), dict()),
         # loading data
         (OpLoadImage(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", format="nib")),
         # (OpLoadImage(data_dir), dict(key_in="data.gt.seg_path", key_out="data.gt.seg", format="nib")),
@@ -179,7 +161,7 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
 
     ])
 
-    dynamic_pipeline = PipelineDefault("dynamic", [
+    val_dynamic_pipeline = PipelineDefault("dynamic", [
                 
         # resize image to (110, 256, 256)
         # (OpLambda(func=partial(my_resize, resize_to=(110, 256, 256))), dict(key="data.input.img")),
@@ -188,30 +170,35 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
         (OpToTensor(), dict(key="data.input.img")),
         (OpToTensor(), dict(key="data.input.clinical.all")),
 
-
-        # (OpAugSqueeze3Dto2D(), dict(key="data.input.img")),
-        # # affine transformation per slice but with the same arguments
-        # (OpAugAffine2D() , dict(
-        #     key="data.input.img",
-        #     rotate=Uniform(-180.0,180.0),        
-        #     scale=Uniform(0.8, 1.2),
-        #     flip=(RandBool(0.5), RandBool(0.5)),
-        #     translate=(RandInt(-15, 15), RandInt(-15, 15))
-        # )),
-        # (OpAugUnsqueeze3DFrom2D(), dict(key="data.input.img")),
-
-
-        # color augmentation - check if it is useful in CT images
-        # (OpSample(OpAugColor()), dict(
-        #     key="data.input.img",
-        #     gamma=Uniform(0.8,1.2), 
-        #     contrast=Uniform(0.9,1.1),
-        #     add=Uniform(-0.01, 0.01)
-        # )),
-        (OpLambda(lambda x: aug_op_random_crop_and_pad(x, resize_to, centralize=False)), dict(key="data.input.img")),
+        
+        (OpRandomCrop(), dict(key="data.input.img", out_size=resize_to, centralize=True)),
+        # (OpLambda(lambda x: aug_op_random_crop_and_pad(x, resize_to, centralize=False)), dict(key="data.input.img")),
         # add channel dimension -> [C=1, D, H, W]
         (OpLambda(lambda x: x.unsqueeze(dim=0)), dict(key="data.input.img")),  
     ]) 
+
+    train_dynamic_pipeline = PipelineDefault("dynamic", [
+                
+        # resize image to (110, 256, 256)
+        # (OpLambda(func=partial(my_resize, resize_to=(110, 256, 256))), dict(key="data.input.img")),
+
+        # Numpy to tensor
+        (OpToTensor(), dict(key="data.input.img")),
+        (OpToTensor(), dict(key="data.input.clinical.all")),
+
+        # affine transformation per slice but with the same arguments
+        (OpRandApply(OpSample(OpAugAffine2D()), 0.5) , dict(
+            key="data.input.img",
+            rotate=Uniform(-180.0,180.0),
+            scale=Uniform(0.8, 1.2),
+            flip=(RandBool(0.5).sample(), RandBool(0.5)),
+            translate=(RandInt(-15, 15).sample(), RandInt(-15, 15))
+        )),
+        (OpRandomCrop(), dict(key="data.input.img", out_size=resize_to)),
+        # (OpLambda(lambda x: aug_op_random_crop_and_pad(x, resize_to, centralize=False)), dict(key="data.input.img")),
+        # add channel dimension -> [C=1, D, H, W]
+        (OpLambda(lambda x: x.unsqueeze(dim=0)), dict(key="data.input.img")),  
+    ])
        
     
     if 'train' in split:
@@ -219,34 +206,11 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
         json_filepath = os.path.join(image_dir, 'knight.json')
         json_filename = os.path.join(image_dir, 'knight.json')
         clinical_data = pd.read_json(json_filename)
-        # gt_processors = {
-        #     'gt_global': KiCGTProcessor(json_filename=json_filepath, columns_to_tensor={'task_1_label':torch.long, 'task_2_label':torch.long})
-        # }
+    
     else: # split can contain BOTH 'train' and 'val', or JUST 'test'
         image_dir = os.path.join(data_dir, 'images')
         json_filepath = os.path.join(data_dir, 'features.json')
-        # if only_labels:
-        #     json_labels_filepath = os.path.join(data_dir, 'knight_test_labels.json') 
-        #     gt_processors = {
-        #         'gt_global': KiCGTProcessor(json_filename=json_labels_filepath, columns_to_tensor={'task_1_label':torch.long, 'task_2_label':torch.long}, test_labels=True)
-        #     }
-        # else:
-        #     gt_processors = {}
-
-    # if only_labels:
-    #     # just labels - no need to load and process input
-    #     input_processors = {}
-    #     post_processing_func=None
-    # else:
-    #     # we use the same processor for the clinical data and ground truth, since both are in the .csv file
-    #     # need to make sure to discard the label column from the data when using it as input
-    #     input_processors = {
-    #         'image': KiTSBasicInputProcessor(input_data=image_dir, resize_to=resize_to),
-    #         'clinical': KiCClinicalProcessor(json_filename=json_filepath)
-    #     }
-    #     post_processing_func=prepare_clinical
-
-
+        
        # Create dataset
     if 'train' in split:
         train_cacher = SamplesCacher("train_cache", 
@@ -255,7 +219,7 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
 
         train_dataset = DatasetDefault(sample_ids=split['train'],
         static_pipeline=static_pipeline,
-        dynamic_pipeline=dynamic_pipeline,
+        dynamic_pipeline=train_dynamic_pipeline,
         cacher=train_cacher)
 
         print(f'- Load and cache data:')
@@ -290,7 +254,7 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
         ## Create dataset
         validation_dataset = DatasetDefault(sample_ids=split['val'],
         static_pipeline=static_pipeline,
-        dynamic_pipeline=dynamic_pipeline,
+        dynamic_pipeline=val_dynamic_pipeline,
         cacher=val_cacher)
 
         print(f'- Load and cache data:')
@@ -315,7 +279,7 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
         ## Create dataset
         test_dataset = DatasetDefault(sample_ids=split['test'],
         static_pipeline=static_pipeline,
-        dynamic_pipeline=dynamic_pipeline,)
+        dynamic_pipeline=val_dynamic_pipeline,)
 
         print(f'- Load and cache data:')
         test_dataset.create(pool_type='thread')  # use ThreadPool to create this dataset, to avoid cv2 problems in multithreading
