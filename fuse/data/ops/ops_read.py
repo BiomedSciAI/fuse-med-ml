@@ -18,6 +18,7 @@ Created on June 30, 2021
 """
 
 from typing import Hashable, List, Optional, Dict, Union
+from fuse.utils.file_io.file_io import read_dataframe
 import pandas as pd
 
 from fuse.data import OpBase
@@ -64,7 +65,7 @@ class OpReadDataframe(OpBase):
 
         # read dataframe
         if self._data_filename is not None:
-            df = pd.read_pickle(self._data_filename)
+            df = read_dataframe(self._data_filename)
 
         # extract only specified columns (in case not specified, extract all)
         if self._columns_to_extract is not None:
@@ -78,7 +79,7 @@ class OpReadDataframe(OpBase):
         df = df.set_index(self._key_column)
         self._data = df.to_dict(orient='index')
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, **kwargs) -> Union[None, dict, List[dict]]:
         """
         See base class
         """
@@ -88,7 +89,7 @@ class OpReadDataframe(OpBase):
 
         # add values tp sample_dict
         for name, value in sample_data.items():
-            sample_dict[f"data.{name}"] = value
+            sample_dict[name] = value
 
         return sample_dict
 

@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple
+from typing import Any, Callable, List, Optional, Tuple
 from tqdm import tqdm,trange
 import multiprocessing as mp
 from termcolor import cprint
@@ -78,7 +78,7 @@ def __orig__run_multiprocessed(worker_func, args_list, workers=0, verbose=0,
 def run_multiprocessed(worker_func, args_list, workers=0, verbose=0, 
     copy_to_global_storage: Optional[dict] = None,
     keep_results_order:bool=True,
-    as_iterator=False,
+    as_iterator=False, mp_context: Optional[str] = None
     ) -> List[Any]:
     '''
     Args:
@@ -100,6 +100,7 @@ def run_multiprocessed(worker_func, args_list, workers=0, verbose=0,
         as_iterator: if True, a lightweight iterator is returned. This is useful in the cases that the entire returned answer doesn't fit in memory.
          or in the case that you want to parallelize some calculation with the generation.
          if False, the answers will be accumulated to a list and returned.
+    :param mp_context: "fork", "spawn", "thread" or None for multiprocessing default
 
 
     Returns:
@@ -114,6 +115,7 @@ def run_multiprocessed(worker_func, args_list, workers=0, verbose=0,
         verbose=verbose,
         copy_to_global_storage=copy_to_global_storage,
         keep_results_order=keep_results_order,
+        mp_context=mp_context
     )
 
     if as_iterator:
@@ -125,7 +127,7 @@ def run_multiprocessed(worker_func, args_list, workers=0, verbose=0,
 
 def _run_multiprocessed_as_iterator_impl(worker_func, args_list, workers=0, verbose=0, 
     copy_to_global_storage: Optional[dict] = None,
-    keep_results_order:bool=True,
+    keep_results_order:bool=True, mp_context: Optional[str] = None
     ) -> List[Any]:
     '''
     an iterator version of run_multiprocessed - useful when the accumulated answer is too large to fit in memory
@@ -146,6 +148,7 @@ def _run_multiprocessed_as_iterator_impl(worker_func, args_list, workers=0, verb
         Instead of copying it for each worker_func invocation, it will be copied once, upon worker process initialization.
         keep_results_order: determined if imap or imap_unordered is used. if strict_answers_order is set to False, then results will be ordered by their readiness.
             if strict_answers_order is set to True, the answers will be provided at the same order as defined in the args_list
+    :param mp_context: "fork", "spawn", "thread" or None for multiprocessing default
     '''
     if 'DEBUG_SINGLE_PROCESS' in os.environ and os.environ['DEBUG_SINGLE_PROCESS'] in ['T','t','True','true',1]:
         workers = None
@@ -174,10 +177,18 @@ def _run_multiprocessed_as_iterator_impl(worker_func, args_list, workers=0, verb
         assert isinstance(workers, int)
         assert workers>=0
 
-        with mp.Pool(processes=workers, initializer=_store_in_global_storage, initargs=(copy_to_global_storage,), maxtasksperchild=400) as pool:
+        if mp_context == "thread":
+            from multiprocessing.pool import ThreadPool
+            pool = ThreadPool
+        elif mp_context is None: # os default
+            pool = mp.Pool
+        else:
+            pool = mp.get_context(mp_context).Pool
+        
+        with pool(processes=workers, initializer=_store_in_global_storage, initargs=(copy_to_global_storage,), maxtasksperchild=400) as pool:
             if verbose>0:
                 cprint(f'multiprocess pool created with {workers} workers.', 'cyan')            
-            map_func = pool.imap if keep_results_order else pool.iunordered
+            map_func = pool.imap if keep_results_order else pool.imap_unordered
             for curr_ans in tqdm_func(map_func(
                     worker_func,
                     args_list), total=len(args_list), smoothing=0.1, disable=verbose<1):
@@ -222,3 +233,24 @@ def get_from_global_storage(key: str) -> Any:
     """
     global _multiprocess_global_storage
     return _multiprocess_global_storage[key]
+
+
+def run_in_subprocess(f: Callable, timeout: int = 600):
+    """A decorator that makes function run in a subprocess.
+    This can be useful when you want allocate GPU and memory and to release it when you're done.
+    :param f: the function to run in a subprocess
+    :param timeout: the maximum time to wait for the process to complete
+    """
+
+    def inner(*args, **kwargs):
+        # create the machinery python uses to fork a subprocess
+        # and run a function in it.
+        p = mp.Process(target=f, args=args, kwargs=kwargs)
+        p.start()
+        try:
+            p.join(timeout=timeout)
+        except:
+            p.terminate()
+            raise
+            
+    return inner
