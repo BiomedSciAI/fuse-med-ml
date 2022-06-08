@@ -55,7 +55,7 @@ class CMMD:
     CMMD_DATASET_VER = 0
 
     @staticmethod
-    def static_pipeline(data_dir: str,data_source : pd.DataFrame) -> PipelineDefault:
+    def static_pipeline(data_dir: str,data_source : pd.DataFrame, target: str) -> PipelineDefault:
         """
         Get suggested static pipeline (which will be cached), typically loading the data plus design choices that we won't experiment with.
         :param data_path: path to original kits21 data (can be downloaded by KITS21.download())
@@ -70,8 +70,8 @@ class CMMD:
             (OpToNumpy(), dict(key='data.input.img', dtype=np.float32)), 
             (OpResizeAndPad2D(), dict(key="data.input.img", resize_to=(2200, 1200), padding=(60, 60))),
             (OpReadDataframe(data_source,
-                    key_column="file",key_name="data.input.img_path", columns_to_extract=['file','classification'],
-                    rename_columns=dict(ID1="data.patientID", classification="data.gt.classification")), dict()),
+                    key_column="file",key_name="data.input.img_path", columns_to_extract=['ID1','file','classification','subtype'],
+                    rename_columns=dict(ID1 ="data.patientID", classification = "data.gt.classification" , subtype="data.gt.subtype")), dict()),
             ])
         return static_pipeline
 
@@ -81,8 +81,9 @@ class CMMD:
         Get suggested dynamic pipeline. including pre-processing that might be modified and augmentation operations. 
         :param train : True iff we request dataset for train purpouse
         """
-        dynamic_pipeline = PipelineDefault("cmmd_dynamic", [(OpToTensor(), dict(key="data.input.img",dtype=torch.float32)),
-                                                            (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")) ])
+        dynamic_pipeline = PipelineDefault("cmmd_dynamic", [
+            (OpToTensor(), dict(key="data.input.img",dtype=torch.float32)),
+            (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")) ])
         if train:
             dynamic_pipeline.extend([
                 (OpSample(OpAugAffine2D()), dict(
@@ -136,8 +137,8 @@ class CMMD:
         dicom_tags = pd.DataFrame(scans)
         merged_clinical_data = pd.merge(clinical_data, dicom_tags, how='outer', on=['ID1', 'LeftRight'])
         merged_clinical_data = merged_clinical_data[merged_clinical_data[target].notna()]
-        merged_clinical_data[target] = np.where(merged_clinical_data[target] == 'Benign', 0, 1)
-        merged_clinical_data['subtype'] = merged_clinical_data['subtype'].replace(np.nan, "NaN")
+        merged_clinical_data['classification'] = np.where(merged_clinical_data['classification'] == 'Benign', 0, 1)
+        merged_clinical_data['subtype'] = merged_clinical_data['subtype'].replace({"Luminal A" : 0 ,"Luminal B" : 1 , "HER2-enriched" : 2, "triple negative" : 3 , np.nan : "4"})
         merged_clinical_data.to_csv(combined_file_path)
         all_sample_ids = merged_clinical_data['file'].to_list()
         return merged_clinical_data, all_sample_ids
@@ -169,7 +170,7 @@ class CMMD:
         if sample_ids is None:
             sample_ids = all_sample_ids
             
-        static_pipeline = CMMD.static_pipeline(data_dir,input_source_gt)
+        static_pipeline = CMMD.static_pipeline(data_dir,input_source_gt, target)
         dynamic_pipeline = CMMD.dynamic_pipeline(train=train)
                                 
         cacher = SamplesCacher(f'cmmd_cache_ver', 

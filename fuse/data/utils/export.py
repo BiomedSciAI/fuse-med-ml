@@ -29,7 +29,7 @@ class ExportDataset:
     """
 
     @staticmethod
-    def export_to_dataframe(dataset: DatasetBase, keys: Sequence[str], output_filename: Optional[str] = None, sample_id_key: str = "data.sample_id", **dataset_get_kwargs) -> pds.DataFrame:
+    def export_to_dataframe(dataset: DatasetBase, keys: Sequence[str], output_filename: Optional[str] = None, sample_id_key: str = "data.sample_id", workers : int = 10, **dataset_get_kwargs) -> pds.DataFrame:
         """
         extract from dataset the specified and keys and create a dataframe. 
         If output_filename will be specified, the dataframe will also be saved in a file. 

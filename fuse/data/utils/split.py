@@ -113,7 +113,7 @@ def balanced_division(df : pd.DataFrame, no_mixture_id : str, keys_to_balance: S
     return folds
 
 
-def dataset_balanced_division_to_folds(dataset: DatasetBase, output_split_filename: str, keys_to_balance: Sequence[str], nfolds: int, id:str =get_sample_id_key(), reset_split: bool = False, **kwargs):
+def dataset_balanced_division_to_folds(dataset: DatasetBase, output_split_filename: str, keys_to_balance: Sequence[str], nfolds: int, workers: int =10, id:str =get_sample_id_key(), reset_split: bool = False, **kwargs):
     """
     Split dataset to folds.
     Support balancing, exclusion and radom seed (with a small improvement could support no mixture criterion).
@@ -122,6 +122,7 @@ def dataset_balanced_division_to_folds(dataset: DatasetBase, output_split_filena
     :param keys_to_balance: balancing any possible combination of values. For example for ["data.gender", "data.cancer"], the algorithm will balance each one of the following groups between the folds.
                             (gender=male, cancer=True), (gender=male, cancer=False), (gender=female, cancer=True), (gender=female, cancer=False)
     :param  nfolds : number of folds
+    :param workers : numbers of workers for multiprocessing
     :param  id  : id to balance the split by ( not allowed 2 in same fold)
     :param reset_split: delete output_split_filename and recompute the split
     :param kwargs: more arguments controlling the split. See function balanced_division() for details
@@ -135,7 +136,7 @@ def dataset_balanced_division_to_folds(dataset: DatasetBase, output_split_filena
             keys = [get_sample_id_key(), id]
         if keys_to_balance is not None:
             keys += keys_to_balance
-        df = ExportDataset.export_to_dataframe(dataset, keys)
+        df = ExportDataset.export_to_dataframe(dataset, keys, workers = workers, **kwargs)
         df_folds = balanced_division(df, id, keys_to_balance, nfolds, **kwargs)
         print(df_folds.keys())
         folds = {}

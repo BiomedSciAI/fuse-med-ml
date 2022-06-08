@@ -78,13 +78,26 @@ def run_train(paths : NDict , train: NDict ):
     lgr.info(f'cache_dir={paths["cache_dir"]}', {'color': 'magenta'})
 
     #### Train Data
+    if train['target'] == "classification" :
+        num_classes = 2
+        mode = "approx"
+        gt_label = "data.gt.classification"
+        class_names = ["Benign", "Malignant"] 
+    elif train['target'] == "subtype" :
+        num_classes = 4
+        mode = "approx"
+        gt_label = "data.gt.subtype"
+        class_names = ["Luminal A", "Luminal B", "HER2-enriched" , "triple negative"] 
+    else:
+        raise("unsuported target!!")
     # split to folds randomly - temp
-    dataset_all = CMMD.dataset(paths["data_dir"], paths["data_misc_dir"], train['target'], paths["cache_dir"], reset_cache=False, train=True)
+    dataset_all = CMMD.dataset(paths["data_dir"], paths["data_misc_dir"], train['target'], paths["cache_dir"], reset_cache=False, num_workers=train["num_workers"], train=True)
     folds = dataset_balanced_division_to_folds(dataset=dataset_all,
                                         output_split_filename=os.path.join( paths["data_misc_dir"], paths["data_split_filename"]), 
                                         id = 'data.patientID',
-                                        keys_to_balance=["data.gt.classification"], 
-                                        nfolds=train["num_folds"])
+                                        keys_to_balance=[gt_label], 
+                                        nfolds=train["num_folds"],
+                                        workers= train["num_workers"])
 
     train_sample_ids = []
     for fold in train["train_folds"]:
@@ -93,18 +106,18 @@ def run_train(paths : NDict , train: NDict ):
     for fold in train["validation_folds"]:
         validation_sample_ids += folds[fold]
 
-    train_dataset = CMMD.dataset(paths["data_dir"], paths["data_misc_dir"], train['target'], paths["cache_dir"], reset_cache=False, sample_ids=train_sample_ids, train=True)
+    train_dataset = CMMD.dataset(paths["data_dir"], paths["data_misc_dir"], train['target'], paths["cache_dir"], reset_cache=False, num_workers=train["num_workers"], sample_ids=train_sample_ids, train=True)
     # for _ in train_dataset:
     #     pass
-    validation_dataset = CMMD.dataset(paths["data_dir"], paths["data_misc_dir"], train['target'], paths["cache_dir"],  reset_cache=False, sample_ids=validation_sample_ids, train=True)
+    validation_dataset = CMMD.dataset(paths["data_dir"], paths["data_misc_dir"], train['target'], paths["cache_dir"],  reset_cache=False, num_workers=train["num_workers"], sample_ids=validation_sample_ids, train=True)
 
     ## Create sampler
     lgr.info(f'- Create sampler:')
     sampler = BatchSamplerDefault(dataset=train_dataset,
-                                       balanced_class_name='data.gt.classification',
-                                       num_balanced_classes=2,
+                                       balanced_class_name=gt_label,
+                                       num_balanced_classes=num_classes,
                                        batch_size=train["batch_size"],
-                                       mode = "approx",
+                                       mode = mode,
                                        balanced_class_weights=None)
 
     lgr.info(f'- Create sampler: Done')
@@ -142,7 +155,7 @@ def run_train(paths : NDict , train: NDict ):
                                             dropout_rate=0.5,
                                             conv_inputs=[('model.backbone_features', 384)],
                                             layers_description=(256,),
-                                            num_classes=2,
+                                            num_classes=num_classes,
                                             pooling="avg"),
         ]
     )
@@ -154,7 +167,7 @@ def run_train(paths : NDict , train: NDict ):
     #  Loss
     # ====================================================================================
     losses = {
-        'cls_loss': LossDefault(pred='model.logits.head_0', target='data.gt.classification',
+        'cls_loss': LossDefault(pred='model.logits.head_0', target=gt_label,
                                     callable=F.cross_entropy, weight=1.0)
     }
 
@@ -164,8 +177,8 @@ def run_train(paths : NDict , train: NDict ):
     # ====================================================================================
     metrics = OrderedDict([
         ('op', MetricApplyThresholds(pred='model.output.head_0')), # will apply argmax
-        ('auc', MetricAUCROC(pred='model.output.head_0', target='data.gt.classification')),
-        ('accuracy', MetricAccuracy(pred='results:metrics.op.cls_pred', target='data.gt.classification')),
+        ('auc', MetricAUCROC(pred='model.output.head_0', target=gt_label, class_names = class_names)),
+        ('accuracy', MetricAccuracy(pred='results:metrics.op.cls_pred', target=gt_label)),
     ])
 
     # =====================================================================================
