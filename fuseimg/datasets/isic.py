@@ -174,7 +174,7 @@ class ISIC:
 
         dynamic_pipeline = PipelineDefault("dynamic", [
             # Resize images to 3x300x300
-            (OpResizeTo(), dict(key="data.input.img", resize_to=[3, 300, 300])),
+            (OpResizeTo(), dict(key="data.input.img", output_shape=[3, 300, 300], mode='reflect', anti_aliasing=True)),
             
             # Cast to Tensor
             (OpToTensor(), dict(key="data.input.img")),

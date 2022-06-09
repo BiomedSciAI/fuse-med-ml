@@ -225,34 +225,24 @@ class OpResizeTo(OpBase):
     """
     Resizes an image into the given dimensions.
     """
-    def __init__(self, verify_arguments: bool = True):
+    def __init__(self):
         """
         :param verify_arguments: 
         
         This Op expects torch / ndarray with d dimensions such that len(resize_to) == d.
         """
         super().__init__()
-        self._verify_arguments = verify_arguments
 
-    def __call__(self, sample_dict: NDict, key: str, resize_to: List[int], mode: str='reflect', anti_aliasing: bool=True) -> NDict:
+    def __call__(self, sample_dict: NDict, key: str, **kwargs) -> NDict:
         """
         :param key: key to a numpy array or tensor stored in the sample_dict
-        :param resize_to: the desired dimensions
-        :param mode:
-        :param anti_aliasing:
+        :param kwargs: additional arguments to pass to the resize function
 
         Stores the resized image in sample_dict[key]
         """
         aug_input = sample_dict[key]
-
-        # verify arguments
-        if self._verify_arguments:
-            input_dim = len(aug_input.shape)
-            resize_dim = len(resize_to)
-            assert isinstance(aug_input, numpy.ndarray) or isinstance(aug_input, torch.Tensor), f"Error: OpResizeTo expects torch Tensor, got {type(aug_input)}"
-            assert input_dim == resize_dim, f"Error, OpResizeTo expects the user to specify values for all the dimensions. got tensor with {input_dim} but {resize_dim} dimensions were given"
         
-        aug_output = skimage.transform.resize(image=aug_input, output_shape=resize_to, mode=mode, anti_aliasing=anti_aliasing)
+        aug_output = skimage.transform.resize(image=aug_input, **kwargs)
         sample_dict[key] = aug_output
 
         return sample_dict

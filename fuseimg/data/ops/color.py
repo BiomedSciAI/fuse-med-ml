@@ -122,7 +122,7 @@ op_to_range_img = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpToRange(), {})
         
 class OpPad(OpBase):
     """
-    Pad the give image on all the sides. Currently supports only torch.Tensor objects.
+    Pad the give image on all the sides. Supports Tensor & ndarray.
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -130,18 +130,29 @@ class OpPad(OpBase):
     def __call__(self, sample_dict: NDict, key: str,
             padding: List[int],
             fill: int = 0,
-            padding_mode: str = 'constant'):
+            mode: str = 'constant',
+            **kwargs):
         """
         Pad values
-        :param key: key to an image in sample_dict: either torh tensor or PIL image
-        :param padding: values for clipping from both sides
-        :param fill:
-        :param padding_mode:
+        :param key: key to an image in sample_dict - either torch tensor or ndarray
+        :param padding: padding on each border. can be differerniate each border by passing a list.
+        :param fill: if mode = 'constant', pads with fill's value.
+        :param padding_mode: see torch's & numpy's pad functions for more details.
+        :param kwargs: numpy's pad function give supports to more arguments. See it's docs for more details.
         """
 
         img = sample_dict[key]
         
-        processed_img = TTF.pad(img, padding, fill, padding_mode)
+        if torch.is_tensor(img):
+            processed_img = TTF.pad(img, padding, fill, mode)
+
+        elif isinstance(img, np.ndarray):
+            # kwargs['constant_values'] = fill
+            processed_img = np.pad(img, pad_width=padding, mode=mode, constant_values=fill, **kwargs)
+
+        else:
+            raise Exception(f"Error: OpPad expects Tensor or nd.array object, but got {type(img)}.")
+
         sample_dict[key] = processed_img
         return sample_dict
 

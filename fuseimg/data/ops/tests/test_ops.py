@@ -36,18 +36,35 @@ class TestOps(unittest.TestCase):
         Test OpPad
         """
         sample = NDict()
-        sample["data.input.img"] = torch.Tensor([[1]])
+        sample["data.input.tensor_img_1"] = torch.Tensor([[1]])
+        sample["data.input.numpy_img_1"] = np.array([[1]])
+        sample["data.input.tensor_img_2"] = torch.Tensor([[42]])
+        sample["data.input.numpy_img_2"] = np.array([[42]])
 
         pipeline = PipelineDefault('test_pipeline', [
-            (OpPad(), dict(key='data.input.img', padding=1))
+            (OpPad(), dict(key='data.input.tensor_img_1', padding=1, fill=0, mode='constant')),
+            (OpPad(), dict(key='data.input.numpy_img_1', padding=1, fill=0, mode='constant')),
+            (OpPad(), dict(key='data.input.tensor_img_2', padding=1, fill=42, mode='constant')),
+            (OpPad(), dict(key='data.input.numpy_img_2', padding=1, fill=42, mode='constant'))
+
         ])
         
         pipeline(sample)
-        res = [[0, 0, 0],
-               [0, 1, 0],
-               [0, 0, 0]]
 
-        self.assertTrue(np.array_equal(sample['data.input.img'], res))
+        res_1 = [[0, 0, 0],
+                [0, 1, 0],
+                [0, 0, 0]]
+
+        res_2 = [[42, 42, 42],
+                [42, 42, 42],
+                [42, 42, 42]]
+
+        self.assertTrue(np.array_equal(sample['data.input.tensor_img_1'], res_1))
+        self.assertTrue(np.array_equal(sample['data.input.numpy_img_1'], res_1))
+        self.assertTrue(np.array_equal(sample['data.input.tensor_img_2'], res_2))
+        self.assertTrue(np.array_equal(sample['data.input.numpy_img_2'], res_2))
+
+
 
     def test_op_resize_to(self):
         pass
