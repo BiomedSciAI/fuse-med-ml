@@ -19,6 +19,7 @@ Created on June 30, 2021
 import os
 import logging
 from typing import OrderedDict
+from fuse.utils.file_io.file_io import load_pickle
 
 import torch.optim as optim
 import torch.nn.functional as F
@@ -40,6 +41,7 @@ from fuse.eval.evaluator import EvaluatorDefault
 
 from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.collates import CollateDefault
+from fuse.data.utils.split import dataset_balanced_division_to_folds
 
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.managers.manager_default import ManagerDefault
@@ -72,7 +74,8 @@ PATHS = {'data_dir': os.path.join(ROOT, 'data_dir'),
          'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
          'cache_dir': os.path.join(ROOT, 'cache_dir'),
          'inference_dir': os.path.join(ROOT, 'infer_dir'),
-         'eval_dir': os.path.join(ROOT, 'eval_dir')}
+         'eval_dir': os.path.join(ROOT, 'eval_dir'),
+         'data_split_filename': os.path.join(ROOT, 'isic_split.pkl')}
 
 ##########################################
 # Train Common Params
@@ -89,6 +92,9 @@ TRAIN_COMMON_PARAMS['model'] = ''
 TRAIN_COMMON_PARAMS['data.batch_size'] = 8
 TRAIN_COMMON_PARAMS['data.train_num_workers'] = 8
 TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 8
+TRAIN_COMMON_PARAMS['data.num_folds'] = 5
+TRAIN_COMMON_PARAMS['data.train_folds'] = [0, 1, 2]
+TRAIN_COMMON_PARAMS['data.validation_folds'] = [3]
 
 # ===============
 # Manager - Train
@@ -117,7 +123,7 @@ TRAIN_COMMON_PARAMS['manager.resume_checkpoint_filename'] = None  # if not None,
 #################################
 # Train Template
 #################################
-def run_train(paths: dict, train_common_params: dict, isic: ISIC):
+def run_train(paths: dict, train_common_params: dict):
     # ==============================================================================
     # Logger
     # ==============================================================================
@@ -134,7 +140,21 @@ def run_train(paths: dict, train_common_params: dict, isic: ISIC):
     # Train Data
     lgr.info(f'Train Data:', {'attrs': 'bold'})
 
-    train_dataset = isic.dataset(train=True, reset_cache=True, num_workers=train_common_params['data.train_num_workers'], samples_ids=FULL_GOLDEN_MEMBERS)
+    # split to folds randomly - temp
+    all_dataset = ISIC.dataset(paths['data_dir'], paths['cache_dir'], reset_cache=True, num_workers=train_common_params['data.train_num_workers'], samples_ids=FULL_GOLDEN_MEMBERS)
+    folds = dataset_balanced_division_to_folds(dataset=all_dataset,
+                                                output_split_filename=paths['data_split_filename'],
+                                                keys_to_balance=['data.label'],
+                                                nfolds=train_common_params['data.num_folds'])
+    
+    train_sample_ids = []
+    for fold in train_common_params["data.train_folds"]:
+        train_sample_ids += folds[fold]
+    validation_sample_ids = []
+    for fold in train_common_params["data.validation_folds"]:
+        validation_sample_ids += folds[fold]
+
+    train_dataset = ISIC.dataset(paths['data_dir'], paths['cache_dir'], samples_ids=train_sample_ids, train=True)
 
     lgr.info(f'- Create sampler:')
     sampler = BatchSamplerDefault(dataset=train_dataset,
@@ -153,8 +173,9 @@ def run_train(paths: dict, train_common_params: dict, isic: ISIC):
 
     ## Validation data
     lgr.info(f'Validation Data:', {'attrs': 'bold'})
-    # wrapping torch dataset
-    validation_dataset = isic.dataset(train=False, num_workers=train_common_params['data.validation_num_workers'])
+
+    # dataset
+    validation_dataset = ISIC.dataset(paths['data_dir'], paths['cache_dir'], samples_ids=validation_sample_ids, train=False)
 
     # dataloader
     validation_dataloader = DataLoader(dataset=validation_dataset,
@@ -248,30 +269,42 @@ def run_train(paths: dict, train_common_params: dict, isic: ISIC):
 INFER_COMMON_PARAMS = {}
 INFER_COMMON_PARAMS['infer_filename'] = 'validation_set_infer.gz'
 INFER_COMMON_PARAMS['checkpoint'] = 'best'  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
-INFER_COMMON_PARAMS['data.train_num_workers'] = TRAIN_COMMON_PARAMS['data.train_num_workers']
+INFER_COMMON_PARAMS['data.num_workers'] = TRAIN_COMMON_PARAMS['data.train_num_workers']
 INFER_COMMON_PARAMS['data.validation_num_workers'] =  TRAIN_COMMON_PARAMS['data.validation_num_workers']
+INFER_COMMON_PARAMS['data.infer_folds'] = [4]  # infer validation set
+INFER_COMMON_PARAMS['data.batch_size'] = [4]
 
 
 ######################################
 # Inference Template
 ######################################
-def run_infer(paths: dict, infer_common_params: dict, isic: ISIC):
+def run_infer(paths: dict, infer_common_params: dict):
     #### Logger
     fuse_logger_start(output_path=paths['inference_dir'], console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Inference', {'attrs': ['bold', 'underline']})
     lgr.info(f'infer_filename={os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])}', {'color': 'magenta'})
 
+    ## Data
+    folds = load_pickle(paths["data_split_filename"]) # assume exists and created in train func
+
+    infer_sample_ids = []                              
+    for fold in infer_common_params["data.infer_folds"]:
+        infer_sample_ids += folds[fold]
+
     # Create dataset
-    validation_dataset = isic.dataset(train=False, num_workers=infer_common_params['data.validation_num_workers'])
+    infer_dataset = ISIC.dataset(paths['data_dir'], paths['cache_dir'], samples_ids=infer_sample_ids, train=False)
+
     # dataloader
-    validation_dataloader = DataLoader(dataset=validation_dataset, collate_fn=CollateDefault(), batch_size=2, num_workers=2)
+    infer_dataloader = DataLoader(dataset=infer_dataset, collate_fn=CollateDefault(),
+                                    batch_size=infer_common_params['data.batch_size'],
+                                    num_workers=infer_common_params['data.num_workers'])
 
     ## Manager for inference
     manager = ManagerDefault()
     # extract just the global classification per sample and save to a file
     output_columns = ['model.output.head_0', 'data.label']
-    manager.infer(data_loader=validation_dataloader,
+    manager.infer(data_loader=infer_dataloader,
                   input_model_dir=paths['model_dir'],
                   checkpoint=infer_common_params['checkpoint'],
                   output_columns=output_columns,
@@ -329,20 +362,17 @@ if __name__ == "__main__":
     force_gpus = None  # [0]
     GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
-    isic = ISIC(data_path = PATHS['data_dir'], 
-                cache_path = PATHS['cache_dir'],
-                val_portion = 0.3)
-    isic.download()
+    ISIC.download(data_path = PATHS['data_dir'])
 
     RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
 
     # train
     if 'train' in RUNNING_MODES:
-        run_train(paths=PATHS, train_common_params=TRAIN_COMMON_PARAMS, isic=isic)
+        run_train(paths=PATHS, train_common_params=TRAIN_COMMON_PARAMS)
 
     # infer
     if 'infer' in RUNNING_MODES:
-        run_infer(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS, isic=isic)
+        run_infer(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS)
 
     # eval
     if 'eval' in RUNNING_MODES:

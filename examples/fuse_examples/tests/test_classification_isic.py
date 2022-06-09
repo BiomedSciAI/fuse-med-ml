@@ -52,10 +52,7 @@ class ClassificationISICTestCase(unittest.TestCase):
 
         self.train_common_params['manager.train_params']['num_epochs'] = 15
 
-        self.isic = ISIC(data_path = self.paths['data_dir'], 
-                    cache_path = self.paths['cache_dir'],
-                    val_portion = 0.3)
-        self.isic.download()
+        ISIC.download(data_path=self.paths['data_dir'])
 
     @run_in_subprocess
     def test_runner(self):
@@ -63,8 +60,8 @@ class ClassificationISICTestCase(unittest.TestCase):
         GPU.choose_and_enable_multiple_gpus(1, use_cpu_if_fail=False)
 
         Seed.set_seed(0, False) # previous test (in the pipeline) changed the deterministic behavior to True
-        run_train(self.paths, self.train_common_params, self.isic)
-        run_infer(self.paths, self.infer_common_params, self.isic)
+        run_train(self.paths, self.train_common_params)
+        run_infer(self.paths, self.infer_common_params)
         results = run_eval(self.paths, self.eval_common_params)
 
         threshold = 0.65

@@ -62,7 +62,9 @@ def derive_label(sample_dict: NDict) -> NDict:
         
         del sample_dict[cls_name]
     
-    sample_dict['data.label'] = np.array(label)
+    # sample_dict['data.label'] = np.array(label) 
+    sample_dict['data.label'] = label
+
 
     return sample_dict
 
@@ -74,30 +76,8 @@ class ISIC:
     # bump whenever the static pipeline modified
     DATASET_VER = 0
     
-    def __init__(self,
-                 data_path: str,
-                 cache_path: str,
-                 val_portion: float=0.3, 
-                 partition_file: Optional[str]=None) -> None:
-        """
-        
-        :param data_path:
-        :param cache_path:
-        :param val_portion:
-        :param override_partition:
-        :param partition_file:
-        """
-        self.data_path = data_path
-        self.cache_path = cache_path
-        self.val_portion = val_portion
-        self.partition_file = partition_file
-        self._downloaded = False
-
-        if partition_file is None:
-            self.partition_file = os.path.join(data_path, 'ISIC2019/partition.pickle')
-
-
-    def download(self) -> None:
+    @staticmethod
+    def download(data_path: str) -> None:
         """
         Download images and metadata from ISIC challenge.
         Doesn't download again if data exists.
@@ -105,7 +85,7 @@ class ISIC:
         """
         lgr = logging.getLogger('Fuse')
     
-        path = os.path.join(self.data_path, 'ISIC2019/ISIC_2019_Training_Input')
+        path = os.path.join(data_path, 'ISIC2019/ISIC_2019_Training_Input')
         print(f"Training Input Path: {os.path.abspath(path)}")
         if not os.path.exists(path):
             lgr.info('\nExtract ISIC-2019 training input ... (this may take a few minutes)')
@@ -115,11 +95,11 @@ class ISIC:
             
             with ZipFile("ISIC_2019_Training_Input.zip", 'r') as zipObj:
                 # Extract all the contents of zip file in current directory
-                zipObj.extractall(path=os.path.join(self.data_path, 'ISIC2019'))
+                zipObj.extractall(path=os.path.join(data_path, 'ISIC2019'))
 
             lgr.info('Extracting ISIC-2019 training input: done')
 
-        path = os.path.join(self.data_path, 'ISIC2019/ISIC_2019_Training_GroundTruth.csv')
+        path = os.path.join(data_path, 'ISIC2019/ISIC_2019_Training_GroundTruth.csv')
 
         if not os.path.exists(path):
             lgr.info('\nExtract ISIC-2019 training gt ... (this may take a few minutes)')
@@ -129,13 +109,13 @@ class ISIC:
 
             lgr.info('Extracting ISIC-2019 training gt: done')
         
-        self._downloaded = True
 
-    def sample_ids(self, size: Optional[int] = None) -> List[str]:
+    @staticmethod
+    def sample_ids(data_path) -> List[str]:
         """
         Gets the samples ids in trainset.
         """
-        images_path = os.path.join(self.data_path, 'ISIC2019/ISIC_2019_Training_Input')
+        images_path = os.path.join(data_path, 'ISIC2019/ISIC_2019_Training_Input')
         
         samples = [f.split('.')[0] for f in os.listdir(images_path) if f.split('.')[-1] == 'jpg']
         return samples
@@ -162,7 +142,7 @@ class ISIC:
         return static_pipeline
 
     @staticmethod
-    def dynamic_pipeline() -> PipelineDefault:
+    def dynamic_pipeline(train: bool = False) -> PipelineDefault:
         """
         Get suggested dynamic pipeline. including pre-processing that might be modified and augmentation operations. 
         """
@@ -204,12 +184,13 @@ class ISIC:
 
         return dynamic_pipeline
 
-    def dataset(self,
-                train: bool=True,
+    @staticmethod
+    def dataset(data_path: str,
+                cache_path: str,
+                train: bool = False,
                 reset_cache: bool = False, 
-                num_workers:int = 10,
-                samples_ids: Optional[Sequence[Hashable]] = None,
-                override_partition: bool = True) -> DatasetDefault:
+                num_workers: int = 10,
+                samples_ids: Optional[Sequence[Hashable]] = None) -> DatasetDefault:
         """
         Get cached dataset
         :param train: if true returns the train dataset, else the validation one.
@@ -218,45 +199,19 @@ class ISIC:
         :param sample_ids: dataset including the specified sample_ids or None for all the samples.
         :param override_partition: If True, will make a new partition of train-validation sets.
         """
-        train_data_path = os.path.join(self.data_path, 'ISIC2019/ISIC_2019_Training_Input')
-        labels_path = os.path.join(self.data_path, 'ISIC2019/ISIC_2019_Training_GroundTruth.csv')
-        labels_df = pd.read_csv(labels_path)
-        self._labels_df = labels_df #.drop(axis=1, labels=['UNK']) # UNK label has 0 instances TODO
+        train_data_path = os.path.join(data_path, 'ISIC2019/ISIC_2019_Training_Input')
 
         if samples_ids is None:
-            samples_ids = self.sample_ids()
-
-        if train: 
-            print("partition's path exist?", os.path.exists(self.partition_file))
-            if override_partition or not os.path.exists(self.partition_file):
-                train_samples, val_samples = train_test_split(samples_ids, test_size=self.val_portion, random_state=42)
-                splits = {'train': train_samples, 'val': val_samples}
-
-                with open(self.partition_file, "wb") as pickle_out:
-                    pickle.dump(splits, pickle_out)
-                    out_samples_ids = splits['train']
-                    print("Dumped pickle!")
-
-            else:
-                # read from a previous split to evaluate on the same partition
-                with open(self.partition_file, "rb") as splits:
-                    repartition = pickle.load(splits)
-                    out_samples_ids = repartition['train']
-
-        else:
-            # return validation set according to the partition
-            with open(self.partition_file, "rb") as splits:
-                repartition = pickle.load(splits)
-                out_samples_ids = repartition['val']
+            samples_ids = ISIC.sample_ids(data_path)
         
         static_pipeline = ISIC.static_pipeline(train_data_path)
-        dynamic_pipeline = ISIC.dynamic_pipeline()
+        dynamic_pipeline = ISIC.dynamic_pipeline(train)
 
         cacher = SamplesCacher(f'isic_cache_ver{ISIC.DATASET_VER}', 
             static_pipeline,
-            [self.cache_path], restart_cache=reset_cache, workers=num_workers)  
+            [cache_path], restart_cache=reset_cache, workers=num_workers)  
 
-        my_dataset = DatasetDefault(sample_ids=out_samples_ids,
+        my_dataset = DatasetDefault(sample_ids=samples_ids,
             static_pipeline=static_pipeline,
             dynamic_pipeline=dynamic_pipeline,
             cacher=cacher
