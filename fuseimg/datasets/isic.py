@@ -10,7 +10,7 @@ import numpy as np
 import torch
 
 from fuse.data import DatasetDefault
-from fuse.data.ops.ops_cast import OpToNumpy, OpToTensor
+from fuse.data.ops.ops_cast import OpToTensor
 from fuse.data.utils.sample import get_sample_id
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.ops.op_base import OpBase
@@ -18,11 +18,12 @@ from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuse.data.ops.ops_aug_common import OpSample
 from fuse.data.ops.ops_read import OpReadDataframe
 from fuse.data.ops.ops_common import OpLambda
+from fuseimg.data.ops.color import OpToRange
 
 from fuse.utils import NDict
 
 from fuseimg.data.ops.image_loader import OpLoadImage
-from fuseimg.data.ops.color import OpNormalizeAgainstSelf, OpPad
+from fuseimg.data.ops.shape_ops import OpPad
 from fuseimg.data.ops.aug.color import OpAugColor, OpAugGaussian
 from fuseimg.data.ops.aug.geometry import OpResizeTo, OpAugAffine2D
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
@@ -149,8 +150,8 @@ class ISIC:
             # Load Image
             (OpLoadImage(data_path), dict(key_in="data.input.img_path", key_out="data.input.img")),
             
-            # Normalize Image to range [0, 1]
-            (OpNormalizeAgainstSelf(), dict(key="data.input.img")),
+            # Normalize Images to range [0, 1]
+            (OpToRange(), dict(key="data.input.img", from_range=(0, 255), to_range=(0, 1))),
 
             # Read labels into sample_dict. Each class will have a different entry.
             (OpReadDataframe(data_filename=os.path.join(data_path, '../ISIC_2019_Training_GroundTruth.csv'), key_column='image'), dict()),

@@ -59,10 +59,8 @@ class ClassificationISICTestCase(unittest.TestCase):
 
     @run_in_subprocess
     def test_runner(self):
-        num_gpus_allocated = GPU.choose_and_enable_multiple_gpus(1, use_cpu_if_fail=True)
-
         # Must use GPU due a long running time
-        self.assertTrue(num_gpus_allocated > 0)
+        GPU.choose_and_enable_multiple_gpus(1, use_cpu_if_fail=False)
 
         Seed.set_seed(0, False) # previous test (in the pipeline) changed the deterministic behavior to True
         run_train(self.paths, self.train_common_params, self.isic)
