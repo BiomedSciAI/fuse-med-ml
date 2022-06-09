@@ -1,7 +1,24 @@
+"""
+(C) Copyright 2021 IBM Corp.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Created on June 30, 2021
+
+"""
 import os
 import logging
 from typing import OrderedDict
-from tempfile import gettempdir
 
 import torch.optim as optim
 import torch.nn.functional as F
@@ -42,7 +59,6 @@ from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN
 ##########################################
 mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
 debug = FuseDebug(mode)
-tmpdir = gettempdir()
 
 ##########################################
 # Output Paths
@@ -50,15 +66,13 @@ tmpdir = gettempdir()
 
 # TODO: Path to save model
 ROOT = 'examples/isic/'
-# TODO: Name of the experiment
-EXPERIMENT = 'InceptionResnetV2_2019_test'
 
-PATHS = {'data_dir': os.path.join(tmpdir, 'isic_data'),
-         'model_dir': os.path.join(ROOT, 'isic/model_dir'),
+PATHS = {'data_dir': os.path.join(ROOT, 'data_dir'),
+         'model_dir': os.path.join(ROOT, 'model_dir'),
          'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
-         'cache_dir': os.path.join(tmpdir, 'isic_cache'),
-         'inference_dir': os.path.join(ROOT, 'isic/infer_dir'),
-         'eval_dir': os.path.join(ROOT, 'isic/eval_dir')}
+         'cache_dir': os.path.join(ROOT, 'cache_dir'),
+         'inference_dir': os.path.join(ROOT, 'infer_dir'),
+         'eval_dir': os.path.join(ROOT, 'eval_dir')}
 
 ##########################################
 # Train Common Params
@@ -80,7 +94,6 @@ TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 8
 # Manager - Train
 # ===============
 TRAIN_COMMON_PARAMS['manager.train_params'] = {
-    # 'num_gpus': 1,
     'device': 'cuda', 
     'num_epochs': 20,
     'virtual_batch_size': 1,  # number of batches in one virtual batch
@@ -95,6 +108,7 @@ TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = {
     'on_equal_values': 'better',
     # can be either better/worse - whether to consider best epoch when values are equal
 }
+TRAIN_COMMON_PARAMS['manager.dropout_rate'] = 0.5
 TRAIN_COMMON_PARAMS['manager.learning_rate'] = 1e-5
 TRAIN_COMMON_PARAMS['manager.weight_decay'] = 1e-3
 TRAIN_COMMON_PARAMS['manager.resume_checkpoint_filename'] = None  # if not None, will try to load the checkpoint
@@ -160,7 +174,7 @@ def run_train(paths: dict, train_common_params: dict, isic: ISIC):
                   'InceptionResnetV2': BackboneInceptionResnetV2(input_channels_num=3, logical_units_num=43)}['InceptionResnetV2'],
         heads=[
             HeadGlobalPoolingClassifier(head_name='head_0',
-                                            dropout_rate=0.5,
+                                            dropout_rate=train_common_params['manager.dropout_rate'],
                                             conv_inputs=[('model.backbone_features', 1536)],
                                             num_classes=8,
                                             pooling="avg"),
@@ -265,7 +279,7 @@ def run_infer(paths: dict, infer_common_params: dict, isic: ISIC):
 
 
 ######################################
-# Analyze Common Params
+# Eval Common Params
 ######################################
 EVAL_COMMON_PARAMS = {}
 EVAL_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
@@ -274,12 +288,12 @@ EVAL_COMMON_PARAMS['num_workers'] = 4
 EVAL_COMMON_PARAMS['batch_size'] = 8
 
 ######################################
-# Analyze Template
+# Eval Template
 ######################################
 def run_eval(paths: dict, eval_common_params: dict):
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
-    lgr.info('Fuse Analyze', {'attrs': ['bold', 'underline']})
+    lgr.info('Fuse Eval', {'attrs': ['bold', 'underline']})
 
     # metrics
     metrics = OrderedDict([
