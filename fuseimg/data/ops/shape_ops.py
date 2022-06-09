@@ -102,17 +102,6 @@ class OpResizeAndPad2D(OpBase):
         :param number_of_channels: number of color channels in the image
         :return: padded image
         """
-        # "Pad" around inner image with background value 
-        # inner_image_height, inner_image_width = inner_image.shape[0], inner_image.shape[1]
-        # # pad first row
-        # inner_image[0:inner_image_height, 0] = self.pad_value
-        # # pad last row
-        # inner_image[0:inner_image_height, inner_image_width - 1] = self.pad_value
-        # # pad first column
-        # inner_image[0, 0:inner_image_width] = self.pad_value
-        # # pad last column
-        # inner_image[inner_image_height - 1, 0:inner_image_width] = self.pad_value
-
         image = self.pad_inner_image(inner_image, outer_height=resize_to[0] + 2 * padding[0],
                                                            outer_width=resize_to[1] + 2 * padding[1], pad_value=self.pad_value)
         return image
