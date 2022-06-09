@@ -2,7 +2,7 @@
 
 ## Data package
 Extends FuseMedML [data package](../fuse/data/README.md) for imaging.
-Here you can find useful ops for imaging and public datasets implementation
+Here you can find useful ops for imaging and public datasets implementations
 
 ### Imaging operators
 
