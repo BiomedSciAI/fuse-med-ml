@@ -9,7 +9,7 @@ from fuse.data import PipelineDefault, OpToTensor
 from fuse.data.ops.ops_common import OpLambda, OpLookup
 from fuseimg.data.ops.aug.color import OpAugColor
 from fuseimg.data.ops.aug.geometry import OpAugAffine2D 
-from fuse.data.ops.ops_aug_common import OpSample
+from fuse.data.ops.ops_aug_common import OpSample, OpRandApply
 from fuse.data.ops.ops_read import OpReadDataframe
 from fuse.data.ops.ops_cast import OpToNumpy
 from fuse.data.ops.op_base import OpBase
@@ -86,14 +86,14 @@ class CMMD:
             (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")) ])
         if train:
             dynamic_pipeline.extend([
-                (OpSample(OpAugAffine2D()), dict(
+                (OpRandApply(OpSample(OpAugAffine2D()), 0.5), dict(
                                 key="data.input.img",
                                 rotate=Uniform(-30.0,30.0),        
                                 scale=Uniform(0.9, 1.1),
                                 flip=(RandBool(0.3), RandBool(0.5)),
                                 translate=(RandInt(-10, 10), RandInt(-10, 10))
                             )),
-                (OpSample(OpAugColor()), dict(
+                (OpRandApply(OpSample(OpAugColor()), 0.5), dict(
                             key="data.input.img",
                             gamma=Uniform(0.9, 1.1), 
                             contrast=Uniform(0.85, 1.15),

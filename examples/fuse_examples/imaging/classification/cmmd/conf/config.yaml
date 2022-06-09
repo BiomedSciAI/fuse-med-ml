@@ -26,7 +26,7 @@ train:
     start_saving_epochs: 10
     gap_between_saving_epochs : 100
   manager_best_epoch_source:
-    source: metrics.auc
+    source: metrics.auc.macro_avg
     optimization: max
     on_equal_values: better
 infer:

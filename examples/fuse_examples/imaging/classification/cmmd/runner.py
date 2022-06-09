@@ -108,7 +108,7 @@ def run_train(paths : NDict , train: NDict ):
 
     train_dataset = CMMD.dataset(paths["data_dir"], paths["data_misc_dir"], train['target'], paths["cache_dir"], reset_cache=False, num_workers=train["num_workers"], sample_ids=train_sample_ids, train=True)
     
-    validation_dataset = CMMD.dataset(paths["data_dir"], paths["data_misc_dir"], train['target'], paths["cache_dir"],  reset_cache=False, num_workers=train["num_workers"], sample_ids=validation_sample_ids, train=True)
+    validation_dataset = CMMD.dataset(paths["data_dir"], paths["data_misc_dir"], train['target'], paths["cache_dir"],  reset_cache=False, num_workers=train["num_workers"], sample_ids=validation_sample_ids)
 
     ## Create sampler
     lgr.info(f'- Create sampler:')
