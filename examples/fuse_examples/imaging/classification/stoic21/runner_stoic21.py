@@ -137,7 +137,7 @@ def run_train(paths: dict, train_params: dict):
     lgr.info(f'Train Data:', {'attrs': 'bold'})
 
     # split to folds randomly - temp
-    dataset_all = STOIC21.dataset(paths["data_dir"], paths["cache_dir"], reset_cache=True)
+    dataset_all = STOIC21.dataset(paths["data_dir"], paths["cache_dir"], reset_cache=False)
     folds = dataset_balanced_division_to_folds(dataset=dataset_all,
                                         output_split_filename=paths["data_split_filename"], 
                                         keys_to_balance=["data.gt.probSevere"], 
