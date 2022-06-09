@@ -152,9 +152,6 @@ class ISIC:
             # Normalize Image to range [0, 1]
             (OpNormalizeAgainstSelf(), dict(key="data.input.img")),
 
-            # Cast to numpy array for caching purposes
-            (OpToNumpy(), dict(key="data.input.img")),
-
             # Read labels into sample_dict. Each class will have a different entry.
             (OpReadDataframe(data_filename=os.path.join(data_path, '../ISIC_2019_Training_GroundTruth.csv'), key_column='image'), dict()),
 
@@ -214,9 +211,11 @@ class ISIC:
                 override_partition: bool = True) -> DatasetDefault:
         """
         Get cached dataset
+        :param train: if true returns the train dataset, else the validation one.
         :param reset_cache: set to True to reset the cache
         :param num_workers: number of processes used for caching 
         :param sample_ids: dataset including the specified sample_ids or None for all the samples.
+        :param override_partition: If True, will make a new partition of train-validation sets.
         """
         train_data_path = os.path.join(self.data_path, 'ISIC2019/ISIC_2019_Training_Input')
         labels_path = os.path.join(self.data_path, 'ISIC2019/ISIC_2019_Training_GroundTruth.csv')
