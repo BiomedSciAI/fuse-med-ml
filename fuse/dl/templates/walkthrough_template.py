@@ -148,7 +148,16 @@ def train_template(paths: dict, train_common_params: dict):
     # ==============================================================================
     # Data
     #   Build dataloaders (torch.utils.data.DataLoader) for both train and validation.
-    #   For more details, read (fuse/data/README.md)[../../fuse/data/README.md] 
+    #   
+    #   Default dataset implementation built from a sequence of op(erator)s.
+    #   Operators are the building blocks of the sample processing pipeline. 
+    #   Each operator gets as input the *sample_dict* as created by the previous operators and can either add/delete/modify fields in sample_dict. 
+    #   The operator interface is specified in OpBase class. 
+    #   
+    #   We split the pipeline into two parts - static and dynamic, which allow us to control the part out of the entire pipeline that will be cached. 
+    # 
+    #   For more details and examples, read (fuse/data/README.md)[../../fuse/data/README.md]
+    #   A complete example implementation of a dataset can be bound in  (fuseimg/datasets/stoic21.py)[../../examples/fuse_examples/imaging/classification/stoic21/runner_stoic21.py] STOIC21.static_pipeline(). 
     # ==============================================================================
 
     #### Train Data
@@ -161,7 +170,8 @@ def train_template(paths: dict, train_common_params: dict):
     train_sample_ids = None
     validation_sample_ids = None
 
-    ## Create data static_pipeline - the output of this pipeline will be cached to optimize the running time and to better utilize the GPU:
+    ## Create data static_pipeline - 
+    #                                the output of this pipeline will be cached to optimize the running time and to better utilize the GPU:
     #                                See example in (fuseimg/datasets/stoic21.py)[../../examples/fuse_examples/imaging/classification/stoic21/runner_stoic21.py] STOIC21.static_pipeline().
     static_pipeline = PipelineDefault("template_static", [
         

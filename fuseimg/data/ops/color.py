@@ -13,7 +13,7 @@ from fuseimg.data.ops.ops_common_imaging import OpApplyTypesImaging
 
 class OpClip(OpBase):
     """
-    Clip values - support both torh tensor and numpy array
+    Clip values - support both torch tensor and numpy array
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
