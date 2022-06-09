@@ -155,5 +155,3 @@ class OpPad(OpBase):
 
         sample_dict[key] = processed_img
         return sample_dict
-
-op_pad_img = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpPad(), {}) })

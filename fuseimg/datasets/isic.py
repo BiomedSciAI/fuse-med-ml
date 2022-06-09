@@ -1,8 +1,5 @@
 import os
-from functools import partial
-from sqlite3 import SQLITE_CREATE_TEMP_TABLE
 from zipfile import ZipFile
-import io
 import wget
 import logging
 from typing import Hashable, Optional, Sequence, List
