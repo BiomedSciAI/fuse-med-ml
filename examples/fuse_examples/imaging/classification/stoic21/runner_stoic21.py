@@ -56,10 +56,10 @@ from fuseimg.datasets.stoic21 import STOIC21
 ##########################################
 # Debug modes
 ##########################################
-mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
+mode = 'default'  # Options: 'default', 'debug'. See details in FuseDebug
 debug = FuseDebug(mode)
 
-##########################################
+##########################################qQ
 # Output Paths
 ##########################################
 assert "STOIC21_DATA_PATH" in os.environ, "Expecting environment variable STOIC21_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
@@ -137,7 +137,7 @@ def run_train(paths: dict, train_params: dict):
     lgr.info(f'Train Data:', {'attrs': 'bold'})
 
     # split to folds randomly - temp
-    dataset_all = STOIC21.dataset(paths["data_dir"], paths["cache_dir"], reset_cache=False)
+    dataset_all = STOIC21.dataset(paths["data_dir"], paths["cache_dir"], reset_cache=True)
     folds = dataset_balanced_division_to_folds(dataset=dataset_all,
                                         output_split_filename=paths["data_split_filename"], 
                                         keys_to_balance=["data.gt.probSevere"], 
