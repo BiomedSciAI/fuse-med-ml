@@ -19,7 +19,7 @@ from fuseimg.data.ops.color import OpToRange
 from fuse.utils import NDict
 
 from fuseimg.data.ops.image_loader import OpLoadImage
-from fuseimg.data.ops.shape_ops import OpPad
+from fuseimg.data.ops.shape_ops import OpPad, OpCHWToHWC, OpHWCToCHW
 from fuseimg.data.ops.aug.color import OpAugColor, OpAugGaussian
 from fuseimg.data.ops.aug.geometry import OpResizeTo, OpAugAffine2D
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
@@ -141,11 +141,17 @@ class ISIC:
         """
 
         dynamic_pipeline = PipelineDefault("dynamic", [
-            # Resize images to 3x300x300
-            (OpResizeTo(), dict(key="data.input.img", output_shape=[3, 300, 300], mode='reflect', anti_aliasing=True)),
-            
             # Cast to Tensor
             (OpToTensor(), dict(key="data.input.img")),
+
+            # Convert to a H x W x C tensor format
+            (OpCHWToHWC(), dict(key="data.input.img")),
+
+            # Resize images to 300x300x3
+            (OpResizeTo(), dict(key="data.input.img", output_shape=[300, 300, 3], mode='reflect', anti_aliasing=True)),
+
+            # Convert back to a C x H x W tensor format
+            (OpHWCToCHW(), dict(key="data.input.img")),
 
             # Padding
             (OpPad(), dict(key="data.input.img", padding=1)),

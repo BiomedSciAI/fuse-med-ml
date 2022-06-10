@@ -2,7 +2,7 @@ from typing import List, Optional, Tuple, Union
 
 from PIL import Image
 
-import numpy
+import numpy as np
 import torch
 import torchvision.transforms.functional as TTF
 import skimage
@@ -64,7 +64,7 @@ class OpAugAffine2D(OpBase):
                 aug_channel_tensor = TTF.hflip(aug_channel_tensor)
 
             # convert back to torch tensor
-            aug_channel_tensor = numpy.array(aug_channel_tensor)
+            aug_channel_tensor = np.array(aug_channel_tensor)
             aug_channel_tensor = torch.from_numpy(aug_channel_tensor)
 
             # set the augmented channel
@@ -226,23 +226,31 @@ class OpResizeTo(OpBase):
     Resizes an image into the given dimensions.
     """
     def __init__(self):
-        """
-        :param verify_arguments: 
-        
-        This Op expects torch / ndarray with d dimensions such that len(resize_to) == d.
-        """
         super().__init__()
 
     def __call__(self, sample_dict: NDict, key: str, **kwargs) -> NDict:
         """
-        :param key: key to a numpy array or tensor stored in the sample_dict
+        :param key: key to a numpy array or tensor stored in the sample_dict in a H x W x C format.
         :param kwargs: additional arguments to pass to the resize function
 
         Stores the resized image in sample_dict[key]
         """
         aug_input = sample_dict[key]
+
+        # Input image is tensor
+        # NOTE - Consider using 'torchvision.transforms.Resize' instead of double casting.
+        if torch.is_tensor(aug_input):
+            aug_input = aug_input.numpy()
+            aug_output = skimage.transform.resize(image=aug_input, **kwargs)
+            aug_output = torch.from_numpy(aug_output)
         
-        aug_output = skimage.transform.resize(image=aug_input, **kwargs)
+        # Input image is ndarray
+        elif isinstance(aug_input, np.ndarray):
+            aug_output = skimage.transform.resize(image=aug_input, **kwargs)
+
+        else:
+            raise Exception(f"Error: unexpected image type {type(aug_input)}. Expects tensor / ndarray.") 
+
         sample_dict[key] = aug_output
 
         return sample_dict

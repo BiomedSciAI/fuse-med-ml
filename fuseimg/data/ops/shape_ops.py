@@ -30,7 +30,7 @@ class OpHWCToCHW(OpBase):
     HWC (height, width, channel) to CHW (channel, height, width)
     """
     
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str) -> NDict:
+    def __call__(self, sample_dict: NDict, key: str) -> NDict:
         '''
         :param key: key to torch tensor of shape [H, W, C]
         '''
@@ -49,7 +49,7 @@ class OpCHWToHWC(OpBase):
     CHW (channel, height, width) to HWC (height, width, channel)
     """
     
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str) -> NDict:
+    def __call__(self, sample_dict: NDict, key: str) -> NDict:
         '''
         :param key: key to torch tensor of shape [C, H, W]
         '''
