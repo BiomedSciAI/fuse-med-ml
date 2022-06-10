@@ -17,17 +17,14 @@ Created on June 30, 2021
 
 """
 
-import logging
 import unittest
 import os
 import tempfile
 import shutil
 from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
-from fuse.utils.utils_logger import fuse_logger_end
 
 from fuse_examples.imaging.classification.isic.runner import TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS,\
                                                                  run_train, run_infer, run_eval, PATHS
-
 import fuse.utils.gpu as GPU
 from fuse.utils.rand.seed import Seed
 from fuseimg.datasets.isic import ISIC
@@ -60,6 +57,7 @@ class ClassificationISICTestCase(unittest.TestCase):
         GPU.choose_and_enable_multiple_gpus(1, use_cpu_if_fail=False)
 
         Seed.set_seed(0, False) # previous test (in the pipeline) changed the deterministic behavior to True
+        
         run_train(self.paths, self.train_common_params)
         run_infer(self.paths, self.infer_common_params)
         results = run_eval(self.paths, self.eval_common_params)

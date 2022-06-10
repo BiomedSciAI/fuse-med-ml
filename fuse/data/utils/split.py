@@ -61,7 +61,7 @@ def balanced_division(df : pd.DataFrame, no_mixture_id : str, keys_to_balance: S
     id_level_labels = []
     record_labels = []
     for field in keys_to_balance:
-        values = df[field].unique() # values cannot be ndarray (notify Moshiko about the error)
+        values = df[field].unique()
         for value in values:
             value2 = str.replace(str(value), '+', '')
             # creates a binary label for each record and label

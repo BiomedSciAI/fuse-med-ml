@@ -3,10 +3,6 @@ from zipfile import ZipFile
 import wget
 import logging
 from typing import Hashable, Optional, Sequence, List
-from sklearn.model_selection import train_test_split
-import pickle
-import pandas as pd
-import numpy as np
 import torch
 
 from fuse.data import DatasetDefault
@@ -62,10 +58,7 @@ def derive_label(sample_dict: NDict) -> NDict:
         
         del sample_dict[cls_name]
     
-    # sample_dict['data.label'] = np.array(label) 
     sample_dict['data.label'] = label
-
-
     return sample_dict
 
 
@@ -199,12 +192,12 @@ class ISIC:
         :param sample_ids: dataset including the specified sample_ids or None for all the samples.
         :param override_partition: If True, will make a new partition of train-validation sets.
         """
-        train_data_path = os.path.join(data_path, 'ISIC2019/ISIC_2019_Training_Input')
+        data_dir = os.path.join(data_path, 'ISIC2019/ISIC_2019_Training_Input')
 
         if samples_ids is None:
             samples_ids = ISIC.sample_ids(data_path)
         
-        static_pipeline = ISIC.static_pipeline(train_data_path)
+        static_pipeline = ISIC.static_pipeline(data_dir)
         dynamic_pipeline = ISIC.dynamic_pipeline(train)
 
         cacher = SamplesCacher(f'isic_cache_ver{ISIC.DATASET_VER}', 

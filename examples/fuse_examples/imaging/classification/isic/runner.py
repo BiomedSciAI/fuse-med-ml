@@ -84,7 +84,6 @@ TRAIN_COMMON_PARAMS = {}
 # ============
 # Model
 # ============
-TRAIN_COMMON_PARAMS['model'] = ''
 
 # ============
 # Data
@@ -103,7 +102,7 @@ TRAIN_COMMON_PARAMS['manager.train_params'] = {
     'device': 'cuda', 
     'num_epochs': 20,
     'virtual_batch_size': 1,  # number of batches in one virtual batch
-    'start_saving_epochs': 10,  # first epoch to start saving checkpoints from
+    'start_saving_epochs': 20,  # first epoch to start saving checkpoints from
     'gap_between_saving_epochs': 10,  # number of epochs between saved checkpoint
 }
 # best_epoch_source
@@ -141,7 +140,7 @@ def run_train(paths: dict, train_common_params: dict):
     lgr.info(f'Train Data:', {'attrs': 'bold'})
 
     # split to folds randomly - temp
-    all_dataset = ISIC.dataset(paths['data_dir'], paths['cache_dir'], reset_cache=True, num_workers=train_common_params['data.train_num_workers'], samples_ids=FULL_GOLDEN_MEMBERS)
+    all_dataset = ISIC.dataset(paths['data_dir'], paths['cache_dir'], reset_cache=False, num_workers=train_common_params['data.train_num_workers'], samples_ids=FULL_GOLDEN_MEMBERS)
     folds = dataset_balanced_division_to_folds(dataset=all_dataset,
                                                 output_split_filename=paths['data_split_filename'],
                                                 keys_to_balance=['data.label'],
@@ -279,7 +278,7 @@ INFER_COMMON_PARAMS['data.batch_size'] = [4]
 # Inference Template
 ######################################
 def run_infer(paths: dict, infer_common_params: dict):
-    #### Logger
+    ## Logger
     fuse_logger_start(output_path=paths['inference_dir'], console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Inference', {'attrs': ['bold', 'underline']})
