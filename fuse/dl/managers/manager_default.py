@@ -122,6 +122,7 @@ class ManagerDefault:
             virtual_batch_size - number of batches in one virtual batch (default 1),
             start_saving_epochs - first epoch to start saving checkpoint (default 80)
             gap_between_saving_epochs - number of epochs between each saved checkpoint
+            lr_sch_target - key to a value in epoch results dictionary to pass to the learning rate scheduler. (typically: 'validation.losses.total_loss' or 'train.losses.total_loss')
         :param output_model_dir: directory to save the model data to
 
         """
@@ -912,7 +913,7 @@ class ManagerDefault:
             set_default('num_epochs', 100)
             set_default('gap_between_saving_epochs', 5)
             set_default('start_saving_epochs', 80)
-            set_default('lr_sch_target', 'train.losses.total_loss')
+            set_default('lr_sch_target', 'validation.losses.total_loss')
 
         return full_config
 
