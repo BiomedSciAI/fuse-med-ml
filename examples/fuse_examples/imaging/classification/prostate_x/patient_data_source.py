@@ -15,18 +15,21 @@ Created on June 30, 2021
 from typing import List, Tuple
 
 from fuse.data.data_source.data_source_base import DataSourceBase
-from fuse_examples.imaging.classification.prostate_x.data_utils import ProstateXUtilsData
+from fuse_examples.imaging.classification.prostate_x.data_utils import (
+    ProstateXUtilsData,
+)
+
 
 class ProstateXDataSourcePatient(DataSourceBase):
-    def __init__(self,
-                 db_path: str,
-                 set_type: str,
-                 db_name: str,
-                 db_ver:int = 11,
-                 fold_no: int=0,
-                 include_gt: bool = True,
-
-                 ):
+    def __init__(
+        self,
+        db_path: str,
+        set_type: str,
+        db_name: str,
+        db_ver: int = 11,
+        fold_no: int = 0,
+        include_gt: bool = True,
+    ):
         """
         Fuse DataSource for ProstateX data.
         Generate sample decription per patient
@@ -43,9 +46,6 @@ class ProstateXDataSourcePatient(DataSourceBase):
         self.fold_no = fold_no
         self.desc_list = self.generate_patient_list()
 
-
-
-
     def get_samples_description(self):
         return list(self.desc_list)
 
@@ -53,26 +53,39 @@ class ProstateXDataSourcePatient(DataSourceBase):
         """
         See base class
         """
-        summary_str = ''
-        summary_str += f'Class = {type(self)}\n'
-        summary_str += f'Input source = {self.set_type}\n'
-        summary_str += f'Number of Patients = {len(self.desc_list)}\n'
+        summary_str = ""
+        summary_str += f"Class = {type(self)}\n"
+        summary_str += f"Input source = {self.set_type}\n"
+        summary_str += f"Number of Patients = {len(self.desc_list)}\n"
         return summary_str
 
-
     def generate_patient_list(self) -> List[Tuple]:
-        '''
+        """
         Go Over all patients and create a tuple list of (db_ver, set_type, patient_id [,'gt'])
         :return: list of patient descriptors
-        '''
-        data = ProstateXUtilsData.get_dataset(self.db_path,self.set_type, self.db_ver,self.db_name,self.fold_no)
-        if (self.db_name=='prostate_x') | (self.db_name=='ISPY2')| (self.db_name=='DUKE'):
+        """
+        data = ProstateXUtilsData.get_dataset(
+            self.db_path, self.set_type, self.db_ver, self.db_name, self.fold_no
+        )
+        if (
+            (self.db_name == "prostate_x")
+            | (self.db_name == "ISPY2")
+            | (self.db_name == "DUKE")
+        ):
             data_lesions = ProstateXUtilsData.get_lesions_prostate_x(data)
 
-        patients = list(data_lesions['Patient ID'].unique())
+        patients = list(data_lesions["Patient ID"].unique())
 
         return patients
 
+
 if __name__ == "__main__":
-    path_to_db = '/gpfs/haifa/projects/m/msieve_dev3/usr/Tal/my_research/virtual_biopsy/prostate/experiments/V1/'
-    train_data_source = ProstateXDataSourcePatient(path_to_db,'train',db_name='tcia', db_ver='18042021',fold_no=0, include_gt=False)
+    path_to_db = "/gpfs/haifa/projects/m/msieve_dev3/usr/Tal/my_research/virtual_biopsy/prostate/experiments/V1/"
+    train_data_source = ProstateXDataSourcePatient(
+        path_to_db,
+        "train",
+        db_name="tcia",
+        db_ver="18042021",
+        fold_no=0,
+        include_gt=False,
+    )

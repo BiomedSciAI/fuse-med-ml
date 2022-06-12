@@ -31,8 +31,8 @@ from fuse.utils.ndict import NDict
 
 class MetricStatisticsCallback(Callback):
     """
-        Responsible of writing the metric results into a CSV file under output_path
-        The columns are: mode, epoch, metric_name, metric_value
+    Responsible of writing the metric results into a CSV file under output_path
+    The columns are: mode, epoch, metric_name, metric_value
     """
 
     def __init__(self, output_path: str, metrics: Optional[List[str]] = None) -> None:
@@ -70,32 +70,40 @@ class MetricStatisticsCallback(Callback):
         if epoch_results is None:
             return
 
-        lgr = logging.getLogger('Fuse')
+        lgr = logging.getLogger("Fuse")
         flat_results = epoch_results.flatten()
         # if this is step 0 - pre-training results should be logged in addition to the metrics csv
         if epoch == 0:
-            lgr.info(f'Stats for Pre-Training:')
+            lgr.info(f"Stats for Pre-Training:")
             for evaluator_name, evaluator_value in sorted(flat_results.items()):
-                lgr.info(f'{evaluator_name:20} = {str(evaluator_value)}')
+                lgr.info(f"{evaluator_name:20} = {str(evaluator_value)}")
 
         # create a file
         if self.first:
-            header_df = pd.DataFrame(columns=['mode', 'epoch'] + sorted(flat_results.keys()))
+            header_df = pd.DataFrame(
+                columns=["mode", "epoch"] + sorted(flat_results.keys())
+            )
             header_df.to_csv(self.output_path, header=True, index=False)
             self.first = False
 
-        metrics_df = pd.DataFrame.from_dict(flat_results, orient='index').T
-        metrics_df['mode'] = mode
-        metrics_df['epoch'] = epoch
+        metrics_df = pd.DataFrame.from_dict(flat_results, orient="index").T
+        metrics_df["mode"] = mode
+        metrics_df["epoch"] = epoch
 
         try:
             if self.metrics is None:
-                metrics_df[['mode', 'epoch'] + sorted(flat_results.keys())].to_csv(self.output_path, mode='a', header=False, index=False)
+                metrics_df[["mode", "epoch"] + sorted(flat_results.keys())].to_csv(
+                    self.output_path, mode="a", header=False, index=False
+                )
             else:
-                metrics_df[['mode', 'epoch'] + self.metrics].to_csv(self.output_path, mode='a', header=False, index=False)
+                metrics_df[["mode", "epoch"] + self.metrics].to_csv(
+                    self.output_path, mode="a", header=False, index=False
+                )
         except Exception as e:
             track = traceback.format_exc()
             lgr.error(track)
-            lgr.error("Cannot write epoch stats file (maybe it is open in another program?). Will try again next epoch.")
+            lgr.error(
+                "Cannot write epoch stats file (maybe it is open in another program?). Will try again next epoch."
+            )
 
         pass

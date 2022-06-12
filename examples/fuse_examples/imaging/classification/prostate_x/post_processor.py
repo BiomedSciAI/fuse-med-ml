@@ -20,25 +20,24 @@ from fuse.utils.ndict import NDict
 import numpy as np
 
 
-def post_processing(batch_dict: NDict,
-                ) -> None:
+def post_processing(
+    batch_dict: NDict,
+) -> None:
     """
     post_processing updates batch_dict on the post processing phase
     :param batch_dict:
     :return:
     """
     # transform gt information to tensor
-    label_tensor = torch.tensor(batch_dict['data.ClinSig']+0,dtype=torch.int64)
-    batch_dict['data.ground_truth'] = label_tensor
-
-
+    label_tensor = torch.tensor(batch_dict["data.ClinSig"] + 0, dtype=torch.int64)
+    batch_dict["data.ground_truth"] = label_tensor
 
     # extract zone of lesion (one of four possible zones) as possible feature to use
-    zone = batch_dict['data.zone']
+    zone = batch_dict["data.zone"]
     zone2feature = {
-        'PZ': torch.tensor(np.array([0, 0, 0]), dtype=torch.float32),
-        'TZ': torch.tensor(np.array([0, 0, 1]), dtype=torch.float32),
-        'AS': torch.tensor(np.array([0, 1, 0]), dtype=torch.float32),
-        'SV': torch.tensor(np.array([1, 0, 0]), dtype=torch.float32),
+        "PZ": torch.tensor(np.array([0, 0, 0]), dtype=torch.float32),
+        "TZ": torch.tensor(np.array([0, 0, 1]), dtype=torch.float32),
+        "AS": torch.tensor(np.array([0, 1, 0]), dtype=torch.float32),
+        "SV": torch.tensor(np.array([1, 0, 0]), dtype=torch.float32),
     }
-    batch_dict['data.tensor_clinical'] = zone2feature[zone]
+    batch_dict["data.tensor_clinical"] = zone2feature[zone]

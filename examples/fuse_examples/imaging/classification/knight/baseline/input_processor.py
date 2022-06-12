@@ -31,12 +31,18 @@ from fuse.data.processor.processor_base import ProcessorBase
 
 import SimpleITK as sitk
 
+
 class KiTSBasicInputProcessor(ProcessorBase):
-    def __init__(self,
-                 input_data: str,
-                 normalized_target_range: Tuple = (0, 1),
-                 resize_to: Optional[Tuple] = (256, 256, 110), # 110 is the median number of slices
-                 ):
+    def __init__(
+        self,
+        input_data: str,
+        normalized_target_range: Tuple = (0, 1),
+        resize_to: Optional[Tuple] = (
+            256,
+            256,
+            110,
+        ),  # 110 is the median number of slices
+    ):
         """
         Create Input processor
         :param input_data:              path to images
@@ -48,28 +54,34 @@ class KiTSBasicInputProcessor(ProcessorBase):
         self.normalized_target_range = normalized_target_range
         self.resize_to = resize_to
 
-    def __call__(self,
-                 inner_image_desc,
-                 *args, **kwargs):
+    def __call__(self, inner_image_desc, *args, **kwargs):
         try:
-            if self.input_data.endswith('images'):
-                img_path = os.path.join(self.input_data, str(inner_image_desc) + '.nii.gz')
+            if self.input_data.endswith("images"):
+                img_path = os.path.join(
+                    self.input_data, str(inner_image_desc) + ".nii.gz"
+                )
             else:
-                img_path = os.path.join(self.input_data, str(inner_image_desc), 'imaging.nii.gz')
+                img_path = os.path.join(
+                    self.input_data, str(inner_image_desc), "imaging.nii.gz"
+                )
 
             # read image
             data_itk = sitk.ReadImage(img_path)
 
             # convert to numpy
             data_npy = sitk.GetArrayFromImage(data_itk).astype(np.float32)
-            
+
             # normalize
-            #inner_image = normalize_to_range(data_npy, range=self.normalized_target_range)
+            # inner_image = normalize_to_range(data_npy, range=self.normalized_target_range)
             inner_image = kits_normalization(data_npy)
-            
+
             # resize
-            inner_image_height, inner_image_width, inner_image_depth = inner_image.shape[0], inner_image.shape[1], inner_image.shape[2]
-            
+            inner_image_height, inner_image_width, inner_image_depth = (
+                inner_image.shape[0],
+                inner_image.shape[1],
+                inner_image.shape[2],
+            )
+
             if inner_image_height != 512 or inner_image_width != 512:
                 # there is one sample in KiTS21 with a 796 number of rows,
                 # different from all the others. we disregard it for simplicity
@@ -77,25 +89,28 @@ class KiTSBasicInputProcessor(ProcessorBase):
             if self.resize_to is not None:
                 h_ratio = self.resize_to[0] / inner_image_height
                 w_ratio = self.resize_to[1] / inner_image_width
-                if h_ratio>=1 and w_ratio>=1:
+                if h_ratio >= 1 and w_ratio >= 1:
                     resize_ratio_xy = min(h_ratio, w_ratio)
-                elif h_ratio<1 and w_ratio<1:
+                elif h_ratio < 1 and w_ratio < 1:
                     resize_ratio_xy = max(h_ratio, w_ratio)
                 else:
                     resize_ratio_xy = 1
-                #resize_ratio_z = self.resize_to[2] / inner_image_depth
+                # resize_ratio_z = self.resize_to[2] / inner_image_depth
                 if resize_ratio_xy != 1 or inner_image_depth != self.resize_to[2]:
-                    inner_image = skimage.transform.resize(inner_image,
-                                                           output_shape=(int(inner_image_height * resize_ratio_xy),
-                                                                         int(inner_image_width * resize_ratio_xy),
-                                                                         int(self.resize_to[2])),
-                                                           mode='reflect',
-                                                           anti_aliasing=True
-                                                           )
+                    inner_image = skimage.transform.resize(
+                        inner_image,
+                        output_shape=(
+                            int(inner_image_height * resize_ratio_xy),
+                            int(inner_image_width * resize_ratio_xy),
+                            int(self.resize_to[2]),
+                        ),
+                        mode="reflect",
+                        anti_aliasing=True,
+                    )
 
             image = inner_image
 
-            # convert image from shape (H x W x D) to shape (D x H x W) 
+            # convert image from shape (H x W x D) to shape (D x H x W)
             image = np.moveaxis(image, -1, 0)
 
             # add a singleton channel dimension so the image takes the shape (C x D x H x W)
@@ -105,13 +120,14 @@ class KiTSBasicInputProcessor(ProcessorBase):
             sample = torch.from_numpy(image)
 
         except Exception as e:
-            lgr = logging.getLogger('Fuse')
+            lgr = logging.getLogger("Fuse")
             track = traceback.format_exc()
             lgr.error(e)
             lgr.error(track)
             return None
 
         return sample
+
 
 def kits_normalization(input_image: np.ndarray):
     # first, clip to [-62, 310] (corresponds to 0.5 and 99.5 percentile in the foreground regions)
@@ -124,6 +140,7 @@ def kits_normalization(input_image: np.ndarray):
     input_image -= mean_val
     input_image /= std_val
     return input_image
+
 
 def normalize_to_range(input_image: np.ndarray, range: Tuple = (-1.0, 1.0)):
     """
@@ -156,6 +173,8 @@ def pad_image(image: np.ndarray, outer_height: int, outer_width: int, pad_value:
     h_offset = int((outer_height - inner_height) / 2.0)
     w_offset = int((outer_width - inner_width) / 2.0)
     outer_image = np.ones((outer_height, outer_width, 3), dtype=image.dtype) * pad_value
-    outer_image[h_offset:h_offset + inner_height, w_offset:w_offset + inner_width, :] = image
+    outer_image[
+        h_offset : h_offset + inner_height, w_offset : w_offset + inner_width, :
+    ] = image
 
     return outer_image

@@ -27,45 +27,69 @@ import wget
 
 
 # FIXME: data_package
-#from fuse_examples.imaging.classification.knight.eval.eval import eval
-#from fuse_examples.imaging.classification.knight.make_targets_file import make_targets_file
-#import fuse_examples.imaging.classification.knight.baseline.fuse_baseline as baseline
+# from fuse_examples.imaging.classification.knight.eval.eval import eval
+# from fuse_examples.imaging.classification.knight.make_targets_file import make_targets_file
+# import fuse_examples.imaging.classification.knight.baseline.fuse_baseline as baseline
+
 
 @unittest.skip("FIXME: data_package")
 class KnightTestTestCase(unittest.TestCase):
-
     def setUp(self):
         self.root = tempfile.mkdtemp()
 
     def test_eval(self):
         dir_path = pathlib.Path(__file__).parent.resolve()
-        target_filename = os.path.join(dir_path, "../imaging/classification/knight/eval/example/example_targets.csv")
-        task1_prediction_filename = os.path.join(dir_path, "../imaging/classification/knight/eval/example/example_task1_predictions.csv")
-        task2_prediction_filename = os.path.join(dir_path, "../imaging/classification/knight/eval/example/example_task2_predictions.csv")
-        eval(target_filename=target_filename, task1_prediction_filename=task1_prediction_filename, task2_prediction_filename=task2_prediction_filename, output_dir=self.root)
+        target_filename = os.path.join(
+            dir_path,
+            "../imaging/classification/knight/eval/example/example_targets.csv",
+        )
+        task1_prediction_filename = os.path.join(
+            dir_path,
+            "../imaging/classification/knight/eval/example/example_task1_predictions.csv",
+        )
+        task2_prediction_filename = os.path.join(
+            dir_path,
+            "../imaging/classification/knight/eval/example/example_task2_predictions.csv",
+        )
+        eval(
+            target_filename=target_filename,
+            task1_prediction_filename=task1_prediction_filename,
+            task2_prediction_filename=task2_prediction_filename,
+            output_dir=self.root,
+        )
 
     def test_make_targets(self):
         dir_path = pathlib.Path(__file__).parent.resolve()
         data_path = os.path.join(self.root, "data")
         cache_path = os.path.join(self.root, "cache")
-        split = os.path.join(dir_path, "../imaging/classification/knight/baseline/splits_final.pkl")
+        split = os.path.join(
+            dir_path, "../imaging/classification/knight/baseline/splits_final.pkl"
+        )
         output_filename = os.path.join(self.root, "output/validation_targets.csv")
 
         create_dir(os.path.join(data_path, "knight", "data"))
         create_dir(os.path.dirname(output_filename))
-        wget.download("https://raw.github.com/neheller/KNIGHT/main/knight/data/knight.json", os.path.join(data_path, "knight", "data"))
-        make_targets_file(data_path=data_path, cache_path=cache_path, split=split, output_filename=output_filename)
+        wget.download(
+            "https://raw.github.com/neheller/KNIGHT/main/knight/data/knight.json",
+            os.path.join(data_path, "knight", "data"),
+        )
+        make_targets_file(
+            data_path=data_path,
+            cache_path=cache_path,
+            split=split,
+            output_filename=output_filename,
+        )
 
     @unittest.skip("Not ready yet")
-    # TODOs: set KNIGHT data 
+    # TODOs: set KNIGHT data
     # 1 Set 'KNIGHT_DATA' ahead (and not in the test)
     # 2, Add code that skip test if this var wasn't set
-    # 2. Modify main() to support overriding the arguments and override number of epochs to 2 (and maybe number of samples)  
+    # 2. Modify main() to support overriding the arguments and override number of epochs to 2 (and maybe number of samples)
     # 3. Use and test make predictions (inference script)
     def test_train(self):
-        os.environ['KNIGHT_DATA'] = "/projects/msieve/MedicalSieve/PatientData/KNIGHT"
-        os.environ['KNIGHT_CACHE'] = os.path.join(self.root, "train", "cache")
-        os.environ['KNIGHT_RESULTS'] = os.path.join(self.root, "train", "results")
+        os.environ["KNIGHT_DATA"] = "/projects/msieve/MedicalSieve/PatientData/KNIGHT"
+        os.environ["KNIGHT_CACHE"] = os.path.join(self.root, "train", "cache")
+        os.environ["KNIGHT_RESULTS"] = os.path.join(self.root, "train", "results")
         baseline.main()
 
     def tearDown(self):
@@ -73,5 +97,5 @@ class KnightTestTestCase(unittest.TestCase):
         shutil.rmtree(self.root)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

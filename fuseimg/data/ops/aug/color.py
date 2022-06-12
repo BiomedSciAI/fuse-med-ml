@@ -9,19 +9,28 @@ import torch
 
 class OpAugColor(OpBase):
     """
-    Color augmentation for gray scale images of any dimensions, including addition, multiplication, gamma and contrast adjusting 
+    Color augmentation for gray scale images of any dimensions, including addition, multiplication, gamma and contrast adjusting
     """
+
     def __init__(self, verify_arguments: bool = True):
         """
-        :param verify_arguments: this op expects torch tensor of range [0, 1]. Set to False to disable verification 
+        :param verify_arguments: this op expects torch tensor of range [0, 1]. Set to False to disable verification
         """
         super().__init__()
         self._verify_arguments = verify_arguments
 
-    def __call__(self, sample_dict: NDict,  key: str, add: Optional[float] = None, mul: Optional[float] = None,
-                    gamma: Optional[float] = None, contrast: Optional[float] = None, channels: Optional[List[int]] = None):
+    def __call__(
+        self,
+        sample_dict: NDict,
+        key: str,
+        add: Optional[float] = None,
+        mul: Optional[float] = None,
+        gamma: Optional[float] = None,
+        contrast: Optional[float] = None,
+        channels: Optional[List[int]] = None,
+    ):
         """
-        :param key: key to a image stored in sample_dict: torch tensor of range [0, 1] representing an image to , 
+        :param key: key to a image stored in sample_dict: torch tensor of range [0, 1] representing an image to ,
         :param add: value to add to each pixel
         :param mul: multiplication factor
         :param gamma: gamma factor
@@ -32,8 +41,12 @@ class OpAugColor(OpBase):
 
         # verify
         if self._verify_arguments:
-            assert isinstance(aug_input, torch.Tensor), f"Error: OpAugColor expects torch Tensor, got {type(aug_input)}"
-            assert aug_input.min() >= 0.0 and aug_input.max() <= 1.0 , f"Error: OpAugColor expects tensor in range [0.0-1.0]. got [{aug_input.min()}-{aug_input.max()}]"
+            assert isinstance(
+                aug_input, torch.Tensor
+            ), f"Error: OpAugColor expects torch Tensor, got {type(aug_input)}"
+            assert (
+                aug_input.min() >= 0.0 and aug_input.max() <= 1.0
+            ), f"Error: OpAugColor expects tensor in range [0.0-1.0]. got [{aug_input.min()}-{aug_input.max()}]"
 
         aug_tensor = aug_input
         if channels is None:
@@ -51,9 +64,13 @@ class OpAugColor(OpBase):
             if mul is not None:
                 aug_tensor[channels] = self.aug_op_mul_col(aug_tensor[channels], mul)
             if gamma is not None:
-                aug_tensor[channels] = self.aug_op_gamma(aug_tensor[channels], 1.0, gamma)
+                aug_tensor[channels] = self.aug_op_gamma(
+                    aug_tensor[channels], 1.0, gamma
+                )
             if contrast is not None:
-                aug_tensor[channels] = self.aug_op_contrast(aug_tensor[channels], contrast)
+                aug_tensor[channels] = self.aug_op_contrast(
+                    aug_tensor[channels], contrast
+                )
 
         sample_dict[key] = aug_tensor
         return sample_dict
@@ -91,7 +108,7 @@ class OpAugColor(OpBase):
         :param gamma: gamma factor
         :return: None
         """
-        input_tensor = (aug_input ** gamma) * gain
+        input_tensor = (aug_input**gamma) * gain
         input_tensor = OpClip.clip(input_tensor, clip=(0.0, 1.0))
         return input_tensor
 
@@ -113,7 +130,15 @@ class OpAugGaussian(OpBase):
     """
     Add gaussian noise to numpy array or torch tensor of any dimensions
     """
-    def __call__(self, sample_dict: NDict, key: str, mean: float = 0.0, std: float = 0.03, channels: Optional[List[int]] = None) -> Tensor:
+
+    def __call__(
+        self,
+        sample_dict: NDict,
+        key: str,
+        mean: float = 0.0,
+        std: float = 0.03,
+        channels: Optional[List[int]] = None,
+    ) -> Tensor:
         """
         :param key: key to a tensor or numpy array stored in sample_dict: any dimension and any range
         :param mean: mean gaussian distribution
@@ -121,7 +146,7 @@ class OpAugGaussian(OpBase):
         :param channels: Apply just over the specified channels. If set to None will apply on all channels.
         """
         aug_input = sample_dict[key]
-        
+
         aug_tensor = aug_input
         if channels is None:
             rand_patch = Gaussian(aug_tensor.shape, mean, std).sample()
@@ -129,7 +154,6 @@ class OpAugGaussian(OpBase):
         else:
             rand_patch = Gaussian(aug_tensor[channels].shape, mean, std).sample()
             aug_tensor[channels] = aug_tensor[channels] + rand_patch
-        
+
         sample_dict[key] = aug_tensor
         return sample_dict
-

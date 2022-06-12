@@ -27,13 +27,14 @@ from fuse.data.data_source.data_source_base import DataSourceBase
 
 
 class SkinDataSource(DataSourceBase):
-    def __init__(self,
-                 input_source: str,
-                 partition_file: Optional[str] = None,
-                 train: bool = True,
-                 portion_train: float = 0.7,
-                 override_partition: bool = True
-                 ):
+    def __init__(
+        self,
+        input_source: str,
+        partition_file: Optional[str] = None,
+        train: bool = True,
+        portion_train: float = 0.7,
+        override_partition: bool = True,
+    ):
 
         """
         Create DataSource
@@ -62,24 +63,24 @@ class SkinDataSource(DataSourceBase):
                     break_train = int(num_sequences * portion_train)
                     splits = np.random.permutation(np.arange(num_sequences))
                     splits = np.split(splits, [break_train])
-                    splits = {'train': splits[0], 'val': splits[1]}
+                    splits = {"train": splits[0], "val": splits[1]}
 
                     with open(partition_file, "wb") as pickle_out:
                         pickle.dump(splits, pickle_out)
 
-                    for sample_id in input_df.iloc[splits['train'], 0]:
+                    for sample_id in input_df.iloc[splits["train"], 0]:
                         sample_descs.append(sample_id)
                 else:
                     # read from a previous train/test split to evaluate on the same partition
                     with open(partition_file, "rb") as splits:
                         repartition = pickle.load(splits)
-                        for sample_id in input_df.iloc[repartition['train'], 0]:
+                        for sample_id in input_df.iloc[repartition["train"], 0]:
                             sample_descs.append(sample_id)
 
             else:
                 with open(partition_file, "rb") as splits:
                     repartition = pickle.load(splits)
-                    for sample_id in input_df.iloc[repartition['val'], 0]:
+                    for sample_id in input_df.iloc[repartition["val"], 0]:
                         sample_descs.append(sample_id)
 
         else:
@@ -102,12 +103,12 @@ class SkinDataSource(DataSourceBase):
         Returns a data summary.
         :return: str
         """
-        summary_str = ''
-        summary_str += 'Class = SkinDataSource\n'
+        summary_str = ""
+        summary_str += "Class = SkinDataSource\n"
 
         if isinstance(self.input_source, str):
-            summary_str += 'Input source filename = %s\n' % self.input_source
+            summary_str += "Input source filename = %s\n" % self.input_source
 
-        summary_str += 'Number of samples = %d\n' % len(self.samples)
+        summary_str += "Number of samples = %d\n" % len(self.samples)
 
         return summary_str

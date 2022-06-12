@@ -28,14 +28,15 @@ from fuse.data.data_source.data_source_base import DataSourceBase
 
 
 class SkinDataSource(DataSourceBase):
-    def __init__(self,
-                 input_source: str,
-                 size: Optional[int] = None,
-                 partition_file: Optional[str] = None,
-                 train: bool = True,
-                 portion_train: float = 0.7,
-                 override_partition: bool = True
-                 ):
+    def __init__(
+        self,
+        input_source: str,
+        size: Optional[int] = None,
+        partition_file: Optional[str] = None,
+        train: bool = True,
+        portion_train: float = 0.7,
+        override_partition: bool = True,
+    ):
 
         """
         Create DataSource
@@ -53,9 +54,9 @@ class SkinDataSource(DataSourceBase):
         input_df = pd.read_csv(input_source)
         all_samples = sorted(list(input_df.image))
         if size is not None:
-            all_samples = all_samples[-1 * size:]
+            all_samples = all_samples[-1 * size :]
         all_samples = np.array(all_samples)
-        #print(all_samples)
+        # print(all_samples)
 
         # Extract entities
         # ----------------
@@ -66,22 +67,22 @@ class SkinDataSource(DataSourceBase):
                     break_train = int(num_sequences * portion_train)
                     splits = np.arange(num_sequences)
                     splits = np.split(splits, [break_train])
-                    splits = {'train': splits[0], 'val': splits[1]}
+                    splits = {"train": splits[0], "val": splits[1]}
 
                     with open(partition_file, "wb") as pickle_out:
                         pickle.dump(splits, pickle_out)
 
-                    samples_desc = list(all_samples[splits['train']])
+                    samples_desc = list(all_samples[splits["train"]])
                 else:
                     # read from a previous train/test split to evaluate on the same partition
                     with open(partition_file, "rb") as splits:
                         repartition = pickle.load(splits)
-                        samples_desc = list(all_samples[repartition['train']])
+                        samples_desc = list(all_samples[repartition["train"]])
 
             else:
                 with open(partition_file, "rb") as splits:
                     repartition = pickle.load(splits)
-                    samples_desc = list(all_samples[repartition['val']])
+                    samples_desc = list(all_samples[repartition["val"]])
 
         else:
             samples_desc = list(all_samples)
@@ -102,12 +103,12 @@ class SkinDataSource(DataSourceBase):
         Returns a data summary.
         :return: str
         """
-        summary_str = ''
-        summary_str += 'Class = SkinDataSource\n'
+        summary_str = ""
+        summary_str += "Class = SkinDataSource\n"
 
         if isinstance(self.input_source, str):
-            summary_str += 'Input source filename = %s\n' % self.input_source
+            summary_str += "Input source filename = %s\n" % self.input_source
 
-        summary_str += 'Number of samples = %d\n' % len(self.samples)
+        summary_str += "Number of samples = %d\n" % len(self.samples)
 
         return summary_str

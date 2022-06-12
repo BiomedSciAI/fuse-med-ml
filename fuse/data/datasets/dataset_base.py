@@ -22,6 +22,7 @@ from typing import Dict, Hashable, List, Optional, Sequence, Union
 
 import torch
 
+
 class DatasetBase(torch.nn.Module):
     @abstractmethod
     def create(self, **kwargs) -> None:
@@ -38,7 +39,9 @@ class DatasetBase(torch.nn.Module):
         raise NotImplementedError
 
     @abstractmethod
-    def get_multi(self, items: Optional[Sequence[Union[int, Hashable]]] = None, *args) -> List[Dict]:
+    def get_multi(
+        self, items: Optional[Sequence[Union[int, Hashable]]] = None, *args
+    ) -> List[Dict]:
         """
         Get multiple items, optionally just some of the keys
         :param items: specify the list of sequence to read or None for all

@@ -1,6 +1,7 @@
 from typing import Dict
 import torch
 
+
 class LossWarmUp(torch.nn.Module):
     def __init__(self, loss: torch.nn.Module, nof_iterations: int):
         super().__init__()
@@ -14,4 +15,3 @@ class LossWarmUp(torch.nn.Module):
             return torch.tensor(0.0)
         else:
             return self._loss.forward(*args, **kwargs)
-        

@@ -24,25 +24,28 @@ import pandas as pd
 from fuse.data import OpBase
 from fuse.utils.ndict import NDict
 
+
 class OpReadDataframe(OpBase):
     """
     Op reading data from pickle file / dataframe object.
     Each row will be added as a value to sample dict
     """
 
-    def __init__(self,
-                 data: Optional[pd.DataFrame] = None,
-                 data_filename: Optional[str] = None,
-                 columns_to_extract: Optional[List[str]] = None,
-                 rename_columns: Optional[Dict[str, str]] = None,
-                 key_name: str = 'data.sample_id',
-                 key_column: str = 'sample_id'):
+    def __init__(
+        self,
+        data: Optional[pd.DataFrame] = None,
+        data_filename: Optional[str] = None,
+        columns_to_extract: Optional[List[str]] = None,
+        rename_columns: Optional[Dict[str, str]] = None,
+        key_name: str = "data.sample_id",
+        key_column: str = "sample_id",
+    ):
         """
         :param data:  input DataFrame
         :param data_filename: path to a pickled DataFrame (possible zipped)
         :param columns_to_extract: list of columns to extract from dataframe. When None (default) all columns are extracted
         :param rename_columns: rename columns from dataframe, when None (default) column names are kept
-        :param key_name: name of value in sample_dict which will be used as the key/index 
+        :param key_name: name of value in sample_dict which will be used as the key/index
         :param key_column: name of the column which use as key/index
         """
         super().__init__()
@@ -77,7 +80,7 @@ class OpReadDataframe(OpBase):
 
         # convert to dictionary: {index -> {column -> value}}
         df = df.set_index(self._key_column)
-        self._data = df.to_dict(orient='index')
+        self._data = df.to_dict(orient="index")
 
     def __call__(self, sample_dict: NDict, **kwargs) -> Union[None, dict, List[dict]]:
         """
@@ -98,5 +101,3 @@ class OpReadDataframe(OpBase):
         :return: list of  dataframe index values
         """
         return list(self.data.keys())
-
-    

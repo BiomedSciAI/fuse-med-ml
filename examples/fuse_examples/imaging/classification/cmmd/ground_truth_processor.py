@@ -27,8 +27,7 @@ from fuse.data.processor.processor_base import ProcessorBase
 
 
 class MGGroundTruthProcessor(ProcessorBase):
-    def __init__(self,
-                 input_data: str):
+    def __init__(self, input_data: str):
 
         """
         Create Ground Truth labels - each image is attached to a binary label - either the lesion is benign or malignanat ( any type of breast cancer)
@@ -36,13 +35,25 @@ class MGGroundTruthProcessor(ProcessorBase):
         """
 
         self.input_data = input_data
-        input_df = pd.read_csv(input_data, header=0, names=['ID1', 'LeftRight', 'Age', 'number', 'abnormality', 'classification', 'subtype', 'file', 'view'])
-        input_df.classification = np.where(input_df.classification == 'Benign', 0, 1)
+        input_df = pd.read_csv(
+            input_data,
+            header=0,
+            names=[
+                "ID1",
+                "LeftRight",
+                "Age",
+                "number",
+                "abnormality",
+                "classification",
+                "subtype",
+                "file",
+                "view",
+            ],
+        )
+        input_df.classification = np.where(input_df.classification == "Benign", 0, 1)
         self.labels = dict(zip(input_df.file, input_df.classification))
 
-    def __call__(self,
-                 sample_desc: str,
-                 *args, **kwargs):
+    def __call__(self, sample_desc: str, *args, **kwargs):
 
         result = torch.tensor(self.labels[sample_desc], dtype=torch.int64)
         return result

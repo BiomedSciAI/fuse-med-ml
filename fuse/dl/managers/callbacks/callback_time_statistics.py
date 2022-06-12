@@ -30,7 +30,7 @@ from fuse.utils.misc.misc import get_time_delta, time_display
 
 class TimeStatisticsCallback(Callback):
     """
-        Counts time of procedures.
+    Counts time of procedures.
     """
 
     def __init__(self, num_epochs: int, load_expected_part=0.1) -> None:
@@ -56,7 +56,13 @@ class TimeStatisticsCallback(Callback):
         self.step_begin_time = time.time()
         pass
 
-    def on_step_end(self, step: int, train_results: Dict = None, validation_results: Dict = None, learning_rate: float = None) -> None:
+    def on_step_end(
+        self,
+        step: int,
+        train_results: Dict = None,
+        validation_results: Dict = None,
+        learning_rate: float = None,
+    ) -> None:
         """
         Counts the time of a step (train + validation + update scheduler), and computes the remaining time for the entire run.
 
@@ -70,7 +76,10 @@ class TimeStatisticsCallback(Callback):
         running_time_left_seconds = timedelta_seconds * (self.num_epochs - step)
         running_time_left_str = time_display(running_time_left_seconds)
         epoch_time_str = time_display(timedelta_seconds)
-        logging.getLogger('Fuse').info(f'Estimated time left: {running_time_left_str} (last epoch time: {epoch_time_str})', {'color': 'cyan'})
+        logging.getLogger("Fuse").info(
+            f"Estimated time left: {running_time_left_str} (last epoch time: {epoch_time_str})",
+            {"color": "cyan"},
+        )
         pass
 
     def on_epoch_begin(self, mode: str, epoch: int) -> None:
@@ -94,28 +103,38 @@ class TimeStatisticsCallback(Callback):
         """
         epoch_end = time.time()
 
-        lgr = logging.getLogger('Fuse')
-        lgr.debug(f"Time for {mode} epoch {epoch}: {get_time_delta(self.epoch_begin_time)}")
+        lgr = logging.getLogger("Fuse")
+        lgr.debug(
+            f"Time for {mode} epoch {epoch}: {get_time_delta(self.epoch_begin_time)}"
+        )
 
         # debug info about the batch iterator loading time
         load_time_str = time_display(self.load_batch_aggregated_time)
-        lgr.debug(f'Mode: {mode}, epoch {epoch}: Total time for loading the data is {load_time_str}')
+        lgr.debug(
+            f"Mode: {mode}, epoch {epoch}: Total time for loading the data is {load_time_str}"
+        )
 
         # check if the loading part of the data exceeded load_expected_part of epoch time
         epoch_time = epoch_end - self.epoch_begin_time
         max_time_for_load = epoch_time * self.load_expected_part
         if self.load_batch_aggregated_time > max_time_for_load:
-            lgr.info(f'Mode: {mode}, epoch {epoch}: '
-                     f'Total time for loading data ({load_time_str}) is greater than expected (maximum {time_display(max_time_for_load)})',
-                     {'color': 'blue'})
+            lgr.info(
+                f"Mode: {mode}, epoch {epoch}: "
+                f"Total time for loading data ({load_time_str}) is greater than expected (maximum {time_display(max_time_for_load)})",
+                {"color": "blue"},
+            )
         pass
 
     def on_virtual_batch_begin(self, mode: str, virtual_batch: int) -> None:
         self.virtual_batch_begin_time = time.time()
         pass
 
-    def on_virtual_batch_end(self, mode: str, virtual_batch: int, virtual_batch_results: Dict = None) -> None:
-        logging.getLogger('Fuse').debug(f"Time for {mode} virtual batch {virtual_batch}: {get_time_delta(self.virtual_batch_begin_time)}")
+    def on_virtual_batch_end(
+        self, mode: str, virtual_batch: int, virtual_batch_results: Dict = None
+    ) -> None:
+        logging.getLogger("Fuse").debug(
+            f"Time for {mode} virtual batch {virtual_batch}: {get_time_delta(self.virtual_batch_begin_time)}"
+        )
         pass
 
     def on_batch_begin(self, mode: str, batch: int) -> None:
@@ -124,11 +143,13 @@ class TimeStatisticsCallback(Callback):
 
     def on_data_fetch_end(self, mode: str, batch: int, batch_dict: Dict = None) -> None:
         # add the delta time to load to the aggregated sum
-        self.load_batch_aggregated_time += (time.time() - self.batch_begin_time)
+        self.load_batch_aggregated_time += time.time() - self.batch_begin_time
         pass
 
     def on_batch_end(self, mode: str, batch: int, batch_dict: Dict = None) -> None:
-        logging.getLogger('Fuse').debug(f"Time for {mode} batch {batch}: {get_time_delta(self.batch_begin_time)}")
+        logging.getLogger("Fuse").debug(
+            f"Time for {mode} batch {batch}: {get_time_delta(self.batch_begin_time)}"
+        )
         pass
 
     def on_train_begin(self, state: ManagerState) -> None:
@@ -138,5 +159,7 @@ class TimeStatisticsCallback(Callback):
         pass
 
     def on_train_end(self) -> None:
-        logging.getLogger('Fuse').debug(f"Time for train: {get_time_delta(self.train_begin_time)}")
+        logging.getLogger("Fuse").debug(
+            f"Time for train: {get_time_delta(self.train_begin_time)}"
+        )
         pass

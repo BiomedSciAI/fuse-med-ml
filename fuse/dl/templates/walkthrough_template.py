@@ -22,7 +22,7 @@ import os
 from fuse.utils.utils_debug import FuseDebug
 import fuse.utils.gpu as GPU
 
-os.environ['skip_broker'] = '1'
+os.environ["skip_broker"] = "1"
 
 import logging
 
@@ -83,16 +83,18 @@ from fuse.eval.evaluator import EvaluatorDefault
 ##########################################
 # Debug modes
 ##########################################
-mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
+mode = "default"  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
 debug = FuseDebug(mode)
 
 ##########################################
 # Output Paths
 ##########################################
-PATHS = {'model_dir': 'TODO',
-         'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
-         'cache_dir': 'TODO',
-         'inference_dir': 'TODO'}
+PATHS = {
+    "model_dir": "TODO",
+    "force_reset_model_dir": True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
+    "cache_dir": "TODO",
+    "inference_dir": "TODO",
+}
 
 ##########################################
 # Train Common Params
@@ -101,31 +103,33 @@ PATHS = {'model_dir': 'TODO',
 # Data
 # ============
 TRAIN_COMMON_PARAMS = {}
-TRAIN_COMMON_PARAMS['data.batch_size'] = 2
-TRAIN_COMMON_PARAMS['data.train_num_workers'] = 8
-TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 8
-TRAIN_COMMON_PARAMS['data.augmentation_pipeline'] = [
+TRAIN_COMMON_PARAMS["data.batch_size"] = 2
+TRAIN_COMMON_PARAMS["data.train_num_workers"] = 8
+TRAIN_COMMON_PARAMS["data.validation_num_workers"] = 8
+TRAIN_COMMON_PARAMS["data.augmentation_pipeline"] = [
     # TODO: define the augmentation pipeline here
     # Fuse TIP: Use as a reference the simple augmentation pipeline written in Fuse.data.augmentor.augmentor_toolbox.aug_image_default_pipeline
 ]
 # ===============
 # Manager - Train
 # ===============
-TRAIN_COMMON_PARAMS['manager.train_params'] = {
-    'num_epochs': 100,
-    'virtual_batch_size': 1,  # number of batches in one virtual batch
-    'start_saving_epochs': 10,  # first epoch to start saving checkpoints from
-    'gap_between_saving_epochs': 5,  # number of epochs between saved checkpoint
+TRAIN_COMMON_PARAMS["manager.train_params"] = {
+    "num_epochs": 100,
+    "virtual_batch_size": 1,  # number of batches in one virtual batch
+    "start_saving_epochs": 10,  # first epoch to start saving checkpoints from
+    "gap_between_saving_epochs": 5,  # number of epochs between saved checkpoint
 }
-TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = {
-    'source': 'TODO',  # can be any key from 'epoch_results' (either metrics or losses result)
-    'optimization': 'max',  # can be either min/max
-    'on_equal_values': 'better',
+TRAIN_COMMON_PARAMS["manager.best_epoch_source"] = {
+    "source": "TODO",  # can be any key from 'epoch_results' (either metrics or losses result)
+    "optimization": "max",  # can be either min/max
+    "on_equal_values": "better",
     # can be either better/worse - whether to consider best epoch when values are equal
 }
-TRAIN_COMMON_PARAMS['manager.learning_rate'] = 1e-4
-TRAIN_COMMON_PARAMS['manager.weight_decay'] = 0.001
-TRAIN_COMMON_PARAMS['manager.resume_checkpoint_filename'] = None  # if not None, will try to load the checkpoint
+TRAIN_COMMON_PARAMS["manager.learning_rate"] = 1e-4
+TRAIN_COMMON_PARAMS["manager.weight_decay"] = 0.001
+TRAIN_COMMON_PARAMS[
+    "manager.resume_checkpoint_filename"
+] = None  # if not None, will try to load the checkpoint
 
 
 #################################
@@ -138,12 +142,14 @@ def train_template(paths: dict, train_common_params: dict):
     #     (1) console (2) file - copy of the console (3) verbose file - used for debug
     #   - save a copy of the template file
     # ==============================================================================
-    fuse_logger_start(output_path=paths['model_dir'], console_verbose_level=logging.INFO)
-    lgr = logging.getLogger('Fuse')
-    lgr.info('Fuse Train', {'attrs': ['bold', 'underline']})
+    fuse_logger_start(
+        output_path=paths["model_dir"], console_verbose_level=logging.INFO
+    )
+    lgr = logging.getLogger("Fuse")
+    lgr.info("Fuse Train", {"attrs": ["bold", "underline"]})
 
-    lgr.info(f'model_dir={paths["model_dir"]}', {'color': 'magenta'})
-    lgr.info(f'cache_dir={paths["cache_dir"]}', {'color': 'magenta'})
+    lgr.info(f'model_dir={paths["model_dir"]}', {"color": "magenta"})
+    lgr.info(f'cache_dir={paths["cache_dir"]}', {"color": "magenta"})
 
     # ==============================================================================
     # Data
@@ -191,7 +197,7 @@ def train_template(paths: dict, train_common_params: dict):
     # ==============================================================================
     #### Train Data
 
-    lgr.info(f'Train Data:', {'attrs': 'bold'})
+    lgr.info(f"Train Data:", {"attrs": "bold"})
 
     ## Create data source:
     # TODO: Create instance of DataSourceBase
@@ -205,24 +211,28 @@ def train_template(paths: dict, train_common_params: dict):
     gt_processors = {}
 
     ## Create data augmentation (optional)
-    augmentor = AugmentorDefault(augmentation_pipeline=train_common_params['data.augmentation_pipeline'])
+    augmentor = AugmentorDefault(
+        augmentation_pipeline=train_common_params["data.augmentation_pipeline"]
+    )
 
     # Create visualizer (optional)
     # TODO - Either use the default visualizer or an alternative one
-    visualiser = VisualizerDefault(image_name='TODO', label_name='TODO')
+    visualiser = VisualizerDefault(image_name="TODO", label_name="TODO")
 
     # Create dataset
     # Fuse TIP: If it's more convenient to generate few samples at once, use DatasetGenerator
-    train_dataset = DatasetDefault(cache_dest=paths['cache_dir'],
-                                       data_source=train_data_source,
-                                       input_processors=input_processors,
-                                       gt_processors=gt_processors,
-                                       augmentor=augmentor,
-                                       visualizer=visualiser)
+    train_dataset = DatasetDefault(
+        cache_dest=paths["cache_dir"],
+        data_source=train_data_source,
+        input_processors=input_processors,
+        gt_processors=gt_processors,
+        augmentor=augmentor,
+        visualizer=visualiser,
+    )
 
-    lgr.info(f'- Load and cache data:')
+    lgr.info(f"- Load and cache data:")
     train_dataset.create()
-    lgr.info(f'- Load and cache data: Done')
+    lgr.info(f"- Load and cache data: Done")
 
     ## Fuse TIPs:
     # 1. Get to know the resulted data structure train_dataset[0]
@@ -236,53 +246,62 @@ def train_template(paths: dict, train_common_params: dict):
     #    Use balanced_class_name to select the categorical value
     # 2. You don't have to equally balance between the classes.
     #    Use balanced_class_weights to specify the number of required samples in a batch per each class
-    lgr.info(f'- Create sampler:')
-    sampler = SamplerBalancedBatch(dataset=train_dataset,
-                                       balanced_class_name='TODO',
-                                       num_balanced_classes='TODO',
-                                       batch_size=train_common_params['data.batch_size'],
-                                       balanced_class_weights=None)
+    lgr.info(f"- Create sampler:")
+    sampler = SamplerBalancedBatch(
+        dataset=train_dataset,
+        balanced_class_name="TODO",
+        num_balanced_classes="TODO",
+        batch_size=train_common_params["data.batch_size"],
+        balanced_class_weights=None,
+    )
 
-    lgr.info(f'- Create sampler: Done')
+    lgr.info(f"- Create sampler: Done")
 
     ## Create dataloader
-    train_dataloader = DataLoader(dataset=train_dataset,
-                                  shuffle=False, drop_last=False,
-                                  batch_sampler=sampler,
-                                  collate_fn=train_dataset.collate_fn,
-                                  num_workers=train_common_params['data.train_num_workers'])
-    lgr.info(f'Train Data: Done', {'attrs': 'bold'})
+    train_dataloader = DataLoader(
+        dataset=train_dataset,
+        shuffle=False,
+        drop_last=False,
+        batch_sampler=sampler,
+        collate_fn=train_dataset.collate_fn,
+        num_workers=train_common_params["data.train_num_workers"],
+    )
+    lgr.info(f"Train Data: Done", {"attrs": "bold"})
 
     #### Validation data
-    lgr.info(f'Validation Data:', {'attrs': 'bold'})
+    lgr.info(f"Validation Data:", {"attrs": "bold"})
 
     ## Create data source
     # TODO: Create instance of DataSourceBase
     # Reference: DataSourceDefault
-    validation_data_source = 'TODO'
+    validation_data_source = "TODO"
 
     ## Create dataset
     # Fuse TIP: If it's more convenient to generate few samples at once, use DatasetGenerator
-    validation_dataset = DatasetDefault(cache_dest=paths['cache_dir'],
-                                            data_source=validation_data_source,
-                                            input_processors=input_processors,
-                                            gt_processors=gt_processors,
-                                            augmentor=None,
-                                            visualizer=visualiser)
+    validation_dataset = DatasetDefault(
+        cache_dest=paths["cache_dir"],
+        data_source=validation_data_source,
+        input_processors=input_processors,
+        gt_processors=gt_processors,
+        augmentor=None,
+        visualizer=visualiser,
+    )
 
-    lgr.info(f'- Load and cache data:')
+    lgr.info(f"- Load and cache data:")
     validation_dataset.create()
-    lgr.info(f'- Load and cache data: Done')
+    lgr.info(f"- Load and cache data: Done")
 
     ## Create dataloader
-    validation_dataloader = DataLoader(dataset=validation_dataset,
-                                       shuffle=False,
-                                       drop_last=False,
-                                       batch_sampler=None,
-                                       batch_size=train_common_params['data.batch_size'],
-                                       num_workers=train_common_params['data.validation_num_workers'],
-                                       collate_fn=validation_dataset.collate_fn)
-    lgr.info(f'Validation Data: Done', {'attrs': 'bold'})
+    validation_dataloader = DataLoader(
+        dataset=validation_dataset,
+        shuffle=False,
+        drop_last=False,
+        batch_sampler=None,
+        batch_size=train_common_params["data.batch_size"],
+        num_workers=train_common_params["data.validation_num_workers"],
+        collate_fn=validation_dataset.collate_fn,
+    )
+    lgr.info(f"Validation Data: Done", {"attrs": "bold"})
 
     # ===================================================================================================================
     # Model
@@ -298,14 +317,16 @@ def train_template(paths: dict, train_common_params: dict):
     #   * ModelMultistream - convolutional neural network with multiple processing streams and multiple heads
     #   *
     # ===================================================================================================================
-    lgr.info('Model:', {'attrs': 'bold'})
+    lgr.info("Model:", {"attrs": "bold"})
     # TODO - define / create a model
     model = ModelDefault(
-        conv_inputs=(('data.input.input_0.tensor', 1),),
-        backbone='TODO',  # Reference: BackboneInceptionResnetV2
-        heads=['TODO']  # References: HeadGlobalPoolingClassifier, HeadDenseSegmentation
+        conv_inputs=(("data.input.input_0.tensor", 1),),
+        backbone="TODO",  # Reference: BackboneInceptionResnetV2
+        heads=[
+            "TODO"
+        ],  # References: HeadGlobalPoolingClassifier, HeadDenseSegmentation
     )
-    lgr.info('Model: Done', {'attrs': 'bold'})
+    lgr.info("Model: Done", {"attrs": "bold"})
 
     # ==========================================================================================================================================
     #   Loss
@@ -347,54 +368,76 @@ def train_template(paths: dict, train_common_params: dict):
     callbacks = [
         # Fuse TIPs: add additional callbacks here
         # default callbacks
-        TensorboardCallback(model_dir=paths['model_dir']),  # save statstics for tensorboard
-        MetricStatisticsCallback(output_path=paths['model_dir'] + "/metrics.csv"),  # save statisticsin a csv file
-        TimeStatisticsCallback(num_epochs=train_common_params['manager.train_params']['num_epochs'], load_expected_part=0.1)  # time profiler
+        TensorboardCallback(
+            model_dir=paths["model_dir"]
+        ),  # save statstics for tensorboard
+        MetricStatisticsCallback(
+            output_path=paths["model_dir"] + "/metrics.csv"
+        ),  # save statisticsin a csv file
+        TimeStatisticsCallback(
+            num_epochs=train_common_params["manager.train_params"]["num_epochs"],
+            load_expected_part=0.1,
+        ),  # time profiler
     ]
 
     # =====================================================================================
     #  Manager - Train
     #  Create a manager, training objects and run a training process.
     # =====================================================================================
-    lgr.info('Train:', {'attrs': 'bold'})
+    lgr.info("Train:", {"attrs": "bold"})
 
     # create optimizer
-    optimizer = optim.Adam(model.parameters(), lr=train_common_params['manager.learning_rate'],
-                           weight_decay=train_common_params['manager.weight_decay'])
+    optimizer = optim.Adam(
+        model.parameters(),
+        lr=train_common_params["manager.learning_rate"],
+        weight_decay=train_common_params["manager.weight_decay"],
+    )
 
     # create scheduler
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
     # train from scratch
-    manager = ManagerDefault(output_model_dir=paths['model_dir'], force_reset=paths['force_reset_model_dir'])
+    manager = ManagerDefault(
+        output_model_dir=paths["model_dir"], force_reset=paths["force_reset_model_dir"]
+    )
     # Providing the objects required for the training process.
-    manager.set_objects(net=model,
-                        optimizer=optimizer,
-                        losses=losses,
-                        metrics=metrics,
-                        best_epoch_source=train_common_params['manager.best_epoch_source'],
-                        lr_scheduler=scheduler,
-                        callbacks=callbacks,
-                        train_params=train_common_params['manager.train_params'])
+    manager.set_objects(
+        net=model,
+        optimizer=optimizer,
+        losses=losses,
+        metrics=metrics,
+        best_epoch_source=train_common_params["manager.best_epoch_source"],
+        lr_scheduler=scheduler,
+        callbacks=callbacks,
+        train_params=train_common_params["manager.train_params"],
+    )
 
     ## Continue training
-    if train_common_params['manager.resume_checkpoint_filename'] is not None:
+    if train_common_params["manager.resume_checkpoint_filename"] is not None:
         # Loading the checkpoint including model weights, learning rate, and epoch_index.
-        manager.load_checkpoint(checkpoint=train_common_params['manager.resume_checkpoint_filename'], mode='train')
+        manager.load_checkpoint(
+            checkpoint=train_common_params["manager.resume_checkpoint_filename"],
+            mode="train",
+        )
 
     # Start training
-    manager.train(train_dataloader=train_dataloader,
-                  validation_dataloader=validation_dataloader)
+    manager.train(
+        train_dataloader=train_dataloader, validation_dataloader=validation_dataloader
+    )
 
-    lgr.info('Train: Done', {'attrs': 'bold'})
+    lgr.info("Train: Done", {"attrs": "bold"})
 
 
 ######################################
 # Inference Common Params
 ######################################
 INFER_COMMON_PARAMS = {}
-INFER_COMMON_PARAMS['infer_filename'] = os.path.join(PATHS['inference_dir'], 'validation_set_infer.pickle')
-INFER_COMMON_PARAMS['checkpoint'] = 'best'  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
+INFER_COMMON_PARAMS["infer_filename"] = os.path.join(
+    PATHS["inference_dir"], "validation_set_infer.pickle"
+)
+INFER_COMMON_PARAMS[
+    "checkpoint"
+] = "best"  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
 
 
 ######################################
@@ -402,28 +445,34 @@ INFER_COMMON_PARAMS['checkpoint'] = 'best'  # Fuse TIP: possible values are 'bes
 ######################################
 def infer_template(paths: dict, infer_common_params: dict):
     #### Logger
-    fuse_logger_start(output_path=paths['inference_dir'], console_verbose_level=logging.INFO)
-    lgr = logging.getLogger('Fuse')
-    lgr.info('Fuse Inference', {'attrs': ['bold', 'underline']})
-    lgr.info(f'infer_filename={infer_common_params["infer_filename"]}', {'color': 'magenta'})
+    fuse_logger_start(
+        output_path=paths["inference_dir"], console_verbose_level=logging.INFO
+    )
+    lgr = logging.getLogger("Fuse")
+    lgr.info("Fuse Inference", {"attrs": ["bold", "underline"]})
+    lgr.info(
+        f'infer_filename={infer_common_params["infer_filename"]}', {"color": "magenta"}
+    )
 
     #### create infer datasource
     # TODO: Create instance of DataSourceBase
     # Reference: DataSourceDefault
-    infer_data_source = 'TODO'
-    lgr.info(f'experiment={infer_common_params["experiment_filename"]}', {'color': 'magenta'})
+    infer_data_source = "TODO"
+    lgr.info(
+        f'experiment={infer_common_params["experiment_filename"]}', {"color": "magenta"}
+    )
 
     #### Manager for inference
     manager = ManagerDefault()
     # TODO - define the keys out of batch_dict that will be saved to a file
-    output_columns = ['TODO']
-    manager.infer(data_source=infer_data_source,
-                  input_model_dir=paths['model_dir'],
-                  checkpoint=infer_common_params['checkpoint'],
-                  output_columns=output_columns,
-                  output_file_name=infer_common_params['infer_filename'])
-
-
+    output_columns = ["TODO"]
+    manager.infer(
+        data_source=infer_data_source,
+        input_model_dir=paths["model_dir"],
+        checkpoint=infer_common_params["checkpoint"],
+        output_columns=output_columns,
+        output_file_name=infer_common_params["infer_filename"],
+    )
 
 
 ######################################
@@ -436,14 +485,12 @@ if __name__ == "__main__":
     force_gpus = None  # [0]
     GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
-    RUNNING_MODES = ['train']  # Options: 'train', 'infer', 'analyze'
+    RUNNING_MODES = ["train"]  # Options: 'train', 'infer', 'analyze'
 
     # train
-    if 'train' in RUNNING_MODES:
+    if "train" in RUNNING_MODES:
         train_template(paths=PATHS, train_common_params=TRAIN_COMMON_PARAMS)
 
     # infer
-    if 'infer' in RUNNING_MODES:
+    if "infer" in RUNNING_MODES:
         infer_template(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS)
-
- 

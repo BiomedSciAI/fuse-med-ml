@@ -27,10 +27,12 @@ from fuse.data.processor.processor_base import ProcessorBase
 
 
 class SkinGroundTruthProcessor(ProcessorBase):
-    def __init__(self,
-                 input_data: str,
-                 train: Optional[bool] = True,
-                 year: Optional[str] = '2016'):
+    def __init__(
+        self,
+        input_data: str,
+        train: Optional[bool] = True,
+        year: Optional[str] = "2016",
+    ):
 
         """
         Create Ground Truth labels
@@ -41,17 +43,15 @@ class SkinGroundTruthProcessor(ProcessorBase):
 
         self.input_data = input_data
 
-        if year == '2016':
-            input_df = pd.read_csv(input_data, names=['id', 'label'])
+        if year == "2016":
+            input_df = pd.read_csv(input_data, names=["id", "label"])
             if train:
-                input_df.label = np.where(input_df.label == 'benign', 0, 1)
+                input_df.label = np.where(input_df.label == "benign", 0, 1)
         else:  # year = 2017
-            input_df = pd.read_csv(input_data, header=0, names=['id', 'label', 'other'])
+            input_df = pd.read_csv(input_data, header=0, names=["id", "label", "other"])
         self.labels = dict(zip(input_df.id, input_df.label))
 
-    def __call__(self,
-                 sample_desc,
-                 *args, **kwargs):
+    def __call__(self, sample_desc, *args, **kwargs):
 
-        result = {'tensor': torch.tensor(self.labels[sample_desc], dtype=torch.int64)}
+        result = {"tensor": torch.tensor(self.labels[sample_desc], dtype=torch.int64)}
         return result

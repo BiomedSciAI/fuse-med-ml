@@ -33,13 +33,17 @@ from fuse.utils.ndict import NDict
 
 class InferResultsCallback(Callback):
     """
-        Responsible of writing the data of inference results into a CSV file.
-        Collects the output data (corresponding to the output_columns) at the end of handle_batch into an aggregated dict,
-            and writes it at the end of handle_epoch.
-        The method self.get_infer_results() may be used to get the aggregated dict.
+    Responsible of writing the data of inference results into a CSV file.
+    Collects the output data (corresponding to the output_columns) at the end of handle_batch into an aggregated dict,
+        and writes it at the end of handle_epoch.
+    The method self.get_infer_results() may be used to get the aggregated dict.
     """
 
-    def __init__(self, output_file: Optional[str] = None, output_columns: Optional[List[str]] = None) -> None:
+    def __init__(
+        self,
+        output_file: Optional[str] = None,
+        output_columns: Optional[List[str]] = None,
+    ) -> None:
         super().__init__()
         self.output_columns = output_columns
         self.output_file = output_file
@@ -52,7 +56,7 @@ class InferResultsCallback(Callback):
         pass
 
     def reset(self):
-        self.aggregated_dict = {'id': [], 'output': NDict()}
+        self.aggregated_dict = {"id": [], "output": NDict()}
         self.infer_results_df = pd.DataFrame()
 
     def on_epoch_begin(self, mode: str, epoch: int) -> None:
@@ -77,20 +81,23 @@ class InferResultsCallback(Callback):
         :param epoch: epoch number (ignored)
         :param epoch_results: not actually used
         """
-        if mode != 'infer':
+        if mode != "infer":
             return
 
         # prepare dataframe from the results
         infer_results_df = pd.DataFrame()
-        infer_results_df['id'] = self.aggregated_dict['id']
+        infer_results_df["id"] = self.aggregated_dict["id"]
 
-        for output in self.aggregated_dict['output'].keypaths():
+        for output in self.aggregated_dict["output"].keypaths():
             infer_results_df[output] = list(
-                self.aggregated_dict['output'][output])  # note- wrapping with list for pandas compatibility
+                self.aggregated_dict["output"][output]
+            )  # note- wrapping with list for pandas compatibility
 
         if self.output_file is not None:
-            infer_results_df.to_pickle(self.output_file, compression='gzip')
-            logging.getLogger('Fuse').info(f"Save inference results into {self.output_file}")
+            infer_results_df.to_pickle(self.output_file, compression="gzip")
+            logging.getLogger("Fuse").info(
+                f"Save inference results into {self.output_file}"
+            )
 
         self.reset()
         self.infer_results_df = infer_results_df
@@ -104,14 +111,14 @@ class InferResultsCallback(Callback):
         :param batch: batch number
         :param batch_dict: the batch input data
         """
-        if mode != 'infer':
+        if mode != "infer":
             return
 
         # for infer we need the descriptor and the output predictions
-        sample_ids = batch_dict['data'].get('sample_id', None)
+        sample_ids = batch_dict["data"].get("sample_id", None)
         if isinstance(sample_ids, Tensor):
             sample_ids = list(sample_ids.detach().cpu().numpy())
-        self.aggregated_dict['id'].extend(sample_ids)
+        self.aggregated_dict["id"].extend(sample_ids)
 
         if self.output_columns is not None and len(self.output_columns) > 0:
             output_cols = self.output_columns
@@ -119,12 +126,12 @@ class InferResultsCallback(Callback):
             output_cols = batch_dict.keypaths()
 
         for output_col in output_cols:
-            if output_col not in self.aggregated_dict['output'].keypaths():
-                self.aggregated_dict['output'][output_col] = []
+            if output_col not in self.aggregated_dict["output"].keypaths():
+                self.aggregated_dict["output"][output_col] = []
             output = batch_dict[output_col]
             if isinstance(output, torch.Tensor):
                 # no need to save tensors
                 output = output.cpu().numpy()
-            self.aggregated_dict['output'][output_col].extend(output)
+            self.aggregated_dict["output"][output_col].extend(output)
 
         pass

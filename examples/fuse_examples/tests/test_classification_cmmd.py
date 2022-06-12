@@ -17,7 +17,7 @@ Created on June 30, 2021
 
 """
 # FIXME: data_package
-#from fuse_examples.imaging.classification.cmmd.runner import TRAIN_COMMON_PARAMS, \
+# from fuse_examples.imaging.classification.cmmd.runner import TRAIN_COMMON_PARAMS, \
 #    INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS, run_train, run_eval, run_infer
 
 import unittest
@@ -26,54 +26,55 @@ import tempfile
 import shutil
 
 
-
 from fuse.utils.gpu import choose_and_enable_multiple_gpus
+
 
 @unittest.skip("Not ready yet")
 # TODO:
 # 1. Get the path to data as an env variable
 # 2. Consider reducing the number of samples
 class ClassificationMGCmmdTestCase(unittest.TestCase):
-
     def setUp(self):
         self.train_common_params = TRAIN_COMMON_PARAMS
-        self.train_common_params['manager.train_params']['num_epochs'] = 5
+        self.train_common_params["manager.train_params"]["num_epochs"] = 5
 
         # Path to save model
         self.ROOT = tempfile.mkdtemp()
         # Path to store the data
-        self.ROOT_DATA = '/projects/msieve3/CMMD'
+        self.ROOT_DATA = "/projects/msieve3/CMMD"
         # Name of the experiment
-        EXPERIMENT = 'MG_CMMD_test'
+        EXPERIMENT = "MG_CMMD_test"
         # Path to cache data
         self.CACHE_PATH = tempfile.mkdtemp(prefix="cache_data")
         # Name of the cached data folder
-        EXPERIMENT_CACHE = 'CMMD_cache'
+        EXPERIMENT_CACHE = "CMMD_cache"
 
-        self.paths = {'data_dir': self.ROOT_DATA,
-                      'model_dir': os.path.join(self.ROOT, EXPERIMENT, 'model_dir'),
-                      'data_misc_dir' : os.path.join(self.ROOT, 'data_misc'),
-                      'force_reset_model_dir': True,
-                      'cache_dir': os.path.join(self.CACHE_PATH, EXPERIMENT_CACHE + '_cache_dir'),
-                      'inference_dir': os.path.join(self.ROOT, EXPERIMENT, 'infer_dir'),
-                      'eval_dir': os.path.join(self.ROOT, EXPERIMENT, 'eval_dir')}
+        self.paths = {
+            "data_dir": self.ROOT_DATA,
+            "model_dir": os.path.join(self.ROOT, EXPERIMENT, "model_dir"),
+            "data_misc_dir": os.path.join(self.ROOT, "data_misc"),
+            "force_reset_model_dir": True,
+            "cache_dir": os.path.join(self.CACHE_PATH, EXPERIMENT_CACHE + "_cache_dir"),
+            "inference_dir": os.path.join(self.ROOT, EXPERIMENT, "infer_dir"),
+            "eval_dir": os.path.join(self.ROOT, EXPERIMENT, "eval_dir"),
+        }
 
         self.infer_common_params = INFER_COMMON_PARAMS
 
         self.eval_common_params = EVAL_COMMON_PARAMS
 
     def test_runner(self):
-        self.assertIsNot(os.path.isdir(self.ROOT_DATA),False)
+        self.assertIsNot(os.path.isdir(self.ROOT_DATA), False)
         num_gpus_allocated = choose_and_enable_multiple_gpus(1, use_cpu_if_fail=True)
         if num_gpus_allocated == 0:
-            self.train_common_params['manager.train_params']['device'] = 'cpu'
+            self.train_common_params["manager.train_params"]["device"] = "cpu"
 
         run_train(self.paths, self.train_common_params, reset_cache=True)
         run_infer(self.paths, self.infer_common_params)
         results = run_eval(self.paths, self.eval_common_params)
 
         threshold = 0.6
-        self.assertGreaterEqual(results['metrics.auc'], threshold)
+        self.assertGreaterEqual(results["metrics.auc"], threshold)
 
     def tearDown(self):
         # Delete temporary directories
@@ -81,6 +82,5 @@ class ClassificationMGCmmdTestCase(unittest.TestCase):
         shutil.rmtree(self.CACHE_PATH)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
-

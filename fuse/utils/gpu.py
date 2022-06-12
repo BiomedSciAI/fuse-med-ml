@@ -39,12 +39,16 @@ def get_available_gpu_ids() -> List[int]:
 
 def set_cuda_visible_devices(list_of_gpu_ids: List[int]) -> None:
     devices = [str(x) for x in list_of_gpu_ids]
-    allow_visible_gpus_str = ','.join(devices)
+    allow_visible_gpus_str = ",".join(devices)
     os.environ["CUDA_VISIBLE_DEVICES"] = allow_visible_gpus_str
     print(f"os.environ['CUDA_VISIBLE_DEVICES'] = {allow_visible_gpus_str}")
 
 
-def choose_and_enable_multiple_gpus(num_gpus_needed: int, force_gpus: Optional[List[int]] = None, use_cpu_if_fail: bool = False) -> int:
+def choose_and_enable_multiple_gpus(
+    num_gpus_needed: int,
+    force_gpus: Optional[List[int]] = None,
+    use_cpu_if_fail: bool = False,
+) -> int:
     """
     Look for free gpus and set CUDA_VISIBLE_DEVICES accordingly
     :param num_gpus_needed: required number of gpus
@@ -53,10 +57,13 @@ def choose_and_enable_multiple_gpus(num_gpus_needed: int, force_gpus: Optional[L
     """
     # debug - num gpus
     try:
-        override_num_gpus = FuseDebug().get_setting('manager_override_num_gpus')
-        if override_num_gpus != 'default':
+        override_num_gpus = FuseDebug().get_setting("manager_override_num_gpus")
+        if override_num_gpus != "default":
             num_gpus_needed = min(override_num_gpus, num_gpus_needed)
-            logging.getLogger('Fuse').info(f'Manager - debug mode - override num_gpus to {num_gpus_needed}', {'color': 'red'})
+            logging.getLogger("Fuse").info(
+                f"Manager - debug mode - override num_gpus to {num_gpus_needed}",
+                {"color": "red"},
+            )
 
         if num_gpus_needed == 0:
             return
@@ -67,20 +74,26 @@ def choose_and_enable_multiple_gpus(num_gpus_needed: int, force_gpus: Optional[L
             available_gpu_ids = force_gpus
 
         if available_gpu_ids is None:
-            raise Exception('could not auto-detect available GPUs')
+            raise Exception("could not auto-detect available GPUs")
         elif len(available_gpu_ids) < num_gpus_needed:
-            raise Exception('not enough GPUs available, requested %d GPUs but only IDs %s are available!' % (
-                num_gpus_needed, str(available_gpu_ids)))
+            raise Exception(
+                "not enough GPUs available, requested %d GPUs but only IDs %s are available!"
+                % (num_gpus_needed, str(available_gpu_ids))
+            )
         else:
             selected_gpu_ids = sorted(available_gpu_ids, reverse=True)[:num_gpus_needed]
-            logging.getLogger('Fuse').info('selecting GPUs %s' % str(selected_gpu_ids))
+            logging.getLogger("Fuse").info("selecting GPUs %s" % str(selected_gpu_ids))
             set_cuda_visible_devices(selected_gpu_ids)
 
-        torch.backends.cudnn.benchmark = False  # to prevent gpu illegal instruction exceptions
-        torch.multiprocessing.set_sharing_strategy('file_system')  # to prevent a bug of too many open file descriptors
+        torch.backends.cudnn.benchmark = (
+            False  # to prevent gpu illegal instruction exceptions
+        )
+        torch.multiprocessing.set_sharing_strategy(
+            "file_system"
+        )  # to prevent a bug of too many open file descriptors
     except Exception as e:
         if use_cpu_if_fail:
-            lgr = logging.getLogger('Fuse')
+            lgr = logging.getLogger("Fuse")
             track = traceback.format_exc()
             lgr.warning(e)
             lgr.warning(track)
@@ -89,6 +102,7 @@ def choose_and_enable_multiple_gpus(num_gpus_needed: int, force_gpus: Optional[L
             raise
 
     return num_gpus_needed
+
 
 def move_tensor_to_device(tensor: Any, device: str) -> Any:
     """
@@ -102,6 +116,7 @@ def move_tensor_to_device(tensor: Any, device: str) -> Any:
         tensor = tensor.to(device)
     return tensor
 
+
 def allocate_gpu_for_process(gpu_list: list):
     """
     Allocate a gpu for a process given list of available gpus shared between processes
@@ -111,17 +126,19 @@ def allocate_gpu_for_process(gpu_list: list):
     try:
         # extract gpu_id dedicated to that process only
         gpu_id = gpu_list.pop()
-        if gpu_id == 'cpu':
-            gpu_id = ''
+        if gpu_id == "cpu":
+            gpu_id = ""
         os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
     except:
-        lgr = logging.getLogger('Fuse')
+        lgr = logging.getLogger("Fuse")
         # don't throw error in init function - simply print the error
         track = traceback.format_exc()
         lgr.error(track)
 
+
 def deallocate_gpu():
     import gc
+
     with torch.no_grad():
         torch.cuda.empty_cache()
     for obj in gc.get_objects():
@@ -135,7 +152,9 @@ def deallocate_gpu():
 
 
 def run_nvidia_smi() -> str:
-    process = subprocess.Popen("nvidia-smi", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    process = subprocess.Popen(
+        "nvidia-smi", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+    )
     nvidia_smi_output, stderr = process.communicate()
     status = process.poll()
     if status != 0:
@@ -151,20 +170,19 @@ def get_available_gpu_ids_from_nvidia_smi_output(raw_output: str) -> List[int]:
     :param raw_output:
     :return:
     """
-    split_output = raw_output.split('\\n')
+    split_output = raw_output.split("\\n")
     current_gpu = -1
     available_gpu_ids = []
     for line_idx, line in enumerate(split_output):
-        if 'Off' in line:
+        if "Off" in line:
             current_gpu = int(split_output[line_idx][4])
             continue
         if current_gpu is not -1:
-            loc = line.find('MiB /')
+            loc = line.find("MiB /")
             if loc is not -1:
-                memory_usage = int(line[int(loc - 7):loc])
+                memory_usage = int(line[int(loc - 7) : loc])
                 if memory_usage < 50:
                     available_gpu_ids.append(current_gpu)
                     current_gpu = -1
 
     return available_gpu_ids
-

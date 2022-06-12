@@ -23,7 +23,9 @@ from scipy.ndimage.morphology import binary_dilation
 from fuse.data.processor.processor_base import ProcessorBase
 from fuse.data.processor.processor_dicom_mri import DicomMRIProcessor
 
-from fuse_examples.imaging.classification.prostate_x.data_utils import ProstateXUtilsData
+from fuse_examples.imaging.classification.prostate_x.data_utils import (
+    ProstateXUtilsData,
+)
 
 
 class PatchProcessor(ProcessorBase):
@@ -39,18 +41,20 @@ class PatchProcessor(ProcessorBase):
                 'zone': row['zone']: zone in prostate
                 'ClinSig': row['ClinSig']: Clinical significant ( 0 for benign and 3+3 lesions, 1 for rest)
     """
-    def __init__(self,
-                 vol_processor: DicomMRIProcessor = DicomMRIProcessor(),
-                 path_to_db: str = None,
-                 data_path: str = None,
-                 ktrans_data_path: str = None,
-                 db_name: str = None,
-                 db_version: str = None,
-                 fold_no : int = None,
-                 lsn_shape: Tuple[int, int, int] = (16, 120, 120),
-                 lsn_spacing: Tuple[float, float, float] = (3, 0.5, 0.5),
-                 longtd_inx: int = 0,
-                 ):
+
+    def __init__(
+        self,
+        vol_processor: DicomMRIProcessor = DicomMRIProcessor(),
+        path_to_db: str = None,
+        data_path: str = None,
+        ktrans_data_path: str = None,
+        db_name: str = None,
+        db_version: str = None,
+        fold_no: int = None,
+        lsn_shape: Tuple[int, int, int] = (16, 120, 120),
+        lsn_spacing: Tuple[float, float, float] = (3, 0.5, 0.5),
+        longtd_inx: int = 0,
+    ):
         """
         :param vol_processor - extracts 4D tensor from path to MRI dicoms
         :param path_to_db: path to data pickle
@@ -71,13 +75,14 @@ class PatchProcessor(ProcessorBase):
         self.lsn_spacing = lsn_spacing
         self.db_name = db_name
         self.db_ver = db_version
-        self.fold_no=fold_no
+        self.fold_no = fold_no
         self.prostate_data_path = self.data_path
         self.longtd_inx = longtd_inx
 
-
     # ========================================================================
-    def create_resample(self,vol_ref:sitk.sitkFloat32, interpolation: str, size:tuple, spacing: tuple):
+    def create_resample(
+        self, vol_ref: sitk.sitkFloat32, interpolation: str, size: tuple, spacing: tuple
+    ):
         """
         create_resample create resample operator
         :param vol_ref: sitk vol to use as a ref
@@ -87,11 +92,11 @@ class PatchProcessor(ProcessorBase):
         :return: resample sitk operator
         """
 
-        if interpolation == 'linear':
+        if interpolation == "linear":
             interpolator = sitk.sitkLinear
-        elif interpolation == 'nn':
+        elif interpolation == "nn":
             interpolator = sitk.sitkNearestNeighbor
-        elif interpolation == 'bspline':
+        elif interpolation == "bspline":
             interpolator = sitk.sitkBSpline
 
         resample = sitk.ResampleImageFilter()
@@ -102,11 +107,16 @@ class PatchProcessor(ProcessorBase):
         return resample
 
     # ========================================================================
-    def apply_resampling(self,img:sitk.sitkFloat32, mask:sitk.sitkFloat32,
-                             spacing: Tuple[float,float,float] =(0.5, 0.5, 3), size: Tuple[int,int,int] =(160, 160, 32),
-                             transform:sitk=None, interpolation:str='bspline',
-                             label_interpolator:sitk=sitk.sitkLabelGaussian,
-                             ):
+    def apply_resampling(
+        self,
+        img: sitk.sitkFloat32,
+        mask: sitk.sitkFloat32,
+        spacing: Tuple[float, float, float] = (0.5, 0.5, 3),
+        size: Tuple[int, int, int] = (160, 160, 32),
+        transform: sitk = None,
+        interpolation: str = "bspline",
+        label_interpolator: sitk = sitk.sitkLabelGaussian,
+    ):
 
         ref = img if img != [] else mask
         size = [int(s) for s in size]
@@ -119,12 +129,18 @@ class PatchProcessor(ProcessorBase):
         resample.SetInterpolator(label_interpolator)
         mask_r = resample.Execute(mask)
 
-
         return img_r, mask_r
 
     # ========================================================================
-    def crop_lesion_vol(self,vol:sitk.sitkFloat32, position:Tuple[float,float,float], ref:sitk.sitkFloat32, size:Tuple[int,int,int]=(160, 160, 32),
-                        spacing:Tuple[int,int,int]=(1, 1, 3), center_slice=None):
+    def crop_lesion_vol(
+        self,
+        vol: sitk.sitkFloat32,
+        position: Tuple[float, float, float],
+        ref: sitk.sitkFloat32,
+        size: Tuple[int, int, int] = (160, 160, 32),
+        spacing: Tuple[int, int, int] = (1, 1, 3),
+        center_slice=None,
+    ):
         """
         crop_lesion_vol crop tensor around position
         :param vol: vol to crop
@@ -158,21 +174,29 @@ class PatchProcessor(ProcessorBase):
         label_analysis_filer = sitk.LabelShapeStatisticsImageFilter()
         label_analysis_filer.Execute(ma_centroid)
         centroid = label_analysis_filer.GetCentroid(1)
-        offset_correction = np.array(size) * np.array(spacing)/2
+        offset_correction = np.array(size) * np.array(spacing) / 2
         corrected_centroid = np.array(centroid)
         corrected_centroid[2] = center_slice * np.array(spacing[2])
         offset = corrected_centroid - np.array(offset_correction)
 
         translation = sitk.TranslationTransform(3, offset)
-        img, mask = self.apply_resampling(vol, mask, spacing=spacing, size=size, transform=translation)
+        img, mask = self.apply_resampling(
+            vol, mask, spacing=spacing, size=size, transform=translation
+        )
 
         return img, mask
 
-
-
     # ========================================================================
-    def crop_lesion_vol_mask_based(self,vol:sitk.sitkFloat32, position:tuple, ref:sitk.sitkFloat32, size:Tuple[int,int,int]=(160, 160, 32),
-                        spacing:Tuple[int,int,int]=(1, 1, 3), mask_inx = -1,is_use_mask=True):
+    def crop_lesion_vol_mask_based(
+        self,
+        vol: sitk.sitkFloat32,
+        position: tuple,
+        ref: sitk.sitkFloat32,
+        size: Tuple[int, int, int] = (160, 160, 32),
+        spacing: Tuple[int, int, int] = (1, 1, 3),
+        mask_inx=-1,
+        is_use_mask=True,
+    ):
         """
         crop_lesion_vol crop tensor around position
         :param vol: vol to crop
@@ -186,13 +210,13 @@ class PatchProcessor(ProcessorBase):
         :return: cropped volume
         """
 
-        margin = [20,20,0]
+        margin = [20, 20, 0]
         vol_np = sitk.GetArrayFromImage(vol)
         if is_use_mask:
 
-            mask = sitk.GetArrayFromImage(vol)[:,:,:,mask_inx]
+            mask = sitk.GetArrayFromImage(vol)[:, :, :, mask_inx]
             mask_bool = np.zeros(mask.shape).astype(int)
-            mask_bool[mask>0.01]=1
+            mask_bool[mask > 0.01] = 1
             mask_final = sitk.GetImageFromArray(mask_bool)
             mask_final.CopyInformation(ref)
 
@@ -201,41 +225,56 @@ class PatchProcessor(ProcessorBase):
             bounding_box = np.array(lsif.GetBoundingBox(1))
             vol_np[:, :, :, mask_inx] = mask_bool
         else:
-            bounding_box = np.array([int(position[0]) - int(size[0] / 2),
-                           int(position[1]) - int(size[1] / 2),
-                           int(position[2]) - int(size[2] / 2),
-                           size[0],
-                           size[1],
-                           size[2]
-                           ])
+            bounding_box = np.array(
+                [
+                    int(position[0]) - int(size[0] / 2),
+                    int(position[1]) - int(size[1] / 2),
+                    int(position[2]) - int(size[2] / 2),
+                    size[0],
+                    size[1],
+                    size[2],
+                ]
+            )
         # in z use a fixed number of slices,based on position
         bounding_box[-1] = size[2]
-        bounding_box[2] = int(position[2]) - int(size[2]/2)
+        bounding_box[2] = int(position[2]) - int(size[2] / 2)
 
         bounding_box_size = bounding_box[3:5][np.argmax(bounding_box[3:5])]
         dshift = bounding_box[3:5] - bounding_box_size
-        dshift = np.append(dshift,0)
+        dshift = np.append(dshift, 0)
 
-        ijk_min_bound = np.maximum(bounding_box[0:3]+dshift - margin,0)
-        ijk_max_bound = np.maximum(bounding_box[0:3]+dshift+[bounding_box_size,bounding_box_size,bounding_box[-1]] + margin,0)
+        ijk_min_bound = np.maximum(bounding_box[0:3] + dshift - margin, 0)
+        ijk_max_bound = np.maximum(
+            bounding_box[0:3]
+            + dshift
+            + [bounding_box_size, bounding_box_size, bounding_box[-1]]
+            + margin,
+            0,
+        )
 
-
-
-        vol_np_cropped = vol_np[ijk_min_bound[2]:ijk_max_bound[2],ijk_min_bound[1]:ijk_max_bound[1],ijk_min_bound[0]:ijk_max_bound[0],:]
-        vol_np_resized = np.zeros((size[2],size[0],size[1],vol_np_cropped.shape[-1]))
+        vol_np_cropped = vol_np[
+            ijk_min_bound[2] : ijk_max_bound[2],
+            ijk_min_bound[1] : ijk_max_bound[1],
+            ijk_min_bound[0] : ijk_max_bound[0],
+            :,
+        ]
+        vol_np_resized = np.zeros((size[2], size[0], size[1], vol_np_cropped.shape[-1]))
         for si in range(vol_np_cropped.shape[0]):
             for ci in range(vol_np_cropped.shape[-1]):
-                vol_np_resized[si,:,:,ci] = cv2.resize(vol_np_cropped[si, :,:, ci], (size[0],size[1]), interpolation=cv2.INTER_AREA)
+                vol_np_resized[si, :, :, ci] = cv2.resize(
+                    vol_np_cropped[si, :, :, ci],
+                    (size[0], size[1]),
+                    interpolation=cv2.INTER_AREA,
+                )
 
         img = sitk.GetImageFromArray(vol_np_resized)
-        mask = sitk.GetImageFromArray(vol_np_resized[:,:,:,mask_inx])
+        mask = sitk.GetImageFromArray(vol_np_resized[:, :, :, mask_inx])
 
         return img, mask
 
-
-    def get_zeros_vol(self,vol):
-        if vol.GetNumberOfComponentsPerPixel()>1:
-            ref_zeros_vol = sitk.VectorIndexSelectionCast(vol,0)
+    def get_zeros_vol(self, vol):
+        if vol.GetNumberOfComponentsPerPixel() > 1:
+            ref_zeros_vol = sitk.VectorIndexSelectionCast(vol, 0)
         else:
             ref_zeros_vol = vol
         zeros_vol = np.zeros_like(sitk.GetArrayFromImage(ref_zeros_vol))
@@ -243,7 +282,7 @@ class PatchProcessor(ProcessorBase):
         zeros_vol.CopyInformation(ref_zeros_vol)
         return zeros_vol
 
-    def extract_mask_from_annotation(self,vol_ref,bbox_coords):
+    def extract_mask_from_annotation(self, vol_ref, bbox_coords):
         xstart = bbox_coords[0]
         ystart = bbox_coords[1]
         zstart = bbox_coords[2]
@@ -253,13 +292,13 @@ class PatchProcessor(ProcessorBase):
 
         mask = self.get_zeros_vol(vol_ref)
         mask_np = sitk.GetArrayFromImage(mask)
-        mask_np[zstart:zstart+zsize,ystart:ystart+ysize,xstart:xstart+xsize] = 1.0
+        mask_np[
+            zstart : zstart + zsize, ystart : ystart + ysize, xstart : xstart + xsize
+        ] = 1.0
         return mask_np
 
     # ========================================================================
-    def __call__(self,
-                 sample_desc,
-                 *args, **kwargs):
+    def __call__(self, sample_desc, *args, **kwargs):
         """
         Return list of samples (lesions) giving a patient level descriptor
         :param sample_desc: (db_ver, set_type, patient_id)
@@ -272,66 +311,90 @@ class PatchProcessor(ProcessorBase):
 
         # ========================================================================
         # get db - lesions
-        db_full = ProstateXUtilsData.get_dataset(self.path_to_db,'other',self.db_ver,self.db_name,self.fold_no)
+        db_full = ProstateXUtilsData.get_dataset(
+            self.path_to_db, "other", self.db_ver, self.db_name, self.fold_no
+        )
         db = ProstateXUtilsData.get_lesions_prostate_x(db_full)
 
         # ========================================================================
         # get patient
-        patient = db[db['Patient ID'] == patient_id]
+        patient = db[db["Patient ID"] == patient_id]
         # ========================================================================
-        lgr = logging.getLogger('Fuse')
-        lgr.info(f'patient={patient_id}', {'color': 'magenta'})
-
+        lgr = logging.getLogger("Fuse")
+        lgr.info(f"patient={patient_id}", {"color": "magenta"})
 
         # ========================================================================
         # all seq paths for a certain patient
 
-
-        patient_directories = os.path.join(os.path.join(self.prostate_data_path, patient_id),patient['ser_name_T'+str(self.longtd_inx)].values[0][2:-2])
-        images_path = os.path.join(self.prostate_data_path, patient_id, patient_directories)
+        patient_directories = os.path.join(
+            os.path.join(self.prostate_data_path, patient_id),
+            patient["ser_name_T" + str(self.longtd_inx)].values[0][2:-2],
+        )
+        images_path = os.path.join(
+            self.prostate_data_path, patient_id, patient_directories
+        )
 
         # ========================================================================
         # vol_4D is multichannel volume (z,x,y,chan(sequence))
-        vol_4D,vol_ref = self.vol_processor((images_path,self.ktrans_data_path,patient_id))
+        vol_4D, vol_ref = self.vol_processor(
+            (images_path, self.ktrans_data_path, patient_id)
+        )
 
         # ========================================================================
         # each row contains one lesion, iterate over lesions
 
         for index, row in patient.iterrows():
-            #read original position
-            pos_orig = np.fromstring(row['centroid_T'+str(self.longtd_inx)][1:-1], dtype=np.float32, sep=',')
+            # read original position
+            pos_orig = np.fromstring(
+                row["centroid_T" + str(self.longtd_inx)][1:-1],
+                dtype=np.float32,
+                sep=",",
+            )
 
             # transform to pixel coordinate in ref coords
-            pos_vol = np.array(vol_ref.TransformPhysicalPointToContinuousIndex(pos_orig.astype(np.float64)))
+            pos_vol = np.array(
+                vol_ref.TransformPhysicalPointToContinuousIndex(
+                    pos_orig.astype(np.float64)
+                )
+            )
 
             vol_4d_tmp = sitk.GetArrayFromImage(vol_4D)
-            if sum(sum(sum(vol_4d_tmp[:,:,:,-1])))==0:
-                bbox_coords = np.fromstring(row['bbox_T' +str(self.longtd_inx)][1:-1],dtype = np.int32,sep=',')
-                mask = self.extract_mask_from_annotation(vol_ref,bbox_coords)
-                vol_4d_tmp[:,:,:,-1] = mask
+            if sum(sum(sum(vol_4d_tmp[:, :, :, -1]))) == 0:
+                bbox_coords = np.fromstring(
+                    row["bbox_T" + str(self.longtd_inx)][1:-1], dtype=np.int32, sep=","
+                )
+                mask = self.extract_mask_from_annotation(vol_ref, bbox_coords)
+                vol_4d_tmp[:, :, :, -1] = mask
                 vol_4d_new = sitk.GetImageFromArray(vol_4d_tmp)
                 vol_4D = vol_4d_new
 
-
-
                 # crop lesion vol - resized to lsn_shape
             vol_cropped_orig, mask_cropped_orig = self.crop_lesion_vol_mask_based(
-                    vol_4D, pos_vol, vol_ref,
-                    size=(2*self.lsn_shape[2], 2*self.lsn_shape[1], self.lsn_shape[0]),
-                    spacing=(self.lsn_spacing[2], self.lsn_spacing[1], self.lsn_spacing[0]), mask_inx=-1,is_use_mask=False)
+                vol_4D,
+                pos_vol,
+                vol_ref,
+                size=(2 * self.lsn_shape[2], 2 * self.lsn_shape[1], self.lsn_shape[0]),
+                spacing=(self.lsn_spacing[2], self.lsn_spacing[1], self.lsn_spacing[0]),
+                mask_inx=-1,
+                is_use_mask=False,
+            )
 
             # crop lesion vol
             vol_cropped, mask_cropped = self.crop_lesion_vol_mask_based(
-                vol_4D, pos_vol,vol_ref ,
+                vol_4D,
+                pos_vol,
+                vol_ref,
                 size=(self.lsn_shape[2], self.lsn_shape[1], self.lsn_shape[0]),
-                spacing=(self.lsn_spacing[2], self.lsn_spacing[1], self.lsn_spacing[0]), mask_inx = -1,is_use_mask=True)
-
+                spacing=(self.lsn_spacing[2], self.lsn_spacing[1], self.lsn_spacing[0]),
+                mask_inx=-1,
+                is_use_mask=True,
+            )
 
             vol_cropped_tmp = sitk.GetArrayFromImage(vol_cropped)
             vol_cropped_orig_tmp = sitk.GetArrayFromImage(vol_cropped_orig)
-            if len(vol_cropped_tmp.shape)<4:
+            if len(vol_cropped_tmp.shape) < 4:
                 # fix dimensions in case of one seq
-                vol_cropped_tmp = vol_cropped_tmp[:,:,:,np.newaxis]
+                vol_cropped_tmp = vol_cropped_tmp[:, :, :, np.newaxis]
                 vol = np.moveaxis(vol_cropped_tmp, 3, 0)
                 vol_cropped_orig_tmp = vol_cropped_orig_tmp[:, :, :, np.newaxis]
                 vol_orig = np.moveaxis(vol_cropped_orig_tmp, 3, 0)
@@ -348,20 +411,19 @@ class PatchProcessor(ProcessorBase):
 
             mask_orig = sitk.GetArrayFromImage(mask_cropped_orig)
             vol_tensor_orig = torch.from_numpy(vol_orig).type(torch.FloatTensor)
-            mask_tensor_orig = torch.from_numpy(mask_orig).unsqueeze(0).type(torch.FloatTensor)
+            mask_tensor_orig = (
+                torch.from_numpy(mask_orig).unsqueeze(0).type(torch.FloatTensor)
+            )
 
             # sample
             sample = {
-                'patient_num': patient_id,
-                'input': vol_tensor,
-                'input_orig': vol_tensor_orig,
-                'input_lesion_mask': mask_tensor,
-                'add_data':row,
-
+                "patient_num": patient_id,
+                "input": vol_tensor,
+                "input_orig": vol_tensor_orig,
+                "input_lesion_mask": mask_tensor,
+                "add_data": row,
             }
 
             samples.append(sample)
-
-
 
         return samples

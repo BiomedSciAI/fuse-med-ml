@@ -30,16 +30,17 @@ class LossDefault(LossBase):
     Default Fuse loss function
     """
 
-    def __init__(self,
-                 pred: str = None,
-                 target: str = None,
-                 batch_kwargs_name: str = None,
-                 callable: Callable = None,
-                 sample_weight_name: Optional[str] = None,
-                 weight: float = 1.0,
-                 filter_func: Optional[Callable] = None,
-                 **kwargs
-                 ) -> None:
+    def __init__(
+        self,
+        pred: str = None,
+        target: str = None,
+        batch_kwargs_name: str = None,
+        callable: Callable = None,
+        sample_weight_name: Optional[str] = None,
+        weight: float = 1.0,
+        filter_func: Optional[Callable] = None,
+        **kwargs
+    ) -> None:
         """
         This class wraps a PyTorch loss function with a Fuse api.
         :param pred_name:               batch_dict key for prediction (e.g., network output)
@@ -69,16 +70,22 @@ class LossDefault(LossBase):
             batch_dict = self.filter_func(batch_dict)
         preds = batch_dict[self.pred_name]
         targets = batch_dict[self.target_name]
-        batch_kwargs = batch_dict[self.batch_kwargs_name] if self.batch_kwargs_name is not None else {}
+        batch_kwargs = (
+            batch_dict[self.batch_kwargs_name]
+            if self.batch_kwargs_name is not None
+            else {}
+        )
         kwargs_copy = self.kwargs.copy()
         kwargs_copy.update(batch_kwargs)
         if self.sample_weight_name is not None:
-            assert 'reduction' not in kwargs_copy.keys(), 'reduction is forced to none when applying sample weight'
-            kwargs_copy.update({'reduction': 'none'})
+            assert (
+                "reduction" not in kwargs_copy.keys()
+            ), "reduction is forced to none when applying sample weight"
+            kwargs_copy.update({"reduction": "none"})
         loss_obj = self.callable(preds, targets, **kwargs_copy) * self.weight
         if self.sample_weight_name is not None:
             sample_weight = batch_dict[self.sample_weight_name]
-            weighted_loss = loss_obj*sample_weight
+            weighted_loss = loss_obj * sample_weight
             loss_obj = torch.mean(weighted_loss)
 
         return loss_obj

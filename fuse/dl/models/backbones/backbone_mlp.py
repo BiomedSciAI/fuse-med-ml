@@ -25,13 +25,13 @@ from fuse.utils.ndict import NDict
 
 
 class MultilayerPerceptronBackbone(torch.nn.Module):
-
-    def __init__(self,
-                 layers: List[int] = (64, 192, 320, 320, 1088, 384),
-                 mlp_input_size: int = 103,
-                 activation_layer: torch.nn.Module = nn.ReLU(inplace=False),
-                 dropout_rate: float = 0.0,
-                 ) -> None:
+    def __init__(
+        self,
+        layers: List[int] = (64, 192, 320, 320, 1088, 384),
+        mlp_input_size: int = 103,
+        activation_layer: torch.nn.Module = nn.ReLU(inplace=False),
+        dropout_rate: float = 0.0,
+    ) -> None:
         super().__init__()
 
         mlp_layers = [nn.Linear(mlp_input_size, layers[0])]
@@ -42,7 +42,9 @@ class MultilayerPerceptronBackbone(torch.nn.Module):
 
         for layer_idx in range(len(layers) - 1):
             mlp_layers.append(nn.Linear(layers[layer_idx], layers[layer_idx + 1]))
-            mlp_layers.append(activation_layer) if activation_layer is not None else None
+            mlp_layers.append(
+                activation_layer
+            ) if activation_layer is not None else None
             mlp_layers.append(nn.Dropout(p=dropout_rate)) if dropout_rate > 0 else None
 
         self.mlp = nn.ModuleList(mlp_layers)

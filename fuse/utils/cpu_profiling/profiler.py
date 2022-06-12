@@ -2,8 +2,9 @@ import time
 import cProfile, pstats
 from io import StringIO
 
+
 class Profiler:
-    '''
+    """
     A simple to use cpu profiler, helps to find CPU bottlenecks
 
     all you need to do is wrap the code you want to analyze:
@@ -15,7 +16,7 @@ class Profiler:
 
     #we create two functions, one is quick and one is very slow
 
-    from itertools import combinations    
+    from itertools import combinations
     def dummy_slow():
         N = 140 #1000
         K = 2
@@ -29,17 +30,17 @@ class Profiler:
         a+=1
         return a
 
-    def get_combs():  
-        for _ in range(10): 
+    def get_combs():
+        for _ in range(10):
             x = dummy_slow()
             y = dummy_quick()
-        
+
         return x,y
 
-    with Profiler('banana'):    
-        get_combs() 
+    with Profiler('banana'):
+        get_combs()
 
-    #results in 
+    #results in
 
     starting profiling for banana...
     profiling results for banana :
@@ -58,21 +59,21 @@ class Profiler:
     as its cumulative time is 0.778 secs out of the total of 0.779 seconds of get_combs
     on the other hand, dummy_quick is clearly not the bottleneck.
 
-    '''
-    def __init__(self, txt:str=''):
+    """
+
+    def __init__(self, txt: str = ""):
         self.txt = txt
 
     def __enter__(self):
-        print(f'starting profiling for {self.txt}...')
+        print(f"starting profiling for {self.txt}...")
         self.pr = cProfile.Profile()
         self.pr.enable()
 
     def __exit__(self, *args):
         self.pr.disable()
-        print(f'profiling results for {self.txt} :')
+        print(f"profiling results for {self.txt} :")
         self.s = StringIO()
-        sortby = 'cumulative'
+        sortby = "cumulative"
         self.ps = pstats.Stats(self.pr, stream=self.s).sort_stats(sortby)
         self.ps.print_stats()
         print(self.s.getvalue())
-

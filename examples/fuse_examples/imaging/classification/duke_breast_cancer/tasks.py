@@ -16,14 +16,19 @@ import logging
 from typing import List
 
 
-class Task():
+class Task:
     tasks = {}
+
     def __init__(self, task_name: str, version: int):
-        self._task_name, self._task_version, self._task_mapping, self._task_class_names = \
-            self.get_task(task_name, version)
+        (
+            self._task_name,
+            self._task_version,
+            self._task_mapping,
+            self._task_class_names,
+        ) = self.get_task(task_name, version)
 
     def name(self):
-        return self._task_name + "_"  + str(self._task_version)
+        return self._task_name + "_" + str(self._task_version)
 
     def class_names(self):
         return self._task_class_names
@@ -44,27 +49,26 @@ class Task():
     def get_task(cls, task_name: str, version: int):
         key = (task_name, version)
         if key not in cls.tasks:
-            msg = f'Task not found - list of tasks: {list(cls.tasks.keys())}'
-            logging.getLogger('Fuse').error(msg)
+            msg = f"Task not found - list of tasks: {list(cls.tasks.keys())}"
+            logging.getLogger("Fuse").error(msg)
             raise Exception(msg)
 
         return cls.tasks[key]
 
 
+# DO NOT CHANGE TASKS!!!!
 
-#DO NOT CHANGE TASKS!!!!
+pcr_SCORE_VER_0 = ([["HIGH"], ["LOW"]],)
+tumor_size_VER_0 = ([["HIGH"], ["LOW"]],)
+tumor_grade_VER_0 = ([["HIGH"], ["LOW"]],)
+histotype_VER_0 = ([["HIGH"], ["LOW"]],)
+Task.register("ispCR", 0, pcr_SCORE_VER_0, ["HIGH", "LOW"])
+Task.register("Histology Type", 0, histotype_VER_0, ["HIGH", "LOW"])
+Task.register("is High Tumor Grade Total", 0, tumor_grade_VER_0, ["HIGH", "LOW"])
+Task.register("Staging Tumor Size", 0, tumor_size_VER_0, ["HIGH", "LOW"])
 
-pcr_SCORE_VER_0 = [['HIGH'], ['LOW']],
-tumor_size_VER_0 = [['HIGH'], ['LOW']],
-tumor_grade_VER_0 = [['HIGH'], ['LOW']],
-histotype_VER_0 = [['HIGH'], ['LOW']],
-Task.register('ispCR', 0, pcr_SCORE_VER_0, ['HIGH','LOW'])
-Task.register('Histology Type', 0, histotype_VER_0, ['HIGH','LOW'])
-Task.register('is High Tumor Grade Total', 0, tumor_grade_VER_0, ['HIGH','LOW'])
-Task.register('Staging Tumor Size', 0, tumor_size_VER_0, ['HIGH','LOW'])
-
-if __name__ == '__main__':
-    mp_task = Task('gleason_score', 0)
+if __name__ == "__main__":
+    mp_task = Task("gleason_score", 0)
     print(mp_task.name())
     print(mp_task.class_names())
     print(len(mp_task.class_names()))

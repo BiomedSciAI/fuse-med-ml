@@ -16,49 +16,57 @@ import pickle
 import pandas as pd
 import os
 
+
 class ProstateXUtilsData:
     @staticmethod
-    def get_dataset(path_to_db: str,set_type: str, db_ver: int,db_name: str,fold_no: int):
-        db_name = os.path.join(path_to_db,f'dataset_{db_name}_folds_ver{db_ver}_seed1.pickle')
-        with open(db_name, 'rb') as infile:
+    def get_dataset(
+        path_to_db: str, set_type: str, db_ver: int, db_name: str, fold_no: int
+    ):
+        db_name = os.path.join(
+            path_to_db, f"dataset_{db_name}_folds_ver{db_ver}_seed1.pickle"
+        )
+        with open(db_name, "rb") as infile:
             db = pickle.load(infile)
 
-
-        if set_type == 'train':
-            other_folds = list(set(range(0,len(db)))-set([fold_no]))
-            for i,f in enumerate(other_folds):
-                if i==0:
-                    data = db['data_fold' + str(f)]
+        if set_type == "train":
+            other_folds = list(set(range(0, len(db))) - set([fold_no]))
+            for i, f in enumerate(other_folds):
+                if i == 0:
+                    data = db["data_fold" + str(f)]
                 else:
-                    data = pd.concat([data,db['data_fold' + str(f)]],join='inner')
+                    data = pd.concat([data, db["data_fold" + str(f)]], join="inner")
 
-        elif set_type == 'validation':
-            data = db['data_fold'+str(fold_no)]
-        elif set_type == 'test':
-            data = db['test_data']
+        elif set_type == "validation":
+            data = db["data_fold" + str(fold_no)]
+        elif set_type == "test":
+            data = db["test_data"]
         else:
             # returns the full set
-            for i,f in enumerate(range(0,len(db))):
-                if i==0:
-                    data = db['data_fold' + str(f)]
+            for i, f in enumerate(range(0, len(db))):
+                if i == 0:
+                    data = db["data_fold" + str(f)]
                 else:
-                    data = pd.concat([data,db['data_fold' + str(f)]],join='inner')
+                    data = pd.concat([data, db["data_fold" + str(f)]], join="inner")
 
             # raise Exception(f'Unexpected set type {set_type}')
         return data
 
     def get_lesions_prostate_x(data: pd.DataFrame):
         outlier_list = []
-        lesion_data = data[~data['Patient ID'].isin(outlier_list)]
+        lesion_data = data[~data["Patient ID"].isin(outlier_list)]
         return lesion_data
 
 
-
-
 if __name__ == "__main__":
-    path_to_db = '/gpfs/haifa/projects/m/msieve_dev3/usr/Tal/my_research/virtual_biopsy/prostate/experiments/V1/'
+    path_to_db = "/gpfs/haifa/projects/m/msieve_dev3/usr/Tal/my_research/virtual_biopsy/prostate/experiments/V1/"
     # data = CAPVUtilsData.get_dataset(path_to_db=path_to_db,set_type='train', db_ver=18042021,db_name='tcia',fold_no=0)
     # data_lesion = CAPVUtilsData.get_lesions(data)
 
-    data = ProstateXUtilsData.get_dataset(path_to_db=path_to_db, set_type='train', db_ver=29042021, db_name='prostate_x',fold_no=0)
+    data = ProstateXUtilsData.get_dataset(
+        path_to_db=path_to_db,
+        set_type="train",
+        db_ver=29042021,
+        db_name="prostate_x",
+        fold_no=0,
+    )
     data_lesion = ProstateXUtilsData.get_lesions_prostate_x(data)
