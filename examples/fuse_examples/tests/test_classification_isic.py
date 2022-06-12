@@ -46,11 +46,12 @@ class ClassificationISICTestCase(unittest.TestCase):
             'eval_dir': os.path.join(self.root, 'isic/eval_dir')}
 
         self.train_common_params = TRAIN_COMMON_PARAMS
+        self.train_common_params['manager.train_params']['num_epochs'] = 15
+        self.train_common_params['samples_ids'] = FULL_GOLDEN_MEMBERS
+
         self.infer_common_params = INFER_COMMON_PARAMS
         self.eval_common_params = EVAL_COMMON_PARAMS
 
-        self.train_common_params['manager.train_params']['num_epochs'] = 15
-        self.train_common_params['samples_ids'] = FULL_GOLDEN_MEMBERS
 
         ISIC.download(data_path=self.paths['data_dir'])
 
