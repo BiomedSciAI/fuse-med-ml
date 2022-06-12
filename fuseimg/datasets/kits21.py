@@ -97,7 +97,7 @@ def my_resize(input_tensor: torch.Tensor, resize_to: Tuple[int, int, int]) -> to
 class KITS21:
     """
     2021 Kidney and Kidney Tumor Segmentation Challenge Dataset
-    KITS21 data pipeline impelemtation. See https://github.com/neheller/kits21
+    KITS21 data pipeline implementation. See https://github.com/neheller/kits21
     Currently including only the image and segmentation map
     """
     # bump whenever the static pipeline modified
