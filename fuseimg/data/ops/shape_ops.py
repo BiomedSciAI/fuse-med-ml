@@ -63,7 +63,7 @@ class OpCHWToHWC(OpBase):
 class OpSelectSlice(OpBase):
     '''
      select one slice from the input tensor, 
-     from the first dimmention of a >2 dimensional input
+     from the first dimension of a >2 dimensional input
     '''
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
