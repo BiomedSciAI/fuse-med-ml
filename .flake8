@@ -1,2 +1,3 @@
 [flake8]
-max-line-length = 88 # to match black
+max-line-length = 88 # matching black
+per-file-ignores = "__init__.py:F401"
