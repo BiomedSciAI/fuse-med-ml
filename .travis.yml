@@ -1,0 +1,17 @@
+language: python
+
+python:
+  - 3.7
+
+before_install:
+  - pip install -U pip
+
+install:
+  - pip install --progress-bar off -r requirements.txt
+  - pip install --progress-bar off -r dev_requirements.txt
+
+script:
+# Static type checking
+  # - python -m mypy fuse
+  - python -m black fuse --check --diff --color
+  # - python -m flake8 --per-file-ignores="__init__.py:F401" fuse
