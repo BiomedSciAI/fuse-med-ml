@@ -7,9 +7,11 @@ python:
 
 before_install:
   - pip install -U pip
+  - pip install --upgrade setuptools
 
 install:
-  - pip install --progress-bar off -r requirements.txt
+  # - pip install --progress-bar off -r requirements.txt
+  - pip install -r requirements.txt
   - pip install --progress-bar off -r dev_requirements.txt
 
 script:
