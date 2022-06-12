@@ -60,8 +60,6 @@ class ClassificationISICTestCase(unittest.TestCase):
         self.infer_common_params = INFER_COMMON_PARAMS
         self.eval_common_params = EVAL_COMMON_PARAMS
 
-        ISIC.download(data_path=self.paths["data_dir"])
-
     @run_in_subprocess
     def test_runner(self):
         # Must use GPU due a long running time

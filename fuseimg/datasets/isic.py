@@ -143,7 +143,7 @@ class ISIC:
         dynamic_pipeline = PipelineDefault("dynamic", [
 
             # Resize images to 300x300x3
-            (OpResizeTo(channels_first = True), dict(key="data.input.img", output_shape=[300, 300, 3], mode='reflect', anti_aliasing=True)),
+            (OpResizeTo(channels_first = True), dict(key="data.input.img", output_shape=(300, 300, 3), mode='reflect', anti_aliasing=True)),
 
             # Convert to tensor for the augmentation process
             (OpToTensor(), dict(key="data.input.img")),
@@ -190,6 +190,9 @@ class ISIC:
         :param sample_ids: dataset including the specified sample_ids or None for all the samples.
         :param override_partition: If True, will make a new partition of train-validation sets.
         """
+        # Download data if doesn't exist
+        ISIC.download(data_path=data_path)
+
         data_dir = os.path.join(data_path, 'ISIC2019/ISIC_2019_Training_Input')
 
         if samples_ids is None:

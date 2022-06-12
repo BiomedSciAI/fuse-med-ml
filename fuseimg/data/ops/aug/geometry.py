@@ -232,7 +232,7 @@ class OpResizeTo(OpBase):
         super().__init__()
         self._channels_first = channels_first
 
-    def __call__(self, sample_dict: NDict, key: str, **kwargs) -> NDict:
+    def __call__(self, sample_dict: NDict, output_shape: Tuple[int], key: str, **kwargs) -> NDict:
         """
         :param key: key to a numpy array or tensor stored in the sample_dict in a H x W x C format.
         :param kwargs: additional arguments to pass to the resize function
@@ -246,7 +246,7 @@ class OpResizeTo(OpBase):
             aug_input = np.transpose(aug_input, axes=(1, 2, 0))
 
         # Apply Resize
-        aug_output = skimage.transform.resize(image=aug_input, **kwargs)
+        aug_output = skimage.transform.resize(image=aug_input, output_shape=output_shape, **kwargs)
 
         if self._channels_first:
             # Permutes back HxWxC -> CxHxW

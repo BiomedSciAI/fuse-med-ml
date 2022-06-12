@@ -92,10 +92,8 @@ op_select_slice_img_and_seg = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpSe
 
 class OpPad(OpBase):
     """
-    Pad the give image on all the sides. Supports Tensor & ndarray.
+    Pad the given image on all the sides. Supports Tensor & ndarray.
     """
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
 
     def __call__(self, sample_dict: NDict, key: str,
             padding: List[int],
