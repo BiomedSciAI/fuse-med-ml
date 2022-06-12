@@ -9,7 +9,7 @@ from medpy.io import load
 import pydicom
 class OpLoadImage(OpReversibleBase):
     '''
-    Loads a medical image, currently only nii is supported
+    Loads a medical image, currently only nii/mha/dcm format is supported
     '''
     def __init__(self, dir_path: str, **kwargs):
         super().__init__(**kwargs)
