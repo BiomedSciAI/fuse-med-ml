@@ -50,6 +50,7 @@ class ClassificationISICTestCase(unittest.TestCase):
             "cache_dir": os.path.join(self.root, "isic/cache_dir"),
             "inference_dir": os.path.join(self.root, "isic/infer_dir"),
             "eval_dir": os.path.join(self.root, "isic/eval_dir"),
+            'data_split_filename': os.path.join(self.root, 'isic/isic_split.pkl')
         }
 
         self.train_common_params = TRAIN_COMMON_PARAMS
