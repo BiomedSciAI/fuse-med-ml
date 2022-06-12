@@ -94,6 +94,7 @@ TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 8
 TRAIN_COMMON_PARAMS['data.num_folds'] = 5
 TRAIN_COMMON_PARAMS['data.train_folds'] = [0, 1, 2]
 TRAIN_COMMON_PARAMS['data.validation_folds'] = [3]
+TRAIN_COMMON_PARAMS['data.samples_ids'] = FULL_GOLDEN_MEMBERS # Change to None to use all members
 
 # ===============
 # Manager - Train
@@ -140,7 +141,10 @@ def run_train(paths: dict, train_common_params: dict):
     lgr.info(f'Train Data:', {'attrs': 'bold'})
 
     # split to folds randomly - temp
-    all_dataset = ISIC.dataset(paths['data_dir'], paths['cache_dir'], reset_cache=False, num_workers=train_common_params['data.train_num_workers'], samples_ids=FULL_GOLDEN_MEMBERS)
+    all_dataset = ISIC.dataset(paths['data_dir'], paths['cache_dir'], reset_cache=False,
+                               num_workers=train_common_params['data.train_num_workers'],
+                               samples_ids=train_common_params['data.samples_ids'])
+
     folds = dataset_balanced_division_to_folds(dataset=all_dataset,
                                                 output_split_filename=paths['data_split_filename'],
                                                 keys_to_balance=['data.label'],

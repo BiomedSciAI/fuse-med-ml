@@ -141,20 +141,12 @@ class ISIC:
         """
 
         dynamic_pipeline = PipelineDefault("dynamic", [
-            # Cast to Tensor
-            (OpToTensor(), dict(key="data.input.img")),
-
-            # Convert to a H x W x C tensor format
-            (OpCHWToHWC(), dict(key="data.input.img")),
 
             # Resize images to 300x300x3
-            (OpResizeTo(), dict(key="data.input.img", output_shape=[300, 300, 3], mode='reflect', anti_aliasing=True)),
+            (OpResizeTo(channels_first = True), dict(key="data.input.img", output_shape=[300, 300, 3], mode='reflect', anti_aliasing=True)),
 
-            # Convert back to a C x H x W tensor format
-            (OpHWCToCHW(), dict(key="data.input.img")),
-
-            # Padding
-            (OpPad(), dict(key="data.input.img", padding=1)),
+            # Convert to tensor for the augmentation process
+            (OpToTensor(), dict(key="data.input.img")),
 
             # Augmentation                
             (OpSample(OpAugAffine2D()), dict(

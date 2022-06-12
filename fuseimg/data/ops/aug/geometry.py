@@ -223,10 +223,14 @@ class OpAugUnsqueeze3DFrom2D(OpBase):
 
 class OpResizeTo(OpBase):
     """
-    Resizes an image into the given dimensions.
+    Resizes an image into the given dimensions. Currently supports only ndarray
     """
-    def __init__(self):
+    def __init__(self, channels_first: bool):
+        """
+        :param channels_first: assign True iff the input is in CxHxW format.
+        """
         super().__init__()
+        self._channels_first = channels_first
 
     def __call__(self, sample_dict: NDict, key: str, **kwargs) -> NDict:
         """
@@ -237,19 +241,16 @@ class OpResizeTo(OpBase):
         """
         aug_input = sample_dict[key]
 
-        # Input image is tensor
-        # NOTE - Consider using 'torchvision.transforms.Resize' instead of double casting.
-        if torch.is_tensor(aug_input):
-            aug_input = aug_input.numpy()
-            aug_output = skimage.transform.resize(image=aug_input, **kwargs)
-            aug_output = torch.from_numpy(aug_output)
-        
-        # Input image is ndarray
-        elif isinstance(aug_input, np.ndarray):
-            aug_output = skimage.transform.resize(image=aug_input, **kwargs)
+        if self._channels_first:
+            # Permutes CxHxW -> HxWxC (for skimage's resize)
+            aug_input = np.transpose(aug_input, axes=(1, 2, 0))
 
-        else:
-            raise Exception(f"Error: unexpected image type {type(aug_input)}. Expects tensor / ndarray.") 
+        # Apply Resize
+        aug_output = skimage.transform.resize(image=aug_input, **kwargs)
+
+        if self._channels_first:
+            # Permutes back HxWxC -> CxHxW
+            aug_output = np.transpose(aug_output, axes=(2, 0, 1))
 
         sample_dict[key] = aug_output
 

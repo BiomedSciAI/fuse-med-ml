@@ -25,6 +25,8 @@ from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 
 from fuse_examples.imaging.classification.isic.runner import TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS,\
                                                                  run_train, run_infer, run_eval, PATHS
+from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS
+
 import fuse.utils.gpu as GPU
 from fuse.utils.rand.seed import Seed
 from fuseimg.datasets.isic import ISIC
@@ -48,6 +50,7 @@ class ClassificationISICTestCase(unittest.TestCase):
         self.eval_common_params = EVAL_COMMON_PARAMS
 
         self.train_common_params['manager.train_params']['num_epochs'] = 15
+        self.train_common_params['samples_ids'] = FULL_GOLDEN_MEMBERS
 
         ISIC.download(data_path=self.paths['data_dir'])
 
