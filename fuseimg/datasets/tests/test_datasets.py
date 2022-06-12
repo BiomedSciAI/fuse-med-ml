@@ -31,14 +31,13 @@ class TestDatasets(unittest.TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        tmpdir = gettempdir()
         self.kits21_cache_dir = mkdtemp(prefix="kits21_cache")
         self.kits21_data_dir = os.environ["KITS21_DATA_PATH"] if "KITS21_DATA_PATH" in os.environ else mkdtemp(prefix="kits21_data")
 
         self.stoic21_cache_dir = mkdtemp(prefix="stoic_cache")
 
-        self.isic_cache_dir = os.path.join(tmpdir, 'test_isic_cache')
-        self.isic_data_dir = os.path.join(tmpdir, 'test_isic_data')
+        self.isic_cache_dir = mkdtemp(prefix="isic_cache")
+        self.isic_data_dir = os.environ["ISIC19_DATA_PATH"] if "ISIC19_DATA_PATH" in os.environ else mkdtemp(prefix="isic_data")
 
     def test_kits21(self):
         KITS21.download(self.kits21_data_dir, cases=list(range(10)))
@@ -124,7 +123,8 @@ class TestDatasets(unittest.TestCase):
         shutil.rmtree(self.stoic21_cache_dir)
         
         shutil.rmtree(self.isic_cache_dir)
-        shutil.rmtree(self.isic_data_dir)
+        if "ISIC19_DATA_PATH" not in os.environ:
+            shutil.rmtree(self.isic_data_dir)
 
         super().tearDown()
 
