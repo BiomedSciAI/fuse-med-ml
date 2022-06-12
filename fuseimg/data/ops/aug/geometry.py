@@ -240,18 +240,49 @@ class OpResizeTo(OpBase):
         Stores the resized image in sample_dict[key]
         """
         aug_input = sample_dict[key]
+        dim = len(aug_input.shape)
 
         if self._channels_first:
             # Permutes CxHxW -> HxWxC (for skimage's resize)
-            aug_input = np.transpose(aug_input, axes=(1, 2, 0))
+            perm = self.get_permutation(dim=dim, channels_first=True)
+            aug_input = np.transpose(aug_input, axes=perm)
 
         # Apply Resize
         aug_output = skimage.transform.resize(image=aug_input, output_shape=output_shape, **kwargs)
 
         if self._channels_first:
             # Permutes back HxWxC -> CxHxW
-            aug_output = np.transpose(aug_output, axes=(2, 0, 1))
+            perm = self.get_permutation(dim=dim, channels_first=False)
+            aug_output = np.transpose(aug_output, axes=perm)
 
         sample_dict[key] = aug_output
 
         return sample_dict
+
+    def get_permutation(self, dim: int, channels_first: bool):
+        """
+        :param dim: tensor's dimension
+        :param channels_first: True iff the wanted permutation is: HxWxC -> CxHxW
+
+        Returns the right permutation to:
+        channels_first is True -> converting from CxHxW to HxWxC
+            i.e: (dim-2, dim-1, 0, 1, ..., dim-3)
+        channels_first is False -> converting from HxWxC to CxHxW
+            i.e: (2, 3, ..., dim-2, dim-1, 0, 1)
+        """
+
+        if dim < 2:
+            raise Exception(f"Error, dim ({dim}) must be greater or equal to 2.")
+        
+        if channels_first:
+            channels = [i for i in range(0, dim-2)]
+            hw = [dim-2, dim-1]
+            perm = hw + channels
+
+        else:
+            channels = [i for i in range(2, dim)]
+            hw = [0, 1]
+            perm = channels + hw
+
+        perm = tuple(perm)
+        return perm
