@@ -248,9 +248,11 @@ def run_in_subprocess(f: Callable, timeout: int = 600):
         p = mp.Process(target=f, args=args, kwargs=kwargs)
         p.start()
         try:
-            p.join(timeout=timeout)
+            res = p.join(timeout=timeout)
         except:
             p.terminate()
             raise
-            
+        
+        assert res == 0, f"Error, subprocess failed for function {f} with exit code {res}."
+
     return inner
