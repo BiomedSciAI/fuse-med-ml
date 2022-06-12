@@ -9,7 +9,7 @@ before_install:
   - pip install --upgrade pip
   - pip install --upgrade setuptools
   - pip list
-  - pip install ez_setup
+  - pip3 install ez_setup
 
 install:
   # - pip install --progress-bar off -r requirements.txt
