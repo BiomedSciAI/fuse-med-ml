@@ -25,7 +25,7 @@ import torch
 class LossBase(torch.nn.Module):
    """
    Base class for Fuse loss functions. 
-   Essentially it is torch.nn.Module that it's forward method gets as an input batch_dict and returns loss tensor
+   Essentially it is torch.nn.Module whose forward method gets as an input batch_dict and returns loss tensor
    """
    @abstractmethod
    def forward(self, batch_dict: NDict) -> torch.Tensor:
