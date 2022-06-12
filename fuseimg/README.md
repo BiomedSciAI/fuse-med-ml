@@ -29,7 +29,7 @@ Here you can find useful ops for imaging and public datasets implementations
   
 [**geometry**](data/ops/aug/geometry.py)
 * OpAugAffine2D -  2D affine transformation for torch tensors
-* OpAugCropAndResize2D - alternative to rescaling in OpAugAffine2D: center crop and resize back to the original dimensions. if scale is bigger than 1.0. the image first padded.
+* OpAugCropAndResize2D - alternative to rescaling in OpAugAffine2D: center crop and resize back to the original dimensions. if scale is bigger than 1.0, the image is first padded.
 * OpAugSqueeze3Dto2D - squeeze selected axis of volume image into channel dimension, in order to fit the 2D augmentation functions
 * OpAugUnsqueeze3DFrom2D - unsqueeze back to 3D, after you apply the required 2D operations
 
