@@ -55,7 +55,7 @@ from fuse.eval.evaluator import EvaluatorDefault
 # (5) Callbacks
 # (6) Manager
 #
-# The template will create each of those building and will eventually run Manager.train()
+# The template will create each of those building blocks and will eventually run Manager.train()
 #
 # Terminology:
 # 1. sample-id -
