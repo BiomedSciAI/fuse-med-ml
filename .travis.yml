@@ -1,0 +1,23 @@
+dist: xenial
+
+language: python
+
+python:
+  - "3.7"
+
+before_install:
+  - pip install --upgrade pip
+  - pip install --upgrade setuptools
+  - pip install --upgrade importlib_metadata
+  - pip list
+
+install:
+  # - pip install --progress-bar off -r requirements.txt
+  - pip install -r requirements.txt
+  - pip install --progress-bar off -r dev_requirements.txt
+
+script:
+# Static type checking
+  # - python -m mypy fuse
+  - python -m black fuse --check --diff --color
+  - python -m flake8 .
