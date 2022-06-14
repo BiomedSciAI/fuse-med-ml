@@ -26,7 +26,6 @@ from tqdm import tqdm
 import skimage
 import skimage.transform
 
-
 from fuse.utils import NDict
 from fuse.utils.rand.param_sampler import RandBool, RandInt, Uniform
 import wget
@@ -140,7 +139,6 @@ class KITS21:
                 wget.download(src, destination_file)
             else:
                 print(f"{seg_file} number {i} was found")
-
 
     @staticmethod
     def sample_ids():

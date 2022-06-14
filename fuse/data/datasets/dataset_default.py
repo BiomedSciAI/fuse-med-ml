@@ -183,8 +183,6 @@ class DatasetDefault(DatasetBase):
             sample = sample.get_multi(keys)
 
         return sample
-    
-    
 
     def _get_multi_multiprocess_func(self, args):
         sid, kwargs = args
@@ -198,7 +196,6 @@ class DatasetDefault(DatasetBase):
         dataset = get_from_global_storage("dataset_default_get_multi_dataset")
         kwargs = get_from_global_storage("dataset_default_get_multi_kwargs")
         return dataset.getitem(item, **kwargs)
-
 
     def get_multi(self, items: Optional[Sequence[Union[int, Hashable]]] = None, workers: int = 10, verbose: int = 1, mp_context: Optional[str] = None, **kwargs) -> List[Dict]:
         """

@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, List
 import numpy as np
 import torch
 
@@ -8,7 +8,6 @@ from fuse.data.ops.op_base import OpBase
 
 from fuseimg.utils.typing.key_types_imaging import DataTypeImaging 
 from fuseimg.data.ops.ops_common_imaging import OpApplyTypesImaging
-
 
 
 class OpClip(OpBase):
@@ -45,8 +44,9 @@ class OpClip(OpBase):
         return processed_img
 
 op_clip_img = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpClip(), {}) })
-        
-class OpNormalizeAgainstSelfImpl(OpBase):
+
+
+class OpNormalizeAgainstSelf(OpBase):
     '''
     normalizes a tensor into [0.0, 1.0] using its own statistics (NOT against a dataset)
     '''
@@ -58,10 +58,10 @@ class OpNormalizeAgainstSelfImpl(OpBase):
         img -= img.min()
         img /= img.max()
         sample_dict[key] = img
+
         return sample_dict
     
-
-op_normalize_against_self_img = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpNormalizeAgainstSelfImpl(), {}) })
+op_normalize_against_self_img = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpNormalizeAgainstSelf(), {}) })
 
         
 class OpToIntImageSpace(OpBase):
@@ -83,6 +83,7 @@ class OpToIntImageSpace(OpBase):
         return sample_dict
 
 op_to_int_image_space_img = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpToIntImageSpace(), {}) })
+
 
 class OpToRange(OpBase):
     '''
@@ -116,8 +117,3 @@ class OpToRange(OpBase):
 
 
 op_to_range_img = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpToRange(), {}) })
-        
-
-            
-
-    
