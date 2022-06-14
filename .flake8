@@ -3,3 +3,23 @@ max-line-length = 88
 per-file-ignores =
     ; imported but unused
     ; __init__.py: F401
+
+exclude =
+    ; .cache
+    ; .dvc
+    ; .git
+    ; .github
+    ; .idea
+    ; .mypy_cache
+    ; .pytest_cache
+    ; .venv
+    ; .vscode
+    ; __pycache__
+    ; algos
+    ; build
+    ; dist
+    ; ext_deps
+    ; libs
+    ; releases
+    ; setup.py
+    ; xunit-result.xml\

@@ -18,6 +18,7 @@ install:
 
 script:
 # Static type checking
-  # - python -m mypy fuse
-  - python -m black fuse --check --diff --color
-  - python -m flake8 .
+  - python -m mypy fuse/dl/managers/manager_default.py
+  # - python -m black fuse --check --diff --color
+  # - python -m flake8 .
+  skip
