@@ -1,7 +1,27 @@
 [flake8]
-max-line-length = 88
 per-file-ignores =
-    ; imported but unused
-    ; __init__.py: F401
-
-
+    # imported but unused
+    __init__.py: F401, F403
+max-line-length = 88
+# Errors to ignore   - TODO: Double check
+ignore = E501, E203, E265, E266, E741, W503, D100, D103 - TODO: DOUBLE CHECK
+# Files to exclude - TODO: Double check
+exclude =
+    .cache
+    .dvc
+    .git
+    .github
+    .idea
+    .mypy_cache
+    .pytest_cache
+    .venv
+    .vscode
+    __pycache__
+    algos
+    build
+    dist
+    ext_deps
+    libs
+    releases
+    setup.py
+    xunit-result.xml\
