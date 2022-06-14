@@ -17,9 +17,11 @@ Created on June 30, 2021
 
 """
 
+import torch
 from typing import Dict
 from fuse.dl.managers.callbacks.callback_base import Callback
 from fuse.dl.managers.manager_state import ManagerState
+
 
 class CallbackOptClosure(Callback):
     """
