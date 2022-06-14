@@ -14,3 +14,23 @@ Contains a collate function that converts a list of dictionaries with common key
 ```dict[str, Any] -> dict[str, list[Any}``` 
 
 ## file_io
+Contains a set of utilities related to reading and writing files. These include saving and loading Pickle, text, hdf5 files, extracting zip files, path manipulation, file and directory deletion and more.
+
+## misc
+Miscellaneous functions and tools without a particular common theme. Some examples: Pretty-printing a Pandas DataFrame for display purposes, user prompt for asking a yes/no question, squeeze batch dimension of different object types, and more.
+
+## multiprocessing
+
+## rand
+
+## remote_execution
+
+## gpu
+
+## ndict
+
+## utils_debug
+
+## utils_hierarchical_dict
+
+## utils_logger
