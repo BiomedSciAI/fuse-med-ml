@@ -18,6 +18,6 @@ install:
 
 script:
 # Static type checking
-  # - python -m mypy fuse
+  - python -m mypy fuse
   # - python -m black fuse --check --diff --color # Working
   # - python -m flake8 . # Working
