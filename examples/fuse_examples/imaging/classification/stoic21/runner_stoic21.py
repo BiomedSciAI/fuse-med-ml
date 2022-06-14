@@ -56,10 +56,10 @@ from fuseimg.datasets.stoic21 import STOIC21
 ##########################################
 # Debug modes
 ##########################################
-mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
+mode = 'default'  # Options: 'default', 'debug'. See details in FuseDebug
 debug = FuseDebug(mode)
 
-##########################################
+##########################################qQ
 # Output Paths
 ##########################################
 assert "STOIC21_DATA_PATH" in os.environ, "Expecting environment variable STOIC21_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"

@@ -59,7 +59,7 @@ from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN
 ##########################################
 # Debug modes
 ##########################################
-mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
+mode = 'default'  # Options: 'default', 'debug'. See details in FuseDebug
 debug = FuseDebug(mode)
 
 ##########################################

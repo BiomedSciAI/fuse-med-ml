@@ -26,11 +26,11 @@ from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 from fuse.utils.rand.seed import Seed
 import fuse.utils.gpu as GPU
 
+if "STOIC21_DATA_PATH" in os.environ:
+    from fuse_examples.imaging.classification.stoic21.runner_stoic21 import PATHS, TRAIN_COMMON_PARAMS, run_train, run_infer, run_eval, INFER_COMMON_PARAMS, \
+        EVAL_COMMON_PARAMS
 
-from fuse_examples.imaging.classification.stoic21.runner_stoic21 import PATHS, TRAIN_COMMON_PARAMS, run_train, run_infer, run_eval, INFER_COMMON_PARAMS, \
-   EVAL_COMMON_PARAMS
-
-
+@unittest.skipIf("STOIC21_DATA_PATH" not in os.environ, "define environment variable 'STOIC21_DATA_PATH' to run this test")
 class ClassificationStoic21TestCase(unittest.TestCase):
 
     def setUp(self):
