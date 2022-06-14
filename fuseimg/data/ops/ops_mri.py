@@ -349,7 +349,7 @@ class OpStackList4DStk(OpBase):
 
         vol_arr = [sitk.GetArrayFromImage(vol) for vol in vols_stk_list]
         vol_final = np.stack(vol_arr, axis=-1)
-        vol_final_sitk = sitk.GetImageFromArray(vol_final, isVector=True)
+        vol_final_sitk = sitk.GetImageFromArray(vol_final) #, isVector=True)
         vol_final_sitk.CopyInformation(vols_stk_list[self._reference_inx])
 
         sample_dict[key_out_volume4d] = vol_final_sitk
@@ -380,7 +380,7 @@ class OpRescale4DStk(OpBase):
             bool_mask[vol_array_pre_rescale[:, :, :, self._mask_ch_inx] > 0.3] = 1
             vol_array[:, :, :, self._mask_ch_inx] = bool_mask
 
-        vol_final = sitk.GetImageFromArray(vol_array, isVector=True)
+        vol_final = sitk.GetImageFromArray(vol_array) #, isVector=True)
         vol_final.CopyInformation(vol_backup)
         vol_final = sitk.Image(vol_final)
         sample_dict[key] = vol_final
@@ -462,9 +462,6 @@ class OpCreatePatchVolumes(OpBase):
         if self._delete_input_volumes:
             del sample_dict[key_in_volume4D]
             del sample_dict[key_in_ref_volume]
-        else:
-            sample_dict[key_in_volume4D] = sitk.GetArrayFromImage(vol_4D)
-            sample_dict[key_in_ref_volume]  =  sitk.GetArrayFromImage(vol_ref)
         return sample_dict
 
 
@@ -485,19 +482,56 @@ class OpSelectKeys(OpBase):
     def __call__(self, sample_dict: NDict, keys_2_keep: list ):
         keys_2_keep2 = set(['data.initial_sample_id',  'data.sample_id'] + keys_2_keep)
 
-        keys_2_delete = set(sample_dict.flatten().keys()) - keys_2_keep2
+
+        keys_2_delete = []
+        for key in sample_dict.flatten().keys():
+            if key in ['data.initial_sample_id',  'data.sample_id']:
+                continue
+            has_match=False
+            for key_prefix in keys_2_keep:
+                if key_prefix in key:
+                    has_match=True
+                    break
+            if not has_match:
+                keys_2_delete.append(key)
+
         for key in keys_2_delete:
             del sample_dict[key]
         return sample_dict
 
-class OpStk2Torch(OpBase):
+class OpDict2Torch(OpBase):
 
     def __call__(self, sample_dict: NDict, keys: list ):
         for key in keys:
-            vol = sample_dict[key]
+            vol = sample_dict[key]['arr']
             vol_tensor = torch.from_numpy(vol).type(torch.FloatTensor)
             sample_dict[key] = vol_tensor
         return sample_dict
+
+class OpStk2Dict(OpBase):
+    def __call__(self, sample_dict: NDict, keys: list ):
+        for key in keys:
+            vol_stk2 =  sample_dict[key]
+            d = dict(arr=sitk.GetArrayFromImage(vol_stk2),
+                                    origin=vol_stk2.GetOrigin(), spacing=vol_stk2.GetSpacing(),
+                                    direction=vol_stk2.GetDirection())
+            sample_dict[key] = d
+
+        return sample_dict
+
+class OpDict2Stk(OpBase):
+    def __call__(self, sample_dict: NDict, keys: list):
+        for key in keys:
+            d = sample_dict[key]
+            vol_stk = sitk.GetImageFromArray(d['arr'])
+            vol_stk.SetOrigin(d['origin'])
+            vol_stk.SetSpacing(d['spacing'])
+            vol_stk.SetDirection(d['direction'])
+            sample_dict[key] = vol_stk
+
+        return sample_dict
+
+
 
 
 
@@ -868,7 +902,7 @@ def extarct_lesion_prop_from_annotation(vol_ref,bbox_coords,start_slice,end_slic
 # radiomics operator
 
 class OpExtractRadiomics(OpBase):
-    def __init__(self,extractor,setting, **kwargs):
+    def __init__(self,extractor, setting, **kwargs):
         super().__init__(**kwargs)
         self.seq_inx_list = setting['seq_inx_list']
         self.seq_list = setting['seq_list']
@@ -946,14 +980,13 @@ def norm_volume(vol_np, seq_inx, imagePath, maskPath,setting, normMethod='defaul
             results_tmp = firstorder_tmp.execute()
             print(results_tmp)
             imagePath = (imagePath - results_tmp['Mean']) / np.sqrt(results_tmp['Variance'])
-
-        if normMethod == 'breast_area':
+        elif normMethod == 'breast_area':
             vol_shape = vol_np.shape
 
             image = vol_np[vol_inx_for_breast_seg, int(vol_shape[1] / 2), :, :]
             image_norm = (image - image.min()) / (image.max() - image.min()) * 256
             image_rgb = image_norm.astype(np.uint8)
-            image_seg = FCM(image=image_rgb, image_bit=8, n_clusters=2, m=2, epsilon=0.05, max_iter=100)
+            image_seg = FCM(image=image_rgb, image_bit=8, n_clusters=2, m=2, epsilon=0.05, max_iter=100)  # https://github.com/jeongHwarr/various_FCM_segmentation
             image_seg.form_clusters()
             image_seg_res = image_seg.segmentImage()
             breast_label = 1 - image_seg_res[2, 2]
@@ -964,6 +997,8 @@ def norm_volume(vol_np, seq_inx, imagePath, maskPath,setting, normMethod='defaul
             img_mean = np.mean(vol_slice[mask_breast == 1])
             img_std = np.std(vol_slice[mask_breast == 1])
             imagePath = (imagePath - img_mean) / img_std
+        else:
+            raise NotImplementedError(normMethod)
 
         return imagePath
 
