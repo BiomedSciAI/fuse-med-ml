@@ -1,4 +1,5 @@
 from typing import Any, Callable, List, Optional, Tuple
+from fuse.utils.utils_debug import FuseDebug
 from tqdm import tqdm,trange
 import multiprocessing as mp
 from termcolor import cprint
@@ -153,6 +154,11 @@ def _run_multiprocessed_as_iterator_impl(worker_func, args_list, workers=0, verb
     if 'DEBUG_SINGLE_PROCESS' in os.environ and os.environ['DEBUG_SINGLE_PROCESS'] in ['T','t','True','true',1]:
         workers = None
         cprint('Due to the env variable DEBUG_SINGLE_PROCESS being set, run_multiprocessed is not using multiprocessing','red')
+    
+    if FuseDebug().get_setting("multiprocessing") == "main_process":
+        workers = None
+        cprint('Due to the FuseDebug mode, run_multiprocessed is not using multiprocessing','red')
+
     assert callable(worker_func)
     
     if verbose<1:
