@@ -73,11 +73,9 @@ class TestDatasets(unittest.TestCase):
         
 
     def test_isic(self):
-        isic = ISIC(data_path = self.isic_data_dir, cache_path=self.isic_cache_dir)
-        isic.download()
 
         create_dir(self.isic_cache_dir)
-        dataset = isic.dataset(reset_cache=True, sample_ids=TEN_GOLDEN_MEMBERS)
+        dataset = ISIC.dataset(self.isic_data_dir, self.isic_cache_dir, reset_cache=True, samples_ids=TEN_GOLDEN_MEMBERS)
         self.assertEqual(len(dataset), 10)
         for sample_index in range(10):
             sample = dataset[sample_index]

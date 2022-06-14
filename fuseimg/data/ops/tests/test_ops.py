@@ -1,7 +1,8 @@
 import unittest
 
 from fuse.data.pipelines.pipeline_default import PipelineDefault
-from fuseimg.data.ops.color import OpClip, OpToRange, OpPad
+from fuseimg.data.ops.color import OpClip, OpToRange
+from fuseimg.data.ops.shape_ops import OpPad
 
 from fuse.utils.ndict import NDict
 

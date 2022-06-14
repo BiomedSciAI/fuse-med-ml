@@ -46,7 +46,7 @@ class ClassificationISICTestCase(unittest.TestCase):
         self.paths = {
             "model_dir": os.path.join(self.root, "isic/model_dir"),
             "force_reset_model_dir": True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
-            "data_dir": PATHS["data_dir"],
+            "data_dir": os.environ["ISIC19_DATA_PATH"] if "ISIC19_DATA_PATH" in os.environ else os.path.join(self.root, "isic/data_dir"),
             "cache_dir": os.path.join(self.root, "isic/cache_dir"),
             "inference_dir": os.path.join(self.root, "isic/infer_dir"),
             "eval_dir": os.path.join(self.root, "isic/eval_dir"),
