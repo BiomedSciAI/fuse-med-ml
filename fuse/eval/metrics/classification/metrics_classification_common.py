@@ -67,7 +67,7 @@ class MetricMultiClassDefault(MetricWithCollectorBase):
                 print(f"Error in metric: {track}")
                 metric_results = None
         else:
-            metric_results = NDict()
+            metric_results = {}
                 
             # one vs rest evaluation per class, including average 
             try:
