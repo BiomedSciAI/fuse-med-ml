@@ -25,7 +25,6 @@ import numpy as np
 
 from fuse.eval.metrics.metrics_common import MetricDefault, MetricWithCollectorBase
 from fuse.eval.metrics.libs.classification import MetricsLibClass
-from fuse.utils.ndict import NDict
 
 
 class MetricMultiClassDefault(MetricWithCollectorBase):
