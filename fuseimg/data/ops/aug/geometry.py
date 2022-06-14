@@ -275,13 +275,13 @@ class OpResizeTo(OpBase):
             raise Exception(f"Error, dim ({dim}) must be greater or equal to 2.")
         
         if channels_first:
-            channels = [i for i in range(0, dim-2)]
-            hw = [dim-2, dim-1]
+            channels = [0]
+            hw = [i for i in range(1, dim)]
             perm = hw + channels
 
         else:
-            channels = [i for i in range(2, dim)]
-            hw = [0, 1]
+            channels = [dim-1]
+            hw = [i for i in range(0, dim-1)]
             perm = channels + hw
 
         perm = tuple(perm)
