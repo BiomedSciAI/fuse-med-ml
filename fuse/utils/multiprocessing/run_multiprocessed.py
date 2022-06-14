@@ -252,5 +252,7 @@ def run_in_subprocess(f: Callable, timeout: int = 600):
         except:
             p.terminate()
             raise
-            
+        
+        assert p.exitcode == 0, f"process func {f} failed with exit code {p.exitcode}"
+
     return inner
