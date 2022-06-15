@@ -35,7 +35,10 @@ GPU related utilities, including finding which GPUs are available, setting `$CUD
 Nested dictionary implementation. Extends Python's `dict` type to allow accessing keys with a '.' notation, i.e `d.abc.def` instead `d['abc']['def']`.
 
 ## utils_debug
-Contains a class implementing debugging utilities. In "debug" mode it automatically disables multi-threading and multiprocessing. In "verbose" mode it also prints data collected in `batch_dict` and `epoch_results`. 
+Contains a class implementing debugging utilities. In "debug" mode it automatically disables multi-threading and multiprocessing. 
+
 ## utils_hierarchical_dict
+Implements a class similar to Ndict described above. It is kept for backwards compatibility.
 
 ## utils_logger
+Implements logging and console output formatting functions.
