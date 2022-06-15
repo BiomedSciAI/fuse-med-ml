@@ -50,7 +50,7 @@ class LossDefault(LossBase):
         :param callable:                PyTorch loss function handle (e.g., torch.nn.functional.cross_entropy)
 
         :param weight:                  Weight multiplier for final loss value
-        :param filter_func:             function that filters batch_dict/ The function gets ans input batch_dict and returns filtered batch_dict
+        :param filter_func:             function that filters batch_dict/ The function gets an input batch_dict and returns filtered batch_dict
         :param kwargs:                  kwargs for PyTorch loss function
         """
         super().__init__()
