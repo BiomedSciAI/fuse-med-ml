@@ -20,17 +20,22 @@ Contains a set of utilities related to reading and writing files. These include 
 Miscellaneous functions and tools without a particular common theme. Some examples: Pretty-printing a Pandas DataFrame for display purposes, user prompt for asking a yes/no question, squeeze batch dimension of different object types, and more.
 
 ## multiprocessing
+Contains tools and helper functions related to running workers in parallel using multiple processes.
 
 ## rand
+Contains a class for setting a given random seed in common libraries, and several classes for various kinds of random sample drawing.
 
 ## remote_execution
+Contains utilities for executing code on remote machines.
 
 ## gpu
+GPU related utilities, including finding which GPUs are available, setting `$CUDA_VISIBLE_DEVICES` environment variable, and more.
 
 ## ndict
+Nested dictionary implementation. Extends Python's `dict` type to allow accessing keys with a '.' notation, i.e `d.abc.def` instead `d['abc']['def']`.
 
 ## utils_debug
-
+Contains a class implementing debugging utilities. In "debug" mode it automatically disables multi-threading and multiprocessing. In "verbose" mode it also prints data collected in `batch_dict` and `epoch_results`. 
 ## utils_hierarchical_dict
 
 ## utils_logger
