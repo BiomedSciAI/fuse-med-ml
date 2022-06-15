@@ -28,57 +28,82 @@ from fuse.utils.ndict import NDict
 class LossDefault(LossBase):
     """
     Default Fuse loss function
+
+    Basic Usage Example:        
+    '''
+    from fuse.dl.losses.loss_default import LossDefault
+
+    my_loss_func = LossDefault(
+        pred='model.preds',
+        target='data.groundtruth.targets',
+        callable=torch.nn.functional.cross_entropy,
+        )
+
+    batch_dict = # batch_dict with pred and target
+    loss = my_loss_func(batch_dict)
+    '''
+
+
+    Custom Preprocessing Example:
+    Sometimes you want custom preprocessing of the batch_dict - for example in the following scenario:
+    
+    A multi-head / multi-task model, in which you have ground truth labels only for a subset of the samples.
+    In such case, you may use the optional "preprocess_func" to filter out the samples that you don't have labels for both tasks.
+
+    Example code:
+    '''
+    def my_preprocess_func(batch_dict: NDict) -> NDict:
+        # filter out samples that don't have labels for both tasks
+        keep_indices = #... calculate which indices to keep
+        batch_dict = batch_dict.indices(keep_indices) #this will keep only a subset of elements per each key in the dictionary (where applicable)
+        return batch_dict
+
+    my_loss_func = LossDefault(
+        pred='model.preds',
+        target='data.groundtruth.targets',
+        callable=torch.nn.functional.cross_entropy,
+        preprocess_func=my_preprocess_func,
+        )
+    '''
+
     """
 
     def __init__(self,
-                 pred: str = None,
-                 target: str = None,
-                 batch_kwargs_name: str = None,
-                 callable: Callable = None,
-                 sample_weight_name: Optional[str] = None,
-                 weight: float = 1.0,
-                 filter_func: Optional[Callable] = None,
-                 **kwargs
-                 ) -> None:
+        *, #prevent positional args
+        pred: str = None,
+        target: str = None,
+        callable: Callable = None,
+        weight: Optional[float] = None,
+        preprocess_func: Optional[Callable] = None,
+        ) -> None:
         """
         This class wraps a PyTorch loss function with a Fuse api.
-        :param pred_name:               batch_dict key for prediction (e.g., network output)
-        :param target_name:             batch_dict key for target (e.g., ground truth label)
-        :param batch_kwargs_name:       batch_dict key for additional, ad-hoc kwargs for loss function
-                                        Note: batch_kwargs will be merged into other loss function kwargs
-        :param sample_weight_name       batch_dict key that holds the sample weight for loss summation
-        :param callable:                PyTorch loss function handle (e.g., torch.nn.functional.cross_entropy)
-
-        :param weight:                  Weight multiplier for final loss value
-        :param filter_func:             function that filters batch_dict/ The function gets an input batch_dict and returns filtered batch_dict
-        :param kwargs:                  kwargs for PyTorch loss function
+        Args:
+        :param pred:               batch_dict key for prediction (e.g., network output)
+        :param target:             batch_dict key for target (e.g., ground truth label)
+        :param callable:           PyTorch loss function handle (e.g., torch.nn.functional.cross_entropy)
+        :param weight:             scalar loss multiplier
+        :param preprocess_func:             function that filters batch_dict/ The function gets an input batch_dict and returns filtered batch_dict
+            the expected function signature is:
+                foo(batch_dict: NDict) -> NDict:                                               
         """
         super().__init__()
-        self.pred_name = pred
-        self.target_name = target
-        self.batch_kwargs_name = batch_kwargs_name
+        self.pred = pred
+        self.target = target
         self.callable = callable
-        self.sample_weight_name = sample_weight_name
         self.weight = weight
-        self.filter_func = filter_func
-        self.kwargs = kwargs
+        self.preprocess_func = preprocess_func
 
     def forward(self, batch_dict: NDict) -> torch.Tensor:
-        # filter batch_dict if required
-        if self.filter_func is not None:
-            batch_dict = self.filter_func(batch_dict)
-        preds = batch_dict[self.pred_name]
-        targets = batch_dict[self.target_name]
-        batch_kwargs = batch_dict[self.batch_kwargs_name] if self.batch_kwargs_name is not None else {}
-        kwargs_copy = self.kwargs.copy()
-        kwargs_copy.update(batch_kwargs)
-        if self.sample_weight_name is not None:
-            assert 'reduction' not in kwargs_copy.keys(), 'reduction is forced to none when applying sample weight'
-            kwargs_copy.update({'reduction': 'none'})
-        loss_obj = self.callable(preds, targets, **kwargs_copy) * self.weight
-        if self.sample_weight_name is not None:
-            sample_weight = batch_dict[self.sample_weight_name]
-            weighted_loss = loss_obj*sample_weight
-            loss_obj = torch.mean(weighted_loss)
+        # preprocess batch_dict if required
+        if self.preprocess_func is not None:
+            batch_dict = self.preprocess_func(batch_dict)
+        preds = batch_dict[self.pred]
+        targets = batch_dict[self.target]
 
+        loss_obj = self.callable(preds, targets)
+
+        if self.weight is not None:
+            loss_obj *= self.weight
+        
         return loss_obj
