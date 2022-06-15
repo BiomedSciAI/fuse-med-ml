@@ -24,4 +24,4 @@ exclude =
     libs
     releases
     setup.py
-    xunit-result.xml\
+    
