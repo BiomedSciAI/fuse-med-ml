@@ -15,6 +15,8 @@ ignore =
     E265,
     # too many leading ‘#’ for block comment
     E266,
+    # do not use bare 'except'  <- Consider fix and delete ignore
+    E722
     # do not use variables named ‘l’, ‘O’, or ‘I’
     E741,
     # line break before binary operator
@@ -22,7 +24,7 @@ ignore =
     # Missing docstring in public module
     D100,
     # Missing docstring in public function
-    D103
+    D103,
 
 # Files to exclude - TODO: Double check
 exclude =
@@ -43,4 +45,3 @@ exclude =
     libs
     releases
     setup.py
-    

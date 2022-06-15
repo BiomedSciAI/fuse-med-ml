@@ -26,3 +26,7 @@ script:
   - python -m mypy examples/fuse_examples/imaging/classification/isic --show-error-codes
   - python -m black examples/fuse_examples/imaging/classification/isic --check --diff --color --line-length 120
   - python -m flake8 examples/fuse_examples/imaging/classification/isic
+
+  - python -m mypy fuse/utils/ndict.py --show-error-codes
+  - python -m black fuse/utils/ndict.py --check --diff --color --line-length 120
+  - python -m flake8 fuse/utils/ndict.py
