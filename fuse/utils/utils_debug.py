@@ -33,32 +33,15 @@ class FuseDebug(metaclass=Singleton):
                     Supported modes:
                     - 'default' - no debug tools
                     - 'debug' - best settings to use debugger: disable multiprocessing and multi threading
-                    - 'verbose' - print the the data collected in batch_dict and epoch_results in every stage with debug flag enabled.
-                    - 'fast' - run single batch and epoch with verbose and debug flag enabled
-                    - 'user' - prints when user func begin and ends
         """
         # possible values for each attribute
         self._settings_supported_values = {
-            # display the info as provided to Fuse callbacks
-            'dataset_sample_stages_info': ['default', 'verbose'],
-            # allows to override number of samples in dataset
-            'dataset_override_num_samples': lambda x: isinstance(x, int) and x > 0,
-            # allows to override number of cache workers
-            'dataset_override_num_workers': lambda x: isinstance(x, int) and x >= 0,
-            # 'verbose': display each time user function begin and ends
-            'dataset_user': ['default', 'verbose'],
-            # get random sample from available classes
-            'sampler_batch_mode': ['default', 'simple'],
+            # allows to disable multiprocessing and run everything using run_multiprocessed() on the main process instead 
+            'multiprocessing': ["default", "main_process"],
             # allows to override number of dataloader data workers
             'manager_override_num_dataloader_workers': lambda x: isinstance(x, int) and x >= 0,
-            # allows to override number of epochs
-            'manager_override_num_epochs': lambda x: isinstance(x, int) and x > 0,
             # allows to override number of gpus
             'manager_override_num_gpus': lambda x: isinstance(x, int) and x >= 0,
-            # 'verbose': display each stage
-            'manager_stages': ['default', 'verbose'],
-            # 'verbose': display each time user function begin and ends
-            'manager_user': ['default', 'verbose'],
         }
         # defined the supported modes
         self._modes = {}
@@ -67,33 +50,11 @@ class FuseDebug(metaclass=Singleton):
         self._modes['default'] = default_settings
         # debug mode
         debug_settings = {
-            'dataset_override_num_workers': 0,
+            'multiprocessing': "main_process",
             'manager_override_num_gpus': 1,
             'manager_override_num_dataloader_workers': 0
         }
         self._modes['debug'] = debug_settings
-        # verbose mode
-        verbose_settings = {
-            # 'dataset_info': 'verbose',
-            'dataset_sample_stages_info': 'verbose',
-        }
-        verbose_settings.update(debug_settings)
-        self._modes['verbose'] = verbose_settings
-        # fast mode
-        fast_settings = {
-            'dataset_override_num_samples': 10,
-            'sampler_batch_mode': 'simple',
-            'manager_override_num_epochs': 2
-        }
-        fast_settings.update(verbose_settings)
-        self._modes['fast'] = fast_settings
-        # user mode
-        user_settings = {
-            # FIXME: Implement
-            # 'manager_user': 'verbose',
-            # 'dataset_user': 'verbose'
-        }
-        self._modes['user'] = user_settings
 
         self._settings: dict
 
