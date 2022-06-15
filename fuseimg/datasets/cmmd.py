@@ -1,4 +1,3 @@
-from cmath import nan
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
@@ -6,7 +5,7 @@ from fuseimg.data.ops.image_loader import OpLoadImage
 from fuseimg.data.ops.color import OpNormalizeAgainstSelf
 from fuseimg.data.ops.shape_ops import OpFlipBrightSideOnLeft2D , OpFindBiggestNonEmptyBbox2D, OpResizeAndPad2D
 from fuse.data import PipelineDefault, OpToTensor
-from fuse.data.ops.ops_common import OpLambda, OpLookup
+from fuse.data.ops.ops_common import OpLambda
 from fuseimg.data.ops.aug.color import OpAugColor
 from fuseimg.data.ops.aug.geometry import OpAugAffine2D 
 from fuse.data.ops.ops_aug_common import OpSample, OpRandApply
@@ -19,7 +18,6 @@ from typing import Hashable, Optional, Sequence
 import torch
 import pandas as pd
 import numpy as np
-from typing import Tuple, List
 import pydicom
 import os, glob
 from pathlib import Path

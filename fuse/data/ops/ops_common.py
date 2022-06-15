@@ -363,9 +363,11 @@ class OpLookup(OpBase):
     Example:
     To read the gender represented by strings "male" and "female" and convert it to int do the following
     (OpLookup(map={"male": 0, "female": 1}). dict(key_in="data.input.gender", key_out="data.input,gender"))
-    :param not_exist_error: false iff if the value does not exist it will keep the previous value
     """
     def __init__(self, map: dict, not_exist_error : bool = True):
+        """
+        :param not_exist_error: false iff if the value does not exist it will keep the previous value
+        """
         super().__init__()
         self._map = map
         self._not_exist_error = not_exist_error
