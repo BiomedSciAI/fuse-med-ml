@@ -30,7 +30,7 @@ config = None
 
 from fuse.utils.gpu import choose_and_enable_multiple_gpus
 
-@unittest.skip("Not ready yet")
+# @unittest.skip("Not ready yet")
 # TODO:
 # 1. Get the path to data as an env variable
 # 2. Consider reducing the number of samples
