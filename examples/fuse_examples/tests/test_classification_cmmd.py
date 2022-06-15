@@ -67,6 +67,7 @@ class ClassificationMGCmmdTestCase(unittest.TestCase):
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg : DictConfig) -> None:
     global config
+    print(cfg)
     config = cfg
     unittest.main()
 if __name__ == '__main__':
