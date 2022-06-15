@@ -1,11 +1,12 @@
 from typing import List, Optional, Tuple, Union
 
-from torch import Tensor
 from PIL import Image
 
-import numpy
+import numpy as np
 import torch
 import torchvision.transforms.functional as TTF
+import skimage
+import skimage.transform
 
 from fuse.utils.ndict import NDict
 
@@ -63,7 +64,7 @@ class OpAugAffine2D(OpBase):
                 aug_channel_tensor = TTF.hflip(aug_channel_tensor)
 
             # convert back to torch tensor
-            aug_channel_tensor = numpy.array(aug_channel_tensor)
+            aug_channel_tensor = np.array(aug_channel_tensor)
             aug_channel_tensor = torch.from_numpy(aug_channel_tensor)
 
             # set the augmented channel
@@ -200,7 +201,6 @@ class OpAugUnsqueeze3DFrom2D(OpBase):
         if self._verify_arguments:
             assert isinstance(aug_input, torch.Tensor), f"Error: OpAugUnsqueeze3DFrom2D expects torch Tensor, got {type(aug_input)}"
             assert len(aug_input.shape) == 3, f"Error: OpAugUnsqueeze3DFrom2D expects tensor with 3 dimensions. got {aug_input.shape}"
-        
 
         aug_output = aug_input.reshape((channels, aug_input.shape[0] // channels) + aug_input.shape[1:])
         
@@ -219,3 +219,70 @@ class OpAugUnsqueeze3DFrom2D(OpBase):
         
         sample_dict[key] = aug_output
         return sample_dict
+
+
+class OpResizeTo(OpBase):
+    """
+    Resizes an image into the given dimensions. Currently supports only ndarray
+    """
+    def __init__(self, channels_first: bool):
+        """
+        :param channels_first: assign True iff the input is in CxHxW format.
+        """
+        super().__init__()
+        self._channels_first = channels_first
+
+    def __call__(self, sample_dict: NDict, output_shape: Tuple[int], key: str, **kwargs) -> NDict:
+        """
+        :param key: key to a numpy array or tensor stored in the sample_dict in a H x W x C format.
+        :param kwargs: additional arguments to pass to the resize function
+
+        Stores the resized image in sample_dict[key]
+        """
+        aug_input = sample_dict[key]
+        dim = len(aug_input.shape)
+
+        if self._channels_first:
+            # Permutes CxHxW -> HxWxC (for skimage's resize)
+            perm = self.get_permutation(dim=dim, channels_first=True)
+            aug_input = np.transpose(aug_input, axes=perm)
+
+        # Apply Resize
+        aug_output = skimage.transform.resize(image=aug_input, output_shape=output_shape, **kwargs)
+
+        if self._channels_first:
+            # Permutes back HxWxC -> CxHxW
+            perm = self.get_permutation(dim=dim, channels_first=False)
+            aug_output = np.transpose(aug_output, axes=perm)
+
+        sample_dict[key] = aug_output
+
+        return sample_dict
+
+    def get_permutation(self, dim: int, channels_first: bool):
+        """
+        :param dim: tensor's dimension
+        :param channels_first: True iff the wanted permutation is: HxWxC -> CxHxW
+
+        Returns the right permutation to:
+        channels_first is True -> converting from CxHxW to HxWxC
+            i.e: (dim-2, dim-1, 0, 1, ..., dim-3)
+        channels_first is False -> converting from HxWxC to CxHxW
+            i.e: (2, 3, ..., dim-2, dim-1, 0, 1)
+        """
+
+        if dim < 2:
+            raise Exception(f"Error, dim ({dim}) must be greater or equal to 2.")
+        
+        if channels_first:
+            channels = [0]
+            hw = [i for i in range(1, dim)]
+            perm = hw + channels
+
+        else:
+            channels = [dim-1]
+            hw = [i for i in range(0, dim-1)]
+            perm = channels + hw
+
+        perm = tuple(perm)
+        return perm

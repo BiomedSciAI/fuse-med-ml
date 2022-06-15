@@ -63,7 +63,7 @@ class LossDefault(LossBase):
         self.filter_func = filter_func
         self.kwargs = kwargs
 
-    def __call__(self, batch_dict: NDict) -> torch.Tensor:
+    def forward(self, batch_dict: NDict) -> torch.Tensor:
         # filter batch_dict if required
         if self.filter_func is not None:
             batch_dict = self.filter_func(batch_dict)
