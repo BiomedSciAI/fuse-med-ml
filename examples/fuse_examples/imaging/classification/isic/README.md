@@ -1,11 +1,10 @@
 # Skin Lesion Classification with Fuse
 
-This project deals with skin lesion classification challenge, from the International Skin Imaging Collaboration (ISIC):
+This project deals with skin lesion classification challenge, from the International Skin Imaging Collaboration (ISIC).
 
 ## ISIC 2019 Challenge
 
-The goal is to train a model which able to classify demoscropic images among nine different diagnostic categories.  
-Check [this link](https://challenge.isic-archive.com/landing/2019/) for more details.
+The goal is to train a model which able to classify demoscropic images among nine different diagnostic categories. Check [this link](https://challenge.isic-archive.com/landing/2019/) for more details.
 
 This code provides a simple implementation of these tasks using FuseMedML.  
 The model used is an InceptionResnetV2 pretrained on ImageNet and we evaluate it on AUC metric.
