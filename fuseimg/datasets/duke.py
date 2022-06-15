@@ -13,9 +13,11 @@ from fuse.data import DatasetDefault
 from fuse.data import PipelineDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuse.data.ops.op_base import OpReversibleBase, OpBase
+from fuse.data.ops import ops_read, ops_cast
 from fuse.data.utils.sample import get_sample_id
 from fuse.utils import NDict
 from fuseimg.data.ops import ops_mri
+
 
 from enum import Enum, auto
 
@@ -122,16 +124,12 @@ class Duke:
         # return [f'Breast_MRI_{i:03d}' for i in range(1,923)]
 
     @staticmethod
-    def static_pipeline(root_path, select_series_func, with_rescale:Optional[bool]=True, verbose:Optional[bool]=True) -> PipelineDefault:
+    def static_pipeline(root_path, select_series_func, with_rescale:Optional[bool]=True,
+                        keep_stk_volumes:Optional[bool]=False, verbose:Optional[bool]=True) -> PipelineDefault:
 
         data_path = os.path.join(root_path, 'Duke-Breast-Cancer-MRI')
         metadata_path = os.path.join(root_path, 'metadata.csv')
         annotations_df = get_duke_annotations_df()
-
-        def get_annotations(sample_id):
-            patient_annotations = annotations_df[annotations_df['Patient ID'] == sample_id]
-            assert patient_annotations.shape[0] == 1
-            return patient_annotations.iloc[0]
 
         series_desc_2_sequence_map = get_series_desc_2_sequence_mapping(metadata_path)
         seq_ids = ['DCE_mix_ph1',
@@ -192,21 +190,22 @@ class Duke:
 
         static_pipeline_steps += [
             # step 9: read tabular data for each patch
-            (ops_mri.OpAddPatchesData(get_annotations_func=get_annotations),
-             dict(key_out='data.input.patch_tab_data')),
+            (ops_read.OpReadDataframe(data=annotations_df, key_column='Patient ID'), dict(key_out_group='data.input.patch_annotations')),
 
             # step 10: create patch volumes: (i) fixed size around center of annotatins (orig), and (ii) entire annotations
-            (ops_mri.OpCreatePatchVolumes(lsn_shape=(9, 100, 100), lsn_spacing=(1, 0.5, 0.5), delete_input_volumes=False),
+            (ops_mri.OpCreatePatchVolumes(lsn_shape=(9, 100, 100), lsn_spacing=(1, 0.5, 0.5), delete_input_volumes=not keep_stk_volumes),
              dict(key_in_volume4D='data.input.volume4D',
                   key_in_ref_volume='data.input.ref_volume',
-                  key_in_patch_row='data.input.patch_tab_data',
+                  key_in_patch_annotations='data.input.patch_annotations',
                   key_out_cropped_vol='data.input.patch_volume_orig',
                   key_out_cropped_vol_by_mask='data.input.patch_volume')),
-
-            # step 11: move to ndarray - to allow quick saving
-            (ops_mri.OpStk2Dict(),
-             dict(keys=['data.input.volume4D','data.input.ref_volume']))
         ]
+        if keep_stk_volumes:
+            static_pipeline_steps += [
+                # step 11: move to ndarray - to allow quick saving
+                (ops_mri.OpStk2Dict(),
+                 dict(keys=['data.input.volume4D','data.input.ref_volume']))
+                ]
         static_pipeline = PipelineDefault("static", static_pipeline_steps, verbose=verbose)
 
         return static_pipeline
@@ -221,15 +220,18 @@ class Duke:
         if include_patch_fixed:
             volume_keys.append('data.input.patch_volume_orig')
 
-        dynamic_steps = [(ops_mri.OpDeleteLastChannel(), dict(keys=volume_keys)),
-                         (ops_mri.OpDict2Torch(), dict(keys=volume_keys))]
+        dynamic_steps = [(ops_mri.OpDeleteLastChannel(), dict(keys=volume_keys))]
+        for volume_key in volume_keys:
+            dynamic_steps += [(ops_cast.OpToTensor(), dict(key=volume_key, dtype=torch.float32))]
+
         keys_2_keep = list(volume_keys)
         if label_type is not None:
             key_ground_truth = 'data.ground_truth'
             dynamic_steps.append((OpAddDukeLabelAndClinicalFeatures(label_type=label_type),
-                            dict(key_in='data.input.patch_tab_data',  key_out_gt=key_ground_truth,
+                            dict(key_in='data.input.patch_annotations',  key_out_gt=key_ground_truth,
                                  key_out_clinical_features='data.clinical_features')))
             keys_2_keep.append(key_ground_truth)
+
         dynamic_steps.append((ops_mri.OpSelectKeys(), dict(keys_2_keep=keys_2_keep)))
         dynamic_pipeline = PipelineDefault("dynamic", dynamic_steps, verbose=verbose)
 
@@ -352,9 +354,9 @@ def get_duke_annotations_df():  # todo: change!!!
         [fold_annotations_dict[f'data_fold{fold}'] for fold in range(len(fold_annotations_dict))])
     return annotations_df
 
-def get_duke_raw_annotations_df():  # todo: change!!!
+def get_duke_raw_annotations_df(duke_data_dir=None):
     annotations_path = os.path.join(DUKE_DATA_DIR, 'Annotation_Boxes.csv')
-    annotations_df =  pd.read_csv(annotations_path)
+    annotations_df = pd.read_csv(annotations_path)
     return annotations_df
 
 def get_samples_for_debug(n_pos, n_neg, label_type):
@@ -401,7 +403,7 @@ class DukeRadiomics(Duke):
     def static_pipeline(root_path, select_series_func, verbose: Optional[bool]=True) -> PipelineDefault:
         # remove scaling operator for radiomics calculation
         static_pipline = Duke.static_pipeline(root_path=root_path, select_series_func=select_series_func, with_rescale=False,
-                                              verbose=verbose)
+                                              keep_stk_volumes=True, verbose=verbose)
         return static_pipline
 
     @staticmethod
@@ -420,7 +422,7 @@ class DukeRadiomics(Duke):
         if label_type is not None:
             key_ground_truth = 'data.ground_truth'
             dynamic_steps.append((OpAddDukeLabelAndClinicalFeatures(label_type=label_type),
-                                  dict(key_in='data.input.patch_tab_data', key_out_gt=key_ground_truth,
+                                  dict(key_in='data.input.patch_annotations', key_out_gt=key_ground_truth,
                                        key_out_clinical_features='data.clinical_features')))
             keys_2_keep.append(key_ground_truth)
         dynamic_steps.append((ops_mri.OpSelectKeys(), dict(keys_2_keep=keys_2_keep)))
@@ -471,6 +473,30 @@ class DukeRadiomics(Duke):
                                     )
         my_dataset.create()
         return my_dataset
+
+
+# class DukeLesionProperties(Duke):
+#     @staticmethod
+#     def dynamic_pipeline():
+#
+#         def get_annotations(sample_id):
+#             patient_annotations_df = annotations_df[annotations_df['Patient ID'] == sample_id]
+#             return patient_annotations_df
+#
+#         annotations_df = get_duke_raw_annotations_df()
+#
+#         steps = [
+#             (ops_mri.OpDict2Stk(),
+#                 dict(keys=['data.input.volume4D', 'data.input.ref_volume'])),
+#             (ops_mri.OpExtractLesionPropFromBBoxAnotation(get_annotations),
+#                 dict(key_in_ref_volume='data.input.ref_volume',
+#                       key_out_lesion_prop='data.lesion_prop',
+#                       key_out_cols='data.lesion_prop_col'))]
+#
+#         dynamic_pipeline = PipelineDefault("dynamic", steps)
+#
+#         return dynamic_pipeline
+
 
 
 

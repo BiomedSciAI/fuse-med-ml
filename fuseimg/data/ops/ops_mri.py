@@ -387,21 +387,6 @@ class OpRescale4DStk(OpBase):
         return sample_dict
 
 
-
-class OpAddPatchesData(OpBase):
-    def __init__(self, get_annotations_func, **kwargs):
-        super().__init__(**kwargs)
-        self._get_annotations_func = get_annotations_func
-
-
-    def __call__(self, sample_dict: NDict, key_out: str):
-        sample_id  = get_sample_id(sample_dict)
-        sample_dict[key_out] = self._get_annotations_func(sample_id)
-
-        return sample_dict
-
-
-
 class OpCreatePatchVolumes(OpBase):
     def __init__(self, lsn_shape, lsn_spacing, longtd_inx: Optional[int] = 0, delete_input_volumes=False, **kwargs):
         super().__init__(**kwargs)
@@ -410,22 +395,22 @@ class OpCreatePatchVolumes(OpBase):
         self._longtd_inx = longtd_inx
         self._delete_input_volumes = delete_input_volumes
 
-    def __call__(self, sample_dict: NDict, key_in_volume4D: str, key_in_ref_volume: str, key_in_patch_row: str,
+    def __call__(self, sample_dict: NDict, key_in_volume4D: str, key_in_ref_volume: str, key_in_patch_annotations: str,
                  key_out_cropped_vol_by_mask: str, key_out_cropped_vol: str):
 
         vol_ref = sample_dict[key_in_ref_volume]
         vol_4D = sample_dict[key_in_volume4D]
-        patch_row = sample_dict[key_in_patch_row]
+        patch_annotations = sample_dict[key_in_patch_annotations]
 
         # read original position
-        pos_orig = np.fromstring(patch_row[f'centroid_T{self._longtd_inx}'][1:-1], dtype=np.float32, sep=',')
+        pos_orig = np.fromstring(patch_annotations[f'centroid_T{self._longtd_inx}'][1:-1], dtype=np.float32, sep=',')
 
         # transform to pixel coordinate in ref coords
         pos_vol = np.array(vol_ref.TransformPhysicalPointToContinuousIndex(pos_orig.astype(np.float64)))
 
         vol_4d_arr = sitk.GetArrayFromImage(vol_4D)
         if sum(sum(sum(vol_4d_arr[:, :, :, -1]))) == 0:  # if the mast does not exist
-            bbox_coords = np.fromstring(patch_row[f'bbox_T{self._longtd_inx}'][1:-1], dtype=np.int32, sep=',')
+            bbox_coords = np.fromstring(patch_annotations[f'bbox_T{self._longtd_inx}'][1:-1], dtype=np.int32, sep=',')
             mask = extract_mask_from_annotation(vol_ref, bbox_coords)
             vol_4d_arr[:, :, :, -1] = mask
             vol_4d_new = sitk.GetImageFromArray(vol_4d_arr)
@@ -480,17 +465,14 @@ class OpDeleteLastChannel(OpBase):
 
 class OpSelectKeys(OpBase):
     def __call__(self, sample_dict: NDict, keys_2_keep: list ):
-        keys_2_keep2 = set(['data.initial_sample_id',  'data.sample_id'] + keys_2_keep)
-
-
         keys_2_delete = []
         for key in sample_dict.flatten().keys():
             if key in ['data.initial_sample_id',  'data.sample_id']:
                 continue
             has_match=False
             for key_prefix in keys_2_keep:
-                if key_prefix in key:
-                    has_match=True
+                if key.startswith(key_prefix):
+                    has_match = True
                     break
             if not has_match:
                 keys_2_delete.append(key)
@@ -500,7 +482,6 @@ class OpSelectKeys(OpBase):
         return sample_dict
 
 class OpDict2Torch(OpBase):
-
     def __call__(self, sample_dict: NDict, keys: list ):
         for key in keys:
             vol = sample_dict[key]['arr']
@@ -883,10 +864,13 @@ def extarct_lesion_prop_from_mask(mask):
                    shape_stats.GetOrientedBoundingBoxSize(i)[0],
                    shape_stats.GetOrientedBoundingBoxSize(i)[1],
                    shape_stats.GetOrientedBoundingBoxSize(i)[2],
+                   shape_stats.GetRoundness(i),
+                   max(shape_stats.GetEquivalentEllipsoidDiameter(i)),
+                   shape_stats.GetFlatness(i)
                    )
                   for i in shape_stats.GetLabels()]
 
-    cols = ["centroid","bbox","volume","elongation","size_bbox_x","size_bbox_y","size_bbox_z"]
+    cols = ["centroid","bbox","volume","elongation","size_bbox_x","size_bbox_y","size_bbox_z","roudness","longest_elip_diam","flateness"]
     return stats_list,cols
 
 def extarct_lesion_prop_from_annotation(vol_ref,bbox_coords,start_slice,end_slice):
@@ -980,23 +964,23 @@ def norm_volume(vol_np, seq_inx, imagePath, maskPath,setting, normMethod='defaul
             results_tmp = firstorder_tmp.execute()
             print(results_tmp)
             imagePath = (imagePath - results_tmp['Mean']) / np.sqrt(results_tmp['Variance'])
-        elif normMethod == 'breast_area':
-            vol_shape = vol_np.shape
-
-            image = vol_np[vol_inx_for_breast_seg, int(vol_shape[1] / 2), :, :]
-            image_norm = (image - image.min()) / (image.max() - image.min()) * 256
-            image_rgb = image_norm.astype(np.uint8)
-            image_seg = FCM(image=image_rgb, image_bit=8, n_clusters=2, m=2, epsilon=0.05, max_iter=100)  # https://github.com/jeongHwarr/various_FCM_segmentation
-            image_seg.form_clusters()
-            image_seg_res = image_seg.segmentImage()
-            breast_label = 1 - image_seg_res[2, 2]
-            mask_breast = np.zeros(image_seg_res.shape)
-            mask_breast[image_seg_res == breast_label] = 1
-
-            vol_slice = vol_np[seq_inx, int(vol_shape[1] / 2), :, :]
-            img_mean = np.mean(vol_slice[mask_breast == 1])
-            img_std = np.std(vol_slice[mask_breast == 1])
-            imagePath = (imagePath - img_mean) / img_std
+        # elif normMethod == 'breast_area': #todo: check installation of FCM!!!
+        #     vol_shape = vol_np.shape
+        #
+        #     image = vol_np[vol_inx_for_breast_seg, int(vol_shape[1] / 2), :, :]
+        #     image_norm = (image - image.min()) / (image.max() - image.min()) * 256
+        #     image_rgb = image_norm.astype(np.uint8)
+        #     image_seg = FCM(image=image_rgb, image_bit=8, n_clusters=2, m=2, epsilon=0.05, max_iter=100)  # https://github.com/jeongHwarr/various_FCM_segmentation
+        #     image_seg.form_clusters()
+        #     image_seg_res = image_seg.segmentImage()
+        #     breast_label = 1 - image_seg_res[2, 2]
+        #     mask_breast = np.zeros(image_seg_res.shape)
+        #     mask_breast[image_seg_res == breast_label] = 1
+        #
+        #     vol_slice = vol_np[seq_inx, int(vol_shape[1] / 2), :, :]
+        #     img_mean = np.mean(vol_slice[mask_breast == 1])
+        #     img_std = np.std(vol_slice[mask_breast == 1])
+        #     imagePath = (imagePath - img_mean) / img_std
         else:
             raise NotImplementedError(normMethod)
 

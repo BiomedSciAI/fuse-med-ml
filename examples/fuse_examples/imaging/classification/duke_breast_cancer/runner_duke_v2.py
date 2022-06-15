@@ -60,7 +60,7 @@ from examples.fuse_examples.imaging.classification.prostate_x.backbone_3d_multic
 
 
 def main():
-    mode =  'default' #'debug'  # 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
+    mode = 'debug'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
 
     # allocate gpus
     # To use cpu - set NUM_GPUS to 0
@@ -71,7 +71,6 @@ def main():
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None  # [0]
     GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
-
 
     PATHS, TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS = get_setting(mode)
     print(PATHS)
@@ -123,7 +122,7 @@ def get_setting(mode, label_type=duke.DukeLabelType.STAGING_TUMOR_SIZE, n_folds=
         cache_dir = os.path.join(ROOT, 'cache_dir')
         num_workers = 16
         batch_size = 50
-        num_epoch = 150
+        num_epoch = 20#150
     PATHS = {'model_dir': model_dir,
              'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
              'cache_dir': cache_dir,
@@ -162,8 +161,8 @@ def get_setting(mode, label_type=duke.DukeLabelType.STAGING_TUMOR_SIZE, n_folds=
     TRAIN_COMMON_PARAMS['manager.train_params'] = {
         'num_epochs': num_epoch,
         'virtual_batch_size': 1,  # number of batches in one virtual batch
-        'start_saving_epochs': 120,  # first epoch to start saving checkpoints from
-        'gap_between_saving_epochs': 1,  # number of epochs between saved checkpoint
+        'start_saving_epochs': 10,  # first epoch to start saving checkpoints from
+        'gap_between_saving_epochs': 5,  # number of epochs between saved checkpoint
     }
     TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = {
         'source': 'metrics.auc',  # can be any key from 'epoch_results'
@@ -238,16 +237,29 @@ def run_train(paths: dict, train_params: dict):
     lgr.info(f'model_dir={paths["model_dir"]}', {'color': 'magenta'})
     lgr.info(f'cache_dir={paths["cache_dir"]}', {'color': 'magenta'})
 
+
+
+
     # ==============================================================================
     # Data
     # ==============================================================================
     # Train Data
     lgr.info(f'Train Data:', {'attrs': 'bold'})
 
+    reset_cache = ask_user('Do you want to reset cache?')
+    cache_kwargs = None
+    if not reset_cache:
+        audit_cache = ask_user('Do you want to audit cache?')
+        if not audit_cache:
+            cache_kwargs = dict(audit_first_sample=False, audit_rate=None)
+
     # split to folds randomly - temp
-    dataset_all = duke.Duke.dataset(label_type=train_params['classification_task'], data_dir=paths["data_dir"], cache_dir=paths["cache_dir"],
-                                    reset_cache=False, sample_ids=train_params['data.selected_sample_ids'],
-                                    num_workers=train_params['data.train_num_workers'])
+    params = dict(label_type=train_params['classification_task'], data_dir=paths["data_dir"], cache_dir=paths["cache_dir"],
+                                    reset_cache=reset_cache, sample_ids=train_params['data.selected_sample_ids'],
+                                    num_workers=train_params['data.train_num_workers'],
+                                    cache_kwargs=cache_kwargs)
+
+    dataset_all = duke.Duke.dataset(**params)
     folds = dataset_balanced_division_to_folds(dataset=dataset_all,
                                         output_split_filename=paths["data_split_filename"], 
                                         keys_to_balance=["data.ground_truth"],
@@ -260,12 +272,14 @@ def run_train(paths: dict, train_params: dict):
     for fold in train_params["data.validation_folds"]:
         validation_sample_ids += folds[fold]
 
-    train_dataset = duke.Duke.dataset(label_type=train_params['classification_task'], data_dir=paths["data_dir"], cache_dir=paths["cache_dir"],
-                                      sample_ids=train_sample_ids, num_workers=train_params['data.train_num_workers'])
+    params['sample_ids'] = train_sample_ids
+    params['reset_cache'] = False
+    params['cache_kwargs'] = None
+    train_dataset = duke.Duke.dataset(**params)
     # for _ in train_dataset:
     #     pass
-    validation_dataset = duke.Duke.dataset(label_type=train_params['classification_task'], data_dir=paths["data_dir"], cache_dir=paths["cache_dir"],
-                                           sample_ids=validation_sample_ids, num_workers=train_params['data.train_num_workers'])
+    params['sample_ids'] = validation_sample_ids
+    validation_dataset = duke.Duke.dataset(**params)
 
     lgr.info(f'- Create sampler:')
     sampler = BatchSamplerDefault(dataset=train_dataset,
@@ -450,6 +464,11 @@ def run_eval(paths: dict, eval_common_params: dict):
     return results
 
 
+def ask_user(yes_no_question):
+    res = ''
+    while res not in ['y', 'n']:
+        res = input(f'{yes_no_question}? [y/n]')
+    return res =='y'
 ######################################
 # Run
 ######################################
