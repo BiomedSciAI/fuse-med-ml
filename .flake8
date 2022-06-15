@@ -2,9 +2,28 @@
 per-file-ignores =
     # imported but unused
     __init__.py: F401, F403
-max-line-length = 88
+
+max-line-length = 120
+
 # Errors to ignore   - TODO: Double check
-ignore = E501, E203, E265, E266, E741, W503, D100, D103 - TODO: DOUBLE CHECK
+ignore = 
+    # Line too long
+    E501,
+    # whitespace before ','
+    E203,
+    # block comment should start with ‘# ‘ 
+    E265,
+    # too many leading ‘#’ for block comment
+    E266,
+    # do not use variables named ‘l’, ‘O’, or ‘I’
+    E741,
+    # line break before binary operator
+    W503,
+    # Missing docstring in public module
+    D100,
+    # Missing docstring in public function
+    D103
+
 # Files to exclude - TODO: Double check
 exclude =
     .cache
