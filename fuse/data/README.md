@@ -309,7 +309,7 @@ The following operators are useful when implementing a common pipeline:
 
 * OpToNumpy - convert many different types to NumPy array
 * OpToTensor - convert many different types to PyTorch tensor
-* OpOneHotToNumber - convert one-hot encoding vector into numbers
+* OpOneHotToNumber - convert one-hot encoding vectors into numbers
 
 **Imaging operators**
 See [fuseimg package](../../fuseimg/data/README.md)

@@ -19,8 +19,8 @@ Here you can find useful ops for imaging and public datasets implementations
 #### [shape](data/ops/shape_ops.py)
 * OpHWCToCHW - transform HWC (height, width, channel) to CHW (channel, height, width)
 * OpCHWToHWC - transform CHW (channel, height, width) to HWC (height, width, channel)
-* OpSelectSlice - select one slice from the input tensor, 
-* OpPad - Pad the given image on all the sides, 
+* OpSelectSlice - select one slice from the input tensor
+* OpPad - pad a given image on all the sides
 
 #### [augmentation](data/ops/aug/)
 
@@ -33,7 +33,7 @@ Here you can find useful ops for imaging and public datasets implementations
 * OpAugCropAndResize2D - alternative to rescaling in OpAugAffine2D: center crop and resize back to the original dimensions. if scale is bigger than 1.0, the image is first padded.
 * OpAugSqueeze3Dto2D - squeeze selected axis of volume image into channel dimension, in order to fit the 2D augmentation functions
 * OpAugUnsqueeze3DFrom2D - unsqueeze back to 3D, after you apply the required 2D operations
-* OpResizeTo - resizes an image into given dimensions
+* OpResizeTo - resize an image into given dimensions
 
 ### Imaging datasets
 * [kits21](datasets/kits21.py) - 2021 Kidney and Kidney Tumor Segmentation Challenge Dataset. See https://github.com/neheller/kits21
