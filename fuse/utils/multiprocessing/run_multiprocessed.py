@@ -241,7 +241,7 @@ def get_from_global_storage(key: str) -> Any:
     return _multiprocess_global_storage[key]
 
 
-def run_in_subprocess(f: Callable, timeout: int = 600):
+def run_in_subprocess(f: Callable, timeout: int = 1200):
     """A decorator that makes function run in a subprocess.
     This can be useful when you want allocate GPU and memory and to release it when you're done.
     :param f: the function to run in a subprocess
