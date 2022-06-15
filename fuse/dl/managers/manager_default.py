@@ -122,6 +122,7 @@ class ManagerDefault:
             virtual_batch_size - number of batches in one virtual batch (default 1),
             start_saving_epochs - first epoch to start saving checkpoint (default 80)
             gap_between_saving_epochs - number of epochs between each saved checkpoint
+            lr_sch_target - key to a value in epoch results dictionary to pass to the learning rate scheduler. (typically: 'validation.losses.total_loss' or 'train.losses.total_loss')
         :param output_model_dir: directory to save the model data to
 
         """
@@ -138,10 +139,6 @@ class ManagerDefault:
         if train_params is not None: self.state.train_params = train_params
         if output_model_dir is not None: self.state.output_model_dir = output_model_dir
 
-        # debug mode - append debug callback
-        if FuseDebug().get_setting('manager_stages') != 'default':
-            self.callbacks.append(CallbackDebug())
-            self.logger.info(f'Manager - debug mode - append debug callback', {'color': 'red'})
         pass
 
     def _save_objects(self) -> None:
@@ -740,12 +737,6 @@ class ManagerDefault:
 
         if mode == 'train':
             self.state.num_epochs: int = full_config['num_epochs']
-            # debug - num epochs
-            override_num_epochs = FuseDebug().get_setting('manager_override_num_epochs')
-            if override_num_epochs != 'default':
-                self.state.num_epochs = override_num_epochs
-                self.logger.info(f'Manager - debug mode - override num_epochs to {self.state.num_epochs}', {'color': 'red'})
-
             self.state.start_saving_epochs: int = full_config['start_saving_epochs']
             self.state.gap_between_saving_epochs: int = full_config['gap_between_saving_epochs']
             self.state.end_epoch: int = self.state.num_epochs
@@ -912,7 +903,7 @@ class ManagerDefault:
             set_default('num_epochs', 100)
             set_default('gap_between_saving_epochs', 5)
             set_default('start_saving_epochs', 80)
-            set_default('lr_sch_target', 'train.losses.total_loss')
+            set_default('lr_sch_target', 'validation.losses.total_loss')
 
         return full_config
 

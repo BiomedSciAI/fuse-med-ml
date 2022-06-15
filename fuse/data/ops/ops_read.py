@@ -85,6 +85,7 @@ class OpReadDataframe(OpBase):
         See base class
         """
         key = sample_dict[self._key_name]
+
         # locate the required item
         sample_data = self._data[key].copy()
 
@@ -99,5 +100,3 @@ class OpReadDataframe(OpBase):
         :return: list of  dataframe index values
         """
         return list(self.data.keys())
-
-    

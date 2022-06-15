@@ -5,11 +5,13 @@ import numpy as np
 from fuse.data.ops.ops_common import OpApplyTypes
 import nibabel as nib
 from fuse.utils.ndict import NDict
+from torchvision.io import read_image
 from medpy.io import load
 import pydicom
 class OpLoadImage(OpReversibleBase):
     '''
-    Loads a medical image, currently only nii/mha/dcm format is supported
+    Loads a medical image, currently supports:
+            'nii', 'nib', 'jpg', 'jpeg', 'png', 'mha','dcm'
     '''
     def __init__(self, dir_path: str, **kwargs):
         super().__init__(**kwargs)
@@ -28,6 +30,13 @@ class OpLoadImage(OpReversibleBase):
             img = nib.load(img_filename)
             img_np = img.get_fdata()
             sample_dict[key_out] = img_np
+
+        elif img_filename_suffix in ["jpg", "jpeg", "png"]:
+            img = read_image(img_filename)
+            img = img.float()
+            img_np = img.numpy()
+            sample_dict[key_out] = img_np
+        
         elif (format == "infer" and img_filename_suffix in ["mha"]) or \
             (format in ["mha"]):
             image_data, image_header = load(img_filename) 
