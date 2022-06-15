@@ -1,10 +1,9 @@
 import os
 import pathlib
 import shutil
-from tempfile import gettempdir, mkdtemp
+from tempfile import mkdtemp
 import unittest
 from fuse.data.utils.sample import get_sample_id
-from fuse.utils.cpu_profiling.profiler import profiler_deco
 from fuse.utils.file_io.file_io import create_dir
 
 from fuseimg.datasets.kits21 import KITS21
@@ -50,7 +49,6 @@ class TestDatasets(unittest.TestCase):
             sample = dataset[sample_index]
             self.assertEqual(get_sample_id(sample), f"case_{sample_index:05d}")
     
-    @profiler_deco
     @unittest.skipIf("STOIC21_DATA_PATH" not in os.environ, "Expecting environment variable STOIC21_DATA_PATH to be defined")
     def test_stoic21(self):
         data_path = os.environ["STOIC21_DATA_PATH"]
@@ -73,7 +71,6 @@ class TestDatasets(unittest.TestCase):
         self.assertEqual(ds[0]['data.input.clinical'].shape[0], 8)
         self.assertTrue(5 in dict(results["metrics.age"]))
         
-    @profiler_deco
     def test_isic(self):
 
         create_dir(self.isic_cache_dir)

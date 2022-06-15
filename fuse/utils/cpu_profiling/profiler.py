@@ -76,13 +76,3 @@ class Profiler:
         self.ps = pstats.Stats(self.pr, stream=self.s).sort_stats(sortby).reverse_order()
         self.ps.print_stats()
         print(self.s.getvalue())
-        
-
-
-def profiler_deco(f: Callable):
-    def inner(*args, **kwargs):
-        with Profiler(f"{f}") as prof:
-            f(*args, **kwargs)
-
-    return inner
-

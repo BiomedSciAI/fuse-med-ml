@@ -1,3 +1,4 @@
+import functools
 from typing import Any, Callable, List, Optional, Tuple
 from fuse.utils.utils_debug import FuseDebug
 from tqdm import tqdm,trange
@@ -241,24 +242,27 @@ def get_from_global_storage(key: str) -> Any:
     return _multiprocess_global_storage[key]
 
 
-def run_in_subprocess(f: Callable, timeout: int = 1200):
+def run_in_subprocess(timeout: int = 600):
     """A decorator that makes function run in a subprocess.
     This can be useful when you want allocate GPU and memory and to release it when you're done.
     :param f: the function to run in a subprocess
     :param timeout: the maximum time to wait for the process to complete
     """
+    def inner(f: callable):
 
-    def inner(*args, **kwargs):
-        # create the machinery python uses to fork a subprocess
-        # and run a function in it.
-        p = mp.Process(target=f, args=args, kwargs=kwargs)
-        p.start()
-        try:
-            p.join(timeout=timeout)
-        except:
-            p.terminate()
-            raise
-        
-        assert p.exitcode == 0, f"process func {f} failed with exit code {p.exitcode}"
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            # create the machinery python uses to fork a subprocess
+            # and run a function in it.
+            p = mp.Process(target=f, args=args, kwargs=kwargs)
+            p.start()
+            try:
+                p.join(timeout=timeout)
+            except:
+                p.terminate()
+                raise
+            
+            assert p.exitcode == 0, f"process func {f} failed with exit code {p.exitcode}"
 
+        return wrapper
     return inner
