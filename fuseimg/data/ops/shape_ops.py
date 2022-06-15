@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 import numpy as np
 from torch import Tensor
 import skimage
