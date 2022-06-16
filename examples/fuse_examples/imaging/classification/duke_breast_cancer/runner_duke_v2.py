@@ -44,6 +44,7 @@ from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisti
 from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
 from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
 from fuse.dl.managers.manager_default import ManagerDefault
+from examples.fuse_examples.imaging.classification import duke_breast_cancer
 
 
 from fuse.utils.utils_debug import FuseDebug
@@ -106,7 +107,7 @@ def get_setting(mode, label_type=duke.DukeLabelType.STAGING_TUMOR_SIZE, n_folds=
     # Output Paths
     ##########################################
     assert "DUKE_DATA_PATH" in os.environ, "Expecting environment variable DUKE_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
-    ROOT = f'/projects/msieve_dev3/usr/{getpass.getuser()}/fuse_examples/duke'
+    ROOT = duke_breast_cancer.get_duke_user_dir()
     model_dir = os.path.join(ROOT, 'model_dir')
 
     if mode == 'debug':
@@ -246,10 +247,10 @@ def run_train(paths: dict, train_params: dict):
     # Train Data
     lgr.info(f'Train Data:', {'attrs': 'bold'})
 
-    reset_cache = ask_user('Do you want to reset cache?')
+    reset_cache = duke_breast_cancer.ask_user('Do you want to reset cache?')
     cache_kwargs = None
     if not reset_cache:
-        audit_cache = ask_user('Do you want to audit cache?')
+        audit_cache = duke_breast_cancer.ask_user('Do you want to audit cache?')
         if not audit_cache:
             cache_kwargs = dict(audit_first_sample=False, audit_rate=None)
 
@@ -464,11 +465,7 @@ def run_eval(paths: dict, eval_common_params: dict):
     return results
 
 
-def ask_user(yes_no_question):
-    res = ''
-    while res not in ['y', 'n']:
-        res = input(f'{yes_no_question}? [y/n]')
-    return res =='y'
+
 ######################################
 # Run
 ######################################

@@ -124,12 +124,15 @@ class Duke:
         # return [f'Breast_MRI_{i:03d}' for i in range(1,923)]
 
     @staticmethod
-    def static_pipeline(root_path, select_series_func, with_rescale:Optional[bool]=True,
-                        keep_stk_volumes:Optional[bool]=False, verbose:Optional[bool]=True) -> PipelineDefault:
+    def static_pipeline(select_series_func, root_path=None, with_rescale:Optional[bool]=True,
+                        output_stk_volumes:Optional[bool]=False,  output_patch_volumes:Optional[bool]=True,
+                        verbose:Optional[bool]=True) -> PipelineDefault:
 
+        if root_path is None:
+            # root_path = '/projects/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI/manifest-1607053360376/'
+            root_path = os.environ["DUKE_DATA_PATH"]
         data_path = os.path.join(root_path, 'Duke-Breast-Cancer-MRI')
         metadata_path = os.path.join(root_path, 'metadata.csv')
-        annotations_df = get_duke_annotations_df()
 
         series_desc_2_sequence_map = get_series_desc_2_sequence_mapping(metadata_path)
         seq_ids = ['DCE_mix_ph1',
@@ -188,19 +191,22 @@ class Duke:
             # step 8:
             static_pipeline_steps += [(ops_mri.OpRescale4DStk(), dict(key='data.input.volume4D'))]
 
-        static_pipeline_steps += [
-            # step 9: read tabular data for each patch
-            (ops_read.OpReadDataframe(data=annotations_df, key_column='Patient ID'), dict(key_out_group='data.input.patch_annotations')),
+        if output_patch_volumes:
+            get_duke_annotations_df()
+            static_pipeline_steps += [
+                # step 9: read tabular data for each patch
+                (ops_read.OpReadDataframe(data=get_duke_annotations_df(), key_column='Patient ID'),
+                    dict(key_out_group='data.input.patch_annotations')),
 
-            # step 10: create patch volumes: (i) fixed size around center of annotatins (orig), and (ii) entire annotations
-            (ops_mri.OpCreatePatchVolumes(lsn_shape=(9, 100, 100), lsn_spacing=(1, 0.5, 0.5), delete_input_volumes=not keep_stk_volumes),
-             dict(key_in_volume4D='data.input.volume4D',
-                  key_in_ref_volume='data.input.ref_volume',
-                  key_in_patch_annotations='data.input.patch_annotations',
-                  key_out_cropped_vol='data.input.patch_volume_orig',
-                  key_out_cropped_vol_by_mask='data.input.patch_volume')),
-        ]
-        if keep_stk_volumes:
+                # step 10: create patch volumes: (i) fixed size around center of annotatins (orig), and (ii) entire annotations
+                (ops_mri.OpCreatePatchVolumes(lsn_shape=(9, 100, 100), lsn_spacing=(1, 0.5, 0.5), delete_input_volumes=not output_stk_volumes),
+                     dict(key_in_volume4D='data.input.volume4D',
+                          key_in_ref_volume='data.input.ref_volume',
+                          key_in_patch_annotations='data.input.patch_annotations',
+                          key_out_cropped_vol='data.input.patch_volume_orig',
+                          key_out_cropped_vol_by_mask='data.input.patch_volume')),
+                ]
+        if output_stk_volumes:
             static_pipeline_steps += [
                 # step 11: move to ndarray - to allow quick saving
                 (ops_mri.OpStk2Dict(),
@@ -221,6 +227,7 @@ class Duke:
             volume_keys.append('data.input.patch_volume_orig')
 
         dynamic_steps = [(ops_mri.OpDeleteLastChannel(), dict(keys=volume_keys))]
+
         for volume_key in volume_keys:
             dynamic_steps += [(ops_cast.OpToTensor(), dict(key=volume_key, dtype=torch.float32))]
 
@@ -239,7 +246,7 @@ class Duke:
 
 
     @staticmethod
-    def dataset(label_type: Optional[DukeLabelType]=None, cache_dir: Optional[str]=None, data_dir: Optional[str] = None,
+    def dataset(label_type: Optional[DukeLabelType]=None, cache_dir: Optional[str]=None, data_dir: Optional[str]=None,
                 select_series_func=get_selected_series_index, reset_cache: bool = False, num_workers: int = 10,
                 sample_ids: Optional[Sequence[Hashable]] = None, verbose:Optional[bool]=True,
                 cache_kwargs:Optional[dict]=None) -> DatasetDefault:
@@ -255,13 +262,11 @@ class Duke:
         :return:
         """
 
-        if data_dir is None:
-            data_dir = '/projects/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI/manifest-1607053360376/'
 
         if sample_ids is None:
             sample_ids = Duke.sample_ids()
 
-        static_pipeline = Duke.static_pipeline(data_dir, select_series_func=select_series_func, verbose=verbose)
+        static_pipeline = Duke.static_pipeline(root_path=data_dir, select_series_func=select_series_func, verbose=verbose)
         dynamic_pipeline = Duke.dynamic_pipeline(label_type, verbose=verbose)
 
         if cache_dir is None:
@@ -400,10 +405,12 @@ def get_sample_path(data_path, sample_id):
 class DukeRadiomics(Duke):
 
     @staticmethod
-    def static_pipeline(root_path, select_series_func, verbose: Optional[bool]=True) -> PipelineDefault:
+    def static_pipeline(select_series_func, root_path: Optional[str]=None, verbose: Optional[bool]=True) -> PipelineDefault:
         # remove scaling operator for radiomics calculation
-        static_pipline = Duke.static_pipeline(root_path=root_path, select_series_func=select_series_func, with_rescale=False,
-                                              keep_stk_volumes=True, verbose=verbose)
+        static_pipline = Duke.static_pipeline(root_path=root_path, select_series_func=select_series_func,
+                                              with_rescale=False,
+                                              output_patch_volumes=False,
+                                              output_stk_volumes=True, verbose=verbose)
         return static_pipline
 
     @staticmethod
@@ -451,7 +458,7 @@ class DukeRadiomics(Duke):
         if sample_ids is None:
             sample_ids = DukeRadiomics.sample_ids()
 
-        static_pipeline = DukeRadiomics.static_pipeline(data_dir, select_series_func=select_series_func, verbose=verbose)
+        static_pipeline = DukeRadiomics.static_pipeline(root_path=data_dir, select_series_func=select_series_func, verbose=verbose)
         dynamic_pipeline = DukeRadiomics.dynamic_pipeline(radiomics_extractor_setting=radiomics_extractor_setting,
                                                           label_type=label_type, verbose=verbose)
 
@@ -475,27 +482,75 @@ class DukeRadiomics(Duke):
         return my_dataset
 
 
-# class DukeLesionProperties(Duke):
-#     @staticmethod
-#     def dynamic_pipeline():
-#
-#         def get_annotations(sample_id):
-#             patient_annotations_df = annotations_df[annotations_df['Patient ID'] == sample_id]
-#             return patient_annotations_df
-#
-#         annotations_df = get_duke_raw_annotations_df()
-#
-#         steps = [
-#             (ops_mri.OpDict2Stk(),
-#                 dict(keys=['data.input.volume4D', 'data.input.ref_volume'])),
-#             (ops_mri.OpExtractLesionPropFromBBoxAnotation(get_annotations),
-#                 dict(key_in_ref_volume='data.input.ref_volume',
-#                       key_out_lesion_prop='data.lesion_prop',
-#                       key_out_cols='data.lesion_prop_col'))]
-#
-#         dynamic_pipeline = PipelineDefault("dynamic", steps)
-#
-#         return dynamic_pipeline
+class DukeLesionProperties(Duke):
+
+    @staticmethod
+    def static_pipeline(select_series_func, root_path: Optional[str]=None, verbose: Optional[bool]=True) -> PipelineDefault:
+        # remove scaling operator for radiomics calculation
+        static_pipline = Duke.static_pipeline(root_path=root_path, select_series_func=select_series_func,
+                                              with_rescale=False,
+                                              output_patch_volumes=False,
+                                              output_stk_volumes=True, verbose=verbose)
+        return static_pipline
+
+    @staticmethod
+    def dynamic_pipeline(verbose:Optional[bool]=True):
+        annotations_df = get_duke_raw_annotations_df()
+
+        steps = [
+            (ops_mri.OpDict2Stk(),
+                dict(keys=['data.input.volume4D', 'data.input.ref_volume'])),
+            (ops_read.OpReadDataframe(data=annotations_df, key_column='Patient ID'),
+                dict(key_out_group='data.input.annotations')),
+            (ops_mri.OpExtractLesionPropFromBBoxAnotationV2(),
+                dict(key_in_ref_volume='data.input.ref_volume',
+                     key_in_annotations='data.input.annotations',
+                      key_out='data.lesion_properties'))]
+
+        dynamic_pipeline = PipelineDefault("dynamic", steps, verbose=verbose)
+
+        return dynamic_pipeline
+
+    def dataset(cache_dir: Optional[str] = None, data_dir: Optional[str] = None,
+                select_series_func=get_selected_series_index, reset_cache: bool = False, num_workers: int = 10,
+                sample_ids: Optional[Sequence[Hashable]] = None, verbose: Optional[bool] = True,
+                cache_kwargs:Optional[dict]=None) -> DatasetDefault:
+
+        """
+        :param cache_dir: path to store the cache of the static pipeline
+        :param data_dir: path to the original data
+        :param select_series_func: which series to select for DCE_mix sequences
+        :param reset_cache:
+        :param num_workers:  number of processes used for caching
+        :param sample_ids: list of selected patient_ids for the dataset
+        :return:
+        """
+
+        if sample_ids is None:
+            sample_ids = DukeLesionProperties.sample_ids()
+
+        static_pipeline = DukeLesionProperties.static_pipeline(root_path=data_dir, select_series_func=select_series_func,
+                                                               verbose=verbose)
+        dynamic_pipeline = DukeLesionProperties.dynamic_pipeline(verbose=verbose)
+
+        if cache_dir is None:
+            cacher = None
+        else:
+            if cache_kwargs is None:
+                cache_kwargs ={}
+            cacher = SamplesCacher(f'duke_cache_ver{Duke.DUKE_DATASET_VER}',
+                                   static_pipeline,
+                                   [cache_dir], restart_cache=reset_cache, workers=num_workers,
+                                   ignore_nan_inequality=True,
+                                   **cache_kwargs)
+
+        my_dataset = DatasetDefault(sample_ids=sample_ids,
+                                    static_pipeline=static_pipeline,
+                                    dynamic_pipeline=dynamic_pipeline,
+                                    cacher=cacher
+                                    )
+        my_dataset.create()
+        return my_dataset
 
 
 
