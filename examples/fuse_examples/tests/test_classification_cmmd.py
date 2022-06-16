@@ -37,6 +37,7 @@ from fuse.utils.gpu import choose_and_enable_multiple_gpus
 class ClassificationMGCmmdTestCase(unittest.TestCase):
     def setUp(self):
         global config
+        print(config)
         self.cfg = NDict(OmegaConf.to_container(config))
         print(self.cfg)
         
