@@ -51,8 +51,9 @@ class ClassificationStoic21TestCase(unittest.TestCase):
         self.infer_common_params = INFER_COMMON_PARAMS
 
         self.analyze_common_params = EVAL_COMMON_PARAMS
-        
-    @run_in_subprocess
+    
+    
+    @run_in_subprocess(1200)
     def test_template(self):
         GPU.choose_and_enable_multiple_gpus(1)
     
