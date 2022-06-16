@@ -3,8 +3,19 @@ line-length = 120
 
 exclude = """
     ^/(
-    ##### examples
-    examples
+    ##### examples/
+    examples/fuse_examples/imaging/classification/bright
+    | examples/fuse_examples/imaging/classification/cmmd
+    | examples/fuse_examples/imaging/classification/duke_breast_cancer
+    | examples/fuse_examples/imaging/classification/knight
+    | examples/fuse_examples/imaging/classification/mnist
+    | examples/fuse_examples/imaging/classification/prostate_x
+    | examples/fuse_examples/imaging/classification/stoic21
+
+    | examples/fuse_examples/multimodality/
+
+    | examples/fuse_examples/tests/
+
     
     ##### fuse
     | fuse/data
@@ -34,9 +45,6 @@ exclude = """
     | fuse/utils/utils_hierarchical_dict.py
     | fuse/utils/utils_logger.py
 
-    ##### fuse_examples/
-    | fuse_examples
-
     ##### fuseimg/
     | fuseimg/data
     | fuseimg/utils
@@ -48,4 +56,7 @@ exclude = """
     | fuseimg/datasets/mnist.py
     | fuseimg/datasets/stoic21.py
     )
+
+    # Global files
+    | setup.py
 """
