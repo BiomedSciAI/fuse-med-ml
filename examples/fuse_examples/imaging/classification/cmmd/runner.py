@@ -32,7 +32,7 @@ from fuse.utils.utils_logger import fuse_logger_start
 
 from fuse.data.sampler.sampler_balanced_batch import SamplerBalancedBatch
 
-from fuse.dl.models.model_default import ModelDefault
+from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
 
 from fuse.dl.losses.loss_default import LossDefault
@@ -158,7 +158,7 @@ def run_train(paths: dict, train_common_params: dict, reset_cache: bool):
     # ==============================================================================
     lgr.info('Model:', {'attrs': 'bold'})
 
-    model = ModelDefault(
+    model = ModelMultiHead(
         conv_inputs=(('data.input.image', 1),),
         backbone=BackboneInceptionResnetV2(input_channels_num=1),
         heads=[

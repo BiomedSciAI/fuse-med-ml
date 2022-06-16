@@ -21,13 +21,13 @@ from typing import Sequence, Dict, Tuple
 
 import torch
 
-from fuse.dl.models.model_default import ModelDefault
+from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
 from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
 from fuse.utils.ndict import NDict
 
 
-class ModelSiamese(ModelDefault):
+class ModelSiamese(ModelMultiHead):
     """
     Fuse Siamese model - 2 branches of the same convolutional neural network with multiple heads
     """

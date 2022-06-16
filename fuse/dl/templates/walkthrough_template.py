@@ -35,7 +35,7 @@ from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.samplers import BatchSamplerDefault
 
-from fuse.dl.models.model_default import ModelDefault
+from fuse.dl.models import ModelMultiHead
 from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
 from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
 from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
@@ -253,7 +253,7 @@ def train_template(paths: dict, train_common_params: dict):
     # ===================================================================================================================
     # Model
     #   Build a model (torch.nn.Module) using generic Fuse components:
-    #   1. ModelDefault - generic component supporting single backbone with multiple heads
+    #   1. ModelMultiHead - generic component supporting single backbone with multiple heads
     #   2. Backbone - simple backbone model
     #   3. Head* - generic head implementations
     #   The model outputs will be aggregated in batch_dict['model.*']
@@ -266,7 +266,7 @@ def train_template(paths: dict, train_common_params: dict):
     # ===================================================================================================================
     lgr.info('Model:', {'attrs': 'bold'})
     # TODO - define / create a model
-    model = ModelDefault(
+    model = ModelMultiHead(
         conv_inputs=(('data.input.input_0.tensor', 1),),
         backbone='TODO',  # Reference: BackboneInceptionResnetV2
         heads=['TODO']  # References: HeadGlobalPoolingClassifier, HeadDenseSegmentation

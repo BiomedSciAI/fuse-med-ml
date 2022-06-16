@@ -31,10 +31,10 @@ class ModelWrapper(torch.nn.Module):
 
     def __init__(self,
                  model: torch.nn.Module = None,
-                 model_inputs: Sequence[str] = ('data.input.input_0.tensor',),
+                 model_inputs: Sequence[str] = None, #('data.input.input_0.tensor',),
                  pre_forward_processing_function: Callable = None,
                  post_forward_processing_function: Callable = None,
-                 model_outputs: Sequence[str] = ('output.output_0',)
+                 model_outputs: Sequence[str] = None, #('output.output_0',)
                  ) -> None:
         """
         Default Fuse model wrapper - extracts batch_dict data from model_inputs keys and calls forward of model.

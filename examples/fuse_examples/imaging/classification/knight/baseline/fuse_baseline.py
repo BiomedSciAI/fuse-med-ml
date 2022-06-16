@@ -7,7 +7,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 from baseline.dataset import knight_dataset
 import pandas as pd
-from fuse.dl.models.model_default import ModelDefault
+from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
 from fuse.dl.models.heads.head_3D_classifier import Head3dClassifier
 from fuse.dl.losses.loss_default import LossDefault
@@ -131,7 +131,7 @@ def main():
     else:
         append_features = None
 
-    model = ModelDefault(
+    model = ModelMultiHead(
         conv_inputs=(('data.input.image', 1),),
         backbone=backbone,
         heads=[
