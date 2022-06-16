@@ -1,7 +1,7 @@
 import os
 import pathlib
 import shutil
-from tempfile import gettempdir, mkdtemp
+from tempfile import mkdtemp
 import unittest
 from fuse.data.utils.sample import get_sample_id
 from fuse.utils.file_io.file_io import create_dir
@@ -71,7 +71,6 @@ class TestDatasets(unittest.TestCase):
         self.assertEqual(ds[0]['data.input.clinical'].shape[0], 8)
         self.assertTrue(5 in dict(results["metrics.age"]))
         
-
     def test_isic(self):
 
         create_dir(self.isic_cache_dir)
