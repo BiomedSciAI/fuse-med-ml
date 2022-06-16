@@ -95,7 +95,7 @@ class SamplesCacher:
         self._verbose = verbose
 
         if self._verbose>0:
-            print(f'pipeline description hash for [{unique_name}]: {self._pipeline_desc_hash}')
+            print(f'pipeline description hash for [{unique_name}] is: {self._pipeline_desc_hash}')
         
         self._restart_cache = restart_cache
         if self._restart_cache:
