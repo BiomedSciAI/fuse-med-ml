@@ -844,6 +844,28 @@ class OpExtractLesionPropFromBBoxAnotation(OpBase):
 
         return sample_dict
 
+class OpExtractLesionPropFromBBoxAnotationV2(OpBase):
+
+    def __call__(self, sample_dict: NDict, key_in_ref_volume: str, key_in_annotations,
+                 key_out: str):
+
+        vol_ref = sample_dict[key_in_ref_volume]
+        annotations = sample_dict[key_in_annotations]
+
+        bbox_coords = ((annotations['Start Column'],
+                        annotations['Start Row']),
+                       (annotations['End Column'],
+                        annotations['End Row']))
+
+        start_slice = annotations['Start Slice']
+        end_slice = annotations['End Slice']
+        lesion_prop, cols = extarct_lesion_prop_from_annotation(vol_ref, bbox_coords, start_slice,
+                                                                end_slice)
+
+        sample_dict[key_out] = dict(zip(cols, lesion_prop[0]))
+
+        return sample_dict
+
 
 def extarct_lesion_prop_from_mask(mask):
     ma_centroid = mask > 0.5
