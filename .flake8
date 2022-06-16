@@ -21,10 +21,6 @@ ignore =
     E741,
     # line break before binary operator
     W503,
-    # Missing docstring in public module
-    D100,
-    # Missing docstring in public function
-    D103,
 
 # Files to exclude:
 exclude =
