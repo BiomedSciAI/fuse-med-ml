@@ -17,16 +17,6 @@ install:
 
 script:
 # Static type checking
-#   GOAL:
-  # - python -m mypy fuse fuseimg examples --show-error-codes
-  # - python -m black fuse --check --diff --color
-  # - python -m flake8 . 
-
-#  Current
-  - python -m mypy examples/fuse_examples/imaging/classification/isic --show-error-codes
-  - python -m black examples/fuse_examples/imaging/classification/isic --check --diff --color --line-length 120
-  - python -m flake8 examples/fuse_examples/imaging/classification/isic
-
-  - python -m mypy fuse/utils/ndict.py --show-error-codes
-  - python -m black fuse/utils/ndict.py --check --diff --color --line-length 120
-  - python -m flake8 fuse/utils/ndict.py
+  - python -m mypy . --show-error-codes
+  - python -m black . --check --diff --color
+  - python -m flake8 .
