@@ -29,8 +29,6 @@ from fuse.utils.gpu import choose_and_enable_multiple_gpus
 # 2. Consider reducing the number of samples
 class ClassificationMGCmmdTestCase(unittest.TestCase):
     def setUp(self):
-        global config
-        print(config)
         self.cfg = NDict({'paths': {'data_dir': '/dccstor/fuse_med_ml/cicd/data/cmmd/cmmd', 'model_dir': '${hydra:runtime.cwd}/model_new/InceptionResnetV2_2017_test', 'inference_dir': '${hydra:runtime.cwd}/model_new/infer_dir', 'eval_dir': '${hydra:runtime.cwd}/model_new/eval_dir', 'cache_dir': '${hydra:runtime.cwd}/examples/CMMD_cache_dir', 'data_misc_dir': '${hydra:runtime.cwd}/data_misc', 'data_split_filename': 'cmmd_split.pkl'}, 'train': {'force_reset_model_dir': True, 'target': 'classification', 'reset_cache': False, 'num_workers': 10, 'num_folds': 5, 'train_folds': [0, 1, 2], 'validation_folds': [3], 'batch_size': 2, 'learning_rate': 0.0001, 'weight_decay': 0, 'resume_checkpoint_filename': None, 'manager_train_params': {'num_gpus': 1, 'device': 'cuda', 'num_epochs': 100, 'virtual_batch_size': 1, 'start_saving_epochs': 10, 'gap_between_saving_epochs': 100}, 'manager_best_epoch_source': {'source': 'metrics.auc.macro_avg', 'optimization': 'max', 'on_equal_values': 'better'}}, 'infer': {'infer_filename': 'validation_set_infer.gz', 'infer_folds': [4], 'target': 'classification', 'checkpoint': 'best', 'num_workers': 8}})
         print(self.cfg)
         
