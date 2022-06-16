@@ -26,8 +26,57 @@ ignore =
     # Missing docstring in public function
     D103,
 
-# Files to exclude - TODO: Double check
+# Files to exclude:
+#   
 exclude =
+    ##### examples/
+    examples
+
+    ##### fuse/
+    fuse/data
+    fuse/dl
+    fuse/docs
+    fuse/eval
+    fuse/losses
+    fuse/managers
+    fuse/models
+    fuse/tests
+
+    #### fuse/utils/
+    fuse/utils/config_tools
+    fuse/utils/cpu_profiling
+    fuse/utils/data
+    fuse/utils/dl
+    fuse/utils/file_io
+    fuse/utils/imaging
+    fuse/utils/misc
+    fuse/utils/multiprocessing
+    fuse/utils/rand
+    fuse/utils/remote_execution
+    fuse/utils/tests
+    fuse/utils/add_preamble.py
+    fuse/utils/gpu.py
+    fuse/utils/utils_debug.py
+    fuse/utils/utils_hierarchical_dict.py
+    fuse/utils/utils_logger.py
+
+    ##### fuse_examples/
+    fuse_examples
+
+    ##### fuseimg/
+    fuseimg/data
+    fuseimg/utils
+
+    #### fuseimg/datasets
+    fuseimg/datasets/tests
+    fuseimg/datasets/kits21_example.ipynb
+    fuseimg/datasets/kits21.py
+    fuseimg/datasets/mnist.py
+    fuseimg/datasets/stoic21.py
+
+    # General Excludes (TEMP, double check)
+    __init__.py
+    run_all_unit_tests.py
     .cache
     .dvc
     .git
