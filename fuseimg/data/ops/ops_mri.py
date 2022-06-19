@@ -8,10 +8,11 @@ import h5py
 
 import numpy as np
 import pydicom
+from scipy.ndimage.morphology import binary_dilation
 
 from fuse.data import OpBase, get_sample_id
 from fuse.utils import NDict
-from typing import Tuple
+from typing import Tuple,List
 import torch
 import cv2
 import radiomics
@@ -51,7 +52,8 @@ class OpExtractDicomsPerSeq(OpBase):
                 sorted_dicom_list = sort_dicoms_by_field(seq_info['path'],  seq_info['dicom_field'], self._use_order_indicator)
 
                 sample_dict[f'{key_out_path_prefix}{seq_id}'].append(seq_info['path'])
-                sample_dict[f'{key_out_dicoms_prefix}{seq_id}'] += sorted_dicom_list
+                # TT: change here to append in order to keep seq location was  +=
+                sample_dict[f'{key_out_dicoms_prefix}{seq_id}'].append(sorted_dicom_list)
                 sample_dict[f'{key_out_series_num_prefix}{seq_id}'].append(seq_info['series_num'])
 
 
@@ -65,7 +67,7 @@ class OpLoadDicomAsStkVol(OpBase):
     Return location dir of requested sequence
     '''
 
-    def __init__(self,reverse_order: bool=False, is_file: bool=False, **kwargs):
+    def __init__(self,reverse_order=False, is_file: bool=False, **kwargs):
         """
         :param reverse_order: sometimes reverse dicoms orders is needed
         (for b series in which more than one sequence is provided inside the img_path)
@@ -77,7 +79,7 @@ class OpLoadDicomAsStkVol(OpBase):
         self._is_file = is_file
 
     def __call__(self, sample_dict: NDict, key_in_seq_ids:str, key_in_path_prefix: str, key_in_dicoms_prefix: str,
-                 key_out_prefix: str, reverse_order: Optional[bool]=None, is_file:Optional[bool]=None):
+                 key_out_prefix: str, reverse_order=None, is_file:Optional[bool]=None):
         """
         extract_stk_vol loads dicoms into sitk vol
         :param img_path: path to dicoms - load all dicoms from this path
@@ -89,22 +91,37 @@ class OpLoadDicomAsStkVol(OpBase):
         if reverse_order is None:
             reverse_order = self._reverse_order
 
+        use_reverse_order_as_list = False
+        if isinstance(reverse_order,list):
+            reverse_order_list = reverse_order
+            use_reverse_order_as_list=True
+
+
         seq_ids = sample_dict[key_in_seq_ids]
 
-        for seq_id in seq_ids:
+        for seq_inx,seq_id in enumerate(seq_ids):
+
+            if use_reverse_order_as_list:
+                reverse_order = reverse_order_list[seq_inx]
 
             img_paths = sample_dict.get(f'{key_in_path_prefix}{seq_id}')
             if img_paths is None:
                 continue
 
             dicom_files_list = sample_dict.get(f'{key_in_dicoms_prefix}{seq_id}')
-            assert len(dicom_files_list) ==  len(img_paths)
+
+            assert len(dicom_files_list) == len(img_paths)
+
             stk_vols = []
+            stk_paths = []
             for i, img_path in enumerate(img_paths):
                 dicom_files = dicom_files_list[i]
-                stk_vol = get_stk_volume(img_path, is_file, dicom_files, reverse_order)
-                stk_vols.append(stk_vol)
+                for dicom_files_ in dicom_files:
+                    stk_vol = get_stk_volume(img_path, is_file, dicom_files_, reverse_order)
+                    stk_vols.append(stk_vol)
+                    stk_paths.append(img_path)
             sample_dict[f'{key_out_prefix}{seq_id}'] = stk_vols
+            sample_dict[f'{key_in_path_prefix}{seq_id}'] = stk_paths
 
         return sample_dict
 
@@ -389,12 +406,17 @@ class OpRescale4DStk(OpBase):
 
 
 class OpCreatePatchVolumes(OpBase):
-    def __init__(self, lsn_shape, lsn_spacing, name_suffix: Optional[str]='', delete_input_volumes=False, **kwargs):
+    def __init__(self, lsn_shape, lsn_spacing, pos_key: str = None, name_suffix: Optional[str]='', delete_input_volumes=False, crop_based_annotation=True, **kwargs):
         super().__init__(**kwargs)
         self._lsn_shape = lsn_shape
         self._lsn_spacing = lsn_spacing
         self._name_suffix = name_suffix
         self._delete_input_volumes = delete_input_volumes
+        self._crop_based_annotation = crop_based_annotation
+        if pos_key is None:
+            self._pos_key = f'centroid{name_suffix}'
+        else:
+            self._pos_key = pos_key
 
     def __call__(self, sample_dict: NDict, key_in_volume4D: str, key_in_ref_volume: str, key_in_patch_annotations: str,
                  key_out_cropped_vol_by_mask: str, key_out_cropped_vol: str):
@@ -402,26 +424,22 @@ class OpCreatePatchVolumes(OpBase):
         vol_ref = sample_dict[key_in_ref_volume]
         vol_4D = sample_dict[key_in_volume4D]
         patch_annotations = sample_dict[key_in_patch_annotations]
-        # patch_annotations2 = sample_dict[key_in_patch_annotations+'2']
 
         # read original position
-        # pos_orig2 = np.fromstring(patch_annotations2[f'centroid_T0'][1:-1], dtype=np.float32, sep=',')
-        pos_orig = patch_annotations[f'centroid{self._name_suffix}']
+        pos_str = patch_annotations[self._pos_key]
+        if patch_annotations[self._pos_key][0]=='(':
+            pos_str = pos_str[1:-1]
+        if ',' in pos_str:
+            sep = ','
+        else:
+            sep = ' '
+        pos_orig = np.fromstring(pos_str, dtype=np.float32, sep=sep)
 
         # transform to pixel coordinate in ref coords
-        # pos_vol2 = np.array(vol_ref.TransformPhysicalPointToContinuousIndex(pos_orig2.astype(np.float64)))
-        pos_vol = np.array(vol_ref.TransformPhysicalPointToContinuousIndex(pos_orig))
+        pos_vol = np.array(vol_ref.TransformPhysicalPointToContinuousIndex(pos_orig.astype(np.float64)))
 
-        vol_4d_arr = sitk.GetArrayFromImage(vol_4D)
-        if sum(sum(sum(vol_4d_arr[:, :, :, -1]))) == 0:  # if the mast does not exist
-            # bbox_coords2 = np.fromstring(patch_annotations2[f'bbox_T0'][1:-1], dtype=np.int32, sep=',')
-            bbox_coords = patch_annotations[f'bbox{self._name_suffix}']
-            mask = extract_mask_from_annotation(vol_ref, bbox_coords)
-            vol_4d_arr[:, :, :, -1] = mask
-            vol_4d_new = sitk.GetImageFromArray(vol_4d_arr)
-            vol_4D = vol_4d_new
-            # update volume with mask
-            sample_dict[key_in_volume4D] = vol_4D
+
+
 
         for is_use_mask in [False, True]:
             if is_use_mask:
@@ -429,11 +447,27 @@ class OpCreatePatchVolumes(OpBase):
             else:
                 cropped_vol_size = (2 * self._lsn_shape[2], 2 * self._lsn_shape[1], self._lsn_shape[0])
 
-            vol_cropped = crop_lesion_vol_mask_based(vol_4D, pos_vol, vol_ref,
-                                    size=cropped_vol_size,
-                                    spacing=(self._lsn_spacing[2], self._lsn_spacing[1], self._lsn_spacing[0]),
-                                    mask_inx=-1,
-                                    is_use_mask=is_use_mask)
+            if self._crop_based_annotation:
+                vol_4d_arr = sitk.GetArrayFromImage(vol_4D)
+                if sum(sum(sum(vol_4d_arr[:, :, :, -1]))) == 0:  # if the mast does not exist
+                    bbox_coords = np.fromstring(patch_annotations[f'bbox{self._name_suffix}'][1:-1], dtype=np.int32, sep=',')
+                    mask = extract_mask_from_annotation(vol_ref, bbox_coords)
+                    vol_4d_arr[:, :, :, -1] = mask
+                    vol_4d_new = sitk.GetImageFromArray(vol_4d_arr)
+                    vol_4D = vol_4d_new
+                    # update volume with mask
+                    sample_dict[key_in_volume4D] = vol_4D
+
+                vol_cropped = crop_lesion_vol_mask_based(vol_4D, pos_vol, vol_ref,
+                                        size=cropped_vol_size,
+                                        spacing=(self._lsn_spacing[2], self._lsn_spacing[1], self._lsn_spacing[0]),
+                                        mask_inx=-1,
+                                        is_use_mask=is_use_mask)
+            else:
+                vol_cropped = crop_lesion_vol(vol_4D, pos_vol, vol_ref,
+                                              center_slice=pos_vol[2],
+                                              size=(self._lsn_shape[2], self._lsn_shape[1], self._lsn_shape[0]),
+                                              spacing=(self._lsn_spacing[2], self._lsn_spacing[1], self._lsn_spacing[0]))
 
             vol_cropped_arr = sitk.GetArrayFromImage(vol_cropped)
             if len(vol_cropped_arr.shape) < 4:
@@ -640,6 +674,97 @@ def crop_lesion_vol_mask_based(vol:sitk.sitkFloat32, position:tuple, ref:sitk.si
             vol_np_resized[si,:,:,ci] = cv2.resize(vol_np_cropped[si, :,:, ci], (size[0],size[1]), interpolation=cv2.INTER_AREA)
 
     img = sitk.GetImageFromArray(vol_np_resized)
+    return img
+
+
+def crop_lesion_vol(vol:sitk.sitkFloat32, position:Tuple[float,float,float], ref:sitk.sitkFloat32, size:Tuple[int,int,int]=(160, 160, 32),
+                        spacing:Tuple[int,int,int]=(1, 1, 3), center_slice=None):
+    """
+     crop_lesion_vol crop tensor around position
+    :param vol: vol to crop
+    :param position: point to crop around
+    :param ref: reference volume
+    :param size: size in pixels to crop
+    :param spacing: spacing to resample the col
+    :param center_slice: z coordinates of position
+    :return: cropped volume
+    """
+
+    def get_lesion_mask(position, ref):
+        mask = np.zeros_like(sitk.GetArrayViewFromImage(ref), dtype=np.uint8)
+
+        coords = np.round(position[::-1]).astype(np.int)
+        mask[coords[0], coords[1], coords[2]] = 1
+        mask = binary_dilation(mask, np.ones((3, 5, 5))) + 0
+        mask_sitk = sitk.GetImageFromArray(mask)
+        mask_sitk.CopyInformation(ref)
+
+        return mask_sitk
+
+    def create_resample(vol_ref: sitk.sitkFloat32, interpolation: str, size: Tuple[int, int, int],
+                        spacing: Tuple[float, float, float]):
+        """
+        create_resample create resample operator
+        :param vol_ref: sitk vol to use as a ref
+        :param interpolation:['linear','nn','bspline']
+        :param size: in pixels ()
+        :param spacing: in mm ()
+        :return: resample sitk operator
+        """
+
+        if interpolation == 'linear':
+            interpolator = sitk.sitkLinear
+        elif interpolation == 'nn':
+            interpolator = sitk.sitkNearestNeighbor
+        elif interpolation == 'bspline':
+            interpolator = sitk.sitkBSpline
+
+        resample = sitk.ResampleImageFilter()
+        resample.SetReferenceImage(vol_ref)
+        resample.SetOutputSpacing(spacing)
+        resample.SetInterpolator(interpolator)
+        resample.SetSize(size)
+        return resample
+
+    def apply_resampling(img:sitk.sitkFloat32, mask:sitk.sitkFloat32,
+                             spacing: Tuple[float,float,float] =(0.5, 0.5, 3), size: Tuple[int,int,int] =(160, 160, 32),
+                             transform:sitk=None, interpolation:str='bspline',
+                             label_interpolator:sitk=sitk.sitkLabelGaussian,
+                             ):
+
+        ref = img if img != [] else mask
+        size = [int(s) for s in size]
+        resample = create_resample(ref, interpolation, size=size, spacing=spacing)
+
+        if ~(transform is None):
+            resample.SetTransform(transform)
+        img_r = resample.Execute(img)
+
+        resample.SetInterpolator(label_interpolator)
+        mask_r = resample.Execute(mask)
+
+
+        return img_r, mask_r
+
+    mask = get_lesion_mask(position, ref)
+
+    vol.SetOrigin((0,) * 3)
+    mask.SetOrigin((0,) * 3)
+    vol.SetDirection(np.eye(3).flatten())
+    mask.SetDirection(np.eye(3).flatten())
+
+    ma_centroid = mask > 0.5
+    label_analysis_filer = sitk.LabelShapeStatisticsImageFilter()
+    label_analysis_filer.Execute(ma_centroid)
+    centroid = label_analysis_filer.GetCentroid(1)
+    offset_correction = np.array(size) * np.array(spacing)/2
+    corrected_centroid = np.array(centroid)
+    corrected_centroid[2] = center_slice * np.array(spacing[2])
+    offset = corrected_centroid - np.array(offset_correction)
+
+    translation = sitk.TranslationTransform(3, offset)
+    img, mask = apply_resampling(vol, mask, spacing=spacing, size=size, transform=translation)
+
     return img
 
 
@@ -878,10 +1003,7 @@ def extarct_lesion_prop_from_mask(mask):
     dist_img = sitk.SignedMaurerDistanceMap(ma_centroid,insideIsPositive=False,squaredDistance=False,useImageSpacing=False)
     seeds = sitk.ConnectedComponent(dist_img<40)
     seeds = sitk.RelabelComponent(seeds,minimumObjectSize=3)
-    t0 = time.time()
-    ws = sitk.MorphologicalWatershedFromMarkers(dist_img,seeds,markWatershedLine=True)  # heavy...
-    t = time.time()
-    print("--MorphologicalWatershedFromMarkers", t - t0)
+    ws = sitk.MorphologicalWatershedFromMarkers(dist_img,seeds,markWatershedLine=True)
     ws = sitk.Mask(ws,sitk.Cast(ma_centroid,ws.GetPixelID()))
 
     shape_stats = sitk.LabelShapeStatisticsImageFilter()

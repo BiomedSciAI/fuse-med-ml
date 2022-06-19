@@ -62,7 +62,7 @@ from examples.fuse_examples.imaging.classification.prostate_x.backbone_3d_multic
 
 
 def main():
-    mode = 'debug'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
+    mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
 
     # allocate gpus
     # To use cpu - set NUM_GPUS to 0
@@ -114,14 +114,10 @@ def get_setting(mode, label_type=duke.DukeLabelType.STAGING_TUMOR_SIZE, n_folds=
 
     if mode == 'debug':
         data_split_file = os.path.join(ROOT, 'DUKE_folds_debug.pkl')
-        # selected_sample_ids = duke.get_samples_for_debug(data_dir=data_dir, n_pos=10, n_neg=10, label_type=label_type,
-        #                                                  sample_ids=duke.get_selected_sample_ids())
-        selected_sample_ids = ['Breast_MRI_016', 'Breast_MRI_039', 'Breast_MRI_043', 'Breast_MRI_054', 'Breast_MRI_057', 'Breast_MRI_064',
-                               'Breast_MRI_066', 'Breast_MRI_074', 'Breast_MRI_076', 'Breast_MRI_081', 'Breast_MRI_007', 'Breast_MRI_014',
-                               'Breast_MRI_025', 'Breast_MRI_047', 'Breast_MRI_062', 'Breast_MRI_102', 'Breast_MRI_104', 'Breast_MRI_120',
-                               'Breast_MRI_124', 'Breast_MRI_134']
+        selected_sample_ids = duke.get_samples_for_debug(data_dir=data_dir, n_pos=10, n_neg=10, label_type=label_type,
+                                                         sample_ids=duke.get_selected_sample_ids())
         print(selected_sample_ids)
-        cache_dir = os.path.join(ROOT, 'cache_dir_debug_v2')
+        cache_dir = os.path.join(ROOT, 'cache_dir_debug')
         num_workers = 10
         batch_size = 2
         num_epoch = 5

@@ -1,5 +1,5 @@
 # import nibabel as nib
-from examples.fuse_examples.imaging.classification import duke_breast_cancer
+
 from fuse.utils.file_io.file_io import load_pickle, save_pickle_safe
 from fuseimg.datasets import duke
 from fuse.data.utils.sample import create_initial_sample
@@ -111,37 +111,11 @@ def print_excluded_patients():
     excluded_sample_ids = sorted(list(set(all_sample_ids) - set(df.iloc[:,0].values)))
     print("excluded:",len(excluded_sample_ids))
     print([s[11:] for s in excluded_sample_ids])
-
-def compare_old_new_train_dataset():
-    files = ['/tmp/michal_old.pkl', '/tmp/michal_new.pkl']
-    d_list_arr = [load_pickle(f) for f in files]
-
-    print_sample_ids = lambda d_list: [d['data.sample_id'] for d in d_list]
-
-    print(print_sample_ids(d_list_arr[0]) == print_sample_ids(d_list_arr[1]))
-    for i in range(2):
-        print(files[i], d_list_arr[i][0].flatten().keys())
-
-    def get_dataset_dict(d_list):
-        a_dict = {}
-        for d in d_list:
-            sample_id = d['data.sample_id']
-            a_dict[sample_id] = duke_breast_cancer.replace_tensors_with_numpy(d.flatten())
-        return a_dict
-    dict_arr = []
-    for i in range(2):
-        dict_arr.append(get_dataset_dict(d_list_arr[i]))
-    duke_breast_cancer.compare_dicts(dict_arr[0], dict_arr[1])
-
-    print("ok")
-
-
 if __name__ == "__main__":
     baseline_output_file = '/user/ozery/output/baseline1.pkl'  # '/tmp/f2.pkl'
     output_file = '/user/ozery/output/f5.pkl'
     # main()
-    # print_excluded_patients()
-    compare_old_new_train_dataset()
+    print_excluded_patients()
 
 
     # compare_sample_dicts('/user/ozery/output/Breast_MRI_900_v0.pkl','/user/ozery/output/Breast_MRI_900_20220531-232611.pkl')
