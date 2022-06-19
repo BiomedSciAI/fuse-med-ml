@@ -1,6 +1,7 @@
 import glob
 import os
 from typing import Optional
+import time
 
 import SimpleITK as sitk
 import h5py
@@ -405,15 +406,15 @@ class OpRescale4DStk(OpBase):
 
 
 class OpCreatePatchVolumes(OpBase):
-    def __init__(self, lsn_shape, lsn_spacing, pos_key: str = None,longtd_inx: Optional[int] = 0, delete_input_volumes=False, crop_based_annotation=True, **kwargs):
+    def __init__(self, lsn_shape, lsn_spacing, pos_key: str = None, name_suffix: Optional[str]='', delete_input_volumes=False, crop_based_annotation=True, **kwargs):
         super().__init__(**kwargs)
         self._lsn_shape = lsn_shape
         self._lsn_spacing = lsn_spacing
-        self._longtd_inx = longtd_inx
+        self._name_suffix = name_suffix
         self._delete_input_volumes = delete_input_volumes
         self._crop_based_annotation = crop_based_annotation
         if pos_key is None:
-            self._pos_key = 'centroid_T'+str(self._longtd_inx)
+            self._pos_key = f'centroid{name_suffix}'
         else:
             self._pos_key = pos_key
 
@@ -449,7 +450,7 @@ class OpCreatePatchVolumes(OpBase):
             if self._crop_based_annotation:
                 vol_4d_arr = sitk.GetArrayFromImage(vol_4D)
                 if sum(sum(sum(vol_4d_arr[:, :, :, -1]))) == 0:  # if the mast does not exist
-                    bbox_coords = np.fromstring(patch_annotations[f'bbox_T{self._longtd_inx}'][1:-1], dtype=np.int32, sep=',')
+                    bbox_coords = np.fromstring(patch_annotations[f'bbox{self._name_suffix}'][1:-1], dtype=np.int32, sep=',')
                     mask = extract_mask_from_annotation(vol_ref, bbox_coords)
                     vol_4d_arr[:, :, :, -1] = mask
                     vol_4d_new = sitk.GetImageFromArray(vol_4d_arr)

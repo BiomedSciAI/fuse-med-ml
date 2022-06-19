@@ -10,20 +10,31 @@ from tqdm import tqdm
 
 import getpass
 import os
+os.environ["DUKE_DATA_PATH"] = "/projects/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI/"
+
+import pandas as pd
 
 def main():
-
-    root_path = '/projects/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI/manifest-1607053360376/'
-
 
     timestr = time.strftime("%Y%m%d-%H%M%S")
 
     if True:
-        duke_dataset = duke.Duke.dataset(label_type=duke.DukeLabelType.STAGING_TUMOR_SIZE,
-                                         cache_dir=None, num_workers=0, sample_ids=['Breast_MRI_900'])
-        print("finished creating dataset")
-        arr = [d.flatten() for d in duke_dataset]
+        # sample_ids=['Breast_MRI_900']
+        sample_ids =  duke.get_samples_for_debug(data_dir=os.environ["DUKE_DATA_PATH"], n_pos=10, n_neg=10,
+                                                 label_type=duke.DukeLabelType.STAGING_TUMOR_SIZE)
+        duke_dataset = duke.Duke.dataset(data_dir=os.environ["DUKE_DATA_PATH"], label_type=duke.DukeLabelType.STAGING_TUMOR_SIZE,
+                                         cache_dir=None, num_workers=0, sample_ids=sample_ids)
+        print("finished defining dataset, starting run")
+        arr = []
+        rows = []
+        for d in duke_dataset:
+            d2 = d.flatten()
+            row = (d['data.sample_id'], d['data.ground_truth'])
+            rows.append(row)
+            print("*******", row)
+            arr +=[d2]
         print(len(arr))
+        print(pd.DataFrame(rows, columns=['sample_id', 'gt']))
         print(arr[0].keys())
 
     else:
@@ -33,7 +44,7 @@ def main():
             output_file = f'/user/ozery/output/{sample_id}_v0.pkl'
             if os.path.exists(output_file):
                 continue
-            static_pipeline = duke.Duke.static_pipeline(root_path=root_path, select_series_func=duke.get_selected_series_index)
+            static_pipeline = duke.Duke.static_pipeline(data_dir=root_path, select_series_func=duke.get_selected_series_index)
 
             sample_dict = create_initial_sample(sample_id)
             sample_dict = static_pipeline(sample_dict)
@@ -93,11 +104,18 @@ def compare_sample_dicts(file1, file2):
     #     print(s1, s2, s2 in d2.keys(), d1[s1]==d2[s2])
 
 
-
+def print_excluded_patients():
+    df = duke.get_duke_annotations_df()
+    all_sample_ids = duke.Duke.sample_ids()
+    print(df.shape, df.columns[0], len(all_sample_ids))
+    excluded_sample_ids = sorted(list(set(all_sample_ids) - set(df.iloc[:,0].values)))
+    print("excluded:",len(excluded_sample_ids))
+    print([s[11:] for s in excluded_sample_ids])
 if __name__ == "__main__":
     baseline_output_file = '/user/ozery/output/baseline1.pkl'  # '/tmp/f2.pkl'
     output_file = '/user/ozery/output/f5.pkl'
-    main()
+    # main()
+    print_excluded_patients()
 
 
     # compare_sample_dicts('/user/ozery/output/Breast_MRI_900_v0.pkl','/user/ozery/output/Breast_MRI_900_20220531-232611.pkl')
