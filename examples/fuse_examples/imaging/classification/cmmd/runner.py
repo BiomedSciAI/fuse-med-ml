@@ -52,6 +52,7 @@ import hydra
 from typing import Dict
 from omegaconf import DictConfig, OmegaConf
 from fuse.eval.evaluator import EvaluatorDefault
+assert "CMMD_DATA_PATH" in os.environ, "Expecting environment variable CMMD_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
 ##########################################
 # Debug modes
 ##########################################
@@ -298,6 +299,7 @@ def run_eval(paths : NDict , infer: NDict):
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg : DictConfig) -> None:
     cfg = NDict(OmegaConf.to_container(cfg))
+    cfg["paths"]["data_dir"] = os.environ["CMMD_DATA_PATH"]
     print(cfg)
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None  # [0]
