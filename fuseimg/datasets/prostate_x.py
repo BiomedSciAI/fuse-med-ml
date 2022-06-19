@@ -1,0 +1,429 @@
+import os
+import numpy as np
+from typing import Hashable, Optional, Sequence
+import glob
+import os
+import pickle
+import radiomics
+from typing import Hashable, Optional, Sequence
+
+import pandas as pd
+
+from fuse.data import DatasetDefault
+from fuse.data import PipelineDefault
+from fuse.data.datasets.caching.samples_cacher import SamplesCacher
+from fuse.data.ops.op_base import OpReversibleBase, OpBase
+from fuse.data.ops import ops_read, ops_cast
+from fuse.data.utils.sample import get_sample_id
+from fuse.utils import NDict
+from fuseimg.data.ops import ops_mri
+
+
+from enum import Enum, auto
+
+import torch
+
+DUKE_PROCESSED_FILE_DIR = '/projects/msieve_dev3/usr/Tal/prostate_x_processed_files'
+DUKE_DATA_DIR = "/projects/msieve/MedicalSieve/PatientData/ProstateX/manifest-A3Y4AE4o5818678569166032044/"
+
+def get_selected_series_index(sample_id, seq_id):
+    patient_id = sample_id[:-2]
+    if patient_id in ['ProstateX-0148', 'ProstateX-0180']:
+        map = {'T2': -1, 'b_mix': [1, 2], 'ADC': 0, 'ktrans': 0}
+    elif patient_id in ['ProstateX-0191']:
+        map = {'T2': -1, 'b_mix': [0, 0], 'ADC': 0, 'ktrans': 0}
+    elif patient_id in ['ProstateX-0116']:
+        map = {'T2': -1, 'b_mix': [0, 1], 'ADC': 0, 'ktrans': 0}
+    else:
+        map = {'T2': -1, 'b_mix': [0, 2], 'ADC': 0, 'ktrans': 0}
+    return map[seq_id]
+
+
+
+class ProstateXLabelType(Enum):
+    ClinSig = 'ClinSig'
+
+    def get_features_to_use(self):
+        if self == ProstateXLabelType.ClinSig:
+            return ['zone']
+
+        raise NotImplementedError(self)
+
+    def get_column_name(self):
+        if self == ProstateXLabelType.ClinSig:
+            return 'ClinSig'
+
+    def get_process_func(self):
+        if self == ProstateXLabelType.ClinSig:
+             return lambda val: 1 if val > 0 else 0
+
+        raise NotImplementedError(self)
+
+
+    def get_value(self, clinical_features):
+        col_name = self.get_column_name()
+        value = clinical_features[col_name] + 0 # why should be add 0??
+        process_func = self.get_process_func()
+        if process_func is None:
+            return value
+        if isinstance(value, pd.Series):
+            value = value.apply(process_func)
+        else:
+            value = process_func(value)
+        return value
+
+    def get_num_classes(self):
+        return 2 # currrently all are binary classification tasks
+
+class ProstateX:
+    ProstateX_DATASET_VER = 0
+
+    @staticmethod
+    def sample_ids():
+        annotations_df = get_prostate_x_annotations_df()
+        return annotations_df['Sample ID'].values
+        # return [f'Breast_MRI_{i:03d}' for i in range(1,923)]
+
+    @staticmethod
+    def static_pipeline(root_path, select_series_func, with_rescale:Optional[bool]=True,
+                        keep_stk_volumes:Optional[bool]=False, verbose:Optional[bool]=True) -> PipelineDefault:
+
+        data_path = os.path.join(root_path, 'PROSTATEx')
+        # metadata_path = os.path.join(root_path, 'metadata.csv')
+        annotations_df = get_prostate_x_annotations_df()
+
+        series_desc_2_sequence_map = get_series_desc_2_sequence_mapping()
+        seq_ids = ['T2',
+                   'b_mix',
+                   'ADC',
+                   'ktrans',
+                   ]
+
+        static_pipeline_steps = [
+            # step 1: map sample_ids to
+            (OpDukeSampleIDDecode(data_path=data_path),
+             dict(key_out='data.input.mri_path')),
+            # step 2: read files info for the sequences
+            (ops_mri.OpExtractDicomsPerSeq(seq_ids=seq_ids, series_desc_2_sequence_map=series_desc_2_sequence_map,
+                                               use_order_indicator=False),
+             dict(key_in='data.input.mri_path',
+                  key_out_sequences='data.input.sequence_ids',
+                  key_out_path_prefix='data.input.path.',
+                  key_out_dicoms_prefix='data.input.dicoms.',
+                  key_out_series_num_prefix='data.input.series_num.')
+             ),
+            # step 3: Load STK volumes of MRI sequences
+            (ops_mri.OpLoadDicomAsStkVol(reverse_order=[True,True,True,True], is_file=False),
+             dict(key_in_seq_ids='data.input.sequence_ids',
+                  key_in_path_prefix='data.input.path.',
+                  key_in_dicoms_prefix='data.input.dicoms.',
+                  key_out_prefix='data.input.volumes.')),
+            # # step 4: group DCE sequnces into DCE_mix
+            # (ops_mri.OpGroupDCESequences(),
+            #  dict(key_sequence_ids='data.input.sequence_ids',
+            #       key_path_prefix='data.input.path.',
+            #       key_series_num_prefix='data.input.series_num.',
+            #       key_volumes_prefix='data.input.volumes.')),
+
+            # step 5: select single volume from b_mix/T2 sequence
+            (ops_mri.OpSelectVolumes(get_indexes_func=select_series_func, delete_input_volumes=True),
+             dict(key_in_sequence_ids='data.input.sequence_ids',
+                  key_in_path_prefix='data.input.path.',
+                  key_in_volumes_prefix='data.input.volumes.',
+                  key_out_paths='data.input.selected_paths',
+                  key_out_volumes='data.input.selected_volumes')),
+
+            # step 6: set reference volume to be first and register other volumes with respect to it
+            (ops_mri.OpResampleStkVolsBasedRef(reference_inx=0, interpolation='bspline'),
+             dict(key='data.input.selected_volumes')),
+
+            # step 7: create a single 4D volume from all the sequences (4th channel is the sequence)
+            (ops_mri.OpStackList4DStk(delete_input_volumes=True), dict(key_in='data.input.selected_volumes',
+                                                                           key_out_volume4d='data.input.volume4D',
+                                                                           key_out_ref_volume='data.input.ref_volume')),
+
+            ]
+        if with_rescale:
+            # step 8:
+            static_pipeline_steps += [(ops_mri.OpRescale4DStk(), dict(key='data.input.volume4D'))]
+
+        static_pipeline_steps += [
+            # step 9: read tabular data for each patch
+            (ops_read.OpReadDataframe(data=annotations_df, key_column='Sample ID'), dict(key_out_group='data.input.patch_annotations')),
+
+            # step 10: create patch volumes: (i) fixed size around center of annotatins (orig), and (ii) entire annotations
+            (ops_mri.OpCreatePatchVolumes(lsn_shape=(13, 74, 74),pos_key='pos', lsn_spacing=(3, 0.5, 0.5),crop_based_annotation=False, delete_input_volumes=not keep_stk_volumes),
+             dict(key_in_volume4D='data.input.volume4D',
+                  key_in_ref_volume='data.input.ref_volume',
+                  key_in_patch_annotations='data.input.patch_annotations',
+                  key_out_cropped_vol='data.input.patch_volume_orig',
+                  key_out_cropped_vol_by_mask='data.input.patch_volume')),
+        ]
+        if keep_stk_volumes:
+            static_pipeline_steps += [
+                # step 11: move to ndarray - to allow quick saving
+                (ops_mri.OpStk2Dict(),
+                 dict(keys=['data.input.volume4D','data.input.ref_volume']))
+                ]
+        static_pipeline = PipelineDefault("static", static_pipeline_steps, verbose=verbose)
+
+        return static_pipeline
+
+    @staticmethod
+    def dynamic_pipeline(label_type: Optional[ProstateXLabelType]=None, verbose:Optional[bool]=True,
+                        include_patch_by_mask:Optional[bool]=True, include_patch_fixed:Optional[bool]=False):
+        assert include_patch_by_mask or include_patch_fixed
+        volume_keys = []
+        if include_patch_by_mask:
+            volume_keys.append('data.input.patch_volume')
+        if include_patch_fixed:
+            volume_keys.append('data.input.patch_volume_orig')
+
+        dynamic_steps = [(ops_mri.OpDeleteLastChannel(), dict(keys=volume_keys))]
+        for volume_key in volume_keys:
+            dynamic_steps += [(ops_cast.OpToTensor(), dict(key=volume_key, dtype=torch.float32))]
+
+        keys_2_keep = list(volume_keys)
+        if label_type is not None:
+            key_ground_truth = 'data.ground_truth'
+            dynamic_steps.append((OpAddDukeLabelAndClinicalFeatures(label_type=label_type),
+                            dict(key_in='data.input.patch_annotations',  key_out_gt=key_ground_truth,
+                                 key_out_clinical_features='data.clinical_features')))
+            keys_2_keep.append(key_ground_truth)
+
+        dynamic_steps.append((ops_mri.OpSelectKeys(), dict(keys_2_keep=keys_2_keep)))
+        dynamic_pipeline = PipelineDefault("dynamic", dynamic_steps, verbose=verbose)
+
+        return dynamic_pipeline
+
+
+    @staticmethod
+    def dataset(label_type: Optional[ProstateXLabelType]=None, cache_dir: Optional[str]=None, data_dir: Optional[str] = None,
+                select_series_func=get_selected_series_index, reset_cache: bool = False, num_workers: int = 10,
+                sample_ids: Optional[Sequence[Hashable]] = None, verbose:Optional[bool]=True,
+                cache_kwargs:Optional[dict]=None) -> DatasetDefault:
+
+        """
+        :param label_type: type of label to use
+        :param cache_dir: path to store the cache of the static pipeline
+        :param data_dir: path to the original data
+        :param select_series_func: which series to select for DCE_mix sequences
+        :param reset_cache:
+        :param num_workers:  number of processes used for caching
+        :param sample_ids: list of selected patient_ids for the dataset
+        :return:
+        """
+
+        if data_dir is None:
+            data_dir = "/projects/msieve/MedicalSieve/PatientData/ProstateX/manifest-A3Y4AE4o5818678569166032044/"
+
+        if sample_ids is None:
+            sample_ids = ProstateX.sample_ids()
+
+        static_pipeline = ProstateX.static_pipeline(data_dir, select_series_func=select_series_func, verbose=verbose)
+        dynamic_pipeline = ProstateX.dynamic_pipeline(label_type, verbose=verbose)
+
+        if cache_dir is None:
+            cacher = None
+        else:
+            if cache_kwargs is None:
+                cache_kwargs = {}
+            cacher = SamplesCacher(f'prostate_x_cache_ver{ProstateX.ProstateX_DATASET_VER}',
+                                   static_pipeline,
+                                   [cache_dir], restart_cache=reset_cache, workers=num_workers,
+                                   ignore_nan_inequality=True,
+                                   **cache_kwargs)
+
+        my_dataset = DatasetDefault(sample_ids=sample_ids,
+                                    static_pipeline=static_pipeline,
+                                    dynamic_pipeline=dynamic_pipeline,
+                                    cacher=cacher
+                                    )
+        my_dataset.create()
+        return my_dataset
+
+
+class OpDukeSampleIDDecode(OpReversibleBase):
+    '''
+    decodes sample id into path of MRI images
+    '''
+
+    def __init__(self, data_path: str, **kwargs):
+        super().__init__(**kwargs)
+        self._data_path = data_path
+
+    def __call__(self, sample_dict: NDict, key_out: str, op_id: Optional[str]) -> NDict:
+        sid = get_sample_id(sample_dict)
+
+        sample_dict[key_out] = get_sample_path(self._data_path, sid[:-2])
+
+        return sample_dict
+
+    def reverse(self, sample_dict: dict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
+        return sample_dict
+
+
+
+class OpAddDukeLabelAndClinicalFeatures(OpBase):
+    '''
+    decodes sample id into path of MRI images
+    '''
+
+    def __init__(self, label_type: ProstateXLabelType, is_concat_features_to_input: Optional[bool]=False, **kwargs):
+        super().__init__(**kwargs)
+        self._label_type = label_type
+        self._is_concat_features_to_input = is_concat_features_to_input
+
+    def __call__(self, sample_dict: NDict, key_in: str,
+                 key_out_gt: str, key_out_clinical_features: str) -> NDict:
+        clinical_features = sample_dict[key_in]
+        label_val = self._label_type.get_value(clinical_features)
+        if np.isnan(label_val):
+            return None # should filter example (instead of sample_dict['data.filter'] = True )
+
+        label_tensor = torch.tensor(label_val, dtype=torch.int64)
+        sample_dict[key_out_gt] = label_tensor #'data.ground_truth'
+
+        # add clinical
+        features_to_use = self._label_type.get_features_to_use()
+
+
+        zone2feature = {
+            'PZ': torch.tensor(np.array([0, 0, 0]), dtype=torch.float32),
+            'TZ': torch.tensor(np.array([0, 0, 1]), dtype=torch.float32),
+            'AS': torch.tensor(np.array([0, 1, 0]), dtype=torch.float32),
+            'SV': torch.tensor(np.array([1, 0, 0]), dtype=torch.float32),
+        }
+
+        clinical_features_to_use = zone2feature[clinical_features[features_to_use[0]]]
+
+        sample_dict[key_out_clinical_features] = clinical_features_to_use # 'data.clinical_features'
+
+        if self._is_concat_features_to_input:
+            # select input channel
+            input_tensor = sample_dict['data.input']
+            input_shape = input_tensor.shape
+            for feature in clinical_features_to_use:
+                input_tensor = torch.cat(
+                    (input_tensor, feature.repeat(input_shape[1], input_shape[2], input_shape[3]).unsqueeze(0)), dim=0)
+            sample_dict['data.input'] = input_tensor
+
+        return sample_dict
+
+
+
+def get_prostate_x_annotations_df():  # todo: change!!!
+    annotations_path = os.path.join(DUKE_PROCESSED_FILE_DIR, 'dataset_prostate_x_folds_ver29062021_seed1.pickle')
+    with open(annotations_path, 'rb') as infile:
+        fold_annotations_dict = pickle.load(infile)
+    annotations_df = pd.concat(
+        [fold_annotations_dict[f'data_fold{fold}'] for fold in range(len(fold_annotations_dict))])
+    # fix a bug in the dataset of wrong indexing
+    annotations_df.loc[:, ('fid')][annotations_df['Patient ID']=='ProstateX-0159'] = [1,2,3]
+    annotations_df['Sample ID'] = annotations_df[['Patient ID','fid']].apply(lambda row: '_'.join(row.values.astype(str)), axis=1)
+
+    return annotations_df
+
+def get_duke_raw_annotations_df(duke_data_dir=None):
+    annotations_path = os.path.join(DUKE_DATA_DIR, 'Annotation_Boxes.csv')
+    annotations_df = pd.read_csv(annotations_path)
+    return annotations_df
+
+def get_samples_for_debug(n_pos, n_neg, label_type):
+    annotations_df = get_prostate_x_annotations_df()
+    label_values = label_type.get_value(annotations_df)
+    patient_ids = annotations_df['Sample ID']
+    sample_ids = []
+    for label_val, n_vals in  zip([True, False], [n_pos, n_neg]):
+        sample_ids += patient_ids[label_values == label_val].values.tolist()[:n_vals]
+    return sample_ids
+def get_series_desc_2_sequence_mapping():
+
+    series_desc_2_sequence_mapping = \
+        {
+            't2_tse_tra': 'T2',
+            't2_tse_tra_Grappa3': 'T2',
+            't2_tse_tra_320_p2': 'T2',
+
+            'ep2d-advdiff-3Scan-high bvalue 100': 'b_mix',
+            'ep2d-advdiff-3Scan-high bvalue 500': 'b_mix',
+            'ep2d-advdiff-3Scan-high bvalue 1400': 'b_mix',
+            'ep2d_diff_tra2x2_Noise0_FS_DYNDISTCALC_BVAL': 'b_mix',
+
+            'ep2d_diff_tra_DYNDIST': 'b_mix',
+            'ep2d_diff_tra_DYNDIST_MIX': 'b_mix',
+            'diffusie-3Scan-4bval_fs': 'b_mix',
+            'ep2d_DIFF_tra_b50_500_800_1400_alle_spoelen': 'b_mix',
+            'diff tra b 50 500 800 WIP511b alle spoelen': 'b_mix',
+
+            'ep2d_diff_tra_DYNDIST_MIX_ADC': 'ADC',
+            'diffusie-3Scan-4bval_fs_ADC': 'ADC',
+            'ep2d-advdiff-MDDW-12dir_spair_511b_ADC': 'ADC',
+            'ep2d-advdiff-3Scan-4bval_spair_511b_ADC': 'ADC',
+            'ep2d_DIFF_tra_b50_500_800_1400_alle_spoelen_ADC': 'ADC',
+            'diff tra b 50 500 800 WIP511b alle spoelen_ADC': 'ADC',
+            'ADC_S3_1': 'ADC',
+            'ep2d_diff_tra_DYNDIST_ADC': 'ADC',
+
+        }
+
+
+    return series_desc_2_sequence_mapping
+
+
+def get_sample_path(data_path, sample_id):
+    sample_path_pattern = os.path.join(data_path, sample_id, '*')
+    sample_path = glob.glob(sample_path_pattern)
+    assert len(sample_path) == 1
+    return sample_path[0]
+
+##################################
+
+
+# class DukeLesionProperties(Duke):
+#     @staticmethod
+#     def dynamic_pipeline():
+#
+#         def get_annotations(sample_id):
+#             patient_annotations_df = annotations_df[annotations_df['Patient ID'] == sample_id]
+#             return patient_annotations_df
+#
+#         annotations_df = get_duke_raw_annotations_df()
+#
+#         steps = [
+#             (ops_mri.OpDict2Stk(),
+#                 dict(keys=['data.input.volume4D', 'data.input.ref_volume'])),
+#             (ops_mri.OpExtractLesionPropFromBBoxAnotation(get_annotations),
+#                 dict(key_in_ref_volume='data.input.ref_volume',
+#                       key_out_lesion_prop='data.lesion_prop',
+#                       key_out_cols='data.lesion_prop_col'))]
+#
+#         dynamic_pipeline = PipelineDefault("dynamic", steps)
+#
+#         return dynamic_pipeline
+
+
+
+
+if __name__ == "__main__":
+    from fuse.data.utils.sample import create_initial_sample
+    p = ProstateX()
+    sample0 = create_initial_sample(p.sample_ids())
+    sample_list = sample0['data']['initial_sample_id']
+    sample_list=['ProstateX-0116_1']
+    for sample_id in sample_list:
+        print(sample_id)
+        sample = create_initial_sample(p.sample_ids(),sample_id=sample_id)
+        data_dir = "/projects/msieve/MedicalSieve/PatientData/ProstateX/manifest-A3Y4AE4o5818678569166032044/"
+        static_pipeline = ProstateX.static_pipeline(data_dir, select_series_func=get_selected_series_index, verbose=True)
+        static_pipeline(sample)
+        dynamic_pipeline = ProstateX.dynamic_pipeline(ProstateXLabelType.ClinSig, verbose=True)
+        dynamic_pipeline(sample)
+
+
+
+
+
+
+
+
