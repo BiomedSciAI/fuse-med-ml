@@ -65,8 +65,8 @@ class BinaryDiceLoss(nn.Module):
         predict = predict.contiguous().view(predict.shape[0], -1)
         target = target.contiguous().view(target.shape[0], -1)
 
-        if target.dtype == torch.int64:
-            target = target.type(torch.float32).to(target.device)
+        if target.dtype == torch.int64 or target.dtype == torch.int32:
+            target = target.type(torch.float32)  
         num = 2*torch.sum(torch.mul(predict, target), dim=1) + self.eps
         den = torch.sum(predict.pow(self.p) + target.pow(self.p), dim=1) + self.eps
         loss = 1 - num / den
@@ -82,10 +82,84 @@ class BinaryDiceLoss(nn.Module):
             raise Exception('Unexpected reduction {}'.format(self.reduction))
 
 
-class DiceLoss(LossBase):
+class DiceBCELoss(LossBase):
 
-    def __init__(self, pred_name,
-                 target_name,
+    def __init__(self, 
+                 pred_name: str = None,
+                 target_name: str = None,
+                 filter_func: Optional[Callable]=None,
+                 class_weights=None,
+                 bce_weight: float=1.0,
+                 power: int=1, 
+                 eps: float=1.,
+                 reduction: str='mean'):
+        '''
+        Compute a weighted sum of dice-loss and cross entropy loss.
+
+        :param pred_name:        batch_dict key for predicted output (e.g., class probabilities after softmax).
+                                 Expected Tensor shape = [batch, num_classes, height, width]
+        :param target_name:      batch_dict key for target (e.g., ground truth label). Expected Tensor shape = [batch, height, width]
+        :param filter_func:      function that filters batch_dict/ The function gets ans input batch_dict and returns filtered batch_dict
+        :param class_weights:    An array of shape [num_classes,]
+        :param bce_weight:       weight to attach to the bce loss, default : 1.0
+        :param power:            Denominator value: \sum{x^p} + \sum{y^p}, default: 1
+        :param eps:              A float number to smooth loss, and avoid NaN error, default: 1
+        :param reduction:        Reduction method to apply, return mean over batch if 'mean',
+                                 return sum if 'sum', return a tensor of shape [N,] if 'none'
+
+        Returns:            Loss tensor according to arg reduction
+        Raise:              Exception if unexpected reduction
+        '''
+
+        super().__init__(pred_name, target_name, 1.0)
+        self.class_weights = class_weights
+        self.bce_weight = bce_weight
+        self.filter_func = filter_func
+        self.dice = BinaryDiceLoss(power, eps, reduction)
+
+    def __call__(self, batch_dict):
+
+        if self.filter_func is not None:
+            batch_dict = self.filter_func(batch_dict)
+        predict = FuseUtilsHierarchicalDict.get(batch_dict, self.pred_name).float()
+        target = FuseUtilsHierarchicalDict.get(batch_dict, self.target_name).long()
+
+        target = target.type(torch.float32)  
+
+        total_loss = 0
+        n_classes = predict.shape[1]
+
+        # Convert target to one hot encoding
+        if n_classes > 1 and target.shape[1] != n_classes:
+            target = make_one_hot(target, n_classes)
+
+        assert predict.shape == target.shape, 'predict & target shape do not match'
+
+        total_class_weights = sum(self.class_weights) if self.class_weights is not None else n_classes
+        for cls_index in range(n_classes):
+            dice_loss = self.dice(predict[:, cls_index, :, :], target[:, cls_index, :, :])
+            if self.bce_weight > 0.0:
+                bce_loss = F.binary_cross_entropy(predict[:, cls_index, :, :].view(-1), 
+                                                  target[:, cls_index, :, :].view(-1), 
+                                                  reduction='mean')
+                dice_loss += self.bce_weight * bce_loss
+
+            if self.class_weights is not None:
+                assert self.class_weights.shape[0] == n_classes, \
+                    'Expect weight shape [{}], got[{}]'.format(n_classes, self.class_weights.shape[0])
+                dice_loss *= self.class_weights[cls_index]
+
+            total_loss += dice_loss
+        total_loss /= total_class_weights
+
+        return self.weight*total_loss
+
+
+class FuseDiceLoss(LossBase):
+
+    def __init__(self, 
+                 pred_name: str = None,
+                 target_name: str = None,
                  filter_func: Optional[Callable] = None,
                  class_weights=None,
                  ignore_cls_index_list=None,

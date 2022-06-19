@@ -24,6 +24,7 @@ nibabel
 pycocotools>=2.0.1
 xmlrunner
 paramiko
+elasticdeform 
 tables
 psutil
 testbook
