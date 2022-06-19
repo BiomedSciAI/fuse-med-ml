@@ -292,6 +292,7 @@ class Duke:
         dynamic_steps = [(ops_mri.OpDeleteLastChannel(), dict(keys=volume_keys))]
 
         keys_2_keep = list(volume_keys)
+        key_ground_truth = 'data.ground_truth'
         if add_clinical_features or (label_type is not None):
             data_dir = Duke.get_data_dir_from_environment_variable() if data_dir is None else data_dir
 
@@ -300,7 +301,6 @@ class Duke:
                                                         key_column='Patient Information:Patient ID'),
                                dict(key_out_group='data.input.clinical_data'))]
             if label_type is not None:
-                key_ground_truth = 'data.ground_truth'
                 # dynamic_steps.append((OpAddDukeLabelAndClinicalFeatures(label_type=label_type),
                 #                 dict(key_in='data.input.clinical_data',  key_out_gt=key_ground_truth,
                 #                      key_out_clinical_features='data.clinical_features')))
@@ -320,7 +320,8 @@ class Duke:
                 keys_2_keep.append(key_clinical_features)
 
             for key in keys_2_keep:
-                dynamic_steps += [(ops_cast.OpToTensor(), dict(key=key, dtype=torch.float32))]
+                dtype = torch.int64 if key==key_ground_truth else torch.float32
+                dynamic_steps += [(ops_cast.OpToTensor(), dict(key=key, dtype=dtype))]
 
         dynamic_steps.append((ops_mri.OpSelectKeys(), dict(keys_2_keep=keys_2_keep)))
         dynamic_pipeline = PipelineDefault("dynamic", dynamic_steps, verbose=verbose)
