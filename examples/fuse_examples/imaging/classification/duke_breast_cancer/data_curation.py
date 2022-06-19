@@ -15,6 +15,7 @@ import traceback
 import radiomics as radiomics
 # from BigMedilytics.BreastRadiomics.Algorithms.MRI_fuse.cv_and_radiomics.various_FCM_segmentation.FCM import FCM
 
+ROOT_PATH = '/projects/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI/manifest-1607053360376/'
 def get_selected_series_index(sample_id, seq_id):
     patient_id = sample_id[0]
     if patient_id in ['Breast_MRI_120', 'Breast_MRI_596']:
@@ -37,9 +38,8 @@ def sort_studies_by_date(sample_dir, max_studies_per_patient):
 
 def create_lesion_prop_list_from_annotation_slices_range(sample_ids, lesion_table_file):
     MAX_N_STUDIES_PER_PATIENT = 2
-    root_path = '/projects/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI/manifest-1607053360376/'
 
-    static_pipeline = DukeLesionProp.static_pipeline(root_path=root_path, select_series_func=duke.get_selected_series_index,
+    static_pipeline = DukeLesionProp.static_pipeline(data_dir=ROOT_PATH, select_series_func=duke.get_selected_series_index,
                                                      output_stk_volumes=True)
     dynamic_pipeline = DukeLesionProp.dynamic_pipeline()
     patient_dict = {}
@@ -47,7 +47,7 @@ def create_lesion_prop_list_from_annotation_slices_range(sample_ids, lesion_tabl
     for sample_id in tqdm(sample_ids):
         print(sample_id)
         try:
-            sample_dir = root_path +'Duke-Breast-Cancer-MRI/'+ sample_id
+            sample_dir = os.path.join(ROOT_PATH,'Duke-Breast-Cancer-MRI/', sample_id)
             studies_list = sort_studies_by_date(sample_dir, MAX_N_STUDIES_PER_PATIENT)
 
             cols_list = []
@@ -121,7 +121,7 @@ def create_radiomics(root_path=None,radiomics_table_file=None,setting=None, get_
         #radiomics_table_file = '/gpfs/haifa/projects/m/msieve_dev3/usr/Tal/my_research/CURIE/DUKE/experiments/new_radiomics.csv'
         radiomics_table_file = f'/tmp/new_radiomics.csv'
 
-    static_pipeline = DukeGetRadiomics.static_pipeline(root_path=root_path, select_series_func=get_selected_series_index)
+    static_pipeline = DukeGetRadiomics.static_pipeline(data_dir=root_path, select_series_func=get_selected_series_index)
     dynamic_pipeline = DukeGetRadiomics.dynamic_pipeline(extractor,setting)
     patient_dict = {}
 
@@ -149,7 +149,7 @@ class DukeLesionProp(Duke):
 
     @staticmethod
     def sample_ids():
-        annotations_df = get_duke_raw_annotations_df()
+        annotations_df = get_duke_raw_annotations_df(ROOT_PATH)
         return annotations_df['Patient ID'].values
     @staticmethod
     def dynamic_pipeline():
@@ -158,7 +158,7 @@ class DukeLesionProp(Duke):
             patient_annotations_df = annotations_df[annotations_df['Patient ID'] == sample_id]
             return patient_annotations_df
 
-        annotations_df = get_duke_raw_annotations_df()
+        annotations_df = get_duke_raw_annotations_df(ROOT_PATH)
 
         steps = [
             (ops_mri.OpDict2Stk(),
@@ -176,12 +176,12 @@ class DukeGetRadiomics(Duke):
 
     @staticmethod
     def sample_ids():
-        annotations_df = get_duke_raw_annotations_df()
+        annotations_df = get_duke_raw_annotations_df(ROOT_PATH)
         return annotations_df['Patient ID'].values
 
     @staticmethod
-    def static_pipeline(select_series_func, root_path=None) -> PipelineDefault:
-        static_pipline = Duke.static_pipeline(root_path=root_path, select_series_func=select_series_func)
+    def static_pipeline(select_series_func, data_dir=None) -> PipelineDefault:
+        static_pipline = Duke.static_pipeline(data_dir=data_dir, select_series_func=select_series_func)
         # remove scaling operator for radiomics calculation
         del static_pipline._op_ids[7]
         del static_pipline._ops_and_kwargs[7]
@@ -212,7 +212,7 @@ if __name__ == "__main__":
         create_lesion_prop_list_from_annotation_slices_range(sample_ids = ['Breast_MRI_900'],
                                                              lesion_table_file=f'/tmp/lesions_file.csv')
 
-    # root_path = '/projects/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI/manifest-1607053360376/'
+
     if False:
         #create radiomics features
         setting = {}

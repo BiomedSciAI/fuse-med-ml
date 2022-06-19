@@ -267,7 +267,7 @@ if __name__ == "__main__":
         path_to_dataset = '/projects/msieve/MedicalSieve/PatientData/ProstateX/manifest-A3Y4AE4o5818678569166032044/'
         prostate_data_path = path_to_dataset
         Ktrain_data_path = path_to_dataset + '/ProstateXKtrains-train-fixed/'
-        sample = ('29062021', 'train', 'ProstateX-0008', 'pred')
+        sample = ('29062021', 'train', 'ProstateX-0148', 'pred')
 
         a = ProstateXPatchProcessor(vol_processor=DicomMRIProcessor(reference_inx=0),path_to_db = path_to_db,
                                         data_path=prostate_data_path,ktrans_data_path=Ktrain_data_path,

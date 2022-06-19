@@ -20,10 +20,11 @@ Created on June 30, 2021
 import logging
 import os
 #todo: remove setting of env variable !!!
-os.environ["DUKE_DATA_PATH"] = "/projects/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI/manifest-1607053360376/"
+os.environ["DUKE_DATA_PATH"] = "/projects/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI/"
 import getpass
 from typing import OrderedDict
 from fuse.utils.file_io.file_io import load_pickle
+from fuse.utils.rand.seed import Seed
 
 
 import torch
@@ -61,7 +62,7 @@ from examples.fuse_examples.imaging.classification.prostate_x.backbone_3d_multic
 
 
 def main():
-    mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
+    mode = 'debug'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
 
     # allocate gpus
     # To use cpu - set NUM_GPUS to 0
@@ -102,25 +103,37 @@ def get_setting(mode, label_type=duke.DukeLabelType.STAGING_TUMOR_SIZE, n_folds=
     ##########################################
 
     debug = FuseDebug(mode)
-
+    MICHAL_VERSION = True
     ##########################################
     # Output Paths
     ##########################################
     assert "DUKE_DATA_PATH" in os.environ, "Expecting environment variable DUKE_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
     ROOT = duke_breast_cancer.get_duke_user_dir()
     model_dir = os.path.join(ROOT, 'model_dir')
+    data_dir = os.environ["DUKE_DATA_PATH"]
 
     if mode == 'debug':
         data_split_file = os.path.join(ROOT, 'DUKE_folds_debug.pkl')
-        selected_sample_ids = duke.get_samples_for_debug(n_pos=10, n_neg=10, label_type=label_type)
-        cache_dir = os.path.join(ROOT, 'cache_dir_debug')
-        num_workers = 0
+        # selected_sample_ids = duke.get_samples_for_debug(data_dir=data_dir, n_pos=10, n_neg=10, label_type=label_type,
+        #                                                  sample_ids=duke.get_selected_sample_ids())
+        selected_sample_ids = ['Breast_MRI_016', 'Breast_MRI_039', 'Breast_MRI_043', 'Breast_MRI_054', 'Breast_MRI_057', 'Breast_MRI_064',
+                               'Breast_MRI_066', 'Breast_MRI_074', 'Breast_MRI_076', 'Breast_MRI_081', 'Breast_MRI_007', 'Breast_MRI_014',
+                               'Breast_MRI_025', 'Breast_MRI_047', 'Breast_MRI_062', 'Breast_MRI_102', 'Breast_MRI_104', 'Breast_MRI_120',
+                               'Breast_MRI_124', 'Breast_MRI_134']
+        print(selected_sample_ids)
+        cache_dir = os.path.join(ROOT, 'cache_dir_debug_v2')
+        num_workers = 10
         batch_size = 2
         num_epoch = 5
     else:
-        data_split_file =  os.path.join(ROOT, 'DUKE_folds_fuse2_11102021TumorSize_seed1.pkl')
+        if MICHAL_VERSION:
+            data_split_file = os.path.join(ROOT, 'DUKE_folds_v2.pkl')
+            cache_dir = os.path.join(ROOT, 'cache_dir_v2')
+        else:
+            data_split_file = os.path.join(ROOT, 'DUKE_folds_fuse2_11102021TumorSize_seed1.pkl')
+            cache_dir = os.path.join(ROOT, 'cache_dir')
         selected_sample_ids = None
-        cache_dir = os.path.join(ROOT, 'cache_dir')
+
         num_workers = 16
         batch_size = 50
         num_epoch = 20#150
@@ -128,7 +141,7 @@ def get_setting(mode, label_type=duke.DukeLabelType.STAGING_TUMOR_SIZE, n_folds=
              'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
              'cache_dir': cache_dir,
              'data_split_filename': os.path.join(ROOT, data_split_file),
-             'data_dir': os.environ["DUKE_DATA_PATH"],
+             'data_dir': data_dir,
              'inference_dir': os.path.join(model_dir, 'infer_dir'),
              'eval_dir': os.path.join(model_dir, 'eval_dir'),
              }  #todo: add annotations file
@@ -228,6 +241,7 @@ def get_setting(mode, label_type=duke.DukeLabelType.STAGING_TUMOR_SIZE, n_folds=
 # Train Template
 #################################
 def run_train(paths: dict, train_params: dict):
+    Seed.set_seed(0, False)
     # ==============================================================================
     # Logger
     # ==============================================================================

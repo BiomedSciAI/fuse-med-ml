@@ -166,7 +166,13 @@ class ResNet(torch.nn.Module):
 class Fuse_model_3d_multichannel(torch.nn.Module):
     """
     Fuse model that classifing high resolution images
-
+    Sequence:
+        1. Starts with low resolution image to extract low resolution features and attention score per each image patch
+        2. Extract high resolution features 'k' most significant patches (using the attention score)
+        3. Use low resolution features, high resolution features and attention score to classify the image
+    Input: high resolution tensor [BATCH_SIZE, 1, H, W]
+    Output:
+        TBD
     """
 
     def __init__(self,
