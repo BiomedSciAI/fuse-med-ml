@@ -20,7 +20,7 @@ Created on June 30, 2021
 import logging
 import os
 #todo: remove setting of env variable !!!
-os.environ["DUKE_DATA_PATH"] = "/projects/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI/manifest-1607053360376/"
+os.environ["PROSTATEX_DATA_PATH"] = "/projects/msieve/MedicalSieve/PatientData/ProstateX/manifest-A3Y4AE4o5818678569166032044/"
 import getpass
 from typing import OrderedDict
 from fuse.utils.file_io.file_io import load_pickle
@@ -44,14 +44,13 @@ from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisti
 from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
 from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
 from fuse.dl.managers.manager_default import ManagerDefault
-from examples.fuse_examples.imaging.classification import duke_breast_cancer
 
 
 from fuse.utils.utils_debug import FuseDebug
 import fuse.utils.gpu as GPU
 from fuse.utils.utils_logger import fuse_logger_start
 
-from fuseimg.datasets import duke
+from fuseimg.datasets import prostate_x
 
 from fuse.dl.models.heads.head_1d_classifier import Head1dClassifier
 
@@ -93,7 +92,7 @@ def main():
         run_eval(paths=PATHS, eval_common_params=EVAL_COMMON_PARAMS)
 
 
-def get_setting(mode, label_type=duke.DukeLabelType.STAGING_TUMOR_SIZE, n_folds=5, heldout_fold=4):
+def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=5, heldout_fold=4):
     ###########################################################################################################
     # Fuse
     ###########################################################################################################
@@ -106,19 +105,19 @@ def get_setting(mode, label_type=duke.DukeLabelType.STAGING_TUMOR_SIZE, n_folds=
     ##########################################
     # Output Paths
     ##########################################
-    assert "DUKE_DATA_PATH" in os.environ, "Expecting environment variable DUKE_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
-    ROOT = duke_breast_cancer.get_duke_user_dir()
+    assert "PROSTATEX_DATA_PATH" in os.environ, "Expecting environment variable PROSTATEX_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
+    ROOT = f'/projects/msieve_dev3/usr/{getpass.getuser()}/fuse_examples/prostate_x'
     model_dir = os.path.join(ROOT, 'model_dir')
 
     if mode == 'debug':
-        data_split_file = os.path.join(ROOT, 'DUKE_folds_debug.pkl')
-        selected_sample_ids = duke.get_samples_for_debug(n_pos=10, n_neg=10, label_type=label_type)
+        data_split_file = os.path.join(ROOT, 'prostate_x_folds_debug.pkl')
+        selected_sample_ids = prostate_x.get_samples_for_debug(n_pos=10, n_neg=10, label_type=label_type)
         cache_dir = os.path.join(ROOT, 'cache_dir_debug')
         num_workers = 0
         batch_size = 2
         num_epoch = 5
     else:
-        data_split_file =  os.path.join(ROOT, 'DUKE_folds_fuse2_11102021TumorSize_seed1.pkl')
+        data_split_file =  os.path.join(ROOT, 'dataset_prostate_x_folds_ver29062021_seed1.pickle')
         selected_sample_ids = None
         cache_dir = os.path.join(ROOT, 'cache_dir')
         num_workers = 16
@@ -128,7 +127,7 @@ def get_setting(mode, label_type=duke.DukeLabelType.STAGING_TUMOR_SIZE, n_folds=
              'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
              'cache_dir': cache_dir,
              'data_split_filename': os.path.join(ROOT, data_split_file),
-             'data_dir': os.environ["DUKE_DATA_PATH"],
+             'data_dir': os.environ["PROSTATEX_DATA_PATH"],
              'inference_dir': os.path.join(model_dir, 'infer_dir'),
              'eval_dir': os.path.join(model_dir, 'eval_dir'),
              }  #todo: add annotations file
@@ -172,7 +171,7 @@ def get_setting(mode, label_type=duke.DukeLabelType.STAGING_TUMOR_SIZE, n_folds=
         # can be either better/worse - whether to consider best epoch when values are equal
     }
     TRAIN_COMMON_PARAMS['manager.learning_rate'] = 1e-5
-    TRAIN_COMMON_PARAMS['manager.weight_decay'] = 0.001
+    TRAIN_COMMON_PARAMS['manager.weight_decay'] = 1e-4
     TRAIN_COMMON_PARAMS['manager.dropout'] = 0.5
     TRAIN_COMMON_PARAMS['manager.momentum'] = 0.9
     TRAIN_COMMON_PARAMS['manager.resume_checkpoint_filename'] = None  # if not None, will try to load the checkpoint
@@ -195,13 +194,13 @@ def get_setting(mode, label_type=duke.DukeLabelType.STAGING_TUMOR_SIZE, n_folds=
                 TRAIN_COMMON_PARAMS['num_backbone_features_imaging']+TRAIN_COMMON_PARAMS['num_backbone_features_clinical']
 
     # classification_task:
-    # supported tasks are: 'Staging Tumor Size','Histology Type','is High Tumor Grade Total','PCR'
+    # supported tasks are: 'ClinSig'
     TRAIN_COMMON_PARAMS['classification_task'] = label_type
     TRAIN_COMMON_PARAMS['class_num'] = label_type.get_num_classes()
 
     # backbone parameters
     TRAIN_COMMON_PARAMS['backbone_model_dict'] = \
-        {'input_channels_num': 1,
+        {'input_channels_num': 4,
          }
 
     ######################################
@@ -247,10 +246,10 @@ def run_train(paths: dict, train_params: dict):
     # Train Data
     lgr.info(f'Train Data:', {'attrs': 'bold'})
 
-    reset_cache = duke_breast_cancer.ask_user('Do you want to reset cache?')
+    reset_cache = ask_user('Do you want to reset cache?')
     cache_kwargs = None
     if not reset_cache:
-        audit_cache = duke_breast_cancer.ask_user('Do you want to audit cache?')
+        audit_cache = ask_user('Do you want to audit cache?')
         if not audit_cache:
             cache_kwargs = dict(audit_first_sample=False, audit_rate=None)
 
@@ -260,7 +259,7 @@ def run_train(paths: dict, train_params: dict):
                                     num_workers=train_params['data.train_num_workers'],
                                     cache_kwargs=cache_kwargs)
 
-    dataset_all = duke.Duke.dataset(**params)
+    dataset_all = prostate_x.ProstateX.dataset(**params)
     folds = dataset_balanced_division_to_folds(dataset=dataset_all,
                                         output_split_filename=paths["data_split_filename"], 
                                         keys_to_balance=["data.ground_truth"],
@@ -276,11 +275,11 @@ def run_train(paths: dict, train_params: dict):
     params['sample_ids'] = train_sample_ids
     params['reset_cache'] = False
     params['cache_kwargs'] = None
-    train_dataset = duke.Duke.dataset(**params)
+    train_dataset = prostate_x.ProstateX.dataset(**params)
     # for _ in train_dataset:
     #     pass
     params['sample_ids'] = validation_sample_ids
-    validation_dataset = duke.Duke.dataset(**params)
+    validation_dataset = prostate_x.ProstateX.dataset(**params)
 
     lgr.info(f'- Create sampler:')
     sampler = BatchSamplerDefault(dataset=train_dataset,
@@ -417,7 +416,7 @@ def run_infer(paths: dict, infer_common_params: dict):
     for fold in infer_common_params["data.infer_folds"]:
         infer_sample_ids += folds[fold]
 
-    validation_dataset = duke.Duke.dataset(label_type=infer_common_params['classification_task'], data_dir=paths["data_dir"], cache_dir=paths["cache_dir"],
+    validation_dataset = prostate_x.ProstateX.dataset(label_type=infer_common_params['classification_task'], data_dir=paths["data_dir"], cache_dir=paths["cache_dir"],
                                            sample_ids=infer_sample_ids)
 
     # dataloader
@@ -465,7 +464,11 @@ def run_eval(paths: dict, eval_common_params: dict):
     return results
 
 
-
+def ask_user(yes_no_question):
+    res = ''
+    while res not in ['y', 'n']:
+        res = input(f'{yes_no_question}? [y/n]')
+    return res =='y'
 ######################################
 # Run
 ######################################
