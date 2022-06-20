@@ -83,11 +83,13 @@ def run_train(paths : NDict , train: NDict ):
         num_classes = 2
         mode = "approx"
         gt_label = "data.gt.classification"
+        skip_keys=['data.gt.subtype']
         class_names = ["Benign", "Malignant"] 
     elif train['target'] == "subtype" :
         num_classes = 4
         mode = "approx"
         gt_label = "data.gt.subtype"
+        skip_keys=['data.gt.classification']
         class_names = ["Luminal A", "Luminal B", "HER2-enriched" , "triple negative"] 
     else:
         raise("unsuported target!!")
@@ -125,7 +127,7 @@ def run_train(paths : NDict , train: NDict ):
     ## Create dataloader
     train_dataloader = DataLoader(dataset=train_dataset,
                                   shuffle=False, drop_last=False,
-                                  batch_sampler=sampler, collate_fn=CollateDefault(),
+                                  batch_sampler=sampler, collate_fn=CollateDefault(skip_keys=['data.gt.subtype']),
                                   num_workers=train["num_workers"])
     lgr.info(f'Train Data: Done', {'attrs': 'bold'})
 
