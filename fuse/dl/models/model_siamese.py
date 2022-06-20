@@ -33,20 +33,28 @@ class ModelSiamese(ModelMultiHead):
     """
 
     def __init__(self,
-                 conv_inputs_0: Tuple[Tuple[str, int], ...] = (('data.input.input_0.tensor', 1),),
-                 conv_inputs_1: Tuple[Tuple[str, int], ...] = (('data.input.input_1.tensor', 1),),
+                 conv_inputs_0: Tuple[Tuple[str, int], ...] = None, 
+                 conv_inputs_1: Tuple[Tuple[str, int], ...] = None,
                  backbone: torch.nn.Module = BackboneInceptionResnetV2(),
-                 heads: Sequence[torch.nn.Module] = (HeadGlobalPoolingClassifier(),)
+                 heads: Sequence[torch.nn.Module] = None,
                  ) -> None:
         """
         Fuse Siamese model -  two branches with same convolutional neural network with multiple heads
-        :param conv_inputs:     batch_dict name for model input and its number of input channels
+        :param conv_inputs_0:     batch_dict name for model input and its number of input channels
+            for example: conv_inputs_0=(('data.input.input_0.tensor', 1),)
+        :param conv_inputs_1:    batch_dict name for model input and its number of input channels
+            for example: conv_inputs_1=(('data.input.input_1.tensor', 1),)
         :param backbone:        PyTorch backbone module - a convolutional neural network
         :param heads:           Sequence of head modules
+            for example: (HeadGlobalPoolingClassifier(),)
             """
+        assert heads is not None, "You must provide 'heads'"
         super().__init__((), backbone, heads)
+        assert conv_inputs_0 is not None, "you must provide 'conv_inputs_0'"
         self.conv_inputs_0 = conv_inputs_0
+        assert conv_inputs_1 is not None, "you must provide 'conv_inputs_1'"
         self.conv_inputs_1 = conv_inputs_1
+        
 
     def forward(self,
                 batch_dict: NDict) -> Dict:
