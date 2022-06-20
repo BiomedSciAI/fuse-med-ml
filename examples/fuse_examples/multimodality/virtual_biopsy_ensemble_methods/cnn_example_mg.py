@@ -377,14 +377,14 @@ if __name__ == "__main__":
     # 2) Initialize weights and re-train on multi-class task
     ##########################################
 
-    # train_example()
+    train_example()
 
     ##########################################
     # Infer and create csv file of prediction per class
     ##########################################
 
 
-    # infer_example()
+    infer_example()
     parameters = update_parameters_by_task(None,2)
     infer_path = parameters['paths']['inference_dir']
     for infer_inx,infer_mode in enumerate(['train','validation','test']):
