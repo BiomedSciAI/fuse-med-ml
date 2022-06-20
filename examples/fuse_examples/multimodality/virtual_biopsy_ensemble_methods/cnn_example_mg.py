@@ -62,12 +62,20 @@ from fuse.utils.dl.checkpoint import Checkpoint as FuseCheckpoint
 ##########################################
 mode = 'default'  # Options: 'default', 'debug'. See details in FuseDebug
 debug = FuseDebug(mode)
+ROOT_PATH = '/projects/msieve_dev3/usr/Tal/my_research/baseline_cmmd/cmmd_for_virtual_biopsy/'
+CMMD_DATA_PATH = '/projects/msieve3/CMMD'
 
-def update_parameters_by_task(parameters,task_num,root_path):
-    parameters['paths']['cache_dir'] = root_path + 'task_1_cache'
+def update_parameters_by_task(parameters=None,task_num=1):
+    if parameters is None:
+        parameters={}
+        parameters['paths']={}
+        parameters['train']={}
+        parameters['infer']={}
+
+    parameters['paths']['cache_dir'] =  os.path.join(ROOT_PATH, 'task_1_cache')
     if task_num == 1:
         parameters['task_num'] = 1
-        parameters['paths']['model_dir'] = root_path + '/task_1_model_example/'
+        parameters['paths']['model_dir'] =  os.path.join(ROOT_PATH, 'task_1_model_example')
         parameters['train']['target']= 'classification'
         parameters['train']['resume_checkpoint_filename'] = None
         parameters['train']['init_backbone'] = False
@@ -76,13 +84,12 @@ def update_parameters_by_task(parameters,task_num,root_path):
 
     elif task_num == 2:
         parameters['task_num'] = 1
-        parameters['paths']['model_dir'] = root_path + '/task_2_model_example/'
+        parameters['paths']['model_dir'] =  os.path.join(ROOT_PATH,  'task_2_model_example')
         parameters['train']['target']= 'subtype'
-        parameters['train']['resume_checkpoint_filename'] = root_path + '/task_1_model_example/checkpoint_best_0_epoch.pth'
+        parameters['train']['resume_checkpoint_filename'] = os.path.join(ROOT_PATH, 'task_1_model_example/checkpoint_best_0_epoch.pth')
         parameters['train']['init_backbone'] = True
         parameters['train']['skip_keys'] = []
-        parameters['infer']['inference_dir'] = root_path +'infer/'
-
+        parameters['paths']['inference_dir'] = os.path.join(ROOT_PATH,'task_2_model_example/infer')
 
 
     return parameters
@@ -284,13 +291,12 @@ def run_train(paths: NDict, train: NDict):
 
 @hydra.main(config_path="conf", config_name="config")
 def train_example(cfg: DictConfig) -> None:
-    root_path = '/projects/msieve_dev3/usr/Tal/my_research/baseline_cmmd/cmmd_for_virtual_biopsy/'
     cfg = NDict(OmegaConf.to_container(cfg))
-    cfg["paths"]["data_dir"] = '/projects/msieve3/CMMD'
-    # os.environ["CMMD_DATA_PATH"]
-    task_loop = [2]
+    cfg["paths"]["data_dir"] = CMMD_DATA_PATH
+
+    task_loop = [1,2]
     for task_num in task_loop:
-        cfg = update_parameters_by_task(cfg,task_num,root_path)
+        cfg = update_parameters_by_task(cfg,task_num)
         print(cfg)
         run_train(cfg["paths"], cfg["train"])
 
@@ -305,7 +311,7 @@ def run_infer(paths: NDict, infer: NDict):
     lgr.info(f'infer_filename={os.path.join(paths["inference_dir"], infer["infer_filename"])}', {'color': 'magenta'})
 
     ## Data
-    folds = load_pickle(paths["data_split_filename"])  # assume exists and created in train func
+    folds = load_pickle(os.path.join(paths['data_misc_dir'],paths["data_split_filename"]))  # assume exists and created in train func
 
     infer_sample_ids = []
     for fold in infer["infer_folds"]:
@@ -334,8 +340,8 @@ def run_infer(paths: NDict, infer: NDict):
 @hydra.main(config_path="conf", config_name="config")
 def infer_example(cfg: DictConfig):
     cfg = NDict(OmegaConf.to_container(cfg))
-    cfg["paths"]["data_dir"] = '/projects/msieve3/CMMD'
-    cfg = update_parameters_by_task(cfg, 2 , root_path)
+    cfg["paths"]["data_dir"] = CMMD_DATA_PATH
+    cfg = update_parameters_by_task(cfg, 2)
 
     infer_folds = [cfg['train']['train_folds'],cfg['train']['validation_folds'],cfg["infer"]["infer_folds"]]
     for infer_inx,infer_mode in enumerate(['train','validation','test']):
@@ -346,15 +352,19 @@ def infer_example(cfg: DictConfig):
         choose_and_enable_multiple_gpus(cfg["train.manager_train_params.num_gpus"], force_gpus=force_gpus)
         run_infer(cfg["paths"],cfg["infer"])
 
-def save_results_csv(infer_file,csv_path=None):
+def save_results_csv(infer_file,csv_path=None,files_combined_path=None):
+    if files_combined_path is None:
+        files_combined_path = ''
     if csv_path is None:
         csv_path = os.path.join(infer_path,'infer_validation.csv')
     with gzip.open(infer_file, 'rb') as pickle_file:
         results_df = pickle.load(pickle_file)
+    files_combined = pd.read_csv(files_combined_path)
     results_df[['pred_classA', 'pred_classB', 'pred_classC','pred_classD','pred_classE']] =\
         pd.DataFrame(results_df['model.output.head_0'].tolist(), index=results_df.index)
     results_df.drop('model.output.head_0', axis=1, inplace=True)
-    results_df.to_csv(csv_path)
+    merged = pd.merge(files_combined,results_df,left_on='file',right_on='id')
+    merged.to_csv(csv_path)
 
 
 
@@ -366,16 +376,18 @@ if __name__ == "__main__":
     # 1) pretrain model using binary task
     # 2) Initialize weights and re-train on multi-class task
     ##########################################
-    data_path = '/projects/msieve3/CMMD'
-    root_path = '/projects/msieve_dev3/usr/Tal/my_research/baseline_cmmd/cmmd_for_virtual_biopsy/'
 
-    parameters = train_example()
-    #
-    # # ##########################################
-    # # # Infer and create csv file of prediction per class
-    # # ##########################################
-    infer_path =root_path+'infer/'
+    # train_example()
 
-    infer_example()
+    ##########################################
+    # Infer and create csv file of prediction per class
+    ##########################################
+
+
+    # infer_example()
+    parameters = update_parameters_by_task(None,2)
+    infer_path = parameters['paths']['inference_dir']
     for infer_inx,infer_mode in enumerate(['train','validation','test']):
-        save_results_csv(infer_path+infer_mode+'_set_infer.pickle.gz',infer_mode+'_set_infer.csv')
+        save_results_csv(os.path.join(infer_path,infer_mode+'_set_infer.gz'),
+                         os.path.join(infer_path,infer_mode+'_set_infer.csv'),
+                         os.path.join('/projects/msieve_dev3/usr/Tal/my_research/baseline_cmmd/cmmd_for_virtual_biopsy/data_misc','files_combined.csv'))
