@@ -137,6 +137,7 @@ class CMMD:
         merged_clinical_data = merged_clinical_data[merged_clinical_data[target].notna()]
         merged_clinical_data['classification'] = np.where(merged_clinical_data['classification'] == 'Benign', 0, 1)
         merged_clinical_data['subtype'] = merged_clinical_data['subtype'].replace({"Luminal A" : 0 ,"Luminal B" : 1 , "HER2-enriched" : 2, "triple negative" : 3 , np.nan : "4"})
+        merged_clinical_data = merged_clinical_data.dropna()
         merged_clinical_data.to_csv(combined_file_path)
         all_sample_ids = merged_clinical_data['file'].to_list()
         return merged_clinical_data, all_sample_ids
