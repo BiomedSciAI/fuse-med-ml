@@ -261,18 +261,18 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     import pandas as pd
 
-    path_to_db = '/gpfs/haifa/projects/m/msieve_dev3/usr/Tal/my_research/virtual_biopsy/prostate/experiments/V4/'
+    path_to_db = '.'
     dataset = 'prostate_x'
     if dataset=='prostate_x':
     # for ProstateX
         path_to_dataset = '/projects/msieve/MedicalSieve/PatientData/ProstateX/manifest-A3Y4AE4o5818678569166032044/'
         prostate_data_path = path_to_dataset
         Ktrain_data_path = path_to_dataset + '/ProstateXKtrains-train-fixed/'
-        sample = ('29062021', 'train', 'ProstateX-0148', 'pred')
+        sample = 'ProstateX-0008'
 
         a = FuseProstateXPatchProcessor(vol_processor=FuseDicomMRIProcessor(reference_inx=0),path_to_db = path_to_db,
                                         data_path=prostate_data_path,ktrans_data_path=Ktrain_data_path,
-                                        db_name=dataset,fold_no=1,lsn_shape=(13, 74, 74))
+                                        db_name=dataset,db_version='29062021',fold_no=1,lsn_shape=(13, 74, 74))
         samples = a.__call__(sample)
         l_seq = pd.read_csv('/gpfs/haifa/projects/m/msieve_dev3/usr/Tal/my_research/virtual_biopsy/prostate/prostate_x/metadata.csv')
         for sample_id in list(l_seq['Subject ID'].unique()):
