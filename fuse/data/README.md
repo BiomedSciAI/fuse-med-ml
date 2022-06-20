@@ -31,7 +31,7 @@ A sequence of operators loading, pre-processing, and augmenting a sample. We spl
 
 ## Basic example - a static pipeline
 
-**The original code is in example_static_pipeline() in fuse/data/examples/examples_readme.py**
+**The original code is in fuseimg/datasets/kits21_example.ipynb**
 ```python 
 
 static_pipeline = PipelineDefault("static", [
@@ -64,7 +64,7 @@ Finally, OpClip() and OpToRange() pre-process the image.
  
 
 ## Caching
-**The original code is in example_cache_pipeline() in fuse/data/examples/examples_readme.py**
+**The original code is in fuseimg/datasets/kits21_example.ipynb**
 ```python 
 
 static_pipeline = PipelineDefault("static", [
@@ -95,7 +95,7 @@ The cached data will be at [cache_dir]/[unique_cacher_name].
 
 ## Adding a dynamic part
 
-**The original code is in example_dynamic_pipeline() in fuse/data/examples/examples_readme.py**
+**The original code is in fuseimg/datasets/kits21_example.ipynb**
 
 ```python 
 
@@ -131,7 +131,7 @@ A basic example that includes both dynamic pipeline and static pipeline. Dynamic
 
 
 ### Avoiding boilerplate by using "Meta Ops"
-**The original code is in example_meta_ops_pipeline() in fuse/data/examples/examples_readme.py**
+**The original code is in fuseimg/datasets/kits21_example.ipynb**
 ```python 
 repeat_for = [dict(key="data.input.img"), dict(key="data.gt.seg")]
 static_pipeline = PipelineDefault("static", [
@@ -164,7 +164,7 @@ The example above is the simplest. We use OpRepeat to repeat OpToTensor twice, o
 
 
 ## Adding augmentation
-**The original code is in example_adding_augmentation() in fuse/data/examples/examples_readme.py**
+**The original code is in fuseimg/datasets/kits21_example.ipynb**
 ```python 
 
 repeat_for = [dict(key="data.input.img"), dict(key="data.gt.seg")]
@@ -202,7 +202,7 @@ my_dataset.create()
 FuseMedML comes with a collection of pre-implemented augmentation ops. Augmentation ops are expected to be included in the dynamic_pipeline to avoid caching and to be called with different random numbers drawn from the specified distribution. In this example, we've added identical affine transformation for the image and segmentation map. OpSampleAndRepeat() will first draw the random numbers from the random arguments and then repeat OpAffineTransform2D for both the image and segmentation map with the same arguments.  
 
 ## Using custom functions directly (OpFunc and OpLambda)
-**The original code is in example_custom_function() in fuse/data/examples/examples_readme.py**
+**The original code is in fuseimg/datasets/kits21_example.ipynb**
 ```python 
 
 static_pipeline = PipelineDefault("static", [
@@ -220,7 +220,7 @@ my_dataset.create()
 Pre-processing a dataset many times involves heuristics and custom functions. OpLambda and OpFunc allow using those functions directly instead of implementing Op for every custom function. This is a simple example of implementing NumPy array reshape using OpLambda.
 
 ## End to end dataset example (image and segmentation map) for segmentation task
-**The original code is in example_end2end_dataset() in fuse/data/examples/examples_readme.py**
+**The original code is in fuseimg/datasets/kits21_example.ipynb**
 ```python
 
 repeat_for = [dict(key="data.input.img"), dict(key="data.gt.seg")]
@@ -257,7 +257,6 @@ my_dataset.create()
 ```
 
 ## Creating dataloader and balanced dataloader
-**The original code is in example_balanced_dataloader() in fuse/data/examples/examples_readme.py**
 ```python
 batch_sampler = BatchSamplerDefault(dataset=dataset,
                                            balanced_class_name='data.label',
@@ -273,7 +272,6 @@ To create a dataloader, reuse our default generic collate function, and to balan
 
 
 ## Converting classic PyTorch dataset to FuseMedML style
-**The original code is in example_classic_to_fusemedml_style() in fuse/data/examples/examples_readme.py**
 ```python
 my_dataset = DatasetWrapSeqToDict(name='my_dataset', dataset=torch_dataset, sample_keys=('data.image', 'data.label'))
 my_dataset.create()

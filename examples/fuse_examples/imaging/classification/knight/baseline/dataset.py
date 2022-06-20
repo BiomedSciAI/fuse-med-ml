@@ -1,24 +1,23 @@
 
 import json
 import os
+from xmlrpc.client import Boolean
 
 
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
 from torch.utils.data.dataloader import DataLoader
 from fuse.utils.ndict import NDict
-import torch
 
 from fuse.data import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuse.data import PipelineDefault, OpSampleAndRepeat, OpToTensor, OpRepeat
 from fuse.data.ops.op_base import OpBase
 from fuse.data.ops.ops_aug_common import OpSample, OpRandApply
-from fuse.data.ops.ops_common import OpLambda
+from fuse.data.ops.ops_common import OpLambda, OpZScoreNorm
 from fuseimg.data.ops.aug.color import OpAugColor
-from fuseimg.data.ops.aug.geometry import OpAugAffine2D, OpAugSqueeze3Dto2D, OpAugUnsqueeze3DFrom2D
+from fuseimg.data.ops.aug.geometry import OpAugAffine2D, OpRandomCrop3D
 from fuseimg.data.ops.image_loader import OpLoadImage 
 from fuseimg.data.ops.color import OpClip, OpToRange
-from fuseimg.data.ops.shape_ops import OpRandomCrop
 
 import numpy as np
 from fuse.data.utils.sample import get_sample_id
@@ -39,18 +38,21 @@ class OpKnightSampleIDDecode(OpBase):
     decodes sample id into image and segmentation filename
     '''
 
-    def __call__(self, sample_dict: NDict) -> NDict:#, op_id: Optional[str]) -> NDict:
+    def __call__(self, sample_dict: NDict, test: Boolean = False) -> NDict:#, op_id: Optional[str]) -> NDict:
         '''
         
         '''
 
         sid = get_sample_id(sample_dict)
-        
+        sample_dict['data.input.case_id'] = sid
         img_filename_key = 'data.input.img_path'
-        sample_dict[img_filename_key] =   os.path.join(sid, 'imaging.nii.gz')
+        if test:
+            sample_dict[img_filename_key] =   f'images/{sid}.nii.gz'
+        else:
+            sample_dict[img_filename_key] =   os.path.join(sid, 'imaging.nii.gz')
 
-        seg_filename_key = 'data.gt.seg_path'
-        sample_dict[seg_filename_key] = os.path.join(sid, 'aggregated_MAJ_seg.nii.gz')
+            seg_filename_key = 'data.gt.seg_path'
+            sample_dict[seg_filename_key] = os.path.join(sid, 'aggregated_MAJ_seg.nii.gz')
 
         
         return sample_dict
@@ -60,12 +62,17 @@ class OpClinicalLoad(OpBase):
         super().__init__()
         self.json_path = json_path
 
-    def __call__(self, sample_dict: NDict) -> NDict:
+    def __call__(self, sample_dict: NDict, test: Boolean = False) -> NDict:
         cols = ['case_id', 'age_at_nephrectomy', 'body_mass_index', 'gender', 'comorbidities', \
-                'aua_risk_group', 'smoking_history', 'radiographic_size', 'last_preop_egfr']
-
-        json_data = pd.read_json(self.json_path)[cols]
-        sid = sample_dict['data.input.img_path'][:-15]
+                'smoking_history', 'radiographic_size', 'last_preop_egfr']
+        
+        if test:
+            json_data = pd.read_json(os.path.join(self.json_path,'features.json'))[cols]
+        else:
+            cols += ["aua_risk_group"]
+            json_data = pd.read_json(os.path.join(self.json_path,'knight.json'))[cols]
+        
+        sid = sample_dict['data.input.case_id']
         row = json_data[json_data["case_id"]==sid].to_dict("records")[0]
 
         row['gender'] = int(row['gender'].lower() == 'female') #female:1 | male:0
@@ -80,9 +87,9 @@ class OpClinicalLoad(OpBase):
 
         if row['radiographic_size'] is None:
             row['radiographic_size'] = 4.1 # this is the median value on the training set
-
-        sample_dict["data.gt.gt_global.task_1_label"] = int(row["aua_risk_group"] in ['high_risk', 'very_high_risk'])
-        sample_dict["data.gt.gt_global.task_2_label"] = ['benign','low_risk','intermediate_risk','high_risk', 'very_high_risk'].index(row["aua_risk_group"])
+        if not test:
+            sample_dict["data.gt.gt_global.task_1_label"] = int(row["aua_risk_group"] in ['high_risk', 'very_high_risk'])
+            sample_dict["data.gt.gt_global.task_2_label"] = ['benign','low_risk','intermediate_risk','high_risk', 'very_high_risk'].index(row["aua_risk_group"])
 
         sample_dict["data.input.clinical"] = row
 
@@ -143,8 +150,8 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
 
     static_pipeline = PipelineDefault("static", [
         # decoding sample ID
-        (OpKnightSampleIDDecode(), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path" and load json data
-        (OpClinicalLoad(os.path.join(data_dir, 'knight.json')), dict()),
+        (OpKnightSampleIDDecode(), dict(test=('test' in split))), # will save image and seg path to "data.input.img_path", "data.gt.seg_path" and load json data
+        (OpClinicalLoad(data_dir), dict(test=('test' in split))),
         # loading data
         (OpLoadImage(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", format="nib")),
         # (OpLoadImage(data_dir), dict(key_in="data.gt.seg_path", key_out="data.gt.seg", format="nib")),
@@ -152,8 +159,7 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
         
         # fixed image normalization
         (OpClip(), dict(key="data.input.img", clip=(-62, 301))),
-        (OpLambda(lambda x: (x - 104.0)/75.3 ), dict(key="data.input.img")), #kits normalization
-        # (OpToRange(), dict(key="data.input.img", from_range=(-500, 500), to_range=(0, 1))),
+        (OpZScoreNorm(), dict(key="data.input.img", mean=104.0, std=75.3)), #kits normalization
         
         # transposing so the depth channel will be first
         (OpLambda(lambda x: np.moveaxis(x, -1, 0)), dict(key="data.input.img")), # convert image from shape [H, W, D] to shape [D, H, W] 
@@ -162,26 +168,17 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
     ])
 
     val_dynamic_pipeline = PipelineDefault("dynamic", [
-                
-        # resize image to (110, 256, 256)
-        # (OpLambda(func=partial(my_resize, resize_to=(110, 256, 256))), dict(key="data.input.img")),
-
         # Numpy to tensor
         (OpToTensor(), dict(key="data.input.img")),
         (OpToTensor(), dict(key="data.input.clinical.all")),
 
         
-        (OpRandomCrop(), dict(key="data.input.img", out_size=resize_to, centralize=True)),
-        # (OpLambda(lambda x: aug_op_random_crop_and_pad(x, resize_to, centralize=False)), dict(key="data.input.img")),
+        (OpRandomCrop3D(), dict(key="data.input.img", out_size=resize_to, centralize=True)),
         # add channel dimension -> [C=1, D, H, W]
         (OpLambda(lambda x: x.unsqueeze(dim=0)), dict(key="data.input.img")),  
     ]) 
 
     train_dynamic_pipeline = PipelineDefault("dynamic", [
-                
-        # resize image to (110, 256, 256)
-        # (OpLambda(func=partial(my_resize, resize_to=(110, 256, 256))), dict(key="data.input.img")),
-
         # Numpy to tensor
         (OpToTensor(), dict(key="data.input.img")),
         (OpToTensor(), dict(key="data.input.clinical.all")),
@@ -194,8 +191,7 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
             flip=(RandBool(0.5).sample(), RandBool(0.5)),
             translate=(RandInt(-15, 15).sample(), RandInt(-15, 15))
         )),
-        (OpRandomCrop(), dict(key="data.input.img", out_size=resize_to)),
-        # (OpLambda(lambda x: aug_op_random_crop_and_pad(x, resize_to, centralize=False)), dict(key="data.input.img")),
+        (OpRandomCrop3D(), dict(key="data.input.img", out_size=resize_to)),
         # add channel dimension -> [C=1, D, H, W]
         (OpLambda(lambda x: x.unsqueeze(dim=0)), dict(key="data.input.img")),  
     ])
@@ -203,9 +199,7 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
     
     if 'train' in split:
         image_dir = data_dir
-        json_filepath = os.path.join(image_dir, 'knight.json')
         json_filename = os.path.join(image_dir, 'knight.json')
-        clinical_data = pd.read_json(json_filename)
     
     else: # split can contain BOTH 'train' and 'val', or JUST 'test'
         image_dir = os.path.join(data_dir, 'images')
@@ -282,7 +276,7 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
         dynamic_pipeline=val_dynamic_pipeline,)
 
         print(f'- Load and cache data:')
-        test_dataset.create(pool_type='thread')  # use ThreadPool to create this dataset, to avoid cv2 problems in multithreading
+        test_dataset.create()#(pool_type='thread')  # use ThreadPool to create this dataset, to avoid cv2 problems in multithreading
         print(f'- Load and cache data: Done')
 
         ## Create dataloader

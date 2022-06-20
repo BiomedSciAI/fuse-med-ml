@@ -1,6 +1,5 @@
 from collections import OrderedDict
 import pathlib
-from pickle import TRUE
 from fuse.utils.utils_logger import fuse_logger_start
 import os
 import sys
@@ -67,9 +66,9 @@ def main():
     split = splits[0]
 
     # read environment variables for data, cache and results locations
-    data_path = os.path.join(os.environ['KNIGHT_DATA'], "knight", "data")
-    cache_path = os.path.join("/data/usr/liam", str(experiment_num))#os.environ['KNIGHT_CACHE']
-    results_path = "/data/usr/liam"# os.environ['KNIGHT_RESULTS'] 
+    data_path = os.environ['KNIGHT_DATA']
+    cache_path = os.path.join(os.environ['KNIGHT_CACHE'], str(experiment_num))
+    results_path = os.environ['KNIGHT_RESULTS'] 
 
     ## Basic settings:
     ##############################################################################

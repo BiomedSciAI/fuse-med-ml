@@ -84,46 +84,7 @@ class OpSelectSlice(OpBase):
         sample_dict[key] = img
         return sample_dict
 
-class OpRandomCrop(OpBase):
-    """
-    random crop to certain size. if the image is smaller than the size then its padded.
-    :param aug_input: The tensor to augment
-    :param out_size: shape of the output
-    :return: the augmented tensor
-    """
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
 
-    def __call__(self, sample_dict: NDict, key: str, out_size: Tuple,
-                           fill: int = 0,
-                           centralize: bool=False
-        ):
-        aug_input = sample_dict[key]
-        assert len(aug_input.shape) == len(out_size)
-        depth, height, width = aug_input.shape #input is in the form [D,H,W]
-
-        aug_tensor = torch.full(out_size, fill, dtype=torch.float32)
-
-        if depth > out_size[0]:
-            crop_start = RandInt(0, depth - out_size[0]).sample()
-            if centralize:
-                crop_start = round((depth - out_size[0])/2)
-            aug_input = aug_input[crop_start:crop_start+out_size[0] , :,:]
-        if height > out_size[1]:
-            crop_start = RandInt(0, height - out_size[1]).sample()
-            if centralize:
-                crop_start = round((height - out_size[1])/2)
-            aug_input = aug_input[:, crop_start:crop_start+out_size[1],:]
-        if width > out_size[2]:
-            crop_start = RandInt(0, width - out_size[2]).sample()
-            if centralize:
-                crop_start = round((width - out_size[2])/2)
-            aug_input = aug_input[:,:,crop_start:crop_start+out_size[2]]
-
-        aug_tensor[:depth,:height,:width] = aug_input
-        sample_dict[key] = aug_tensor
-        
-        return sample_dict
 
 op_select_slice_img_and_seg = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpSelectSlice(), {}),
                                 DataTypeImaging.SEG : (OpSelectSlice(), {}) })
