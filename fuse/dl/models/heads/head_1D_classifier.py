@@ -84,7 +84,7 @@ class LinearLayers(nn.Module):
         x = self.classifier(x)
         return x
 
-class Head1dClassifier(nn.Module):
+class Head1DClassifier(nn.Module):
     def __init__(self,
                  head_name: str = 'head_0',
                  conv_inputs: Sequence[Tuple[str, int]] = None, 
