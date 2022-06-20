@@ -44,7 +44,7 @@ class ClassificationMGCmmdTestCase(unittest.TestCase):
             'train': {'force_reset_model_dir': True,
                       'target': 'classification',
                       'reset_cache': False,
-                      'num_workers': 10, 
+                      'num_workers': 1, 
                       'num_folds': 5,
                       'train_folds': [0, 1, 2],
                       'validation_folds': [3],
