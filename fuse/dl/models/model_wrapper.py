@@ -24,17 +24,18 @@ import torch
 from fuse.utils.ndict import NDict
 
 
-class ModelWrapper(torch.nn.Module):
+class ModelWrapSeqToDict(torch.nn.Module):
     """
     Fuse model wrapper for wrapping torch modules and passing through Fuse
     """
 
     def __init__(self,
+                 *, #preventing positional args
                  model: torch.nn.Module = None,
-                 model_inputs: Sequence[str] = None, #('data.input.input_0.tensor',),
+                 model_inputs: Sequence[str] = None, 
+                 model_outputs: Sequence[str] = None, 
                  pre_forward_processing_function: Callable = None,
-                 post_forward_processing_function: Callable = None,
-                 model_outputs: Sequence[str] = None, #('output.output_0',)
+                 post_forward_processing_function: Callable = None,                 
                  ) -> None:
         """
         Default Fuse model wrapper - extracts batch_dict data from model_inputs keys and calls forward of model.
@@ -44,9 +45,13 @@ class ModelWrapper(torch.nn.Module):
 
         :param model: The model to wrap
         :param model_inputs: sequence of keys in batch dict to transfer into model.forward function
+            for example: model_inputs=('data.input.input_0.tensor',)
+        :param model_outputs: keys in batch dict to save the outputs of model.forward()
+            for example: model_outputs=('output.output_0',)
         :param pre_forward_processing_function: utility function to process input data before forward is called (after it's extracted from batch_dict)
         :param post_forward_processing_function: utility function to process forward's output data before it is saved into batch_dict
-        :param model_outputs: keys in batch dict to save the outputs of model.forward()
+        
+        
 
         """
         super().__init__()
@@ -93,45 +98,3 @@ class ModelWrapper(torch.nn.Module):
         """
         return self.model.load_state_dict(*args, **kwargs)
     
-if __name__ == '__main__':
-    from torchvision.models.googlenet import BasicConv2d
-    from torchvision.models.googlenet import GoogLeNet
-    import torchvision.models as models
-    import torch
-    import os
-
-    os.environ['CUDA_VISIBLE_DEVICES'] = "0, 1"
-
-    DEVICE = 'cpu'  # 'cuda'
-    DATAPARALLEL = False  # True
-
-    googlenet_model = GoogLeNet()
-    googlenet_model.conv1 = BasicConv2d(1, 64, kernel_size=7, stride=2, padding=3)
-
-    def convert_googlenet_outputs(output):
-        return output.logits
-
-    model = ModelWrapper(
-        model_inputs=['data.input.input_0.tensor'],
-        model=googlenet_model,
-        post_forward_processing_function=convert_googlenet_outputs,
-        model_outputs=['google.output.logits']
-    )
-
-    model = model.to(DEVICE)
-    if DATAPARALLEL:
-        model = torch.nn.DataParallel(model)
-
-    dummy_data = {'data':
-                      {'input':
-                           {'input_0': {'tensor': torch.zeros([17, 1, 200, 100]).to(DEVICE), 'metadata': None}},
-                       'gt':
-                           {'gt_0': torch.zeros([0]).to(DEVICE)}
-                       }
-                  }
-
-    res = {}
-    res['model'] = model.forward(dummy_data)
-    print('Forward pass shape: ', end='')
-    print('logits', str(res['model']['google']['output']['logits'].shape))
-

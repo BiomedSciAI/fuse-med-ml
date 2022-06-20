@@ -40,7 +40,7 @@ from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisti
 from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
 from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
 from fuse.dl.managers.manager_default import ManagerDefault
-from fuse.dl.models.model_wrapper import ModelWrapper
+from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
 
 from fuse.utils.utils_debug import FuseDebug
 import fuse.utils.gpu as GPU
