@@ -27,7 +27,7 @@ from fuse.utils.ndict import NDict
 from fuse.dl.models.heads.common import ClassifierFCN3D, ClassifierMLP
 
 
-class Head3dClassifier(nn.Module):
+class Head3DClassifier(nn.Module):
     """
     Model that capture slice feature including the 3D context given the local feature about a slice.
     """
