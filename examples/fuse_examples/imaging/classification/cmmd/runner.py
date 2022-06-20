@@ -127,7 +127,7 @@ def run_train(paths : NDict , train: NDict ):
     ## Create dataloader
     train_dataloader = DataLoader(dataset=train_dataset,
                                   shuffle=False, drop_last=False,
-                                  batch_sampler=sampler, collate_fn=CollateDefault(skip_keys=['data.gt.subtype']),
+                                  batch_sampler=sampler, collate_fn=CollateDefault(skip_keys=skip_keys),
                                   num_workers=train["num_workers"])
     lgr.info(f'Train Data: Done', {'attrs': 'bold'})
 
