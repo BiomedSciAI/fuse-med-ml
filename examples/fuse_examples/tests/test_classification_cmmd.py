@@ -54,7 +54,7 @@ class ClassificationMGCmmdTestCase(unittest.TestCase):
                       'resume_checkpoint_filename': None,
                       'manager_train_params': {'num_gpus': 1, 'device': 'cuda', 'num_epochs': 100, 'virtual_batch_size': 1, 'start_saving_epochs': 10, 'gap_between_saving_epochs': 100},
                       'manager_best_epoch_source': {'source': 'metrics.auc.macro_avg', 'optimization': 'max', 'on_equal_values': 'better'}},
-            'infer': {'infer_filename': 'validation_set_infer.gz', 'infer_folds': [4], 'target': 'classification', 'checkpoint': 'best', 'num_workers': 8}})
+            'infer': {'infer_filename': 'validation_set_infer.gz', 'infer_folds': [4], 'target': 'classification', 'checkpoint': 'best', 'num_workers': 1}})
         print(self.cfg)
         
         # Path to the stored dataset location
