@@ -33,7 +33,7 @@ import time
 experiment_num = 0
 task_num = 1 # 1 or 2
 force_gpus = [experiment_num*2,(experiment_num*2)+1] # specify the GPU indices you want to use
-use_data = {'imaging': True, 'clinical': False} # specify whether to use imaging, clinical data or both
+use_data = {'imaging': True, 'clinical': True} # specify whether to use imaging, clinical data or both
 batch_size = 2
 resize_to = (110, 256, 256) 
 
