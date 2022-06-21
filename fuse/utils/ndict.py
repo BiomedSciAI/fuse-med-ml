@@ -277,6 +277,17 @@ class NDict(dict):
         
         return ans
 
+    def print_tree(self):
+        self.print_struct(self._stored)
+
+    def print_struct(self, d, level=0):
+        if type(d) == dict:
+            keys = d.keys()
+            level += 1
+            for key in keys:
+                print('---' * level, key)
+                self.print_struct(d[key], level)
+
 
 class NestedKeyError(KeyError):
     def __init__(self, key: str, d: NDict) -> None:
