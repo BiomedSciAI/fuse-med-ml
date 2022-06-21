@@ -1,28 +1,8 @@
-"""
-(C) Copyright 2021 IBM Corp.
+# classes
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+Example:
 
-   http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-Created on June 30, 2021
-
-"""
-
-from typing import Callable, Dict, Optional
-
-import torch
-
-from fuse.dl.losses.loss_base import LossBase
-from fuse.utils.ndict import NDict
+```python
 
 
 class LossDefault(LossBase):
@@ -93,17 +73,9 @@ class LossDefault(LossBase):
         self.callable = callable
         self.weight = weight
         self.preprocess_func = preprocess_func
+```        
 
-    def forward(self, batch_dict: NDict) -> torch.Tensor:
-        # preprocess batch_dict if required
-        if self.preprocess_func is not None:
-            batch_dict = self.preprocess_func(batch_dict)
-        preds = batch_dict[self.pred]
-        targets = batch_dict[self.target]
+* In the class docstring please describe the class purpose and provide AT LEAST ONE usage example. Preferably, the first example should be basic usage, and next examples should be gradually more advanced
 
-        loss_obj = self.callable(preds, targets)
+* The __ init __ docstring should contain, like other functions/methods in general, listing and explanation of the args
 
-        if self.weight is not None:
-            loss_obj *= self.weight
-        
-        return loss_obj

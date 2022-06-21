@@ -47,6 +47,7 @@ class SamplesCacher:
         custom_read_dirs_callable: Optional[Callable] = None,
         restart_cache:bool=False,
         workers:int = 0,
+        verbose=1,
         **audit_kwargs:dict,
         ) -> None:
         """
@@ -90,6 +91,11 @@ class SamplesCacher:
         self._pipeline = pipeline
         self._pipeline_desc_text = str(pipeline)
         self._pipeline_desc_hash = 'hash_'+hashlib.md5(self._pipeline_desc_text.encode('utf-8')).hexdigest()
+
+        self._verbose = verbose
+
+        if self._verbose>0:
+            print(f'pipeline description hash for [{unique_name}] is: {self._pipeline_desc_hash}')
         
         self._restart_cache = restart_cache
         if self._restart_cache:
