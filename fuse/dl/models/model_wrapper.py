@@ -85,16 +85,4 @@ class ModelWrapSeqToDict(torch.nn.Module):
                 batch_dict['model.' + output_name] = model_output[i]
 
         return batch_dict['model']
-
-    def state_dict(self, *args, **kwargs):
-        """
-        Set model parameters directly. The prefix "model." is not required.
-        """
-        return self.model.state_dict(*args, **kwargs)
-
-    def load_state_dict(self, *args, **kwargs):
-        """
-        Extract model parameters to remove the extra "model." prefix
-        """
-        return self.model.load_state_dict(*args, **kwargs)
     

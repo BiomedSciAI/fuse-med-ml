@@ -16,15 +16,20 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-
+import copy
 import logging
 import os
 from typing import OrderedDict
+from unittest import result
+from fuse.dl.lightning.pl import LightningModuleDefault, convert_predictions_to_dataframe
+from fuse.utils.file_io.file_io import create_dir, save_dataframe
 
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.models as models
+import pytorch_lightning as pl
+from pytorch_lightning.callbacks import ModelCheckpoint 
 from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms
 
@@ -36,10 +41,6 @@ from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.collates import CollateDefault
 
 from fuse.dl.losses.loss_default import LossDefault
-from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
-from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
-from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
-from fuse.dl.managers.manager_default import ManagerDefault
 from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
 
 from fuse.utils.utils_debug import FuseDebug
@@ -65,17 +66,12 @@ ROOT = 'examples' # TODO: fill path here
 PATHS = {'model_dir': os.path.join(ROOT, 'mnist/model_dir'),
          'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
          'cache_dir': os.path.join(ROOT, 'mnist/cache_dir'),
-         'inference_dir': os.path.join(ROOT, 'mnist/infer_dir'),
          'eval_dir': os.path.join(ROOT, 'mnist/eval_dir')}
 
 ##########################################
 # Train Common Params
 ##########################################
 TRAIN_COMMON_PARAMS = {}
-# ============
-# Model
-# ============
-TRAIN_COMMON_PARAMS['model'] = 'lenet' # 'resnet18' or 'lenet'
 
 # ============
 # Data
@@ -85,24 +81,26 @@ TRAIN_COMMON_PARAMS['data.train_num_workers'] = 8
 TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 8
 
 # ===============
-# Manager - Train
+# Trainer
 # ===============
-TRAIN_COMMON_PARAMS['manager.train_params'] = {
-    'device': 'cuda', 
-    'num_epochs': 5,
-    'virtual_batch_size': 1,  # number of batches in one virtual batch
-    'start_saving_epochs': 10,  # first epoch to start saving checkpoints from
-    'gap_between_saving_epochs': 5,  # number of epochs between saved checkpoint
-}
-TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = {
-    'source': 'metrics.accuracy',  # can be any key from 'epoch_results'
-    'optimization': 'max',  # can be either min/max
-    'on_equal_values': 'better',
-    # can be either better/worse - whether to consider best epoch when values are equal
-}
-TRAIN_COMMON_PARAMS['manager.learning_rate'] = 1e-4
-TRAIN_COMMON_PARAMS['manager.weight_decay'] = 0.001
-TRAIN_COMMON_PARAMS['manager.resume_checkpoint_filename'] = None  # if not None, will try to load the checkpoint
+TRAIN_COMMON_PARAMS['trainer.num_epochs'] = 2
+TRAIN_COMMON_PARAMS['trainer.num_devices'] = 1
+TRAIN_COMMON_PARAMS['trainer.accelerator'] = "gpu"
+
+# ===============
+# Checkpoint
+# ===============
+# might be a list of dict. See ModelCheckpointCallback for details about the arguments 
+TRAIN_COMMON_PARAMS['checkpoint.best_epoch_source'] = dict(
+    monitor="validation.metrics.accuracy",
+    mode="max",
+)
+TRAIN_COMMON_PARAMS['checkpoint.resume_checkpoint_filename'] = None  # if not None, will try to load the checkpoint
+# ===============
+# Optimizer
+# ===============
+TRAIN_COMMON_PARAMS['optimizer.learning_rate'] = 1e-4
+TRAIN_COMMON_PARAMS['optimizer.weight_decay'] = 0.001
 
 
 def perform_softmax(output):
@@ -113,6 +111,15 @@ def perform_softmax(output):
     cls_preds = F.softmax(logits, dim=1)
     return logits, cls_preds
 
+def create_model(input_key: str = 'data.image'):
+    torch_model = lenet.LeNet()
+    
+    model = ModelWrapSeqToDict(model=torch_model,
+                             model_inputs=[input_key],
+                             post_forward_processing_function=perform_softmax,
+                             model_outputs=['logits.classification', 'output.classification']
+                             )
+    return model
 
 #################################
 # Train Template
@@ -162,22 +169,7 @@ def run_train(paths: dict, train_params: dict):
     # ==============================================================================
     lgr.info('Model:', {'attrs': 'bold'})
 
-    if train_params['model'] == 'resnet18':
-        torch_model = models.resnet18(num_classes=10)
-        # modify conv1 to support single channel image
-        torch_model.conv1 = torch.nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
-        # use adaptive avg pooling to support mnist low resolution images
-        torch_model.avgpool = torch.nn.AdaptiveAvgPool2d(1)
-
-    elif train_params['model'] == 'lenet':
-        torch_model = lenet.LeNet()
-    
-    model = ModelWrapper(model=torch_model,
-                             model_inputs=['data.image'],
-                             post_forward_processing_function=perform_softmax,
-                             model_outputs=['logits.classification', 'output.classification']
-                             )
-
+    model = create_model()
     lgr.info('Model: Done', {'attrs': 'bold'})
 
     # ====================================================================================
@@ -196,45 +188,33 @@ def run_train(paths: dict, train_params: dict):
     ])
 
     # =====================================================================================
-    #  Callbacks
-    # =====================================================================================
-    callbacks = [
-        # default callbacks
-        TensorboardCallback(model_dir=paths['model_dir']),  # save statistics for tensorboard
-        MetricStatisticsCallback(output_path=paths['model_dir'] + "/metrics.csv"),  # save statistics a csv file
-        TimeStatisticsCallback(num_epochs=train_params['manager.train_params']['num_epochs'], load_expected_part=0.1)  # time profiler
-    ]
-
-    # =====================================================================================
-    #  Manager - Train
+    #  Train
     # =====================================================================================
     lgr.info('Train:', {'attrs': 'bold'})
 
     # create optimizer
-    optimizer = optim.Adam(model.parameters(), lr=train_params['manager.learning_rate'], weight_decay=train_params['manager.weight_decay'])
+    optimizer = optim.Adam(model.parameters(), lr=train_params['optimizer.learning_rate'], weight_decay=train_params['optimizer.weight_decay'])
 
     # create learning scheduler
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+    lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+    lr_sch_config = dict(scheduler=lr_scheduler,
+                         monitor="validation.losses.total_loss")
 
-    # train from scratch
-    manager = ManagerDefault(output_model_dir=paths['model_dir'], force_reset=paths['force_reset_model_dir'])
-    # Providing the objects required for the training process.
-    manager.set_objects(net=model,
-                        optimizer=optimizer,
-                        losses=losses,
-                        metrics=metrics,
-                        best_epoch_source=train_params['manager.best_epoch_source'],
-                        lr_scheduler=scheduler,
-                        callbacks=callbacks,
-                        train_params=train_params['manager.train_params'])
+    pl_module = LightningModuleDefault(model_dir=paths["model_dir"],
+                                       model=model, 
+                                       losses=losses, 
+                                       train_metrics=metrics, 
+                                       validation_metrics=copy.deepcopy(metrics), 
+                                       optimizers_and_lr_schs=dict(optimizer=optimizer, lr_scheduler=lr_sch_config), 
+                                       best_epoch_source=train_params["checkpoint.best_epoch_source"])
 
-    ## Continue training
-    if train_params['manager.resume_checkpoint_filename'] is not None:
-        # Loading the checkpoint including model weights, learning rate, and epoch_index.
-        manager.load_checkpoint(checkpoint=train_params['manager.resume_checkpoint_filename'], mode='train')
-
-    # Start training
-    manager.train(train_dataloader=train_dataloader, validation_dataloader=validation_dataloader)
+    pl_trainer = pl.Trainer(default_root_dir=paths['model_dir'],
+                            max_epochs=train_params['trainer.num_epochs'],
+                            accelerator=train_params["trainer.accelerator"],
+                            devices=train_params["trainer.num_devices"],
+                            auto_select_gpus=True)
+    
+    pl_trainer.fit(pl_module, train_dataloader, validation_dataloader)
 
     lgr.info('Train: Done', {'attrs': 'bold'})
 
@@ -243,8 +223,8 @@ def run_train(paths: dict, train_params: dict):
 # Inference Common Params
 ######################################
 INFER_COMMON_PARAMS = {}
-INFER_COMMON_PARAMS['infer_filename'] = 'validation_set_infer.gz'
-INFER_COMMON_PARAMS['checkpoint'] = 'best'  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
+INFER_COMMON_PARAMS['infer_filename'] = os.path.join(PATHS["model_dir"], 'infer.gz')
+INFER_COMMON_PARAMS['checkpoint'] = os.path.join(PATHS["model_dir"], "best_epoch.ckpt")
 
 
 ######################################
@@ -252,10 +232,10 @@ INFER_COMMON_PARAMS['checkpoint'] = 'best'  # Fuse TIP: possible values are 'bes
 ######################################
 def run_infer(paths: dict, infer_common_params: dict):
     #### Logger
-    fuse_logger_start(output_path=paths['inference_dir'], console_verbose_level=logging.INFO)
+    fuse_logger_start(output_path=paths['model_dir'], console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Inference', {'attrs': ['bold', 'underline']})
-    lgr.info(f'infer_filename={os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])}', {'color': 'magenta'})
+    lgr.info(f'infer_filename={infer_common_params["infer_filename"]}', {'color': 'magenta'})
 
     ## Data
     # Create dataset
@@ -263,15 +243,22 @@ def run_infer(paths: dict, infer_common_params: dict):
     # dataloader
     validation_dataloader = DataLoader(dataset=validation_dataset, collate_fn=CollateDefault(), batch_size=2, num_workers=2)
 
-    ## Manager for inference
-    manager = ManagerDefault()
-    output_columns = ['model.output.classification', 'data.label']
-    manager.infer(data_loader=validation_dataloader,
-                  input_model_dir=paths['model_dir'],
-                  checkpoint=infer_common_params['checkpoint'],
-                  output_columns=output_columns,
-                  output_file_name=os.path.join(paths["inference_dir"], infer_common_params["infer_filename"]))
+    ## Model
+    model = create_model()
+    
+    pl_module = LightningModuleDefault.load_from_checkpoint(infer_common_params['checkpoint'], model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True)
+    pl_module.set_return_predictions_keys(['model.output.classification', 'data.label'])
 
+    lgr.info('Model: Done', {'attrs': 'bold'})
+    pl_trainer = pl.Trainer(default_root_dir=paths['model_dir'],
+                            accelerator=TRAIN_COMMON_PARAMS["trainer.accelerator"],
+                            devices=TRAIN_COMMON_PARAMS["trainer.num_devices"],
+                            auto_select_gpus=True)
+    
+    predictions = pl_trainer.predict(pl_module, validation_dataloader, return_predictions=True)
+    infer_df = convert_predictions_to_dataframe(predictions)
+    save_dataframe(infer_df, infer_common_params['infer_filename'])
+    
 
 ######################################
 # Analyze Common Params
@@ -284,6 +271,7 @@ EVAL_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
 # Eval Template
 ######################################
 def run_eval(paths: dict, eval_common_params: dict):
+    create_dir(paths["eval_dir"])
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Eval', {'attrs': ['bold', 'underline']})
@@ -294,7 +282,7 @@ def run_eval(paths: dict, eval_common_params: dict):
     metrics = OrderedDict([
         ('operation_point', MetricApplyThresholds(pred='model.output.classification')), # will apply argmax
         ('accuracy', MetricAccuracy(pred='results:metrics.operation_point.cls_pred', target='data.label')),
-        ('roc', MetricROCCurve(pred='model.output.classification', target='data.label', class_names=class_names, output_filename=os.path.join(paths['inference_dir'], 'roc_curve.png'))),
+        ('roc', MetricROCCurve(pred='model.output.classification', target='data.label', class_names=class_names, output_filename=os.path.join(paths['eval_dir'], 'roc_curve.png'))),
         ('auc', MetricAUCROC(pred='model.output.classification', target='data.label', class_names=class_names)),
     ])
    
@@ -303,7 +291,7 @@ def run_eval(paths: dict, eval_common_params: dict):
 
     # run
     results = evaluator.eval(ids=None,
-                     data=os.path.join(paths["inference_dir"], eval_common_params["infer_filename"]),
+                     data=eval_common_params["infer_filename"],
                      metrics=metrics,
                      output_dir=paths['eval_dir'])
 
@@ -314,15 +302,6 @@ def run_eval(paths: dict, eval_common_params: dict):
 # Run
 ######################################
 if __name__ == "__main__":
-    # allocate gpus
-    # To use cpu - set NUM_GPUS to 0
-    NUM_GPUS = 1
-    if NUM_GPUS == 0:
-        TRAIN_COMMON_PARAMS['manager.train_params']['device'] = 'cpu' 
-    # uncomment if you want to use specific gpus instead of automatically looking for free ones
-    force_gpus = None  # [0]
-    GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
-
     RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
     # train
     if 'train' in RUNNING_MODES:
