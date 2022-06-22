@@ -24,6 +24,7 @@ import shutil
 import tempfile
 import os
 from fuse.utils.gpu import choose_and_enable_multiple_gpus
+from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 assert "CMMD_DATA_PATH" in os.environ, "Expecting environment variable CMMD_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
 
 # @unittest.skip("Not ready yet")
@@ -64,7 +65,7 @@ class ClassificationMGCmmdTestCase(unittest.TestCase):
         # 1. CMMD_clinicaldata_revision.csv which is a converted version of CMMD_clinicaldata_revision.xlsx 
         # 2. folder named CMMD which is the downloaded data folder
 
-
+    @run_in_subprocess()
     def test_runner(self):
         # uncomment if you want to use specific gpus instead of automatically looking for free ones
         force_gpus = None  # [0]
