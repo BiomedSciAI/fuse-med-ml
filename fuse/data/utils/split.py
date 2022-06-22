@@ -113,7 +113,7 @@ def balanced_division(df : pd.DataFrame, no_mixture_id : str, keys_to_balance: S
 
 
 
-def dataset_balanced_division_to_folds(dataset: DatasetBase, output_split_filename: str, keys_to_balance: Sequence[str], nfolds: int, workers: int =10, id:str =get_sample_id_key(), reset_split: bool = False, **kwargs):
+def dataset_balanced_division_to_folds(dataset: DatasetBase, output_split_filename: str, keys_to_balance: Sequence[str], nfolds: int, workers: int =10, mp_context : str  =None, id:str =get_sample_id_key(), reset_split: bool = False, **kwargs):
 
     """
     Split dataset to folds.
@@ -138,7 +138,7 @@ def dataset_balanced_division_to_folds(dataset: DatasetBase, output_split_filena
             keys = [get_sample_id_key(), id]
         if keys_to_balance is not None:
             keys += keys_to_balance
-        df = ExportDataset.export_to_dataframe(dataset, keys, workers = workers, **kwargs)
+        df = ExportDataset.export_to_dataframe(dataset, keys, workers = workers, mp_context=mp_context,  **kwargs)
         df_folds = balanced_division(df, id, keys_to_balance, nfolds, **kwargs)
 
         print(df_folds.keys())

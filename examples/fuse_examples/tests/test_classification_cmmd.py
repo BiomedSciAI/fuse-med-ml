@@ -17,6 +17,7 @@ Created on June 30, 2021
 
 """
 # FIXME: data_package
+import multiprocessing
 from fuse_examples.imaging.classification.cmmd.runner import run_train, run_eval, run_infer
 from fuse.utils import NDict
 import unittest
@@ -65,7 +66,7 @@ class ClassificationMGCmmdTestCase(unittest.TestCase):
         # 1. CMMD_clinicaldata_revision.csv which is a converted version of CMMD_clinicaldata_revision.xlsx 
         # 2. folder named CMMD which is the downloaded data folder
 
-    @run_in_subprocess()
+    # @run_in_subprocess()
     def test_runner(self):
         # uncomment if you want to use specific gpus instead of automatically looking for free ones
         force_gpus = None  # [0]
@@ -82,6 +83,7 @@ class ClassificationMGCmmdTestCase(unittest.TestCase):
         shutil.rmtree(self.root)
         
 def main() -> None:
+    # multiprocessing.set_start_method('spawn')
     unittest.main()
 if __name__ == '__main__':
     main()

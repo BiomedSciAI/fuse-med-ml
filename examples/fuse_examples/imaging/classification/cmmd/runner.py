@@ -100,6 +100,7 @@ def run_train(paths : NDict , train: NDict ):
                                         id = 'data.patientID',
                                         keys_to_balance=[gt_label], 
                                         nfolds=train["num_folds"],
+                                        mp_context='spawn',
                                         workers= train["num_workers"])
 
     train_sample_ids = []
@@ -120,7 +121,9 @@ def run_train(paths : NDict , train: NDict ):
                                        num_balanced_classes=num_classes,
                                        batch_size=train["batch_size"],
                                        mode = mode,
-                                       balanced_class_weights=None)
+                                       mp_context = 'spawn',
+                                       balanced_class_weights=None
+                                       )
 
     lgr.info(f'- Create sampler: Done')
 
@@ -245,7 +248,7 @@ def run_infer(paths : NDict , infer: NDict):
 
 
     ## Data
-    folds = load_pickle(paths["data_split_filename"]) # assume exists and created in train func
+    folds = load_pickle(os.path.join( paths["data_misc_dir"], paths["data_split_filename"])) # assume exists and created in train func
 
     infer_sample_ids = []                              
     for fold in infer["infer_folds"]:
