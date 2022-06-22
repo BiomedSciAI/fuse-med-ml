@@ -83,7 +83,7 @@ class ClassificationMGCmmdTestCase(unittest.TestCase):
         shutil.rmtree(self.root)
         
 def main() -> None:
-    # multiprocessing.set_start_method('spawn')
+
     unittest.main()
 if __name__ == '__main__':
     main()

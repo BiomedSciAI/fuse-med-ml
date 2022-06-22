@@ -139,7 +139,7 @@ def dataset_balanced_division_to_folds(dataset: DatasetBase, output_split_filena
         if keys_to_balance is not None:
             keys += keys_to_balance
         df = ExportDataset.export_to_dataframe(dataset, keys, workers = workers, mp_context=mp_context,  **kwargs)
-        df_folds = balanced_division(df, id, keys_to_balance, nfolds, **kwargs)
+        df_folds = balanced_division(df, id, keys_to_balance, nfolds)
 
         print(df_folds.keys())
         folds = {}
