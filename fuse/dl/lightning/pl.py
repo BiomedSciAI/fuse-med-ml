@@ -200,3 +200,5 @@ class LightningModuleDefault(pl.LightningModule):
     def set_predictions_keys(self, keys: List[str]) -> None:
         self._prediction_keys = keys
     
+    def set_predictions_keys(self, keys: List[str]) -> None:
+        self._prediction_keys = keys

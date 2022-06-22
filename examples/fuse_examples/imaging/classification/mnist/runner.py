@@ -19,12 +19,13 @@ Created on June 30, 2021
 import copy
 import logging
 import os
-from typing import Any, Dict, OrderedDict, Sequence
+from typing import Any, Dict, List, OrderedDict, Sequence
 from unittest import result
-from fuse.dl.lightning.pl import LightningModuleDefault, convert_predictions_to_dataframe, model_checkpoint_callbacks
+from fuse.dl.lightning.pl import LightningModuleDefault, convert_predictions_to_dataframe, epoch_end_compute_and_log_losses, epoch_end_compute_and_log_metrics, model_checkpoint_callbacks, step_extract_predictions, step_losses, step_metrics
 from fuse.dl.losses.loss_base import LossBase
 from fuse.eval.metrics.metrics_common import MetricBase
 from fuse.utils.file_io.file_io import create_dir, save_dataframe
+from fuse.utils.ndict import NDict
 
 import torch
 import torch.nn.functional as F
@@ -59,7 +60,7 @@ from fuse_examples.imaging.classification.mnist import lenet
 ##########################################
 # Lightning Module
 ##########################################
-class LightningModuleMnist(LightningModuleDefault):
+class LightningModuleMnist(pl.LightningModule):
     def __init__(self, model_dir: str, opt_lr: float, opt_weight_decay: float, **kwargs):
         super().__init__(**kwargs)
         self.save_hyperparameters(ignore=["model_dir"])
@@ -69,6 +70,48 @@ class LightningModuleMnist(LightningModuleDefault):
         self._opt_weight_decay = opt_weight_decay
 
         self.configure()
+    
+    ## forward
+    def forward(self, batch_dict: NDict) -> NDict:
+        return self._model(batch_dict)
+    
+    ## Step
+    def training_step(self, batch_dict: NDict, batch_idx: int) -> torch.Tensor:
+        batch_dict["model"] = self.forward(batch_dict)
+        total_loss = step_losses(self._losses, batch_dict)
+        step_metrics(self._train_metrics, batch_dict)
+
+        return {"loss": total_loss, "losses": batch_dict["losses"]} # return just the losses and drop everything else
+     
+    def validation_step(self, batch_dict: NDict, batch_idx: int) -> torch.Tensor:
+        batch_dict["model"] = self.forward(batch_dict)
+        _ = step_losses(self._losses, batch_dict)
+        step_metrics(self._validation_metrics, batch_dict)
+
+        return {"losses": batch_dict["losses"]} # return just the losses and drop everything else
+     
+    def predict_step(self, batch_dict: NDict, batch_idx: int) -> torch.Tensor:
+        batch_dict["model"] = self.forward(batch_dict)
+        return step_extract_predictions(self._prediction_keys, batch_dict)
+        
+    ## Epoch end
+    def training_epoch_end(self, step_outputs) -> None:
+        epoch_end_compute_and_log_losses(self, "train", [e["losses"] for e in step_outputs])
+        epoch_end_compute_and_log_metrics(self, "train", self._train_metrics)
+    
+    def validation_epoch_end(self, step_outputs) -> None:
+        epoch_end_compute_and_log_losses(self, "validation", [e["losses"] for e in step_outputs])
+        epoch_end_compute_and_log_metrics(self, "validation", self._validation_metrics)
+    
+    # confiugration
+    def configure(self):
+        self._model = self.configure_models()
+        self._losses = self.configure_losses()
+        self._train_metrics = self.configure_train_metrics()
+        self._validation_metrics = self.configure_train_metrics()
+        # self.configure_callbacks() will be called by trainer
+        # self.configure_optimizers() will be called by trainer
+
 
     def configure_models(self):
         torch_model = lenet.LeNet()
@@ -116,6 +159,10 @@ class LightningModuleMnist(LightningModuleDefault):
         lr_sch_config = dict(scheduler=lr_scheduler,
                             monitor="validation.losses.total_loss")
         return dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
+    
+        
+    def set_predictions_keys(self, keys: List[str]) -> None:
+        self._prediction_keys = keys
 
 ##########################################
 # Debug modes
