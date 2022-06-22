@@ -100,7 +100,6 @@ def run_train(paths : NDict , train: NDict ):
                                         id = 'data.patientID',
                                         keys_to_balance=[gt_label], 
                                         nfolds=train["num_folds"],
-                                        # mp_context='spawn',
                                         workers= train["num_workers"])
 
     train_sample_ids = []

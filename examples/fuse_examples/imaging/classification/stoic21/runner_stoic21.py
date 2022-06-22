@@ -141,7 +141,6 @@ def run_train(paths: dict, train_params: dict):
     folds = dataset_balanced_division_to_folds(dataset=dataset_all,
                                         output_split_filename=paths["data_split_filename"], 
                                         keys_to_balance=["data.gt.probSevere"], 
-                                        # mp_context = 'spawn',
                                         nfolds=train_params["data.num_folds"])
 
     train_sample_ids = []
@@ -161,7 +160,6 @@ def run_train(paths: dict, train_params: dict):
                                        balanced_class_name='data.gt.probSevere',
                                        num_balanced_classes=2,
                                        batch_size=train_params['data.batch_size'],
-                                    #    mp_context = 'spawn',
                                        balanced_class_weights=None)
     lgr.info(f'- Create sampler: Done')
 
