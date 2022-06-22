@@ -6,8 +6,8 @@ Extremely flexible pipeline allowing data loading, processing, and augmentation 
 **sample_dict** - Represents a single sample and contains all relevant information about the sample.
 
 No specific structure of this dictionary is required, but a useful pattern is to split it into sections (keys that define a "namespace" ): such as "data", "model",  etc.
-NDict (fuse/utils/ndict.py) class is used instead of python standard dictionary in order to allow easy "." seperated access. For example:
-`sample_dict[“data.input.img”]` is the equivallent of `sample_dict["data"]["input"]["img"]`
+NDict (fuse/utils/ndict.py) class is used instead of python standard dictionary in order to allow easy "." separated access. For example:
+`sample_dict[“data.input.img”]` is the equivalent of `sample_dict["data"]["input"]["img"]`
 
 Another recommended convention is to include suffix specifying the type of the value ("img", "seg", "bbox")
 
@@ -280,7 +280,7 @@ If you already have a Pytorch dataset at hand that its \_\_getitem\_\_ method ou
 
 ## Op(erators) list
 
-**Meta operators**
+[**Meta operators**](ops/ops_common.py)
 
 Meta operators are a great tool to facilitate the development of sample processing pipelines.
 The following operators are useful when implementing a common pipeline:
@@ -292,22 +292,23 @@ The following operators are useful when implementing a common pipeline:
 *   OpApplyTypes - selects and apply an operation according to value type (inferred from the key name in sample_dict)
 *   OpCollectMarker - use this op within the dynamic pipeline to optimize the reading time for components such as sampler 
 
-**Meta operators for random augmentations**
+[**Meta operators for random augmentations**](ops/ops_aug_common.py)
 
 *	OpSample - recursively searches for ParamSamplerBase instances in kwargs, and replaces the drawn values in place
 *   OpSampleAndRepeat - first samples and then repeats the operation with the drawn values. Used to apply the same transformation on different values such as image and segmentation map
 *   OpRepeatAndSample - repeats the operations, but each time has drawn different values from the defined distributions
 *	OpRandApply - randomly applies the op (according to the given probability) 
 
-**Reading operators**
+[**Reading operators**](ops/ops_read.py)
 
 * OpReadDataframe - reads data from pickle file / Dataframe object. Each row will be added as a value to sample_dict
 
-**Casting operators**
+[**Casting operators**](ops/ops_cast.py)
 
 * OpToNumpy - convert many different types to NumPy array
 * OpToTensor - convert many different types to PyTorch tensor
+* OpOneHotToNumber - convert one-hot encoding vectors into numbers
 
 **Imaging operators**
-See fuseimg package
+See [fuseimg package](../../fuseimg/data/README.md)
 

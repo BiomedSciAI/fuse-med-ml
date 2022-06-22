@@ -70,7 +70,7 @@ In this example we will define a model with heads: classification and auxiliary 
 ```python
 # Multi-headed model, with clinical data appended to classification head
 # ======================================================================
-model = ModelDefault(
+model = ModelMultiHead(
     conv_inputs=(('data.input.image', 1),),
     backbone=BackboneInceptionResnetV2(),
     heads=[

@@ -33,8 +33,8 @@ Below is a list of the main abstract classes and their purpose:
 
 ## Model
 FuseMedML includes three types of model objects. 
-* Model - an object that includes the entire model end to end. FuseMedML Model is PyTorch model that gets as input `batch_dict`, adds the model outputs to a dictionary `batch_dict[‘model’]` and returns `batch_dict[‘model’]`.  PyTorch model can be easily converted to FuseMedML style model using a wrapper `ModelWrapper`.
-* Backbone - an object that extracts spatial features from an image. Backbone is a PyTorch model which gets as input tensor/ sequence of tensors and returns tensor/sequence of tensors. 
+* Model - an object that includes the entire model end to end. FuseMedML Model is PyTorch model that gets as input `batch_dict`, adds the model outputs to a dictionary `batch_dict[‘model’]` and returns `batch_dict[‘model’]`.  PyTorch model can be easily converted to FuseMedML style model using a wrapper `ModelWrapSeqToDict`.
+* Backbone - an object that extracts spatial features from an image. Backbone is a PyTorch model which gets as input tensor/ sequence of tensors and returns tensor/sequence ModelWrapSeqToDictof tensors. 
 * Head - an object that maps features to prediction and usually includes pooling layers and dense / conv 1x1 layers. Head gets as an input `batch_dict` and returns `batch_dict`.
 
 All those types inherit directly from `torch.nn.Module`. 
