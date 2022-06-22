@@ -32,24 +32,27 @@ class ModelMultistream(torch.nn.Module):
     """
 
     def __init__(self,
-                 conv_inputs: Tuple[str, int] = ('data.input.input_0.tensor', 1),
+                 conv_inputs: Tuple[str, int] = None, 
                  backbone_streams: Sequence[torch.nn.Module] = (BackboneInceptionResnetV2(logical_units_num=12),
                                                                 BackboneInceptionResnetV2(logical_units_num=12)),
-                 heads: Sequence[torch.nn.Module] = (HeadGlobalPoolingClassifier(),),
+                 heads: Sequence[torch.nn.Module] = None, 
                  split_logic: Optional[Callable] = None,
                  join_logic: Optional[Callable] = None,
                  ) -> None:
         """
         Multi-stream Fuse model - convolutional neural network with multiple processing streams and multiple heads
         :param conv_inputs:             batch_dict name for model input and its number of input channels
+            for example: conv_inputs=('data.input.input_0.tensor', 1)
         :param backbone_streams:        List of PyTorch backbone modules - one per stream (can share weights or not)
         :param heads:                   Sequence of head modules
+            for example: heads=(HeadGlobalPoolingClassifier(conv_inputs = (('model.backbone_features', 384),))
         :param split_logic:             Optional callable, splits input into streams. If None, sends each input channel to consecutive stream.
                                             Signature: stream_outputs = split_logic(batch_dict, backbone_streams)
         :param join_logic:              Optional callable, joins stream outputs into single feature map. If None, concatenates on channel axis.
                                             Signature: feature_map = join_logic(batch_dict, stream_outputs)
         """
         super().__init__()
+        assert conv_inputs is not None, "You must provide conv_inputs - for example: conv_inputs=('data.input.input_0.tensor', 1)"
         self.conv_inputs = conv_inputs
         self.split_logic = split_logic
         self.join_logic = join_logic
@@ -57,6 +60,7 @@ class ModelMultistream(torch.nn.Module):
         # Register modules
         self.backbone_streams = torch.nn.ModuleList(backbone_streams)
         self.add_module('backbones', self.backbone_streams)
+        assert heads is not None, "You must provide heads - for example: heads=(HeadGlobalPoolingClassifier(conv_inputs = (('model.backbone_features', 384),)),)"
         self.heads = torch.nn.ModuleList(heads)
         self.add_module('heads', self.heads)
 

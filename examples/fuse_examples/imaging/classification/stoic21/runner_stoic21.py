@@ -41,8 +41,8 @@ from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
 from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
 from fuse.dl.managers.manager_default import ManagerDefault
 from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
-from fuse.dl.models.model_default import ModelDefault
-from fuse.dl.models.heads.head_3D_classifier import Head3dClassifier
+from fuse.dl.models import ModelMultiHead
+from fuse.dl.models.heads.head_3D_classifier import Head3DClassifier
 
 from fuse.utils.utils_debug import FuseDebug
 import fuse.utils.gpu as GPU
@@ -56,10 +56,10 @@ from fuseimg.datasets.stoic21 import STOIC21
 ##########################################
 # Debug modes
 ##########################################
-mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
+mode = 'default'  # Options: 'default', 'debug'. See details in FuseDebug
 debug = FuseDebug(mode)
 
-##########################################
+##########################################qQ
 # Output Paths
 ##########################################
 assert "STOIC21_DATA_PATH" in os.environ, "Expecting environment variable STOIC21_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
@@ -88,8 +88,8 @@ TRAIN_COMMON_PARAMS['data.batch_size'] = 4
 TRAIN_COMMON_PARAMS['data.train_num_workers'] = 16
 TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 16
 TRAIN_COMMON_PARAMS['data.num_folds'] = 5
-TRAIN_COMMON_PARAMS['data.train_folds'] = [0, 1, 2]
-TRAIN_COMMON_PARAMS['data.validation_folds'] = [3]
+TRAIN_COMMON_PARAMS['data.train_folds'] = [0, 1, 2, 3]
+TRAIN_COMMON_PARAMS['data.validation_folds'] = [4]
 
 
 # ===============
@@ -97,10 +97,11 @@ TRAIN_COMMON_PARAMS['data.validation_folds'] = [3]
 # ===============
 TRAIN_COMMON_PARAMS['manager.train_params'] = {
     'device': 'cuda', 
-    'num_epochs': 30,
+    'num_epochs': 50,
     'virtual_batch_size': 1,  # number of batches in one virtual batch
     'start_saving_epochs': 30,  # first epoch to start saving checkpoints from
     'gap_between_saving_epochs': 5,  # number of epochs between saved checkpoint
+    'lr_sch_target': 'validation.losses.total_loss'
 }
 TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = {
     'source': 'metrics.auc',  # can be any key from 'epoch_results'
@@ -109,9 +110,9 @@ TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = {
     # can be either better/worse - whether to consider best epoch when values are equal
 }
 TRAIN_COMMON_PARAMS['manager.learning_rate'] = 1e-3
-TRAIN_COMMON_PARAMS['manager.weight_decay'] = 0.001
+TRAIN_COMMON_PARAMS['manager.weight_decay'] = 0.005
 TRAIN_COMMON_PARAMS['manager.resume_checkpoint_filename'] = None  # if not None, will try to load the checkpoint
-TRAIN_COMMON_PARAMS['imaging_dropout'] = 0.2
+TRAIN_COMMON_PARAMS['imaging_dropout'] = 0.5
 TRAIN_COMMON_PARAMS['fused_dropout'] = 0.0
 TRAIN_COMMON_PARAMS['clinical_dropout'] = 0.0
 
@@ -177,11 +178,11 @@ def run_train(paths: dict, train_params: dict):
     # ==============================================================================
     lgr.info('Model:', {'attrs': 'bold'})
 
-    model = ModelDefault(
+    model = ModelMultiHead(
     conv_inputs=(('data.input.img', 1),),
     backbone=BackboneResnet3D(in_channels=1),
     heads=[
-        Head3dClassifier(head_name='classification',
+        Head3DClassifier(head_name='classification',
                              conv_inputs=[("model.backbone_features", 512)],
                              dropout_rate=train_params['imaging_dropout'],
                              append_dropout_rate=train_params['clinical_dropout'],
@@ -283,17 +284,17 @@ def run_infer(paths: dict, infer_common_params: dict):
     for fold in infer_common_params["data.infer_folds"]:
         infer_sample_ids += folds[fold]
 
-    validation_dataset = STOIC21.dataset(paths["data_dir"], paths["cache_dir"], sample_ids=infer_sample_ids, train=False)
+    infer_dataset = STOIC21.dataset(paths["data_dir"], paths["cache_dir"], sample_ids=infer_sample_ids, train=False)
 
     # dataloader
-    validation_dataloader = DataLoader(dataset=validation_dataset, batch_size=infer_common_params['data.batch_size'], collate_fn=CollateDefault(),
+    infer_dataloader = DataLoader(dataset=infer_dataset, batch_size=infer_common_params['data.batch_size'], collate_fn=CollateDefault(),
                                        num_workers=infer_common_params['data.num_workers'])
 
 
     ## Manager for inference
     manager = ManagerDefault()
     output_columns = ['model.output.classification', 'data.gt.probSevere']
-    manager.infer(data_loader=validation_dataloader,
+    manager.infer(data_loader=infer_dataloader,
                   input_model_dir=paths['model_dir'],
                   checkpoint=infer_common_params['checkpoint'],
                   output_columns=output_columns,

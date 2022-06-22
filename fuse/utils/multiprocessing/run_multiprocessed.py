@@ -1,4 +1,6 @@
+import functools
 from typing import Any, Callable, List, Optional, Tuple
+from fuse.utils.utils_debug import FuseDebug
 from tqdm import tqdm,trange
 import multiprocessing as mp
 from termcolor import cprint
@@ -153,6 +155,11 @@ def _run_multiprocessed_as_iterator_impl(worker_func, args_list, workers=0, verb
     if 'DEBUG_SINGLE_PROCESS' in os.environ and os.environ['DEBUG_SINGLE_PROCESS'] in ['T','t','True','true',1]:
         workers = None
         cprint('Due to the env variable DEBUG_SINGLE_PROCESS being set, run_multiprocessed is not using multiprocessing','red')
+    
+    if FuseDebug().get_setting("multiprocessing") == "main_process":
+        workers = None
+        cprint('Due to the FuseDebug mode, run_multiprocessed is not using multiprocessing','red')
+
     assert callable(worker_func)
     
     if verbose<1:
@@ -235,22 +242,27 @@ def get_from_global_storage(key: str) -> Any:
     return _multiprocess_global_storage[key]
 
 
-def run_in_subprocess(f: Callable, timeout: int = 600):
+def run_in_subprocess(timeout: int = 600):
     """A decorator that makes function run in a subprocess.
     This can be useful when you want allocate GPU and memory and to release it when you're done.
     :param f: the function to run in a subprocess
     :param timeout: the maximum time to wait for the process to complete
     """
+    def inner(f: callable):
 
-    def inner(*args, **kwargs):
-        # create the machinery python uses to fork a subprocess
-        # and run a function in it.
-        p = mp.Process(target=f, args=args, kwargs=kwargs)
-        p.start()
-        try:
-            p.join(timeout=timeout)
-        except:
-            p.terminate()
-            raise
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            # create the machinery python uses to fork a subprocess
+            # and run a function in it.
+            p = mp.Process(target=f, args=args, kwargs=kwargs)
+            p.start()
+            try:
+                p.join(timeout=timeout)
+            except:
+                p.terminate()
+                raise
             
+            assert p.exitcode == 0, f"process func {f} failed with exit code {p.exitcode}"
+
+        return wrapper
     return inner
