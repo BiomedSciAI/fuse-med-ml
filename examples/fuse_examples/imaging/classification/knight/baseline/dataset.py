@@ -1,7 +1,7 @@
 
 import json
 import os
-from xmlrpc.client import Boolean
+# from xmlrpc.client import Boolean
 
 
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
@@ -38,7 +38,7 @@ class OpKnightSampleIDDecode(OpBase):
     decodes sample id into image and segmentation filename
     '''
 
-    def __call__(self, sample_dict: NDict, test: Boolean = False) -> NDict:#, op_id: Optional[str]) -> NDict:
+    def __call__(self, sample_dict: NDict, test: bool = False) -> NDict:#, op_id: Optional[str]) -> NDict:
         '''
         
         '''
@@ -62,7 +62,7 @@ class OpClinicalLoad(OpBase):
         super().__init__()
         self.json_path = json_path
 
-    def __call__(self, sample_dict: NDict, test: Boolean = False) -> NDict:
+    def __call__(self, sample_dict: NDict, test: bool = False) -> NDict:
         cols = ['case_id', 'age_at_nephrectomy', 'body_mass_index', 'gender', 'comorbidities', \
                 'smoking_history', 'radiographic_size', 'last_preop_egfr']
         
@@ -276,7 +276,7 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
         dynamic_pipeline=val_dynamic_pipeline,)
 
         print(f'- Load and cache data:')
-        test_dataset.create()#(pool_type='thread')  # use ThreadPool to create this dataset, to avoid cv2 problems in multithreading
+        test_dataset.create()
         print(f'- Load and cache data: Done')
 
         ## Create dataloader
