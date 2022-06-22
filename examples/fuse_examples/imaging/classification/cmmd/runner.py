@@ -34,7 +34,8 @@ from fuse.utils import NDict
 from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.split import dataset_balanced_division_to_folds
-from fuse.dl.models.model_default import ModelDefault
+from fuse.data.sampler.sampler_balanced_batch import SamplerBalancedBatch
+from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
 from fuse.utils.file_io.file_io import load_pickle
 from fuse.dl.losses.loss_default import LossDefault
@@ -149,7 +150,7 @@ def run_train(paths : NDict , train: NDict ):
     # ==============================================================================
     lgr.info('Model:', {'attrs': 'bold'})
 
-    model = ModelDefault(
+    model = ModelMultiHead(
         conv_inputs=(('data.input.img', 1),),
         backbone=BackboneInceptionResnetV2(input_channels_num=1),
         heads=[
