@@ -66,7 +66,7 @@ class ClassificationMGCmmdTestCase(unittest.TestCase):
         # 1. CMMD_clinicaldata_revision.csv which is a converted version of CMMD_clinicaldata_revision.xlsx 
         # 2. folder named CMMD which is the downloaded data folder
 
-    @run_in_subprocess()
+    # @run_in_subprocess()
     def test_runner(self):
         # uncomment if you want to use specific gpus instead of automatically looking for free ones
         force_gpus = None  # [0]

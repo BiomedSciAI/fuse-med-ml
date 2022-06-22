@@ -211,6 +211,6 @@ class STOIC21:
             dynamic_pipeline=dynamic_pipeline,
             cacher=cacher,            
         )
-        my_dataset.create()
+        my_dataset.create(mp_context = 'spawn')
         return my_dataset
 
