@@ -363,11 +363,14 @@ class OpLookup(OpBase):
     Example:
     To read the gender represented by strings "male" and "female" and convert it to int do the following
     (OpLookup(map={"male": 0, "female": 1}). dict(key_in="data.input.gender", key_out="data.input,gender"))
-
     """
-    def __init__(self, map: dict):
+    def __init__(self, map: dict, not_exist_error : bool = True):
+        """
+        :param not_exist_error: false iff if the value does not exist it will keep the previous value
+        """
         super().__init__()
         self._map = map
+        self._not_exist_error = not_exist_error
 
     def __call__(self, sample_dict: NDict, key_in: str, key_out: str) -> Union[None, dict, List[dict]]:
         """
@@ -375,7 +378,11 @@ class OpLookup(OpBase):
         :param key_out: key to store the converted vale
         """
         value = sample_dict[key_in]
-        sample_dict[key_out] = self._map[value]
+        if value in self._map :
+            sample_dict[key_out] = self._map[value]
+        elif self._not_exist_error:
+            raise Exception(f"value {value} does not exist in mapping")
+        
 
         return sample_dict
 

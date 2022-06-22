@@ -192,7 +192,7 @@ def _run_multiprocessed_as_iterator_impl(worker_func, args_list, workers=0, verb
         else:
             pool = mp.get_context(mp_context).Pool
         
-        with pool(processes=workers, initializer=_store_in_global_storage, initargs=(copy_to_global_storage,), maxtasksperchild=400) as pool:
+        with pool(processes=workers, initializer=_store_in_global_storage, initargs=(copy_to_global_storage,)) as pool:
             if verbose>0:
                 cprint(f'multiprocess pool created with {workers} workers.', 'cyan')            
             map_func = pool.imap if keep_results_order else pool.imap_unordered
