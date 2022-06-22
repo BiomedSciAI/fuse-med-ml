@@ -100,7 +100,7 @@ def run_train(paths : NDict , train: NDict ):
                                         id = 'data.patientID',
                                         keys_to_balance=[gt_label], 
                                         nfolds=train["num_folds"],
-                                        mp_context='spawn',
+                                        # mp_context='spawn',
                                         workers= train["num_workers"])
 
     train_sample_ids = []
@@ -121,7 +121,7 @@ def run_train(paths : NDict , train: NDict ):
                                        num_balanced_classes=num_classes,
                                        batch_size=train["batch_size"],
                                        mode = mode,
-                                       mp_context = 'spawn',
+                                    #    mp_context = 'spawn',
                                        balanced_class_weights=None
                                        )
 

@@ -185,7 +185,8 @@ class CMMD:
             cacher=cacher,            
         )
 
-        my_dataset.create(mp_context='spawn')
+        #my_dataset.create(mp_context='spawn')
+        my_dataset.create()
         return my_dataset
     
     
