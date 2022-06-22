@@ -34,7 +34,6 @@ from fuse.utils import NDict
 from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.split import dataset_balanced_division_to_folds
-from fuse.data.sampler.sampler_balanced_batch import SamplerBalancedBatch
 from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
 from fuse.utils.file_io.file_io import load_pickle
@@ -128,7 +127,7 @@ def run_train(paths : NDict , train: NDict ):
     ## Create dataloader
     train_dataloader = DataLoader(dataset=train_dataset,
                                   shuffle=False, drop_last=False,
-                                  batch_sampler=sampler, collate_fn=CollateDefault(),
+                                  batch_sampler=sampler, collate_fn=CollateDefault(skip_keys=skip_keys),
                                   num_workers=train["num_workers"])
     lgr.info(f'Train Data: Done', {'attrs': 'bold'})
 
@@ -142,7 +141,7 @@ def run_train(paths : NDict , train: NDict ):
                                        batch_sampler=None,
                                        batch_size=train["batch_size"],
                                        num_workers=train["num_workers"],
-                                       collate_fn=CollateDefault())
+                                       collate_fn=CollateDefault(skip_keys=skip_keys))
     lgr.info(f'Validation Data: Done', {'attrs': 'bold'})
     # ===================================================================
     # ==============================================================================
