@@ -32,7 +32,7 @@ from fuse.dl.managers.manager_default import ManagerDefault
 import fuse.utils.gpu as GPU
 from fuse.utils.utils_logger import fuse_logger_start
 
-from fuse.dl.models.heads.head_1d_classifier import Head1dClassifier
+from fuse.dl.models.heads import Head1DClassifier
 
 from fuse_examples.imaging.classification.prostate_x.backbone_3d_multichannel import Fuse_model_3d_multichannel,ResNet
 from fuse_examples.imaging.classification.prostate_x.patient_data_source import ProstateXDataSourcePatient
@@ -189,9 +189,9 @@ def train_template(paths: dict, train_common_params: dict):
         conv_inputs=(('data.input', 1),),
         backbone= ResNet(ch_num=TRAIN_COMMON_PARAMS['backbone_model_dict']['input_channels_num']),
         # since backbone resnet contains pooling and fc, the feature output is 1D,
-        # hence we use Head1dClassifier as classification head
+        # hence we use Head1DClassifier as classification head
         heads=[
-        Head1dClassifier(head_name='isLargeTumorSize',
+        Head1DClassifier(head_name='isLargeTumorSize',
                                         conv_inputs=[('model.backbone_features',  train_common_params['num_backbone_features'])],
                                         post_concat_inputs = train_common_params['post_concat_inputs'],
                                         post_concat_model = train_common_params['post_concat_model'],

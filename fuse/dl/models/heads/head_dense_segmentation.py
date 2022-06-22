@@ -30,7 +30,7 @@ from fuse.utils.ndict import NDict
 class HeadDenseSegmentation(nn.Module):
     def __init__(self,
                  head_name: str = 'head_0',
-                 conv_inputs: Sequence[Tuple[str, int]] = (('model.backbone_features', 384),),
+                 conv_inputs: Sequence[Tuple[str, int]] = None,
                  num_classes: int = 2,
                  post_concat_inputs: Optional[Sequence[Tuple[str, int]]] = None,
                  maxpool_kernel: Optional[Union[Tuple[int, int], int]] = None,
@@ -47,6 +47,7 @@ class HeadDenseSegmentation(nn.Module):
         :param head_name:                   batch_dict key
         :param conv_inputs:                 List of feature map inputs - tuples of (batch_dict key, channel depth)
                                             If multiple inputs are used, they are concatenated on the channel axis
+                example: conv_inputs=(('model.backbone_features', 384),),
         :param num_classes:                 Number of output classes (per feature map location)
         :param post_concat_inputs:          Additional vector (one dimensional) inputs, concatenated just before the classifier module
         :param maxpool_kernel:              Kernel size for an optional preliminary max pooling step, to reduce feature maps size
@@ -57,6 +58,7 @@ class HeadDenseSegmentation(nn.Module):
         super().__init__()
 
         self.head_name = head_name
+        assert conv_inputs is not None, 'conv_inputs must be provided'
         self.conv_inputs = conv_inputs
         self.maxpool_kernel = maxpool_kernel
 
