@@ -19,9 +19,11 @@ Created on June 30, 2021
 import copy
 import logging
 import os
-from typing import OrderedDict
+from typing import Any, Dict, OrderedDict, Sequence
 from unittest import result
-from fuse.dl.lightning.pl import LightningModuleDefault, convert_predictions_to_dataframe
+from fuse.dl.lightning.pl import LightningModuleDefault, convert_predictions_to_dataframe, model_checkpoint_callbacks
+from fuse.dl.losses.loss_base import LossBase
+from fuse.eval.metrics.metrics_common import MetricBase
 from fuse.utils.file_io.file_io import create_dir, save_dataframe
 
 import torch
@@ -53,6 +55,68 @@ from fuse_examples.imaging.classification.mnist import lenet
 ###########################################################################################################
 # Fuse
 ###########################################################################################################
+
+##########################################
+# Lightning Module
+##########################################
+class LightningModuleMnist(LightningModuleDefault):
+    def __init__(self, model_dir: str, opt_lr: float, opt_weight_decay: float, **kwargs):
+        super().__init__(**kwargs)
+        self.save_hyperparameters(ignore=["model_dir"])
+
+        self._model_dir = model_dir
+        self._opt_lr = opt_lr
+        self._opt_weight_decay = opt_weight_decay
+
+        self.configure()
+
+    def configure_models(self):
+        torch_model = lenet.LeNet()
+
+        model = ModelWrapSeqToDict(model=torch_model,
+                            model_inputs=["data.image"],
+                            post_forward_processing_function=perform_softmax,
+                            model_outputs=['logits.classification', 'output.classification']
+                            )
+        return model
+    
+    def configure_losses(self) -> Dict[str, LossBase]:
+        losses = {
+            'cls_loss': LossDefault(pred='model.logits.classification', target='data.label', callable=F.cross_entropy, weight=1.0),
+        }
+        return losses
+    
+    def configure_train_metrics(self) -> OrderedDict[str, MetricBase]:
+        metrics = OrderedDict([
+            ('operation_point', MetricApplyThresholds(pred='model.output.classification')), # will apply argmax
+            ('accuracy', MetricAccuracy(pred='results:metrics.operation_point.cls_pred', target='data.label'))
+        ])
+        return metrics
+    
+    def configure_validation_metrics(self) -> OrderedDict[str, MetricBase]:
+        metrics = OrderedDict([
+            ('operation_point', MetricApplyThresholds(pred='model.output.classification')), # will apply argmax
+            ('accuracy', MetricAccuracy(pred='results:metrics.operation_point.cls_pred', target='data.label'))
+        ])
+        return metrics
+    
+    def configure_callbacks(self) -> Sequence[pl.Callback]:
+        best_epoch_source = dict(
+            monitor="validation.metrics.accuracy",
+            mode="max",
+        )
+        return model_checkpoint_callbacks(self._model_dir, best_epoch_source)
+    
+    def configure_optimizers(self) -> Any:
+        # create optimizer
+        optimizer = optim.Adam(self._model.parameters(), lr=self._opt_lr, weight_decay=self._opt_weight_decay)
+
+        # create learning scheduler
+        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+        lr_sch_config = dict(scheduler=lr_scheduler,
+                            monitor="validation.losses.total_loss")
+        return dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
+
 ##########################################
 # Debug modes
 ##########################################
@@ -90,17 +154,12 @@ TRAIN_COMMON_PARAMS['trainer.accelerator'] = "gpu"
 # ===============
 # Checkpoint
 # ===============
-# might be a list of dict. See ModelCheckpointCallback for details about the arguments 
-TRAIN_COMMON_PARAMS['checkpoint.best_epoch_source'] = dict(
-    monitor="validation.metrics.accuracy",
-    mode="max",
-)
 TRAIN_COMMON_PARAMS['checkpoint.resume_checkpoint_filename'] = None  # if not None, will try to load the checkpoint
 # ===============
 # Optimizer
 # ===============
-TRAIN_COMMON_PARAMS['optimizer.learning_rate'] = 1e-4
-TRAIN_COMMON_PARAMS['optimizer.weight_decay'] = 0.001
+TRAIN_COMMON_PARAMS['opt.learning_rate'] = 1e-4
+TRAIN_COMMON_PARAMS['opt.weight_decay'] = 0.001
 
 
 def perform_softmax(output):
@@ -110,16 +169,6 @@ def perform_softmax(output):
         logits = output.logits
     cls_preds = F.softmax(logits, dim=1)
     return logits, cls_preds
-
-def create_model(input_key: str = 'data.image'):
-    torch_model = lenet.LeNet()
-    
-    model = ModelWrapSeqToDict(model=torch_model,
-                             model_inputs=[input_key],
-                             post_forward_processing_function=perform_softmax,
-                             model_outputs=['logits.classification', 'output.classification']
-                             )
-    return model
 
 #################################
 # Train Template
@@ -164,49 +213,15 @@ def run_train(paths: dict, train_params: dict):
                                        num_workers=train_params['data.validation_num_workers'])
     lgr.info(f'Validation Data: Done', {'attrs': 'bold'})
 
-    # ==============================================================================
-    # Model
-    # ==============================================================================
-    lgr.info('Model:', {'attrs': 'bold'})
 
-    model = create_model()
-    lgr.info('Model: Done', {'attrs': 'bold'})
 
-    # ====================================================================================
-    #  Loss
-    # ====================================================================================
-    losses = {
-        'cls_loss': LossDefault(pred='model.logits.classification', target='data.label', callable=F.cross_entropy, weight=1.0),
-    }
-
-    # ====================================================================================
-    # Metrics
-    # ====================================================================================
-    metrics = OrderedDict([
-        ('operation_point', MetricApplyThresholds(pred='model.output.classification')), # will apply argmax
-        ('accuracy', MetricAccuracy(pred='results:metrics.operation_point.cls_pred', target='data.label'))
-    ])
-
-    # =====================================================================================
-    #  Train
-    # =====================================================================================
     lgr.info('Train:', {'attrs': 'bold'})
 
-    # create optimizer
-    optimizer = optim.Adam(model.parameters(), lr=train_params['optimizer.learning_rate'], weight_decay=train_params['optimizer.weight_decay'])
 
-    # create learning scheduler
-    lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
-    lr_sch_config = dict(scheduler=lr_scheduler,
-                         monitor="validation.losses.total_loss")
-
-    pl_module = LightningModuleDefault(model_dir=paths["model_dir"],
-                                       model=model, 
-                                       losses=losses, 
-                                       train_metrics=metrics, 
-                                       validation_metrics=copy.deepcopy(metrics), 
-                                       optimizers_and_lr_schs=dict(optimizer=optimizer, lr_scheduler=lr_sch_config), 
-                                       best_epoch_source=train_params["checkpoint.best_epoch_source"])
+    pl_module = LightningModuleMnist(model_dir=paths["model_dir"], 
+                                     opt_lr=train_params["opt.learning_rate"], 
+                                     opt_weight_decay=train_params["opt.learning_rate"])
+                
 
     pl_trainer = pl.Trainer(default_root_dir=paths['model_dir'],
                             max_epochs=train_params['trainer.num_epochs'],
@@ -243,11 +258,9 @@ def run_infer(paths: dict, infer_common_params: dict):
     # dataloader
     validation_dataloader = DataLoader(dataset=validation_dataset, collate_fn=CollateDefault(), batch_size=2, num_workers=2)
 
-    ## Model
-    model = create_model()
     
-    pl_module = LightningModuleDefault.load_from_checkpoint(infer_common_params['checkpoint'], model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True)
-    pl_module.set_return_predictions_keys(['model.output.classification', 'data.label'])
+    pl_module = LightningModuleMnist.load_from_checkpoint(infer_common_params['checkpoint'], model_dir=paths["model_dir"], map_location="cpu", strict=True)
+    pl_module.set_predictions_keys(['model.output.classification', 'data.label'])
 
     lgr.info('Model: Done', {'attrs': 'bold'})
     pl_trainer = pl.Trainer(default_root_dir=paths['model_dir'],
