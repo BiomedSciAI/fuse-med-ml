@@ -32,8 +32,8 @@ Cui, Chunyan; Li Li; Cai, Hongmin; Fan, Zhihao; Zhang, Ling; Dan, Tingting; Li, 
 
 **Pre-processing**
 
-The pre-processing is preformed using input_processor.py.
-The input_processor.py extracts the relevant breast area from the mammography scan, standardize it to appear to the left and resize it to fit a standard GPU memory.
+The pre-processing is preformed using the pipeline in cmmd.py.
+The static pipeline extracts the relevant breast area from the mammography scan, standardize it to appear to the left and resize it to fit a standard GPU memory.
 
 
 **CNN**
@@ -52,15 +52,18 @@ The training set was composed of 3 folds , validation set from 1 fold and test s
 
 **MODEL TRAINING**
 
-Put on the following in the main folder  - 
+Follow these steps to configure the dataset  - 
 
     1. CMMD_clinicaldata_revision.csv which is a converted version of CMMD_clinicaldata_revision.xlsx 
     
-    2. folder named CMMD which is the downloaded data folder
+    2. Folder named CMMD which is the downloaded data folder
     
-* In runner.py:
-    - fill in the code with paths that are labeled as TODO
-    - specify NUM_GPUS to run
+    3. Enviroment variable CMMD_DATA_PATH to the main folder containing 1+2
+    
+* In runner.py / config.yaml hydra file:
+    - configure the working dirs and file names for the current run
+    - specify NUM_GPUS and number of workers to run
+    - specify hyperparameters for the run ( learning rate, weight_decay , num of folds and more )
 * Run:
     python3 runner.py   
 
