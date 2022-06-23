@@ -21,8 +21,8 @@ from fuse.dl.lightning.pl_funcs import *
 
 class LightningModuleDefault(pl.LightningModule):
     """
-    Generic implementation of LightningModule using FuseMedML style focusing on (but not just on) supervised training.
-    FuseMedML convetions make it possible to have a have such a generic implementation. 
+    Generic implementation of LightningModule using FuseMedML style focusing primarily on supervised training.
+    FuseMedML conventions make it possible to have such a generic implementation. 
     """
     def __init__(self,
                  model_dir: str,
