@@ -20,10 +20,10 @@ from __future__ import annotations
 
 import copy
 import types
-from typing import Any, Callable, Optional, Sequence, Union, List
 import numpy
-
 import torch
+from typing import Any, Callable, Optional, Sequence, Union, List
+
 
 class NDict(dict):
     """N(ested)Dict - wraps a python dict, and allows to access nested elements via '.' separated key desc
@@ -59,7 +59,7 @@ class NDict(dict):
 
     """
     
-    def __init__(self, d: Union[dict, tuple, types.GeneratorType, NDict, None]=None):        
+    def __init__(self, dict_like: Union[dict, tuple, types.GeneratorType, NDict, None]=None):        
         """
         :param d: the data with which to populate the nested dictionary, in case of NDict it acts as view constructor, 
             otherwise we just set all the keys and values using the setitem function
@@ -67,19 +67,20 @@ class NDict(dict):
 
         self._stored = dict()
         
-        if d is None:
+        if dict_like is None:
             self._stored = {}
-        elif isinstance(d, NDict):
-            self._stored = d._stored
-        else:    
-            for k,d in d.items():
+        elif isinstance(dict_like, NDict):
+            self._stored = dict_like._stored
+        else:
+            if not isinstance(dict_like, dict):
+                dict_like = dict(dict_like)    
+            for k,d in dict_like.items():
                 self[k] = d
-    
         
     def items(self):
         return self._stored.items()
 
-    #NDict custom methods
+    # NDict custom methods
     def to_dict(self) -> dict:
         '''
         converts to standard python dict
@@ -98,7 +99,6 @@ class NDict(dict):
         else:
             return NDict(copy.deepcopy(self._stored))
     
-
     def flatten(self) -> dict:
         '''
         flattens the dictionary
@@ -131,22 +131,15 @@ class NDict(dict):
         """
         return list(self.flatten().keys())
 
-
     def merge(self, other: dict) -> NDict:
         """
-        returns a new NDict which is a merge between the current and the other NDict, common values are overridden 
+        inplace merge between self and other.
         """
-        return NDict.combine(self, other)
-
-    @staticmethod
-    def combine(base: dict, other: dict) -> dict:
-        '''
-        Combines two dicts (each can be NDict or dict), starts with self and adds/overrides from other
-        '''
-        base_flat = NDict(base).flatten()
         other_flat = NDict(other).flatten()
-        base_flat.update(other_flat)
-        return NDict(base_flat)        
+        for k,v in other_flat.items():
+            self[k] = v
+
+        return
 
     def __getitem__(self, key: str) -> Any:        
         """
@@ -165,7 +158,6 @@ class NDict(dict):
             else:
                 raise NestedKeyError(key, self)
             
-
         return value
 
     def __setitem__(self, key: str, value: Any):
@@ -183,7 +175,6 @@ class NDict(dict):
 
         # set the value
         element[nested_key[-1]] = value
-        
 
     def __delitem__(self, key: str):
         nested_key = key.split('.')     
@@ -194,7 +185,6 @@ class NDict(dict):
                 value = value[sep_key]
             else: #last step
                 del value[sep_key]
-
 
     def get_closest_key(self, key: str) -> str:
         """
@@ -251,20 +241,6 @@ class NDict(dict):
         for key in all_keys:
             new_value = apply_func(self[key], *args)
             self[key] = new_value
-
-
-    @classmethod
-    def get_multi(cls, nested_dict: NDict, keys: Optional[List[str]]=None) -> Any:
-        if keys is None:
-            keys = nested_dict.keypaths() #take all keys
-
-        ans = NDict()
-
-        for k in keys:
-            curr = nested_dict[k]
-            ans[k] = curr
-        
-        return ans
        
     def __reduce__(self):
         return super().__reduce__()
@@ -283,6 +259,23 @@ class NDict(dict):
     
     def __contains__(self, o: str) -> bool:
         return o == self.get_closest_key(o)
+
+    def get(self, key: str, default_value=None):
+        if key not in self:
+            return default_value
+        return self[key]
+    
+    def get_multi(self, keys: Optional[List[str]]=None) -> NDict:
+        if keys is None:
+            keys = self.keypaths() #take all keys
+
+        ans = NDict()
+
+        for k in keys:
+            curr = self[k]
+            ans[k] = curr
+        
+        return ans
 
 
 class NestedKeyError(KeyError):

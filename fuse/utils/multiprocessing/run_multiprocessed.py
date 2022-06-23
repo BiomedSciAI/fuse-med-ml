@@ -1,4 +1,6 @@
-from typing import Any, List, Optional, Tuple
+import functools
+from typing import Any, Callable, List, Optional, Tuple
+from fuse.utils.utils_debug import FuseDebug
 from tqdm import tqdm,trange
 import multiprocessing as mp
 from termcolor import cprint
@@ -78,7 +80,7 @@ def __orig__run_multiprocessed(worker_func, args_list, workers=0, verbose=0,
 def run_multiprocessed(worker_func, args_list, workers=0, verbose=0, 
     copy_to_global_storage: Optional[dict] = None,
     keep_results_order:bool=True,
-    as_iterator=False,
+    as_iterator=False, mp_context: Optional[str] = None
     ) -> List[Any]:
     '''
     Args:
@@ -90,7 +92,7 @@ def run_multiprocessed(worker_func, args_list, workers=0, verbose=0,
                 return ans
         args_list: a list in which each element is the input to func
         workers: number of processes to use. Use 0 for no spawning of processes (helpful when debugging)
-        copy_to_global_storage: Optional - to optimize the running time - the provided dict will be stored in a way that is accesible to worker_func.                    
+        copy_to_global_storage: Optional - to optimize the running time - the provided dict will be stored in a way that is accessible to worker_func.                    
          calling get_from_global_storage(...) will allow access to it from within any worker_func
         This allows to create a significant speedup in certain cases, and the main idea is that it allows to drastically reduce the amount of data
          that gets (automatically) pickled by python's multiprocessing library.
@@ -100,6 +102,7 @@ def run_multiprocessed(worker_func, args_list, workers=0, verbose=0,
         as_iterator: if True, a lightweight iterator is returned. This is useful in the cases that the entire returned answer doesn't fit in memory.
          or in the case that you want to parallelize some calculation with the generation.
          if False, the answers will be accumulated to a list and returned.
+    :param mp_context: "fork", "spawn", "thread" or None for multiprocessing default
 
 
     Returns:
@@ -114,6 +117,7 @@ def run_multiprocessed(worker_func, args_list, workers=0, verbose=0,
         verbose=verbose,
         copy_to_global_storage=copy_to_global_storage,
         keep_results_order=keep_results_order,
+        mp_context=mp_context
     )
 
     if as_iterator:
@@ -125,7 +129,7 @@ def run_multiprocessed(worker_func, args_list, workers=0, verbose=0,
 
 def _run_multiprocessed_as_iterator_impl(worker_func, args_list, workers=0, verbose=0, 
     copy_to_global_storage: Optional[dict] = None,
-    keep_results_order:bool=True,
+    keep_results_order:bool=True, mp_context: Optional[str] = None
     ) -> List[Any]:
     '''
     an iterator version of run_multiprocessed - useful when the accumulated answer is too large to fit in memory
@@ -134,22 +138,28 @@ def _run_multiprocessed_as_iterator_impl(worker_func, args_list, workers=0, verb
         worker_func: a worker function, must accept only a single positional argument and no optional args.
             For example:
             def some_worker(args):
-                speed, height, banana = args
+                speed: height, banana = args
                 ...
                 return ans
         args_list: a list in which each element is the input to func
         workers: number of processes to use. Use 0 for no spawning of processes (helpful when debugging)
-        copy_to_global_storage: Optional - to optimize the running time - the provided dict will be stored in a way that is accesible to worker_func.                    
+        copy_to_global_storage: Optional - to optimize the running time - the provided dict will be stored in a way that is accessible to worker_func.                    
             calling get_from_global_storage(...) will allow access to it from within any worker_func
         This allows to create a significant speedup in certain cases, and the main idea is that it allows to drastically reduce the amount of data
             that gets (automatically) pickled by python's multiprocessing library.
         Instead of copying it for each worker_func invocation, it will be copied once, upon worker process initialization.
         keep_results_order: determined if imap or imap_unordered is used. if strict_answers_order is set to False, then results will be ordered by their readiness.
             if strict_answers_order is set to True, the answers will be provided at the same order as defined in the args_list
+    :param mp_context: "fork", "spawn", "thread" or None for multiprocessing default
     '''
     if 'DEBUG_SINGLE_PROCESS' in os.environ and os.environ['DEBUG_SINGLE_PROCESS'] in ['T','t','True','true',1]:
         workers = None
         cprint('Due to the env variable DEBUG_SINGLE_PROCESS being set, run_multiprocessed is not using multiprocessing','red')
+    
+    if FuseDebug().get_setting("multiprocessing") == "main_process":
+        workers = None
+        cprint('Due to the FuseDebug mode, run_multiprocessed is not using multiprocessing','red')
+
     assert callable(worker_func)
     
     if verbose<1:
@@ -174,10 +184,18 @@ def _run_multiprocessed_as_iterator_impl(worker_func, args_list, workers=0, verb
         assert isinstance(workers, int)
         assert workers>=0
 
-        with mp.Pool(processes=workers, initializer=_store_in_global_storage, initargs=(copy_to_global_storage,), maxtasksperchild=400) as pool:
+        if mp_context == "thread":
+            from multiprocessing.pool import ThreadPool
+            pool = ThreadPool
+        elif mp_context is None: # os default
+            pool = mp.Pool
+        else:
+            pool = mp.get_context(mp_context).Pool
+        
+        with pool(processes=workers, initializer=_store_in_global_storage, initargs=(copy_to_global_storage,)) as pool:
             if verbose>0:
                 cprint(f'multiprocess pool created with {workers} workers.', 'cyan')            
-            map_func = pool.imap if keep_results_order else pool.iunordered
+            map_func = pool.imap if keep_results_order else pool.imap_unordered
             for curr_ans in tqdm_func(map_func(
                     worker_func,
                     args_list), total=len(args_list), smoothing=0.1, disable=verbose<1):
@@ -222,3 +240,29 @@ def get_from_global_storage(key: str) -> Any:
     """
     global _multiprocess_global_storage
     return _multiprocess_global_storage[key]
+
+
+def run_in_subprocess(timeout: int = 600):
+    """A decorator that makes function run in a subprocess.
+    This can be useful when you want allocate GPU and memory and to release it when you're done.
+    :param f: the function to run in a subprocess
+    :param timeout: the maximum time to wait for the process to complete
+    """
+    def inner(f: callable):
+
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            # create the machinery python uses to fork a subprocess
+            # and run a function in it.
+            p = mp.Process(target=f, args=args, kwargs=kwargs)
+            p.start()
+            try:
+                p.join(timeout=timeout)
+            except:
+                p.terminate()
+                raise
+            
+            assert p.exitcode == 0, f"process func {f} failed with exit code {p.exitcode}"
+
+        return wrapper
+    return inner
