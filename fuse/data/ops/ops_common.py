@@ -348,7 +348,7 @@ class OpKeepKeypaths(OpBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], keep_keypaths:List[str]) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, keep_keypaths:List[str]) -> Union[None, dict, List[dict]]:
         prev_sample_dict = sample_dict
         sample_dict = NDict()
         for k in keep_keypaths:
