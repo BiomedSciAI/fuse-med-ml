@@ -16,25 +16,24 @@ limitations under the License.
 Created on June 30, 2021
 
 """
+
+"""
+MNIST classfier implementation that demonstrate end to end training, inference and evaluation using FuseMedML 
+"""
+
 import copy
 import logging
 import os
-from typing import Any, Dict, List, OrderedDict, Sequence
-from unittest import result
-from fuse.dl.lightning.pl import LightningModuleDefault, convert_predictions_to_dataframe, epoch_end_compute_and_log_losses, epoch_end_compute_and_log_metrics, model_checkpoint_callbacks, step_extract_predictions, step_losses, step_metrics
-from fuse.dl.losses.loss_base import LossBase
-from fuse.eval.metrics.metrics_common import MetricBase
+from typing import Any, Dict, List, OrderedDict, Sequence, Tuple
+from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
 from fuse.utils.file_io.file_io import create_dir, save_dataframe
 from fuse.utils.ndict import NDict
 
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-import torchvision.models as models
-import pytorch_lightning as pl
-from pytorch_lightning.callbacks import ModelCheckpoint 
+import pytorch_lightning as pl 
 from torch.utils.data.dataloader import DataLoader
-from torchvision import transforms
 
 from fuse.eval.evaluator import EvaluatorDefault 
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
@@ -45,9 +44,9 @@ from fuse.data.utils.collates import CollateDefault
 
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
+from fuse.dl.lightning.pl_module import LightningModuleDefault
 
 from fuse.utils.utils_debug import FuseDebug
-import fuse.utils.gpu as GPU
 from fuse.utils.utils_logger import fuse_logger_start
 
 from fuseimg.datasets.mnist import MNIST
@@ -58,113 +57,6 @@ from fuse_examples.imaging.classification.mnist import lenet
 ###########################################################################################################
 
 ##########################################
-# Lightning Module
-##########################################
-class LightningModuleMnist(pl.LightningModule):
-    def __init__(self, model_dir: str, opt_lr: float, opt_weight_decay: float, **kwargs):
-        super().__init__(**kwargs)
-        self.save_hyperparameters(ignore=["model_dir"])
-
-        self._model_dir = model_dir
-        self._opt_lr = opt_lr
-        self._opt_weight_decay = opt_weight_decay
-
-        self.configure()
-    
-    ## forward
-    def forward(self, batch_dict: NDict) -> NDict:
-        return self._model(batch_dict)
-    
-    ## Step
-    def training_step(self, batch_dict: NDict, batch_idx: int) -> torch.Tensor:
-        batch_dict["model"] = self.forward(batch_dict)
-        total_loss = step_losses(self._losses, batch_dict)
-        step_metrics(self._train_metrics, batch_dict)
-
-        return {"loss": total_loss, "losses": batch_dict["losses"]} # return just the losses and drop everything else
-     
-    def validation_step(self, batch_dict: NDict, batch_idx: int) -> torch.Tensor:
-        batch_dict["model"] = self.forward(batch_dict)
-        _ = step_losses(self._losses, batch_dict)
-        step_metrics(self._validation_metrics, batch_dict)
-
-        return {"losses": batch_dict["losses"]} # return just the losses and drop everything else
-     
-    def predict_step(self, batch_dict: NDict, batch_idx: int) -> torch.Tensor:
-        batch_dict["model"] = self.forward(batch_dict)
-        return step_extract_predictions(self._prediction_keys, batch_dict)
-        
-    ## Epoch end
-    def training_epoch_end(self, step_outputs) -> None:
-        epoch_end_compute_and_log_losses(self, "train", [e["losses"] for e in step_outputs])
-        epoch_end_compute_and_log_metrics(self, "train", self._train_metrics)
-    
-    def validation_epoch_end(self, step_outputs) -> None:
-        epoch_end_compute_and_log_losses(self, "validation", [e["losses"] for e in step_outputs])
-        epoch_end_compute_and_log_metrics(self, "validation", self._validation_metrics)
-    
-    # confiugration
-    def configure(self):
-        self._model = self.configure_models()
-        self._losses = self.configure_losses()
-        self._train_metrics = self.configure_train_metrics()
-        self._validation_metrics = self.configure_train_metrics()
-        # self.configure_callbacks() will be called by trainer
-        # self.configure_optimizers() will be called by trainer
-
-
-    def configure_models(self):
-        torch_model = lenet.LeNet()
-
-        model = ModelWrapSeqToDict(model=torch_model,
-                            model_inputs=["data.image"],
-                            post_forward_processing_function=perform_softmax,
-                            model_outputs=['logits.classification', 'output.classification']
-                            )
-        return model
-    
-    def configure_losses(self) -> Dict[str, LossBase]:
-        losses = {
-            'cls_loss': LossDefault(pred='model.logits.classification', target='data.label', callable=F.cross_entropy, weight=1.0),
-        }
-        return losses
-    
-    def configure_train_metrics(self) -> OrderedDict[str, MetricBase]:
-        metrics = OrderedDict([
-            ('operation_point', MetricApplyThresholds(pred='model.output.classification')), # will apply argmax
-            ('accuracy', MetricAccuracy(pred='results:metrics.operation_point.cls_pred', target='data.label'))
-        ])
-        return metrics
-    
-    def configure_validation_metrics(self) -> OrderedDict[str, MetricBase]:
-        metrics = OrderedDict([
-            ('operation_point', MetricApplyThresholds(pred='model.output.classification')), # will apply argmax
-            ('accuracy', MetricAccuracy(pred='results:metrics.operation_point.cls_pred', target='data.label'))
-        ])
-        return metrics
-    
-    def configure_callbacks(self) -> Sequence[pl.Callback]:
-        best_epoch_source = dict(
-            monitor="validation.metrics.accuracy",
-            mode="max",
-        )
-        return model_checkpoint_callbacks(self._model_dir, best_epoch_source)
-    
-    def configure_optimizers(self) -> Any:
-        # create optimizer
-        optimizer = optim.Adam(self._model.parameters(), lr=self._opt_lr, weight_decay=self._opt_weight_decay)
-
-        # create learning scheduler
-        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
-        lr_sch_config = dict(scheduler=lr_scheduler,
-                            monitor="validation.losses.total_loss")
-        return dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
-    
-        
-    def set_predictions_keys(self, keys: List[str]) -> None:
-        self._prediction_keys = keys
-
-##########################################
 # Debug modes
 ##########################################
 mode = 'default'  # Options: 'default', 'debug'. See details in FuseDebug
@@ -173,7 +65,7 @@ debug = FuseDebug(mode)
 ##########################################
 # Output Paths
 ##########################################
-ROOT = 'examples' # TODO: fill path here
+ROOT = '_examples' # TODO: fill path here
 PATHS = {'model_dir': os.path.join(ROOT, 'mnist/model_dir'),
          'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
          'cache_dir': os.path.join(ROOT, 'mnist/cache_dir'),
@@ -192,31 +84,33 @@ TRAIN_COMMON_PARAMS['data.train_num_workers'] = 8
 TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 8
 
 # ===============
-# Trainer
+# PL Trainer
 # ===============
 TRAIN_COMMON_PARAMS['trainer.num_epochs'] = 2
 TRAIN_COMMON_PARAMS['trainer.num_devices'] = 1
 TRAIN_COMMON_PARAMS['trainer.accelerator'] = "gpu"
+TRAIN_COMMON_PARAMS['trainer.ckpt_path'] = None  #  path to the checkpoint you wish continue the training from
 
-# ===============
-# Checkpoint
-# ===============
-TRAIN_COMMON_PARAMS['checkpoint.resume_checkpoint_filename'] = None  # if not None, will try to load the checkpoint
 # ===============
 # Optimizer
 # ===============
-TRAIN_COMMON_PARAMS['opt.learning_rate'] = 1e-4
+TRAIN_COMMON_PARAMS['opt.lr'] = 1e-4
 TRAIN_COMMON_PARAMS['opt.weight_decay'] = 0.001
 
 
-def perform_softmax(output):
-    if isinstance(output, torch.Tensor):  # validation
-        logits = output
-    else:  # train
-        logits = output.logits
+def perform_softmax(logits: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     cls_preds = F.softmax(logits, dim=1)
     return logits, cls_preds
 
+def create_model():
+    torch_model = lenet.LeNet()
+    # wrap basic torch model to automatically read inputs from batch_dict and save its outputs to batch_dict
+    model = ModelWrapSeqToDict(model=torch_model,
+                        model_inputs=["data.image"],
+                        post_forward_processing_function=perform_softmax,
+                        model_outputs=['logits.classification', 'output.classification']
+                        )
+    return model
 #################################
 # Train Template
 #################################
@@ -225,50 +119,76 @@ def run_train(paths: dict, train_params: dict):
     # Logger
     # ==============================================================================
     fuse_logger_start(output_path=paths['model_dir'], console_verbose_level=logging.INFO)
-    lgr = logging.getLogger('Fuse')
-    lgr.info('Fuse Train', {'attrs': ['bold', 'underline']})
-
-    lgr.info(f'model_dir={paths["model_dir"]}', {'color': 'magenta'})
-    lgr.info(f'cache_dir={paths["cache_dir"]}', {'color': 'magenta'})
+    print('Fuse Train')
 
     # ==============================================================================
     # Data
     # ==============================================================================
     # Train Data
-    lgr.info(f'Train Data:', {'attrs': 'bold'})
-
+    print(f'Data - trainset:')
     train_dataset = MNIST.dataset(paths["cache_dir"], train=True)
-    lgr.info(f'- Create sampler:')
+    print(f'- Create sampler:')
     sampler = BatchSamplerDefault(dataset=train_dataset,
                                        balanced_class_name='data.label',
                                        num_balanced_classes=10,
                                        batch_size=train_params['data.batch_size'],
                                        balanced_class_weights=None)
-    lgr.info(f'- Create sampler: Done')
+    print(f'- Create sampler: Done')
 
     # Create dataloader
     train_dataloader = DataLoader(dataset=train_dataset, batch_sampler=sampler, collate_fn=CollateDefault(), num_workers=train_params['data.train_num_workers'])
-    lgr.info(f'Train Data: Done', {'attrs': 'bold'})
+    print(f'Data - trainset: Done')
 
     ## Validation data
-    lgr.info(f'Validation Data:', {'attrs': 'bold'})
+    print(f'Data - validation set:')
     # wrapping torch dataset
     validation_dataset = MNIST.dataset(paths["cache_dir"], train=False)
     
     # dataloader
     validation_dataloader = DataLoader(dataset=validation_dataset, batch_size=train_params['data.batch_size'], collate_fn=CollateDefault(),
                                        num_workers=train_params['data.validation_num_workers'])
-    lgr.info(f'Validation Data: Done', {'attrs': 'bold'})
+    print(f'Data - validation set: Done')
 
 
+    # model
+    model = create_model()
 
-    lgr.info('Train:', {'attrs': 'bold'})
+    # losses
+    losses = {
+        'cls_loss': LossDefault(pred='model.logits.classification', target='data.label', callable=F.cross_entropy, weight=1.0),
+    }
 
+    # metrics
+    train_metrics = OrderedDict([
+        ('operation_point', MetricApplyThresholds(pred='model.output.classification')), # will apply argmax
+        ('accuracy', MetricAccuracy(pred='results:metrics.operation_point.cls_pred', target='data.label'))
+    ])
 
-    pl_module = LightningModuleMnist(model_dir=paths["model_dir"], 
-                                     opt_lr=train_params["opt.learning_rate"], 
-                                     opt_weight_decay=train_params["opt.learning_rate"])
-                
+    validation_metrics = copy.deepcopy(train_metrics) # use the same metrics in validation as well
+ 
+    # arguments to 
+    best_epoch_source = dict(
+        monitor="validation.metrics.accuracy",
+        mode="max",
+    )
+    
+    # create optimizer
+    optimizer = optim.Adam(model.parameters(), lr=train_params['opt.lr'], weight_decay=train_params['opt.weight_decay'])
+
+    # create learning scheduler
+    lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+    lr_sch_config = dict(scheduler=lr_scheduler,
+                        monitor="validation.losses.total_loss")
+    optimizers_and_lr_schs = dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
+
+    print('Train:')
+    pl_module = LightningModuleDefault(model_dir=paths["model_dir"], 
+                                       model=model,
+                                       losses=losses,
+                                       train_metrics=train_metrics,
+                                       validation_metrics=validation_metrics,
+                                       best_epoch_source=best_epoch_source,
+                                       optimizers_and_lr_schs=optimizers_and_lr_schs)
 
     pl_trainer = pl.Trainer(default_root_dir=paths['model_dir'],
                             max_epochs=train_params['trainer.num_epochs'],
@@ -276,9 +196,8 @@ def run_train(paths: dict, train_params: dict):
                             devices=train_params["trainer.num_devices"],
                             auto_select_gpus=True)
     
-    pl_trainer.fit(pl_module, train_dataloader, validation_dataloader)
-
-    lgr.info('Train: Done', {'attrs': 'bold'})
+    pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=train_params['trainer.ckpt_path'])
+    print('Train: Done')
 
 
 ######################################
@@ -295,9 +214,9 @@ INFER_COMMON_PARAMS['checkpoint'] = os.path.join(PATHS["model_dir"], "best_epoch
 def run_infer(paths: dict, infer_common_params: dict):
     #### Logger
     fuse_logger_start(output_path=paths['model_dir'], console_verbose_level=logging.INFO)
-    lgr = logging.getLogger('Fuse')
-    lgr.info('Fuse Inference', {'attrs': ['bold', 'underline']})
-    lgr.info(f'infer_filename={infer_common_params["infer_filename"]}', {'color': 'magenta'})
+
+    print('Fuse Inference')
+    print(f'infer_filename={infer_common_params["infer_filename"]}')
 
     ## Data
     # Create dataset
@@ -305,11 +224,11 @@ def run_infer(paths: dict, infer_common_params: dict):
     # dataloader
     validation_dataloader = DataLoader(dataset=validation_dataset, collate_fn=CollateDefault(), batch_size=2, num_workers=2)
 
-    
-    pl_module = LightningModuleMnist.load_from_checkpoint(infer_common_params['checkpoint'], model_dir=paths["model_dir"], map_location="cpu", strict=True)
-    pl_module.set_predictions_keys(['model.output.classification', 'data.label'])
+    model = create_model()
+    pl_module = LightningModuleDefault.load_from_checkpoint(infer_common_params['checkpoint'], model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True)
+    pl_module.set_predictions_keys(['model.output.classification', 'data.label']) # which keys to extract and dump into file
 
-    lgr.info('Model: Done', {'attrs': 'bold'})
+    print('Model: Done')
     pl_trainer = pl.Trainer(default_root_dir=paths['model_dir'],
                             accelerator=TRAIN_COMMON_PARAMS["trainer.accelerator"],
                             devices=TRAIN_COMMON_PARAMS["trainer.num_devices"],
@@ -333,8 +252,8 @@ EVAL_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
 def run_eval(paths: dict, eval_common_params: dict):
     create_dir(paths["eval_dir"])
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
-    lgr = logging.getLogger('Fuse')
-    lgr.info('Fuse Eval', {'attrs': ['bold', 'underline']})
+
+    print('Fuse Eval')
 
     # metrics
     class_names = [str(i) for i in range(10)]

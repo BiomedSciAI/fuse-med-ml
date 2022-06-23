@@ -26,8 +26,7 @@ from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 from fuse.utils.rand.seed import Seed
 import fuse.utils.gpu as GPU
 
-from fuse_examples.imaging.classification.mnist.runner import TRAIN_COMMON_PARAMS, run_train, run_infer, run_eval, INFER_COMMON_PARAMS, \
-   EVAL_COMMON_PARAMS
+from fuse_examples.imaging.classification.mnist.run_mnist import TRAIN_COMMON_PARAMS, run_train, run_infer, run_eval
 
 class ClassificationMnistTestCase(unittest.TestCase):
 

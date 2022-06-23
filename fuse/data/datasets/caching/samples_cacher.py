@@ -342,7 +342,7 @@ class SamplesCacher:
     
         
 
-def _get_available_write_location(cache_dirs:List[str], max_allowed_used_space=0.95):               
+def _get_available_write_location(cache_dirs:List[str], max_allowed_used_space=None):               
     '''
     :param cache_dirs: write directories. Directories are checked in order that they are provided.
     :param max_allowed_used_space: set to a value between 0.0 to 1.0. 

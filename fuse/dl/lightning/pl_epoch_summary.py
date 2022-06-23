@@ -1,10 +1,21 @@
 """
-Model Checkpointing Display
-===================
+(C) Copyright 2021 IBM Corp.
 
-Automatically display (print to screen and save to file) best vs current epoch metircs.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Created on June 30, 2021
 """
+
 from copy import deepcopy
 import os
 from typing import Optional
@@ -17,7 +28,13 @@ import pandas as pd
 
 
 class ModelEpochSummary(Callback):
-    
+    """
+    Model Checkpointing Display
+    ===================
+
+    Automatically display (print to screen and log to a file) best vs current epoch metircs and losses.
+
+    """
     def __init__(
         self,
         dirpath: Optional[str] = None,
@@ -25,6 +42,12 @@ class ModelEpochSummary(Callback):
         monitor: Optional[str] = None,
         mode: str = "min",
     ):
+        """
+        :param dirpath: location of log file 
+        :param filename: specify a filename. If not set will use f"epoch_summary_{monitor}.txt"
+        :param monitor: the metric name to track
+        :param mode: either consider the "min" value to be best or the "max" value to be the best
+        """
         super().__init__()
         self._monitor = monitor
         self._mode = mode
@@ -35,6 +58,7 @@ class ModelEpochSummary(Callback):
 
     
     def print_epoch_summary_table(self, epoch_metircs: dict, epoch_source_index: int) -> None:
+        """Generate, print and log the table"""
         def get_value_as_float_str(dict, key):
             val_as_str = 'N/A'
             try:
@@ -76,7 +100,7 @@ class ModelEpochSummary(Callback):
    
 
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Save a checkpoint at the end of the validation stage."""
+        """Print summary at the end of the validation stage."""
         monitor_candidates = monitor_candidates = deepcopy(trainer.callback_metrics)  
         current_epoch_metrics = monitor_candidates
         monitor_op = {"min": torch.lt, "max": torch.gt}[self._mode]

@@ -1,3 +1,24 @@
+"""
+(C) Copyright 2021 IBM Corp.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Created on June 30, 2021
+"""
+
+"""
+Collection of useful functions to implement FuseMedML pytorch lightning based module and train loop
+"""
 import traceback
 from typing import Any, Dict, List, Optional, OrderedDict, Sequence, Tuple, Union
 from statistics import mean
@@ -18,6 +39,11 @@ from fuse.eval.metrics.utils import PerSampleData
 
 
 def model_checkpoint_callbacks(model_dir: str, best_epoch_source: Union[Dict, List[Dict]]) -> List[pl.Callback]:
+    """
+    Create list of pl.callbacks that saves checkpoints using (pl.callbacks.ModelCheckpoint) and print per epoch summary (fuse.dl.lightning.pl_epoch_summary.ModelEpochSummary).
+    :param model_dir: path to save checkpoints and summary
+    :param best_epoch_source: either a dict with arguments to pass to ModelCheckpoint or list dicts to for multiple ModelCheckpoint callbacks (to monitor and save checkpoints for more then one metric).
+    """
     callbacks = []
     # checkpoints
     if not isinstance(best_epoch_source, list):
@@ -59,6 +85,12 @@ def convert_predictions_to_dataframe(predictions: List[NDict]) -> pd.DataFrame:
     return df
 
 def step_losses(losses: Dict[str, LossBase], batch_dict: NDict) -> torch.Tensor:
+    """
+    Compute losses per step (batch) in pl.LightningModule.<training/validation/test>_step()
+    :param losses: dict of FuseMedML style losses
+    :param batch_dict: FuseMedML batch_dict including data and model outputs
+    :return: total_loss (sum all losses results). The values for tracking purpose will be stored in batch_dict['losses'] 
+    """
     total_loss = None
     for loss_name, loss_function in losses.items():
         current_loss_result = loss_function(batch_dict)
@@ -75,12 +107,23 @@ def step_losses(losses: Dict[str, LossBase], batch_dict: NDict) -> torch.Tensor:
     return total_loss
 
 def step_metrics(metrics: OrderedDict[str, MetricBase], batch_dict: NDict) -> None:
+    """
+    Collect data to compute per epoch metrics
+    :param metrics: dictionary of metrics
+    :param batch_dict: FuseMedML batch_dict including data, losses and model outputs
+    :return: None 
+    """
     for _, metric in metrics.items():
         # handle batch doesn't return a value, the actual value of the metric is per epoch
         metric.collect(batch_dict)
              
 
 def step_extract_predictions(prediction_keys: Sequence[str], batch_dict: NDict) -> Dict[str, Any]:
+    """
+    Extract the specified perdictions from batch_dict (torch Tensors will be detached, moved to cpu and coverted to numpy)
+    :param prediction_keys: the keys to extract
+    :param batch_dict: FuseMedML batch_dict including data and model outputs
+    """
     outputs = {}
     sample_ids = batch_dict[get_sample_id_key()]
     if isinstance(sample_ids, torch.Tensor):
@@ -95,12 +138,26 @@ def step_extract_predictions(prediction_keys: Sequence[str], batch_dict: NDict) 
     return outputs
 
 def epoch_end_compute_and_log_losses(pl: pl.LightningModule, mode: str, batch_losses: Sequence[Dict]) -> None:
+    """
+    On epoch end average out the batch losses and log the averaged losses
+    :param pl: LightiningModule. Used for logging.
+    :param mode: prefix to add to each loss name (when logging), typically validation/train/test
+    :param batch_losses: list of batch_dict["losses"] as added by 'epoch_losses'
+    :return: None
+    """
     keys = batch_losses[0].keys()
     for key in keys:
         loss = mean([elem[key] for elem in batch_losses])
         pl.log(f"{mode}.losses.{key}", loss, on_epoch=True)
 
 def epoch_end_compute_and_log_metrics(pl: pl.LightningModule, mode: str, metrics: OrderedDict[str, MetricBase]) -> None:
+    """
+    On epoch end compute and log per epoch metrics
+    :param pl: LightiningModule. Used for logging.
+    :param mode: prefix to add to each metric name (when logging), typically validation/train/test
+    :param metrics: Dict of FuseMedML style metircs
+    :return: None
+    """
     # compute metrics
     epoch_results = NDict()
     # compute metrics and keep the results
@@ -120,85 +177,3 @@ def epoch_end_compute_and_log_metrics(pl: pl.LightningModule, mode: str, metrics
     for key in epoch_results.keypaths():
         if epoch_results[key] is not None and not isinstance(epoch_results[key], (PerSampleData)):
             pl.log(f"{mode}.{key}", epoch_results[key], on_epoch=True)
-
-        
-                 
-class LightningModuleDefault(pl.LightningModule):
-    def __init__(self,
-                 **kwargs):
-        super().__init__(**kwargs)
-
-        # should call to self.configure to configure it
-        self._model = None
-        self._losses = None
-        self._train_metrics = None
-        self._validation_metrics = None
-        self._optimizers_and_lr_schs = None
-        self._callbacks = None
-        self._prediction_keys = {}
-    
-   
-    ## forward
-    def forward(self, batch_dict: NDict) -> NDict:
-        return self._model(batch_dict)
-    
-    ## Step
-    def training_step(self, batch_dict: NDict, batch_idx: int) -> torch.Tensor:
-        batch_dict["model"] = self.forward(batch_dict)
-        total_loss = step_losses(self._losses, batch_dict)
-        step_metrics(self._train_metrics, batch_dict)
-
-        return {"loss": total_loss, "losses": batch_dict["losses"]} # return just the losses and drop everything else
-     
-    def validation_step(self, batch_dict: NDict, batch_idx: int) -> torch.Tensor:
-        batch_dict["model"] = self.forward(batch_dict)
-        _ = step_losses(self._losses, batch_dict)
-        step_metrics(self._validation_metrics, batch_dict)
-
-        return {"losses": batch_dict["losses"]} # return just the losses and drop everything else
-     
-    def predict_step(self, batch_dict: NDict, batch_idx: int) -> torch.Tensor:
-        batch_dict["model"] = self.forward(batch_dict)
-        return step_extract_predictions(self._prediction_keys, batch_dict)
-        
-    ## Epoch end
-    def training_epoch_end(self, step_outputs) -> None:
-        epoch_end_compute_and_log_losses(self, "train", [e["losses"] for e in step_outputs])
-        epoch_end_compute_and_log_metrics(self, "train", self._train_metrics)
-    
-    def validation_epoch_end(self, step_outputs) -> None:
-        epoch_end_compute_and_log_losses(self, "validation", [e["losses"] for e in step_outputs])
-        epoch_end_compute_and_log_metrics(self, "validation", self._validation_metrics)
-    
-    # confiugration
-    def configure(self):
-        self._model = self.configure_models()
-        self._losses = self.configure_losses()
-        self._train_metrics = self.configure_train_metrics()
-        self._validation_metrics = self.configure_train_metrics()
-        # self.configure_callbacks() will be called by trainer
-        # self.configure_optimizers() will be called by trainer
-
-    def configure_optimizers(self) -> torch.optim.Optimizer:
-        raise NotImplementedError
-
-    def configure_callbacks(self) -> Sequence[pl.Callback]:
-        raise NotImplementedError
-    
-    def configure_models(self) -> None:
-        raise NotImplementedError
-    
-    def configure_train_metrics(self) -> None:
-        raise NotImplementedError
-    
-    def configure_validation_metrics(self) -> None:
-        raise NotImplementedError
-    
-    def configure_losses(self) -> None:
-        raise NotImplementedError
-    
-    def set_predictions_keys(self, keys: List[str]) -> None:
-        self._prediction_keys = keys
-    
-    def set_predictions_keys(self, keys: List[str]) -> None:
-        self._prediction_keys = keys

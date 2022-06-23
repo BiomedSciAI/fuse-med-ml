@@ -34,7 +34,7 @@ if "STOIC21_DATA_PATH" in os.environ:
 class ClassificationStoic21TestCase(unittest.TestCase):
 
     def setUp(self):
-        self.root = tempfile.mkdtemp()
+        self.root = "tests2"#tempfile.mkdtemp()
 
         self.paths = {
             'model_dir': os.path.join(self.root, 'stoic/model_dir'),
@@ -58,8 +58,11 @@ class ClassificationStoic21TestCase(unittest.TestCase):
         GPU.choose_and_enable_multiple_gpus(1)
     
         Seed.set_seed(0, False) # previous test (in the pipeline) changed the deterministic behavior to True
+        print("train")
         run_train(self.paths, self.train_common_params)
+        print("infer")
         run_infer(self.paths, self.infer_common_params)
+        print("eval")
         results = run_eval(self.paths, self.analyze_common_params)
 
         self.assertTrue('metrics.auc' in results)
@@ -67,6 +70,7 @@ class ClassificationStoic21TestCase(unittest.TestCase):
     def tearDown(self):
         # Delete temporary directories
         shutil.rmtree(self.root)
+        pass
 
 
 if __name__ == '__main__':
