@@ -193,8 +193,7 @@ class Duke:
                    'DCE_mix_ph3',
                    'DCE_mix_ph4',
                    'DCE_mix',
-                   'DCE_mix_ph',
-                   'MASK']
+                   'DCE_mix_ph']
 
         static_pipeline_steps = [
             # step 1: map sample_ids to
@@ -203,32 +202,26 @@ class Duke:
             # step 2: read files info for the sequences
             (ops_mri.OpExtractDicomsPerSeq(seq_ids=seq_ids, series_desc_2_sequence_map=series_desc_2_sequence_map,
                                            use_order_indicator=False),
-             dict(key_in='data.input.mri_path',
-                  key_out_sequences='data.input.sequence_ids',
-                  key_out_path_prefix='data.input.path.',
-                  key_out_dicoms_prefix='data.input.dicoms.',
-                  key_out_series_num_prefix='data.input.series_num.')
-             ),
+                 dict(key_in='data.input.mri_path',
+                      key_out_seq_ids='data.input.seq_ids',
+                      key_out_sequence_prefix='data.input.sequence.')),
             # step 3: Load STK volumes of MRI sequences
-            (ops_mri.OpLoadDicomAsStkVol(reverse_order=False, is_file=False),
-             dict(key_in_seq_ids='data.input.sequence_ids',
-                  key_in_path_prefix='data.input.path.',
-                  key_in_dicoms_prefix='data.input.dicoms.',
-                  key_out_prefix='data.input.volumes.')),
+            (ops_mri.OpLoadDicomAsStkVol(),
+                 dict(key_in_seq_ids='data.input.seq_ids',
+                      key_sequence_prefix='data.input.sequence.')),
             # step 4: group DCE sequnces into DCE_mix
             (ops_mri.OpGroupDCESequences(),
-             dict(key_sequence_ids='data.input.sequence_ids',
-                  key_path_prefix='data.input.path.',
-                  key_series_num_prefix='data.input.series_num.',
-                  key_volumes_prefix='data.input.volumes.')),
+                 dict(key_seq_ids='data.input.seq_ids',
+                      key_sequence_prefix='data.input.sequence.'
+                      )),
 
             # step 5: select single volume from DCE_mix sequence
-            (ops_mri.OpSelectVolumes(get_indexes_func=select_series_func, delete_input_volumes=True),
-             dict(key_in_sequence_ids='data.input.sequence_ids',
-                  key_in_path_prefix='data.input.path.',
-                  key_in_volumes_prefix='data.input.volumes.',
-                  key_out_paths='data.input.selected_paths',
-                  key_out_volumes='data.input.selected_volumes')),
+            (ops_mri.OpSelectVolumes(get_indexes_func=select_series_func, selected_seq_ids=['DCE_mix'],
+                                     delete_input_volumes=True),
+                dict( key_in_seq_ids='data.input.seq_ids',
+                      key_in_sequence_prefix='data.input.sequence.',
+                      key_out_volumes='data.input.selected_volumes',
+                      key_out_volumes_info='data.input.selected_volumes_info')),
 
             # step 6: set reference volume to be first and register other volumes with respect to it
             (ops_mri.OpResampleStkVolsBasedRef(reference_inx=0, interpolation='bspline'),
@@ -244,28 +237,43 @@ class Duke:
             # step 8:
             static_pipeline_steps += [(ops_mri.OpRescale4DStk(), dict(key='data.input.volume4D'))]
 
+        static_pipeline_steps += [
+            # for debug - old version
+            # (ops_read.OpReadDataframe(data=get_duke_annotations_df(), key_column='Patient ID'),
+            #  dict(key_out_group='data.input.patch_annotations2')),
+
+            # step 9: generate lesion properties for each sample id
+            (ops_read.OpReadDataframe(data=get_duke_raw_annotations_df(data_dir), key_column='Patient ID'),
+             dict(key_out_group='data.input.annotations')),
+        ]
+
+        annotations_df = get_duke_annotations_df()
         if output_patch_volumes:
             static_pipeline_steps += [
-                # for debug - old version
-                # (ops_read.OpReadDataframe(data=get_duke_annotations_df(), key_column='Patient ID'),
-                #  dict(key_out_group='data.input.patch_annotations2')),
-
-                # step 9: generate lesion properties for each sample id
-                (ops_read.OpReadDataframe(data=get_duke_raw_annotations_df(data_dir), key_column='Patient ID'),
-                 dict(key_out_group='data.input.annotations')),
-
-                (ops_mri.OpExtractLesionPropFromBBoxAnotationV2(),
+                # add radiomics features
+                (ops_mri.OpExtractPatchAnotations(),
                  dict(key_in_ref_volume='data.input.ref_volume',
                       key_in_annotations='data.input.annotations',
                       key_out='data.input.patch_annotations')),
 
+                # # step 9: read tabular data for each patch
+                # (ops_read.OpReadDataframe(data=annotations_df, key_column='Patient ID'), dict(key_out_group='data.input.patch_annotations')),
+
+                # add
+                (ops_mri.OpAddMaskFromBoundingBoxAsLastChannel(name_suffix=''),
+                     dict(key_volume4D='data.input.volume4D',
+                          key_in_ref_volume='data.input.ref_volume',
+                          key_in_patch_annotations='data.input.patch_annotations')),
+
                 # step 10: create patch volumes: (i) fixed size around center of annotatins (orig), and (ii) entire annotations
-                (ops_mri.OpCreatePatchVolumes(lsn_shape=(9, 100, 100), lsn_spacing=(1, 0.5, 0.5), delete_input_volumes=not output_stk_volumes),
+                (ops_mri.OpCreatePatchVolumes(lsn_shape=(9, 100, 100), lsn_spacing=(1, 0.5, 0.5),
+                                              crop_based_annotation=True,
+                                              name_suffix='',
+                                              delete_input_volumes=not output_stk_volumes),
                  dict(key_in_volume4D='data.input.volume4D',
                       key_in_ref_volume='data.input.ref_volume',
                       key_in_patch_annotations='data.input.patch_annotations',
-                      key_out_cropped_vol='data.input.patch_volume_orig',
-                      key_out_cropped_vol_by_mask='data.input.patch_volume'))
+                      key_out='data.input.patch_volume'))
             ]
         if output_stk_volumes:
             static_pipeline_steps += [
@@ -577,7 +585,7 @@ class DukeLesionProperties(Duke):
              dict(keys=['data.input.volume4D', 'data.input.ref_volume'])),
             (ops_read.OpReadDataframe(data=annotations_df, key_column='Patient Information:Patient ID'),
              dict(key_out_group='data.input.annotations')),
-            (ops_mri.OpExtractLesionPropFromBBoxAnotationV2(),
+            (ops_mri.OpExtractPatchAnotations(),
              dict(key_in_ref_volume='data.input.ref_volume',
                   key_in_annotations='data.input.annotations',
                   key_out='data.lesion_properties'))]

@@ -24,6 +24,9 @@ os.environ["PROSTATEX_DATA_PATH"] = "/projects/msieve/MedicalSieve/PatientData/P
 import getpass
 from typing import OrderedDict
 from fuse.utils.file_io.file_io import load_pickle
+from fuse.utils.rand.seed import Seed
+
+
 
 
 import torch
@@ -57,8 +60,6 @@ from fuse.dl.models.heads.head_1d_classifier import Head1dClassifier
 from examples.fuse_examples.imaging.classification.prostate_x.backbone_3d_multichannel import Fuse_model_3d_multichannel,ResNet
 
 
-
-
 def main():
     mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
 
@@ -72,7 +73,7 @@ def main():
     force_gpus = None  # [0]
     GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
-    PATHS, TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS = get_setting(mode)
+    PATHS, TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS = get_setting(mode,  n_folds=8, heldout_fold=5)
     print(PATHS)
 
     RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
@@ -92,7 +93,7 @@ def main():
         run_eval(paths=PATHS, eval_common_params=EVAL_COMMON_PARAMS)
 
 
-def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=5, heldout_fold=4):
+def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=8, heldout_fold=7):
     ###########################################################################################################
     # Fuse
     ###########################################################################################################
@@ -101,28 +102,34 @@ def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=
     ##########################################
 
     debug = FuseDebug(mode)
-
+    input_channels_num = 5
     ##########################################
     # Output Paths
     ##########################################
     assert "PROSTATEX_DATA_PATH" in os.environ, "Expecting environment variable PROSTATEX_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
     ROOT = f'/projects/msieve_dev3/usr/{getpass.getuser()}/fuse_examples/prostate_x'
-    model_dir = os.path.join(ROOT, 'model_dir')
+
 
     if mode == 'debug':
-        data_split_file = os.path.join(ROOT, 'prostate_x_folds_debug.pkl')
+        data_split_file = os.path.join(ROOT, f'prostate_x_{n_folds}folds_debug.pkl')
         selected_sample_ids = prostate_x.get_samples_for_debug(n_pos=10, n_neg=10, label_type=label_type)
         cache_dir = os.path.join(ROOT, 'cache_dir_debug')
+        model_dir = os.path.join(ROOT, 'model_dir_debug')
         num_workers = 0
         batch_size = 2
         num_epoch = 5
     else:
-        data_split_file =  os.path.join(ROOT, 'dataset_prostate_x_folds_ver29062021_seed1.pickle')
+
+        # data_split_file =  os.path.join(ROOT, 'dataset_prostate_x_folds_ver29062021_seed1.pickle')
+        data_split_file = os.path.join(ROOT, f'prostatex_{n_folds}folds.pkl')
         selected_sample_ids = None
-        cache_dir = os.path.join(ROOT, 'cache_dir')
+        cache_dir = os.path.join(ROOT, f'cache_dir_v2')
+        model_dir = os.path.join(ROOT,f'model_dir_v2')
+
+
         num_workers = 16
         batch_size = 50
-        num_epoch = 20#150
+        num_epoch = 150
     PATHS = {'model_dir': model_dir,
              'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
              'cache_dir': cache_dir,
@@ -130,7 +137,7 @@ def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=
              'data_dir': os.environ["PROSTATEX_DATA_PATH"],
              'inference_dir': os.path.join(model_dir, 'infer_dir'),
              'eval_dir': os.path.join(model_dir, 'eval_dir'),
-             }  #todo: add annotations file
+             }
 
     ##########################################
     # Train Common Params
@@ -200,7 +207,7 @@ def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=
 
     # backbone parameters
     TRAIN_COMMON_PARAMS['backbone_model_dict'] = \
-        {'input_channels_num': 4,
+        {'input_channels_num': input_channels_num,
          }
 
     ######################################
@@ -227,6 +234,8 @@ def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=
 # Train Template
 #################################
 def run_train(paths: dict, train_params: dict):
+    Seed.set_seed(222, False)
+
     # ==============================================================================
     # Logger
     # ==============================================================================
@@ -257,7 +266,8 @@ def run_train(paths: dict, train_params: dict):
     params = dict(label_type=train_params['classification_task'], data_dir=paths["data_dir"], cache_dir=paths["cache_dir"],
                                     reset_cache=reset_cache, sample_ids=train_params['data.selected_sample_ids'],
                                     num_workers=train_params['data.train_num_workers'],
-                                    cache_kwargs=cache_kwargs)
+                                    cache_kwargs=cache_kwargs,
+                  verbose=False)
 
     dataset_all = prostate_x.ProstateX.dataset(**params)
     folds = dataset_balanced_division_to_folds(dataset=dataset_all,
@@ -274,7 +284,6 @@ def run_train(paths: dict, train_params: dict):
 
     params['sample_ids'] = train_sample_ids
     params['reset_cache'] = False
-    params['cache_kwargs'] = None
     train_dataset = prostate_x.ProstateX.dataset(**params)
     # for _ in train_dataset:
     #     pass
@@ -310,7 +319,7 @@ def run_train(paths: dict, train_params: dict):
     # ==============================================================================
     lgr.info('Model:', {'attrs': 'bold'})
 
-    conv_inputs = (('data.input.patch_volume', 1),) #todo: discuss with Tal
+    conv_inputs = (('data.input.patch_volume_orig', 1),) #todo: discuss with Tal
     model = Fuse_model_3d_multichannel(
     conv_inputs=conv_inputs, #previously 'data.input'. could be either 'data.input.patch_volume' or  'data.input.patch_volume_orig'
     backbone=ResNet(conv_inputs=conv_inputs, ch_num=train_params['backbone_model_dict']['input_channels_num']),
@@ -469,6 +478,50 @@ def ask_user(yes_no_question):
     while res not in ['y', 'n']:
         res = input(f'{yes_no_question}? [y/n]')
     return res =='y'
+#
+# def get_augmentation_pipeline():
+#     image_channels = [list(range(0, slice_num))]
+#     aug_pipeline = [
+#         [
+#             ('data.input',),
+#             rotation_in_3d,
+#             {'z_rot': Uniform(-5.0, 5.0), 'y_rot': Uniform(-5.0, 5.0), 'x_rot': Uniform(-5.0, 5.0)},
+#             {'apply': RandBool(0.5)}
+#         ],
+#         [
+#             ('data.input',),
+#             squeeze_3d_to_2d,
+#             {'axis_squeeze': 'z'},
+#             {}
+#         ],
+#         [
+#             ('data.input',),
+#             aug_op_affine,
+#             {'rotate': Uniform(0, 360.0),
+#              'translate': (RandInt(-4, 4), RandInt(-4, 4)),
+#              'flip': (RandBool(0.5), RandBool(0.5)),
+#              'scale': Uniform(0.9, 1.1),
+#              },
+#             {'apply': RandBool(0.5)}
+#         ],
+#         [
+#             ('data.input',),
+#             aug_op_affine,
+#             {'rotate': Uniform(-3.0, 3.0),
+#              'translate': (RandInt(-2, 2), RandInt(-2, 2)),
+#              'flip': (False, False),
+#              'scale': Uniform(0.9, 1.1),
+#              'channels': Choice(image_channels, probabilities=None)},
+#             {'apply': RandBool(0.5) if train_common_params['data.aug.phase_misalignment'] else 0}
+#         ],
+#         [
+#             ('data.input',),
+#             unsqueeze_2d_to_3d,
+#             {'channels': num_channels, 'axis_squeeze': 'z'},
+#             {}
+#         ],
+#     ]
+#     augmentor = FuseAugmentorDefault(augmentation_pipeline=aug_pipeline)
 ######################################
 # Run
 ######################################

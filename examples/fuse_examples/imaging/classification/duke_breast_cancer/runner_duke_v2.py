@@ -109,7 +109,7 @@ def get_setting(mode, label_type=duke.DukeLabelType.STAGING_TUMOR_SIZE, n_folds=
     ##########################################
     assert "DUKE_DATA_PATH" in os.environ, "Expecting environment variable DUKE_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
     ROOT = duke_breast_cancer.get_duke_user_dir()
-    model_dir = os.path.join(ROOT, 'model_dir')
+
     data_dir = os.environ["DUKE_DATA_PATH"]
 
     if mode == 'debug':
@@ -118,21 +118,26 @@ def get_setting(mode, label_type=duke.DukeLabelType.STAGING_TUMOR_SIZE, n_folds=
                                                          sample_ids=duke.get_selected_sample_ids())
         print(selected_sample_ids)
         cache_dir = os.path.join(ROOT, 'cache_dir_debug')
-        num_workers = 10
+        model_dir = os.path.join(ROOT, 'model_dir_debug')
+        num_workers = 0
         batch_size = 2
         num_epoch = 5
     else:
         if MICHAL_VERSION:
             data_split_file = os.path.join(ROOT, 'DUKE_folds_v2.pkl')
-            cache_dir = os.path.join(ROOT, 'cache_dir_v2')
+            cache_dir = os.path.join(ROOT, 'cache_dir_v3')
+            model_dir = os.path.join(ROOT, 'model_dir_v3')
+            selected_sample_ids = None
         else:
             data_split_file = os.path.join(ROOT, 'DUKE_folds_fuse2_11102021TumorSize_seed1.pkl')
             cache_dir = os.path.join(ROOT, 'cache_dir')
-        selected_sample_ids = None
+            model_dir = os.path.join(ROOT, 'model_dir')
+            selected_sample_ids = duke.get_selected_sample_ids()
 
         num_workers = 16
         batch_size = 50
         num_epoch = 20#150
+
     PATHS = {'model_dir': model_dir,
              'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
              'cache_dir': cache_dir,
@@ -237,7 +242,7 @@ def get_setting(mode, label_type=duke.DukeLabelType.STAGING_TUMOR_SIZE, n_folds=
 # Train Template
 #################################
 def run_train(paths: dict, train_params: dict):
-    Seed.set_seed(0, False)
+    Seed.set_seed(222, False)
     # ==============================================================================
     # Logger
     # ==============================================================================
@@ -247,8 +252,6 @@ def run_train(paths: dict, train_params: dict):
 
     lgr.info(f'model_dir={paths["model_dir"]}', {'color': 'magenta'})
     lgr.info(f'cache_dir={paths["cache_dir"]}', {'color': 'magenta'})
-
-
 
 
     # ==============================================================================
@@ -268,7 +271,8 @@ def run_train(paths: dict, train_params: dict):
     params = dict(label_type=train_params['classification_task'], data_dir=paths["data_dir"], cache_dir=paths["cache_dir"],
                                     reset_cache=reset_cache, sample_ids=train_params['data.selected_sample_ids'],
                                     num_workers=train_params['data.train_num_workers'],
-                                    cache_kwargs=cache_kwargs)
+                                    cache_kwargs=cache_kwargs,
+                                    verbose=False)
 
     dataset_all = duke.Duke.dataset(**params)
     folds = dataset_balanced_division_to_folds(dataset=dataset_all,
@@ -285,7 +289,6 @@ def run_train(paths: dict, train_params: dict):
 
     params['sample_ids'] = train_sample_ids
     params['reset_cache'] = False
-    params['cache_kwargs'] = None
     train_dataset = duke.Duke.dataset(**params)
     # for _ in train_dataset:
     #     pass
@@ -297,7 +300,7 @@ def run_train(paths: dict, train_params: dict):
                                        balanced_class_name='data.ground_truth',
                                        num_balanced_classes=train_params['class_num'],
                                        batch_size=train_params['data.batch_size'],
-                                       workers=train_params['data.train_num_workers']
+                                       workers= train_params['data.train_num_workers']
                                   )
     lgr.info(f'- Create sampler: Done')
 
