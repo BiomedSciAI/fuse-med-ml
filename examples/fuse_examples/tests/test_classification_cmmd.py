@@ -18,7 +18,6 @@ Created on June 30, 2021
 """
 # FIXME: data_package
 import multiprocessing
-from fuse_examples.imaging.classification.cmmd.runner import run_train, run_eval, run_infer
 from fuse.utils import NDict
 import unittest
 import shutil
@@ -26,12 +25,18 @@ import tempfile
 import os
 from fuse.utils.gpu import choose_and_enable_multiple_gpus
 from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
-assert "CMMD_DATA_PATH" in os.environ, "Expecting environment variable CMMD_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
 
-# @unittest.skip("Not ready yet")
-# TODO:
-# 1. Get the path to data as an env variable
-# 2. Consider reducing the number of samples
+        
+# os env variable CMMD_DATA_PATH is a path to the stored dataset location
+# dataset should be download from https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508
+# download requires NBIA data retriever https://wiki.cancerimagingarchive.net/display/NBIA/Downloading+TCIA+Images
+# put on the folliwing in the main folder  - 
+# 1. CMMD_clinicaldata_revision.csv which is a converted version of CMMD_clinicaldata_revision.xlsx 
+# 2. folder named CMMD which is the downloaded data folder
+if "CMMD_DATA_PATH" in os.environ:
+    from fuse_examples.imaging.classification.cmmd.runner import run_train, run_eval, run_infer
+
+@unittest.skipIf("CMMD_DATA_PATH" not in os.environ, "define environment variable 'CMMD_DATA_PATH' to run this test")
 class ClassificationMGCmmdTestCase(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.mkdtemp()
@@ -58,13 +63,6 @@ class ClassificationMGCmmdTestCase(unittest.TestCase):
                       'manager_best_epoch_source': {'source': 'metrics.auc.macro_avg', 'optimization': 'max', 'on_equal_values': 'better'}},
             'infer': {'infer_filename': 'validation_set_infer.gz', 'infer_folds': [4], 'target': 'classification', 'checkpoint': 'best', 'num_workers': 1}})
         print(self.cfg)
-        
-        # Path to the stored dataset location
-        # dataset should be download from https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508
-        # download requires NBIA data retriever https://wiki.cancerimagingarchive.net/display/NBIA/Downloading+TCIA+Images
-        # put on the folliwing in the main folder  - 
-        # 1. CMMD_clinicaldata_revision.csv which is a converted version of CMMD_clinicaldata_revision.xlsx 
-        # 2. folder named CMMD which is the downloaded data folder
 
     @run_in_subprocess()
     def test_runner(self):
