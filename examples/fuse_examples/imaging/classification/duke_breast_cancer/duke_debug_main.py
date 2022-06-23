@@ -1,8 +1,17 @@
 # import nibabel as nib
-
+from examples.fuse_examples.imaging.classification import duke_breast_cancer
 from fuse.utils.file_io.file_io import load_pickle, save_pickle_safe
 from fuseimg.datasets import duke
 from fuse.data.utils.sample import create_initial_sample
+from deepdiff import DeepDiff
+from fuse.data.ops import ops_cast
+import torch
+from deepdiff import DeepDiff
+import SimpleITK as sitk
+from fuse.utils import file_io
+
+
+
 
 import time
 import numpy as np
@@ -14,25 +23,60 @@ os.environ["DUKE_DATA_PATH"] = "/projects/msieve2/Platform/BigMedilytics/Data/Du
 
 import pandas as pd
 
+import matplotlib.pyplot as plt
+
 def main():
 
     timestr = time.strftime("%Y%m%d-%H%M%S")
+    if False:
+        sample_id = 'Breast_MRI_900'
+
+
+        static_pipeline = duke.Duke.static_pipeline(data_dir=os.environ["DUKE_DATA_PATH"],
+                                  select_series_func=duke.get_selected_series_index)
+        # k = 5  #ok
+        # k = 8
+        # static_pipeline._ops_and_kwargs = static_pipeline._ops_and_kwargs[:k]
+        # static_pipeline._op_ids = static_pipeline._op_ids[:k]
+
+        sample_dict = create_initial_sample(sample_id)
+        sample_dict = static_pipeline(sample_dict)
+        s = replace_stk_with_numpy(sample_dict.flatten())
+        s_old = file_io.load_pickle(f'/tmp/ozery/s_old_stat.pkl')
+        # x_new = s['data.input.volume4D']
+        # x_old = s_old['data.input.volume4D'][:,:,:,0]
+        x_new = s['data.input.patch_volume']
+        x_old  = s_old['data.input.patch_volume']
+        print("ok", np.abs(x_new-x_old).max())
+        # deep_diff_config = dict(ignore_nan_inequality=True)  # , math_epsilon=0.0001)
+        # diff = DeepDiff(s_old, s, **deep_diff_config)
+        # if len(diff) > 0:
+        #     print(diff.keys())
 
     if True:
-        # sample_ids=['Breast_MRI_900']
-        sample_ids =  duke.get_samples_for_debug(data_dir=os.environ["DUKE_DATA_PATH"], n_pos=10, n_neg=10,
-                                                 label_type=duke.DukeLabelType.STAGING_TUMOR_SIZE)
+        sample_ids = ['Breast_MRI_900']
+
+        # sample_ids =  duke.get_samples_for_debug(data_dir=os.environ["DUKE_DATA_PATH"], n_pos=10, n_neg=10,
+        #                                          label_type=duke.DukeLabelType.STAGING_TUMOR_SIZE)
         duke_dataset = duke.Duke.dataset(data_dir=os.environ["DUKE_DATA_PATH"], label_type=duke.DukeLabelType.STAGING_TUMOR_SIZE,
                                          cache_dir=None, num_workers=0, sample_ids=sample_ids)
         print("finished defining dataset, starting run")
         arr = []
         rows = []
+        deep_diff_config = dict(ignore_nan_inequality=True)  # , math_epsilon=0.0001)
         for d in duke_dataset:
-            d2 = d.flatten()
+            d2 = replace_tensors_with_numpy(d.flatten())
             row = (d['data.sample_id'], d['data.ground_truth'])
             rows.append(row)
             print("*******", row)
             arr +=[d2]
+            output_file = f'/tmp/ozery/s{sample_ids[0]}.pkl'
+            d2_old = replace_tensors_with_numpy(load_pickle( output_file).flatten())
+            diff = DeepDiff(d2_old, d2, **deep_diff_config)
+            if len(diff) > 0:
+                print(sample_ids[0], "has diff")
+            print("wrote", output_file)
+            break
         print(len(arr))
         print(pd.DataFrame(rows, columns=['sample_id', 'gt']))
         print(arr[0].keys())
@@ -52,6 +96,16 @@ def main():
             # save_pickle_safe(sample_dict, output_file)
             # print("saved", output_file)
 
+def replace_tensors_with_numpy(d):
+    d2 = {}
+    for k, v in d.items():
+
+        if isinstance(v, torch.Tensor):
+            v = ops_cast.Cast.to_numpy(v)
+            print(k, "tensor => numpy")
+        d2[k] = v
+
+    return d2
 def derive_fuse2_folds_files():
     input_filename_pattern = os.path.join(duke.DUKE_PROCESSED_FILE_DIR, "dataset_DUKE_folds_ver{name}_seed1.pickle")
     output_path = f'/projects/msieve_dev3/usr/{getpass.getuser()}/fuse_examples/duke'
@@ -104,19 +158,75 @@ def compare_sample_dicts(file1, file2):
     #     print(s1, s2, s2 in d2.keys(), d1[s1]==d2[s2])
 
 
-def print_excluded_patients():
+def get_excluded_patients(do_print=True):
     df = duke.get_duke_annotations_df()
     all_sample_ids = duke.Duke.sample_ids()
     print(df.shape, df.columns[0], len(all_sample_ids))
     excluded_sample_ids = sorted(list(set(all_sample_ids) - set(df.iloc[:,0].values)))
-    print("excluded:",len(excluded_sample_ids))
-    print([s[11:] for s in excluded_sample_ids])
+    if do_print:
+        print("excluded:",len(excluded_sample_ids))
+        print([s[11:] for s in excluded_sample_ids])
+    return excluded_sample_ids
+
+def check_fuse_results():
+    data_dir = duke_breast_cancer.get_duke_user_dir()
+    filename = os.path.join(data_dir,'model_dir/infer_dir/validation_set_infer.gz' )
+    df = load_pickle(filename)
+    print(df.shape, df.columns)
+    excluded_sample_ids = get_excluded_patients(do_print=False)
+    excluded_in_df = set(df.id).intersection(set(excluded_sample_ids))
+    print("ok")
+
+def visualize_image_from_cache():
+    data_dir = duke_breast_cancer.get_duke_user_dir()
+    data_dir2 = os.path.join(data_dir, 'cache_dir/duke_cache_ver0/hash_b03e85135f7b2b2ad5aa02b372920317')
+    filename = os.path.join(data_dir2, 'out_sample_id@ffebf1d99a8358183f7b031c842c7c84.pkl.gz')
+    sample_dict = load_pickle(filename)
+    dynamic_pipeline = duke.Duke.dynamic_pipeline(include_patch_by_mask=True, include_patch_fixed=True, verbose=True)
+    sample_dict = dynamic_pipeline(sample_dict)
+
+    print(type(sample_dict))
+
+def replace_tensors_with_numpy(d):
+    d2 = {}
+    for k, v in d.items():
+
+        if isinstance(v, torch.Tensor):
+            v = ops_cast.Cast.to_numpy(v)
+            print(k, "tensor => numpy")
+        d2[k] = v
+    return d2
+
+def replace_stk_with_numpy(d):
+    d2 = {}
+    for k, v in d.items():
+        if isinstance(v, sitk.Image):
+            v = sitk.GetArrayFromImage(v)
+            print(k, "tensor => numpy")
+        d2[k] = v
+    return d2
+
+def f(d):
+    from fuse.utils import file_io
+    file_io.save_pickle_safe(d, '/tmp/ozery/s_old.pkl')
+    from fuse.utils import file_io
+    s_old = file_io.load_pickle('/tmp/ozery/s_old.pkl')
+    s = None
+
+    from deepdiff import DeepDiff
+    s_old = file_io.load_pickle('/tmp/ozery/s_old.pkl')
+    deep_diff_config = dict(ignore_nan_inequality=True)  # , math_epsilon=0.0001)
+    diff = DeepDiff(s_old, s, **deep_diff_config)
+    if len(diff) > 0:
+        print(diff.keys())
 if __name__ == "__main__":
     baseline_output_file = '/user/ozery/output/baseline1.pkl'  # '/tmp/f2.pkl'
     output_file = '/user/ozery/output/f5.pkl'
-    # main()
-    print_excluded_patients()
+    main()
+    # get_excluded_patients(do_print=True)
 
 
     # compare_sample_dicts('/user/ozery/output/Breast_MRI_900_v0.pkl','/user/ozery/output/Breast_MRI_900_20220531-232611.pkl')
     # derive_fuse2_folds_files()
+    # check_fuse_results()
+    # visualize_image_from_cache()
