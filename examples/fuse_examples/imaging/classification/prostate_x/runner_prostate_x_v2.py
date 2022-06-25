@@ -129,7 +129,7 @@ def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=
 
         num_workers = 16
         batch_size = 50
-        num_epoch = 150
+        num_epoch = 50
     PATHS = {'model_dir': model_dir,
              'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
              'cache_dir': cache_dir,
@@ -266,8 +266,7 @@ def run_train(paths: dict, train_params: dict):
     params = dict(label_type=train_params['classification_task'], data_dir=paths["data_dir"], cache_dir=paths["cache_dir"],
                                     reset_cache=reset_cache, sample_ids=train_params['data.selected_sample_ids'],
                                     num_workers=train_params['data.train_num_workers'],
-                                    cache_kwargs=cache_kwargs,
-                  verbose=False)
+                                    cache_kwargs=cache_kwargs, train=False, verbose=False)
 
     dataset_all = prostate_x.ProstateX.dataset(**params)
     folds = dataset_balanced_division_to_folds(dataset=dataset_all,
@@ -284,10 +283,12 @@ def run_train(paths: dict, train_params: dict):
 
     params['sample_ids'] = train_sample_ids
     params['reset_cache'] = False
+    params['train'] = True
     train_dataset = prostate_x.ProstateX.dataset(**params)
     # for _ in train_dataset:
     #     pass
     params['sample_ids'] = validation_sample_ids
+    params['train'] = False
     validation_dataset = prostate_x.ProstateX.dataset(**params)
 
     lgr.info(f'- Create sampler:')
@@ -319,7 +320,7 @@ def run_train(paths: dict, train_params: dict):
     # ==============================================================================
     lgr.info('Model:', {'attrs': 'bold'})
 
-    conv_inputs = (('data.input.patch_volume_orig', 1),) #todo: discuss with Tal
+    conv_inputs = (('data.input.patch_volume', 1),)
     model = Fuse_model_3d_multichannel(
     conv_inputs=conv_inputs, #previously 'data.input'. could be either 'data.input.patch_volume' or  'data.input.patch_volume_orig'
     backbone=ResNet(conv_inputs=conv_inputs, ch_num=train_params['backbone_model_dict']['input_channels_num']),
@@ -425,8 +426,10 @@ def run_infer(paths: dict, infer_common_params: dict):
     for fold in infer_common_params["data.infer_folds"]:
         infer_sample_ids += folds[fold]
 
-    validation_dataset = prostate_x.ProstateX.dataset(label_type=infer_common_params['classification_task'], data_dir=paths["data_dir"], cache_dir=paths["cache_dir"],
+    params = dict(label_type=infer_common_params['classification_task'], data_dir=paths["data_dir"],
+                                            cache_dir=paths["cache_dir"], train=False,
                                            sample_ids=infer_sample_ids)
+    validation_dataset = prostate_x.ProstateX.dataset(**params)
 
     # dataloader
     validation_dataloader = DataLoader(dataset=validation_dataset, batch_size=infer_common_params['data.batch_size'], collate_fn=CollateDefault(),

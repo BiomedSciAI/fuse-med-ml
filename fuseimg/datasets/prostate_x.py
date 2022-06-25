@@ -16,6 +16,13 @@ from fuse.data.utils.sample import get_sample_id
 from fuse.utils import NDict
 from fuseimg.data.ops import ops_mri
 from fuse.data.ops import ops_common
+from fuse.data.ops.ops_aug_common import OpSample, OpRandApply
+from fuse.utils.rand.param_sampler import RandBool, RandInt, Uniform, Choice
+
+
+from fuseimg.data.ops.aug import geometry, geometry3d
+from fuse.utils.rand import param_sampler
+
 
 
 
@@ -78,6 +85,8 @@ class ProstateXLabelType(Enum):
 
 class ProstateX:
     ProstateX_DATASET_VER = 0
+    PATCH_XY_SIZE = 74
+    PATCH_Z_SIZE = 13
 
     @staticmethod
     def sample_ids():
@@ -119,19 +128,13 @@ class ProstateX:
                                            ),
                                 dict(key=None)),
 
-            # (ops_mri.OpGroupDCESequences(),
-            #  dict(key_sequence_ids='data.input.sequence_ids',
-            #       key_path_prefix='data.input.path.',
-            #       key_series_num_prefix='data.input.series_num.',
-            #       key_volumes_prefix='data.input.volumes.')),
-
-            # step 5.5: read ktrans
+            # step 5: read ktrans
             (ops_mri.OpReadSTKImage(seq_id='ktrans',
                                     get_image_file=partial(get_ktrans_image_file_from_sample_id,
                                                                             data_dir=root_path)),
                 dict(key_sequence_prefix='data.input.sequence.', key_seq_ids='data.input.seq_ids')),
 
-            # step 5: select single volume from b_mix/T2 sequence
+            # step 6: select single volume from b_mix/T2 sequence
             (ops_mri.OpSelectVolumes(get_indexes_func=select_series_func, delete_input_volumes=True,
                                      selected_seq_ids=['T2', 'b', 'ADC', 'ktrans']),
              dict(key_in_seq_ids='data.input.seq_ids',
@@ -140,39 +143,41 @@ class ProstateX:
                   key_out_volumes_info='data.input.selected_volumes_info',
                   )),
 
+            # step 7
             (ops_common.OpLambda(func=partial(fix_certain_b_sequences,
                                               key_in_volumes_info='data.input.selected_volumes_info',
                                               key_volumes='data.input.selected_volumes')), dict(key=None)),
 
-            # step 6: set reference volume to be first and register other volumes with respect to it
+            # step 8: set reference volume to be first and register other volumes with respect to it
             (ops_mri.OpResampleStkVolsBasedRef(reference_inx=0, interpolation='bspline'),
              dict(key='data.input.selected_volumes')),
 
-            # step 7: create a single 4D volume from all the sequences (4th channel is the sequence)
+            # step 9: create a single 4D volume from all the sequences (4th channel is the sequence)
             (ops_mri.OpStackList4DStk(delete_input_volumes=True), dict(key_in='data.input.selected_volumes',
                                                                            key_out_volume4d='data.input.volume4D',
                                                                            key_out_ref_volume='data.input.ref_volume')),
 
             ]
         if with_rescale:
-            # step 8:
+            # step 10:
             static_pipeline_steps += [(ops_mri.OpRescale4DStk(), dict(key='data.input.volume4D'))]
 
         static_pipeline_steps += [
-            # step 9: read tabular data for each patch
+            # step 11: read tabular data for each patch
             (ops_read.OpReadDataframe(data=annotations_df, key_column='Sample ID'), dict(key_out_group='data.input.patch_annotations')),
 
-            # step 10: create patch volumes: (i) fixed size around center of annotatins (orig), and (ii) entire annotations
-            (ops_mri.OpCreatePatchVolumes(lsn_shape=(13, 74, 74), name_suffix='_T0', pos_key='pos', lsn_spacing=(3, 0.5, 0.5),
+            # step 12: create patch volumes: (i) fixed size around center of annotatins (orig), and (ii) entire annotations
+            (ops_mri.OpCreatePatchVolumes(lsn_shape=(ProstateX.PATCH_Z_SIZE, ProstateX.PATCH_XY_SIZE, ProstateX.PATCH_XY_SIZE),
+                                          name_suffix='_T0', pos_key='pos', lsn_spacing=(3, 0.5, 0.5),
                                           crop_based_annotation=False, delete_input_volumes=not keep_stk_volumes),
              dict(key_in_volume4D='data.input.volume4D',
                   key_in_ref_volume='data.input.ref_volume',
                   key_in_patch_annotations='data.input.patch_annotations',
-                  key_out='data.input.patch_volume_orig')),
+                  key_out='data.input.patch_volume')),
         ]
         if keep_stk_volumes:
             static_pipeline_steps += [
-                # step 11: move to ndarray - to allow quick saving
+                # step 13: move to ndarray - to allow quick saving
                 (ops_mri.OpStk2Dict(),
                  dict(keys=['data.input.volume4D','data.input.ref_volume']))
                 ]
@@ -181,8 +186,8 @@ class ProstateX:
         return static_pipeline
 
     @staticmethod
-    def dynamic_pipeline(label_type: Optional[ProstateXLabelType]=None, verbose:Optional[bool]=True):
-        volume_key = 'data.input.patch_volume_orig'
+    def dynamic_pipeline(train: bool, label_type: Optional[ProstateXLabelType]=None, num_channels: int=5, verbose:Optional[bool]=True):
+        volume_key = 'data.input.patch_volume'
         dynamic_steps = [(ops_cast.OpToTensor(), dict(key=volume_key, dtype=torch.float32))]
 
         keys_2_keep =[volume_key]
@@ -194,14 +199,89 @@ class ProstateX:
             keys_2_keep.append(key_ground_truth)
 
         dynamic_steps.append((ops_mri.OpSelectKeys(), dict(keys_2_keep=keys_2_keep)))
+
+        # augmentation
+
+        if train:
+            dynamic_steps += [
+                # [
+                #     ('data.input',),
+                #     rotation_in_3d,
+                #     {'z_rot': Uniform(-5.0, 5.0), 'y_rot': Uniform(-5.0, 5.0), 'x_rot': Uniform(-5.0, 5.0)},
+                #     {'apply': RandBool(0.5)}
+                # ],
+                (OpRandApply(OpSample(geometry3d.OpRotation3D()), 0.5),
+                 dict(key='data.input.patch_volume',
+                        ax1_rot = Uniform(-5.0, 5.0),
+                        ax2_rot = Uniform(-5.0, 5.0),
+                        ax3_rot = Uniform(-5.0, 5.0))),
+
+                # [
+                #     ('data.input',),
+                #     squeeze_3d_to_2d,
+                #     {'axis_squeeze': 'z'},
+                #     {}
+                # ],
+                (geometry.OpAugSqueeze3Dto2D(), dict(key='data.input.patch_volume', axis_squeeze=1)),
+
+                # [
+                #     ('data.input',),
+                #     aug_op_affine,
+                #     {'rotate': Uniform(0, 360.0),
+                #      'translate': (RandInt(-4, 4), RandInt(-4, 4)),
+                #      'flip': (RandBool(0.5), RandBool(0.5)),
+                #      'scale': Uniform(0.9, 1.1),
+                #      },
+                #     {'apply': RandBool(0.5)}
+                # ],
+                (OpRandApply(OpSample(geometry.OpAugAffine2D()), 0.5), dict(
+                    key="data.input.patch_volume",
+                    rotate=Uniform(0, 360.0),
+                    scale=Uniform(0.9, 1.1),
+                    flip=(RandBool(0.5), RandBool(0.5)),
+                    translate=(RandInt(-4, 4), RandInt(-4, 4))
+                )),
+
+                # [
+                #     ('data.input',),
+                #     aug_op_affine,
+                #     {'rotate': Uniform(-3.0, 3.0),
+                #      'translate': (RandInt(-2, 2), RandInt(-2, 2)),
+                #      'flip': (False, False),
+                #      'scale': Uniform(0.9, 1.1),
+                #      'channels': Choice(image_channels, probabilities=None)},
+                #     {'apply': RandBool(0.5) if train_common_params['data.aug.phase_misalignment'] else 0}
+                # ],
+                (OpRandApply(OpSample(geometry.OpAugAffine2D()), 0.5), dict(
+                    key="data.input.patch_volume",
+                    rotate=Uniform(-3.0, 3.0),
+                    scale=Uniform(0.9, 1.1),
+                    flip=(False, False),
+                    translate=(RandInt(-2, 2), RandInt(-2, 2)),
+                    channels = Choice([list(range(0, ProstateX.PATCH_Z_SIZE))])  #todo: but we are 2D - there are no channels??
+                )),
+
+                # [
+                #     ('data.input',),
+                #     unsqueeze_2d_to_3d,
+                #     {'channels': num_channels, 'axis_squeeze': 'z'},
+                #     {}
+                # ],
+
+                (geometry.OpAugUnsqueeze3DFrom2D(), dict(key='data.input.patch_volume',
+                                                         axis_squeeze=1, channels=num_channels,
+                                                         )),
+
+            ]
+
         dynamic_pipeline = PipelineDefault("dynamic", dynamic_steps, verbose=verbose)
 
         return dynamic_pipeline
 
 
     @staticmethod
-    def dataset(label_type: Optional[ProstateXLabelType]=None, cache_dir: Optional[str]=None, data_dir: Optional[str] = None,
-                select_series_func=get_selected_series_index, reset_cache: bool = False, num_workers: int = 10,
+    def dataset(label_type: Optional[ProstateXLabelType]=None, train: Optional[bool] = False, cache_dir: Optional[str]=None, data_dir: Optional[str] = None,
+                select_series_func=get_selected_series_index, num_channels:int = 5, reset_cache: bool = False, num_workers: int = 10,
                 sample_ids: Optional[Sequence[Hashable]] = None, verbose:Optional[bool]=True,
                 cache_kwargs:Optional[dict]=None) -> DatasetDefault:
 
@@ -222,8 +302,8 @@ class ProstateX:
         if sample_ids is None:
             sample_ids = ProstateX.sample_ids()
 
-        static_pipeline = ProstateX.static_pipeline(data_dir, select_series_func=select_series_func, verbose=verbose)
-        dynamic_pipeline = ProstateX.dynamic_pipeline(label_type, verbose=verbose)
+        static_pipeline = ProstateX.static_pipeline(root_path=data_dir, select_series_func=select_series_func, verbose=verbose)
+        dynamic_pipeline = ProstateX.dynamic_pipeline(train=train, label_type=label_type, num_channels=num_channels, verbose=verbose)
 
         if cache_dir is None:
             cacher = None

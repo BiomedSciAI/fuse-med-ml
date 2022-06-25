@@ -36,45 +36,51 @@ class OpAugAffine2D(OpBase):
         :return: the augmented image
         """
         aug_input = sample_dict[key]
-        
-        # verify
-        if self._verify_arguments:
-            assert isinstance(aug_input, torch.Tensor), f"Error: OpAugAffine2D expects torch Tensor, got {type(aug_input)}"
-            assert len(aug_input.shape) in [2, 3], f"Error: OpAugAffine2D expects tensor with 2 or 3 dimensions. got {aug_input.shape}"
 
-        # Support for 2D inputs - implicit single channel
-        if len(aug_input.shape) == 2:
-            aug_input = aug_input.unsqueeze(dim=0)
-            remember_to_squeeze = True
-        else:
-            remember_to_squeeze = False
-
-        # convert to PIL (required by affine augmentation function)
-        if channels is None:
-            channels = list(range(aug_input.shape[0]))
-        aug_tensor = aug_input
-        for channel in channels:
-            aug_channel_tensor = aug_input[channel].numpy()
-            aug_channel_tensor = Image.fromarray(aug_channel_tensor)
-            aug_channel_tensor = TTF.affine(aug_channel_tensor, angle=rotate, scale=scale, translate=translate, shear=shear)
-            if flip[0]:
-                aug_channel_tensor = TTF.vflip(aug_channel_tensor)
-            if flip[1]:
-                aug_channel_tensor = TTF.hflip(aug_channel_tensor)
-
-            # convert back to torch tensor
-            aug_channel_tensor = numpy.array(aug_channel_tensor)
-            aug_channel_tensor = torch.from_numpy(aug_channel_tensor)
-
-            # set the augmented channel
-            aug_tensor[channel] = aug_channel_tensor
-
-        # squeeze back to 2-dim if needed
-        if remember_to_squeeze:
-            aug_tensor = aug_tensor.squeeze(dim=0)
+        aug_tensor = auf_affine_2D(aug_input, translate=translate, scale=scale, flip=flip, shear=shear, channels=channels, verify_arguments=self._verify_arguments)
 
         sample_dict[key] = aug_tensor
         return sample_dict
+
+def auf_affine_2D(aug_input, rotate: float = 0.0, translate: Tuple[float, float] = (0.0, 0.0),
+                    scale: Tuple[float, float] = 1.0, flip: Tuple[bool, bool] = (False, False), shear: float = 0.0,
+                    channels: Optional[List[int]] = None, verify_arguments:Optional[bool] = True):
+    # verify
+    if verify_arguments:
+        assert isinstance(aug_input, torch.Tensor), f"Error: OpAugAffine2D expects torch Tensor, got {type(aug_input)}"
+        assert len(aug_input.shape) in [2, 3], f"Error: OpAugAffine2D expects tensor with 2 or 3 dimensions. got {aug_input.shape}"
+
+    # Support for 2D inputs - implicit single channel
+    if len(aug_input.shape) == 2:
+        aug_input = aug_input.unsqueeze(dim=0)
+        remember_to_squeeze = True
+    else:
+        remember_to_squeeze = False
+
+    # convert to PIL (required by affine augmentation function)
+    if channels is None:
+        channels = list(range(aug_input.shape[0]))
+    aug_tensor = aug_input
+    for channel in channels:
+        aug_channel_tensor = aug_input[channel].numpy()
+        aug_channel_tensor = Image.fromarray(aug_channel_tensor)
+        aug_channel_tensor = TTF.affine(aug_channel_tensor, angle=rotate, scale=scale, translate=translate, shear=shear)
+        if flip[0]:
+            aug_channel_tensor = TTF.vflip(aug_channel_tensor)
+        if flip[1]:
+            aug_channel_tensor = TTF.hflip(aug_channel_tensor)
+
+        # convert back to torch tensor
+        aug_channel_tensor = numpy.array(aug_channel_tensor)
+        aug_channel_tensor = torch.from_numpy(aug_channel_tensor)
+
+        # set the augmented channel
+        aug_tensor[channel] = aug_channel_tensor
+
+    # squeeze back to 2-dim if needed
+    if remember_to_squeeze:
+        aug_tensor = aug_tensor.squeeze(dim=0)
+    return aug_tensor
 
 
 class OpAugCropAndResize2D(OpBase):
@@ -154,28 +160,31 @@ class OpAugSqueeze3Dto2D(OpBase):
         :param axis_squeeze: the axis (1, 2 or 3) to squeeze into channel dimension - typically z axis
         """
         aug_input = sample_dict[key]
-        
-        # verify
-        if self._verify_arguments:
-            assert isinstance(aug_input, torch.Tensor), f"Error: OpAugSqueeze3Dto2D expects torch Tensor, got {type(aug_input)}"
-            assert len(aug_input.shape) == 4, f"Error: OpAugSqueeze3Dto2D expects tensor with 4 dimensions. got {aug_input.shape}"
-        
-        # aug_input shape is [channels, axis_1, axis_2, axis_3]
-        if axis_squeeze == 1:
-            pass
-        elif axis_squeeze == 2:
-            aug_input = aug_input.permute((0, 2, 1, 3))
-            # aug_input shape is [channels, axis_2, axis_1, axis_3]
-        elif axis_squeeze == 3:
-            aug_input = aug_input.permute((0, 3, 1, 2))
-            # aug_input shape is [channels, axis_3, axis_1, axis_2]
-        else:
-            raise Exception(f"Error: axis squeeze must be 1, 2, or 3, got {axis_squeeze}")
-        
-        aug_output =  aug_input.reshape((aug_input.shape[0] * aug_input.shape[1],) + aug_input.shape[2:])
-        
+        aug_output =squeeze_3D_to_2D(aug_input, axis_squeeze, self._verify_arguments)
+
         sample_dict[key] = aug_output
         return sample_dict
+
+def squeeze_3D_to_2D(aug_input, axis_squeeze: int, verify_arguments=True):
+    # verify
+    if verify_arguments:
+        assert isinstance(aug_input, torch.Tensor), f"Error: OpAugSqueeze3Dto2D expects torch Tensor, got {type(aug_input)}"
+        assert len(aug_input.shape) == 4, f"Error: OpAugSqueeze3Dto2D expects tensor with 4 dimensions. got {aug_input.shape}"
+
+    # aug_input shape is [channels, axis_1, axis_2, axis_3]
+    if axis_squeeze == 1:
+        pass
+    elif axis_squeeze == 2:
+        aug_input = aug_input.permute((0, 2, 1, 3))
+        # aug_input shape is [channels, axis_2, axis_1, axis_3]
+    elif axis_squeeze == 3:
+        aug_input = aug_input.permute((0, 3, 1, 2))
+        # aug_input shape is [channels, axis_3, axis_1, axis_2]
+    else:
+        raise Exception(f"Error: axis squeeze must be 1, 2, or 3, got {axis_squeeze}")
+
+    aug_output = aug_input.reshape((aug_input.shape[0] * aug_input.shape[1],) + aug_input.shape[2:])
+    return aug_output
 
 class OpAugUnsqueeze3DFrom2D(OpBase):
     def __init__(self, verify_arguments: bool = True):
@@ -195,27 +204,34 @@ class OpAugUnsqueeze3DFrom2D(OpBase):
         :param channels: number of channels in the original tensor (before OpAugSqueeze3Dto2D)
         """
         aug_input = sample_dict[key]
-
-        # verify
-        if self._verify_arguments:
-            assert isinstance(aug_input, torch.Tensor), f"Error: OpAugUnsqueeze3DFrom2D expects torch Tensor, got {type(aug_input)}"
-            assert len(aug_input.shape) == 3, f"Error: OpAugUnsqueeze3DFrom2D expects tensor with 3 dimensions. got {aug_input.shape}"
-        
-
-        aug_output = aug_input.reshape((channels, aug_input.shape[0] // channels) + aug_input.shape[1:])
-        
-        if axis_squeeze == 1:
-            pass
-        elif axis_squeeze == 2:
-            # aug_output shape is [channels, axis_2, axis_1, axis_3]
-            aug_output = aug_output.permute((0, 2, 1, 3))
-            # aug_input shape is [channels, axis 1, axis 2, axis 3]
-        elif axis_squeeze == 3:
-            # aug_output shape is [channels, axis_3, axis_1, axis_2]
-            aug_output = aug_output.permute((0, 2, 3, 1))
-            # aug_input shape is [channels, axis 1, axis 2, axis 3]
-        else:
-            raise Exception(f"Error: axis squeeze must be 1, 2, or 3, got {axis_squeeze}")
+        aug_output = unsqueeze_3D_from_2D(aug_input, axis_squeeze, channels, self._verify_arguments)
         
         sample_dict[key] = aug_output
         return sample_dict
+
+def unsqueeze_3D_from_2D(aug_input: Tensor, axis_squeeze: int, channels: int, verify_arguments: Optional[bool]=True):
+    # verify
+    if verify_arguments:
+        assert isinstance(aug_input, torch.Tensor), f"Error: OpAugUnsqueeze3DFrom2D expects torch Tensor, got {type(aug_input)}"
+        assert len(aug_input.shape) == 3, f"Error: OpAugUnsqueeze3DFrom2D expects tensor with 3 dimensions. got {aug_input.shape}"
+
+
+    aug_output = aug_input.reshape((channels, aug_input.shape[0] // channels) + aug_input.shape[1:])
+
+    if axis_squeeze == 1:
+        pass
+    elif axis_squeeze == 2:
+        # aug_output shape is [channels, axis_2, axis_1, axis_3]
+        aug_output = aug_output.permute((0, 2, 1, 3))
+        # aug_input shape is [channels, axis 1, axis 2, axis 3]
+    elif axis_squeeze == 3:
+        # aug_output shape is [channels, axis_3, axis_1, axis_2]
+        aug_output = aug_output.permute((0, 2, 3, 1))
+        # aug_input shape is [channels, axis 1, axis 2, axis 3]
+    else:
+        raise Exception(f"Error: axis squeeze must be 1, 2, or 3, got {axis_squeeze}")
+    return aug_output
+
+
+
+
