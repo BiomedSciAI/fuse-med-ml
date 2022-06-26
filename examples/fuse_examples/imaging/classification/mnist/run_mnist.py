@@ -166,7 +166,7 @@ def run_train(paths: dict, train_params: dict):
 
     validation_metrics = copy.deepcopy(train_metrics) # use the same metrics in validation as well
  
-    # arguments to 
+    # either a dict with arguments to pass to ModelCheckpoint or list dicts for multiple ModelCheckpoint callbacks (to monitor and save checkpoints for more then one metric). 
     best_epoch_source = dict(
         monitor="validation.metrics.accuracy",
         mode="max",
@@ -179,9 +179,12 @@ def run_train(paths: dict, train_params: dict):
     lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
     lr_sch_config = dict(scheduler=lr_scheduler,
                         monitor="validation.losses.total_loss")
+
+    # optimizier and lr sch - see pl.LightningModule.configure_optimizers return value for all options
     optimizers_and_lr_schs = dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
 
     print('Train:')
+    # create instance of PL module - FuseMedML generic version
     pl_module = LightningModuleDefault(model_dir=paths["model_dir"], 
                                        model=model,
                                        losses=losses,
@@ -190,12 +193,14 @@ def run_train(paths: dict, train_params: dict):
                                        best_epoch_source=best_epoch_source,
                                        optimizers_and_lr_schs=optimizers_and_lr_schs)
 
+    # create lightining trainer.
     pl_trainer = pl.Trainer(default_root_dir=paths['model_dir'],
                             max_epochs=train_params['trainer.num_epochs'],
                             accelerator=train_params["trainer.accelerator"],
                             devices=train_params["trainer.num_devices"],
                             auto_select_gpus=True)
     
+    # train
     pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=train_params['trainer.ckpt_path'])
     print('Train: Done')
 
@@ -224,17 +229,21 @@ def run_infer(paths: dict, infer_common_params: dict):
     # dataloader
     validation_dataloader = DataLoader(dataset=validation_dataset, collate_fn=CollateDefault(), batch_size=2, num_workers=2)
 
+    # load pytorch lightning module
     model = create_model()
     pl_module = LightningModuleDefault.load_from_checkpoint(infer_common_params['checkpoint'], model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True)
+    # set the prediction keys to extract (the ones used be the evaluation function).
     pl_module.set_predictions_keys(['model.output.classification', 'data.label']) # which keys to extract and dump into file
 
     print('Model: Done')
+    # create a trainer instance
     pl_trainer = pl.Trainer(default_root_dir=paths['model_dir'],
                             accelerator=TRAIN_COMMON_PARAMS["trainer.accelerator"],
                             devices=TRAIN_COMMON_PARAMS["trainer.num_devices"],
                             auto_select_gpus=True)
-    
     predictions = pl_trainer.predict(pl_module, validation_dataloader, return_predictions=True)
+
+    # convert list of batch outputs into a dataframe
     infer_df = convert_predictions_to_dataframe(predictions)
     save_dataframe(infer_df, infer_common_params['infer_filename'])
     

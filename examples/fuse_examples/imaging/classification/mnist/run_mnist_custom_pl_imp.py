@@ -61,7 +61,16 @@ from fuse_examples.imaging.classification.mnist import lenet
 # Lightning Module
 ##########################################
 class LightningModuleMnist(pl.LightningModule):
+    """
+    Implementation of pl.LightningModule
+    Demonstrate how to use FuseMedML with with your own PyTorch lightining implementaiton.
+    """
     def __init__(self, model_dir: str, opt_lr: float, opt_weight_decay: float, **kwargs):
+        """
+        :param model_dir: location for checkpoints and logs
+        :param opt_lr: learning rate for Adam optimizer 
+        :param opt_weight_decay: weight decay for Adam optimizer
+        """
         super().__init__(**kwargs)
         self.save_hyperparameters(ignore=["model_dir"])
 
@@ -100,35 +109,50 @@ class LightningModuleMnist(pl.LightningModule):
         return self._model(batch_dict)
     
     ## Step
-    def training_step(self, batch_dict: NDict, batch_idx: int) -> torch.Tensor:
+    def training_step(self, batch_dict: NDict, batch_idx: int) -> dict:
+        # run forward function and store the outputs in batch_dict["model"]
         batch_dict["model"] = self.forward(batch_dict)
+        # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss and save losses values in batch_dict["losses"]
         total_loss = step_losses(self._losses, batch_dict)
+        # given the batch_dict and FuseMedML style losses - collect the required values to compute the metrics on epoch_end
         step_metrics(self._train_metrics, batch_dict)
 
-        return {"loss": total_loss, "losses": batch_dict["losses"]} # return just the losses and drop everything else
+        # return the total_loss, the losses and drop everything else
+        return {"loss": total_loss, "losses": batch_dict["losses"]} 
      
-    def validation_step(self, batch_dict: NDict, batch_idx: int) -> torch.Tensor:
+    def validation_step(self, batch_dict: NDict, batch_idx: int) -> dict:
+        # run forward function and store the outputs in batch_dict["model"]
         batch_dict["model"] = self.forward(batch_dict)
+        # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss (ignored) and save losses values in batch_dict["losses"]
         _ = step_losses(self._losses, batch_dict)
+        # given the batch_dict and FuseMedML style losses - collect the required values to compute the metrics on epoch_end
         step_metrics(self._validation_metrics, batch_dict)
 
-        return {"losses": batch_dict["losses"]} # return just the losses and drop everything else
+        # return just the losses and drop everything else
+        return {"losses": batch_dict["losses"]} 
      
-    def predict_step(self, batch_dict: NDict, batch_idx: int) -> torch.Tensor:
+    def predict_step(self, batch_dict: NDict, batch_idx: int) -> dict:
+        # run forward function and store the outputs in batch_dict["model"]
         batch_dict["model"] = self.forward(batch_dict)
+        # extract the requried keys - defined in self.set_predictions_keys()
         return step_extract_predictions(self._prediction_keys, batch_dict)
         
     ## Epoch end
     def training_epoch_end(self, step_outputs) -> None:
+        # calc average epoch loss and log it
         epoch_end_compute_and_log_losses(self, "train", [e["losses"] for e in step_outputs])
+        # evaluate  and log it
         epoch_end_compute_and_log_metrics(self, "train", self._train_metrics)
     
     def validation_epoch_end(self, step_outputs) -> None:
+        # calc average epoch loss and log it
         epoch_end_compute_and_log_losses(self, "validation", [e["losses"] for e in step_outputs])
+        # evaluate  and log it
         epoch_end_compute_and_log_metrics(self, "validation", self._validation_metrics)
 
     
     def configure_callbacks(self) -> Sequence[pl.Callback]:
+        """ Create callbacks to monitor the metrics and print epoch summary """
         best_epoch_source = dict(
             monitor="validation.metrics.accuracy",
             mode="max",
@@ -136,6 +160,7 @@ class LightningModuleMnist(pl.LightningModule):
         return model_checkpoint_callbacks(self._model_dir, best_epoch_source)
     
     def configure_optimizers(self) -> Any:
+        """ See pl.LightningModule.configure_optimizers return value for all options """
         # create optimizer
         optimizer = optim.Adam(self._model.parameters(), lr=self._opt_lr, weight_decay=self._opt_weight_decay)
 
@@ -145,8 +170,8 @@ class LightningModuleMnist(pl.LightningModule):
                             monitor="validation.losses.total_loss")
         return dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
     
-        
     def set_predictions_keys(self, keys: List[str]) -> None:
+        """ Define which keys to extract from batch_dict  on prediction mode """
         self._prediction_keys = keys
 
 ##########################################
@@ -191,11 +216,7 @@ TRAIN_COMMON_PARAMS['pl_module.opt_lr'] = 1e-4
 TRAIN_COMMON_PARAMS['pl_module.opt_weight_decay'] = 0.001
 
 
-def perform_softmax(output):
-    if isinstance(output, torch.Tensor):  # validation
-        logits = output
-    else:  # train
-        logits = output.logits
+def perform_softmax(logits: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     cls_preds = F.softmax(logits, dim=1)
     return logits, cls_preds
 
@@ -240,17 +261,20 @@ def run_train(paths: dict, train_params: dict):
 
 
     print('Train:')
+    # create instance of PL module 
     pl_module = LightningModuleMnist(model_dir=paths["model_dir"], 
                                      opt_lr=train_params["pl_module.opt_lr"], 
                                      opt_weight_decay=train_params["pl_module.opt_weight_decay"])
                 
 
+    # create lightining trainer.
     pl_trainer = pl.Trainer(default_root_dir=paths['model_dir'],
                             max_epochs=train_params['trainer.num_epochs'],
                             accelerator=train_params["trainer.accelerator"],
                             devices=train_params["trainer.num_devices"],
                             auto_select_gpus=True)
-    
+
+    # train    
     pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=train_params['trainer.ckpt_path'])
     print('Train: Done')
 
@@ -279,17 +303,20 @@ def run_infer(paths: dict, infer_common_params: dict):
     # dataloader
     validation_dataloader = DataLoader(dataset=validation_dataset, collate_fn=CollateDefault(), batch_size=2, num_workers=2)
 
-    
+    # load pytorch lightning module
     pl_module = LightningModuleMnist.load_from_checkpoint(infer_common_params['checkpoint'], model_dir=paths["model_dir"], map_location="cpu", strict=True)
+    # set the prediction keys to extract (the ones used be the evaluation function).
     pl_module.set_predictions_keys(['model.output.classification', 'data.label']) # which keys to extract and dump into file
 
     print('Model: Done')
+    # create a trainer instance
     pl_trainer = pl.Trainer(default_root_dir=paths['model_dir'],
                             accelerator=TRAIN_COMMON_PARAMS["trainer.accelerator"],
                             devices=TRAIN_COMMON_PARAMS["trainer.num_devices"],
                             auto_select_gpus=True)
-    
     predictions = pl_trainer.predict(pl_module, validation_dataloader, return_predictions=True)
+
+    # convert list of batch outputs into a dataframe
     infer_df = convert_predictions_to_dataframe(predictions)
     save_dataframe(infer_df, infer_common_params['infer_filename'])
     

@@ -283,9 +283,7 @@ class ManagerDefault:
             checkpoint_objs.append(Checkpoint.load_from_file(checkpoint_file))
 
         if should_load('net'):
-            self.logger.info(f'extract checkpoints')
             net_state_dict_list = [checkpoint.net_state_dict for checkpoint in checkpoint_objs]
-            self.logger.info(f'load intonet')
             self.state.net.load_state_dict(*net_state_dict_list, strict=strict)
 
         if mode == 'train':
