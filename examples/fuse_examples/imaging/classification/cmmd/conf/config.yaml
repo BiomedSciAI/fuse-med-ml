@@ -5,6 +5,8 @@ paths:
   cache_dir : ${hydra:runtime.cwd}/examples/CMMD_cache_dir
   data_misc_dir : ${hydra:runtime.cwd}/data_misc
   data_split_filename:  cmmd_split.pkl
+run: 
+  running_modes : ['train', 'infer', 'eval']
 train:
   force_reset_model_dir: True
   target : classification

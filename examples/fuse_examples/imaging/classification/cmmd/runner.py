@@ -310,7 +310,6 @@ def main(cfg : DictConfig) -> None:
     choose_and_enable_multiple_gpus(cfg["train.manager_train_params.num_gpus"], force_gpus=force_gpus)
 
 
-    RUNNING_MODES = ['train', 'infer', 'eval']
     # Path to the stored dataset location
     # dataset should be download from https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508
     # download requires NBIA data retriever https://wiki.cancerimagingarchive.net/display/NBIA/Downloading+TCIA+Images
@@ -319,15 +318,15 @@ def main(cfg : DictConfig) -> None:
     # 2. folder named CMMD which is the downloaded data folder
 
     # train
-    if 'train' in RUNNING_MODES:
+    if 'train' in cfg["run.running_modes"]:
         run_train(cfg["paths"] ,cfg["train"])
 
     # infer
-    if 'infer' in RUNNING_MODES:
+    if 'infer' in cfg["run.running_modes"]:
         run_infer(cfg["paths"] , cfg["infer"])
     #
     # analyze
-    if 'eval' in RUNNING_MODES:
+    if 'eval' in cfg["run.running_modes"]:
         run_eval(cfg["paths"] ,cfg["infer"])
 if __name__ == "__main__":
     sys.argv.append('hydra.run.dir=working_dir')
