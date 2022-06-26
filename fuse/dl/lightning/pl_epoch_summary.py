@@ -34,6 +34,24 @@ class ModelEpochSummary(Callback):
 
     Automatically display (print to screen and log to a file) best vs current epoch metircs and losses.
 
+    Example:
+Stats for epoch: 9 (best tpoch is 7 for source validation.metrics.accuracy!)
+------------------------------------------------------------------------------------------
+|                             | Best Epoch (7)              | Current Epoch (9)           |
+------------------------------------------------------------------------------------------
+| train.losses.cls_loss       | 0.1546                      | 0.1146                      |
+------------------------------------------------------------------------------------------
+| train.losses.total_loss     | 0.1546                      | 0.1146                      |
+------------------------------------------------------------------------------------------
+| train.metrics.accuracy      | 0.9545                      | 0.9655                      |
+------------------------------------------------------------------------------------------
+| validation.losses.cls_loss  | 0.0720                      | 0.0920                      |
+------------------------------------------------------------------------------------------
+| validation.losses.total_loss| 0.0720                      | 0.0920                      |
+------------------------------------------------------------------------------------------
+| validation.metrics.accuracy | 0.9776                      | 0.9756                      |
+------------------------------------------------------------------------------------------
+
     """
     def __init__(
         self,
@@ -81,7 +99,7 @@ class ModelEpochSummary(Callback):
 
         if self._best_epoch_index == epoch_source_index:
             epoch_title = f'Stats for epoch: {epoch_source_index} (Currently the best epoch for source {self._monitor}!)'
-            print(f"{epoch_title}\n")
+            print(epoch_title)
         else:
             epoch_title = f'Stats for epoch: {epoch_source_index} (Best epoch is {self._best_epoch_index} for source {self._monitor})'
             print(epoch_title)
