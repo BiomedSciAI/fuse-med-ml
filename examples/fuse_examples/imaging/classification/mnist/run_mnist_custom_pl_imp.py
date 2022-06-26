@@ -45,7 +45,7 @@ from fuse.data.utils.collates import CollateDefault
 
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
-from fuse.dl.lightning.pl_funcs import *
+import fuse.dl.lightning.pl_funcs as fuse_pl
 
 from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.utils_logger import fuse_logger_start
@@ -63,7 +63,7 @@ from fuse_examples.imaging.classification.mnist import lenet
 class LightningModuleMnist(pl.LightningModule):
     """
     Implementation of pl.LightningModule
-    Demonstrate how to use FuseMedML with with your own PyTorch lightining implementaiton.
+    Demonstrates how to use FuseMedML with your own PyTorch lightining implementaiton.
     """
     def __init__(self, model_dir: str, opt_lr: float, opt_weight_decay: float, **kwargs):
         """
@@ -78,6 +78,9 @@ class LightningModuleMnist(pl.LightningModule):
         self._model_dir = model_dir
         self._opt_lr = opt_lr
         self._opt_weight_decay = opt_weight_decay
+
+        # init state
+        self._prediction_keys = None
 
         # model
         torch_model = lenet.LeNet()
@@ -113,9 +116,9 @@ class LightningModuleMnist(pl.LightningModule):
         # run forward function and store the outputs in batch_dict["model"]
         batch_dict["model"] = self.forward(batch_dict)
         # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss and save losses values in batch_dict["losses"]
-        total_loss = step_losses(self._losses, batch_dict)
+        total_loss = fuse_pl.step_losses(self._losses, batch_dict)
         # given the batch_dict and FuseMedML style losses - collect the required values to compute the metrics on epoch_end
-        step_metrics(self._train_metrics, batch_dict)
+        fuse_pl.step_metrics(self._train_metrics, batch_dict)
 
         # return the total_loss, the losses and drop everything else
         return {"loss": total_loss, "losses": batch_dict["losses"]} 
@@ -124,31 +127,33 @@ class LightningModuleMnist(pl.LightningModule):
         # run forward function and store the outputs in batch_dict["model"]
         batch_dict["model"] = self.forward(batch_dict)
         # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss (ignored) and save losses values in batch_dict["losses"]
-        _ = step_losses(self._losses, batch_dict)
+        _ = fuse_pl.step_losses(self._losses, batch_dict)
         # given the batch_dict and FuseMedML style losses - collect the required values to compute the metrics on epoch_end
-        step_metrics(self._validation_metrics, batch_dict)
+        fuse_pl.step_metrics(self._validation_metrics, batch_dict)
 
         # return just the losses and drop everything else
         return {"losses": batch_dict["losses"]} 
      
     def predict_step(self, batch_dict: NDict, batch_idx: int) -> dict:
+        if self._prediction_keys is None:
+            raise Exception("Error: predict_step expectes list of prediction keys to extract from batch_dict. Please specify it using set_predictions_keys() method ")
         # run forward function and store the outputs in batch_dict["model"]
         batch_dict["model"] = self.forward(batch_dict)
         # extract the requried keys - defined in self.set_predictions_keys()
-        return step_extract_predictions(self._prediction_keys, batch_dict)
+        return fuse_pl.step_extract_predictions(self._prediction_keys, batch_dict)
         
     ## Epoch end
     def training_epoch_end(self, step_outputs) -> None:
         # calc average epoch loss and log it
-        epoch_end_compute_and_log_losses(self, "train", [e["losses"] for e in step_outputs])
+        fuse_pl.epoch_end_compute_and_log_losses(self, "train", [e["losses"] for e in step_outputs])
         # evaluate  and log it
-        epoch_end_compute_and_log_metrics(self, "train", self._train_metrics)
+        fuse_pl.epoch_end_compute_and_log_metrics(self, "train", self._train_metrics)
     
     def validation_epoch_end(self, step_outputs) -> None:
         # calc average epoch loss and log it
-        epoch_end_compute_and_log_losses(self, "validation", [e["losses"] for e in step_outputs])
+        fuse_pl.epoch_end_compute_and_log_losses(self, "validation", [e["losses"] for e in step_outputs])
         # evaluate  and log it
-        epoch_end_compute_and_log_metrics(self, "validation", self._validation_metrics)
+        fuse_pl.epoch_end_compute_and_log_metrics(self, "validation", self._validation_metrics)
 
     
     def configure_callbacks(self) -> Sequence[pl.Callback]:
@@ -157,7 +162,7 @@ class LightningModuleMnist(pl.LightningModule):
             monitor="validation.metrics.accuracy",
             mode="max",
         )
-        return model_checkpoint_callbacks(self._model_dir, best_epoch_source)
+        return fuse_pl.model_checkpoint_callbacks(self._model_dir, best_epoch_source)
     
     def configure_optimizers(self) -> Any:
         """ See pl.LightningModule.configure_optimizers return value for all options """

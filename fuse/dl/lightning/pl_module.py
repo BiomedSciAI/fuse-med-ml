@@ -54,6 +54,7 @@ class LightningModuleDefault(pl.LightningModule):
         if save_hyperparameters is not None:
             self.save_hyperparameters(*save_hyperparameters)
 
+        # store arguments
         self._model_dir = model_dir
         self._model = model
         self._losses = losses
@@ -65,7 +66,9 @@ class LightningModuleDefault(pl.LightningModule):
         self._callbacks = callbacks if callbacks is not None else []
         if best_epoch_source is not None:
             self._callbacks += model_checkpoint_callbacks(model_dir, best_epoch_source)
-        self._prediction_keys = {}
+        
+        # init state
+        self._prediction_keys = None
    
     ## forward
     def forward(self, batch_dict: NDict) -> NDict:
@@ -106,6 +109,8 @@ class LightningModuleDefault(pl.LightningModule):
         return {"losses": batch_dict["losses"]} 
 
     def predict_step(self, batch_dict: NDict, batch_idx: int) -> dict:
+        if self._prediction_keys is None:
+            raise Exception("Error: predict_step expectes list of prediction keys to extract from batch_dict. Please specify it using set_predictions_keys() method ")
         # run forward function and store the outputs in batch_dict["model"]
         batch_dict["model"] = self.forward(batch_dict)
         # extract the requried keys - defined in self.set_predictions_keys()
@@ -132,7 +137,6 @@ class LightningModuleDefault(pl.LightningModule):
              
 
     # confiugration
-    
     def configure_callbacks(self) -> Sequence[pl.Callback]:
         """ train loop callbacks """
         return self._callbacks
