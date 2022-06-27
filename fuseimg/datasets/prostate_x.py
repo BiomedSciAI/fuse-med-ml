@@ -19,12 +19,8 @@ from fuse.data.ops import ops_common
 from fuse.data.ops.ops_aug_common import OpSample, OpRandApply
 from fuse.utils.rand.param_sampler import RandBool, RandInt, Uniform, Choice
 
-
 from fuseimg.data.ops.aug import geometry, geometry3d
 from fuse.utils.rand import param_sampler
-
-
-
 
 from enum import Enum, auto
 
@@ -33,11 +29,12 @@ import torch
 PROSTATEX_PROCESSED_FILE_DIR = '/projects/msieve_dev3/usr/Tal/prostate_x_processed_files'
 PROSTATEX_DATA_DIR = "/projects/msieve/MedicalSieve/PatientData/ProstateX/manifest-A3Y4AE4o5818678569166032044/"
 
+
 def get_selected_series_index(sample_id, seq_id):
     patient_id = sample_id[:-2]
-    map = {'T2': -1, 'ADC': 0, 'ktrans': 0, 'MASK':0}
+    map = {'T2': -1, 'ADC': 0, 'ktrans': 0, 'MASK': 0}
     if patient_id in ['ProstateX-0148', 'ProstateX-0180']:
-        map['b'] =[1, 2]
+        map['b'] = [1, 2]
     elif patient_id in ['ProstateX-0191']:
         map['b'] = [0, 0]
     elif patient_id in ['ProstateX-0116']:
@@ -45,7 +42,6 @@ def get_selected_series_index(sample_id, seq_id):
     else:
         map['b'] = [0, 2]
     return map[seq_id]
-
 
 
 class ProstateXLabelType(Enum):
@@ -63,14 +59,13 @@ class ProstateXLabelType(Enum):
 
     def get_process_func(self):
         if self == ProstateXLabelType.ClinSig:
-             return lambda val: 1 if val > 0 else 0
+            return lambda val: 1 if val > 0 else 0
 
         raise NotImplementedError(self)
 
-
     def get_value(self, clinical_features):
         col_name = self.get_column_name()
-        value = clinical_features[col_name] + 0 # why should be add 0??
+        value = clinical_features[col_name] + 0  # why should be add 0??
         process_func = self.get_process_func()
         if process_func is None:
             return value
@@ -81,7 +76,8 @@ class ProstateXLabelType(Enum):
         return value
 
     def get_num_classes(self):
-        return 2 # currrently all are binary classification tasks
+        return 2  # currrently all are binary classification tasks
+
 
 class ProstateX:
     ProstateX_DATASET_VER = 0
@@ -95,8 +91,8 @@ class ProstateX:
         # return [f'Breast_MRI_{i:03d}' for i in range(1,923)]
 
     @staticmethod
-    def static_pipeline(root_path, select_series_func, with_rescale:Optional[bool]=True,
-                        keep_stk_volumes:Optional[bool]=False, verbose:Optional[bool]=True) -> PipelineDefault:
+    def static_pipeline(root_path, select_series_func, with_rescale: Optional[bool] = True,
+                        keep_stk_volumes: Optional[bool] = False, verbose: Optional[bool] = True) -> PipelineDefault:
 
         data_path = os.path.join(root_path, 'PROSTATEx')
         # metadata_path = os.path.join(root_path, 'metadata.csv')
@@ -104,7 +100,7 @@ class ProstateX:
 
         series_desc_2_sequence_map = get_series_desc_2_sequence_mapping()
         dicom_seq_ids = ['T2', 'b', 'b_mix', 'ADC']
-        seq_reverse_map ={s: True for s in dicom_seq_ids}
+        seq_reverse_map = {s: True for s in dicom_seq_ids}
 
         static_pipeline_steps = [
             # step 1: map sample_ids to
@@ -112,27 +108,27 @@ class ProstateX:
              dict(key_out='data.input.mri_path')),
             # step 2: read files info for the sequences
             (ops_mri.OpExtractDicomsPerSeq(seq_ids=dicom_seq_ids, series_desc_2_sequence_map=series_desc_2_sequence_map,
-                                               use_order_indicator=False),
+                                           use_order_indicator=False),
              dict(key_in='data.input.mri_path',
                   key_out_seq_ids='data.input.seq_ids',
                   key_out_sequence_prefix='data.input.sequence.')
              ),
             # step 3: Load STK volumes of MRI sequences
             (ops_mri.OpLoadDicomAsStkVol(seq_reverse_map=seq_reverse_map),
-                dict(key_in_seq_ids='data.input.seq_ids', key_sequence_prefix='data.input.sequence.')),
+             dict(key_in_seq_ids='data.input.seq_ids', key_sequence_prefix='data.input.sequence.')),
 
             # step 4: rename sequence b_mix (if exists) to b; fix certain b sequences
             (ops_common.OpLambda(func=partial(ops_mri.rename_seqeunce_from_dict,
                                               seq_id_old='b_mix', seq_id_new='b',
                                               key_sequence_prefix='data.input.sequence.', key_seq_ids='data.input.seq_ids')
-                                           ),
-                                dict(key=None)),
+                                 ),
+             dict(key=None)),
 
             # step 5: read ktrans
             (ops_mri.OpReadSTKImage(seq_id='ktrans',
                                     get_image_file=partial(get_ktrans_image_file_from_sample_id,
-                                                                            data_dir=root_path)),
-                dict(key_sequence_prefix='data.input.sequence.', key_seq_ids='data.input.seq_ids')),
+                                                           data_dir=root_path)),
+             dict(key_sequence_prefix='data.input.sequence.', key_seq_ids='data.input.seq_ids')),
 
             # step 6: select single volume from b_mix/T2 sequence
             (ops_mri.OpSelectVolumes(get_indexes_func=select_series_func, delete_input_volumes=True,
@@ -154,10 +150,10 @@ class ProstateX:
 
             # step 9: create a single 4D volume from all the sequences (4th channel is the sequence)
             (ops_mri.OpStackList4DStk(delete_input_volumes=True), dict(key_in='data.input.selected_volumes',
-                                                                           key_out_volume4d='data.input.volume4D',
-                                                                           key_out_ref_volume='data.input.ref_volume')),
+                                                                       key_out_volume4d='data.input.volume4D',
+                                                                       key_out_ref_volume='data.input.ref_volume')),
 
-            ]
+        ]
         if with_rescale:
             # step 10:
             static_pipeline_steps += [(ops_mri.OpRescale4DStk(), dict(key='data.input.volume4D'))]
@@ -179,23 +175,23 @@ class ProstateX:
             static_pipeline_steps += [
                 # step 13: move to ndarray - to allow quick saving
                 (ops_mri.OpStk2Dict(),
-                 dict(keys=['data.input.volume4D','data.input.ref_volume']))
-                ]
+                 dict(keys=['data.input.volume4D', 'data.input.ref_volume']))
+            ]
         static_pipeline = PipelineDefault("static", static_pipeline_steps, verbose=verbose)
 
         return static_pipeline
 
     @staticmethod
-    def dynamic_pipeline(train: bool, label_type: Optional[ProstateXLabelType]=None, num_channels: int=5, verbose:Optional[bool]=True):
+    def dynamic_pipeline(train: bool, label_type: Optional[ProstateXLabelType] = None, num_channels: int = 5, verbose: Optional[bool] = True):
         volume_key = 'data.input.patch_volume'
         dynamic_steps = [(ops_cast.OpToTensor(), dict(key=volume_key, dtype=torch.float32))]
 
-        keys_2_keep =[volume_key]
+        keys_2_keep = [volume_key]
         if label_type is not None:
             key_ground_truth = 'data.ground_truth'
             dynamic_steps.append((OpAdProstateXLabelAndClinicalFeatures(label_type=label_type),
-                                  dict(key_in='data.input.patch_annotations',  key_out_gt=key_ground_truth,
-                                 key_out_clinical_features='data.clinical_features')))
+                                  dict(key_in='data.input.patch_annotations', key_out_gt=key_ground_truth,
+                                       key_out_clinical_features='data.clinical_features')))
             keys_2_keep.append(key_ground_truth)
 
         dynamic_steps.append((ops_mri.OpSelectKeys(), dict(keys_2_keep=keys_2_keep)))
@@ -212,9 +208,9 @@ class ProstateX:
                 # ],
                 (OpRandApply(OpSample(geometry3d.OpRotation3D()), 0.5),
                  dict(key='data.input.patch_volume',
-                        ax1_rot = Uniform(-5.0, 5.0),
-                        ax2_rot = Uniform(-5.0, 5.0),
-                        ax3_rot = Uniform(-5.0, 5.0))),
+                      ax1_rot=Uniform(-5.0, 5.0),
+                      ax2_rot=Uniform(-5.0, 5.0),
+                      ax3_rot=Uniform(-5.0, 5.0))),
 
                 # [
                 #     ('data.input',),
@@ -258,7 +254,7 @@ class ProstateX:
                     scale=Uniform(0.9, 1.1),
                     flip=(False, False),
                     translate=(RandInt(-2, 2), RandInt(-2, 2)),
-                    channels = Choice([list(range(0, ProstateX.PATCH_Z_SIZE))])  #todo: but we are 2D - there are no channels??
+                    channels=Choice([list(range(0, ProstateX.PATCH_Z_SIZE))])  # todo: but we are 2D - there are no channels??
                 )),
 
                 # [
@@ -278,12 +274,12 @@ class ProstateX:
 
         return dynamic_pipeline
 
-
     @staticmethod
-    def dataset(label_type: Optional[ProstateXLabelType]=None, train: Optional[bool] = False, cache_dir: Optional[str]=None, data_dir: Optional[str] = None,
-                select_series_func=get_selected_series_index, num_channels:int = 5, reset_cache: bool = False, num_workers: int = 10,
-                sample_ids: Optional[Sequence[Hashable]] = None, verbose:Optional[bool]=True,
-                cache_kwargs:Optional[dict]=None) -> DatasetDefault:
+    def dataset(label_type: Optional[ProstateXLabelType] = None, train: Optional[bool] = False, cache_dir: Optional[str] = None,
+                data_dir: Optional[str] = None,
+                select_series_func=get_selected_series_index, num_channels: int = 5, reset_cache: bool = False, num_workers: int = 10,
+                sample_ids: Optional[Sequence[Hashable]] = None, verbose: Optional[bool] = True,
+                cache_kwargs: Optional[dict] = None) -> DatasetDefault:
 
         """
         :param label_type: type of label to use
@@ -324,6 +320,7 @@ class ProstateX:
         my_dataset.create()
         return my_dataset
 
+
 def fix_certain_b_sequences(sample_dict, key_in_volumes_info, key_volumes):
     volumes_info = sample_dict[key_in_volumes_info]
     volumes = sample_dict[key_volumes]
@@ -339,7 +336,7 @@ def fix_certain_b_sequences(sample_dict, key_in_volumes_info, key_volumes):
 
     has_b_to_fix = np.any([(info['seq_id'] == 'b') and (info['series_desc'] in B_SER_FIX) for info in volumes_info])
     if has_b_to_fix:
-        for i, val in zip([1,2], [400, 800]):
+        for i, val in zip([1, 2], [400, 800]):
             volumes[i].CopyInformation(volumes[3])
             assert volumes_info[i]['seq_id'] == 'b'
             assert volumes_info[i]['series_desc'] in B_SER_FIX
@@ -350,14 +347,14 @@ def fix_certain_b_sequences(sample_dict, key_in_volumes_info, key_volumes):
                 print(f"fix B mismatch 8888888888  : {val}!={val2}")
 
     return sample_dict
+
+
 def get_ktrans_image_file_from_sample_id(sample_id, data_dir):
     patient_id = sample_id.split('_')[0]
     ktrans_patient_dir = os.path.join(data_dir, 'ProstateXKtrains-train-fixed', patient_id)
-    ktrans_mhd_files =  glob.glob(os.path.join(ktrans_patient_dir, '*.mhd'))
+    ktrans_mhd_files = glob.glob(os.path.join(ktrans_patient_dir, '*.mhd'))
     assert len(ktrans_mhd_files) == 1
     return ktrans_mhd_files[0]
-
-
 
 
 class OpProstateXSampleIDDecode(OpReversibleBase):
@@ -380,13 +377,12 @@ class OpProstateXSampleIDDecode(OpReversibleBase):
         return sample_dict
 
 
-
 class OpAdProstateXLabelAndClinicalFeatures(OpBase):
     '''
     decodes sample id into path of MRI images
     '''
 
-    def __init__(self, label_type: ProstateXLabelType, is_concat_features_to_input: Optional[bool]=False, **kwargs):
+    def __init__(self, label_type: ProstateXLabelType, is_concat_features_to_input: Optional[bool] = False, **kwargs):
         super().__init__(**kwargs)
         self._label_type = label_type
         self._is_concat_features_to_input = is_concat_features_to_input
@@ -396,14 +392,13 @@ class OpAdProstateXLabelAndClinicalFeatures(OpBase):
         clinical_features = sample_dict[key_in]
         label_val = self._label_type.get_value(clinical_features)
         if np.isnan(label_val):
-            return None # should filter example (instead of sample_dict['data.filter'] = True )
+            return None  # should filter example (instead of sample_dict['data.filter'] = True )
 
         label_tensor = torch.tensor(label_val, dtype=torch.int64)
-        sample_dict[key_out_gt] = label_tensor #'data.ground_truth'
+        sample_dict[key_out_gt] = label_tensor  # 'data.ground_truth'
 
         # add clinical
         features_to_use = self._label_type.get_features_to_use()
-
 
         zone2feature = {
             'PZ': torch.tensor(np.array([0, 0, 0]), dtype=torch.float32),
@@ -414,7 +409,7 @@ class OpAdProstateXLabelAndClinicalFeatures(OpBase):
 
         clinical_features_to_use = zone2feature[clinical_features[features_to_use[0]]]
 
-        sample_dict[key_out_clinical_features] = clinical_features_to_use # 'data.clinical_features'
+        sample_dict[key_out_clinical_features] = clinical_features_to_use  # 'data.clinical_features'
 
         if self._is_concat_features_to_input:
             # select input channel
@@ -428,7 +423,6 @@ class OpAdProstateXLabelAndClinicalFeatures(OpBase):
         return sample_dict
 
 
-
 def get_prostate_x_annotations_df():  # todo: change!!!
     annotations_path = os.path.join(PROSTATEX_PROCESSED_FILE_DIR, 'dataset_prostate_x_folds_ver29062021_seed1.pickle')
     with open(annotations_path, 'rb') as infile:
@@ -436,8 +430,8 @@ def get_prostate_x_annotations_df():  # todo: change!!!
     annotations_df = pd.concat(
         [fold_annotations_dict[f'data_fold{fold}'] for fold in range(len(fold_annotations_dict))])
     # fix a bug in the dataset of wrong indexing
-    annotations_df.loc[:, ('fid')][annotations_df['Patient ID']=='ProstateX-0159'] = [1,2,3]
-    annotations_df['Sample ID'] = annotations_df[['Patient ID','fid']].apply(lambda row: '_'.join(row.values.astype(str)), axis=1)
+    annotations_df.loc[:, ('fid')][annotations_df['Patient ID'] == 'ProstateX-0159'] = [1, 2, 3]
+    annotations_df['Sample ID'] = annotations_df[['Patient ID', 'fid']].apply(lambda row: '_'.join(row.values.astype(str)), axis=1)
 
     return annotations_df
 
@@ -447,11 +441,12 @@ def get_samples_for_debug(n_pos, n_neg, label_type):
     label_values = label_type.get_value(annotations_df)
     patient_ids = annotations_df['Sample ID']
     sample_ids = []
-    for label_val, n_vals in  zip([True, False], [n_pos, n_neg]):
+    for label_val, n_vals in zip([True, False], [n_pos, n_neg]):
         sample_ids += patient_ids[label_values == label_val].values.tolist()[:n_vals]
     return sample_ids
-def get_series_desc_2_sequence_mapping():
 
+
+def get_series_desc_2_sequence_mapping():
     series_desc_2_sequence_mapping = \
         {
             't2_tse_tra': 'T2',
@@ -480,7 +475,6 @@ def get_series_desc_2_sequence_mapping():
 
         }
 
-
     return series_desc_2_sequence_mapping
 
 
@@ -490,31 +484,6 @@ def get_sample_path(data_path, sample_id):
     assert len(sample_path) == 1
     return sample_path[0]
 
+
 ##################################
-
-
-
-
-if __name__ == "__main__":
-    from fuse.data.utils.sample import create_initial_sample
-    p = ProstateX()
-    sample0 = create_initial_sample(p.sample_ids())
-    sample_list = sample0['data']['initial_sample_id']
-    sample_list=['ProstateX-0116_1']
-    data_dir = "/projects/msieve/MedicalSieve/PatientData/ProstateX/manifest-A3Y4AE4o5818678569166032044/"
-    static_pipeline = ProstateX.static_pipeline(data_dir, select_series_func=get_selected_series_index, verbose=True)
-
-    for sample_id in sample_list:
-        print(sample_id)
-        sample = create_initial_sample(p.sample_ids(),sample_id=sample_id)
-        static_pipeline(sample)
-        dynamic_pipeline = ProstateX.dynamic_pipeline(ProstateXLabelType.ClinSig, verbose=True)
-        dynamic_pipeline(sample)
-
-
-
-
-
-
-
 

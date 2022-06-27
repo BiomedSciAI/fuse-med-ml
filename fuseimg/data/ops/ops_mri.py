@@ -44,11 +44,11 @@ class OpExtractDicomsPerSeq(OpBase):
 
                 dicom_group_ids, sorted_dicom_groups = sort_dicoms_by_field(seq_info['path'], seq_info['dicom_field'], self._use_order_indicator)
                 for dicom_group_id, dicom_group in zip(dicom_group_ids, sorted_dicom_groups):
-                    seq_info2 = dict(path = seq_info['path'],
-                                     series_num = seq_info['series_num'],
-                                     series_desc = seq_info['series_desc'],
-                                     dicoms = dicom_group, # each sequence/series path may contain several (sub-)sequence/series
-                                     dicoms_id = dicom_group_id
+                    seq_info2 = dict(path=seq_info['path'],
+                                     series_num=seq_info['series_num'],
+                                     series_desc=seq_info['series_desc'],
+                                     dicoms=dicom_group,  # each sequence/series path may contain several (sub-)sequence/series
+                                     dicoms_id=dicom_group_id
                                      )
                     sample_dict[f'{key_out_sequence_prefix}{seq_id}'].append(seq_info2)
 
@@ -90,7 +90,7 @@ class OpLoadDicomAsStkVol(OpBase):
             for sequence_info in sequence_info_list:
                 stk_vol = get_stk_volume(img_path=sequence_info['path'], is_file=False,
                                          dicom_files=sequence_info['dicoms'], reverse_order=should_reverse_order)
-                sequence_info['stk_volume']  = stk_vol
+                sequence_info['stk_volume'] = stk_vol
 
         return sample_dict
 
@@ -158,7 +158,6 @@ class OpGroupDCESequences(OpBase):
 
         all_dce_mix_ph_sequences = [f'DCE_mix_ph{i}' for i in range(1, 5)] + ['DCE_mix_ph']
 
-
         existing_dce_mix_ph_sequences = [seq_id for seq_id in all_dce_mix_ph_sequences if seq_id in seq_ids]
         # handle multiphase DCE in different series
         if existing_dce_mix_ph_sequences:
@@ -167,7 +166,7 @@ class OpGroupDCESequences(OpBase):
             seq_ids.append(new_seq_id)
             sample_dict[f'{key_sequence_prefix}{new_seq_id}'] = []
             for seq_id in existing_dce_mix_ph_sequences:
-                sequence_info_list =  sample_dict[f'{key_sequence_prefix}{seq_id}']
+                sequence_info_list = sample_dict[f'{key_sequence_prefix}{seq_id}']
                 if seq_id == 'DCE_mix_ph':
                     series_num_arr = [a['series_num'] for a in sequence_info_list]
                     inx_sorted = np.argsort(series_num_arr)
@@ -204,7 +203,7 @@ class OpSelectVolumes(OpBase):
         for selected_seq_id in self._selected_seq_ids:
 
             if selected_seq_id in seq_ids:
-                sequence_info_list = sample_dict[ f'{key_in_sequence_prefix}{selected_seq_id}']
+                sequence_info_list = sample_dict[f'{key_in_sequence_prefix}{selected_seq_id}']
             else:
                 sequence_info_list = []
 
@@ -228,7 +227,6 @@ class OpSelectVolumes(OpBase):
 
                     stk_volume = selected_sequence_info['stk_volume']
 
-
                     if len(stk_volume) == 0:
                         seq_volume_template = sample_dict[key_out_volumes][0]
                         stk_volume = get_zeros_vol(seq_volume_template)
@@ -237,15 +235,16 @@ class OpSelectVolumes(OpBase):
 
                 sample_dict[key_out_volumes].append(stk_volume)
                 sample_dict[key_out_volumes_info].append(dict(seq_id=selected_seq_id,
-                                                                series_desc=selected_sequence_info.get('series_desc', 'NAN'),
-                                                                path=selected_sequence_info.get('path', 'NAN'),
-                                                                dicoms_id=selected_sequence_info.get('dicoms_id', 'NAN'))
+                                                              series_desc=selected_sequence_info.get('series_desc', 'NAN'),
+                                                              path=selected_sequence_info.get('path', 'NAN'),
+                                                              dicoms_id=selected_sequence_info.get('dicoms_id', 'NAN'))
                                                          )
         if self._delete_input_volumes:
-            for seq_id in seq_ids: # to save space...also when caching sample_dict
-                for sequence_info in sample_dict[ f'{key_in_sequence_prefix}{seq_id}']:
+            for seq_id in seq_ids:  # to save space...also when caching sample_dict
+                for sequence_info in sample_dict[f'{key_in_sequence_prefix}{seq_id}']:
                     del sequence_info['stk_volume']
         return sample_dict
+
 
 # def store(sample_dict):
 #     vv = [sitk.GetArrayFromImage(v) for v in sample_dict['data.input.selected_volumes']]
@@ -370,7 +369,6 @@ class OpAddMaskFromBoundingBoxAsLastChannel(OpBase):
         super().__init__(**kwargs)
         self._name_suffix = name_suffix
 
-
     def __call__(self, sample_dict: NDict, key_in_patch_annotations: str, key_in_ref_volume: str, key_volume4D: str):
 
         vol_ref = sample_dict[key_in_ref_volume]
@@ -394,6 +392,7 @@ class OpAddMaskFromBoundingBoxAsLastChannel(OpBase):
         sample_dict[key_volume4D] = vol_4D_new_stk
 
         return sample_dict
+
 
 class OpCreatePatchVolumes(OpBase):
     def __init__(self, lsn_shape, lsn_spacing, pos_key: str = None, name_suffix: Optional[str] = '', delete_input_volumes=False,
@@ -576,7 +575,8 @@ def delete_seqeunce_from_dict(seq_id, sample_dict, key_sequence_ids, key_sequenc
         seq_ids.remove(seq_id)
         del sample_dict[f'{key_sequence_prefix}{seq_id}']
 
-def rename_seqeunce_from_dict( sample_dict,  seq_id_old, seq_id_new, key_sequence_prefix, key_seq_ids):
+
+def rename_seqeunce_from_dict(sample_dict, seq_id_old, seq_id_new, key_sequence_prefix, key_seq_ids):
     seq_ids = sample_dict[key_seq_ids]
     if seq_id_old in seq_ids:
         assert seq_id_new not in seq_ids
@@ -585,9 +585,7 @@ def rename_seqeunce_from_dict( sample_dict,  seq_id_old, seq_id_new, key_sequenc
         seq_ids.remove(seq_id_old)
         seq_ids.append(seq_id_new)
 
-
     return sample_dict
-
 
 
 ############################
@@ -604,8 +602,8 @@ def get_zeros_vol(vol):
 
 
 def crop_lesion_vol_mask_based(vol: sitk.sitkFloat32, position: tuple, ref: sitk.sitkFloat32, size: Tuple[int, int, int] = (160, 160, 32),
-                               spacing: Tuple[int, int, int]=(1, 1, 3), margin: Tuple[int, int, int] = (20, 20, 0),
-                                 mask_inx=-1, is_use_mask=True,):
+                               spacing: Tuple[int, int, int] = (1, 1, 3), margin: Tuple[int, int, int] = (20, 20, 0),
+                               mask_inx=-1, is_use_mask=True, ):
     """
     crop_lesion_vol crop tensor around position
     :param vol: vol to crop
@@ -845,12 +843,12 @@ def extract_dicom_field(dcm_ds, seq_desc):
         if 'DiffusionBValue' in dcm_ds:
             dicom_field = (0x0018, 0x9087)  # 'DiffusionBValue'
         else:
-            dicom_field = (0x19, 0x100c)  #simens bval tag 0x19 0x100c
+            dicom_field = (0x19, 0x100c)  # simens bval tag 0x19 0x100c
     elif 'DCE' in seq_desc:
         if 'TemporalPositionIdentifier' in dcm_ds:
             dicom_field = (0x0020, 0x0100)  # Temporal Position Identifier
         elif 'TemporalPositionIndex' in dcm_ds:
-            dicom_field = (0x0020, 0x9128) # Temporal Position Index
+            dicom_field = (0x0020, 0x9128)  # Temporal Position Index
         else:
             dicom_field = (0x0020, 0x0012)  # Acqusition Number
     elif seq_desc == 'MASK':
@@ -981,7 +979,7 @@ def extarct_lesion_prop_from_mask(mask, T_connecetd_component_dist=40, minimumOb
     dist_img = sitk.SignedMaurerDistanceMap(mask_bool, insideIsPositive=False, squaredDistance=False, useImageSpacing=False)
     seeds = sitk.ConnectedComponent(dist_img < T_connecetd_component_dist)
     seeds = sitk.RelabelComponent(seeds, minimumObjectSize=minimumObjectSize)
-    ws = sitk.MorphologicalWatershedFromMarkers(dist_img, seeds, markWatershedLine=True)   # slow...
+    ws = sitk.MorphologicalWatershedFromMarkers(dist_img, seeds, markWatershedLine=True)  # slow...
     ws = sitk.Mask(ws, sitk.Cast(mask_bool, ws.GetPixelID()))
 
     shape_stats = sitk.LabelShapeStatisticsImageFilter()
@@ -1000,7 +998,8 @@ def extarct_lesion_prop_from_mask(mask, T_connecetd_component_dist=40, minimumOb
                    )
                   for i in shape_stats.GetLabels()]
 
-    cols = ["centroid", "bbox", "volume", "elongation", "size_bbox_x", "size_bbox_y", "size_bbox_z", "roudness", "longest_elip_diam", "flateness"]
+    cols = ["centroid", "bbox", "volume", "elongation", "size_bbox_x", "size_bbox_y", "size_bbox_z",
+            "roudness", "longest_elip_diam", "flateness"]
     return stats_list, cols
 
 
@@ -1024,7 +1023,6 @@ class OpReadSTKImage(OpBase):
         self._get_image_file = get_image_file
 
     def __call__(self, sample_dict: NDict, key_sequence_prefix: str, key_seq_ids: str):
-
         sample_id = get_sample_id(sample_dict)
         img_file = self._get_image_file(sample_id)
         vol = sitk.ReadImage(img_file)
@@ -1032,6 +1030,7 @@ class OpReadSTKImage(OpBase):
         sample_dict[f'{key_sequence_prefix}{self._seq_id}'] = [dict(path=img_file,
                                                                     stk_volume=vol)]
         return sample_dict
+
 
 class OpExtractRadiomics(OpBase):
     def __init__(self, extractor, setting, **kwargs):

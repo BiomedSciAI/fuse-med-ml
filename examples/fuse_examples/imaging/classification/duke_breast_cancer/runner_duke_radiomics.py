@@ -2,6 +2,8 @@ import os
 import numpy as np
 
 # todo: remove setting of env variable !!!
+import fuseimg.datasets.duke_label_type
+
 os.environ["DUKE_DATA_PATH"] = "/projects/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI/manifest-1607053360376/"
 import getpass
 from fuseimg.datasets import duke
@@ -39,7 +41,7 @@ def main():
     #     run_eval(paths=PATHS, eval_common_params=EVAL_COMMON_PARAMS)
 
 
-def get_setting(mode, label_type=duke.DukeLabelType.STAGING_TUMOR_SIZE, n_folds=5, heldout_fold=4):
+def get_setting(mode, label_type=fuseimg.datasets.duke_label_type.DukeLabelType.STAGING_TUMOR_SIZE, n_folds=5, heldout_fold=4):
     ###########################################################################################################
     # Fuse
     ###########################################################################################################

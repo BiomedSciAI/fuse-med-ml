@@ -1,4 +1,5 @@
 # import nibabel as nib
+import fuseimg.datasets.duke_label_type
 from examples.fuse_examples.imaging.classification import duke_breast_cancer
 from fuse.utils.file_io.file_io import load_pickle, save_pickle_safe
 from fuseimg.datasets import duke
@@ -58,7 +59,7 @@ def main():
 
         # sample_ids =  duke.get_samples_for_debug(data_dir=os.environ["DUKE_DATA_PATH"], n_pos=10, n_neg=10,
         #                                          label_type=duke.DukeLabelType.STAGING_TUMOR_SIZE)
-        duke_dataset = duke.Duke.dataset(data_dir=os.environ["DUKE_DATA_PATH"], label_type=duke.DukeLabelType.STAGING_TUMOR_SIZE,
+        duke_dataset = duke.Duke.dataset(data_dir=os.environ["DUKE_DATA_PATH"], label_type=fuseimg.datasets.duke_label_type.DukeLabelType.STAGING_TUMOR_SIZE,
                                          cache_dir=None, num_workers=0, sample_ids=sample_ids)
         print("finished defining dataset, starting run")
         arr = []
