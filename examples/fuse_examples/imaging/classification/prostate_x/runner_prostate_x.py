@@ -19,17 +19,13 @@ Created on June 30, 2021
 
 import logging
 import os
-#todo: remove setting of env variable !!!
-os.environ["PROSTATEX_DATA_PATH"] = "/projects/msieve/MedicalSieve/PatientData/ProstateX/manifest-A3Y4AE4o5818678569166032044/"
 import getpass
 from typing import OrderedDict
+
+from examples.fuse_examples.fuse_examples_utils import ask_user
 from fuse.utils.file_io.file_io import load_pickle
 from fuse.utils.rand.seed import Seed
 
-
-
-
-import torch
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
@@ -41,13 +37,12 @@ from fuse.eval.evaluator import EvaluatorDefault
 from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.split import dataset_balanced_division_to_folds
-    
+
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
 from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
 from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
 from fuse.dl.managers.manager_default import ManagerDefault
-
 
 from fuse.utils.utils_debug import FuseDebug
 import fuse.utils.gpu as GPU
@@ -57,7 +52,7 @@ from fuseimg.datasets import prostate_x
 
 from fuse.dl.models.heads.head_1d_classifier import Head1dClassifier
 
-from examples.fuse_examples.imaging.classification.prostate_x.backbone_3d_multichannel import Fuse_model_3d_multichannel,ResNet
+from examples.fuse_examples.imaging.classification.prostate_x.backbone_3d_multichannel import Fuse_model_3d_multichannel, ResNet
 
 
 def main():
@@ -73,7 +68,7 @@ def main():
     force_gpus = None  # [0]
     GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
-    PATHS, TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS = get_setting(mode,  n_folds=8, heldout_fold=5)
+    PATHS, TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS = get_setting(mode, n_folds=8, heldout_fold=5)
     print(PATHS)
 
     RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
@@ -109,7 +104,6 @@ def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=
     assert "PROSTATEX_DATA_PATH" in os.environ, "Expecting environment variable PROSTATEX_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
     ROOT = f'/projects/msieve_dev3/usr/{getpass.getuser()}/fuse_examples/prostate_x'
 
-
     if mode == 'debug':
         data_split_file = os.path.join(ROOT, f'prostate_x_{n_folds}folds_debug.pkl')
         selected_sample_ids = prostate_x.get_samples_for_debug(n_pos=10, n_neg=10, label_type=label_type)
@@ -124,8 +118,7 @@ def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=
         data_split_file = os.path.join(ROOT, f'prostatex_{n_folds}folds.pkl')
         selected_sample_ids = None
         cache_dir = os.path.join(ROOT, f'cache_dir_v2')
-        model_dir = os.path.join(ROOT,f'model_dir_v2')
-
+        model_dir = os.path.join(ROOT, f'model_dir_v2')
 
         num_workers = 16
         batch_size = 50
@@ -151,8 +144,8 @@ def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=
     # Data
     # ============
 
-    train_folds = [i%n_folds for i in range(heldout_fold+1, heldout_fold+n_folds-1)]
-    validation_fold = (heldout_fold-1) % n_folds
+    train_folds = [i % n_folds for i in range(heldout_fold + 1, heldout_fold + n_folds - 1)]
+    validation_fold = (heldout_fold - 1) % n_folds
     TRAIN_COMMON_PARAMS['data.selected_sample_ids'] = selected_sample_ids
     TRAIN_COMMON_PARAMS['data.batch_size'] = batch_size
     TRAIN_COMMON_PARAMS['data.train_num_workers'] = num_workers
@@ -160,7 +153,6 @@ def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=
     TRAIN_COMMON_PARAMS['data.num_folds'] = n_folds
     TRAIN_COMMON_PARAMS['data.train_folds'] = train_folds
     TRAIN_COMMON_PARAMS['data.validation_folds'] = [validation_fold]
-
 
     # ===============
     # Manager - Train
@@ -190,15 +182,15 @@ def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=
 
     # in order to add relevant tabular feature uncomment:
     # num_backbone_features_clinical, post_concat_inputs,post_concat_model
-    TRAIN_COMMON_PARAMS['num_backbone_features_clinical'] = None#256
-    TRAIN_COMMON_PARAMS['post_concat_inputs'] = None#[('data.clinical_features',9),]
-    TRAIN_COMMON_PARAMS['post_concat_model'] = None#(256,256)
+    TRAIN_COMMON_PARAMS['num_backbone_features_clinical'] = None  # 256
+    TRAIN_COMMON_PARAMS['post_concat_inputs'] = None  # [('data.clinical_features',9),]
+    TRAIN_COMMON_PARAMS['post_concat_model'] = None  # (256,256)
 
     if TRAIN_COMMON_PARAMS['num_backbone_features_clinical'] is None:
         TRAIN_COMMON_PARAMS['num_backbone_features'] = TRAIN_COMMON_PARAMS['num_backbone_features_imaging']
     else:
         TRAIN_COMMON_PARAMS['num_backbone_features'] = \
-                TRAIN_COMMON_PARAMS['num_backbone_features_imaging']+TRAIN_COMMON_PARAMS['num_backbone_features_clinical']
+            TRAIN_COMMON_PARAMS['num_backbone_features_imaging'] + TRAIN_COMMON_PARAMS['num_backbone_features_clinical']
 
     # classification_task:
     # supported tasks are: 'ClinSig'
@@ -246,9 +238,6 @@ def run_train(paths: dict, train_params: dict):
     lgr.info(f'model_dir={paths["model_dir"]}', {'color': 'magenta'})
     lgr.info(f'cache_dir={paths["cache_dir"]}', {'color': 'magenta'})
 
-
-
-
     # ==============================================================================
     # Data
     # ==============================================================================
@@ -264,15 +253,15 @@ def run_train(paths: dict, train_params: dict):
 
     # split to folds randomly - temp
     params = dict(label_type=train_params['classification_task'], data_dir=paths["data_dir"], cache_dir=paths["cache_dir"],
-                                    reset_cache=reset_cache, sample_ids=train_params['data.selected_sample_ids'],
-                                    num_workers=train_params['data.train_num_workers'],
-                                    cache_kwargs=cache_kwargs, train=False, verbose=False)
+                  reset_cache=reset_cache, sample_ids=train_params['data.selected_sample_ids'],
+                  num_workers=train_params['data.train_num_workers'],
+                  cache_kwargs=cache_kwargs, train=False, verbose=False)
 
     dataset_all = prostate_x.ProstateX.dataset(**params)
     folds = dataset_balanced_division_to_folds(dataset=dataset_all,
-                                        output_split_filename=paths["data_split_filename"], 
-                                        keys_to_balance=["data.ground_truth"],
-                                        nfolds=train_params["data.num_folds"])
+                                               output_split_filename=paths["data_split_filename"],
+                                               keys_to_balance=["data.ground_truth"],
+                                               nfolds=train_params["data.num_folds"])
 
     train_sample_ids = []
     for fold in train_params["data.train_folds"]:
@@ -293,10 +282,10 @@ def run_train(paths: dict, train_params: dict):
 
     lgr.info(f'- Create sampler:')
     sampler = BatchSamplerDefault(dataset=train_dataset,
-                                       balanced_class_name='data.ground_truth',
-                                       num_balanced_classes=train_params['class_num'],
-                                       batch_size=train_params['data.batch_size'],
-                                       workers=train_params['data.train_num_workers']
+                                  balanced_class_name='data.ground_truth',
+                                  num_balanced_classes=train_params['class_num'],
+                                  batch_size=train_params['data.batch_size'],
+                                  workers=train_params['data.train_num_workers']
                                   )
     lgr.info(f'- Create sampler: Done')
 
@@ -306,7 +295,6 @@ def run_train(paths: dict, train_params: dict):
                                   collate_fn=CollateDefault(),
                                   num_workers=train_params['data.train_num_workers'])
     lgr.info(f'Train Data: Done', {'attrs': 'bold'})
-
 
     # dataloader
     validation_dataloader = DataLoader(dataset=validation_dataset,
@@ -322,27 +310,26 @@ def run_train(paths: dict, train_params: dict):
 
     conv_inputs = (('data.input.patch_volume', 1),)
     model = Fuse_model_3d_multichannel(
-    conv_inputs=conv_inputs, #previously 'data.input'. could be either 'data.input.patch_volume' or  'data.input.patch_volume_orig'
-    backbone=ResNet(conv_inputs=conv_inputs, ch_num=train_params['backbone_model_dict']['input_channels_num']),
-    # since backbone resnet contains pooling and fc, the feature output is 1D,
-    # hence we use Head1dClassifier as classification head
-    heads=[
-        Head1dClassifier(head_name='classification',
-                         conv_inputs=[('model.backbone_features', train_params['num_backbone_features'])],
-                         post_concat_inputs=train_params['post_concat_inputs'],
-                         post_concat_model=train_params['post_concat_model'],
-                         dropout_rate=train_params['imaging_dropout'],
-                         # append_dropout_rate=train_params['clinical_dropout'],
-                         # fused_dropout_rate=train_params['fused_dropout'],
-                         shared_classifier_head=None,
-                         layers_description=None,
+        conv_inputs=conv_inputs,  # previously 'data.input'. could be either 'data.input.patch_volume' or  'data.input.patch_volume_orig'
+        backbone=ResNet(conv_inputs=conv_inputs, ch_num=train_params['backbone_model_dict']['input_channels_num']),
+        # since backbone resnet contains pooling and fc, the feature output is 1D,
+        # hence we use Head1dClassifier as classification head
+        heads=[
+            Head1dClassifier(head_name='classification',
+                             conv_inputs=[('model.backbone_features', train_params['num_backbone_features'])],
+                             post_concat_inputs=train_params['post_concat_inputs'],
+                             post_concat_model=train_params['post_concat_model'],
+                             dropout_rate=train_params['imaging_dropout'],
+                             # append_dropout_rate=train_params['clinical_dropout'],
+                             # fused_dropout_rate=train_params['fused_dropout'],
+                             shared_classifier_head=None,
+                             layers_description=None,
                              num_classes=2,
                              # append_features=[("data.input.clinical", 8)],
                              # append_layers_description=(256,128),
                              ),
-            ]
-        )
-
+        ]
+    )
 
     lgr.info('Model: Done', {'attrs': 'bold'})
 
@@ -407,8 +394,6 @@ def run_train(paths: dict, train_params: dict):
     lgr.info('Train: Done', {'attrs': 'bold'})
 
 
-
-
 ######################################
 # Inference Template
 ######################################
@@ -420,21 +405,20 @@ def run_infer(paths: dict, infer_common_params: dict):
     lgr.info(f'infer_filename={os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])}', {'color': 'magenta'})
 
     ## Data
-    folds = load_pickle(paths["data_split_filename"]) # assume exists and created in train func
+    folds = load_pickle(paths["data_split_filename"])  # assume exists and created in train func
 
-    infer_sample_ids = []                              
+    infer_sample_ids = []
     for fold in infer_common_params["data.infer_folds"]:
         infer_sample_ids += folds[fold]
 
     params = dict(label_type=infer_common_params['classification_task'], data_dir=paths["data_dir"],
-                                            cache_dir=paths["cache_dir"], train=False,
-                                           sample_ids=infer_sample_ids)
+                  cache_dir=paths["cache_dir"], train=False,
+                  sample_ids=infer_sample_ids)
     validation_dataset = prostate_x.ProstateX.dataset(**params)
 
     # dataloader
     validation_dataloader = DataLoader(dataset=validation_dataset, batch_size=infer_common_params['data.batch_size'], collate_fn=CollateDefault(),
                                        num_workers=infer_common_params['data.num_workers'])
-
 
     ## Manager for inference
     manager = ManagerDefault()
@@ -444,8 +428,6 @@ def run_infer(paths: dict, infer_common_params: dict):
                   checkpoint=infer_common_params['checkpoint'],
                   output_columns=output_columns,
                   output_file_name=os.path.join(paths["inference_dir"], infer_common_params["infer_filename"]))
-
-
 
 
 ######################################
@@ -458,76 +440,27 @@ def run_eval(paths: dict, eval_common_params: dict):
 
     # metrics
     metrics = OrderedDict([
-        ('operation_point', MetricApplyThresholds(pred='model.output.classification')), # will apply argmax
+        ('operation_point', MetricApplyThresholds(pred='model.output.classification')),  # will apply argmax
         ('accuracy', MetricAccuracy(pred='results:metrics.operation_point.cls_pred', target='data.ground_truth')),
-        ('roc', MetricROCCurve(pred='model.output.classification', target='data.ground_truth', output_filename=os.path.join(paths['inference_dir'], 'roc_curve.png'))),
+        ('roc', MetricROCCurve(pred='model.output.classification', target='data.ground_truth',
+                               output_filename=os.path.join(paths['inference_dir'], 'roc_curve.png'))),
         ('auc', MetricAUCROC(pred='model.output.classification', target='data.ground_truth')),
     ])
-   
+
     # create evaluator
     evaluator = EvaluatorDefault()
 
     # run
     results = evaluator.eval(ids=None,
-                     data=os.path.join(paths["inference_dir"], eval_common_params["infer_filename"]),
-                     metrics=metrics,
-                     output_dir=paths['eval_dir'])
+                             data=os.path.join(paths["inference_dir"], eval_common_params["infer_filename"]),
+                             metrics=metrics,
+                             output_dir=paths['eval_dir'])
 
     return results
 
 
-def ask_user(yes_no_question):
-    res = ''
-    while res not in ['y', 'n']:
-        res = input(f'{yes_no_question}? [y/n]')
-    return res =='y'
-#
-# def get_augmentation_pipeline():
-#     image_channels = [list(range(0, slice_num))]
-#     aug_pipeline = [
-#         [
-#             ('data.input',),
-#             rotation_in_3d,
-#             {'z_rot': Uniform(-5.0, 5.0), 'y_rot': Uniform(-5.0, 5.0), 'x_rot': Uniform(-5.0, 5.0)},
-#             {'apply': RandBool(0.5)}
-#         ],
-#         [
-#             ('data.input',),
-#             squeeze_3d_to_2d,
-#             {'axis_squeeze': 'z'},
-#             {}
-#         ],
-#         [
-#             ('data.input',),
-#             aug_op_affine,
-#             {'rotate': Uniform(0, 360.0),
-#              'translate': (RandInt(-4, 4), RandInt(-4, 4)),
-#              'flip': (RandBool(0.5), RandBool(0.5)),
-#              'scale': Uniform(0.9, 1.1),
-#              },
-#             {'apply': RandBool(0.5)}
-#         ],
-#         [
-#             ('data.input',),
-#             aug_op_affine,
-#             {'rotate': Uniform(-3.0, 3.0),
-#              'translate': (RandInt(-2, 2), RandInt(-2, 2)),
-#              'flip': (False, False),
-#              'scale': Uniform(0.9, 1.1),
-#              'channels': Choice(image_channels, probabilities=None)},
-#             {'apply': RandBool(0.5) if train_common_params['data.aug.phase_misalignment'] else 0}
-#         ],
-#         [
-#             ('data.input',),
-#             unsqueeze_2d_to_3d,
-#             {'channels': num_channels, 'axis_squeeze': 'z'},
-#             {}
-#         ],
-#     ]
-#     augmentor = FuseAugmentorDefault(augmentation_pipeline=aug_pipeline)
 ######################################
 # Run
 ######################################
 if __name__ == "__main__":
-   main()
-
+    main()
