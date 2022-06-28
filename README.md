@@ -12,6 +12,7 @@ Analyzing **many** machine ML research projects we discovered that
 * Projects bring up is taking **far too long**, even when very similar projects were already done in the past by the same lab!
 * Porting individual components across projects was *painful* - resulting in **"reinventing the wheel" time after time**
 
+
 # How the magic happens
 
 ## 1. A simple yet super effective design concept
@@ -62,6 +63,11 @@ Another example: [TODO: add examples from evaluator, loss and/or additional]
   
 ### **fuse.eval** - a standalone library for **evaluating ML models** (not necessarily trained with FuseMedML)  
 The package includes collection of off-the-shelf metrics and utilities such as **statistical significance tests, calibration, thresholding, model comparison** and more. More details can be found [here](https://github.com/IBM/fuse-med-ml/tree/master/fuse/eval/README.md)  
+
+## Scope
+While many components are not dependend on any specific DL library, the framework in general was mostly tested using either
+* "Pure" [pytorch](https://pytorch.org/)
+* [pytorch-lightning](https://www.pytorchlightning.ai/)
 
 ## Domain Extensions
 fuse-med-ml, the core library, is completely domain agnostic!
