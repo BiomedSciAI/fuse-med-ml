@@ -31,21 +31,25 @@ A data pipeline operator
 ```python
 class OpPad(OpBase):
     def __call__(self, sample_dict: NDict, 
-        key: str, padding: List[int],
-        fill: int = 0, mode: str = 'constant'):
+        key_in: str, 
+        padding: List[int], fill: int = 0, mode: str = 'constant',
+        key_out:Optional[str]=None,
+        ):
 
-        img = sample_dict[key] #we extract the element in the defined key location (for example 'input.xray_img')
-        if torch.is_tensor(img): #if it's a torch tensor 
-            processed_img = TTF.pad(img, padding, fill, mode) 
-        elif isinstance(img, np.ndarray): #if it's numpy ndarray
-            processed_img = np.pad(img, pad_width=padding, mode=mode, constant_values=fill) #if 
-        else:
-            raise Exception(f"Error: OpPad expects Tensor or nd.array object, but got {type(img)}.")
-        sample_dict[key] = processed_img #we store the modified tensor/ndarray back into the nested dict
+        #we extract the element in the defined key location (for example 'input.xray_img')
+        img = sample_dict[key_in] 
+        assert isinstance(img, np.ndarray), f'Expected np.ndarray but got {type(img)}'
+        processed_img = np.pad(img, pad_width=padding, mode=mode, constant_values=fill)         
+        
+        #store the result in the requested output key (or in key_in if no key_out is provided)
+        key_out = key_in if key_out is None
+        sample_dict[key] = processed_img 
+
+        #returned the modified nested dict
         return sample_dict
 ```
 
-Since the key location isn't hardcoded, this module can be eaily reused across different research projects with very different data sample structures  
+Since the key location isn't hardcoded, this module can be eaily reused across different research projects with very different data sample structures. More code reuse - Hooray!  
   
 Another example: [TODO: add examples from evaluator, loss and/or additional]   
 
