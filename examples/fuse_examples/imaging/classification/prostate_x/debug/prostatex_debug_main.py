@@ -1,5 +1,4 @@
 import os
-os.environ["PROSTATEX_DATA_PATH"] = "/projects/msieve/MedicalSieve/PatientData/ProstateX/manifest-A3Y4AE4o5818678569166032044/"
 
 import SimpleITK as sitk
 from fuse.utils.file_io.file_io import load_pickle, save_pickle_safe
@@ -7,19 +6,23 @@ from fuseimg.datasets import prostate_x
 from fuse.data.utils.sample import create_initial_sample
 from deepdiff import DeepDiff
 import numpy as np
+import pickle
 
 
 import pandas as pd
+
+PROSTATEX_PROCESSED_FILE_DIR = '/projects/msieve_dev3/usr/Tal/prostate_x_processed_files'
+
 
 def main():
     label_type = prostate_x.ProstateXLabelType.ClinSig
     # sample_ids = prostate_x.get_samples_for_debug(n_pos=10, n_neg=10,
     #                                         label_type=prostate_x.DukeLabelType.STAGING_TUMOR_SIZE)
-    sample_ids = prostate_x.ProstateX.sample_ids()
+    sample_ids = prostate_x.ProstateX.sample_ids(data_dir=os.environ["PROSTATEX_DATA_PATH"])
     sample_ids = ['ProstateX-0010_1'] #
     sample_ids = ['ProstateX-0199_1'] #B-fix
     sample_ids = ['ProstateX-0030_1']
-    sample_ids = ['ProstateX-0008_1']
+    sample_ids = ['ProstateX-0159_1', 'ProstateX-0159_2', 'ProstateX-0159_3']
 
     if True:
         static_pipeline = prostate_x.ProstateX.static_pipeline(root_path=os.environ["PROSTATEX_DATA_PATH"],
@@ -129,6 +132,58 @@ def compare_to_fuse1():
             print(i, f"{filename} ok.")
     print(f"Done. Total number of mismatches={n_errors}")
 
+
+def test_files():
+    df = get_tal_prostatex_annotations_file()
+    print(df.shape, df['Patient ID'].nunique(), df.columns.values)
+    pids = set(df['Patient ID'])
+    df['sample_id']= df['Patient ID'] + '_'+ df['fid'].astype(str)
+    print(df.shape[0], df['sample_id'].nunique())
+
+    filenames = ['ProstateX-2-Findings-Train.csv', 'ProstateX-Findings-Train.csv']
+    filenames = [os.path.join(os.environ['PROSTATEX_DATA_PATH'], 'Lesion Information', f) for f in filenames]
+    df_list = []
+    for filename in filenames:
+        assert os.path.exists(filename)
+        df2 = pd.read_csv(filename)
+        a_filter = df2.ProxID == 'ProstateX-0159'
+        if np.any(a_filter):
+            assert a_filter.sum() ==3
+            df2.loc[a_filter, 'fid'] = [1,2,3]
+        df2['sample_id'] = df2['ProxID'] + '_' + df2['fid'].astype(str)
+
+        df_list.append(df2)
+        print(df2.shape, df2.columns.values)
+        print(df2.iloc[0])
+        print(df2.zone.unique(), df2['ProxID'].nunique())
+    df2 = df_list[1]
+    df3 = df_list[0]
+
+    if False:
+        dd = df3.merge(df2, on=['sample_id', 'fid', 'ProxID'])
+        a_filter = (dd.pos_x != dd.pos_y) | (dd.zone_x != dd.zone_y)
+        print(dd[a_filter])
+        # change in one record: ProstateX-0005
+        # values of  'ProstateX-Findings-Train.csv' matches Tal's file
+
+    print("ok")
+
+def get_tal_prostatex_annotations_file():
+    annotations_path = os.path.join(PROSTATEX_PROCESSED_FILE_DIR, 'dataset_prostate_x_folds_ver29062021_seed1.pickle')
+    with open(annotations_path, 'rb') as infile:
+        fold_annotations_dict = pickle.load(infile)
+    annotations_df = pd.concat(
+        [fold_annotations_dict[f'data_fold{fold}'] for fold in range(len(fold_annotations_dict))])
+
+    for pid, n_fid in [ ('ProstateX-0025', 5),('ProstateX-0159', 3)]:
+        a_filter = annotations_df['Patient ID'] == pid
+        if np.any(a_filter):
+            assert a_filter.sum() == n_fid
+            annotations_df.loc[a_filter, 'fid'] = np.arange(1, n_fid+1)
+    annotations_df['Sample ID'] = annotations_df[['Patient ID', 'fid']].apply(lambda row: '_'.join(row.values.astype(str)), axis=1)
+
+    return annotations_df
 if __name__ == '__main__':
-    main()
+    # main()
     # compare_to_fuse1()
+    test_files()

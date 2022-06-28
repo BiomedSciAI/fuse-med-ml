@@ -1,6 +1,8 @@
 import numpy as np
 import glob
 import os
+import logging
+
 import pickle
 from typing import Hashable, Optional, Sequence
 
@@ -25,9 +27,6 @@ from fuse.utils.rand import param_sampler
 from enum import Enum, auto
 
 import torch
-
-PROSTATEX_PROCESSED_FILE_DIR = '/projects/msieve_dev3/usr/Tal/prostate_x_processed_files'
-PROSTATEX_DATA_DIR = "/projects/msieve/MedicalSieve/PatientData/ProstateX/manifest-A3Y4AE4o5818678569166032044/"
 
 
 def get_selected_series_index(sample_id, seq_id):
@@ -85,10 +84,9 @@ class ProstateX:
     PATCH_Z_SIZE = 13
 
     @staticmethod
-    def sample_ids():
-        annotations_df = get_prostate_x_annotations_df()
+    def sample_ids(data_dir):
+        annotations_df = get_prostate_x_annotations_df(data_dir)
         return annotations_df['Sample ID'].values
-        # return [f'Breast_MRI_{i:03d}' for i in range(1,923)]
 
     @staticmethod
     def static_pipeline(root_path, select_series_func, with_rescale: Optional[bool] = True,
@@ -96,7 +94,7 @@ class ProstateX:
 
         data_path = os.path.join(root_path, 'PROSTATEx')
         # metadata_path = os.path.join(root_path, 'metadata.csv')
-        annotations_df = get_prostate_x_annotations_df()
+        annotations_df = get_prostate_x_annotations_df(root_path)
 
         series_desc_2_sequence_map = get_series_desc_2_sequence_mapping()
         dicom_seq_ids = ['T2', 'b', 'b_mix', 'ADC']
@@ -296,7 +294,7 @@ class ProstateX:
             data_dir = "/projects/msieve/MedicalSieve/PatientData/ProstateX/manifest-A3Y4AE4o5818678569166032044/"
 
         if sample_ids is None:
-            sample_ids = ProstateX.sample_ids()
+            sample_ids = ProstateX.sample_ids(data_dir)
 
         static_pipeline = ProstateX.static_pipeline(root_path=data_dir, select_series_func=select_series_func, verbose=verbose)
         dynamic_pipeline = ProstateX.dynamic_pipeline(train=train, label_type=label_type, num_channels=num_channels, verbose=verbose)
@@ -423,16 +421,20 @@ class OpAdProstateXLabelAndClinicalFeatures(OpBase):
         return sample_dict
 
 
-def get_prostate_x_annotations_df():  # todo: change!!!
-    annotations_path = os.path.join(PROSTATEX_PROCESSED_FILE_DIR, 'dataset_prostate_x_folds_ver29062021_seed1.pickle')
-    with open(annotations_path, 'rb') as infile:
-        fold_annotations_dict = pickle.load(infile)
-    annotations_df = pd.concat(
-        [fold_annotations_dict[f'data_fold{fold}'] for fold in range(len(fold_annotations_dict))])
+def get_prostate_x_annotations_df(data_dir):
+    annotations_df = pd.read_csv(os.path.join(data_dir, 'Lesion Information', 'ProstateX-Findings-Train.csv'))
+    annotations_df = annotations_df.rename({'ProxID': 'Patient ID'}, axis=1)
     # fix a bug in the dataset of wrong indexing
-    annotations_df.loc[:, ('fid')][annotations_df['Patient ID'] == 'ProstateX-0159'] = [1, 2, 3]
+    for pid, n_fid in [ ('ProstateX-0025', 5), ('ProstateX-0005', 3), ('ProstateX-0159', 3)]:
+        a_filter = annotations_df['Patient ID'] == pid
+        assert a_filter.sum() == n_fid
+        annotations_df.loc[a_filter, 'fid'] = np.arange(1, n_fid+1)
     annotations_df['Sample ID'] = annotations_df[['Patient ID', 'fid']].apply(lambda row: '_'.join(row.values.astype(str)), axis=1)
 
+    # filter problematic samples:
+    problematic_patient_ids = ['ProstateX-0025']
+    a_filter = ~annotations_df[ 'Patient ID'].isin(problematic_patient_ids)
+    annotations_df = annotations_df[a_filter]
     return annotations_df
 
 
@@ -478,11 +480,14 @@ def get_series_desc_2_sequence_mapping():
     return series_desc_2_sequence_mapping
 
 
-def get_sample_path(data_path, sample_id):
-    sample_path_pattern = os.path.join(data_path, sample_id, '*')
-    sample_path = glob.glob(sample_path_pattern)
-    assert len(sample_path) == 1
-    return sample_path[0]
+def get_sample_path(data_path, patient_id):
+    patient_path_pattern = os.path.join(data_path, patient_id, '*')
+    patient_path = sorted(glob.glob(patient_path_pattern))
+    if len(patient_path) > 1:
+        lgr = logging.getLogger('Fuse')
+        lgr.warning( f'{patient_id} has {len(patient_path)} files. Taking first')
+    return patient_path[0]
+
 
 
 ##################################
