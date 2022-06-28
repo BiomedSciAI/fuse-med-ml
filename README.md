@@ -6,6 +6,7 @@
 <img src="fuse/doc/place_holder_logo.png" alt="drawing" width="30%"/>
 
 # Effective Code Reuse across ML projects!
+## Battle tested in the medical domain - medical imaging, molecular biochem and EHR clinical data analysis
 
 # Motivation - *"*Oh, the pain!*"*
 Analyzing **many** machine ML research projects we discovered that 
