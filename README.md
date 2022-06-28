@@ -66,12 +66,16 @@ Another example: [TODO: add examples from evaluator, loss and/or additional]
 The package includes collection of off-the-shelf metrics and utilities such as **statistical significance tests, calibration, thresholding, model comparison** and more. More details can be found [here](https://github.com/IBM/fuse-med-ml/tree/master/fuse/eval/README.md)  
 
 ## Supported DL libraries
-While many components are not dependend on any specific DL library, the framework in general was mostly tested using either
+Some components depend on pytorch. For example, ```fuse.data``` is oriented towards pytorch DataSet, DataLoader, DataSampler etc.
+```fuse.dl``` makes heavy usage of pytorch models.
+Some components do not depend on any specific DL library - for example ```fuse.eval```.
+
+Broadly speaking, the supported DL libraries are:
 * "Pure" [pytorch](https://pytorch.org/)
 * [pytorch-lightning](https://www.pytorchlightning.ai/)
 
-And before you ask - pytorch-lightning and FuseMedML play along very nicely and are in practice orthogonal :)  
-See [Example-TODO insert link](...) for simple supervised cases, and [Example-TODO insert link](...) for completely custom usage of pytorch-lightning and FuseMedML.
+Before you ask - **pytorch-lightning and FuseMedML play along very nicely and have in practice orthogonal and additive benefits :) **
+See [Example-TODO insert link](...) for simple supervised learning cases, and [Example-TODO insert link](...) for completely custom usage of pytorch-lightning and FuseMedML.
 
 ## Domain Extensions
 fuse-med-ml, the core library, is completely domain agnostic!
