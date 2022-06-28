@@ -113,7 +113,7 @@ def balanced_division(df : pd.DataFrame, no_mixture_id : str, keys_to_balance: S
 
 
 
-def dataset_balanced_division_to_folds(dataset: DatasetBase, output_split_filename: str, keys_to_balance: Sequence[str], nfolds: int, workers: int =10, mp_context : str  =None, id:str =get_sample_id_key(), reset_split: bool = False, **kwargs):
+def dataset_balanced_division_to_folds(dataset: DatasetBase, output_split_filename: str, keys_to_balance: Sequence[str], nfolds: int, id:str=get_sample_id_key(), reset_split: bool = False, workers: int=10, mp_context : str =None, **kwargs):
 
     """
     Split dataset to folds.
@@ -124,9 +124,10 @@ def dataset_balanced_division_to_folds(dataset: DatasetBase, output_split_filena
                             (gender=male, cancer=True), (gender=male, cancer=False), (gender=female, cancer=True), (gender=female, cancer=False)
 
     :param  nfolds : number of folds
-    :param workers : numbers of workers for multiprocessing
     :param  id  : id to balance the split by ( not allowed 2 in same fold)
     :param reset_split: delete output_split_filename and recompute the split
+    :param workers : numbers of workers for multiprocessing (eport dataset into dataframe)
+    :param mp_context : multiprocessing context: "fork", "spawn", etc. 
     :param kwargs: more arguments controlling the split. See function balanced_division() for details
     """ 
     if os.path.exists(output_split_filename) and not reset_split:
@@ -138,10 +139,9 @@ def dataset_balanced_division_to_folds(dataset: DatasetBase, output_split_filena
             keys = [get_sample_id_key(), id]
         if keys_to_balance is not None:
             keys += keys_to_balance
-        df = ExportDataset.export_to_dataframe(dataset, keys, workers = workers, mp_context=mp_context)
+        df = ExportDataset.export_to_dataframe(dataset, keys, workers=workers, mp_context=mp_context)
         df_folds = balanced_division(df, id, keys_to_balance, nfolds, **kwargs)
 
-        print(df_folds.keys())
         folds = {}
         for fold in range(nfolds):
             folds[fold] = list(df_folds[df_folds["fold"] == fold][get_sample_id_key()])
