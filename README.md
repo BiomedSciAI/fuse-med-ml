@@ -55,7 +55,7 @@ Since the key location isn't hardcoded, this module can be eaily reused across d
   
 Another example: [TODO: add examples from evaluator, loss and/or additional]   
 
-## 2. "Batteries included" key components, built using the design concept mentioned above
+## 2. "Batteries included" key components, built using the same design concept
 
 ### **fuse.data** - A **declarative** super flexible data processing pipeline
 * Easy dealing with complex multi modality scenario
