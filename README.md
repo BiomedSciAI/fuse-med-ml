@@ -9,7 +9,7 @@
 ## Battle tested in the medical domain - medical imaging, molecular biochem and EHR clinical data analysis
 
 # Motivation - *"*Oh, the pain!*"*
-Analyzing **many** machine ML research projects we discovered that 
+Analyzing **many** ML research projects we discovered that 
 * Projects bring up is taking **far too long**, even when very similar projects were already done in the past by the same lab!
 * Porting individual components across projects was *painful* - resulting in **"reinventing the wheel" time after time**
 
