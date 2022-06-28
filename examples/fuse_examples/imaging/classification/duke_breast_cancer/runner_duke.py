@@ -19,7 +19,6 @@ Created on June 30, 2021
 
 import logging
 import os
-import getpass
 from typing import OrderedDict
 
 import fuseimg.datasets.duke_label_type
@@ -53,7 +52,7 @@ from fuseimg.datasets import duke
 
 from fuse.dl.models.heads.head_1d_classifier import Head1dClassifier
 
-from examples.fuse_examples.imaging.classification.prostate_x.backbone_3d_multichannel import Fuse_model_3d_multichannel, ResNet
+from examples.fuse_examples.imaging.utils.backbone_3d_multichannel import Fuse_model_3d_multichannel, ResNet
 
 
 def main():
@@ -98,7 +97,6 @@ def get_setting(mode, label_type=fuseimg.datasets.duke_label_type.DukeLabelType.
     ##########################################
 
     debug = FuseDebug(mode)
-    MICHAL_VERSION = True
     ##########################################
     # Output Paths
     ##########################################
@@ -118,16 +116,10 @@ def get_setting(mode, label_type=fuseimg.datasets.duke_label_type.DukeLabelType.
         batch_size = 2
         num_epoch = 5
     else:
-        if MICHAL_VERSION:
-            data_split_file = os.path.join(ROOT, 'DUKE_folds_v4.pkl')
-            cache_dir = os.path.join(ROOT, 'cache_dir_v4')
-            model_dir = os.path.join(ROOT, 'model_dir_v4')
-            selected_sample_ids = None
-        else:
-            data_split_file = os.path.join(ROOT, 'DUKE_folds_fuse2_11102021TumorSize_seed1.pkl')
-            cache_dir = os.path.join(ROOT, 'cache_dir')
-            model_dir = os.path.join(ROOT, 'model_dir')
-            selected_sample_ids = duke.get_selected_sample_ids()
+        data_split_file = os.path.join(ROOT, 'DUKE_folds_v4.pkl')
+        cache_dir = os.path.join(ROOT, 'cache_dir_v4')
+        model_dir = os.path.join(ROOT, 'model_dir_v4')
+        selected_sample_ids = None
 
         num_workers = 16
         batch_size = 50
@@ -282,10 +274,12 @@ def run_train(paths: dict, train_params: dict):
 
     params['sample_ids'] = train_sample_ids
     params['reset_cache'] = False
+    params['train'] = True
     train_dataset = duke.Duke.dataset(**params)
     # for _ in train_dataset:
     #     pass
     params['sample_ids'] = validation_sample_ids
+    params['train'] = False
     validation_dataset = duke.Duke.dataset(**params)
 
     lgr.info(f'- Create sampler:')
@@ -421,7 +415,8 @@ def run_infer(paths: dict, infer_common_params: dict):
 
     validation_dataset = duke.Duke.dataset(label_type=infer_common_params['classification_task'], data_dir=paths["data_dir"],
                                            cache_dir=paths["cache_dir"],
-                                           sample_ids=infer_sample_ids)
+                                           sample_ids=infer_sample_ids,
+                                           verbose=False)
 
     # dataloader
     validation_dataloader = DataLoader(dataset=validation_dataset, batch_size=infer_common_params['data.batch_size'], collate_fn=CollateDefault(),

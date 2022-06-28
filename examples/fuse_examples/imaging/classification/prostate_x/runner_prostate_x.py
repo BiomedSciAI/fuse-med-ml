@@ -17,42 +17,35 @@ Created on June 30, 2021
 
 """
 
+import getpass
 import logging
 import os
-import getpass
-from typing import OrderedDict
-
-from examples.fuse_examples.fuse_examples_utils import ask_user
-from fuse.utils.file_io.file_io import load_pickle
-from fuse.utils.rand.seed import Seed
+from typing import OrderedDict, Optional
 
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
 
-from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
-from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
-
-from fuse.eval.evaluator import EvaluatorDefault
-from fuse.data.utils.samplers import BatchSamplerDefault
+import fuse.utils.gpu as GPU
+from examples.fuse_examples.fuse_examples_utils import ask_user
+from examples.fuse_examples.imaging.utils.backbone_3d_multichannel import Fuse_model_3d_multichannel, ResNet
 from fuse.data.utils.collates import CollateDefault
+from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.split import dataset_balanced_division_to_folds
-
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
 from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
 from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
 from fuse.dl.managers.manager_default import ManagerDefault
-
-from fuse.utils.utils_debug import FuseDebug
-import fuse.utils.gpu as GPU
-from fuse.utils.utils_logger import fuse_logger_start
-
-from fuseimg.datasets import prostate_x
-
 from fuse.dl.models.heads.head_1d_classifier import Head1dClassifier
-
-from examples.fuse_examples.imaging.classification.prostate_x.backbone_3d_multichannel import Fuse_model_3d_multichannel, ResNet
+from fuse.eval.evaluator import EvaluatorDefault
+from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
+from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
+from fuse.utils.file_io.file_io import load_pickle
+from fuse.utils.rand.seed import Seed
+from fuse.utils.utils_debug import FuseDebug
+from fuse.utils.utils_logger import fuse_logger_start
+from fuseimg.datasets import prostate_x
 
 
 def main():
@@ -80,7 +73,7 @@ def main():
     # infer
     if 'infer' in RUNNING_MODES:
         print(INFER_COMMON_PARAMS)
-        run_infer(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS)
+        run_infer(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS, audit_cache='train' not in RUNNING_MODES)
 
     # eval
     if 'eval' in RUNNING_MODES:
@@ -118,7 +111,7 @@ def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=
         data_split_file = os.path.join(ROOT, f'prostatex_{n_folds}folds.pkl')
         selected_sample_ids = None
         cache_dir = os.path.join(ROOT, f'cache_dir_v2')
-        model_dir = os.path.join(ROOT, f'model_dir_v2')
+        model_dir = os.path.join(ROOT, f'model_dir_v4')
 
         num_workers = 16
         batch_size = 50
@@ -273,6 +266,7 @@ def run_train(paths: dict, train_params: dict):
     params['sample_ids'] = train_sample_ids
     params['reset_cache'] = False
     params['train'] = True
+    params['cache_kwargs'] = dict(audit_first_sample=False, audit_rate=None)
     train_dataset = prostate_x.ProstateX.dataset(**params)
     # for _ in train_dataset:
     #     pass
@@ -397,7 +391,7 @@ def run_train(paths: dict, train_params: dict):
 ######################################
 # Inference Template
 ######################################
-def run_infer(paths: dict, infer_common_params: dict):
+def run_infer(paths: dict, infer_common_params: dict, audit_cache: Optional[bool] = True):
     #### Logger
     fuse_logger_start(output_path=paths['inference_dir'], console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
@@ -413,7 +407,9 @@ def run_infer(paths: dict, infer_common_params: dict):
 
     params = dict(label_type=infer_common_params['classification_task'], data_dir=paths["data_dir"],
                   cache_dir=paths["cache_dir"], train=False,
-                  sample_ids=infer_sample_ids)
+                  sample_ids=infer_sample_ids, verbose=False)
+    if not audit_cache:
+        params['cache_kwargs'] =dict(audit_first_sample=False, audit_rate=None)
     validation_dataset = prostate_x.ProstateX.dataset(**params)
 
     # dataloader
