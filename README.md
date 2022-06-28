@@ -74,7 +74,7 @@ Broadly speaking, the supported DL libraries are:
 * "Pure" [pytorch](https://pytorch.org/)
 * [pytorch-lightning](https://www.pytorchlightning.ai/)
 
-Before you ask - **pytorch-lightning and FuseMedML play along very nicely and have in practice orthogonal and additive benefits :) **
+Before you ask - **pytorch-lightning and FuseMedML play along very nicely and have in practice orthogonal and additive benefits :)**  
 See [Example-TODO insert link](...) for simple supervised learning cases, and [Example-TODO insert link](...) for completely custom usage of pytorch-lightning and FuseMedML.
 
 ## Domain Extensions
