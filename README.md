@@ -16,7 +16,7 @@ Analyzing **many** machine ML research projects we discovered that
 # How the magic happens
 
 ## 1. A simple yet super effective design concept
-### Data is kept in a nested (heirarichal) dictionary - ```NDict```
+### Data is kept in a nested (heirarichal) dictionary - [NDict](https://github.com/IBM/fuse-med-ml/blob/master/fuse/utils/ndict.py)
 This is very flexible and allows to easily deal with multi modality information. 
 ```python
 sample_ndict = NDict()
