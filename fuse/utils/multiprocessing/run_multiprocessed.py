@@ -1,6 +1,7 @@
 import functools
 from typing import Any, Callable, List, Optional, Tuple
 from fuse.utils.utils_debug import FuseDebug
+import torch
 from tqdm import tqdm,trange
 import multiprocessing as mp
 from termcolor import cprint
@@ -192,6 +193,7 @@ def _run_multiprocessed_as_iterator_impl(worker_func, args_list, workers=0, verb
         else:
             pool = mp.get_context(mp_context).Pool
         
+        worker_func = functools.partial(worker_func_wrapper, worker_func=worker_func)
         with pool(processes=workers, initializer=_store_in_global_storage, initargs=(copy_to_global_storage,)) as pool:
             if verbose>0:
                 cprint(f'multiprocess pool created with {workers} workers.', 'cyan')            
@@ -200,7 +202,11 @@ def _run_multiprocessed_as_iterator_impl(worker_func, args_list, workers=0, verb
                     worker_func,
                     args_list), total=len(args_list), smoothing=0.1, disable=verbose<1):
                 yield curr_ans
+        
 
+def worker_func_wrapper(*args, worker_func, **kwargs):
+    torch.set_num_threads(1)
+    return worker_func(*args, **kwargs)
 
 def _store_in_global_storage(store_me: dict) -> None:
     """
