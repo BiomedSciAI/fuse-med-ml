@@ -5,7 +5,7 @@
 
 <img src="fuse/doc/FuseMedML-logo.png" alt="drawing" width="30%"/>
 
-# FuseMedML - Effective Code Re-use across ML research projects!
+# Effective Code Re-use across ML research projects!
 
 # Motivation - *"*Oh, the pain!*"*
 Analyzing **many** machine ML research projects we discovered that 
