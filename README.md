@@ -5,7 +5,7 @@
 
 <img src="fuse/doc/place_holder_logo.png" alt="drawing" width="30%"/>
 
-# Effective Code Reuse across ML research projects!
+# Effective Code Reuse across ML projects!
 
 # Motivation - *"*Oh, the pain!*"*
 Analyzing **many** machine ML research projects we discovered that 
