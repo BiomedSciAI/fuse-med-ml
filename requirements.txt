@@ -31,3 +31,4 @@ testbook
 ipykernel
 medpy
 pyradiomics
+openpyxl
