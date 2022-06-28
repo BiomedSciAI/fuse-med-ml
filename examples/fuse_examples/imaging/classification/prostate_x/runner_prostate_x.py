@@ -20,6 +20,7 @@ Created on June 30, 2021
 import getpass
 import logging
 import os
+import sys
 from typing import OrderedDict, Optional
 
 import torch.nn.functional as F
@@ -47,6 +48,9 @@ from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.utils_logger import fuse_logger_start
 from fuseimg.datasets import prostate_x
 
+from fuse.data.utils.export import ExportDataset
+
+my_version = 'v5'
 
 def main():
     mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
@@ -108,10 +112,10 @@ def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=
     else:
 
         # data_split_file =  os.path.join(ROOT, 'dataset_prostate_x_folds_ver29062021_seed1.pickle')
-        data_split_file = os.path.join(ROOT, f'prostatex_{n_folds}folds.pkl')
+        data_split_file = os.path.join(ROOT, f'prostatex_{n_folds}folds_{my_version}.pkl')
         selected_sample_ids = None
-        cache_dir = os.path.join(ROOT, f'cache_dir_v2')
-        model_dir = os.path.join(ROOT, f'model_dir_v4')
+        cache_dir = os.path.join(ROOT, f'cache_dir_{my_version}')
+        model_dir = os.path.join(ROOT, f'model_dir_{my_version}')
 
         num_workers = 16
         batch_size = 50
@@ -251,6 +255,9 @@ def run_train(paths: dict, train_params: dict):
                   cache_kwargs=cache_kwargs, train=False, verbose=False)
 
     dataset_all = prostate_x.ProstateX.dataset(**params)
+    # ExportDataset.export_to_dir(dataset=dataset_all, output_dir=f'/tmp/ozery/prostatex_{my_version}')
+    # sys.exit(0)
+
     folds = dataset_balanced_division_to_folds(dataset=dataset_all,
                                                output_split_filename=paths["data_split_filename"],
                                                keys_to_balance=["data.ground_truth"],

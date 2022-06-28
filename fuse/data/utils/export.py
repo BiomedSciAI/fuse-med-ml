@@ -18,10 +18,11 @@ Created on June 30, 2021
 """
 from typing import Optional, Sequence
 import pandas as pds
-
+import torch
+import os
 from fuse.data.datasets.dataset_base import DatasetBase
 
-from fuse.utils.file_io.file_io import save_dataframe
+from fuse.utils.file_io.file_io import save_dataframe, save_pickle_safe, load_pickle
 
 class ExportDataset:
     """
@@ -65,3 +66,47 @@ class ExportDataset:
             save_dataframe(df, output_filename)
         
         return df
+
+
+    @staticmethod
+    def export_to_dir(dataset: DatasetBase, output_dir: str, keys: Optional[Sequence[str]]=None,
+                        sample_id_key: str = "data.sample_id",
+                        **dataset_get_kwargs) :
+        """
+        extract from dataset the specified and keys and writes to a specified directory in the disk
+        :param dataset: the dataset to extract the values from
+        :param keys: Optional, keys to extract from sample_dict. If None - all keys will be saved
+        :param output_dir: Optional, if set, will save the dataframe into a file.
+        :param dataset_get_kwargs: additional parameters to dataset.get(), might be used to optimize the running time
+        """
+        # add sample_id to keys list
+        if keys is not None:
+            all_keys = []
+            all_keys += list(keys)
+            if sample_id_key not in keys:
+                all_keys.append(sample_id_key)
+        else:
+            all_keys = None
+
+        # read all the data
+        data = dataset.get_multi(keys=all_keys, **dataset_get_kwargs)
+        if not os.path.exists(output_dir):
+            os.mkdir(output_dir)
+
+        for i, sample_dict in enumerate(data):
+            sample_id = sample_dict[sample_id_key]
+            sample_dict = sample_dict.flatten()
+
+            if all_keys is not None:
+                sample_dict = {sample_dict[k] for k in all_keys}
+
+
+            d2 = {}
+            for k, v in sample_dict.items():
+                if isinstance(v, torch.Tensor):
+                    v = v.numpy()
+                d2[k] = v
+            output_file = os.path.join(output_dir, f'{sample_id}.pkl')
+            save_pickle_safe(d2, output_file)
+            print(i, "wrote", output_file)
+        print("done")

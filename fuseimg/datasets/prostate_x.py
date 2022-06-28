@@ -395,37 +395,69 @@ class OpAdProstateXLabelAndClinicalFeatures(OpBase):
         label_tensor = torch.tensor(label_val, dtype=torch.int64)
         sample_dict[key_out_gt] = label_tensor  # 'data.ground_truth'
 
-        # add clinical
-        features_to_use = self._label_type.get_features_to_use()
+        if False:
+            # add clinical
+            features_to_use = self._label_type.get_features_to_use()
 
-        zone2feature = {
-            'PZ': torch.tensor(np.array([0, 0, 0]), dtype=torch.float32),
-            'TZ': torch.tensor(np.array([0, 0, 1]), dtype=torch.float32),
-            'AS': torch.tensor(np.array([0, 1, 0]), dtype=torch.float32),
-            'SV': torch.tensor(np.array([1, 0, 0]), dtype=torch.float32),
-        }
+            zone2feature = {
+                'PZ': torch.tensor(np.array([0, 0, 0]), dtype=torch.float32),
+                'TZ': torch.tensor(np.array([0, 0, 1]), dtype=torch.float32),
+                'AS': torch.tensor(np.array([0, 1, 0]), dtype=torch.float32),
+                'SV': torch.tensor(np.array([1, 0, 0]), dtype=torch.float32),
+            }
 
-        clinical_features_to_use = zone2feature[clinical_features[features_to_use[0]]]
+            clinical_features_to_use = zone2feature[clinical_features[features_to_use[0]]]
 
-        sample_dict[key_out_clinical_features] = clinical_features_to_use  # 'data.clinical_features'
+            sample_dict[key_out_clinical_features] = clinical_features_to_use  # 'data.clinical_features'
 
-        if self._is_concat_features_to_input:
-            # select input channel
-            input_tensor = sample_dict['data.input']
-            input_shape = input_tensor.shape
-            for feature in clinical_features_to_use:
-                input_tensor = torch.cat(
-                    (input_tensor, feature.repeat(input_shape[1], input_shape[2], input_shape[3]).unsqueeze(0)), dim=0)
-            sample_dict['data.input'] = input_tensor
+            if self._is_concat_features_to_input:
+                # select input channel
+                input_tensor = sample_dict['data.input']
+                input_shape = input_tensor.shape
+                for feature in clinical_features_to_use:
+                    input_tensor = torch.cat(
+                        (input_tensor, feature.repeat(input_shape[1], input_shape[2], input_shape[3]).unsqueeze(0)), dim=0)
+                sample_dict['data.input'] = input_tensor
 
         return sample_dict
 
 
 def get_prostate_x_annotations_df(data_dir):
-    annotations_df = pd.read_csv(os.path.join(data_dir, 'Lesion Information', 'ProstateX-Findings-Train.csv'))
-    annotations_df = annotations_df.rename({'ProxID': 'Patient ID'}, axis=1)
+    if True:
+        # v5
+        annotations_df = pd.read_csv(os.path.join(data_dir, 'Lesion Information', 'ProstateX-Findings-Train.csv'))
+        annotations_df['Patient ID'] = annotations_df['ProxID']
+        annotations_df = annotations_df.set_index('ProxID')
+        annotations_df = annotations_df[[ 'Patient ID', 'fid','ClinSig', 'pos', 'zone']]
+        # ['ProstateX-0005_1',
+        # 'ProstateX-0025_1', 'ProstateX-0025_2', 'ProstateX-0025_3', 'ProstateX-0025_4',
+        # 'ProstateX-0105_2', 'ProstateX-0105_3', 'ProstateX-0154_3']
+
+        vals  = [('ProstateX-0005', 1), # there are two of this
+                 ('ProstateX-0105', 2), ('ProstateX-0105', 3),
+                 ('ProstateX-0154', 3)]
+        a_filter = np.zeros(annotations_df.shape[0], dtype=bool)
+        for pid, fid in vals:
+            a_filter |=( annotations_df['Patient ID'] == pid) & (annotations_df['fid']==fid)
+        assert a_filter.sum() == 5
+        annotations_df = annotations_df[~a_filter]
+
+    else:
+        #v6
+        PROSTATEX_PROCESSED_FILE_DIR = '/projects/msieve_dev3/usr/Tal/prostate_x_processed_files'
+
+        annotations_path = os.path.join(PROSTATEX_PROCESSED_FILE_DIR, 'dataset_prostate_x_folds_ver29062021_seed1.pickle')
+        with open(annotations_path, 'rb') as infile:
+            fold_annotations_dict = pickle.load(infile)
+        annotations_df = pd.concat(
+            [fold_annotations_dict[f'data_fold{fold}'] for fold in range(len(fold_annotations_dict))])
+        annotations_df = annotations_df[['Patient ID', 'fid', 'ClinSig', 'pos', 'zone']]
+
+    pids_to_fix = [('ProstateX-0159', 3)]
+
+
     # fix a bug in the dataset of wrong indexing
-    for pid, n_fid in [ ('ProstateX-0025', 5), ('ProstateX-0005', 3), ('ProstateX-0159', 3)]:
+    for pid, n_fid in pids_to_fix:
         a_filter = annotations_df['Patient ID'] == pid
         assert a_filter.sum() == n_fid
         annotations_df.loc[a_filter, 'fid'] = np.arange(1, n_fid+1)
@@ -434,7 +466,8 @@ def get_prostate_x_annotations_df(data_dir):
     # filter problematic samples:
     problematic_patient_ids = ['ProstateX-0025']
     a_filter = ~annotations_df[ 'Patient ID'].isin(problematic_patient_ids)
-    annotations_df = annotations_df[a_filter]
+    if not np.all(a_filter):
+        annotations_df = annotations_df[a_filter]
     return annotations_df
 
 

@@ -145,27 +145,40 @@ def test_files():
     df_list = []
     for filename in filenames:
         assert os.path.exists(filename)
-        df2 = pd.read_csv(filename)
-        a_filter = df2.ProxID == 'ProstateX-0159'
+        df2 = pd.read_csv(filename).rename({'ProxID': 'Patient ID'}, axis=1)
+
+        a_filter = df2['Patient ID'] == 'ProstateX-0159'
         if np.any(a_filter):
             assert a_filter.sum() ==3
             df2.loc[a_filter, 'fid'] = [1,2,3]
-        df2['sample_id'] = df2['ProxID'] + '_' + df2['fid'].astype(str)
+        df2['sample_id'] = df2['Patient ID'] + '_' + df2['fid'].astype(str)
 
         df_list.append(df2)
         print(df2.shape, df2.columns.values)
         print(df2.iloc[0])
-        print(df2.zone.unique(), df2['ProxID'].nunique())
+        print(df2.zone.unique(), df2['Patient ID'].nunique())
     df2 = df_list[1]
     df3 = df_list[0]
 
     if False:
-        dd = df3.merge(df2, on=['sample_id', 'fid', 'ProxID'])
+        dd = df3.merge(df2, on=['sample_id', 'fid', 'Patient ID'])
         a_filter = (dd.pos_x != dd.pos_y) | (dd.zone_x != dd.zone_y)
         print(dd[a_filter])
         # change in one record: ProstateX-0005
         # values of  'ProstateX-Findings-Train.csv' matches Tal's file
 
+    # compare df2 and df:
+    dd = df.merge(df2, on=['sample_id', 'fid', 'Patient ID'])
+    cols_2_compare = [s for s in dd.columns if s.endswith('_x')]
+    print("comparing to between Tal's processd file and", filenames[1])
+    for sx in cols_2_compare:
+        sy =sx[:-1]+'y'
+        a_filter = dd[sx] != dd[sy]
+        print("checking", sx)
+        if np.any(a_filter):
+            print(dd[['sample_id', sx, sy]].loc[0])
+
+    print(sorted(list(set(df2['sample_id']) - set(df['sample_id']))))
     print("ok")
 
 def get_tal_prostatex_annotations_file():
@@ -183,7 +196,28 @@ def get_tal_prostatex_annotations_file():
     annotations_df['Sample ID'] = annotations_df[['Patient ID', 'fid']].apply(lambda row: '_'.join(row.values.astype(str)), axis=1)
 
     return annotations_df
+
+def compare_datasets_on_dict():
+    dir1 = '/tmp/ozery/prostatex_v5' #bad
+    dir2 = '/tmp/ozery/prostatex_v6'# goood
+    deep_diff_config = dict(ignore_nan_inequality=True)  # , math_epsilon=0.0001)
+    for i, file in enumerate(sorted(os.listdir(dir2))):
+        df_list = []
+        for dirx in [dir1, dir2]:
+            filex = os.path.join(dirx, file)
+            # if not os.path.exists(filex):
+            #     print(file, "does not exist")
+            #     continue
+            d = load_pickle(filex)
+            df_list.append(d)
+        diff = DeepDiff(df_list[0], df_list[1], **deep_diff_config)
+        if len(diff)>0:
+            print(i, file,diff.keys())
+        else:
+            print(i,"ok",  df_list[0]['data.ground_truth'], df_list[1]['data.ground_truth'])
+    print("done")
 if __name__ == '__main__':
     # main()
     # compare_to_fuse1()
     test_files()
+    # compare_datasets_on_dict()
