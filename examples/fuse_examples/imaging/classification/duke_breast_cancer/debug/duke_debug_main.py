@@ -1,4 +1,6 @@
 # import nibabel as nib
+import pickle
+
 import fuseimg.datasets.duke_label_type
 from examples.fuse_examples.imaging.classification import duke_breast_cancer
 from fuse.utils.file_io.file_io import load_pickle, save_pickle_safe
@@ -10,16 +12,15 @@ import torch
 from deepdiff import DeepDiff
 import SimpleITK as sitk
 from fuse.utils import file_io
-
-
-
-
 import time
 import numpy as np
 from tqdm import tqdm
 
 import getpass
 import os
+
+from fuseimg.datasets.duke import get_duke_clinical_data_df
+
 os.environ["DUKE_DATA_PATH"] = "/projects/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI/"
 
 import pandas as pd
@@ -108,7 +109,7 @@ def replace_tensors_with_numpy(d):
 
     return d2
 def derive_fuse2_folds_files():
-    input_filename_pattern = os.path.join(duke.DUKE_PROCESSED_FILE_DIR, "dataset_DUKE_folds_ver{name}_seed1.pickle")
+    input_filename_pattern = os.path.join(DUKE_PROCESSED_FILE_DIR, "dataset_DUKE_folds_ver{name}_seed1.pickle")
     output_path = f'/projects/msieve_dev3/usr/{getpass.getuser()}/fuse_examples/duke'
     output_filename_pattern = os.path.join(output_path, "DUKE_folds_fuse2_{name}_seed1.pkl")
 
@@ -160,7 +161,7 @@ def compare_sample_dicts(file1, file2):
 
 
 def get_excluded_patients(do_print=True):
-    df = duke.get_duke_annotations_df()
+    df = get_duke_annotations_df()
     all_sample_ids = duke.Duke.sample_ids()
     print(df.shape, df.columns[0], len(all_sample_ids))
     excluded_sample_ids = sorted(list(set(all_sample_ids) - set(df.iloc[:,0].values)))
@@ -231,3 +232,62 @@ if __name__ == "__main__":
     # derive_fuse2_folds_files()
     # check_fuse_results()
     # visualize_image_from_cache()
+
+
+def cmp_features():
+    data_dir = '/projects/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI'
+
+    map = get_col_mapping()
+    cols_new = list(map.keys())
+    cols_old = [map[k] for k in cols_new]
+    df_new = get_duke_clinical_data_df(data_dir).set_index('Patient Information:Patient ID')[cols_new]
+    df_old = get_duke_annotations_df().set_index('Patient ID DICOM')[cols_old]
+    df_new = df_new.loc[df_old.index]
+    for icol in range(len(map)):
+        v_new = df_new.iloc[:, icol]
+        v_old = df_old.iloc[:, icol]
+
+        v_new0 = v_new[0]
+        v_old0 = v_old[0]
+        # print("**", cols_old[icol], v_new0, v_old0, type(v_new0), type(v_old0))
+        is_same = (v_new == v_old)
+        if isinstance(v_new0, np.float64) and isinstance(v_old0, np.float64):
+            is_same |= np.isnan(v_new) & np.isnan(v_old)
+        if (is_same).all():
+            print(cols_old[icol], 'OK')
+        else:
+            ix = np.where(~is_same)[0]
+            diff = (~is_same)
+            print("----", cols_old[icol], 'ERROR!!!', df_new.index[ix[0]], v_new[ix[0]], v_old[ix[0]], f"#diff={diff.sum()} / {diff.shape[0]}")
+
+
+def get_col_mapping():
+    return {'MRI Findings:Skin/Nipple Invovlement': 'Skin Invovlement',
+            'US features:Tumor Size (cm)': 'Tumor Size US',
+            'Mammography Characteristics:Tumor Size (cm)': 'Tumor Size MG',
+            'MRI Technical Information:FOV Computed (Field of View) in cm': 'Field of View',
+            'MRI Technical Information:Contrast Bolus Volume (mL)': 'Contrast Bolus Volume',
+            'Demographics:Race and Ethnicity': 'Race',
+            'MRI Technical Information:Manufacturer Model Name': 'Manufacturer',
+            'MRI Technical Information:Slice Thickness': 'Slice Thickness',
+            'MRI Findings:Multicentric/Multifocal': 'Multicentric',
+            'Mammography Characteristics:Breast Density': 'Breast Density MG',
+            'Tumor Characteristics:PR': 'PR',
+            'Tumor Characteristics:HER2': 'HER2',
+            'Tumor Characteristics:ER': 'ER',
+            'Near Complete Response:Overall Near-complete Response:  Stricter Definition': 'Near pCR Strict',
+            'Tumor Characteristics:Staging(Tumor Size)# [T]': 'Staging Tumor Size',
+            'Tumor Characteristics:Histologic type': 'Histologic type',
+            }
+
+
+def get_duke_annotations_df():  # todo: change!!!
+    annotations_path = os.path.join(DUKE_PROCESSED_FILE_DIR, 'dataset_DUKE_folds_ver11102021TumorSize_seed1.pickle')
+    with open(annotations_path, 'rb') as infile:
+        fold_annotations_dict = pickle.load(infile)
+    annotations_df = pd.concat(
+        [fold_annotations_dict[f'data_fold{fold}'] for fold in range(len(fold_annotations_dict))])
+    return annotations_df
+
+
+DUKE_PROCESSED_FILE_DIR = '/projects/msieve_dev3/usr/common/duke_processed_files'

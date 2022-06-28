@@ -1,7 +1,6 @@
 import numpy as np
 import glob
 import os
-import pickle
 import radiomics
 from typing import Hashable, Optional, Sequence
 from fuse.data.ops import ops_common
@@ -25,8 +24,6 @@ from fuseimg.data.ops import ops_mri
 import torch
 
 from fuseimg.datasets.duke_label_type import DukeLabelType
-
-DUKE_PROCESSED_FILE_DIR = '/projects/msieve_dev3/usr/common/duke_processed_files'
 
 
 def get_selected_series_index(sample_id, seq_id):
@@ -86,8 +83,6 @@ class Duke:
 
     @staticmethod
     def sample_ids():
-        # annotations_df = get_duke_annotations_df(root_path)
-        # return annotations_df['Patient ID'].values
         return [f'Breast_MRI_{i:03d}' for i in range(1, 923)]
 
     @staticmethod
@@ -384,15 +379,6 @@ class OpAddDukeLabelAndClinicalFeatures(OpBase):
         return sample_dict
 
 
-def get_duke_annotations_df():  # todo: change!!!
-    annotations_path = os.path.join(DUKE_PROCESSED_FILE_DIR, 'dataset_DUKE_folds_ver11102021TumorSize_seed1.pickle')
-    with open(annotations_path, 'rb') as infile:
-        fold_annotations_dict = pickle.load(infile)
-    annotations_df = pd.concat(
-        [fold_annotations_dict[f'data_fold{fold}'] for fold in range(len(fold_annotations_dict))])
-    return annotations_df
-
-
 def get_duke_raw_annotations_df(duke_data_dir):
     annotations_path = os.path.join(duke_data_dir, 'Annotation_Boxes.csv')
     annotations_df = pd.read_csv(annotations_path)
@@ -425,7 +411,6 @@ def get_duke_clinical_data_df(duke_data_dir):
 
 
 def get_samples_for_debug(data_dir, n_pos, n_neg, label_type, sample_ids=None):
-    # annotations_df = get_duke_annotations_df()
     annotations_df = get_duke_clinical_data_df(data_dir).set_index('Patient Information:Patient ID')
     if sample_ids is not None:
         annotations_df = annotations_df.loc[sample_ids]
@@ -570,48 +555,3 @@ def get_selected_sample_ids():
     return selected_samples_id
 
 
-def get_col_mapping():
-    return {'MRI Findings:Skin/Nipple Invovlement': 'Skin Invovlement',
-            'US features:Tumor Size (cm)': 'Tumor Size US',
-            'Mammography Characteristics:Tumor Size (cm)': 'Tumor Size MG',
-            'MRI Technical Information:FOV Computed (Field of View) in cm': 'Field of View',
-            'MRI Technical Information:Contrast Bolus Volume (mL)': 'Contrast Bolus Volume',
-            'Demographics:Race and Ethnicity': 'Race',
-            'MRI Technical Information:Manufacturer Model Name': 'Manufacturer',
-            'MRI Technical Information:Slice Thickness': 'Slice Thickness',
-            'MRI Findings:Multicentric/Multifocal': 'Multicentric',
-            'Mammography Characteristics:Breast Density': 'Breast Density MG',
-            'Tumor Characteristics:PR': 'PR',
-            'Tumor Characteristics:HER2': 'HER2',
-            'Tumor Characteristics:ER': 'ER',
-            'Near Complete Response:Overall Near-complete Response:  Stricter Definition': 'Near pCR Strict',
-            'Tumor Characteristics:Staging(Tumor Size)# [T]': 'Staging Tumor Size',
-            'Tumor Characteristics:Histologic type': 'Histologic type',
-            }
-
-
-def cmp_features():
-    data_dir = '/projects/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI'
-
-    map = get_col_mapping()
-    cols_new = list(map.keys())
-    cols_old = [map[k] for k in cols_new]
-    df_new = get_duke_clinical_data_df(data_dir).set_index('Patient Information:Patient ID')[cols_new]
-    df_old = get_duke_annotations_df().set_index('Patient ID DICOM')[cols_old]
-    df_new = df_new.loc[df_old.index]
-    for icol in range(len(map)):
-        v_new = df_new.iloc[:, icol]
-        v_old = df_old.iloc[:, icol]
-
-        v_new0 = v_new[0]
-        v_old0 = v_old[0]
-        # print("**", cols_old[icol], v_new0, v_old0, type(v_new0), type(v_old0))
-        is_same = (v_new == v_old)
-        if isinstance(v_new0, np.float64) and isinstance(v_old0, np.float64):
-            is_same |= np.isnan(v_new) & np.isnan(v_old)
-        if (is_same).all():
-            print(cols_old[icol], 'OK')
-        else:
-            ix = np.where(~is_same)[0]
-            diff = (~is_same)
-            print("----", cols_old[icol], 'ERROR!!!', df_new.index[ix[0]], v_new[ix[0]], v_old[ix[0]], f"#diff={diff.sum()} / {diff.shape[0]}")

@@ -4,6 +4,7 @@ import os
 import torch
 import numpy as np
 
+import examples.fuse_examples.imaging.classification.duke_breast_cancer.debug
 import fuseimg.datasets.duke_label_type
 
 os.environ["DUKE_DATA_PATH"] = "/projects/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI"
@@ -62,11 +63,11 @@ def test_duke(root_path, cache_dir, sample_ids_2_test, check_dynamic, verbose=Fa
         print(f"--------------------- {sample_id}: test {s}")
         pipeline_cache_file = os.path.join(cache_dir, f'{s}_pipeline_output.pkl.gz')
         if os.path.exists(pipeline_cache_file):
-            ref_dict_obj = duke_breast_cancer.load_object(pipeline_cache_file)
+            ref_dict_obj = examples.fuse_examples.imaging.classification.duke_breast_cancer.debug.load_object(pipeline_cache_file)
             compare_dicts(dict_obj, ref_dict_obj)
         else:
             print("\tno previous results to compare to - writing current results for future tests")
-            duke_breast_cancer.save_object(dict_obj, pipeline_cache_file)
+            examples.fuse_examples.imaging.classification.duke_breast_cancer.debug.save_object(dict_obj, pipeline_cache_file)
             print("wrote", pipeline_cache_file)
 
 
