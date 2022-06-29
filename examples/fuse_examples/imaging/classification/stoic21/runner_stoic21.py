@@ -69,16 +69,11 @@ assert "STOIC21_DATA_PATH" in os.environ, "Expecting environment variable STOIC2
 ROOT = '_examples/stoic21' # TODO: fill path here
 model_dir = os.path.join(ROOT, 'model_dir')
 PATHS = {'model_dir': model_dir,
-         'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
          'cache_dir': os.path.join(ROOT, 'cache_dir'),
          'data_split_filename': os.path.join(ROOT, 'stoic21_split.pkl'),
          'data_dir': os.environ["STOIC21_DATA_PATH"],
          'inference_dir': os.path.join(model_dir, 'infer_dir'),
          'eval_dir': os.path.join(model_dir, 'eval_dir')}
-
-
-
-
 
 ##########################################
 # Train Common Params

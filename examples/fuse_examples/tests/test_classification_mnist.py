@@ -32,13 +32,13 @@ class ClassificationMnistTestCase(unittest.TestCase):
 
     def setUp(self):
         self.root = tempfile.mkdtemp()
-        model_dir = os.path.join(self.root, 'mnist/model_dir')
+        model_dir = os.path.join(self.root, 'model_dir')
         self.paths = {
             'model_dir': model_dir,
             'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
-            'cache_dir': os.path.join(self.root, 'mnist/cache_dir'),
-            'inference_dir': os.path.join(model_dir, 'mnist/infer_dir'),
-            'eval_dir': os.path.join(model_dir, 'mnist/eval_dir')}
+            'cache_dir': os.path.join(self.root, 'cache_dir'),
+            'inference_dir': os.path.join(model_dir, 'infer_dir'),
+            'eval_dir': os.path.join(model_dir, 'eval_dir')}
 
 
         self.train_common_params = TRAIN_COMMON_PARAMS

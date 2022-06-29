@@ -36,14 +36,14 @@ class ClassificationStoic21TestCase(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.mkdtemp()
 
+        model_dir = os.path.join(self.root, 'model_dir')
         self.paths = {
-            'model_dir': os.path.join(self.root, 'stoic/model_dir'),
-            'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
+            'model_dir': model_dir,
             'data_dir': PATHS["data_dir"],
-            'cache_dir': os.path.join(self.root, 'stoic/cache_dir'),
+            'cache_dir': os.path.join(self.root, 'cache_dir'),
             'data_split_filename': os.path.join(self.root, 'split.pkl'),
-            'inference_dir': os.path.join(self.root, 'stoic/infer_dir'),
-            'eval_dir': os.path.join(self.root, 'stoic/eval_dir')}
+            'inference_dir': os.path.join(model_dir, 'infer_dir'),
+            'eval_dir': os.path.join(model_dir, 'eval_dir')}
 
 
         self.train_common_params = TRAIN_COMMON_PARAMS
