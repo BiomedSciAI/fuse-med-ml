@@ -48,7 +48,7 @@ class ClassificationMnistTestCase(unittest.TestCase):
         self.eval_common_params = EVAL_COMMON_PARAMS
 
     
-    #@run_in_subprocess()
+    @run_in_subprocess()
     def test_template(self):
         Seed.set_seed(0, False) # previous test (in the pipeline) changed the deterministic behavior to True
         run_train(self.paths, self.train_common_params)
