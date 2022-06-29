@@ -6,7 +6,8 @@
 <img src="fuse/doc/place_holder_logo.png" alt="drawing" width="30%"/>
 
 # Effective Code Reuse across ML projects!
-## Battle tested in the medical domain - medical imaging, molecular biochem and EHR clinical data analysis
+## Battle tested in the medical domain:  
+Medical imaging, molecular biochem and EHR clinical data analysis
 
 [Skip to install instructions](#Installation)
 
@@ -14,7 +15,6 @@
 Analyzing **many** ML research projects we discovered that 
 * Projects bring up is taking **far too long**, even when very similar projects were already done in the past by the same lab!
 * Porting individual components across projects was *painful* - resulting in **"reinventing the wheel" time after time**
-
 
 # How the magic happens
 
