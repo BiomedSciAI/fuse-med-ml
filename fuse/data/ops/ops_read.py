@@ -76,7 +76,8 @@ class OpReadDataframe(OpBase):
             df.rename(self._rename_columns, axis=1, inplace=True)
 
         # convert to dictionary: {index -> {column -> value}}
-        df = df.set_index(self._key_column)
+        if self._key_column is not None :
+            df = df.set_index(self._key_column)
         self._data = df.to_dict(orient='index')
 
     def __call__(self, sample_dict: NDict, key_out_group=None, **kwargs) -> Union[None, dict, List[dict]]:
@@ -84,6 +85,7 @@ class OpReadDataframe(OpBase):
         See base class
         """
         key = sample_dict[self._key_name]
+
         # locate the required item
         sample_data = self._data[key].copy()
 
@@ -101,5 +103,3 @@ class OpReadDataframe(OpBase):
         :return: list of  dataframe index values
         """
         return list(self.data.keys())
-
-    

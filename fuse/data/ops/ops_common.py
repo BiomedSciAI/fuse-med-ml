@@ -89,11 +89,11 @@ class OpLambda(OpReversibleBase):
         self._func = func
         self._func_reverse = func_reverse
     
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str, key_out:Optional[str]=None, **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: Optional[str] = None, key_out:Optional[str]=None, **kwargs) -> Union[None, dict, List[dict]]:
         """        
         More details in super class
-        :param key: apply lambda func on sample_dict[key]. If none the input and output of the lambda function are the entire sample_dict
-        :param key_out[Optional]: sample_dict[key_out] = func(sample_dict[key])
+        :param key [Optional]: apply lambda func on sample_dict[key]. If none (default) the input and output of the lambda function are the entire sample_dict
+        :param key_out [Optional]: sample_dict[key_out] = func(sample_dict[key])
         """
         sample_dict[op_id] = key
         if key is not None:
@@ -355,7 +355,7 @@ class OpKeepKeypaths(OpBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], keep_keypaths:List[str]) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, keep_keypaths:List[str]) -> Union[None, dict, List[dict]]:
         prev_sample_dict = sample_dict
         sample_dict = NDict()
         for k in keep_keypaths:
@@ -370,11 +370,14 @@ class OpLookup(OpBase):
     Example:
     To read the gender represented by strings "male" and "female" and convert it to int do the following
     (OpLookup(map={"male": 0, "female": 1}). dict(key_in="data.input.gender", key_out="data.input,gender"))
-
     """
-    def __init__(self, map: dict):
+    def __init__(self, map: dict, not_exist_error : bool = True):
+        """
+        :param not_exist_error: false iff if the value does not exist it will keep the previous value
+        """
         super().__init__()
         self._map = map
+        self._not_exist_error = not_exist_error
 
     def __call__(self, sample_dict: NDict, key_in: str, key_out: str) -> Union[None, dict, List[dict]]:
         """
@@ -382,7 +385,11 @@ class OpLookup(OpBase):
         :param key_out: key to store the converted vale
         """
         value = sample_dict[key_in]
-        sample_dict[key_out] = self._map[value]
+        if value in self._map :
+            sample_dict[key_out] = self._map[value]
+        elif self._not_exist_error:
+            raise Exception(f"value {value} does not exist in mapping")
+
 
         return sample_dict
 

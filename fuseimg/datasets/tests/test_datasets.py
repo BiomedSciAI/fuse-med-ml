@@ -1,7 +1,7 @@
 import os
 import pathlib
 import shutil
-from tempfile import gettempdir, mkdtemp
+from tempfile import mkdtemp
 import unittest
 from fuse.data.utils.sample import get_sample_id
 from fuse.utils.file_io.file_io import create_dir
@@ -16,6 +16,10 @@ from fuse.utils.multiprocessing.run_multiprocessed import get_from_global_storag
 from fuse.eval.evaluator import EvaluatorDefault 
 import multiprocessing as mp
 
+from fuseimg.datasets.isic import ISIC
+from examples.fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS, TEN_GOLDEN_MEMBERS
+
+
 notebook_path = os.path.join(pathlib.Path(__file__).parent.resolve(), "../kits21_example.ipynb")
 
 def ds_getitem(index: int):
@@ -27,13 +31,13 @@ class TestDatasets(unittest.TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        
         self.kits21_cache_dir = mkdtemp(prefix="kits21_cache")
         self.kits21_data_dir = os.environ["KITS21_DATA_PATH"] if "KITS21_DATA_PATH" in os.environ else mkdtemp(prefix="kits21_data")
 
         self.stoic21_cache_dir = mkdtemp(prefix="stoic_cache")
 
-
+        self.isic_cache_dir = mkdtemp(prefix="isic_cache")
+        self.isic_data_dir = os.environ["ISIC19_DATA_PATH"] if "ISIC19_DATA_PATH" in os.environ else mkdtemp(prefix="isic_data")
 
     def test_kits21(self):
         KITS21.download(self.kits21_data_dir, cases=list(range(10)))
@@ -67,6 +71,14 @@ class TestDatasets(unittest.TestCase):
         self.assertEqual(ds[0]['data.input.clinical'].shape[0], 8)
         self.assertTrue(5 in dict(results["metrics.age"]))
         
+    def test_isic(self):
+
+        create_dir(self.isic_cache_dir)
+        dataset = ISIC.dataset(self.isic_data_dir, self.isic_cache_dir, reset_cache=True, samples_ids=TEN_GOLDEN_MEMBERS)
+        self.assertEqual(len(dataset), 10)
+        for sample_index in range(10):
+            sample = dataset[sample_index]
+            self.assertEqual(get_sample_id(sample), TEN_GOLDEN_MEMBERS[sample_index])
 
     @testbook(notebook_path, execute=range(0,4), timeout=120)
     def test_basic(tb, self):
@@ -107,9 +119,12 @@ class TestDatasets(unittest.TestCase):
 
         shutil.rmtree(self.stoic21_cache_dir)
         
+        shutil.rmtree(self.isic_cache_dir)
+        if "ISIC19_DATA_PATH" not in os.environ:
+            shutil.rmtree(self.isic_data_dir)
+
         super().tearDown()
 
-    
     
 if __name__ == '__main__':
     unittest.main()

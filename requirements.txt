@@ -30,5 +30,7 @@ psutil
 testbook
 ipykernel
 medpy
+hydra-core
+omegaconf
 pyradiomics
 openpyxl

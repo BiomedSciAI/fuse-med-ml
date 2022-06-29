@@ -30,7 +30,7 @@ from fuse.utils.ndict import NDict
 class HeadGlobalPoolingClassifier(nn.Module):
     def __init__(self,
                  head_name: str = 'head_0',
-                 conv_inputs: Sequence[Tuple[str, int]] = (('model.backbone_features', 384),),
+                 conv_inputs: Sequence[Tuple[str, int]] = None,
                  num_classes: int = 2,
                  tabular_data_inputs: Optional[Sequence[Tuple[str, int]]] = None,
                  pooling: str = 'max',
@@ -49,6 +49,7 @@ class HeadGlobalPoolingClassifier(nn.Module):
         :param head_name:                   batch_dict key
         :param conv_inputs:                 List of feature map inputs - tuples of (batch_dict key, channel depth)
                                             If multiple inputs are used, they are concatenated on the channel axis
+                example: conv_inputs = (('model.backbone_features', 384),)
         :param num_classes:                 Number of output classes (per feature map location)
         :param tabular_data_inputs:          Additional vector (one dimensional) inputs, concatenated just before the classifier module
         :param pooling:                     Type of global pooling operator ('max' or 'avg')
@@ -63,6 +64,7 @@ class HeadGlobalPoolingClassifier(nn.Module):
         assert pooling in ('max', 'avg')
 
         self.head_name = head_name
+        assert conv_inputs is not None, 'conv_inputs must be provided'
         self.conv_inputs = conv_inputs
         self.tabular_data_inputs = tabular_data_inputs
         self.pooling = pooling

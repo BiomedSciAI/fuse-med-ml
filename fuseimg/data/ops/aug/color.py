@@ -132,4 +132,3 @@ class OpAugGaussian(OpBase):
         
         sample_dict[key] = aug_tensor
         return sample_dict
-

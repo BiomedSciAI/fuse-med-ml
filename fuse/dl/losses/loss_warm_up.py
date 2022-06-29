@@ -2,6 +2,12 @@ from typing import Dict
 import torch
 
 class LossWarmUp(torch.nn.Module):
+    """
+    Zero the loss until a defined amount of iterations have passed.
+
+    This is useful for example when you have multiple losses and you want one loss to stabilize before the other is used
+    """
+
     def __init__(self, loss: torch.nn.Module, nof_iterations: int):
         super().__init__()
         self._loss = loss

@@ -27,13 +27,13 @@ from fuse.utils.ndict import NDict
 from fuse.dl.models.heads.common import ClassifierFCN3D, ClassifierMLP
 
 
-class Head3dClassifier(nn.Module):
+class Head3DClassifier(nn.Module):
     """
     Model that capture slice feature including the 3D context given the local feature about a slice.
     """
 
     def __init__(self, head_name: str = 'head_0',
-                 conv_inputs: Sequence[Tuple[str, int]] = (('model.backbone_features', 512),),
+                 conv_inputs: Sequence[Tuple[str, int]] = None,
                  dropout_rate: float = 0.1,
                  num_classes: int = 3,
                  append_features: Optional[Tuple[str, int]] = None,
@@ -46,6 +46,7 @@ class Head3dClassifier(nn.Module):
         Create simple 3D context model
         :param head_name: string representing the head name
         :param conv_inputs: Sequence of tuples, each indication features name in batch_dict and size of features (channels)
+            for example: conv_inputs=(('model.backbone_features', 512),)
         :param dropout_rate: dropout fraction
         :param num_classes: number of output classes
         :param append_features: Sequence of tuples, each indication features name in batch_dict and size of features (channels).
@@ -57,6 +58,7 @@ class Head3dClassifier(nn.Module):
         super().__init__()
         # save input params
         self.head_name = head_name
+        assert conv_inputs is not None, 'conv_inputs must be provided'
         self.conv_inputs = conv_inputs
         self.dropout_rate = dropout_rate
         self.num_classes = num_classes
