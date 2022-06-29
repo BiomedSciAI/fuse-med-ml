@@ -32,8 +32,8 @@ from fuse.utils.ndict import NDict
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-import pytorch_lightning as pl 
 from torch.utils.data.dataloader import DataLoader
+import pytorch_lightning as pl 
 
 from fuse.eval.evaluator import EvaluatorDefault 
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
@@ -48,6 +48,8 @@ from fuse.dl.lightning.pl_module import LightningModuleDefault
 
 from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.utils_logger import fuse_logger_start
+from fuse.utils.file_io.file_io import create_dir, load_pickle, save_dataframe
+import fuse.utils.gpu as GPU
 
 from fuseimg.datasets.mnist import MNIST
 
@@ -65,11 +67,13 @@ debug = FuseDebug(mode)
 ##########################################
 # Output Paths
 ##########################################
-ROOT = '_examples' # TODO: fill path here
-PATHS = {'model_dir': os.path.join(ROOT, 'mnist/model_dir'),
+ROOT = '_examples/mnist' # TODO: fill path here
+model_dir = os.path.join(ROOT, 'model_dir')
+PATHS = {'model_dir': model_dir,
          'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
          'cache_dir': os.path.join(ROOT, 'mnist/cache_dir'),
-         'eval_dir': os.path.join(ROOT, 'mnist/eval_dir')}
+         'inference_dir': os.path.join(model_dir, 'infer_dir'),
+         'eval_dir': os.path.join(model_dir, 'mnist/eval_dir')}
 
 ##########################################
 # Train Common Params
@@ -209,19 +213,22 @@ def run_train(paths: dict, train_params: dict):
 # Inference Common Params
 ######################################
 INFER_COMMON_PARAMS = {}
-INFER_COMMON_PARAMS['infer_filename'] = os.path.join(PATHS["model_dir"], 'infer.gz')
-INFER_COMMON_PARAMS['checkpoint'] = os.path.join(PATHS["model_dir"], "best_epoch.ckpt")
+INFER_COMMON_PARAMS['infer_filename'] = 'infer_file.gz'
+INFER_COMMON_PARAMS['checkpoint'] = "best_epoch.ckpt"
 
 
 ######################################
 # Inference Template
 ######################################
 def run_infer(paths: dict, infer_common_params: dict):
+    create_dir(paths['inference_dir'])
+    infer_file = os.path.join(paths['inference_dir'], infer_common_params['infer_filename'])
+    checkpoint_file  = os.path.join(paths['model_dir'], infer_common_params['checkpoint'])
     #### Logger
     fuse_logger_start(output_path=paths['model_dir'], console_verbose_level=logging.INFO)
 
     print('Fuse Inference')
-    print(f'infer_filename={infer_common_params["infer_filename"]}')
+    print(f'infer_filename={infer_file}')
 
     ## Data
     # Create dataset
@@ -231,7 +238,7 @@ def run_infer(paths: dict, infer_common_params: dict):
 
     # load pytorch lightning module
     model = create_model()
-    pl_module = LightningModuleDefault.load_from_checkpoint(infer_common_params['checkpoint'], model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True)
+    pl_module = LightningModuleDefault.load_from_checkpoint(checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True)
     # set the prediction keys to extract (the ones used be the evaluation function).
     pl_module.set_predictions_keys(['model.output.classification', 'data.label']) # which keys to extract and dump into file
 
@@ -245,7 +252,7 @@ def run_infer(paths: dict, infer_common_params: dict):
 
     # convert list of batch outputs into a dataframe
     infer_df = convert_predictions_to_dataframe(predictions)
-    save_dataframe(infer_df, infer_common_params['infer_filename'])
+    save_dataframe(infer_df, infer_file)
     
 
 ######################################
@@ -260,6 +267,7 @@ EVAL_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
 ######################################
 def run_eval(paths: dict, eval_common_params: dict):
     create_dir(paths["eval_dir"])
+    infer_file = os.path.join(paths['inference_dir'], eval_common_params['infer_filename'])
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
 
     print('Fuse Eval')
@@ -279,7 +287,7 @@ def run_eval(paths: dict, eval_common_params: dict):
 
     # run
     results = evaluator.eval(ids=None,
-                     data=eval_common_params["infer_filename"],
+                     data=infer_file,
                      metrics=metrics,
                      output_dir=paths['eval_dir'])
 
@@ -290,6 +298,13 @@ def run_eval(paths: dict, eval_common_params: dict):
 # Run
 ######################################
 if __name__ == "__main__":
+    # allocate gpus
+    # To use cpu - set NUM_GPUS to 0
+    NUM_GPUS = 1
+    # uncomment if you want to use specific gpus instead of automatically looking for free ones
+    force_gpus = None # [0]
+    GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
+
     RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
     # train
     if 'train' in RUNNING_MODES:

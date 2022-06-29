@@ -43,11 +43,11 @@ class ClassificationStoic21TestCase(unittest.TestCase):
             'cache_dir': os.path.join(self.root, 'stoic/cache_dir'),
             'data_split_filename': os.path.join(self.root, 'split.pkl'),
             'inference_dir': os.path.join(self.root, 'stoic/infer_dir'),
-            'eval_dir': os.path.join(self.root, 'stoic/analyze_dir')}
+            'eval_dir': os.path.join(self.root, 'stoic/eval_dir')}
 
 
         self.train_common_params = TRAIN_COMMON_PARAMS
-        self.train_common_params["manager.train_params"]["num_epochs"] = 2
+        self.train_common_params['trainer.num_epochs'] = 2
         self.infer_common_params = INFER_COMMON_PARAMS
 
         self.analyze_common_params = EVAL_COMMON_PARAMS
