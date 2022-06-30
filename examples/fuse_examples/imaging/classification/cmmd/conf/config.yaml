@@ -9,10 +9,9 @@ paths:
 run: 
   running_modes : ['train', 'infer', 'eval']
 train:
-  force_reset_model_dir: True
   target : classification
   reset_cache: False
-  num_workers : 1
+  num_workers : 12
   num_folds : 5
   train_folds : [0,1,2]
   validation_folds : [3]
@@ -30,4 +29,4 @@ infer:
   infer_folds : [4]
   target : classification
   checkpoint : best
-  num_workers : 1
+  num_workers : 12

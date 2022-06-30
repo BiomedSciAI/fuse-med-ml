@@ -138,8 +138,7 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
                                        num_balanced_classes=num_classes,
                                        batch_size=train["batch_size"],
                                        mode = mode,
-                                       #num_workers=train["num_workers"],
-                                        mp_context = 'spawn',
+                                       workers=train["num_workers"],
                                        balanced_class_weights=None
                                        )
 
@@ -196,7 +195,7 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
 
     # either a dict with arguments to pass to ModelCheckpoint or list dicts for multiple ModelCheckpoint callbacks (to monitor and save checkpoints for more then one metric). 
     best_epoch_source = dict(
-        monitor="validation.metrics.auc",
+        monitor="validation.metrics.auc.macro_avg",
         mode="max",
     )
 
@@ -270,7 +269,7 @@ def run_infer(model: torch.nn.Module, pl_trainer: Trainer, paths : NDict , infer
     # load python lightning module
     pl_module = LightningModuleDefault.load_from_checkpoint(checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True)
     # set the prediction keys to extract (the ones used be the evaluation function).
-    pl_module.set_predictions_keys(['model.output.classification', 'data.gt.probSevere']) # which keys to extract and dump into file
+    pl_module.set_predictions_keys(['model.output.classification', 'data.gt.classification']) # which keys to extract and dump into file
     lgr.info(f'Test Data: Done', {'attrs': 'bold'})
 
     # create a trainer instance
@@ -311,6 +310,7 @@ def run_eval(paths : NDict , infer: NDict):
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg : DictConfig) -> None:
     cfg = NDict(OmegaConf.to_container(cfg))
+    cfg["paths"]["data_dir"] = os.environ["CMMD_DATA_PATH"]
     print(cfg)
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None  # [0]
@@ -327,6 +327,8 @@ def main(cfg : DictConfig) -> None:
     # train
     if 'train' in cfg["run.running_modes"]:
         model, trainer = run_train(cfg["paths"] ,cfg["train"])
+    else:
+        assert "Expecting train mode to be set."
 
     # infer
     if 'infer' in cfg["run.running_modes"]:

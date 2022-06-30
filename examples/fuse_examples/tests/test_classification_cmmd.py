@@ -50,7 +50,7 @@ class ClassificationMGCmmdTestCase(unittest.TestCase):
              'data_split_filename': 'cmmd_split.pkl'},
               'run': {'running_modes': ['train', 'infer', 'eval']},
               'train': 
-            {'force_reset_model_dir': True, 
+            {
              'target': 'classification', 
              'reset_cache': False, 
              'num_workers': 12, 
