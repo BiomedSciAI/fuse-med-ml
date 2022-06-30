@@ -3,8 +3,6 @@
 [![Slack channel](https://img.shields.io/badge/support-slack-slack.svg?logo=slack)](https://join.slack.com/t/fusemedml/shared_invite/zt-xr1jaj29-h7IMsSc0Lq4qpVNxW97Phw)
 [![Downloads](https://pepy.tech/badge/fuse-med-ml)](https://pepy.tech/project/fuse-med-ml)
 
-<img src="fuse/doc/FuseMedML-logo.png" alt="drawing" width="30%"/>
-
 # What is FuseMedML?
 FuseMedML is an open-source python-based framework designed to enhance collaboration and accelerate discoveries in **F**used **M**edical data through advanced **M**achine **L**earning technologies. Initial version is PyTorch-based and focuses on deep learning on medical imaging.
 

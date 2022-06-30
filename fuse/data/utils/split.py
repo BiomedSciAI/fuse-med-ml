@@ -126,11 +126,12 @@ def dataset_balanced_division_to_folds(dataset: DatasetBase, output_split_filena
     :param keys_to_balance: balancing any possible combination of values. For example for ["data.gender", "data.cancer"], the algorithm will balance each one of the following groups between the folds.
                             (gender=male, cancer=True), (gender=male, cancer=False), (gender=female, cancer=True), (gender=female, cancer=False)
 
-    :param  nfolds : number of folds
-    :param workers : numbers of workers for multiprocessing
-    :param  id  : id to balance the split by ( not allowed 2 in same fold)
+    :param nfolds: number of folds
+    :param id: id to balance the split by ( not allowed 2 in same fold)
     :param reset_split: delete output_split_filename and recompute the split
     :param verbose: Optional. Default=False
+    :param workers: numbers of workers for multiprocessing (eport dataset into dataframe)
+    :param mp_context: multiprocessing context: "fork", "spawn", etc.
     :param kwargs: more arguments controlling the split. See function balanced_division() for details
     """
 
@@ -150,10 +151,9 @@ def dataset_balanced_division_to_folds(dataset: DatasetBase, output_split_filena
             keys = [get_sample_id_key(), id]
         if keys_to_balance is not None:
             keys += keys_to_balance
-        df = ExportDataset.export_to_dataframe(dataset, keys, workers = workers, mp_context=mp_context)
+        df = ExportDataset.export_to_dataframe(dataset, keys, workers=workers, mp_context=mp_context)
         df_folds = balanced_division(df, id, keys_to_balance, nfolds, **kwargs)
 
-        print(df_folds.keys())
         folds = {}
         for fold in range(nfolds):
             folds[fold] = list(df_folds[df_folds["fold"] == fold][get_sample_id_key()])

@@ -30,6 +30,7 @@ psutil
 testbook
 ipykernel
 medpy
+pytorch_lightning
 hydra-core
 omegaconf
 pyradiomics
