@@ -1,9 +1,9 @@
 paths:
-  model_dir : /projects/msieve_dev3/usr/Tal/my_research/baseline_cmmd/cmmd_for_virtual_biopsy/model_new/InceptionResnetV2_2017_test
-  inference_dir : /projects/msieve_dev3/usr/Tal/my_research/baseline_cmmd/cmmd_for_virtual_biopsy/model_new/infer_dir
-  eval_dir : /projects/msieve_dev3/usr/Tal/my_research/baseline_cmmd/cmmd_for_virtual_biopsy/model_new/eval_dir
-  cache_dir : /projects/msieve_dev3/usr/Tal/my_research/baseline_cmmd/cmmd_for_virtual_biopsy/examples/CMMD_cache_dir
-  data_misc_dir : /projects/msieve_dev3/usr/Tal/my_research/baseline_cmmd/cmmd_for_virtual_biopsy/data_misc
+  model_dir : vb/model_dir   
+  inference_dir : vb/model_dir/infer_dir
+  eval_dir : vb/model_dir/eval_dir
+  cache_dir : vb/cmmd_cache_dir
+  data_misc_dir : vb/data_misc
   data_split_filename:  cmmd_split.pkl
 train:
   force_reset_model_dir: True

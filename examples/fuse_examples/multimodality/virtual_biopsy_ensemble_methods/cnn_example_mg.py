@@ -62,8 +62,8 @@ from fuse.utils.dl.checkpoint import Checkpoint as FuseCheckpoint
 ##########################################
 mode = 'default'  # Options: 'default', 'debug'. See details in FuseDebug
 debug = FuseDebug(mode)
-ROOT_PATH = '/projects/msieve_dev3/usr/Tal/my_research/baseline_cmmd/cmmd_for_virtual_biopsy/'
-CMMD_DATA_PATH = '/projects/msieve3/CMMD'
+ROOT_PATH = 'vb'
+CMMD_DATA_PATH = '/projects/msieve3/CMMD' # TODO: remove and provide instructions how to download the data 
 
 def update_parameters_by_task(parameters=None,task_num=1):
     if parameters is None:
