@@ -7,8 +7,6 @@ import numpy as np
 import examples.fuse_examples.imaging.classification.duke_breast_cancer.debug
 import fuseimg.datasets.duke_label_type
 
-os.environ["DUKE_DATA_PATH"] = "/projects/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI"
-
 from fuse.data.utils.sample import create_initial_sample
 from fuse.data.ops import ops_cast
 from fuseimg.datasets import duke

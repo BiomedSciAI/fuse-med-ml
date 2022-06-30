@@ -1,10 +1,8 @@
 import os
 import numpy as np
 
-# todo: remove setting of env variable !!!
 import fuseimg.datasets.duke_label_type
 
-os.environ["DUKE_DATA_PATH"] = "/projects/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI/manifest-1607053360376/"
 import getpass
 from fuseimg.datasets import duke
 from fuse.utils.utils_debug import FuseDebug
@@ -83,7 +81,7 @@ def get_setting(mode, label_type=fuseimg.datasets.duke_label_type.DukeLabelType.
              'data_dir': os.environ["DUKE_DATA_PATH"],
              'inference_dir': os.path.join(model_dir, 'infer_dir'),
              'eval_dir': os.path.join(model_dir, 'eval_dir'),
-             }  # todo: add annotations file
+             }
 
     ##########################################
     # Train Common Params

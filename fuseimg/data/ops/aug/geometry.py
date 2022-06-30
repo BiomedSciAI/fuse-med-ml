@@ -210,7 +210,7 @@ class OpAugUnsqueeze3DFrom2D(OpBase):
         sample_dict[key] = aug_output
         return sample_dict
 
-def unsqueeze_3D_from_2D(aug_input: Tensor, axis_squeeze: int, channels: int, verify_arguments: Optional[bool]=True):
+def unsqueeze_3D_from_2D(aug_input: torch.Tensor, axis_squeeze: int, channels: int, verify_arguments: Optional[bool]=True):
     # verify
     if verify_arguments:
         assert isinstance(aug_input, torch.Tensor), f"Error: OpAugUnsqueeze3DFrom2D expects torch Tensor, got {type(aug_input)}"

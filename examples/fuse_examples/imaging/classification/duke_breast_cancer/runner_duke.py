@@ -132,7 +132,7 @@ def get_setting(mode, label_type=fuseimg.datasets.duke_label_type.DukeLabelType.
              'data_dir': data_dir,
              'inference_dir': os.path.join(model_dir, 'infer_dir'),
              'eval_dir': os.path.join(model_dir, 'eval_dir'),
-             }  # todo: add annotations file
+             }
 
     ##########################################
     # Train Common Params
@@ -310,7 +310,7 @@ def run_train(paths: dict, train_params: dict):
     # ==============================================================================
     lgr.info('Model:', {'attrs': 'bold'})
 
-    conv_inputs = (('data.input.patch_volume', 1),)  # todo: discuss with Tal
+    conv_inputs = (('data.input.patch_volume', 1),)
     model = Fuse_model_3d_multichannel(
         conv_inputs=conv_inputs,  # previously 'data.input'. could be either 'data.input.patch_volume' or  'data.input.patch_volume_orig'
         backbone=ResNet(conv_inputs=conv_inputs, ch_num=train_params['backbone_model_dict']['input_channels_num']),

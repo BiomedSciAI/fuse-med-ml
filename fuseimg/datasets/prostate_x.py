@@ -90,11 +90,12 @@ class ProstateX:
 
     @staticmethod
     def static_pipeline(root_path, select_series_func, with_rescale: Optional[bool] = True,
-                        keep_stk_volumes: Optional[bool] = False, verbose: Optional[bool] = True) -> PipelineDefault:
+                        keep_stk_volumes: Optional[bool] = False, verbose: Optional[bool] = True,
+                        annotations_df: Optional[pd.DataFrame] = None) -> PipelineDefault:
 
         data_path = os.path.join(root_path, 'PROSTATEx')
-        # metadata_path = os.path.join(root_path, 'metadata.csv')
-        annotations_df = get_prostate_x_annotations_df(root_path)
+        if annotations_df is None:
+            annotations_df = get_prostate_x_annotations_df(root_path)
 
         series_desc_2_sequence_map = get_series_desc_2_sequence_mapping()
         dicom_seq_ids = ['T2', 'b', 'b_mix', 'ADC']
@@ -103,7 +104,7 @@ class ProstateX:
         static_pipeline_steps = [
             # step 1: map sample_ids to
             (OpProstateXSampleIDDecode(data_path=data_path),
-             dict(key_out='data.input.mri_path')),
+             dict(key_path_out='data.input.mri_path', key_patient_id_out='data.input.patient_id')),
             # step 2: read files info for the sequences
             (ops_mri.OpExtractDicomsPerSeq(seq_ids=dicom_seq_ids, series_desc_2_sequence_map=series_desc_2_sequence_map,
                                            use_order_indicator=False),
@@ -173,7 +174,7 @@ class ProstateX:
             static_pipeline_steps += [
                 # step 13: move to ndarray - to allow quick saving
                 (ops_mri.OpStk2Dict(),
-                 dict(keys=['data.input.volume4D', 'data.input.ref_volume']))
+                 dict(keys=['data.input.patient_id', 'data.input.volume4D', 'data.input.ref_volume']))
             ]
         static_pipeline = PipelineDefault("static", static_pipeline_steps, verbose=verbose)
 
@@ -184,7 +185,7 @@ class ProstateX:
         volume_key = 'data.input.patch_volume'
         dynamic_steps = [(ops_cast.OpToTensor(), dict(key=volume_key, dtype=torch.float32))]
 
-        keys_2_keep = [volume_key]
+        keys_2_keep = [volume_key, 'data.input.patient_id']
         if label_type is not None:
             key_ground_truth = 'data.ground_truth'
             dynamic_steps.append((OpAdProstateXLabelAndClinicalFeatures(label_type=label_type),
@@ -277,6 +278,7 @@ class ProstateX:
                 data_dir: Optional[str] = None,
                 select_series_func=get_selected_series_index, num_channels: int = 5, reset_cache: bool = False, num_workers: int = 10,
                 sample_ids: Optional[Sequence[Hashable]] = None, verbose: Optional[bool] = True,
+                annotations_df: Optional[pd.DataFrame] = None,
                 cache_kwargs: Optional[dict] = None) -> DatasetDefault:
 
         """
@@ -296,7 +298,8 @@ class ProstateX:
         if sample_ids is None:
             sample_ids = ProstateX.sample_ids(data_dir)
 
-        static_pipeline = ProstateX.static_pipeline(root_path=data_dir, select_series_func=select_series_func, verbose=verbose)
+        static_pipeline = ProstateX.static_pipeline(root_path=data_dir, select_series_func=select_series_func,
+                                                    annotations_df=annotations_df, verbose=verbose)
         dynamic_pipeline = ProstateX.dynamic_pipeline(train=train, label_type=label_type, num_channels=num_channels, verbose=verbose)
 
         if cache_dir is None:
@@ -364,10 +367,13 @@ class OpProstateXSampleIDDecode(OpReversibleBase):
         super().__init__(**kwargs)
         self._data_path = data_path
 
-    def __call__(self, sample_dict: NDict, key_out: str, op_id: Optional[str]) -> NDict:
+    def __call__(self, sample_dict: NDict, key_path_out: str, key_patient_id_out:str, op_id: Optional[str]) -> NDict:
         sid = get_sample_id(sample_dict)
 
-        sample_dict[key_out] = get_sample_path(self._data_path, sid[:-2])
+        patient_id =  sid[:-2]
+        sample_dict[key_patient_id_out] = get_sample_path(self._data_path, patient_id)
+        sample_dict[key_path_out] = get_sample_path(self._data_path, patient_id)
+
 
         return sample_dict
 
@@ -461,7 +467,7 @@ def get_prostate_x_annotations_df(data_dir):
         a_filter = annotations_df['Patient ID'] == pid
         assert a_filter.sum() == n_fid
         annotations_df.loc[a_filter, 'fid'] = np.arange(1, n_fid+1)
-    annotations_df['Sample ID'] = annotations_df[['Patient ID', 'fid']].apply(lambda row: '_'.join(row.values.astype(str)), axis=1)
+    annotations_df['Sample ID'] = annotations_df['Patient ID']+ '_'+annotations_df['fid'].astype(str)
 
     # filter problematic samples:
     problematic_patient_ids = ['ProstateX-0025']

@@ -452,8 +452,7 @@ class OpCreatePatchVolumes(OpBase):
 
         vol_cropped_arr = np.moveaxis(vol_cropped_arr, 3, 0)  # move last dimension (sequences /  mask) to be first
 
-        if np.isnan(vol_cropped_arr).any():
-            input[np.isnan(input)] = 0  # Todo: ???
+        assert not np.isnan(vol_cropped_arr).any() #todo: need to revisit for cases with nans (currently there are none)
 
         sample_dict[key_out] = vol_cropped_arr
 
