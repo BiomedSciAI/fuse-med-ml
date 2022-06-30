@@ -32,8 +32,24 @@ The specific losses currently implemented are suitable for classification and de
 Note again, that while these are specific loss functions that are implemented, it is possible to use any loss, whether custom, or one that already exists in PyTorch, and pass it to the `LossDefault` class for use in FuseMedML.
 
 ## models
+This module contains DL model and architecture related classes. 
+The most basic class is `ModelWrapSeqToDict`. It is FuseMedML's wrapper for PyTorch models to be used in fuse. It is initialized with an existing PyTorch module, and a list of input and output keys. When `forward` is called on a fuse `batch_dict`, it extracts the data from the input keys from `batch_dict`, calls the model `forward` function on the data, and writes the output to the `batch_dict`'s output keys.  
+Optionally, a pre and post processing function can be provided to be applied on the `batch_dict` before and after model run.
+
+ Additional basic classes include:
+ 1. `ModelEnsemble` - Initialized from a list of trained models directory, this class can run several models sequentially. It then produces a dictionary with predictions of each model in the ensemble, as well as average and majority vote over the predictions.
+ 2. `ModelMultiHead` - A class which given backbone and multiple heads, implements a neural network with the corresponding structure.
+ 3. `ModelMultistream` - Implements a neural network with multiple backbone processing streams and heads.
+ 4. `ModelSiamese` - Implements a siamese neural network, with two identical backbones and multiple heads.
+
+Besides these basic classes, more specific architecture blocks are implemented. They are divided into "backbones" and "heads".
+
+Implemented backbones include a "vanilla" fully connected network, or Multi Layer Perceptron (MLP), supported versions of 2D and 3D ResNets, and an Inception ResNet.   
+
+Implemented "heads" include a number of parameterized classifier heads, in 1D, 2D and 3D, as well as a dense segmentation head.
 
 ## optimizers
+This module includes an implementation of the [SAM](https://github.com/davda54/sam) optimizer, and a callback function for optimizers that require a closure argument.
 
 ## templates
 This module contains a walkthrough template code rich with comments, to demonstrate training with FuseMedML, with all required building blocks.
