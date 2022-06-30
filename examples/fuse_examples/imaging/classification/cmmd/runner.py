@@ -138,7 +138,8 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
                                        num_balanced_classes=num_classes,
                                        batch_size=train["batch_size"],
                                        mode = mode,
-                                    #    mp_context = 'spawn',
+                                       #num_workers=train["num_workers"],
+                                        mp_context = 'spawn',
                                        balanced_class_weights=None
                                        )
 
@@ -310,7 +311,6 @@ def run_eval(paths : NDict , infer: NDict):
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg : DictConfig) -> None:
     cfg = NDict(OmegaConf.to_container(cfg))
-    cfg["paths"]["data_dir"] = os.environ["CMMD_DATA_PATH"]
     print(cfg)
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None  # [0]
