@@ -334,7 +334,7 @@ def main(cfg : DictConfig) -> None:
     #
     # analyze
     if 'eval' in cfg["run.running_modes"]:
-        run_eval(model, cfg["paths"] ,cfg["infer"])
+        run_eval(cfg["paths"] ,cfg["infer"])
 if __name__ == "__main__":
     sys.argv.append('hydra.run.dir=working_dir')
     main()
