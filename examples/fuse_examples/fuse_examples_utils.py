@@ -1,4 +1,4 @@
-import getpass
+import os
 def ask_user(yes_no_question):
     res = ''
     while res not in ['y', 'n']:
@@ -6,4 +6,4 @@ def ask_user(yes_no_question):
     return res =='y'
 
 def get_fuse_examples_user_dir():
-    return f'/projects/msieve_dev3/usr/{getpass.getuser()}/fuse_examples'
+    return os.path.join(os.environ['USER_HOME_PATH'],'fuse_examples')

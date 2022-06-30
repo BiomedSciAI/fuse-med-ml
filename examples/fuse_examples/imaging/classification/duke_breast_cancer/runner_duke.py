@@ -19,40 +19,34 @@ Created on June 30, 2021
 
 import logging
 import os
-from typing import OrderedDict
-
-import fuseimg.datasets.duke_label_type
-from fuse.utils.file_io.file_io import load_pickle
-from fuse.utils.rand.seed import Seed
+from typing import OrderedDict, Optional
 
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
 
-from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
-from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
-
-from fuse.eval.evaluator import EvaluatorDefault
-from fuse.data.utils.samplers import BatchSamplerDefault
+import fuse.utils.gpu as GPU
+import fuseimg.datasets.duke_label_type
+from fuse_examples.fuse_examples_utils import ask_user
+from fuse_examples.imaging.classification import duke_breast_cancer
+from fuse_examples.imaging.utils.backbone_3d_multichannel import Fuse_model_3d_multichannel, ResNet
 from fuse.data.utils.collates import CollateDefault
+from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.split import dataset_balanced_division_to_folds
-
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
 from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
 from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
 from fuse.dl.managers.manager_default import ManagerDefault
-from examples.fuse_examples.imaging.classification import duke_breast_cancer
-
+from fuse.dl.models.heads import Head1DClassifier
+from fuse.eval.evaluator import EvaluatorDefault
+from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
+from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
+from fuse.utils.file_io.file_io import load_pickle
+from fuse.utils.rand.seed import Seed
 from fuse.utils.utils_debug import FuseDebug
-import fuse.utils.gpu as GPU
 from fuse.utils.utils_logger import fuse_logger_start
-
 from fuseimg.datasets import duke
-
-from fuse.dl.models.heads.head_1d_classifier import Head1dClassifier
-
-from examples.fuse_examples.imaging.utils.backbone_3d_multichannel import Fuse_model_3d_multichannel, ResNet
 
 
 def main():
@@ -80,13 +74,14 @@ def main():
     # infer
     if 'infer' in RUNNING_MODES:
         print(INFER_COMMON_PARAMS)
-        run_infer(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS)
+        run_infer(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS, audit_cache='train' not in RUNNING_MODES)
 
     # eval
     if 'eval' in RUNNING_MODES:
         print(EVAL_COMMON_PARAMS)
         run_eval(paths=PATHS, eval_common_params=EVAL_COMMON_PARAMS)
 
+    print(f"Done running with heldout={INFER_COMMON_PARAMS['data.infer_folds']}")
 
 def get_setting(mode, label_type=fuseimg.datasets.duke_label_type.DukeLabelType.STAGING_TUMOR_SIZE, n_folds=5, heldout_fold=4):
     ###########################################################################################################
@@ -121,7 +116,7 @@ def get_setting(mode, label_type=fuseimg.datasets.duke_label_type.DukeLabelType.
         model_dir = os.path.join(ROOT, 'model_dir_v4')
         selected_sample_ids = None
 
-        num_workers = 16
+        num_workers = 0 #16 #todo: put 0 to debug
         batch_size = 50
         num_epoch = 20  # 150
 
@@ -238,6 +233,9 @@ def run_train(paths: dict, train_params: dict):
 
     lgr.info(f'model_dir={paths["model_dir"]}', {'color': 'magenta'})
     lgr.info(f'cache_dir={paths["cache_dir"]}', {'color': 'magenta'})
+    lgr.info(f'train folds={train_params["data.train_folds"]}', {'color': 'magenta'})
+    lgr.info(f'validation folds={train_params["data.validation_folds"]}', {'color': 'magenta'})
+
 
     # ==============================================================================
     # Data
@@ -245,25 +243,27 @@ def run_train(paths: dict, train_params: dict):
     # Train Data
     lgr.info(f'Train Data:', {'attrs': 'bold'})
 
-    reset_cache = duke_breast_cancer.ask_user('Do you want to reset cache?')
-    cache_kwargs = None
+    reset_cache = ask_user('Do you want to reset cache?')
+    cache_kwargs = {'use_pipeline_hash': False}
     if not reset_cache:
-        audit_cache = duke_breast_cancer.ask_user('Do you want to audit cache?')
+        audit_cache = ask_user('Do you want to audit cache?')
         if not audit_cache:
-            cache_kwargs = dict(audit_first_sample=False, audit_rate=None)
+            cache_kwargs2 = dict(audit_first_sample=False, audit_rate=None)
+            cache_kwargs = {**cache_kwargs, **cache_kwargs2}
 
-    # split to folds randomly - temp
+    # split to folds randomly
     params = dict(label_type=train_params['classification_task'], data_dir=paths["data_dir"], cache_dir=paths["cache_dir"],
                   reset_cache=reset_cache, sample_ids=train_params['data.selected_sample_ids'],
                   num_workers=train_params['data.train_num_workers'],
-                  cache_kwargs=cache_kwargs,
-                  verbose=False)
+                  cache_kwargs=cache_kwargs, train=False, verbose=False)
 
     dataset_all = duke.Duke.dataset(**params)
     folds = dataset_balanced_division_to_folds(dataset=dataset_all,
                                                output_split_filename=paths["data_split_filename"],
                                                keys_to_balance=["data.ground_truth"],
-                                               nfolds=train_params["data.num_folds"])
+                                               workers=0,  # todo: stuck in Export to dataframe
+                                               nfolds=train_params["data.num_folds"],
+                                               verbose=True)
 
     train_sample_ids = []
     for fold in train_params["data.train_folds"]:
@@ -275,6 +275,7 @@ def run_train(paths: dict, train_params: dict):
     params['sample_ids'] = train_sample_ids
     params['reset_cache'] = False
     params['train'] = True
+    params['cache_kwargs'] = dict(use_pipeline_hash=False, audit_first_sample=False, audit_rate=None)
     train_dataset = duke.Duke.dataset(**params)
     # for _ in train_dataset:
     #     pass
@@ -287,7 +288,7 @@ def run_train(paths: dict, train_params: dict):
                                   balanced_class_name='data.ground_truth',
                                   num_balanced_classes=train_params['class_num'],
                                   batch_size=train_params['data.batch_size'],
-                                  workers=train_params['data.train_num_workers']
+                                  workers=0 #train_params['data.train_num_workers'] #todo: stuck
                                   )
     lgr.info(f'- Create sampler: Done')
 
@@ -317,7 +318,7 @@ def run_train(paths: dict, train_params: dict):
         # since backbone resnet contains pooling and fc, the feature output is 1D,
         # hence we use Head1dClassifier as classification head
         heads=[
-            Head1dClassifier(head_name='classification',
+            Head1DClassifier(head_name='classification',
                              conv_inputs=[('model.backbone_features', train_params['num_backbone_features'])],
                              post_concat_inputs=train_params['post_concat_inputs'],
                              post_concat_model=train_params['post_concat_model'],
@@ -399,12 +400,13 @@ def run_train(paths: dict, train_params: dict):
 ######################################
 # Inference Template
 ######################################
-def run_infer(paths: dict, infer_common_params: dict):
+def run_infer(paths: dict, infer_common_params: dict, audit_cache: Optional[bool] = True):
     #### Logger
     fuse_logger_start(output_path=paths['inference_dir'], console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Inference', {'attrs': ['bold', 'underline']})
     lgr.info(f'infer_filename={os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])}', {'color': 'magenta'})
+    lgr.info(f'infer folds={infer_common_params["data.infer_folds"]}', {'color': 'magenta'})
 
     ## Data
     folds = load_pickle(paths["data_split_filename"])  # assume exists and created in train func
@@ -413,10 +415,15 @@ def run_infer(paths: dict, infer_common_params: dict):
     for fold in infer_common_params["data.infer_folds"]:
         infer_sample_ids += folds[fold]
 
-    validation_dataset = duke.Duke.dataset(label_type=infer_common_params['classification_task'], data_dir=paths["data_dir"],
-                                           cache_dir=paths["cache_dir"],
+    params = dict(label_type=infer_common_params['classification_task'], data_dir=paths["data_dir"],
+                                           cache_dir=paths["cache_dir"], train=False,
                                            sample_ids=infer_sample_ids,
                                            verbose=False)
+    if not audit_cache:
+        params['cache_kwargs'] =dict(use_pipeline_hash=False, audit_first_sample=False, audit_rate=None)
+    else:
+        params['cache_kwargs'] = dict(use_pipeline_hash=False)
+    validation_dataset = duke.Duke.dataset(**params)
 
     # dataloader
     validation_dataloader = DataLoader(dataset=validation_dataset, batch_size=infer_common_params['data.batch_size'], collate_fn=CollateDefault(),

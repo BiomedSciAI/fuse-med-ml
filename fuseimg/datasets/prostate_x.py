@@ -193,7 +193,7 @@ class ProstateX:
                                        key_out_clinical_features='data.clinical_features')))
             keys_2_keep.append(key_ground_truth)
 
-        dynamic_steps.append((ops_mri.OpSelectKeys(), dict(keys_2_keep=keys_2_keep)))
+        dynamic_steps.append((ops_common.OpKeepKeypaths(), dict(keep_keypaths=keys_2_keep)))
 
         # augmentation
 

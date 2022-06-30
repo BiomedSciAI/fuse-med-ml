@@ -218,18 +218,6 @@ def f(d):
     diff = DeepDiff(s_old, s, **deep_diff_config)
     if len(diff) > 0:
         print(diff.keys())
-if __name__ == "__main__":
-    baseline_output_file = '/user/ozery/output/baseline1.pkl'  # '/tmp/f2.pkl'
-    output_file = '/user/ozery/output/f5.pkl'
-    main()
-    # get_excluded_patients(do_print=True)
-
-
-    # compare_sample_dicts('/user/ozery/output/Breast_MRI_900_v0.pkl','/user/ozery/output/Breast_MRI_900_20220531-232611.pkl')
-    # derive_fuse2_folds_files()
-    # check_fuse_results()
-    # visualize_image_from_cache()
-
 
 def cmp_features():
     data_dir = '/projects/msieve2/Platform/BigMedilytics/Data/Duke-Breast-Cancer-MRI'
@@ -256,6 +244,20 @@ def cmp_features():
             ix = np.where(~is_same)[0]
             diff = (~is_same)
             print("----", cols_old[icol], 'ERROR!!!', df_new.index[ix[0]], v_new[ix[0]], v_old[ix[0]], f"#diff={diff.sum()} / {diff.shape[0]}")
+
+
+
+if __name__ == "__main__":
+    baseline_output_file = '/user/ozery/output/baseline1.pkl'  # '/tmp/f2.pkl'
+    output_file = '/user/ozery/output/f5.pkl'
+    main()
+    # get_excluded_patients(do_print=True)
+
+
+    # compare_sample_dicts('/user/ozery/output/Breast_MRI_900_v0.pkl','/user/ozery/output/Breast_MRI_900_20220531-232611.pkl')
+    # derive_fuse2_folds_files()
+    # check_fuse_results()
+    # visualize_image_from_cache()
 
 
 

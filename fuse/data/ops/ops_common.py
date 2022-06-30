@@ -358,9 +358,8 @@ class OpKeepKeypaths(OpBase):
     def __call__(self, sample_dict: NDict, keep_keypaths:List[str]) -> Union[None, dict, List[dict]]:
         prev_sample_dict = sample_dict
         sample_dict = NDict()
-        for k in keep_keypaths:
+        for k in ['data.initial_sample_id', 'data.sample_id']+keep_keypaths:
             sample_dict[k] = prev_sample_dict[k]
-
         return sample_dict
 
 

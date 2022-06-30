@@ -3,8 +3,6 @@ import os
 from typing import Optional
 import logging
 
-import time
-
 import SimpleITK as sitk
 import h5py
 
@@ -13,7 +11,7 @@ import pydicom
 from scipy.ndimage.morphology import binary_dilation
 
 from fuse.data import OpBase, get_sample_id
-from fuse.utils import NDict, file_io
+from fuse.utils import NDict
 from typing import Tuple
 import torch
 import cv2
@@ -442,7 +440,7 @@ class OpCreatePatchVolumes(OpBase):
         else:
             vol_cropped = crop_lesion_vol(vol_4D, pos_vol, vol_ref,
                                           center_slice=pos_vol[2],
-                                          size=(self._lsn_shape[2], self._lsn_shape[1], self._lsn_shape[0]),
+                                          size=cropped_vol_size,
                                           spacing=spacing)
 
         vol_cropped_arr = sitk.GetArrayFromImage(vol_cropped)
@@ -452,7 +450,7 @@ class OpCreatePatchVolumes(OpBase):
 
         vol_cropped_arr = np.moveaxis(vol_cropped_arr, 3, 0)  # move last dimension (sequences /  mask) to be first
 
-        assert not np.isnan(vol_cropped_arr).any() #todo: need to revisit for cases with nans (currently there are none)
+        assert not np.isnan(vol_cropped_arr).any()  # todo: need to revisit for cases with nans (currently there are none)
 
         sample_dict[key_out] = vol_cropped_arr
 
@@ -463,43 +461,6 @@ class OpCreatePatchVolumes(OpBase):
 
 
 #######
-
-class OpDeleteLastChannel(OpBase):
-    def __call__(self, sample_dict: NDict, keys: list):
-        for key in keys:
-            vol = sample_dict[key]
-            vol = vol[:-1]
-            sample_dict[key] = vol
-        return sample_dict
-
-
-class OpSelectKeys(OpBase):
-    def __call__(self, sample_dict: NDict, keys_2_keep: list):
-        keys_2_delete = []
-        for key in sample_dict.flatten().keys():
-            if key in ['data.initial_sample_id', 'data.sample_id']:
-                continue
-            has_match = False
-            for key_prefix in keys_2_keep:
-                if key.startswith(key_prefix):
-                    has_match = True
-                    break
-            if not has_match:
-                keys_2_delete.append(key)
-
-        for key in keys_2_delete:
-            del sample_dict[key]
-        return sample_dict
-
-
-class OpDict2Torch(OpBase):
-    def __call__(self, sample_dict: NDict, keys: list):
-        for key in keys:
-            vol = sample_dict[key]['arr']
-            vol_tensor = torch.from_numpy(vol).type(torch.FloatTensor)
-            sample_dict[key] = vol_tensor
-        return sample_dict
-
 
 class OpStk2Dict(OpBase):
     def __call__(self, sample_dict: NDict, keys: list):
@@ -602,7 +563,7 @@ def get_zeros_vol(vol):
 
 def crop_lesion_vol_mask_based(vol: sitk.sitkFloat32, position: tuple, ref: sitk.sitkFloat32, size: Tuple[int, int, int] = (160, 160, 32),
                                spacing: Tuple[int, int, int] = (1, 1, 3), margin: Tuple[int, int, int] = (20, 20, 0),
-                               mask_inx=-1, is_use_mask=True, ):
+                               mask_inx=-1, is_use_mask=True):
     """
     crop_lesion_vol crop tensor around position
     :param vol: vol to crop
@@ -620,15 +581,14 @@ def crop_lesion_vol_mask_based(vol: sitk.sitkFloat32, position: tuple, ref: sitk
     if is_use_mask:
 
         mask = sitk.GetArrayFromImage(vol)[:, :, :, mask_inx]
-        mask_bool = np.zeros(mask.shape).astype(int)
-        mask_bool[mask > 0.01] = 1
-        mask_final = sitk.GetImageFromArray(mask_bool)
+        assert set(np.unique(mask)) <= {0, 1}
+        mask_final = sitk.GetImageFromArray(mask)
         mask_final.CopyInformation(ref)
 
         lsif = sitk.LabelShapeStatisticsImageFilter()
         lsif.Execute(mask_final)
         bounding_box = np.array(lsif.GetBoundingBox(1))
-        vol_np[:, :, :, mask_inx] = mask_bool
+        vol_np[:, :, :, mask_inx] = mask
     else:
         bounding_box = np.array([int(position[0]) - int(size[0] / 2),
                                  int(position[1]) - int(size[1] / 2),

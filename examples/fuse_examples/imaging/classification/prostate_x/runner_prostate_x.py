@@ -17,10 +17,8 @@ Created on June 30, 2021
 
 """
 
-import getpass
 import logging
 import os
-import sys
 from typing import OrderedDict, Optional
 
 import torch.nn.functional as F
@@ -28,8 +26,8 @@ import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
 
 import fuse.utils.gpu as GPU
-from examples.fuse_examples.fuse_examples_utils import ask_user
-from examples.fuse_examples.imaging.utils.backbone_3d_multichannel import Fuse_model_3d_multichannel, ResNet
+from fuse_examples.fuse_examples_utils import ask_user
+from fuse_examples.imaging.utils.backbone_3d_multichannel import Fuse_model_3d_multichannel, ResNet
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.split import dataset_balanced_division_to_folds
@@ -64,7 +62,7 @@ def main():
     GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
     PATHS, TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS = get_setting(mode, n_folds=8,
-                                                                                      heldout_fold=2)
+                                                                                      heldout_fold=4)
     print(PATHS)
 
     RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
@@ -85,7 +83,6 @@ def main():
 
     print(f"Done running with heldout={INFER_COMMON_PARAMS['data.infer_folds']}")
 
-
 def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=8, heldout_fold=7):
     ###########################################################################################################
     # Fuse
@@ -100,23 +97,23 @@ def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=
     # Output Paths
     ##########################################
     assert "PROSTATEX_DATA_PATH" in os.environ, "Expecting environment variable PROSTATEX_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
-    ROOT = f'/projects/msieve_dev3/usr/{getpass.getuser()}/fuse_examples/prostate_x'
+    data_dir = os.environ["PROSTATEX_DATA_PATH"]
+    ROOT = f'{os.environ["USER_HOME_PATH"]}/fuse_examples/prostate_x'
 
     if mode == 'debug':
         data_split_file = os.path.join(ROOT, f'prostate_x_{n_folds}folds_debug.pkl')
         selected_sample_ids = prostate_x.get_samples_for_debug(n_pos=10, n_neg=10, label_type=label_type)
+        print(selected_sample_ids)
         cache_dir = os.path.join(ROOT, 'cache_dir_debug')
         model_dir = os.path.join(ROOT, 'model_dir_debug')
         num_workers = 0
         batch_size = 2
         num_epoch = 5
     else:
-
-        # data_split_file =  os.path.join(ROOT, 'dataset_prostate_x_folds_ver29062021_seed1.pickle')
         data_split_file = os.path.join(ROOT, f'prostatex_{n_folds}folds.pkl')
-        selected_sample_ids = None
         cache_dir = os.path.join(ROOT, f'cache_dir')
         model_dir = os.path.join(ROOT, f'model_dir_{heldout_fold}')
+        selected_sample_ids = None
 
         num_workers = 16
         batch_size = 50
@@ -125,7 +122,7 @@ def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=
              'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
              'cache_dir': cache_dir,
              'data_split_filename': os.path.join(ROOT, data_split_file),
-             'data_dir': os.environ["PROSTATEX_DATA_PATH"],
+             'data_dir': data_dir,
              'inference_dir': os.path.join(model_dir, 'infer_dir'),
              'eval_dir': os.path.join(model_dir, 'eval_dir'),
              }
@@ -261,7 +258,6 @@ def run_train(paths: dict, train_params: dict):
 
     dataset_all = prostate_x.ProstateX.dataset(**params)
     # ExportDataset.export_to_dir(dataset=dataset_all, output_dir=f'/tmp/ozery/prostatex_{my_version}')
-    # sys.exit(0)
 
     folds = dataset_balanced_division_to_folds(dataset=dataset_all,
                                                output_split_filename=paths["data_split_filename"],

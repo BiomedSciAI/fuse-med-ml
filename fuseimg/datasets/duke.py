@@ -3,6 +3,9 @@ import glob
 import os
 import radiomics
 from typing import Hashable, Optional, Sequence
+
+import fuse.data.ops.ops_common
+import fuseimg.data.ops.ops_common_imaging
 from fuse.data.ops import ops_common
 from functools import partial
 
@@ -148,7 +151,6 @@ class Duke:
             # step 8:
             static_pipeline_steps += [(ops_mri.OpRescale4DStk(), dict(key='data.input.volume4D'))]
 
-
         # step 9: read raw annotations - will be used for labels, features, and also for creating lesion properties
         static_pipeline_steps += [(ops_read.OpReadDataframe(data=get_duke_raw_annotations_df(data_dir), key_column='Patient ID'),
                                    dict(key_out_group='data.input.annotations'))]
@@ -169,10 +171,10 @@ class Duke:
                      dict(key_in_ref_volume='data.input.ref_volume',
                           key_in_annotations='data.input.annotations',
                           key_out='data.input.patch_annotations'))
-                    ]
+                ]
 
             static_pipeline_steps += [
-                 # step 11: generate a mask from the lesion BB and append as a new (last) channel
+                # step 11: generate a mask from the lesion BB and append as a new (last) channel
                 (ops_mri.OpAddMaskFromBoundingBoxAsLastChannel(name_suffix=name_suffix),
                  dict(key_volume4D='data.input.volume4D',
                       key_in_ref_volume='data.input.ref_volume',
@@ -187,7 +189,7 @@ class Duke:
                       key_in_ref_volume='data.input.ref_volume',
                       key_in_patch_annotations='data.input.patch_annotations',
                       key_out='data.input.patch_volume'))
-                ]
+            ]
         if output_stk_volumes:
             static_pipeline_steps += [
                 # step 13: move STK volumes to ndarrays - to allow quick saving to disk
@@ -200,18 +202,23 @@ class Duke:
 
     @staticmethod
     def dynamic_pipeline(data_dir: Optional[str] = None, label_type: Optional[DukeLabelType] = None,
-                         train:Optional[bool]=False, num_channels:Optional[int]=1,
+                         train: Optional[bool] = False, num_channels: Optional[int] = 1,
                          verbose: Optional[bool] = True,
                          use_entire_lesion_volume: Optional[bool] = True,
                          add_clinical_features: Optional[bool] = False):
         assert use_entire_lesion_volume
         volume_key = 'data.input.patch_volume' if use_entire_lesion_volume else 'data.input.patch_volume_orig'
 
-
+        def delete_last_channel_in_volume(sample_dict: NDict):
+            vol = sample_dict[volume_key]
+            vol = vol[:-1]  # remove last channel
+            sample_dict[volume_key] = vol
+            return sample_dict
 
         dynamic_steps = [
             # step 1: delete the mask channel
-            (ops_mri.OpDeleteLastChannel(), dict(keys=[volume_key])),
+            (fuse.data.ops.ops_common.OpLambda(func=delete_last_channel_in_volume),
+             dict(key=None)),
 
             # step 2: turn volume to tensor
             (ops_cast.OpToTensor(), dict(key=volume_key, dtype=torch.float32)),
@@ -310,7 +317,7 @@ class Duke:
                 dtype = torch.int64 if key == key_ground_truth else torch.float32
                 dynamic_steps += [(ops_cast.OpToTensor(), dict(key=key, dtype=dtype))]
 
-        dynamic_steps.append((ops_mri.OpSelectKeys(), dict(keys_2_keep=keys_2_keep)))
+        dynamic_steps.append((ops_common.OpKeepKeypaths(), dict(keep_keypaths=keys_2_keep)))
         dynamic_pipeline = PipelineDefault("dynamic", dynamic_steps, verbose=verbose)
 
         return dynamic_pipeline
@@ -484,7 +491,7 @@ class DukeRadiomics(Duke):
                                   dict(key_in='data.input.annotations', key_out_gt=key_ground_truth,
                                        key_out_clinical_features='data.clinical_features')))
             keys_2_keep.append(key_ground_truth)
-        dynamic_steps.append((ops_mri.OpSelectKeys(), dict(keys_2_keep=keys_2_keep)))
+        dynamic_steps.append((ops_common.OpKeepKeypaths(), dict(keep_keypaths=keys_2_keep)))
 
         dynamic_pipeline = PipelineDefault("dynamic", dynamic_steps, verbose=verbose)
 
@@ -553,5 +560,3 @@ def get_selected_sample_ids():
 
     selected_samples_id = [s for s in all_sample_ids if s not in excluded_sample_ids]
     return selected_samples_id
-
-
