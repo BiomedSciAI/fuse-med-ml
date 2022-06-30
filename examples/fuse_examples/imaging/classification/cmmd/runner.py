@@ -18,6 +18,7 @@ Created on June 30, 2021
 from collections import OrderedDict
 import os
 import sys
+import copy
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 
 from fuse.utils.utils_debug import FuseDebug
@@ -39,19 +40,19 @@ from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolin
 from fuse.utils.file_io.file_io import load_pickle
 from fuse.dl.losses.loss_default import LossDefault
 
-from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy, MetricROCCurve
-
-from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
-from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
-from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
-from fuse.dl.managers.manager_default import ManagerDefault
+from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy
 from fuseimg.datasets.cmmd import CMMD
 from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
-
+from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
+from pytorch_lightning import Trainer
+from fuse.dl.lightning.pl_module import LightningModuleDefault
+from fuse.utils.file_io.file_io import create_dir, load_pickle, save_dataframe
+from fuse.eval.evaluator import EvaluatorDefault
+import torch
 import hydra
 from typing import Dict
 from omegaconf import DictConfig, OmegaConf
-from fuse.eval.evaluator import EvaluatorDefault
+
 assert "CMMD_DATA_PATH" in os.environ, "Expecting environment variable CMMD_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
 ##########################################
 # Debug modes
@@ -59,11 +60,28 @@ assert "CMMD_DATA_PATH" in os.environ, "Expecting environment variable CMMD_DATA
 mode = 'default'  # Options: 'default', 'debug'. See details in FuseDebug
 debug = FuseDebug(mode)
 
-
+def create_model(num_classes: int) -> torch.nn.Module:
+    """ 
+    creates the model 
+    See HeadGlobalPoolingClassifier for details 
+    """
+    model = ModelMultiHead(
+        conv_inputs=(('data.input.img', 1),),
+        backbone=BackboneInceptionResnetV2(input_channels_num=1),
+        heads=[
+            HeadGlobalPoolingClassifier(head_name='head_0',
+                                            dropout_rate=0.5,
+                                            conv_inputs=[('model.backbone_features', 384)],
+                                            layers_description=(256,),
+                                            num_classes=num_classes,
+                                            pooling="avg"),
+        ]
+    )
+    return model
 #################################
 # Train Template
 #################################
-def run_train(paths : NDict , train: NDict ):
+def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
     # ==============================================================================
     # Logger
     # ==============================================================================
@@ -151,19 +169,7 @@ def run_train(paths : NDict , train: NDict ):
     # ==============================================================================
     lgr.info('Model:', {'attrs': 'bold'})
 
-    model = ModelMultiHead(
-        conv_inputs=(('data.input.img', 1),),
-        backbone=BackboneInceptionResnetV2(input_channels_num=1),
-        heads=[
-            HeadGlobalPoolingClassifier(head_name='head_0',
-                                            dropout_rate=0.5,
-                                            conv_inputs=[('model.backbone_features', 384)],
-                                            layers_description=(256,),
-                                            num_classes=num_classes,
-                                            pooling="avg"),
-        ]
-    )
-
+    model = create_model(num_classes)
     lgr.info('Model: Done', {'attrs': 'bold'})
 
 
@@ -179,22 +185,19 @@ def run_train(paths : NDict , train: NDict ):
     # ====================================================================================
     # Metrics
     # ====================================================================================
-    metrics = OrderedDict([
+    train_metrics = OrderedDict([
         ('op', MetricApplyThresholds(pred='model.output.head_0')), # will apply argmax
         ('auc', MetricAUCROC(pred='model.output.head_0', target=gt_label, class_names = class_names)),
         ('accuracy', MetricAccuracy(pred='results:metrics.op.cls_pred', target=gt_label)),
     ])
+    
+    validation_metrics = copy.deepcopy(train_metrics) # use the same metrics in validation as well
 
-    # =====================================================================================
-    #  Callbacks
-    # =====================================================================================
-    callbacks = [
-        # default callbacks
-        TensorboardCallback(model_dir=paths['model_dir']),  # save statistics for tensorboard
-        MetricStatisticsCallback(output_path=paths['model_dir'] + "/metrics.csv"),  # save statistics in a csv file
-        TimeStatisticsCallback(num_epochs=train["manager_train_params"]["num_epochs"], load_expected_part=0.1)  # time profiler
-    ]
-
+    # either a dict with arguments to pass to ModelCheckpoint or list dicts for multiple ModelCheckpoint callbacks (to monitor and save checkpoints for more then one metric). 
+    best_epoch_source = dict(
+        monitor="validation.metrics.auc",
+        mode="max",
+    )
 
     # =====================================================================================
     #  Manager - Train
@@ -205,45 +208,48 @@ def run_train(paths : NDict , train: NDict ):
     # create optimizer
     optimizer = optim.Adam(model.parameters(), lr=train["learning_rate"],
                            weight_decay=train["weight_decay"])
-
-    # create scheduler
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+    
+    lr_sch_config = dict(scheduler=scheduler,monitor="validation.losses.total_loss")
+    
+    # optimizier and lr sch - see pl.LightningModule.configure_optimizers return value for all options
+    optimizers_and_lr_schs = dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
+
+    # create instance of PL module - FuseMedML generic version
+    
+    pl_module = LightningModuleDefault(model_dir=paths["model_dir"], 
+                                       model=model,
+                                       losses=losses,
+                                       train_metrics=train_metrics,
+                                       validation_metrics=validation_metrics,
+                                       best_epoch_source=best_epoch_source,
+                                       optimizers_and_lr_schs=optimizers_and_lr_schs)
+
+    # create lightining trainer.
+    pl_trainer = Trainer(default_root_dir=paths['model_dir'],
+                            max_epochs=train['trainer']['num_epochs'],
+                            accelerator=train['trainer']['accelerator'],
+                            devices=train['trainer']['devices'],
+                            num_sanity_val_steps = -1,
+                            auto_select_gpus=True)
 
     # train from scratch
-
-    manager = ManagerDefault(output_model_dir=paths['model_dir'], force_reset=train['force_reset_model_dir'])
-
-    # Providing the objects required for the training process.
-    manager.set_objects(net=model,
-                        optimizer=optimizer,
-                        losses=losses,
-                        metrics=metrics,
-                        best_epoch_source=train["manager_best_epoch_source"],
-                        lr_scheduler=scheduler,
-                        callbacks=callbacks,
-                        train_params=train["manager_train_params"],
-                        output_model_dir=paths["model_dir"])
-
-    # Continue training
-    if train["resume_checkpoint_filename"] is not None:
-        # Loading the checkpoint including model weights, learning rate, and epoch_index.
-        manager.load_checkpoint(checkpoint=train["resume_checkpoint_filename"], mode='train',
-                                values_to_resume=['net'])
-    # # Start training
-    manager.train(train_dataloader=train_dataloader,
-                  validation_dataloader=validation_dataloader)
-
+    pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=train['trainer']['ckpt_path'])
     lgr.info('Train: Done', {'attrs': 'bold'})
+    
+    return model, pl_trainer
 
 ######################################
 # Inference Template
 ######################################
-def run_infer(paths : NDict , infer: NDict):
+def run_infer(model: torch.nn.Module, pl_trainer: Trainer, paths : NDict , infer: NDict):
+    create_dir(paths['inference_dir'])
     #### Logger
     fuse_logger_start(output_path=paths["inference_dir"], console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Inference', {'attrs': ['bold', 'underline']})
-    lgr.info(f'infer_filename={os.path.join(paths["inference_dir"], infer["infer_filename"])}', {'color': 'magenta'})
+    checkpoint_file = os.path.join(paths["inference_dir"], infer["infer_filename"])
+    lgr.info(f'infer_filename={checkpoint_file}', {'color': 'magenta'})
 
 
     ## Data
@@ -260,17 +266,18 @@ def run_infer(paths : NDict , infer: NDict):
                                   shuffle=False, drop_last=False,
                                   collate_fn=CollateDefault(),
                                   num_workers=infer["num_workers"])
+    # load python lightning module
+    pl_module = LightningModuleDefault.load_from_checkpoint(checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True)
+    # set the prediction keys to extract (the ones used be the evaluation function).
+    pl_module.set_predictions_keys(['model.output.classification', 'data.gt.probSevere']) # which keys to extract and dump into file
     lgr.info(f'Test Data: Done', {'attrs': 'bold'})
 
-    #### Manager for inference
-    manager = ManagerDefault()
-    # extract just the global classification per sample and save to a file
-    output_columns = ['model.output.head_0','data.gt.classification']
-    manager.infer(data_loader=infer_dataloader,
-                  input_model_dir=paths["model_dir"],
-                  checkpoint=infer["checkpoint"],
-                  output_columns=output_columns,
-                  output_file_name=os.path.join(paths["inference_dir"], infer["infer_filename"]))
+    # create a trainer instance
+    predictions = pl_trainer.predict(pl_module, infer_dataloader, return_predictions=True)
+
+    # convert list of batch outputs into a dataframe
+    infer_df = convert_predictions_to_dataframe(predictions)
+    save_dataframe(infer_df, checkpoint_file)
     
 
 
@@ -307,7 +314,7 @@ def main(cfg : DictConfig) -> None:
     print(cfg)
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None  # [0]
-    choose_and_enable_multiple_gpus(cfg["train.manager_train_params.num_gpus"], force_gpus=force_gpus)
+    choose_and_enable_multiple_gpus(cfg["train.trainer.devices"], force_gpus=force_gpus)
 
 
     # Path to the stored dataset location
@@ -319,15 +326,15 @@ def main(cfg : DictConfig) -> None:
 
     # train
     if 'train' in cfg["run.running_modes"]:
-        run_train(cfg["paths"] ,cfg["train"])
+        model, trainer = run_train(cfg["paths"] ,cfg["train"])
 
     # infer
     if 'infer' in cfg["run.running_modes"]:
-        run_infer(cfg["paths"] , cfg["infer"])
+        run_infer(model, trainer, cfg["paths"] , cfg["infer"])
     #
     # analyze
     if 'eval' in cfg["run.running_modes"]:
-        run_eval(cfg["paths"] ,cfg["infer"])
+        run_eval(model, cfg["paths"] ,cfg["infer"])
 if __name__ == "__main__":
     sys.argv.append('hydra.run.dir=working_dir')
     main()

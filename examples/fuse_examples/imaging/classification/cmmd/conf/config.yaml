@@ -19,17 +19,11 @@ train:
   learning_rate : 1e-4
   weight_decay :  0
   resume_checkpoint_filename : 
-  manager_train_params:
-    num_gpus : 1
-    device : cuda
+  trainer:
+    accelerator : gpu
+    devices : 1
     num_epochs : 100
-    virtual_batch_size: 1
-    start_saving_epochs: 10
-    gap_between_saving_epochs : 100
-  manager_best_epoch_source:
-    source: metrics.auc.macro_avg
-    optimization: max
-    on_equal_values: better
+    ckpt_path : 
 infer:
   infer_filename : validation_set_infer.gz
   infer_folds : [4]
