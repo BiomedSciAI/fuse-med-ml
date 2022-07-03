@@ -30,7 +30,10 @@ sample_ndict['groundtruth.disease_level_label'] = # ...
 **Components are written in a way that allows to define input and output keys, to be read and written from the nested dict**  
 ### Examples - using FuseMedML-style components
 
-
+[TODO:] - 
+* metrics
+* loss
+* multihead model
 
 ### Creating a FuseMedML component
 
@@ -84,7 +87,7 @@ Broadly speaking, the supported DL libraries are:
 * [pytorch-lightning](https://www.pytorchlightning.ai/)
 
 Before you ask - **pytorch-lightning and FuseMedML play along very nicely and have in practice orthogonal and additive benefits :)**  
-See [Simple FuseMedML + PytorchLightning Example(./examples/fuse_examples/imaging/classification/mnist/run_mnist.py) for simple supervised learning cases, and [How to use any custom PytorchLightning with FuseMedML](./examples/fuse_examples/imaging/classification/mnist/run_mnist_custom_pl_imp.py) for completely custom usage of pytorch-lightning and FuseMedML - useful for advanced scenarios such as Reinforcement Learning and generative models.
+See [Simple FuseMedML + PytorchLightning Example(./examples/fuse_examples/imaging/classification/mnist/run_mnist.py) for simple supervised learning cases, and [this example ](./examples/fuse_examples/imaging/classification/mnist/run_mnist_custom_pl_imp.py) for completely custom usage of pytorch-lightning and FuseMedML - useful for advanced scenarios such as Reinforcement Learning and generative models.
 
 ## Domain Extensions
 fuse-med-ml, the core library, is completely domain agnostic!
