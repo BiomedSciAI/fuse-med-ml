@@ -22,6 +22,10 @@ Here you can find useful ops for imaging and public datasets implementations
 
 * OpHWCToCHW - transform HWC (height, width, channel) to CHW (channel, height, width)
 * OpCHWToHWC - transform CHW (channel, height, width) to HWC (height, width, channel)
+* OpSelectSlice - select one slice from the input tensor, 
+* OpFindBiggestNonEmptyBbox2D - Finds the the biggest connected component bounding box in the image that is non empty (dark)
+* OpFlipBrightSideOnLeft2D - Returns an image where the brigheter half side is on the left, flips the image if the condition does nt hold.
+* OpResizeAndPad2D - Resize and Pad a 2D image
 * OpSelectSlice - select one slice from the input tensor
 * OpPad - pad a given image on all the sides
 
@@ -44,5 +48,6 @@ Here you can find useful ops for imaging and public datasets implementations
 
 * [kits21](datasets/kits21.py) - 2021 Kidney and Kidney Tumor Segmentation Challenge Dataset. See [link](https://github.com/neheller/kits21)
 * [stoic21](datasets/stoic21.py) - Dataset created for [COVID-19 AI challenge](https://stoic2021.grand-challenge.org/). Aims to predict the severe outcome of COVID-19, based on the largest dataset of Computed Tomography (CT) images of COVID-19
+* [cmmd](datasets/cmmd.py) - dataset that contains breast mammography biopsy info and metadata from chinese patients - https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508. Aims to predict breast cancer biopsy results from mammography
 * [mnist](datasets/mnist.py) - mnist dataset implementation
 * [isic19](datasets/isic.py) - 2019 International Skin Imaging Collaboration ([ISIC](https://challenge.isic-archive.com/landing/2019/)) Challenge dataset. The goal is to classify demoscropic images among nine different diagnostic categories

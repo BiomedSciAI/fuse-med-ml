@@ -1,4 +1,7 @@
 
+# version
+from fuse.version import __version__
+
 from fuse.utils.ndict import NDict
 from fuse.utils.data.collate import CollateToBatchList, uncollate
 
