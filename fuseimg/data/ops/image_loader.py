@@ -1,18 +1,17 @@
 import os
 from fuse.data.ops.op_base import OpBase, OpReversibleBase
-from typing import Optional
+from typing import Dict, Optional
 import numpy as np
 from fuse.data.ops.ops_common import OpApplyTypes
 import nibabel as nib
 from fuse.utils.ndict import NDict
 from torchvision.io import read_image
 from medpy.io import load
-            
-
+import pydicom
 class OpLoadImage(OpReversibleBase):
     '''
     Loads a medical image, currently supports:
-            'nii', 'nib', 'jpg', 'jpeg', 'png', 'mha'
+            'nii', 'nib', 'jpg', 'jpeg', 'png', 'mha','dcm'
     '''
     def __init__(self, dir_path: str, **kwargs):
         super().__init__(**kwargs)
@@ -21,7 +20,8 @@ class OpLoadImage(OpReversibleBase):
     def __call__(self, sample_dict: NDict, op_id: Optional[str], key_in:str, key_out: str, key_metadata_out: Optional[str] = None, format:str="infer"):
         '''
         :param key_in: the key name in sample_dict that holds the filename
-        :param key_out: 
+        :param key_out: the key name in sample_dict that holds the image
+        :param key_metadata_out : the key to hold metadata dictionary
         '''
         img_filename = os.path.join(self._dir_path, sample_dict[key_in])
         img_filename_suffix = img_filename.split(".")[-1]
@@ -43,7 +43,18 @@ class OpLoadImage(OpReversibleBase):
             sample_dict[key_out] = image_data
             if key_metadata_out is not None:
                 sample_dict[key_metadata_out] = {key: image_header.sitkimage.GetMetaData(key) for key in image_header.sitkimage.GetMetaDataKeys()}
-        
+        elif (format == "infer" and img_filename_suffix in ["dcm"]) or \
+            (format in ["dcm"]):  
+            dcm = pydicom.dcmread(img_filename)
+            inner_image = dcm.pixel_array
+            # convert to numpy
+            img_np = np.asarray(inner_image)
+            sample_dict[key_out] = img_np
+            if key_metadata_out is not None :
+                metadata = NDict()
+                for key,field in key_metadata_out :
+                    metadata[field] = dcm[key].value
+                sample_dict[key_metadata_out] = metadata
         else:
             raise Exception(f"OpLoadImage: case format {format} and {img_filename_suffix} is not supported - filename {img_filename}") 
 

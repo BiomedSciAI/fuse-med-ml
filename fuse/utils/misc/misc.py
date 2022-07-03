@@ -89,7 +89,7 @@ class Misc:
     @staticmethod
     def squeeze_obj(obj: Any) -> Any:
         """
-        Get batch with single sample tenosor / numpy / list and squeeze the batch dimension
+        Get batch with single sample tensor / numpy / list and squeeze the batch dimension
         :param obj: the object to sqeeze
         :return: squeezed object
         """

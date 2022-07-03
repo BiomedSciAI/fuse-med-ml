@@ -20,8 +20,13 @@ with open(os.path.join(HERE, "requirements.txt"), "r") as fh:
             requirements.append(line.strip())
 
 # version
+<<<<<<< HEAD
 version_file = open(os.path.join(HERE, "VERSION.txt"))
 version = version_file.read().strip()
+=======
+from fuse.version import __version__
+version = __version__
+>>>>>>> fuse2
 
 setup(
     name="fuse-med-ml",

@@ -26,7 +26,7 @@ from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolin
 from fuse.utils.ndict import NDict
 
 
-class ModelDefault(torch.nn.Module):
+class ModelMultiHead(torch.nn.Module):
     """
     Default Fuse model - convolutional neural network with multiple heads
     """
@@ -58,8 +58,7 @@ class ModelDefault(torch.nn.Module):
         self.heads = torch.nn.ModuleList(heads)
         self.add_module('heads', self.heads)
 
-    def forward(self,
-                batch_dict: NDict) -> Dict:
+    def forward(self, batch_dict: NDict) -> Dict:
         if self.conv_inputs is not None:
             conv_input = torch.cat([batch_dict[conv_input[0]] for conv_input in self.conv_inputs], 1)
             backbone_features = self.backbone.forward(conv_input)
@@ -74,56 +73,3 @@ class ModelDefault(torch.nn.Module):
 
         return batch_dict['model']
 
-
-if __name__ == '__main__':
-    from fuse.dl.models.heads.head_dense_segmentation import HeadDenseSegmentation
-    import torch
-    import os
-
-    os.environ['CUDA_VISIBLE_DEVICES'] = "0, 1"
-
-    DEVICE = 'cpu'  # 'cuda'
-    DATAPARALLEL = False  # True
-
-    model = ModelDefault(
-        conv_inputs=(('data.input.input_0.tensor', 1),),
-        backbone=BackboneInceptionResnetV2(),
-        heads=[
-            HeadGlobalPoolingClassifier(head_name='head_0',
-                                            conv_inputs=[('model.backbone_features', 384)],
-                                            post_concat_inputs=None,
-                                            num_classes=2),
-
-            HeadDenseSegmentation(head_name='head_1',
-                                      conv_inputs=[('model.backbone_features', 384)],
-                                      num_classes=2)
-        ]
-    )
-
-    model = model.to(DEVICE)
-    if DATAPARALLEL:
-        model = torch.nn.DataParallel(model)
-
-    dummy_data = {'data':
-                      {'input':
-                           {'input_0': {'tensor': torch.zeros([17, 1, 200, 100]).to(DEVICE), 'metadata': None}},
-                       'gt':
-                           {'gt_0': torch.zeros([0]).to(DEVICE)}
-                       }
-                  }
-
-    res = {}
-    res['model'] = model.forward(dummy_data)
-    print('Forward pass shape - head_0: ', end='')
-    print(str(res['model']['logits']['head_0'].shape))
-
-    print('\nForward pass shape - head_1: ', end='')
-    print(str(res['model']['logits']['head_1'].shape))
-
-    total_params = sum(p.numel() for p in model.parameters())
-    if not DATAPARALLEL:
-        backbone_params = sum(p.numel() for p in model._modules['backbone'].parameters())
-        print('Backbone params = %d' % backbone_params)
-        print('Heads params = %d' % (total_params - backbone_params))
-
-    print('\nTotal params = %d' % total_params)

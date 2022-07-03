@@ -38,7 +38,7 @@ from fuse_examples.imaging.classification.prostate_x.dataset import prostate_x_d
 from fuse_examples.imaging.classification.prostate_x.backbone_3d_multichannel import Fuse_model_3d_multichannel,ResNet
 from fuse_examples.imaging.classification.prostate_x.patient_data_source import ProstateXDataSourcePatient
 from fuse_examples.imaging.classification.prostate_x.tasks import ProstateXTask
-from fuse.dl.models.heads.head_1d_classifier import Head1dClassifier
+from fuse.dl.models.heads import Head1dClassifier
 
 
 ##########################################
@@ -173,7 +173,7 @@ def train_template(paths: dict, train_common_params: dict):
         conv_inputs=(('data.input', 1),),
         backbone= ResNet(ch_num=TRAIN_COMMON_PARAMS['backbone_model_dict']['input_channels_num']),
         heads=[
-        Head1dClassifier(head_name='ClinSig',
+        Head1DClassifier(head_name='ClinSig',
                                         conv_inputs=[('model.backbone_features',  train_common_params['num_backbone_features'])],
                                         post_concat_inputs=None,
                                         dropout_rate=0.25,

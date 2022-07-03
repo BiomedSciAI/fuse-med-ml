@@ -17,6 +17,7 @@ Created on June 30, 2021
 
 from collections import OrderedDict
 import os
+import sys
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 
 from fuse.utils.utils_debug import FuseDebug
@@ -29,12 +30,13 @@ import torch.nn.functional as F
 from torch.utils.data.dataloader import DataLoader
 
 from fuse.utils.utils_logger import fuse_logger_start
-
-from fuse.data.sampler.sampler_balanced_batch import SamplerBalancedBatch
-
-from fuse.dl.models.model_default import ModelDefault
+from fuse.utils import NDict
+from fuse.data.utils.samplers import BatchSamplerDefault
+from fuse.data.utils.collates import CollateDefault
+from fuse.data.utils.split import dataset_balanced_division_to_folds
+from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
-
+from fuse.utils.file_io.file_io import load_pickle
 from fuse.dl.losses.loss_default import LossDefault
 
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy, MetricROCCurve
@@ -43,12 +45,14 @@ from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
 from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
 from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
 from fuse.dl.managers.manager_default import ManagerDefault
-
-from fuse_examples.imaging.classification.cmmd.dataset import CMMD_2021_dataset
+from fuseimg.datasets.cmmd import CMMD
 from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
 
-
+import hydra
+from typing import Dict
+from omegaconf import DictConfig, OmegaConf
 from fuse.eval.evaluator import EvaluatorDefault
+assert "CMMD_DATA_PATH" in os.environ, "Expecting environment variable CMMD_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
 ##########################################
 # Debug modes
 ##########################################
@@ -56,56 +60,14 @@ mode = 'default'  # Options: 'default', 'debug'. See details in FuseDebug
 debug = FuseDebug(mode)
 
 
-##########################################
-# Train Common Params
-##########################################
-# ============
-# Data
-# ============
-TRAIN_COMMON_PARAMS = {}
-
-TRAIN_COMMON_PARAMS['data.train_num_workers'] = 8
-TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 8
-
-######################################
-# Inference Common Params
-######################################
-INFER_COMMON_PARAMS = {}
-INFER_COMMON_PARAMS['infer_filename'] = 'validation_set_infer.gz'
-INFER_COMMON_PARAMS['checkpoint'] = 'best'  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
-INFER_COMMON_PARAMS['data.train_num_workers'] = TRAIN_COMMON_PARAMS['data.train_num_workers']
-# ===============
-# Manager - Train
-# ===============
-NUM_GPUS = 1
-TRAIN_COMMON_PARAMS['data.batch_size'] = 2 * NUM_GPUS
-TRAIN_COMMON_PARAMS['manager.train_params'] = {
-    'num_gpus': NUM_GPUS,
-    'num_epochs': 100,
-    'virtual_batch_size': 1,  # number of batches in one virtual batch
-    'start_saving_epochs': 10,  # first epoch to start saving checkpoints from
-    'gap_between_saving_epochs': 100,  # number of epochs between saved checkpoint
-}
-
-# best_epoch_source
-# if an epoch values are the best so far, the epoch is saved as a checkpoint.
-TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = {
-    'source': 'metrics.auc',  # can be any key from losses or metrics dictionaries
-    'optimization': 'max',  # can be either min/max
-    'on_equal_values': 'better',
-    # can be either better/worse - whether to consider best epoch when values are equal
-}
-TRAIN_COMMON_PARAMS['manager.learning_rate'] = 1e-5
-TRAIN_COMMON_PARAMS['manager.weight_decay'] = 0.001
-TRAIN_COMMON_PARAMS['manager.resume_checkpoint_filename'] = None
 #################################
 # Train Template
 #################################
-def run_train(paths: dict, train_common_params: dict, reset_cache: bool):
+def run_train(paths : NDict , train: NDict ):
     # ==============================================================================
     # Logger
     # ==============================================================================
-    fuse_logger_start(output_path=paths['model_dir'], console_verbose_level=logging.INFO)
+    fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
 
     # Download data
@@ -117,56 +79,87 @@ def run_train(paths: dict, train_common_params: dict, reset_cache: bool):
     lgr.info(f'cache_dir={paths["cache_dir"]}', {'color': 'magenta'})
 
     #### Train Data
-    lgr.info(f'Train Data:', {'attrs': 'bold'})
-    train_dataset, validation_dataset , _ = CMMD_2021_dataset(paths['data_dir'], paths['data_misc_dir'], reset_cache=reset_cache)
+    if train['target'] == "classification" :
+        num_classes = 2
+        mode = "approx"
+        gt_label = "data.gt.classification"
+        skip_keys=['data.gt.subtype']
+        class_names = ["Benign", "Malignant"] 
+    elif train['target'] == "subtype" :
+        num_classes = 4
+        mode = "approx"
+        gt_label = "data.gt.subtype"
+        skip_keys=['data.gt.classification']
+        class_names = ["Luminal A", "Luminal B", "HER2-enriched" , "triple negative"] 
+    else:
+        raise("unsuported target!!")
+    # split to folds randomly - temp
+    dataset_all = CMMD.dataset(paths["data_dir"], paths["data_misc_dir"], train['target'], paths["cache_dir"], reset_cache=False, num_workers=train["num_workers"], train=True)
+    folds = dataset_balanced_division_to_folds(dataset=dataset_all,
+                                        output_split_filename=os.path.join( paths["data_misc_dir"], paths["data_split_filename"]), 
+                                        id = 'data.patientID',
+                                        keys_to_balance=[gt_label], 
+                                        nfolds=train["num_folds"],
+                                        workers= train["num_workers"])
+
+    train_sample_ids = []
+    for fold in train["train_folds"]:
+        train_sample_ids += folds[fold]
+    validation_sample_ids = []
+    for fold in train["validation_folds"]:
+        validation_sample_ids += folds[fold]
+
+    train_dataset = CMMD.dataset(paths["data_dir"], paths["data_misc_dir"], train['target'], paths["cache_dir"], reset_cache=False, num_workers=train["num_workers"], sample_ids=train_sample_ids, train=True)
+    
+    validation_dataset = CMMD.dataset(paths["data_dir"], paths["data_misc_dir"], train['target'], paths["cache_dir"],  reset_cache=False, num_workers=train["num_workers"], sample_ids=validation_sample_ids)
 
     ## Create sampler
     lgr.info(f'- Create sampler:')
-    sampler = SamplerBalancedBatch(dataset=train_dataset,
-                                       balanced_class_name='data.gt.classification',
-                                       num_balanced_classes=2,
-                                       batch_size=train_common_params['data.batch_size'])
+    sampler = BatchSamplerDefault(dataset=train_dataset,
+                                       balanced_class_name=gt_label,
+                                       num_balanced_classes=num_classes,
+                                       batch_size=train["batch_size"],
+                                       mode = mode,
+                                    #    mp_context = 'spawn',
+                                       balanced_class_weights=None
+                                       )
 
     lgr.info(f'- Create sampler: Done')
 
     ## Create dataloader
     train_dataloader = DataLoader(dataset=train_dataset,
                                   shuffle=False, drop_last=False,
-                                  batch_sampler=sampler, collate_fn=train_dataset.collate_fn,
-                                  num_workers=train_common_params['data.train_num_workers'])
+                                  batch_sampler=sampler, collate_fn=CollateDefault(skip_keys=skip_keys),
+                                  num_workers=train["num_workers"])
     lgr.info(f'Train Data: Done', {'attrs': 'bold'})
 
     #### Validation data
     lgr.info(f'Validation Data:', {'attrs': 'bold'})
-
-
-
 
     ## Create dataloader
     validation_dataloader = DataLoader(dataset=validation_dataset,
                                        shuffle=False,
                                        drop_last=False,
                                        batch_sampler=None,
-                                       batch_size=train_common_params['data.batch_size'],
-                                       num_workers=train_common_params['data.validation_num_workers'],
-                                       collate_fn=validation_dataset.collate_fn)
+                                       batch_size=train["batch_size"],
+                                       num_workers=train["num_workers"],
+                                       collate_fn=CollateDefault(skip_keys=skip_keys))
     lgr.info(f'Validation Data: Done', {'attrs': 'bold'})
-
     # ===================================================================
     # ==============================================================================
     # Model
     # ==============================================================================
     lgr.info('Model:', {'attrs': 'bold'})
 
-    model = ModelDefault(
-        conv_inputs=(('data.input.image', 1),),
+    model = ModelMultiHead(
+        conv_inputs=(('data.input.img', 1),),
         backbone=BackboneInceptionResnetV2(input_channels_num=1),
         heads=[
             HeadGlobalPoolingClassifier(head_name='head_0',
                                             dropout_rate=0.5,
                                             conv_inputs=[('model.backbone_features', 384)],
                                             layers_description=(256,),
-                                            num_classes=2,
+                                            num_classes=num_classes,
                                             pooling="avg"),
         ]
     )
@@ -178,17 +171,18 @@ def run_train(paths: dict, train_common_params: dict, reset_cache: bool):
     #  Loss
     # ====================================================================================
     losses = {
-        'cls_loss': LossDefault(pred='model.logits.head_0', target='data.gt.classification',
+        'cls_loss': LossDefault(pred='model.logits.head_0', target=gt_label,
                                     callable=F.cross_entropy, weight=1.0)
     }
+
 
     # ====================================================================================
     # Metrics
     # ====================================================================================
     metrics = OrderedDict([
         ('op', MetricApplyThresholds(pred='model.output.head_0')), # will apply argmax
-        ('auc', MetricAUCROC(pred='model.output.head_0', target='data.gt.classification')),
-        ('accuracy', MetricAccuracy(pred='results:metrics.op.cls_pred', target='data.gt.classification')),
+        ('auc', MetricAUCROC(pred='model.output.head_0', target=gt_label, class_names = class_names)),
+        ('accuracy', MetricAccuracy(pred='results:metrics.op.cls_pred', target=gt_label)),
     ])
 
     # =====================================================================================
@@ -198,8 +192,9 @@ def run_train(paths: dict, train_common_params: dict, reset_cache: bool):
         # default callbacks
         TensorboardCallback(model_dir=paths['model_dir']),  # save statistics for tensorboard
         MetricStatisticsCallback(output_path=paths['model_dir'] + "/metrics.csv"),  # save statistics in a csv file
-        TimeStatisticsCallback(num_epochs=train_common_params['manager.train_params']['num_epochs'], load_expected_part=0.1)  # time profiler
+        TimeStatisticsCallback(num_epochs=train["manager_train_params"]["num_epochs"], load_expected_part=0.1)  # time profiler
     ]
+
 
     # =====================================================================================
     #  Manager - Train
@@ -208,29 +203,31 @@ def run_train(paths: dict, train_common_params: dict, reset_cache: bool):
     lgr.info('Train:', {'attrs': 'bold'})
 
     # create optimizer
-    optimizer = optim.Adam(model.parameters(), lr=train_common_params['manager.learning_rate'],
-                           weight_decay=train_common_params['manager.weight_decay'])
+    optimizer = optim.Adam(model.parameters(), lr=train["learning_rate"],
+                           weight_decay=train["weight_decay"])
 
     # create scheduler
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
     # train from scratch
-    manager = ManagerDefault(output_model_dir=paths['model_dir'], force_reset=paths['force_reset_model_dir'])
+
+    manager = ManagerDefault(output_model_dir=paths['model_dir'], force_reset=train['force_reset_model_dir'])
+
     # Providing the objects required for the training process.
     manager.set_objects(net=model,
                         optimizer=optimizer,
                         losses=losses,
                         metrics=metrics,
-                        best_epoch_source=train_common_params['manager.best_epoch_source'],
+                        best_epoch_source=train["manager_best_epoch_source"],
                         lr_scheduler=scheduler,
                         callbacks=callbacks,
-                        train_params=train_common_params['manager.train_params'],
-                        output_model_dir=paths['model_dir'])
+                        train_params=train["manager_train_params"],
+                        output_model_dir=paths["model_dir"])
 
     # Continue training
-    if train_common_params['manager.resume_checkpoint_filename'] is not None:
+    if train["resume_checkpoint_filename"] is not None:
         # Loading the checkpoint including model weights, learning rate, and epoch_index.
-        manager.load_checkpoint(checkpoint=train_common_params['manager.resume_checkpoint_filename'], mode='train',
+        manager.load_checkpoint(checkpoint=train["resume_checkpoint_filename"], mode='train',
                                 values_to_resume=['net'])
     # # Start training
     manager.train(train_dataloader=train_dataloader,
@@ -241,22 +238,28 @@ def run_train(paths: dict, train_common_params: dict, reset_cache: bool):
 ######################################
 # Inference Template
 ######################################
-def run_infer(paths: dict, infer_common_params: dict):
+def run_infer(paths : NDict , infer: NDict):
     #### Logger
-    fuse_logger_start(output_path=paths['inference_dir'], console_verbose_level=logging.INFO)
+    fuse_logger_start(output_path=paths["inference_dir"], console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Inference', {'attrs': ['bold', 'underline']})
-    lgr.info(f'infer_filename={os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])}', {'color': 'magenta'})
+    lgr.info(f'infer_filename={os.path.join(paths["inference_dir"], infer["infer_filename"])}', {'color': 'magenta'})
 
-    # Create data source:
-    _, _ , test_dataset = CMMD_2021_dataset(paths['data_dir'], paths['data_misc_dir'], paths['cache_dir'])
 
+    ## Data
+    folds = load_pickle(os.path.join( paths["data_misc_dir"], paths["data_split_filename"])) # assume exists and created in train func
+
+    infer_sample_ids = []                              
+    for fold in infer["infer_folds"]:
+        infer_sample_ids += folds[fold]
+
+    test_dataset = CMMD.dataset(paths["data_dir"], paths["data_misc_dir"], infer['target'], paths["cache_dir"], sample_ids=infer_sample_ids, train=False)
 
     ## Create dataloader
     infer_dataloader = DataLoader(dataset=test_dataset,
                                   shuffle=False, drop_last=False,
-                                  collate_fn=test_dataset.collate_fn,
-                                  num_workers=infer_common_params['data.train_num_workers'])
+                                  collate_fn=CollateDefault(),
+                                  num_workers=infer["num_workers"])
     lgr.info(f'Test Data: Done', {'attrs': 'bold'})
 
     #### Manager for inference
@@ -264,24 +267,17 @@ def run_infer(paths: dict, infer_common_params: dict):
     # extract just the global classification per sample and save to a file
     output_columns = ['model.output.head_0','data.gt.classification']
     manager.infer(data_loader=infer_dataloader,
-                  input_model_dir=paths['model_dir'],
-                  checkpoint=infer_common_params['checkpoint'],
+                  input_model_dir=paths["model_dir"],
+                  checkpoint=infer["checkpoint"],
                   output_columns=output_columns,
-                  output_file_name=os.path.join(paths["inference_dir"], infer_common_params["infer_filename"]))
+                  output_file_name=os.path.join(paths["inference_dir"], infer["infer_filename"]))
     
-    ######################################
-# Analyze Common Params
-######################################
-EVAL_COMMON_PARAMS = {}
-EVAL_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
-EVAL_COMMON_PARAMS['num_workers'] = 4
-EVAL_COMMON_PARAMS['batch_size'] = 8
 
 
 ######################################
 # Analyze Template
 ######################################
-def run_eval(paths: dict, eval_common_params: dict):
+def run_eval(paths : NDict , infer: NDict):
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Eval', {'attrs': ['bold', 'underline']})
@@ -298,57 +294,41 @@ def run_eval(paths: dict, eval_common_params: dict):
 
     # run
     results = evaluator.eval(ids=None,
-                     data=os.path.join(paths["inference_dir"], eval_common_params["infer_filename"]),
+                     data=os.path.join(paths["inference_dir"], infer["infer_filename"]),
                      metrics=metrics,
-                     output_dir=paths['eval_dir'])
+                     output_dir=paths["eval_dir"])
 
     return results
-######################################
-# Run
-######################################
 
-
-if __name__ == "__main__":
-    # allocate gpus
-    if NUM_GPUS == 0:
-        TRAIN_COMMON_PARAMS['manager.train_params']['device'] = 'cpu'
+@hydra.main(config_path="conf", config_name="config")
+def main(cfg : DictConfig) -> None:
+    cfg = NDict(OmegaConf.to_container(cfg))
+    cfg["paths"]["data_dir"] = os.environ["CMMD_DATA_PATH"]
+    print(cfg)
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None  # [0]
-    choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
+    choose_and_enable_multiple_gpus(cfg["train.manager_train_params.num_gpus"], force_gpus=force_gpus)
 
-    RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
-    # Path to save model
-    root = ''
-    # Path to the stored CMMD dataset location
+
+    RUNNING_MODES = ['train', 'infer', 'eval']
+    # Path to the stored dataset location
     # dataset should be download from https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508
     # download requires NBIA data retriever https://wiki.cancerimagingarchive.net/display/NBIA/Downloading+TCIA+Images
     # put on the following in the main folder  - 
     # 1. CMMD_clinicaldata_revision.csv which is a converted version of CMMD_clinicaldata_revision.xlsx 
     # 2. folder named CMMD which is the downloaded data folder
-    root_data = None #TODO: add path to the data folder
-    assert root_data is not None, "Error: please set root_data, the path to the stored CMMD dataset location"
-    # Name of the experiment
-    experiment = 'model_new/CMMD_classification'
-    # Path to cache data
-    cache_path = 'examples/'
-    # Name of the cached data folder
-    experiment_cache = 'CMMD_'
-    paths = {'data_dir': root_data,
-             'model_dir': os.path.join(root, experiment, 'model_dir_transfer'),
-             'data_misc_dir' : os.path.join(root, 'data_misc'),
-             'force_reset_model_dir': True,
-             # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
-             'cache_dir': os.path.join(cache_path, experiment_cache + '_cache_dir'),
-             'inference_dir': os.path.join(root, experiment, 'infer_dir'),
-             'eval_dir': os.path.join(root, experiment, 'eval_dir')}
+
     # train
     if 'train' in RUNNING_MODES:
-        run_train(paths=paths, train_common_params=TRAIN_COMMON_PARAMS, reset_cache=False)
+        run_train(cfg["paths"] ,cfg["train"])
 
     # infer
     if 'infer' in RUNNING_MODES:
-        run_infer(paths=paths, infer_common_params=INFER_COMMON_PARAMS)
+        run_infer(cfg["paths"] , cfg["infer"])
     #
-    # eval
+    # analyze
     if 'eval' in RUNNING_MODES:
-        run_eval(paths=paths, eval_common_params=EVAL_COMMON_PARAMS)
+        run_eval(cfg["paths"] ,cfg["infer"])
+if __name__ == "__main__":
+    sys.argv.append('hydra.run.dir=working_dir')
+    main()

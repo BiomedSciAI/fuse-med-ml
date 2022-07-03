@@ -24,7 +24,7 @@ import torch.nn as nn
 from fuse.utils.ndict import NDict
 
 
-class MultilayerPerceptronBackbone(torch.nn.Module):
+class BackboneMultilayerPerceptron(torch.nn.Module):
 
     def __init__(self,
                  layers: List[int] = (64, 192, 320, 320, 1088, 384),

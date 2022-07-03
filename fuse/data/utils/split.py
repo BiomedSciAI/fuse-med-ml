@@ -49,7 +49,6 @@ def balanced_division(df : pd.DataFrame, no_mixture_id : str, keys_to_balance: S
     it creates the folds so each fold will have about same proportions of ID level labeling while each ID will appear only in one fold
     For example - patient with ID 1234 has 2 images , each image has a binary classification (benign / malignant) .
     it can be that both of his images are benign or both are malignant or one is benign and the other is malignant.
-    
     :param df:                 dataframe containing all samples including id and keys_to_balance
     :param no_mixture_id:      The key column for which no mixture between folds should be forced
     :param keys_to_balance:        keys for which balancing is forced
@@ -113,7 +112,9 @@ def balanced_division(df : pd.DataFrame, no_mixture_id : str, keys_to_balance: S
     return folds
 
 
-def dataset_balanced_division_to_folds(dataset: DatasetBase, output_split_filename: str, keys_to_balance: Sequence[str], nfolds: int, reset_split: bool = False, **kwargs):
+
+def dataset_balanced_division_to_folds(dataset: DatasetBase, output_split_filename: str, keys_to_balance: Sequence[str], nfolds: int, id:str=get_sample_id_key(), reset_split: bool = False, workers: int=10, mp_context : str =None, **kwargs):
+
     """
     Split dataset to folds.
     Support balancing, exclusion and radom seed (with a small improvement could support no mixture criterion).
@@ -121,23 +122,29 @@ def dataset_balanced_division_to_folds(dataset: DatasetBase, output_split_filena
     :param output_split_filename: filename to save/read the split from. If the file exist and reset_split=False - this function will return the split stored in reset_split.
     :param keys_to_balance: balancing any possible combination of values. For example for ["data.gender", "data.cancer"], the algorithm will balance each one of the following groups between the folds.
                             (gender=male, cancer=True), (gender=male, cancer=False), (gender=female, cancer=True), (gender=female, cancer=False)
+
+    :param  nfolds : number of folds
+    :param  id  : id to balance the split by ( not allowed 2 in same fold)
     :param reset_split: delete output_split_filename and recompute the split
+    :param workers : numbers of workers for multiprocessing (eport dataset into dataframe)
+    :param mp_context : multiprocessing context: "fork", "spawn", etc. 
     :param kwargs: more arguments controlling the split. See function balanced_division() for details
     """ 
     if os.path.exists(output_split_filename) and not reset_split:
         return load_pickle(output_split_filename)
     else:
-        keys = [get_sample_id_key()]
+        if id == get_sample_id_key():
+             keys = [get_sample_id_key()]
+        else:
+            keys = [get_sample_id_key(), id]
         if keys_to_balance is not None:
             keys += keys_to_balance
-        df = ExportDataset.export_to_dataframe(dataset, keys)
-        df_folds = balanced_division(df, get_sample_id_key(), keys_to_balance, nfolds, **kwargs)
-        print(df_folds.keys())
+        df = ExportDataset.export_to_dataframe(dataset, keys, workers=workers, mp_context=mp_context)
+        df_folds = balanced_division(df, id, keys_to_balance, nfolds, **kwargs)
+
         folds = {}
         for fold in range(nfolds):
             folds[fold] = list(df_folds[df_folds["fold"] == fold][get_sample_id_key()])
         save_pickle(folds, output_split_filename)
         return folds
-
-            
 

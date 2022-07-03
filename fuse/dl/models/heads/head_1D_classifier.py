@@ -84,10 +84,10 @@ class LinearLayers(nn.Module):
         x = self.classifier(x)
         return x
 
-class Head1dClassifier(nn.Module):
+class Head1DClassifier(nn.Module):
     def __init__(self,
                  head_name: str = 'head_0',
-                 conv_inputs: Sequence[Tuple[str, int]] = (('model.backbone_features', 193),),
+                 conv_inputs: Sequence[Tuple[str, int]] = None, 
                  num_classes: int = 2,
                  post_concat_inputs: Optional[Sequence[Tuple[str, int]]] = None,
                  post_concat_model: Optional[Sequence[int]] = None,
@@ -105,6 +105,8 @@ class Head1dClassifier(nn.Module):
         :param head_name:                   batch_dict key
         :param conv_inputs:                 List of feature map inputs - tuples of (batch_dict key, channel depth)
                                             If multiple inputs are used, they are concatenated on the channel axis
+                for example:
+                conv_inputs=(('model.backbone_features', 193),)
         :param num_classes:                 Number of output classes (per feature map location)
         :param post_concat_inputs:          Additional vector (one dimensional) inputs, concatenated just before the classifier module
         :param post_concat_model            Layers description for the post_concat_inputs module - sequence of hidden layers sizes
@@ -116,6 +118,7 @@ class Head1dClassifier(nn.Module):
 
 
         self.head_name = head_name
+        assert conv_inputs is not None, 'conv_inputs must be provided'
         self.conv_inputs = conv_inputs
         self.post_concat_inputs = post_concat_inputs
         self.post_concat_model = post_concat_model

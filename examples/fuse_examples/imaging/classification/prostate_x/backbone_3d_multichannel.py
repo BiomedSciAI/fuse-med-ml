@@ -20,7 +20,7 @@ import torch.nn as nn
 
 from fuse.utils.ndict import NDict
 import numpy as np
-from fuse.dl.models.heads.head_1d_classifier import Head1dClassifier
+from fuse.dl.models.heads import Head1DClassifier
 
 
 # 3x3 convolution
@@ -178,7 +178,7 @@ class Fuse_model_3d_multichannel(torch.nn.Module):
     def __init__(self,
                  conv_inputs: Tuple[Tuple[str, int], ...] = (('data.input', 1),),
                  backbone: ResNet = ResNet(),
-                 heads: Sequence[torch.nn.Module] = (Head1dClassifier(),),
+                 heads: Sequence[torch.nn.Module] = (Head1DClassifier(),),
                  ch_num = None,
                  ) -> None:
         """
@@ -227,7 +227,7 @@ if __name__ == '__main__':
         conv_inputs=(('data.input', 1),),
         backbone= ResNet(),
         heads=[
-        Head1dClassifier(head_name='ClinSig',
+        Head1DClassifier(head_name='ClinSig',
                                         conv_inputs=[('model.backbone_features', num_features)],
                                         post_concat_inputs=None,
                                         dropout_rate=0.25,

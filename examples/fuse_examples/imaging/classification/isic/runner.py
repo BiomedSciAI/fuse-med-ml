@@ -25,7 +25,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data.dataloader import DataLoader
 
-from fuse.dl.models.model_default import ModelDefault
+from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.backbones.backbone_resnet import BackboneResnet
 from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
 from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
@@ -208,12 +208,10 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     # ==============================================================================
     lgr.info("Model:", {"attrs": "bold"})
 
-    model = ModelDefault(
-        conv_inputs=(("data.input.img", 3),),
-        backbone={
-            "Resnet18": BackboneResnet(pretrained=True, in_channels=3, name="resnet18"),
-            "InceptionResnetV2": BackboneInceptionResnetV2(input_channels_num=3, logical_units_num=43),
-        }["InceptionResnetV2"],
+    model = ModelMultiHead(
+        conv_inputs=(('data.input.img', 3),),
+        backbone={'Resnet18': BackboneResnet(pretrained=True, in_channels=3, name='resnet18'),
+                  'InceptionResnetV2': BackboneInceptionResnetV2(input_channels_num=3, logical_units_num=43)}['InceptionResnetV2'],
         heads=[
             HeadGlobalPoolingClassifier(
                 head_name="head_0",
