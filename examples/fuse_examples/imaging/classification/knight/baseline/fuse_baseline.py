@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import pathlib
+from pickle import FALSE
 from fuse.utils.utils_logger import fuse_logger_start
 import os
 import sys
@@ -30,7 +31,7 @@ import time
 # and vice versa, or set both to True to use both.
 # allocate gpus
 # uncomment if you want to use specific gpus instead of automatically looking for free ones
-experiment_num = 1
+experiment_num = 0
 task_num = 1 # 1 or 2
 force_gpus = [experiment_num*2,(experiment_num*2)+1] # specify the GPU indices you want to use
 use_data = {'imaging': True, 'clinical': True} # specify whether to use imaging, clinical data or both
@@ -114,7 +115,7 @@ def main():
 
 
     model = ModelMultiHead(
-        conv_inputs=(('data.input.image', 1),),
+        conv_inputs=(('data.input.img', 1),),
         backbone=backbone,
         heads=[
             Head3DClassifier(head_name='head_0',

@@ -15,7 +15,7 @@ from fuse.data.ops.op_base import OpBase
 from fuse.data.ops.ops_aug_common import OpSample, OpRandApply
 from fuse.data.ops.ops_common import OpLambda, OpZScoreNorm
 from fuseimg.data.ops.aug.color import OpAugColor
-from fuseimg.data.ops.aug.geometry import OpAugAffine2D, OpRandomCrop3D, OpRotation3D
+from fuseimg.data.ops.aug.geometry import OpAugAffine2D, OpCrop3D, OpRotation3D, OpResizeTo
 from fuseimg.data.ops.image_loader import OpLoadImage 
 from fuseimg.data.ops.color import OpClip, OpToRange
 
@@ -168,19 +168,19 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
     ])
 
     val_dynamic_pipeline = PipelineDefault("dynamic", [
+        (OpResizeTo(channels_first=False), dict(key="data.input.img", output_shape=resize_to)),
         # Numpy to tensor
-        (OpToTensor(), dict(key="data.input.img")),
+        (OpToTensor(), dict(key="data.input.img", dtype=torch.float)),
         (OpToTensor(), dict(key="data.input.clinical.all")),
 
-        
-        (OpRandomCrop3D(), dict(key="data.input.img", out_size=resize_to, centralize=True)),
         # add channel dimension -> [C=1, D, H, W]
         (OpLambda(lambda x: x.unsqueeze(dim=0)), dict(key="data.input.img")),  
     ]) 
 
     train_dynamic_pipeline = PipelineDefault("dynamic", [
+        (OpResizeTo(channels_first=False), dict(key="data.input.img", output_shape=resize_to)),
         # Numpy to tensor
-        (OpToTensor(), dict(key="data.input.img")),
+        (OpToTensor(), dict(key="data.input.img", dtype=torch.float)),
         (OpToTensor(), dict(key="data.input.clinical.all")),
 
         (OpRandApply(OpSample(OpRotation3D()), 0.5) , dict(
@@ -197,7 +197,6 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
             flip=(RandBool(0.5), RandBool(0.5)),
             translate=(RandInt(-15, 15), RandInt(-15, 15))
         )),
-        (OpRandomCrop3D(), dict(key="data.input.img", out_size=resize_to)),
         # add channel dimension -> [C=1, D, H, W]
         (OpLambda(lambda x: x.unsqueeze(dim=0)), dict(key="data.input.img")),  
     ])
