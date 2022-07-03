@@ -35,9 +35,10 @@ sample_ndict['groundtruth.disease_level_label'] = # ...
 * loss
 * multihead model
 
-### Creating a FuseMedML component
+### Creating a custom FuseMedML component
 
-In this example ...
+Creating custom FuseMedML components is easy - in the following example we add a new data processing operator:
+
 
 A data pipeline operator
 ```python
@@ -63,7 +64,9 @@ class OpPad(OpBase):
 
 Since the key location isn't hardcoded, this module can be eaily reused across different research projects with very different data sample structures. More code reuse - Hooray!  
   
-Another example: [TODO: add examples from evaluator, loss and/or additional]   
+FuseMedML-style components in general are any classes or functions that define which key paths will be written and which will be read.
+Arguments can be freely named, and you don't even have to write anything to the nested dict.
+Some FuseMedML components return a value directly - for example, loss functions.
 
 ## 2. "Batteries included" key components, built using the same design concept
 
