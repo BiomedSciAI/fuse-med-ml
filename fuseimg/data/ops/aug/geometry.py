@@ -224,15 +224,18 @@ class OpAugUnsqueeze3DFrom2D(OpBase):
 class OpRandomCrop3D(OpBase):
     """
     random crop to certain size. if the image is smaller than the size then its padded.
-    :param aug_input: The tensor to augment
-    :param out_size: shape of the output
-    :return: the augmented tensor
     """
 
     def __call__(self, sample_dict: NDict, key: str, out_size: Tuple[int, int, int],
                            fill: int = 0,
                            centralize: bool=False
         ):
+        """
+        :param key: key to a tensor stored in sample_dict and get cropped by OpRandomCrop3D
+        :param out_size: shape of the output tensor
+        :param fill: if the image needs padding then it will be filled with that value
+        :param centralize: if true then we crop exactly at the center of the image
+        """
         aug_input = sample_dict[key]
         assert len(aug_input.shape) == len(out_size)
         depth, height, width = aug_input.shape #input is in the form [D,H,W]
@@ -327,3 +330,39 @@ class OpResizeTo(OpBase):
 
         perm = tuple(perm)
         return perm
+
+
+class OpRotation3D(OpBase):
+
+    def __call__(self, sample_dict: NDict, key: str,
+                    z_rot: float = 0.0, y_rot: float = 0.0, x_rot: float = 0):
+        """
+        rotates an input tensor around an axis, when for example z_rot is chosen,
+        the rotation is in the x-y plane.
+        Note: rotation angles are in relation to the original axis (not the rotated one)
+        rotation angles should be given in degrees
+        :param aug_input:image input should be in shape [z, y, x] [depth, height, width]
+        :param z_rot: angle to rotate x-y plane clockwise
+        :param y_rot: angle to rotate x-z plane clockwise
+        :param x_rot: angle to rotate z-y plane clockwise
+        :return:
+        """
+        aug_input = sample_dict[key]
+        assert len(aug_input.shape) == 3  # will only work for 3d
+        channels = range(aug_input.shape[0])
+        if z_rot != 0:
+            aug_input = TTF.rotate(aug_input, angle=z_rot)
+        if x_rot != 0:
+            aug_input = aug_input.permute(dims = (2,0,1))
+            aug_input = TTF.rotate(aug_input, angle=x_rot)
+            aug_input = aug_input.permute(dims = (1,2,0))
+        if y_rot != 0:
+           aug_input = aug_input.permute(dims = (1,0,2))
+           aug_input = TTF.rotate(aug_input, angle=y_rot)
+           aug_input = aug_input.permute(dims = (1,0,2))
+
+        sample_dict[key] = aug_input
+        return sample_dict
+
+
+

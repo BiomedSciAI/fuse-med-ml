@@ -15,7 +15,7 @@ from fuse.data.ops.op_base import OpBase
 from fuse.data.ops.ops_aug_common import OpSample, OpRandApply
 from fuse.data.ops.ops_common import OpLambda, OpZScoreNorm
 from fuseimg.data.ops.aug.color import OpAugColor
-from fuseimg.data.ops.aug.geometry import OpAugAffine2D, OpRandomCrop3D
+from fuseimg.data.ops.aug.geometry import OpAugAffine2D, OpRandomCrop3D, OpRotation3D
 from fuseimg.data.ops.image_loader import OpLoadImage 
 from fuseimg.data.ops.color import OpClip, OpToRange
 
@@ -183,13 +183,19 @@ def knight_dataset(data_dir: str = 'data', cache_dir: str = 'cache', split: dict
         (OpToTensor(), dict(key="data.input.img")),
         (OpToTensor(), dict(key="data.input.clinical.all")),
 
+        (OpRandApply(OpSample(OpRotation3D()), 0.5) , dict(
+            key="data.input.img",
+            z_rot=Uniform(-5.0,5.0),
+            x_rot=Uniform(-5.0,5.0),
+            y_rot=Uniform(-5.0,5.0))
+        ),
         # affine transformation per slice but with the same arguments
         (OpRandApply(OpSample(OpAugAffine2D()), 0.5) , dict(
             key="data.input.img",
             rotate=Uniform(-180.0,180.0),
             scale=Uniform(0.8, 1.2),
-            flip=(RandBool(0.5).sample(), RandBool(0.5)),
-            translate=(RandInt(-15, 15).sample(), RandInt(-15, 15))
+            flip=(RandBool(0.5), RandBool(0.5)),
+            translate=(RandInt(-15, 15), RandInt(-15, 15))
         )),
         (OpRandomCrop3D(), dict(key="data.input.img", out_size=resize_to)),
         # add channel dimension -> [C=1, D, H, W]

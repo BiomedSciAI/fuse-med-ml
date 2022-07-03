@@ -30,7 +30,7 @@ import time
 # and vice versa, or set both to True to use both.
 # allocate gpus
 # uncomment if you want to use specific gpus instead of automatically looking for free ones
-experiment_num = 0
+experiment_num = 1
 task_num = 1 # 1 or 2
 force_gpus = [experiment_num*2,(experiment_num*2)+1] # specify the GPU indices you want to use
 use_data = {'imaging': True, 'clinical': True} # specify whether to use imaging, clinical data or both
