@@ -8,7 +8,7 @@
 # Effective Code Reuse across ML projects!
 **Battle tested in the medical domain:** Medical Imaging, Computational Molecular Biochem and EHR Clinical Data Analysis
 
-[Skip to install instructions setion](#Installation)
+[Skip to install instructions section](#Installation)
 
 # Motivation - *"*Oh, the pain!*"*
 Analyzing **many** ML research projects we discovered that 
