@@ -61,10 +61,12 @@ Another example: [TODO: add examples from evaluator, loss and/or additional]
 ### **fuse.data** - A **declarative** super flexible data processing pipeline
 * Easy dealing with complex multi modality scenario
 * Advanced caching, including periodic audits to automatically detect stale caches
-* [More Details](https://github.com/IBM/fuse-med-ml/tree/master/fuse/data/README.md) 
+* Default ready-to-use Dataset and Sampler classes
+* See detailed introduction [here](https://github.com/IBM/fuse-med-ml/tree/master/fuse/data/README.md) 
   
 ### **fuse.eval** - a standalone library for **evaluating ML models** (not necessarily trained with FuseMedML)  
-The package includes collection of off-the-shelf metrics and utilities such as **statistical significance tests, calibration, thresholding, model comparison** and more. More details can be found [here](https://github.com/IBM/fuse-med-ml/tree/master/fuse/eval/README.md)  
+The package includes collection of off-the-shelf metrics and utilities such as **statistical significance tests, calibration, thresholding, model comparison** and more.  
+See detailed introduction [here](https://github.com/IBM/fuse-med-ml/tree/master/fuse/eval/README.md)  
 
 ## Supported DL libraries
 Some components depend on pytorch. For example, ```fuse.data``` is oriented towards pytorch DataSet, DataLoader, DataSampler etc.
