@@ -60,7 +60,7 @@ def main():
     if mode == 'debug':
         NUM_GPUS = 1
     else:
-        NUM_GPUS = 2
+        NUM_GPUS = 1
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None  # [0]
     GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
@@ -202,9 +202,9 @@ def get_setting(mode, num_devices, label_type=prostate_x.ProstateXLabelType.Clin
         TRAIN_COMMON_PARAMS['num_backbone_features'] = \
             TRAIN_COMMON_PARAMS['num_backbone_features_imaging'] + TRAIN_COMMON_PARAMS['num_backbone_features_clinical']
 
-    # classification_task:
+    # classification task:
     # supported tasks are: 'ClinSig'
-    TRAIN_COMMON_PARAMS['classification_task'] = label_type
+    TRAIN_COMMON_PARAMS['label_type'] = label_type
     TRAIN_COMMON_PARAMS['class_num'] = label_type.get_num_classes()
 
     # backbone parameters
@@ -232,6 +232,7 @@ def get_setting(mode, num_devices, label_type=prostate_x.ProstateXLabelType.Clin
     INFER_COMMON_PARAMS['data.infer_folds'] = [heldout_fold]  # infer validation set
     INFER_COMMON_PARAMS['data.batch_size'] = 4
     INFER_COMMON_PARAMS['data.num_workers'] = num_workers
+    INFER_COMMON_PARAMS['label_type'] = TRAIN_COMMON_PARAMS['label_type']
     INFER_COMMON_PARAMS['model'] = TRAIN_COMMON_PARAMS['model']
     INFER_COMMON_PARAMS['trainer.num_devices'] = num_devices
     INFER_COMMON_PARAMS['trainer.accelerator'] = "gpu"
@@ -309,7 +310,7 @@ def run_train(paths: dict, train_params: dict):
             cache_kwargs = {**cache_kwargs, **cache_kwargs2}
 
     # split to folds randomly
-    params = dict(label_type=train_params['classification_task'], data_dir=paths["data_dir"], cache_dir=paths["cache_dir"],
+    params = dict(label_type=train_params['label_type'], data_dir=paths["data_dir"], cache_dir=paths["cache_dir"],
                   reset_cache=reset_cache, sample_ids=train_params['data.selected_sample_ids'],
                   num_workers=train_params['data.train_num_workers'],
                   cache_kwargs=cache_kwargs, train=False, verbose=False)
@@ -458,7 +459,7 @@ def run_infer(paths: dict, infer_common_params: dict, audit_cache: Optional[bool
     for fold in infer_common_params["data.infer_folds"]:
         infer_sample_ids += folds[fold]
 
-    params = dict(label_type=infer_common_params['classification_task'], data_dir=paths["data_dir"],
+    params = dict(label_type=infer_common_params['label_type'], data_dir=paths["data_dir"],
                   cache_dir=paths["cache_dir"], train=False,
                   sample_ids=infer_sample_ids, verbose=False)
     if not audit_cache:

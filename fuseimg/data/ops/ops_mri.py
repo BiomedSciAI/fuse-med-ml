@@ -582,6 +582,7 @@ def crop_lesion_vol_mask_based(vol: sitk.sitkFloat32, position: tuple, ref: sitk
 
         mask = sitk.GetArrayFromImage(vol)[:, :, :, mask_inx]
         assert set(np.unique(mask)) <= {0, 1}
+        mask = mask.astype(int)
         mask_final = sitk.GetImageFromArray(mask)
         mask_final.CopyInformation(ref)
 

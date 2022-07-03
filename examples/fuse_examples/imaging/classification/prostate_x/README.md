@@ -7,7 +7,8 @@ The project presents lesions classification of Gleason score in prostate. It dem
 
 **Dataset**
 
-We used the public SPIE-AAPM-NCI PROSTATEx Challenge dataset: https://wiki.cancerimagingarchive.net/display/Public/SPIE-AAPM-NCI+PROSTATEx+Challenges#23691656d4622c5ad5884bdb876d6d441994da38 It contains 204 patients and 330 lesions for training. The train data was split into 8 folds insuring no patient is overlapped between the different folds. The data was split in a way that saves the frequency of the two classes in each of the folds. Data should be located under "'./PatientData/ProstateX/manifest-A3Y4AE4o5818678569166032044/'"
+We used the public SPIE-AAPM-NCI PROSTATEx Challenge dataset: 
+https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=23691656
 
 **Pre-processing**
 

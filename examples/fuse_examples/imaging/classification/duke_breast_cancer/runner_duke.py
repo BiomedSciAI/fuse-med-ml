@@ -62,7 +62,15 @@ def main():
     force_gpus = None  # [0]
     GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
-    PATHS, TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS = get_setting(mode)
+    if False:
+        selected_positive = [1, 2, 3, 5, 6, 10, 12, 596, 900, 901]
+        selected_negative = [4, 6, 7, 8, 11, 13, 14, 120, 902, 903]
+
+        selected_sample_ids = [f'Breast_MRI_{ii:03d}' for ii in selected_positive + selected_negative]
+    else:
+        selected_sample_ids = None
+
+    PATHS, TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS = get_setting(mode, selected_sample_ids=selected_sample_ids)
     print(PATHS)
 
     RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
@@ -83,7 +91,8 @@ def main():
 
     print(f"Done running with heldout={INFER_COMMON_PARAMS['data.infer_folds']}")
 
-def get_setting(mode, label_type=fuseimg.datasets.duke_label_type.DukeLabelType.STAGING_TUMOR_SIZE, n_folds=5, heldout_fold=4):
+def get_setting(mode, label_type=fuseimg.datasets.duke_label_type.DukeLabelType.STAGING_TUMOR_SIZE, n_folds=5, heldout_fold=4,
+                selected_sample_ids=None, num_epoch=None):
     ###########################################################################################################
     # Fuse
     ###########################################################################################################
@@ -102,23 +111,25 @@ def get_setting(mode, label_type=fuseimg.datasets.duke_label_type.DukeLabelType.
 
     if mode == 'debug':
         data_split_file = os.path.join(ROOT, 'DUKE_folds_debug.pkl')
-        selected_sample_ids = duke.get_samples_for_debug(data_dir=data_dir, n_pos=10, n_neg=10, label_type=label_type,
+        if selected_sample_ids is None:
+            selected_sample_ids = duke.get_samples_for_debug(data_dir=data_dir, n_pos=10, n_neg=10, label_type=label_type,
                                                          sample_ids=duke.get_selected_sample_ids())
         print(selected_sample_ids)
         cache_dir = os.path.join(ROOT, 'cache_dir_debug')
         model_dir = os.path.join(ROOT, 'model_dir_debug')
         num_workers = 0
         batch_size = 2
-        num_epoch = 5
+        if num_epoch is None:
+            num_epoch = 5
     else:
-        data_split_file = os.path.join(ROOT, 'DUKE_folds_v4.pkl')
-        cache_dir = os.path.join(ROOT, 'cache_dir_v4')
-        model_dir = os.path.join(ROOT, 'model_dir_v4')
-        selected_sample_ids = None
+        data_split_file = os.path.join(ROOT, 'DUKE_folds_v5.pkl')
+        cache_dir = os.path.join(ROOT, 'cache_dir_v5')
+        model_dir = os.path.join(ROOT, 'model_dir_v5')
 
-        num_workers = 0 #16 #todo: put 0 to debug
+        num_workers = 16 # put 0 to debug
         batch_size = 50
-        num_epoch = 20  # 150
+        if num_epoch is None:
+            num_epoch = 20  # 150
 
     PATHS = {'model_dir': model_dir,
              'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
@@ -222,7 +233,7 @@ def get_setting(mode, label_type=fuseimg.datasets.duke_label_type.DukeLabelType.
 #################################
 # Train Template
 #################################
-def run_train(paths: dict, train_params: dict):
+def run_train(paths: dict, train_params: dict, reset_cache=None, audit_cache=None):
     Seed.set_seed(222, False)
     # ==============================================================================
     # Logger
@@ -243,10 +254,12 @@ def run_train(paths: dict, train_params: dict):
     # Train Data
     lgr.info(f'Train Data:', {'attrs': 'bold'})
 
-    reset_cache = ask_user('Do you want to reset cache?')
+    if reset_cache is None:
+        reset_cache = ask_user('Do you want to reset cache?')
     cache_kwargs = {'use_pipeline_hash': False}
     if not reset_cache:
-        audit_cache = ask_user('Do you want to audit cache?')
+        if audit_cache is None:
+            audit_cache = ask_user('Do you want to audit cache?')
         if not audit_cache:
             cache_kwargs2 = dict(audit_first_sample=False, audit_rate=None)
             cache_kwargs = {**cache_kwargs, **cache_kwargs2}
