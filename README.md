@@ -28,7 +28,13 @@ sample_ndict['input.ct_view_b'] = # ...
 sample_ndict['groundtruth.disease_level_label'] = # ...
 ```
 **Components are written in a way that allows to define input and output keys, to be read and written from the nested dict**  
-### Examples:
+### Examples - using FuseMedML-style components
+
+
+
+### Creating a FuseMedML component
+
+In this example ...
 
 A data pipeline operator
 ```python
