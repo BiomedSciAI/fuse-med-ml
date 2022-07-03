@@ -90,7 +90,7 @@ Broadly speaking, the supported DL libraries are:
 * [pytorch-lightning](https://www.pytorchlightning.ai/)
 
 Before you ask - **pytorch-lightning and FuseMedML play along very nicely and have in practice orthogonal and additive benefits :)**  
-See [Simple FuseMedML + PytorchLightning Example(./examples/fuse_examples/imaging/classification/mnist/run_mnist.py) for simple supervised learning cases, and [this example ](./examples/fuse_examples/imaging/classification/mnist/run_mnist_custom_pl_imp.py) for completely custom usage of pytorch-lightning and FuseMedML - useful for advanced scenarios such as Reinforcement Learning and generative models.
+See [Simple FuseMedML + PytorchLightning Example](./examples/fuse_examples/imaging/classification/mnist/run_mnist.py) for simple supervised learning cases, and [this example ](./examples/fuse_examples/imaging/classification/mnist/run_mnist_custom_pl_imp.py) for completely custom usage of pytorch-lightning and FuseMedML - useful for advanced scenarios such as Reinforcement Learning and generative models.
 
 ## Domain Extensions
 fuse-med-ml, the core library, is completely domain agnostic!
