@@ -18,7 +18,7 @@ Analyzing **many** ML research projects we discovered that
 # How the magic happens
 
 ## 1. A simple yet super effective design concept
-### Data is kept in a nested (hierarchical) dictionary - [NDict](https://github.com/IBM/fuse-med-ml/blob/master/fuse/utils/ndict.py)
+### Data is kept in a nested (hierarchical) dictionary
 This is a key aspect in FuseMedML (shortly named as "fuse"). It's a key driver of flexiblity, and allows to easily deal with multi modality information. 
 ```python
 sample_ndict = NDict()
