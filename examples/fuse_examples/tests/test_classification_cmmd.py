@@ -60,12 +60,12 @@ class ClassificationMGCmmdTestCase(unittest.TestCase):
              'batch_size': 2, 'learning_rate': 0.0001, 
              'weight_decay': 0, 
              'resume_checkpoint_filename': None, 
-             'trainer': {'accelerator': 'gpu', 'devices': 1, 'num_epochs': 100, 'ckpt_path': None}}, 
+             'trainer': {'accelerator': 'gpu', 'devices': 1, 'num_epochs': 2, 'ckpt_path': None}}, 
             'infer': {'infer_filename': 'validation_set_infer.gz', 'infer_folds': [4], 'target': 'classification', 'checkpoint': 'best', 'num_workers': 0}})
         
         print(self.cfg)
 
-    # @run_in_subprocess()
+    @run_in_subprocess()
     def test_runner(self):
         # uncomment if you want to use specific gpus instead of automatically looking for free ones
         force_gpus = None  # [0]
