@@ -1,4 +1,5 @@
 from typing import List, Optional, Tuple, Union
+from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
 
 from PIL import Image
 
@@ -220,6 +221,46 @@ class OpAugUnsqueeze3DFrom2D(OpBase):
         sample_dict[key] = aug_output
         return sample_dict
 
+class OpCrop3D(OpBase):
+    """
+    crop to certain size. if the image is smaller than the size then its padded.
+    """
+
+    def __call__(self, sample_dict: NDict, key: str, output_shape: Tuple[int, int, int],
+                           z_move=0.5,x_move=0.5,y_move=0.5,fill: int = 0, 
+        ):
+        """
+        :param key: key to a tensor stored in sample_dict and get cropped by OpRandomCrop3D
+        :param out_size: shape of the output tensor
+        :param fill: if the image needs padding then it will be filled with that value
+        :param z_move: float between 0 and 1 which is the proportion of the movement that can be done (for x and y is the same idea).
+        when they are all set to 0.5 it means we are cropping from the center of the image.
+        """
+        aug_input = sample_dict[key]
+        assert len(aug_input.shape) == len(output_shape)
+        assert z_move>=0 and z_move<=1
+        assert x_move>=0 and x_move<=1
+        assert y_move>=0 and y_move<=1
+        depth, height, width = aug_input.shape #input is in the form [D,H,W]
+
+        aug_tensor = torch.full(output_shape, fill, dtype=torch.float32)
+
+        if depth > output_shape[0]:
+            crop_start = round(z_move*(depth - output_shape[0]))
+            aug_input = aug_input[crop_start:crop_start+output_shape[0] , :,:]
+        if height > output_shape[1]:
+            crop_start = round(y_move*(height - output_shape[1]))
+            aug_input = aug_input[:, crop_start:crop_start+output_shape[1],:]
+        if width > output_shape[2]:
+            crop_start = round(x_move*(width - output_shape[2]))
+            aug_input = aug_input[:,:,crop_start:crop_start+output_shape[2]]
+
+        aug_tensor[:depth,:height,:width] = aug_input
+        sample_dict[key] = aug_tensor
+        
+        return sample_dict
+
+        
 
 class OpResizeTo(OpBase):
     """
@@ -286,3 +327,39 @@ class OpResizeTo(OpBase):
 
         perm = tuple(perm)
         return perm
+
+
+class OpRotation3D(OpBase):
+
+    def __call__(self, sample_dict: NDict, key: str,
+                    z_rot: float = 0.0, y_rot: float = 0.0, x_rot: float = 0):
+        """
+        rotates an input tensor around an axis, when for example z_rot is chosen,
+        the rotation is in the x-y plane.
+        Note: rotation angles are in relation to the original axis (not the rotated one)
+        rotation angles should be given in degrees
+        :param aug_input:image input should be in shape [z, y, x] [depth, height, width]
+        :param z_rot: angle to rotate x-y plane clockwise
+        :param y_rot: angle to rotate x-z plane clockwise
+        :param x_rot: angle to rotate z-y plane clockwise
+        :return:
+        """
+        aug_input = sample_dict[key]
+        assert len(aug_input.shape) == 3  # will only work for 3d
+        channels = range(aug_input.shape[0])
+        if z_rot != 0:
+            aug_input = TTF.rotate(aug_input, angle=z_rot)
+        if x_rot != 0:
+            aug_input = aug_input.permute(dims = (2,0,1))
+            aug_input = TTF.rotate(aug_input, angle=x_rot)
+            aug_input = aug_input.permute(dims = (1,2,0))
+        if y_rot != 0:
+           aug_input = aug_input.permute(dims = (1,0,2))
+           aug_input = TTF.rotate(aug_input, angle=y_rot)
+           aug_input = aug_input.permute(dims = (1,0,2))
+
+        sample_dict[key] = aug_input
+        return sample_dict
+
+
+
