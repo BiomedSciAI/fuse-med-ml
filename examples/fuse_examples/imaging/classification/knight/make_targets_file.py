@@ -27,8 +27,7 @@ import pandas as pd
 
 from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import save_dataframe
-from fuse.data.utils.export import DatasetExport
-
+from fuse.data.utils.export import ExportDataset
 from baseline.dataset import knight_dataset
 
 
@@ -70,6 +69,15 @@ def make_targets_file(data_path: str,
         if not os.path.isfile(json_labels_filepath): 
             ValueError("No test labels file found")
         labels = pd.read_json(json_labels_filepath, typ='series')
+        labels = pd.DataFrame({'target':labels.values})
+        levels = ['benign','low_risk','intermediate_risk','high_risk', 'very_high_risk']
+        labels["Task2-target"] = labels["target"].apply(lambda x: levels.index(x))
+        labels.insert(1,"Task1-target",labels["Task2-target"].apply(lambda x: int(x>3)))
+        labels.reset_index(inplace=True)
+        labels.rename({"index": "case_id"}, axis=1, inplace=True)
+        labels.drop(["target"], axis=1, inplace=True)
+        save_dataframe(labels, output_filename, index=False)   
+        return
         split = {'test': list(labels.keys())}
 
     
@@ -77,9 +85,9 @@ def make_targets_file(data_path: str,
 
     # Export targets
     if is_validation_set:
-        targets_df = DatasetExport.export_to_dataframe(validation_dl.dataset, ["data.descriptor", "data.gt.gt_global.task_1_label", "data.gt.gt_global.task_2_label"])
+        targets_df = ExportDataset.export_to_dataframe(validation_dl.dataset, ["data.descriptor", "data.gt.gt_global.task_1_label", "data.gt.gt_global.task_2_label"])
     else: # test set
-        targets_df = DatasetExport.export_to_dataframe(test_dl.dataset, ["data.descriptor", "data.gt.gt_global.task_1_label", "data.gt.gt_global.task_2_label"])
+        targets_df = ExportDataset.export_to_dataframe(test_dl.dataset, ["data.descriptor", "data.gt.gt_global.task_1_label", "data.gt.gt_global.task_2_label"])
         
     # to int and rename keys
     targets_df["data.gt.gt_global.task_1_label"] = targets_df["data.gt.gt_global.task_1_label"].transform(int)

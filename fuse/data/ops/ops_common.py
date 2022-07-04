@@ -434,3 +434,11 @@ class OpConcat(OpBase):
         sample_dict[key_out] = np.concatenate(values, axis=axis)
 
         return sample_dict
+
+class OpZScoreNorm(OpBase):
+    
+    def __call__(self, sample_dict: NDict, key: str, mean: float,
+                           std: float):
+        sample_dict[key] = (sample_dict[key]-mean)/std
+        return sample_dict
+
