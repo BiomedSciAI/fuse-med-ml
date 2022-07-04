@@ -209,9 +209,11 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     lgr.info("Model:", {"attrs": "bold"})
 
     model = ModelMultiHead(
-        conv_inputs=(('data.input.img', 3),),
-        backbone={'Resnet18': BackboneResnet(pretrained=True, in_channels=3, name='resnet18'),
-                  'InceptionResnetV2': BackboneInceptionResnetV2(input_channels_num=3, logical_units_num=43)}['InceptionResnetV2'],
+        conv_inputs=(("data.input.img", 3),),
+        backbone={
+            "Resnet18": BackboneResnet(pretrained=True, in_channels=3, name="resnet18"),
+            "InceptionResnetV2": BackboneInceptionResnetV2(input_channels_num=3, logical_units_num=43),
+        }["InceptionResnetV2"],
         heads=[
             HeadGlobalPoolingClassifier(
                 head_name="head_0",
