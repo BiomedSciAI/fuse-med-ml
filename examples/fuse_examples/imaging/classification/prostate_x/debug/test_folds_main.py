@@ -3,13 +3,14 @@ import pandas as pd
 import numpy as np
 from fuseimg.datasets import prostate_x
 import os
+from fuse_examples import fuse_examples_utils
 def main():
 
     df_tal_folds = read_and_test_tal_folds()
     test_tals_data(df_tal_folds)
     data_dir = os.environ["PROSTATEX_DATA_PATH"]
-    user_home_dir = os.environ["USER_HOME_PATH"]
-    cache_dir = os.path.join(f"{user_home_dir}", 'fuse_examples', 'prostate_x', 'cache_dir_v2')
+    fuse_examples_dir = fuse_examples_utils.get_fuse_examples_user_dir()
+    cache_dir = os.path.join(fuse_examples_dir, 'prostate_x', 'cache_dir_v2')
     label_type = prostate_x.ProstateXLabelType.ClinSig
     dataset = prostate_x.ProstateX.dataset(label_type=label_type, train=False,
                                            cache_dir=cache_dir, data_dir=data_dir)

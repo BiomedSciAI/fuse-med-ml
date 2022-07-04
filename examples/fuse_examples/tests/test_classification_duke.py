@@ -37,7 +37,7 @@ class ClassificationDukeTestCase(unittest.TestCase):
         selected_negative = [4,6,7,8,11,13,14,120, 902, 903]
 
         selected_sample_ids = [f'Breast_MRI_{ii:03d}' for ii in selected_positive + selected_negative]
-        PATHS, TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS = get_setting('debug',
+        PATHS, TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS = get_setting('default',
                                                                                           selected_sample_ids=selected_sample_ids,
                                                                                           num_epoch=2)
 

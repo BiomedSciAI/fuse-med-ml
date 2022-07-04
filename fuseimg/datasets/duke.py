@@ -166,7 +166,7 @@ class Duke:
             else:
                 # generate patch annotations
                 static_pipeline_steps += [
-                    # add radiomics features
+                    # add lesion features
                     (ops_mri.OpExtractPatchAnotations(),
                      dict(key_in_ref_volume='data.input.ref_volume',
                           key_in_annotations='data.input.annotations',

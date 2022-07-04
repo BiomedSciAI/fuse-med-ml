@@ -47,6 +47,7 @@ from fuse.utils.utils_logger import fuse_logger_start
 from fuseimg.datasets import prostate_x
 
 from fuse.data.utils.export import ExportDataset
+from fuse_examples import fuse_examples_utils
 
 def main():
     mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
@@ -98,7 +99,7 @@ def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=
     ##########################################
     assert "PROSTATEX_DATA_PATH" in os.environ, "Expecting environment variable PROSTATEX_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
     data_dir = os.environ["PROSTATEX_DATA_PATH"]
-    ROOT = f'{os.environ["USER_HOME_PATH"]}/fuse_examples/prostate_x'
+    ROOT = os.path.join(fuse_examples_utils.get_fuse_examples_user_dir(), 'prostate_x')
 
     if mode == 'debug':
         data_split_file = os.path.join(ROOT, f'prostate_x_{n_folds}folds_debug.pkl')
