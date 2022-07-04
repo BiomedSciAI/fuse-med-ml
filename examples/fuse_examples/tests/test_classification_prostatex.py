@@ -21,31 +21,29 @@ import shutil
 import tempfile
 import unittest
 import os
-import pathlib
+from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 
+from fuse.utils.rand.seed import Seed
 import fuse.utils.gpu as GPU
-# FIXME: data_package
-#from fuse_examples.imaging.classification.prostate_x.run_train_3dpatch import TRAIN_COMMON_PARAMS, train_template, infer_template, eval_template, INFER_COMMON_PARAMS, \
-#    EVAL_COMMON_PARAMS
 
+if "PROSTATEX_DATA_PATH" in os.environ:
+    from fuse_examples.imaging.classification.prostate_x.runner_prostate_x import get_setting, run_train, run_infer, run_eval
 
+@unittest.skipIf("PROSTATEX_DATA_PATH" not in os.environ, "define environment variable 'PROSTATEX_DATA_PATH' to run this test")
 class ClassificationProstateXTestCase(unittest.TestCase):
 
     def setUp(self):
+        PATHS, TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS = get_setting('default',num_epoch=5)
         self.root = tempfile.mkdtemp()
 
-        root_path = self.root
-        root_data = '/projects/msieve/MedicalSieve/PatientData/ProstateX/manifest-A3Y4AE4o5818678569166032044/' 
-        self.paths = {'force_reset_model_dir': True,
-         # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
-         'model_dir': os.path.join(root_path, 'prostatex/my_model/'),
-         'cache_dir': os.path.join(root_path, 'prostatex/my_cache/'),
-         'inference_dir': os.path.join(root_path, 'prostatex/my_model/inference/'),
-         'eval_dir': os.path.join(root_path,  'prostatex/my_model/eval/'),
-         'data_dir': os.path.join(pathlib.Path(__file__).parent.resolve(), "../classification/prostate_x"),
-         'prostate_data_path' : root_data,
-         'ktrans_path': os.path.join(root_data, 'ProstateXKtrains-train-fixed/'),
-         }
+        self.paths = {
+            'model_dir': os.path.join(self.root, 'prostatex/model_dir'),
+            'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
+            'data_dir': PATHS["data_dir"],
+            'cache_dir': os.path.join(self.root, 'prostatex/cache_dir'),
+            'data_split_filename': os.path.join(self.root, 'split.pkl'),
+            'inference_dir': os.path.join(self.root, 'prostatex/infer_dir'),
+            'eval_dir': os.path.join(self.root, 'prostatex/analyze_dir')}
 
 
         self.train_common_params = TRAIN_COMMON_PARAMS
@@ -54,20 +52,17 @@ class ClassificationProstateXTestCase(unittest.TestCase):
 
         self.analyze_common_params = EVAL_COMMON_PARAMS
 
-    @unittest.skip("Not ready yet")
-    # TODO:
-    #  1. Get path as an env variable
-    #  2. modify the result value check 
-    def test_template(self):
-        num_gpus_allocated = GPU.choose_and_enable_multiple_gpus(1, use_cpu_if_fail=True)
-        if num_gpus_allocated == 0:
-            self.train_common_params['manager.train_params']['device'] = 'cpu'
-        train_template(self.paths, self.train_common_params)
-        infer_template(self.paths, self.infer_common_params)
-        results = eval_template(self.paths, self.analyze_common_params)
 
-        threshold = 0.98
-        self.assertGreaterEqual(results['metrics.auc.macro_avg'], threshold)
+    # @run_in_subprocess(1200)
+    def test_template(self):
+        GPU.choose_and_enable_multiple_gpus(1)
+
+        Seed.set_seed(0, False) # previous test (in the pipeline) changed the deterministic behavior to True
+        run_train(self.paths, self.train_common_params, reset_cache=True, audit_cache=False)
+        run_infer(self.paths, self.infer_common_params, audit_cache=False)
+        results = run_eval(self.paths, self.analyze_common_params)
+
+        self.assertTrue('metrics.auc' in results)
 
     def tearDown(self):
         # Delete temporary directories

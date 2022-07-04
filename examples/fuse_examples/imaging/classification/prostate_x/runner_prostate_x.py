@@ -84,7 +84,7 @@ def main():
 
     print(f"Done running with heldout={INFER_COMMON_PARAMS['data.infer_folds']}")
 
-def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=8, heldout_fold=7):
+def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=8, heldout_fold=7, num_epoch=None):
     ###########################################################################################################
     # Fuse
     ###########################################################################################################
@@ -109,7 +109,8 @@ def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=
         model_dir = os.path.join(ROOT, 'model_dir_debug')
         num_workers = 0
         batch_size = 2
-        num_epoch = 5
+        if num_epoch is None:
+            num_epoch = 5
     else:
         data_split_file = os.path.join(ROOT, f'prostatex_{n_folds}folds.pkl')
         cache_dir = os.path.join(ROOT, f'cache_dir')
@@ -118,7 +119,8 @@ def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=
 
         num_workers = 16
         batch_size = 50
-        num_epoch = 50
+        if num_epoch is None:
+            num_epoch = 50
     PATHS = {'model_dir': model_dir,
              'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
              'cache_dir': cache_dir,
@@ -221,7 +223,7 @@ def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=
 #################################
 # Train Template
 #################################
-def run_train(paths: dict, train_params: dict):
+def run_train(paths: dict, train_params: dict, reset_cache=None, audit_cache=None):
     Seed.set_seed(222, False)
 
     # ==============================================================================
@@ -243,10 +245,12 @@ def run_train(paths: dict, train_params: dict):
     # Train Data
     lgr.info(f'Train Data:', {'attrs': 'bold'})
 
-    reset_cache = ask_user('Do you want to reset cache?')
+    if reset_cache is None:
+        reset_cache = ask_user('Do you want to reset cache?')
     cache_kwargs = {'use_pipeline_hash': False}
     if not reset_cache:
-        audit_cache = ask_user('Do you want to audit cache?')
+        if audit_cache is None:
+            audit_cache = ask_user('Do you want to audit cache?')
         if not audit_cache:
             cache_kwargs2 = dict(audit_first_sample=False, audit_rate=None)
             cache_kwargs = {**cache_kwargs, **cache_kwargs2}
