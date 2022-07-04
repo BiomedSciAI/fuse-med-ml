@@ -309,8 +309,7 @@ def run_eval(paths : NDict , infer: NDict):
 
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg : DictConfig) -> None:
-    cfg = NDict(OmegaConf.to_container(cfg))
-    cfg["paths"]["data_dir"] = os.environ["CMMD_DATA_PATH"]
+    cfg = NDict(OmegaConf.to_object(cfg))
     print(cfg)
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None  # [0]

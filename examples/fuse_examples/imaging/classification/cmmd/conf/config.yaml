@@ -1,9 +1,9 @@
 paths:
-  model_dir : ${hydra:runtime.cwd}/model_new/InceptionResnetV2_2017_test
-  inference_dir : ${hydra:runtime.cwd}/model_new/infer_dir
-  eval_dir : ${hydra:runtime.cwd}/model_new/eval_dir
-  cache_dir : ${hydra:runtime.cwd}/examples/CMMD_cache_dir
-  data_misc_dir : ${hydra:runtime.cwd}/data_misc
+  model_dir : working_dir/model_new/InceptionResnetV2_2017_test
+  inference_dir : working_dir/model_new/infer_dir
+  eval_dir : working_dir/model_new/eval_dir
+  cache_dir : working_dir/examples/CMMD_cache_dir
+  data_misc_dir : working_dir/data_misc
   data_split_filename:  cmmd_split.pkl
   data_dir : ${oc.env:CMMD_DATA_PATH}
 run: 
