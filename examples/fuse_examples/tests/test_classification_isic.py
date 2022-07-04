@@ -60,7 +60,7 @@ class ClassificationISICTestCase(unittest.TestCase):
         self.infer_common_params = INFER_COMMON_PARAMS
         self.eval_common_params = EVAL_COMMON_PARAMS
 
-    @run_in_subprocess()
+    # @run_in_subprocess()
     def test_runner(self):
         # Must use GPU due a long running time
         GPU.choose_and_enable_multiple_gpus(1, use_cpu_if_fail=False)
