@@ -34,9 +34,7 @@ This data can be a single sample, it can be for a minibatch, for an entire epoch
 The "nested key" ("a.b.c.d.etc') is called "path key", as it can be seen as a path inside the nested dictionary.
 
 **Components are written in a way that allows to define input and output keys, to be read and written from the nested dict**  
-
-
-
+A short introduction video (3 minutes) to how FuseMedML components work:
 https://user-images.githubusercontent.com/7043815/177197158-d3ea0736-629e-4dcb-bd5e-666993fbcfa2.mp4
 
 
