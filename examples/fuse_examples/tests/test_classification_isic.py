@@ -43,18 +43,18 @@ class ClassificationISICTestCase(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.mkdtemp()
 
+        model_dir = os.path.join(self.root, 'model_dir')
         self.paths = {
-            "model_dir": os.path.join(self.root, "isic/model_dir"),
-            "force_reset_model_dir": True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
+            "model_dir": model_dir,
             "data_dir": os.environ["ISIC19_DATA_PATH"] if "ISIC19_DATA_PATH" in os.environ else os.path.join(self.root, "isic/data_dir"),
-            "cache_dir": os.path.join(self.root, "isic/cache_dir"),
-            "inference_dir": os.path.join(self.root, "isic/infer_dir"),
-            "eval_dir": os.path.join(self.root, "isic/eval_dir"),
-            'data_split_filename': os.path.join(self.root, 'isic/isic_split.pkl')
+            "cache_dir": os.path.join(self.root, "cache_dir"),
+            "inference_dir": os.path.join(model_dir, "infer_dir"),
+            "eval_dir": os.path.join(model_dir, "eval_dir"),
+            'data_split_filename': os.path.join(self.root, 'split.pkl')
         }
 
         self.train_common_params = TRAIN_COMMON_PARAMS
-        self.train_common_params["manager.train_params"]["num_epochs"] = 2
+        self.train_common_params['trainer.num_epochs'] = 2
         self.train_common_params["samples_ids"] = FULL_GOLDEN_MEMBERS
 
         self.infer_common_params = INFER_COMMON_PARAMS
