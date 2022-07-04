@@ -143,11 +143,21 @@ Domain extensions contain concrete implementation of components and components p
 * Evaluation metrics - for example, a custom metric evaluating docking of a potential drug with a protein target
 * Loss functions - for example, a custom segmentation evaluation loss
 
-You are highly encouraged to create additional domain extensions and/or contribute to the existing ones :)
-There's no need to wait for any approval, you can create domain extensions on your own repos right away
-Read more about how to create domain extensions **here [TODO: add a link and an actual guide]**
- 
+The recommended directory structure mimics fuse-med-ml core structure
+```
+your_package_name
+    your_package_name
+        data #everything related to datasets, samplers, data processing pipeline Ops, etc.
+        dl #everything related to deep learning architectures, optimizers, loss functions etc.
+        eval #evaluation metrics
+        utils #any utilities
+```
 
+You are highly encouraged to create additional domain extensions and/or contribute to the existing ones!
+There's no need to wait for any approval, you can create domain extensions on your own repos right away
+
+Note - in general, we find it helpful to follow the same directory structure shown above even in small and specific research projects that use FuseMedML for consistency and easy landing for newcomers into your project :)
+ 
 # Installation
 The best way to install `FuseMedML` is to clone the repository and install it in an editable mode using `pip`:
 ```bash
