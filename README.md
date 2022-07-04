@@ -151,12 +151,11 @@ Domain extensions contain concrete implementation of components and components p
 
 The recommended directory structure mimics fuse-med-ml core structure
 ```
-your_package_name
-    your_package_name
-        data #everything related to datasets, samplers, data processing pipeline Ops, etc.
-        dl #everything related to deep learning architectures, optimizers, loss functions etc.
-        eval #evaluation metrics
-        utils #any utilities
+your_package
+    data #everything related to datasets, samplers, data processing pipeline Ops, etc.
+    dl #everything related to deep learning architectures, optimizers, loss functions etc.
+    eval #evaluation metrics
+    utils #any utilities
 ```
 
 You are highly encouraged to create additional domain extensions and/or contribute to the existing ones!
