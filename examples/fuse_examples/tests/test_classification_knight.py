@@ -27,9 +27,9 @@ import wget
 
 
 # FIXME: data_package
-#from fuse_examples.imaging.classification.knight.eval.eval import eval
-#from fuse_examples.imaging.classification.knight.make_targets_file import make_targets_file
-#import fuse_examples.imaging.classification.knight.baseline.fuse_baseline as baseline
+from fuse_examples.imaging.classification.knight.eval.eval import eval
+from fuse_examples.imaging.classification.knight.make_targets_file import make_targets_file
+import fuse_examples.imaging.classification.knight.baseline.fuse_baseline as baseline
 
 @unittest.skip("FIXME: data_package")
 class KnightTestTestCase(unittest.TestCase):

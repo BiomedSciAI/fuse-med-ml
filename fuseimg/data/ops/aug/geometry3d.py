@@ -39,7 +39,7 @@ def rotation_in_3d(aug_input: Tensor, ax1_rot: float = 0.0, ax2_rot: float = 0.0
     the rotation is in the x-y plane.
     Note: rotation angles are in relation to the original axis (not the rotated one)
     rotation angles should be given in degrees
-    :param aug_input:image input should be in shape [channel, z, y, x]
+    :param aug_input:image input should be in shape [channel, ax1, ax2, ax3]
     :param ax1_rot: angle to rotate ax2-ax3 plane clockwise
     :param ax2_rot: angle to rotate ax3-ax1 plane clockwise
     :param ax3_rot: angle to rotate ax1-ax2 plane clockwise
