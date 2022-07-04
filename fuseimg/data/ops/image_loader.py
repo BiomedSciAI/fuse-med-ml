@@ -5,6 +5,7 @@ import numpy as np
 from fuse.data.ops.ops_common import OpApplyTypes
 import nibabel as nib
 from fuse.utils.ndict import NDict
+
 from torchvision.io import read_image
 from medpy.io import load
 import pydicom
@@ -27,6 +28,7 @@ class OpLoadImage(OpReversibleBase):
         img_filename_suffix = img_filename.split(".")[-1]
         if (format == "infer" and img_filename_suffix in ["nii"]) or \
             (format in ["nii", "nib"]):  
+
             img = nib.load(img_filename)
             img_np = img.get_fdata()
             sample_dict[key_out] = img_np
