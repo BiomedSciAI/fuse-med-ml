@@ -21,16 +21,55 @@ Analyzing **many** ML research projects we discovered that
 ### Data is kept in a nested (hierarchical) dictionary
 This is a key aspect in FuseMedML (shortly named as "fuse"). It's a key driver of flexiblity, and allows to easily deal with multi modality information. 
 ```python
+from fuse.utils import NDict
+
 sample_ndict = NDict()
 sample_ndict['input.mri'] = # ...
 sample_ndict['input.ct_view_a'] = # ...
 sample_ndict['input.ct_view_b'] = # ...
 sample_ndict['groundtruth.disease_level_label'] = # ...
 ```
+
+This data can be a single sample, it can be for a minibatch, for an entire epoch, or anything that is desired.
+The "nested key" ("a.b.c.d.etc') is called "path key", as it can be seen as a path inside the nested dictionary.
+
 **Components are written in a way that allows to define input and output keys, to be read and written from the nested dict**  
 ### Examples - using FuseMedML-style components
 
-[TODO:] - 
+
+A multi head model FuseMedML style component, allows easy reuse across projects:
+
+```python
+ModelMultiHead(    
+    conv_inputs=(('data.input.img', 1),),                                       # input to the backbone model   
+    backbone=BackboneResnet3D(in_channels=1),                                   # PyTorch nn Module    
+    heads=[                                                                     # list of heads - gives the option to support multi task / multi head approach
+               Head3DClassifier(head_name='classification',                     
+                                conv_inputs=[("model.backbone_features", 512)]  # Input to the classification head
+                                ,),                                              
+          ]
+)
+```
+
+Our default loss implementation - creates an easy wrap around a callable function, while being FuseMedML style
+```python
+LossDefault(
+    pred='model.logits.classification',          # input - model prediction scores
+    target='data.label',                         # input - ground truth labels
+    callable=torch.nn.functional.cross_entropy   # callable - function that will get the prediction scores and labels extracted from batch_dict and compute the loss
+)
+```
+
+An example metric that can be used
+```python
+MetricAUCROC(
+    pred='model.output', # input - model prediction scores
+    target='data.label'  # input - ground truth labels
+)
+```
+
+Note that several components return answers directly and not write it into the nested dictionary. This is perfectly fine, and to allow maximum flexibility we do not require any usage of output path keys.
+
 * metrics
 * loss
 * multihead model
