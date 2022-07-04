@@ -147,5 +147,5 @@ class LightningModuleDefault(pl.LightningModule):
 
     
     def set_predictions_keys(self, keys: List[str]) -> None:
-        """ Define which keys to extract from batch_dict  on prediction mode """
+        """ Define which keys to extract from batch_dict on prediction mode """
         self._prediction_keys = keys

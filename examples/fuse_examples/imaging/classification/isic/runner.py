@@ -334,7 +334,7 @@ def run_infer(paths: dict, infer_common_params: dict):
     model = create_model(**infer_common_params["model"])
     pl_module = LightningModuleDefault.load_from_checkpoint(checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True)
     # set the prediction keys to extract (the ones used be the evaluation function).
-    pl_module.set_predictions_keys(['model.output.classification', 'data.gt.probSevere']) # which keys to extract and dump into file
+    pl_module.set_predictions_keys(['model.output.head_0', 'data.label']) # which keys to extract and dump into file
 
     # create a trainer instance
     pl_trainer = pl.Trainer(default_root_dir=paths['model_dir'],
