@@ -76,7 +76,7 @@ exclude =
     fuseimg/datasets/kits21.py
     fuseimg/datasets/mnist.py
     fuseimg/datasets/stoic21.py
-
+    fuseimg/datasets/cmmd.py
 
     # General Excludes (TEMP, double check)
     __init__.py
