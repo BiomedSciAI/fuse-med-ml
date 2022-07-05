@@ -22,4 +22,10 @@ jobs:
       - uses: py-actions/flake8@v2
         with:
           path: "."
-  
+  mypy:
+    runs_on: ubuntu-latest
+    steps:
+      - uses: jpetrucciani/mypy-check@master
+        with:
+          mypy_flags: "--show-error-codes"
+          path: "."
