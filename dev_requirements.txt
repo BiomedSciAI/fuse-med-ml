@@ -1,4 +1,0 @@
-# Checks
-black==22.3.0
-flake8==4.0.1
-mypy==0.950
