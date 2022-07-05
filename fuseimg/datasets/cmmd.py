@@ -60,7 +60,7 @@ class CMMD:
         """
         static_pipeline = PipelineDefault("cmmd_static", [
          # decoding sample ID
-            (OpCMMDSampleIDDecode(), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path"    
+            (OpCMMDSampleIDDecode(), dict()), # will save image and seg path to "data.input.img_path"
             (OpLoadImage(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", format="dcm")),
             (OpFlipBrightSideOnLeft2D(), dict(key="data.input.img")),
             (OpFindBiggestNonEmptyBbox2D(), dict(key="data.input.img")),
