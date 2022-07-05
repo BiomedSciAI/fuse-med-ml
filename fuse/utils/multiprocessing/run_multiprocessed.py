@@ -6,6 +6,7 @@ from tqdm import tqdm,trange
 import multiprocessing as mp
 from termcolor import cprint
 import os
+import traceback
 from collections.abc import Iterable
 import inspect
 
@@ -248,6 +249,27 @@ def get_from_global_storage(key: str) -> Any:
     return _multiprocess_global_storage[key]
 
 
+class Process(mp.Process):
+    def __init__(self, *args, **kwargs):
+        mp.Process.__init__(self, *args, **kwargs)
+        self._pconn, self._cconn = mp.Pipe()
+        self._exception = None
+
+    def run(self):
+        try:
+            mp.Process.run(self)
+            self._cconn.send(None)
+        except Exception as e:
+            tb = traceback.format_exc()
+            self._cconn.send((e, tb))
+            # raise e  # You can still rise this exception if you need to
+
+    @property
+    def exception(self):
+        if self._pconn.poll():
+            self._exception = self._pconn.recv()
+        return self._exception
+
 def run_in_subprocess(timeout: int = 600):
     """A decorator that makes function run in a subprocess.
     This can be useful when you want allocate GPU and memory and to release it when you're done.
@@ -260,15 +282,30 @@ def run_in_subprocess(timeout: int = 600):
         def wrapper(*args, **kwargs):
             # create the machinery python uses to fork a subprocess
             # and run a function in it.
-            p = mp.Process(target=f, args=args, kwargs=kwargs)
+            # p = mp.Process(target=f, args=args, kwargs=kwargs)
+            p = Process(target=f, args=args, kwargs=kwargs) # using a subclass of Process
             p.start()
             try:
                 p.join(timeout=timeout)
             except:
                 p.terminate()
                 raise
-            
+
+            if p.exception:
+                error, traceback = p.exception
+                print(f"process func {f} had an exception: {p.error}")
+                print(traceback)
+
             assert p.exitcode == 0, f"process func {f} failed with exit code {p.exitcode}"
 
         return wrapper
     return inner
+
+
+if __name__ == '__main__':
+    @run_in_subprocess()
+    def problematic_func():
+        print("in problematic_func")
+        raise ValueError('Fake Error!!!')
+
+    problematic_func()
