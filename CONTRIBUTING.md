@@ -12,25 +12,23 @@
 We welcome contributions via pull requests:
 
 - Fork (or clone) the repo and create your branch from the default branch
-- If you have added code that should be tested, add tests
-- If any documentation updates are needed, make them
+- If you have added code that should be tested - add tests
+- If any documentation updates are needed - make them
 - Ensure the test suite passes and the code lints
 - Submit the pull request
 
 Once you have submitted your PR:
 
-- Note that a PR is considered for review only if Jenkins' builds successfully
+- Note that a PR is considered for review only if Jenkins builds successfully
 - Upon approval, PR is to be merged using the "squash and merge" option, so that the commit history remains linear and readable
 
 ## Styleguides
 
-### Python Styleguide
+We use **black**, **flake8** and **mypy** external tools to analyse and enforce uniform python code style.
 
-We use **black**, **flake8** and **mypy** external tools to analyse and enforce uniform code style.
+### Formatter `black`
 
-Formatter `black`
-
-When writing code, you should not have to worry about how to format it best. When committing code to a pull request, it should be formatted in one specific way that reduces meaningless diff changes. You can [set up your IDE](https://black.readthedocs.io/en/stable/integrations/editors.html) to format your code on save.
+When writing code, you should not have to worry about how to format it best. When committing code to a pull request, it should be formatted in one specific way that reduces meaningless diff changes. Here we use `black`. You can [set up your IDE](https://black.readthedocs.io/en/stable/integrations/editors.html) to format your code on save.
 
 to check for changes:
 
@@ -44,7 +42,7 @@ to apply changes:
 black <path>
 ```
 
-Linter `flake8`
+### Linter `flake8`
 
 Checks code style and detects various issues not covered by black.
 
@@ -54,7 +52,7 @@ usage:
 flake8 <path>
 ```
 
-Static typing with `mypy`
+### Static typing with `mypy`
 
 Enforces the usage of type annotations, but not the correctness of them.
 
