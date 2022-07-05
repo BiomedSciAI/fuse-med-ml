@@ -295,6 +295,7 @@ def run_in_subprocess(timeout: int = 600):
                 error, traceback = p.exception
                 print(f"process func {f} had an exception: {error}")
                 print(traceback)
+                raise RuntimeError(f"process func {f} had an exception: {error}")
 
             assert p.exitcode == 0, f"process func {f} failed with exit code {p.exitcode}"
 
