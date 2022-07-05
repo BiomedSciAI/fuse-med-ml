@@ -89,7 +89,7 @@ class NDict(dict):
         """
         return self._stored
 
-    def clone(self, deepcopy: bool = True):
+    def clone(self, deepcopy: bool = True) -> NDict:
         """
         does a deep or a shallow copy, shallow copy means only top level keys are copied and the values are only referenced
         in deep copy, all values are copied recursively
