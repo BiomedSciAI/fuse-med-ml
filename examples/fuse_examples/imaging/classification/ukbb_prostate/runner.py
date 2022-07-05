@@ -55,7 +55,7 @@ from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
 from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.heads.head_3D_classifier import Head3DClassifier
 
-assert "UKBB_DATA_PATH" in os.environ, "Expecting environment variable CMMD_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
+assert "UKBB_DATA_PATH" in os.environ, "Expecting environment variable UKBB_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
 ##########################################
 # Debug modes
 ##########################################

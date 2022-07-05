@@ -32,10 +32,9 @@ class ModelMultistream(torch.nn.Module):
     """
 
     def __init__(self,
-                 conv_inputs: Tuple[str, int] = None, 
-                 backbone_streams: Sequence[torch.nn.Module] = (BackboneInceptionResnetV2(logical_units_num=12),
-                                                                BackboneInceptionResnetV2(logical_units_num=12)),
-                 heads: Sequence[torch.nn.Module] = None, 
+                 conv_inputs: Tuple[str, int], 
+                 backbone_streams: Sequence[torch.nn.Module],
+                 heads: Sequence[torch.nn.Module], 
                  split_logic: Optional[Callable] = None,
                  join_logic: Optional[Callable] = None,
                  ) -> None:

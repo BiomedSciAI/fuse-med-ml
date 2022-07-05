@@ -33,9 +33,10 @@ class ModelSiamese(ModelMultiHead):
     """
 
     def __init__(self,
+                 backbone: torch.nn.Module,
                  conv_inputs_0: Tuple[Tuple[str, int], ...] = None, 
                  conv_inputs_1: Tuple[Tuple[str, int], ...] = None,
-                 backbone: torch.nn.Module = BackboneInceptionResnetV2(),
+                 #backbone: torch.nn.Module ,
                  heads: Sequence[torch.nn.Module] = None,
                  ) -> None:
         """
