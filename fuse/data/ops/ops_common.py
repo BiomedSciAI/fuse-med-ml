@@ -431,6 +431,7 @@ class OpConcat(OpBase):
 
         return sample_dict
 
+
 class OpOverrideNaN(OpBase):
     """
     Override missing values (value equals to nan)
@@ -441,3 +442,9 @@ class OpOverrideNaN(OpBase):
             sample_dict[key] = value_to_fill
         return sample_dict
         
+class OpZScoreNorm(OpBase):
+    
+    def __call__(self, sample_dict: NDict, key: str, mean: float,
+                           std: float):
+        sample_dict[key] = (sample_dict[key]-mean)/std
+        return sample_dict
