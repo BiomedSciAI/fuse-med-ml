@@ -61,7 +61,7 @@ class ClassificationMGCmmdTestCase(unittest.TestCase):
              'weight_decay': 0, 
              'resume_checkpoint_filename': None, 
              'trainer': {'accelerator': 'gpu', 'devices': 1, 'num_epochs': 2, 'ckpt_path': None}}, 
-            'infer': {'infer_filename': 'validation_set_infer.gz', 'infer_folds': [4], 'target': 'classification', 'checkpoint': 'best', 'num_workers': 0}})
+            'infer': {'infer_filename': 'validation_set_infer.gz', 'checkpoint' : 'best_epoch.ckpt' , 'infer_folds': [4], 'target': 'classification', 'num_workers': 0}})
         
         print(self.cfg)
 

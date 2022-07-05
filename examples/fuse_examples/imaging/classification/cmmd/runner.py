@@ -248,7 +248,8 @@ def run_infer(model: torch.nn.Module, pl_trainer: Trainer, paths : NDict , infer
     fuse_logger_start(output_path=paths["inference_dir"], console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Inference', {'attrs': ['bold', 'underline']})
-    checkpoint_file = os.path.join(paths["inference_dir"], infer["infer_filename"])
+    infer_file = os.path.join(paths['inference_dir'], infer['infer_filename'])
+    checkpoint_file = os.path.join(paths["model_dir"], infer["checkpoint"])
     lgr.info(f'infer_filename={checkpoint_file}', {'color': 'magenta'})
 
 
@@ -269,7 +270,7 @@ def run_infer(model: torch.nn.Module, pl_trainer: Trainer, paths : NDict , infer
     # load python lightning module
     pl_module = LightningModuleDefault.load_from_checkpoint(checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True)
     # set the prediction keys to extract (the ones used be the evaluation function).
-    pl_module.set_predictions_keys(['model.output.classification', 'data.gt.classification']) # which keys to extract and dump into file
+    pl_module.set_predictions_keys(['model.output.head_0', 'data.gt.classification']) # which keys to extract and dump into file
     lgr.info(f'Test Data: Done', {'attrs': 'bold'})
 
     # create a trainer instance
@@ -277,7 +278,7 @@ def run_infer(model: torch.nn.Module, pl_trainer: Trainer, paths : NDict , infer
 
     # convert list of batch outputs into a dataframe
     infer_df = convert_predictions_to_dataframe(predictions)
-    save_dataframe(infer_df, checkpoint_file)
+    save_dataframe(infer_df, infer_file)
     
 
 
