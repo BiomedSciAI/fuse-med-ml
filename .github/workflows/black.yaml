@@ -10,5 +10,5 @@ jobs:
       - uses: psf/black@stable
         with:
           options: "--check --verbose --diff --color"
-          src: "./src"
+          src: "."
           version: "22.3.0"
