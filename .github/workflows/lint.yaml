@@ -32,4 +32,3 @@ jobs:
       - run: pip install --upgrade pip
       - run: pip install mypy==0.950
       - run: python -m mypy . --show-error-codes
-
