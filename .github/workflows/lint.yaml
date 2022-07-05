@@ -25,7 +25,11 @@ jobs:
   mypy:
     runs-on: ubuntu-latest
     steps:
-      - uses: jpetrucciani/mypy-check@master
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
         with:
-          mypy_flags: "--show-error-codes"
-          path: "./fuse ./fuseimg ./examples"
+          python-version: "3.7"
+      - run: pip install --upgrade pip
+      - run: pip install mypy==0.950
+      - run: python -m mypy . --show-error-codes
+
