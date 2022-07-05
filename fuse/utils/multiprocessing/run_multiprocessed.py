@@ -282,8 +282,8 @@ def run_in_subprocess(timeout: int = 600):
         def wrapper(*args, **kwargs):
             # create the machinery python uses to fork a subprocess
             # and run a function in it.
-            # p = mp.Process(target=f, args=args, kwargs=kwargs)
-            p = Process(target=f, args=args, kwargs=kwargs) # using a subclass of Process
+            p = mp.Process(target=f, args=args, kwargs=kwargs)
+            # p = Process(target=f, args=args, kwargs=kwargs) # using a subclass of Process
             p.start()
             try:
                 p.join(timeout=timeout)
@@ -291,11 +291,11 @@ def run_in_subprocess(timeout: int = 600):
                 p.terminate()
                 raise
 
-            if p.exception:
-                error, traceback = p.exception
-                print(f"process func {f} had an exception: {error}")
-                print(traceback)
-                raise RuntimeError(f"process func {f} had an exception: {error}")
+            #if p.exception:
+            #    error, traceback = p.exception
+            #    print(f"process func {f} had an exception: {error}")
+            #    print(traceback)
+            #    raise RuntimeError(f"process func {f} had an exception: {error}")
 
             assert p.exitcode == 0, f"process func {f} failed with exit code {p.exitcode}"
 
