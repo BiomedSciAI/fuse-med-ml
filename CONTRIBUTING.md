@@ -19,7 +19,7 @@ We welcome contributions via pull requests:
 
 Once you have submitted your PR:
 
-- Note that a PR is considered for review only if Travis CI builds successfully
+- Note that a PR is considered for review only if Jenkins' builds successfully
 - Upon approval, PR is to be merged using the "squash and merge" option, so that the commit history remains linear and readable
 
 ## Styleguides
