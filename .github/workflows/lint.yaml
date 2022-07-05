@@ -28,4 +28,4 @@ jobs:
       - uses: jpetrucciani/mypy-check@master
         with:
           mypy_flags: "--show-error-codes"
-          path: "."
+          path: "./fuse ./fuseimg ./examples"
