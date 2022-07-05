@@ -69,8 +69,8 @@ class TestEval(unittest.TestCase):
     
     def test_eval_example_6(self):
         results = example_6()
-        self.assertAlmostEqual(results['metrics.delongs_test']['p_value.macro_avg'], 0.3173, places=4)
-        self.assertAlmostEqual(results['metrics.delongs_test']['z.macro_avg'], 1.000, places=3)
+        self.assertAlmostEqual(results['metrics.delongs_test.p_value.macro_avg'], 0.3173, places=4)
+        self.assertAlmostEqual(results['metrics.delongs_test.z.macro_avg'], 1.000, places=3)
 
     def test_eval_example_7(self):
         results = example_7()
