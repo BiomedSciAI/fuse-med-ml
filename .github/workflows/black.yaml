@@ -11,4 +11,4 @@ jobs:
         with:
           options: "--check --verbose --diff --color"
           src: "./src"
-          version: "21.5b1"
+          version: "22.3.0"
