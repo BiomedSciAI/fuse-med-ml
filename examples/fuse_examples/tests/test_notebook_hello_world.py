@@ -6,7 +6,7 @@ from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 
 class NotebookHelloWorldTestCase(unittest.TestCase):
 
-    @run_in_subprocess()
+    # @run_in_subprocess()
     def test_notebook(self):
         notebook_path = "examples/fuse_examples/imaging/hello_world/hello_world.ipynb"
 
