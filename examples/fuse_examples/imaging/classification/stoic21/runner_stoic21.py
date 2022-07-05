@@ -19,7 +19,6 @@ Created on June 30, 2021
 
 import logging
 import os
-from sys import path
 from typing import OrderedDict
 import copy
 from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
@@ -100,7 +99,8 @@ TRAIN_COMMON_PARAMS['data.validation_folds'] = [4]
 # PL Trainer
 # ===============
 TRAIN_COMMON_PARAMS['trainer.num_epochs'] = 50
-TRAIN_COMMON_PARAMS['trainer.num_devices'] = 1
+NUM_GPUS = 1
+TRAIN_COMMON_PARAMS['trainer.num_devices'] = NUM_GPUS
 TRAIN_COMMON_PARAMS['trainer.accelerator'] = "gpu"
 TRAIN_COMMON_PARAMS['trainer.ckpt_path'] = None  #  path to the checkpoint you wish continue the training from
 
@@ -136,7 +136,7 @@ def create_model(imaging_dropout: float, clinical_dropout: float, fused_dropout:
 #################################
 # Train Template
 #################################
-def run_train(paths: dict, train_params: dict):
+def run_train(paths: dict, train_common_params: dict):
     # ==============================================================================
     # Logger
     # ==============================================================================
@@ -158,13 +158,13 @@ def run_train(paths: dict, train_params: dict):
     folds = dataset_balanced_division_to_folds(dataset=dataset_all,
                                         output_split_filename=paths["data_split_filename"], 
                                         keys_to_balance=["data.gt.probSevere"], 
-                                        nfolds=train_params["data.num_folds"])
+                                        nfolds=train_common_params["data.num_folds"])
 
     train_sample_ids = []
-    for fold in train_params["data.train_folds"]:
+    for fold in train_common_params["data.train_folds"]:
         train_sample_ids += folds[fold]
     validation_sample_ids = []
-    for fold in train_params["data.validation_folds"]:
+    for fold in train_common_params["data.validation_folds"]:
         validation_sample_ids += folds[fold]
 
     train_dataset = STOIC21.dataset(paths["data_dir"], paths["cache_dir"], sample_ids=train_sample_ids, train=True)
@@ -176,24 +176,24 @@ def run_train(paths: dict, train_params: dict):
     sampler = BatchSamplerDefault(dataset=train_dataset,
                                        balanced_class_name='data.gt.probSevere',
                                        num_balanced_classes=2,
-                                       batch_size=train_params['data.batch_size'],
+                                       batch_size=train_common_params['data.batch_size'],
                                        balanced_class_weights=None)
     lgr.info(f'- Create sampler: Done')
 
     # Create dataloader
-    train_dataloader = DataLoader(dataset=train_dataset, batch_sampler=sampler, collate_fn=CollateDefault(), num_workers=train_params['data.train_num_workers'])
+    train_dataloader = DataLoader(dataset=train_dataset, batch_sampler=sampler, collate_fn=CollateDefault(), num_workers=train_common_params['data.train_num_workers'])
     lgr.info(f'Train Data: Done', {'attrs': 'bold'})
 
 
     # dataloader
-    validation_dataloader = DataLoader(dataset=validation_dataset, batch_size=train_params['data.batch_size'], collate_fn=CollateDefault(),
-                                       num_workers=train_params['data.validation_num_workers'])
+    validation_dataloader = DataLoader(dataset=validation_dataset, batch_size=train_common_params['data.batch_size'], collate_fn=CollateDefault(),
+                                       num_workers=train_common_params['data.validation_num_workers'])
     lgr.info(f'Validation Data: Done', {'attrs': 'bold'})
 
     # ==============================================================================
     # Model
     # ==============================================================================
-    model = create_model(**train_params["model"])
+    model = create_model(**train_common_params["model"])
 
     # ====================================================================================
     #  Loss
@@ -218,7 +218,7 @@ def run_train(paths: dict, train_params: dict):
     )
     
     # create optimizer
-    optimizer = optim.SGD(model.parameters(), lr=train_params['opt.lr'], weight_decay=train_params['opt.weight_decay'], momentum=0.9, nesterov=True)
+    optimizer = optim.SGD(model.parameters(), lr=train_common_params['opt.lr'], weight_decay=train_common_params['opt.weight_decay'], momentum=0.9, nesterov=True)
 
     # create learning scheduler
     lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
@@ -245,13 +245,13 @@ def run_train(paths: dict, train_params: dict):
 
     # create lightining trainer.
     pl_trainer = pl.Trainer(default_root_dir=paths['model_dir'],
-                            max_epochs=train_params['trainer.num_epochs'],
-                            accelerator=train_params["trainer.accelerator"],
-                            devices=train_params["trainer.num_devices"],
+                            max_epochs=train_common_params['trainer.num_epochs'],
+                            accelerator=train_common_params["trainer.accelerator"],
+                            devices=train_common_params["trainer.num_devices"],
                             auto_select_gpus=True)
     
     # train
-    pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=train_params['trainer.ckpt_path'])
+    pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=train_common_params['trainer.ckpt_path'])
 
 
     lgr.info('Train: Done', {'attrs': 'bold'})
@@ -353,8 +353,6 @@ def run_eval(paths: dict, eval_common_params: dict):
 ######################################
 if __name__ == "__main__":
     # allocate gpus
-    # To use cpu - set NUM_GPUS to 0
-    NUM_GPUS = 1
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None # [0]
     GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
@@ -362,7 +360,7 @@ if __name__ == "__main__":
     RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
     # train
     if 'train' in RUNNING_MODES:
-        run_train(paths=PATHS, train_params=TRAIN_COMMON_PARAMS)
+        run_train(paths=PATHS, train_common_params=TRAIN_COMMON_PARAMS)
 
     # infer
     if 'infer' in RUNNING_MODES:
