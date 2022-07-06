@@ -123,7 +123,7 @@ class UKBB:
         """
         static_pipeline = PipelineDefault("cmmd_static", [
          # decoding sample ID
-            # (OpUKBBSampleIDDecode(), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path"    
+            (OpUKBBSampleIDDecode(), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path"    
             (OpLoadUKBBZip(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", unique_id_out="data.ID", series="Dixon_BH_17s_W", station = 4)),
             (OpLambda(partial(skimage.transform.resize,
                                                             output_shape=(32, 256, 256),
@@ -131,7 +131,7 @@ class UKBB:
                                                             anti_aliasing=True,
                                                             preserve_range=True)), dict(key="data.input.img")),
             (OpNormalizeAgainstSelf(), dict(key="data.input.img")),
-            (OpLambda(partial(dump, filename="first.png", slice = 25)), dict(key="data.input.img")),
+            # (OpLambda(partial(dump, filename="first.png", slice = 25)), dict(key="data.input.img")),
             (OpReadDataframe(data_source,
                     key_column="data.ID",key_name="data.ID", columns_to_extract=['patient_id','dcm_unique','is female'],
                     rename_columns={'dcm_unique' : 'data.ID' ,'patient_id' :"data.patientID", 'is female': "data.gt.classification" }), dict()),
@@ -254,7 +254,8 @@ class UKBB:
         if os.path.isfile(combined_file_path):
             print("Found ground truth file:",combined_file_path )
             merged_clinical_data = pd.read_csv(combined_file_path)
-            merged_clinical_data = merged_clinical_data[merged_clinical_data['file'].isin(sample_ids)]
+            if sample_ids != None :
+                merged_clinical_data = merged_clinical_data[merged_clinical_data['file'].isin(sample_ids)]
             all_sample_ids = merged_clinical_data['file'].to_list()
             return merged_clinical_data, all_sample_ids
         print("Did not find exising ground truth file!")

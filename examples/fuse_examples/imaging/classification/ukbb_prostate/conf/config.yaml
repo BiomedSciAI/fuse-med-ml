@@ -11,7 +11,7 @@ run:
 train:
   target : classification
   reset_cache: False
-  num_workers : 12
+  num_workers : 0
   num_folds : 5
   train_folds : [0,1,2]
   validation_folds : [3]
@@ -21,7 +21,7 @@ train:
   resume_checkpoint_filename : 
   trainer:
     accelerator : gpu
-    devices : 1
+    devices : 0
     num_epochs : 100
     ckpt_path : 
 infer:
@@ -29,4 +29,4 @@ infer:
   checkpoint : best_epoch.ckpt
   infer_folds : [4]
   target : classification
-  num_workers : 12
+  num_workers : 0
