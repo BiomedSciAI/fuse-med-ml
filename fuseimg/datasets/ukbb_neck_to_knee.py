@@ -131,77 +131,13 @@ class UKBB:
                                                             anti_aliasing=True,
                                                             preserve_range=True)), dict(key="data.input.img")),
             (OpNormalizeAgainstSelf(), dict(key="data.input.img")),
+            (OpToNumpy(), dict(key='data.input.img', dtype=np.float32)), 
             # (OpLambda(partial(dump, filename="first.png", slice = 25)), dict(key="data.input.img")),
             (OpReadDataframe(data_source,
                     key_column="data.ID",key_name="data.ID", columns_to_extract=['patient_id','dcm_unique','is female'],
                     rename_columns={'dcm_unique' : 'data.ID' ,'patient_id' :"data.patientID", 'is female': "data.gt.classification" }), dict()),
             ])
         return static_pipeline
-
-    # @staticmethod
-    # def static_pipeline(root_path, select_series_func, with_rescale:Optional[bool]=True,
-    #                     keep_stk_volumes:Optional[bool]=False, verbose:Optional[bool]=True) -> PipelineDefault:
-
-    #     data_path = os.path.join(root_path, 'PROSTATEx')
-    #     # metadata_path = os.path.join(root_path, 'metadata.csv')
-
-    #     static_pipeline_steps = [
-    #         # step 1: map sample_ids to
-    #         (OpUKBBSampleIDDecode(data_path=data_path),
-    #          dict(key_out='data.input.mri_path')),
-    #         # step 2: read files info for the sequences
-    #         # (ops_mri.OpExtractDicomsPerSeq(seq_ids=seq_ids, series_desc_2_sequence_map=series_desc_2_sequence_map,
-    #         #                                    use_order_indicator=False),
-    #         #  dict(key_in='data.input.mri_path',
-    #         #       key_out_sequences='data.input.sequence_ids',
-    #         #       key_out_path_prefix='data.input.path.',
-    #         #       key_out_dicoms_prefix='data.input.dicoms.',
-    #         #       key_out_series_num_prefix='data.input.series_num.')
-    #         #  ),
-    #         # step 3: Load STK volumes of MRI sequences
-    #         (ops_mri.OpLoadDicomAsStkVol(reverse_order=[True,True,True,True], is_file=False),
-    #          dict(key_in_seq_ids='data.input.sequence_ids',
-    #               key_in_path_prefix='data.input.path.',
-    #               key_in_dicoms_prefix='data.input.dicoms.',
-    #               key_out_prefix='data.input.volumes.')),
-    #         # # step 4: group DCE sequnces into DCE_mix
-    #         # (ops_mri.OpGroupDCESequences(),
-    #         #  dict(key_sequence_ids='data.input.sequence_ids',
-    #         #       key_path_prefix='data.input.path.',
-    #         #       key_series_num_prefix='data.input.series_num.',
-    #         #       key_volumes_prefix='data.input.volumes.')),
-
-    #         # step 5: select single volume from b_mix/T2 sequence
-    #         (ops_mri.OpSelectVolumes(get_indexes_func=select_series_func, delete_input_volumes=True),
-    #          dict(key_in_sequence_ids='data.input.sequence_ids',
-    #               key_in_path_prefix='data.input.path.',
-    #               key_in_volumes_prefix='data.input.volumes.',
-    #               key_out_paths='data.input.selected_paths',
-    #               key_out_volumes='data.input.selected_volumes')),
-
-    #         # step 6: set reference volume to be first and register other volumes with respect to it
-    #         (ops_mri.OpResampleStkVolsBasedRef(reference_inx=0, interpolation='bspline'),
-    #          dict(key='data.input.selected_volumes')),
-
-    #         # step 7: create a single 4D volume from all the sequences (4th channel is the sequence)
-    #         (ops_mri.OpStackList4DStk(delete_input_volumes=True), dict(key_in='data.input.selected_volumes',
-    #                                                                        key_out_volume4d='data.input.volume4D',
-    #                                                                        key_out_ref_volume='data.input.ref_volume')),
-
-    #         ]
-    #     if with_rescale:
-    #         # step 8:
-    #         static_pipeline_steps += [(ops_mri.OpRescale4DStk(), dict(key='data.input.volume4D'))]
-
-    #     if keep_stk_volumes:
-    #         static_pipeline_steps += [
-    #             # step 11: move to ndarray - to allow quick saving
-    #             (ops_mri.OpStk2Dict(),
-    #              dict(keys=['data.input.volume4D','data.input.ref_volume']))
-    #             ]
-    #     static_pipeline = PipelineDefault("static", static_pipeline_steps, verbose=verbose)
-
-    #     return static_pipeline
 
     @staticmethod
     def dynamic_pipeline(train: bool = False):
@@ -211,6 +147,7 @@ class UKBB:
         """
         dynamic_pipeline = PipelineDefault("cmmd_dynamic", [
             (OpToTensor(), dict(key="data.input.img",dtype=torch.float32)),
+            (OpToTensor(), dict(key="data.gt.classification", dtype=torch.long)),
             (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")) ])
         # augmentation
         if train:
