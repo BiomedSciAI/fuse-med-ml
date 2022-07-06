@@ -20,6 +20,8 @@ Created on June 30, 2021
 import sys
 import logging
 import os
+import pathlib
+
 # add parent directory to path, so that 'knight' folder is treated as a module
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 from typing import Optional, Union
@@ -29,7 +31,7 @@ from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import save_dataframe
 from fuse.dl.managers.manager_default import ManagerDefault
 
-from fuse_examples.imaging.classification.knight.eval.eval import TASK1_CLASS_NAMES, TASK2_CLASS_NAMES 
+from examples.fuse_examples.imaging.classification.knight.eval.eval import TASK1_CLASS_NAMES, TASK2_CLASS_NAMES 
 from baseline.dataset import knight_dataset
 
 def make_predictions_file(model_dir: str, 
@@ -94,7 +96,7 @@ def make_predictions_file(model_dir: str,
     predictions_score_names = [f"{cls_name}-score" for cls_name in class_names]
     predictions_df[predictions_score_names] = pd.DataFrame(predictions_df[predictions_key_name].tolist(), index=predictions_df.index)
     predictions_df.reset_index(inplace=True)
-    predictions_df.rename({"descriptor": "case_id"}, axis=1, inplace=True)
+    predictions_df.rename({"index": "case_id"}, axis=1, inplace=True)
     predictions_df = predictions_df[["case_id"] + predictions_score_names]
 
     # save file
@@ -104,7 +106,7 @@ if __name__ == "__main__":
     """
     Automaitically make prediction files in the requested format - given path to model dir create by FuseMedML during training
     Usage: python make_predictions_file <model_dir> <checkpint> <data_path> <cache_path> <split_path> <output_filename> <predictions_key_name> <task_num>. 
-    See details in function make_predictions_file.
+    See details in function הmake_predictions_file.
     """
     if len(sys.argv) == 1:
         # no arguments - set arguments inline - see details in function make_predictions_file
@@ -112,7 +114,7 @@ if __name__ == "__main__":
         checkpoint = "best"
         data_path = ""
         cache_path = ""
-        split = "baseline/splits_final.pkl"
+        split = f"{pathlib.Path(__file__).parent.resolve()}/baseline/splits_final.pkl"
         output_filename = "validation_predictions.csv"
         predictions_key_name = "model.output.head_0"
         task_num = 1 # 1 or 2
