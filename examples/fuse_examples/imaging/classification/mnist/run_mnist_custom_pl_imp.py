@@ -26,15 +26,15 @@ This example shows how to directly train a model using custom (your own) pytorch
 import copy
 import logging
 import os
-from typing import Any, Dict, List, OrderedDict, Sequence
+from typing import Any, Dict, List, OrderedDict, Sequence, Tuple
 from fuse.utils.file_io.file_io import create_dir, save_dataframe
 from fuse.utils.ndict import NDict
 
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-import pytorch_lightning as pl 
 from torch.utils.data.dataloader import DataLoader
+import pytorch_lightning as pl
 
 from fuse.eval.evaluator import EvaluatorDefault 
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
@@ -49,7 +49,7 @@ import fuse.dl.lightning.pl_funcs as fuse_pl
 
 from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.utils_logger import fuse_logger_start
-from fuse.utils.file_io.file_io import create_dir, load_pickle, save_dataframe
+from fuse.utils.file_io.file_io import create_dir, save_dataframe
 import fuse.utils.gpu as GPU
 
 from fuseimg.datasets.mnist import MNIST
@@ -197,6 +197,7 @@ PATHS = {'model_dir': model_dir,
          'inference_dir': os.path.join(model_dir, 'infer_dir'),
          'eval_dir': os.path.join(model_dir, 'eval_dir')}
 
+NUM_GPUS = 1
 ##########################################
 # Train Common Params
 ##########################################
@@ -213,8 +214,10 @@ TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 8
 # PL Trainer
 # ===============
 TRAIN_COMMON_PARAMS['trainer.num_epochs'] = 2
-TRAIN_COMMON_PARAMS['trainer.num_devices'] = 1
+TRAIN_COMMON_PARAMS['trainer.num_devices'] = NUM_GPUS
 TRAIN_COMMON_PARAMS['trainer.accelerator'] = "gpu"
+# use "dp" strategy temp when working with multiple GPUS - workaround for pytorch lightning issue: https://github.com/Lightning-AI/lightning/issues/11807
+TRAIN_COMMON_PARAMS['trainer.strategy'] = "dp" if TRAIN_COMMON_PARAMS['trainer.num_devices'] > 1 else None
 TRAIN_COMMON_PARAMS['trainer.ckpt_path'] = None  #  path to the checkpoint you wish continue the training from
 
 # ===============
@@ -268,7 +271,9 @@ def run_train(paths: dict, train_params: dict):
 
 
 
-    print('Train:')
+    # ==============================================================================
+    # Train
+    # ==============================================================================
     # create instance of PL module 
     pl_module = LightningModuleMnist(model_dir=paths["model_dir"], 
                                      opt_lr=train_params["pl_module.opt_lr"], 
@@ -279,10 +284,11 @@ def run_train(paths: dict, train_params: dict):
     pl_trainer = pl.Trainer(default_root_dir=paths['model_dir'],
                             max_epochs=train_params['trainer.num_epochs'],
                             accelerator=train_params["trainer.accelerator"],
+                            strategy=train_params["trainer.strategy"],
                             devices=train_params["trainer.num_devices"],
                             auto_select_gpus=True)
 
-    # train    
+    # train
     pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=train_params['trainer.ckpt_path'])
     print('Train: Done')
 
@@ -293,7 +299,9 @@ def run_train(paths: dict, train_params: dict):
 INFER_COMMON_PARAMS = {}
 INFER_COMMON_PARAMS['infer_filename'] = 'infer_file.gz'
 INFER_COMMON_PARAMS['checkpoint'] = "best_epoch.ckpt"
-
+INFER_COMMON_PARAMS['trainer.num_devices'] = 1 # infer should use single device
+INFER_COMMON_PARAMS['trainer.accelerator'] = "gpu"
+INFER_COMMON_PARAMS['trainer.strategy'] = None
 
 ######################################
 # Inference Template
@@ -322,14 +330,15 @@ def run_infer(paths: dict, infer_common_params: dict):
     print('Model: Done')
     # create a trainer instance
     pl_trainer = pl.Trainer(default_root_dir=paths['model_dir'],
-                            accelerator=TRAIN_COMMON_PARAMS["trainer.accelerator"],
-                            devices=TRAIN_COMMON_PARAMS["trainer.num_devices"],
+                            accelerator=infer_common_params["trainer.accelerator"],
+                            devices=infer_common_params["trainer.num_devices"],
+                            strategy=infer_common_params["trainer.strategy"],
                             auto_select_gpus=True)
     predictions = pl_trainer.predict(pl_module, validation_dataloader, return_predictions=True)
 
     # convert list of batch outputs into a dataframe
     infer_df = fuse_pl.convert_predictions_to_dataframe(predictions)
-    save_dataframe(infer_df, infer_common_params['infer_filename'])
+    save_dataframe(infer_df, infer_file)
     
 
 ######################################
@@ -374,10 +383,7 @@ def run_eval(paths: dict, eval_common_params: dict):
 ######################################
 # Run
 ######################################
-if __name__ == "__main__":
-    # allocate gpus
-    # To use cpu - set NUM_GPUS to 0
-    NUM_GPUS = 1
+if __name__ == "__main__":  
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None # [0]
     GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)

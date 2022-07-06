@@ -33,7 +33,7 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
-import pytorch_lightning as pl 
+import pytorch_lightning as pl
 
 from fuse.eval.evaluator import EvaluatorDefault 
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
@@ -48,7 +48,7 @@ from fuse.dl.lightning.pl_module import LightningModuleDefault
 
 from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.utils_logger import fuse_logger_start
-from fuse.utils.file_io.file_io import create_dir, load_pickle, save_dataframe
+from fuse.utils.file_io.file_io import create_dir, save_dataframe
 import fuse.utils.gpu as GPU
 
 from fuseimg.datasets.mnist import MNIST
@@ -74,6 +74,7 @@ PATHS = {'model_dir': model_dir,
          'inference_dir': os.path.join(model_dir, 'infer_dir'),
          'eval_dir': os.path.join(model_dir, 'eval_dir')}
 
+NUM_GPUS = 1
 ##########################################
 # Train Common Params
 ##########################################
@@ -90,8 +91,10 @@ TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 8
 # PL Trainer
 # ===============
 TRAIN_COMMON_PARAMS['trainer.num_epochs'] = 2
-TRAIN_COMMON_PARAMS['trainer.num_devices'] = 1
+TRAIN_COMMON_PARAMS['trainer.num_devices'] = NUM_GPUS
 TRAIN_COMMON_PARAMS['trainer.accelerator'] = "gpu"
+# use "dp" strategy temp when working with multiple GPUS - workaround for pytorch lightning issue: https://github.com/Lightning-AI/lightning/issues/11807
+TRAIN_COMMON_PARAMS['trainer.strategy'] = "dp" if TRAIN_COMMON_PARAMS['trainer.num_devices'] > 1 else None
 TRAIN_COMMON_PARAMS['trainer.ckpt_path'] = None  #  path to the checkpoint you wish continue the training from
 
 # ===============
@@ -105,7 +108,7 @@ def perform_softmax(logits: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     cls_preds = F.softmax(logits, dim=1)
     return logits, cls_preds
 
-def create_model():
+def create_model() -> torch.nn.Module:
     torch_model = lenet.LeNet()
     # wrap basic torch model to automatically read inputs from batch_dict and save its outputs to batch_dict
     model = ModelWrapSeqToDict(model=torch_model,
@@ -153,15 +156,21 @@ def run_train(paths: dict, train_params: dict):
     print(f'Data - validation set: Done')
 
 
-    # model
+    # ====================================================================================
+    # Model
+    # ====================================================================================
     model = create_model()
 
-    # losses
+    # ====================================================================================
+    # Losses
+    # ====================================================================================
     losses = {
         'cls_loss': LossDefault(pred='model.logits.classification', target='data.label', callable=F.cross_entropy, weight=1.0),
     }
 
-    # metrics
+    # ====================================================================================
+    # Metrics
+    # ====================================================================================
     train_metrics = OrderedDict([
         ('operation_point', MetricApplyThresholds(pred='model.output.classification')), # will apply argmax
         ('accuracy', MetricAccuracy(pred='results:metrics.operation_point.cls_pred', target='data.label'))
@@ -175,6 +184,9 @@ def run_train(paths: dict, train_params: dict):
         mode="max",
     )
     
+    # ====================================================================================
+    # Training components
+    # ====================================================================================
     # create optimizer
     optimizer = optim.Adam(model.parameters(), lr=train_params['opt.lr'], weight_decay=train_params['opt.weight_decay'])
 
@@ -185,8 +197,10 @@ def run_train(paths: dict, train_params: dict):
 
     # optimizier and lr sch - see pl.LightningModule.configure_optimizers return value for all options
     optimizers_and_lr_schs = dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
-
-    print('Train:')
+    
+    # ====================================================================================
+    # Train
+    # ====================================================================================
     # create instance of PL module - FuseMedML generic version
     pl_module = LightningModuleDefault(model_dir=paths["model_dir"], 
                                        model=model,
@@ -200,9 +214,10 @@ def run_train(paths: dict, train_params: dict):
     pl_trainer = pl.Trainer(default_root_dir=paths['model_dir'],
                             max_epochs=train_params['trainer.num_epochs'],
                             accelerator=train_params["trainer.accelerator"],
+                            strategy=train_params["trainer.strategy"],
                             devices=train_params["trainer.num_devices"],
                             auto_select_gpus=True)
-    
+
     # train
     pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=train_params['trainer.ckpt_path'])
     print('Train: Done')
@@ -214,7 +229,9 @@ def run_train(paths: dict, train_params: dict):
 INFER_COMMON_PARAMS = {}
 INFER_COMMON_PARAMS['infer_filename'] = 'infer_file.gz'
 INFER_COMMON_PARAMS['checkpoint'] = "best_epoch.ckpt"
-
+INFER_COMMON_PARAMS['trainer.num_devices'] = 1
+INFER_COMMON_PARAMS['trainer.accelerator'] = "gpu"
+INFER_COMMON_PARAMS['trainer.strategy'] = None
 
 ######################################
 # Inference Template
@@ -244,8 +261,9 @@ def run_infer(paths: dict, infer_common_params: dict):
     print('Model: Done')
     # create a trainer instance
     pl_trainer = pl.Trainer(default_root_dir=paths['model_dir'],
-                            accelerator=TRAIN_COMMON_PARAMS["trainer.accelerator"],
-                            devices=TRAIN_COMMON_PARAMS["trainer.num_devices"],
+                            accelerator=infer_common_params["trainer.accelerator"],
+                            devices=infer_common_params["trainer.num_devices"],
+                            strategy=infer_common_params["trainer.strategy"],
                             auto_select_gpus=True)
     predictions = pl_trainer.predict(pl_module, validation_dataloader, return_predictions=True)
 
@@ -296,10 +314,7 @@ def run_eval(paths: dict, eval_common_params: dict):
 ######################################
 # Run
 ######################################
-if __name__ == "__main__":
-    # allocate gpus
-    # To use cpu - set NUM_GPUS to 0
-    NUM_GPUS = 1
+if __name__ == "__main__":  
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None # [0]
     GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)

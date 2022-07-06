@@ -73,6 +73,7 @@ PATHS = {'model_dir': model_dir,
          'data_dir': os.environ["STOIC21_DATA_PATH"],
          'inference_dir': os.path.join(model_dir, 'infer_dir'),
          'eval_dir': os.path.join(model_dir, 'eval_dir')}
+NUM_GPUS = 1
 
 ##########################################
 # Train Common Params
@@ -99,9 +100,10 @@ TRAIN_COMMON_PARAMS['data.validation_folds'] = [4]
 # PL Trainer
 # ===============
 TRAIN_COMMON_PARAMS['trainer.num_epochs'] = 50
-NUM_GPUS = 1
 TRAIN_COMMON_PARAMS['trainer.num_devices'] = NUM_GPUS
 TRAIN_COMMON_PARAMS['trainer.accelerator'] = "gpu"
+# use "dp" strategy temp when working with multiple GPUS - workaround for pytorch lightning issue: https://github.com/Lightning-AI/lightning/issues/11807
+TRAIN_COMMON_PARAMS['trainer.strategy'] = "dp" if TRAIN_COMMON_PARAMS['trainer.num_devices'] > 1 else None
 TRAIN_COMMON_PARAMS['trainer.ckpt_path'] = None  #  path to the checkpoint you wish continue the training from
 
 # ===============
@@ -168,8 +170,6 @@ def run_train(paths: dict, train_common_params: dict):
         validation_sample_ids += folds[fold]
 
     train_dataset = STOIC21.dataset(paths["data_dir"], paths["cache_dir"], sample_ids=train_sample_ids, train=True)
-    # for _ in train_dataset:
-    #     pass
     validation_dataset = STOIC21.dataset(paths["data_dir"], paths["cache_dir"], sample_ids=validation_sample_ids, train=False)
 
     lgr.info(f'- Create sampler:')
@@ -217,6 +217,9 @@ def run_train(paths: dict, train_common_params: dict):
         mode="max",
     )
     
+    # ====================================================================================
+    # Training components
+    # ====================================================================================
     # create optimizer
     optimizer = optim.SGD(model.parameters(), lr=train_common_params['opt.lr'], weight_decay=train_common_params['opt.weight_decay'], momentum=0.9, nesterov=True)
 
@@ -248,6 +251,7 @@ def run_train(paths: dict, train_common_params: dict):
                             max_epochs=train_common_params['trainer.num_epochs'],
                             accelerator=train_common_params["trainer.accelerator"],
                             devices=train_common_params["trainer.num_devices"],
+                            strategy=train_common_params["trainer.strategy"],
                             auto_select_gpus=True)
     
     # train
@@ -267,8 +271,9 @@ INFER_COMMON_PARAMS['data.infer_folds'] = [4]  # infer validation set
 INFER_COMMON_PARAMS['data.batch_size'] = 4
 INFER_COMMON_PARAMS['data.num_workers'] = 16
 INFER_COMMON_PARAMS['model'] = TRAIN_COMMON_PARAMS['model']
-INFER_COMMON_PARAMS['trainer.num_devices'] = 1
+INFER_COMMON_PARAMS['trainer.num_devices'] = 1 # infer must use single device
 INFER_COMMON_PARAMS['trainer.accelerator'] = "gpu"
+INFER_COMMON_PARAMS['trainer.strategy'] = None
 
 ######################################
 # Inference Template
@@ -304,6 +309,7 @@ def run_infer(paths: dict, infer_common_params: dict):
     pl_trainer = pl.Trainer(default_root_dir=paths['model_dir'],
                             accelerator=infer_common_params["trainer.accelerator"],
                             devices=infer_common_params["trainer.num_devices"],
+                            strategy=infer_common_params["trainer.strategy"],
                             auto_select_gpus=True)
     predictions = pl_trainer.predict(pl_module, infer_dataloader, return_predictions=True)
 
@@ -326,7 +332,7 @@ def run_eval(paths: dict, eval_common_params: dict):
 
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
-    lgr.info('Fuse Analyze', {'attrs': ['bold', 'underline']})
+    lgr.info('Fuse Eval', {'attrs': ['bold', 'underline']})
 
     # metrics
     metrics = OrderedDict([
