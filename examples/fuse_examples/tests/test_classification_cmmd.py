@@ -48,30 +48,31 @@ class ClassificationMGCmmdTestCase(unittest.TestCase):
              'cache_dir': os.path.join(self.root,'examples/CMMD_cache_dir'),
              'data_misc_dir': os.path.join(self.root,'data_misc'),
              'data_split_filename': 'cmmd_split.pkl'},
-            'train': {'force_reset_model_dir': True,
-                      'target': 'classification',
-                      'reset_cache': False,
-                      'num_workers': 1, 
-                      'num_folds': 5,
-                      'train_folds': [0, 1, 2],
-                      'validation_folds': [3],
-                      'batch_size': 2,
-                      'learning_rate': 0.0001,
-                      'weight_decay': 0,
-                      'resume_checkpoint_filename': None,
-                      'manager_train_params': {'num_gpus': 1, 'device': 'cuda', 'num_epochs': 3, 'virtual_batch_size': 1, 'start_saving_epochs': 10, 'gap_between_saving_epochs': 100},
-                      'manager_best_epoch_source': {'source': 'metrics.auc.macro_avg', 'optimization': 'max', 'on_equal_values': 'better'}},
-            'infer': {'infer_filename': 'validation_set_infer.gz', 'infer_folds': [4], 'target': 'classification', 'checkpoint': 'best', 'num_workers': 1}})
+              'run': {'running_modes': ['train', 'infer', 'eval']},
+              'train': 
+            {
+             'target': 'classification', 
+             'reset_cache': False, 
+             'num_workers': 10, 
+             'num_folds': 5, 
+             'train_folds': [0, 1, 2], 
+             'validation_folds': [3], 
+             'batch_size': 2, 'learning_rate': 0.0001, 
+             'weight_decay': 0, 
+             'resume_checkpoint_filename': None, 
+             'trainer': {'accelerator': 'gpu', 'devices': 1, 'num_epochs': 2, 'ckpt_path': None}}, 
+            'infer': {'infer_filename': 'validation_set_infer.gz', 'checkpoint' : 'best_epoch.ckpt' , 'infer_folds': [4], 'target': 'classification', 'num_workers': 10}})
+        
         print(self.cfg)
 
     @run_in_subprocess()
     def test_runner(self):
         # uncomment if you want to use specific gpus instead of automatically looking for free ones
         force_gpus = None  # [0]
-        choose_and_enable_multiple_gpus(self.cfg["train.manager_train_params.num_gpus"], force_gpus=force_gpus)
+        choose_and_enable_multiple_gpus(self.cfg["train.trainer.devices"], force_gpus=force_gpus)
 
         run_train(self.cfg["paths"] ,self.cfg["train"])
-        run_infer(self.cfg["paths"] , self.cfg["infer"])
+        run_infer(self.cfg["train"], self.cfg["paths"] , self.cfg["infer"])
         results = run_eval(self.cfg["paths"] , self.cfg["infer"])
 
         self.assertTrue('metrics.auc' in results)
