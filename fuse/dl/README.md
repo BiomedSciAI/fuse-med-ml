@@ -58,7 +58,7 @@ Optionally, a pre and post processing function can be provided to be applied on 
 
  Additional basic classes include:
  1. `ModelEnsemble` - Initialized from a list of trained models directory, this class can run several models sequentially. It then produces a dictionary with predictions of each model in the ensemble, as well as average and majority vote over the predictions.
- 2. `ModelMultiHead` - A class which given backbone and multiple heads, implements a neural network with the corresponding structure.  
+ 2. `ModelMultiHead` - A class which given a backbone (feature extractor network) and multiple heads (shallow networks that output desired final results such as global/coarse or dense prediction), implements a neural network with the corresponding structure.  
  [The STOIC 21 example uses `ModelMultiHead`](../../examples/fuse_examples/imaging/classification/stoic21/runner_stoic21.py)  
  3. `ModelMultistream` - Implements a neural network with multiple backbone processing streams and heads.
  4. `ModelSiamese` - Implements a siamese neural network, with two identical backbones and multiple heads.
@@ -70,9 +70,6 @@ Implemented backbones include a "vanilla" fully connected network, or Multi Laye
 
 Implemented "heads" include a number of parameterized classifier heads, in 1D, 2D and 3D, as well as a dense segmentation head.  
 [The KNIGHT challenge example uses a 3D classification head `Head3DClassifier`](../../examples/fuse_examples/imaging/classification/knight/baseline/fuse_baseline.py)
-
-## optimizers
-This module includes an implementation of the [SAM](https://github.com/davda54/sam) optimizer, and a callback function for optimizers that require a closure argument.
 
 ## templates
 This module contains a walkthrough template code rich with comments, to demonstrate training with FuseMedML, with all required building blocks.
