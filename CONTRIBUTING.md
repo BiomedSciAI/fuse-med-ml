@@ -54,7 +54,7 @@ flake8 <path>
 
 ### Static typing with `mypy`
 
-Enforces the usage of type annotations, but not the correctness of them.
+Enforces the usage of type annotations for functions input arguments and return values only, but not the correctness of them.
 
 usage:
 
