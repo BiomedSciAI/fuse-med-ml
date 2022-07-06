@@ -1,6 +1,7 @@
 # FuseMedML DL package
 
-The fuse.dl package contains core DL related modules that make heavy use of existing DL libraries. Currently, PyTorch and PyTorch Lightning are the two primary frameworks that FuseMedML is based on.
+The fuse.dl package contains core PyTorch-based DL related modules that make heavy use of existing DL libraries. Currently, PyTorch and PyTorch Lightning are the two primary frameworks that FuseMedML is based on.  
+The fuse.dl facilitates using PyTorch-based models and training process within FuseMedML. It also provides generic components based on FuseMedML concepts, that can be used in your DL pipeline. They can also be combined with components from other FuseMedML packaged such as fuse.data or fuse.eval.
 
 ## lightning
 FuseMedML uses PyTorch Lightning as it's model training "manager".  
