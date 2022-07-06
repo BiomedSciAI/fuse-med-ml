@@ -5,6 +5,7 @@ import skimage
 import skimage.transform as transform
 import torch
 import torchvision.transforms.functional as TTF
+from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
 
 from fuse.utils.ndict import NDict
 
@@ -285,6 +286,8 @@ class OpFlipBrightSideOnLeft2D(OpBase):
             image = np.fliplr(image)
             sample_dict[key] = image
         return sample_dict
+
+
 
 op_select_slice_img_and_seg = OpApplyTypesImaging({DataTypeImaging.IMAGE : (OpSelectSlice(), {}),
                                 DataTypeImaging.SEG : (OpSelectSlice(), {}) })
