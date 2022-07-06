@@ -264,7 +264,7 @@ def run_infer(model: torch.nn.Module, pl_trainer: Trainer, paths : NDict , infer
     for fold in infer["infer_folds"]:
         infer_sample_ids += folds[fold]
 
-    test_dataset = CMMD.dataset(paths["data_dir"], paths["data_misc_dir"], infer['target'], paths["cache_dir"], sample_ids=infer_sample_ids, train=False)
+    test_dataset = UKBB.dataset(paths["data_dir"], paths["data_misc_dir"], infer['target'], paths["cache_dir"], sample_ids=infer_sample_ids, train=False)
 
     ## Create dataloader
     infer_dataloader = DataLoader(dataset=test_dataset,

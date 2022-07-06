@@ -1,9 +1,9 @@
 paths:
-  model_dir : working_dir/model_new/BackboneResnet3D
-  inference_dir : working_dir/model_new/infer_dir
-  eval_dir : working_dir/model_new/eval_dir
-  cache_dir : working_dir/examples/UKBB_cache_dir
-  data_misc_dir : working_dir/data_misc
+  model_dir : model_new/BackboneResnet3D
+  inference_dir : model_new/infer_dir
+  eval_dir : model_new/eval_dir
+  cache_dir : examples/UKBB_cache_dir
+  data_misc_dir : data_misc
   data_split_filename:  cmmd_split.pkl
   data_dir : ${oc.env:UKBB_DATA_PATH}
 run: 

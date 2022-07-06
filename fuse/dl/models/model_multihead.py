@@ -21,8 +21,8 @@ from typing import Sequence, Dict, Tuple
 
 import torch
 
-from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
-from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
+# from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
+# from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
 from fuse.utils.ndict import NDict
 
 
@@ -32,7 +32,6 @@ class ModelMultiHead(torch.nn.Module):
     """
 
     def __init__(self,
-
                  backbone: torch.nn.Module,
                  heads: Sequence[torch.nn.Module],
                  conv_inputs: Tuple[Tuple[str, int], ...]=None,

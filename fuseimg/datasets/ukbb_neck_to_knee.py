@@ -25,7 +25,7 @@ import multiprocessing
 from pathlib import Path
 from fuse.data.utils.sample import get_sample_id
 import zipfile
-from fuseimg.data.ops import ops_mri
+# from fuseimg.data.ops import ops_mri
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
 import SimpleITK as sitk
 import tempfile
@@ -269,12 +269,14 @@ class UKBB:
         if gt_file_path is not None:
             gt_file = pd.read_csv(gt_file_path)
             df = pd.merge(df, gt_file, how='inner', on=['file'])
+        else:
+            print("Did not merge with ground truth file as it was None")
         df.to_csv(combined_file_path)
         all_sample_ids = df['file'].to_list()
         return df, all_sample_ids
     
     @staticmethod
-    def dataset(gt_file_path: str,
+    def dataset(
                 data_dir: str,
                 data_misc_dir : str,
                 target: str,
@@ -282,10 +284,11 @@ class UKBB:
                 reset_cache : bool = True,
                 num_workers:int = 10,
                 sample_ids: Optional[Sequence[Hashable]] = None,
-                train: bool = False) :
+                train: bool = False,
+                gt_file_path: str = None,) :
         """
         Creates Fuse Dataset single object (either for training, validation and test or user defined set)
-        :param gt_file_path                 path to ground trouth file
+        
         :param data_dir:                    dataset root path
         :param data_misc_dir                path to save misc files to be used later
         :param target                       target name used from the ground truth dataframe
@@ -294,6 +297,7 @@ class UKBB:
         :param num_workers: number of processes used for caching 
         :param sample_ids: dataset including the specified sample_ids or None for all the samples. sample_id is case_{id:05d} (for example case_00001 or case_00100).
         :param train: True if used for training  - adds augmentation operations to the pipeline
+        :param gt_file_path                 path to ground trouth file
         :return: DatasetDefault object
         """
         input_source_gt , all_sample_ids= UKBB.get_dicom_data_df(gt_file_path, data_dir, data_misc_dir, target,sample_ids =sample_ids)
