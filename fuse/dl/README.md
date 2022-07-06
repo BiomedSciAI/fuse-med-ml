@@ -1,7 +1,9 @@
 # FuseMedML DL package
 
 The fuse.dl package contains core PyTorch-based DL related modules that make heavy use of existing DL libraries. Currently, PyTorch and PyTorch Lightning are the two primary frameworks that FuseMedML is based on.  
-The fuse.dl facilitates using PyTorch-based models and training process within FuseMedML. It also provides generic components based on FuseMedML concepts, that can be used in your DL pipeline. They can also be combined with components from other FuseMedML packaged such as fuse.data or fuse.eval.
+The fuse.dl facilitates using PyTorch-based models and training process within FuseMedML. It also provides generic components based on FuseMedML concepts, that can be used in your DL pipeline. They can also be combined with components from other FuseMedML packaged such as fuse.data or fuse.eval.  
+
+FuseMedML is very flexible. This means that a user can choose to only use some components from fuse.dl or none at all, and only use other FuseMedML packages. With respect to the training loop, fuse.dl offers two levels of customization based on PyTorch Lightning as explained below. However, a user may opt for pure PyTorch based training loop, or use another high-level library for it like PyTorch Ignite.   
 
 ## lightning
 FuseMedML uses PyTorch Lightning as it's model training "manager".  
@@ -31,7 +33,7 @@ Once such a custom module exists, it is instantiated with a user defined set of 
 pl_module = CustomLightningModule(**custom_args)
 ```  
 
-Note: previously, a dedicated PyTorch based [manager](managers) was used which is now deprecated. Some of the implemented [examples](../../examples) still use it but we plan to port them to use the lightning manager.
+`pl_funcs` contains a collection of helpful functions that can be used in implementing `CustomLightningModule`.
 
 ## losses
 This module implements basic FuseMedML loss classes as well as a few specific loss function implementations.
@@ -49,8 +51,8 @@ The specific losses currently implemented are suitable for classification and de
 Note again, that while these are specific loss functions that are implemented, it is possible to use any loss, whether custom, or one that already exists in PyTorch, and pass it to the `LossDefault` class for use in FuseMedML.
 
 ## models
-This module contains DL model and architecture related classes. 
-The most basic class is `ModelWrapSeqToDict`. It is FuseMedML's wrapper for PyTorch models to be used in fuse. It is initialized with an existing PyTorch module, and a list of input and output keys. When `forward` is called on a fuse `batch_dict`, it extracts the data from the input keys from `batch_dict`, calls the model `forward` function on the data, and writes the output to the `batch_dict`'s output keys.  
+This module contains DL model and architecture related classes. A FuseMedML model is very similar to a PyTorch model. The only difference is that in its `forward` function it gets as input a fuse `batch_dict`, extracts the input data from the input keys, forwards it through the model and writes the output to the `batch_dict`'s output keys.  
+The most basic class is `ModelWrapSeqToDict`. It is FuseMedML's wrapper for PyTorch models to be used in fuse. It is initialized with an existing PyTorch model, and a list of input and output keys. 
 Optionally, a pre and post processing function can be provided to be applied on the `batch_dict` before and after model run.  
 [The MNIST example uses `ModelWrapSeqToDict`](../../examples/fuse_examples/imaging/classification/mnist/run_mnist.py)
 
