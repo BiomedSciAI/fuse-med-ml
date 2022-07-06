@@ -22,7 +22,7 @@ def isic_2019_dataset(data_path: str,
     :param cache_path: path to store the cached files
     :param reset_cache: restart cache or not
     :param reset_split_file: reuse previous split or create a new one.
-    :param append_dyn_pipeline: steps to append at the end of the dynamic pipeline (doesn't require recheching)
+    :param append_dyn_pipeline: steps to append at the end of the dynamic pipeline (doesn't require recaching)
     :param sample_ids: list of sample_ids tp include - otherwise will consider all the sample_ids
     :return: train_dataloader and validation_dataloader
     """

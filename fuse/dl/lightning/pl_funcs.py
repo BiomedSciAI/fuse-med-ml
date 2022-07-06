@@ -147,8 +147,7 @@ def epoch_end_compute_and_log_losses(pl: pl.LightningModule, mode: str, batch_lo
     """
     keys = batch_losses[0].keys()
     for key in keys:
-        losses = [float(elem[key].detach().cpu()) if isinstance(elem[key], torch.torch.Tensor) else elem[key] for elem in batch_losses]
-        loss = mean(losses)
+        loss = mean([elem[key] for elem in batch_losses])
         pl.log(f"{mode}.losses.{key}", loss, on_epoch=True)
 
 def epoch_end_compute_and_log_metrics(pl: pl.LightningModule, mode: str, metrics: OrderedDict[str, MetricBase]) -> None:
