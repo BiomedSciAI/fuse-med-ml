@@ -135,7 +135,7 @@ class ISIC:
     @staticmethod
     def static_pipeline(data_path: str) -> PipelineDefault:
         rename_cls_labels = {c: f"data.cls_labels.{c}" for c in ISIC.CLASS_NAMES}
-        rename_cls_labels["image"] = "data.cls_labels.sample_id" # also exract image (sample_id)
+        rename_cls_labels["image"] = "data.cls_labels.sample_id" # also extract image (sample_id)
         rename_metadata = {"age_approx": "data.input.clinical.age_approx" ,"anatom_site_general": "data.input.clinical.anatom_site_general", "sex": "data.input.clinical.sex", "image" : "data.input.clinical.sample_id"}
 
         static_pipeline = PipelineDefault("static",[

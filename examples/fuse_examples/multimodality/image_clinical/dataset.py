@@ -10,7 +10,7 @@ from fuseimg.datasets.isic import ISIC
 from torch.utils.data.dataloader import DataLoader
 
 
-def isic_2019_dataset(data_path: str, 
+def isic_2019_dataloaders(data_path: str, 
                       cache_path: str, 
                       reset_cache: bool = False, 
                       reset_split_file: bool = False, 
