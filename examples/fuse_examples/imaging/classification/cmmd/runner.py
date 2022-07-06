@@ -265,7 +265,6 @@ def run_infer(train : NDict, paths : NDict , infer: NDict):
         infer_sample_ids += folds[fold]
 
     test_dataset = CMMD.dataset(paths["data_dir"], paths["data_misc_dir"], infer['target'], paths["cache_dir"], sample_ids=infer_sample_ids, train=False)
-    model = create_model(train, paths)
     ## Create dataloader
     infer_dataloader = DataLoader(dataset=test_dataset,
                                   shuffle=False, drop_last=False,
