@@ -212,25 +212,33 @@ class UKBB:
         dynamic_pipeline = PipelineDefault("cmmd_dynamic", [
             (OpToTensor(), dict(key="data.input.img",dtype=torch.float32)),
             (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")) ])
+        # augmentation
         if train:
-            dynamic_pipeline.extend([
+            dynamic_pipeline.extend([ 
+                (OpLambda(partial(torch.squeeze, dim=0)), dict(key="data.input.img")),  
+
+                # affine augmentation - will apply the same affine transformation on each slice
                 (OpRandApply(OpSample(OpAugAffine2D()), 0.5), dict(
-                                key="data.input.img",
-                                rotate=Uniform(-30.0,30.0),        
-                                scale=Uniform(0.9, 1.1),
-                                flip=(RandBool(0.3), RandBool(0.5)),
-                                translate=(RandInt(-10, 10), RandInt(-10, 10))
-                            )),
-                (OpRandApply(OpSample(OpAugColor()), 0.5), dict(
-                            key="data.input.img",
-                            gamma=Uniform(0.9, 1.1), 
-                            contrast=Uniform(0.85, 1.15),
-                            mul =  Uniform(0.95, 1.05),
-                            add=Uniform(-0.06, 0.06)
-                        )),
+                    key="data.input.img",
+                    rotate=Uniform(-180.0,180.0),        
+                    scale=Uniform(0.8, 1.2),
+                    flip=(RandBool(0.5), RandBool(0.5)),
+                    translate=(RandInt(-15, 15), RandInt(-15, 15))
+                )),
                 
-                
-            ])
+                # color augmentation - check if it is useful in CT images
+                # (OpSample(OpAugColor()), dict(
+                #     key="data.input.img",
+                #     gamma=Uniform(0.8,1.2), 
+                #     contrast=Uniform(0.9,1.1),
+                #     add=Uniform(-0.01, 0.01)
+                # )),
+
+                # add channel dimension -> [C=1, D, H, W]
+                (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")),
+                  
+        ])
+
         return dynamic_pipeline
 
 

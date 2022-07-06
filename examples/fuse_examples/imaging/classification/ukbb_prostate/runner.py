@@ -20,7 +20,7 @@ import os
 import sys
 import copy
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
-
+import pandas as pd
 from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.gpu import choose_and_enable_multiple_gpus
 
@@ -106,17 +106,13 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
         mode = "approx"
         gt_label = "data.gt.classification"
         skip_keys=['data.gt.subtype']
-        class_names = ["Benign", "Malignant"] 
-    elif train['target'] == "subtype" :
-        num_classes = 4
-        mode = "approx"
-        gt_label = "data.gt.subtype"
-        skip_keys=['data.gt.classification']
-        class_names = ["Luminal A", "Luminal B", "HER2-enriched" , "triple negative"] 
+        class_names = ["Male", "Female"] 
     else:
         raise("unsuported target!!")
     # split to folds randomly - temp
-    dataset_all = UKBB.dataset(paths["data_dir"], paths["data_misc_dir"], train['target'], paths["cache_dir"], reset_cache=False, num_workers=train["num_workers"], train=True)
+    sample_ids = pd.read_csv(os.path.join( paths["data_misc_dir"],"sample_ids.csv"))['file'].to_list()
+    print(sample_ids)
+    dataset_all = UKBB.dataset(paths["data_dir"], paths["data_misc_dir"], train['target'], paths["cache_dir"], reset_cache=False, num_workers=train["num_workers"], sample_ids=sample_ids,train=True)
     folds = dataset_balanced_division_to_folds(dataset=dataset_all,
                                         output_split_filename=os.path.join( paths["data_misc_dir"], paths["data_split_filename"]), 
                                         id = 'data.patientID',
