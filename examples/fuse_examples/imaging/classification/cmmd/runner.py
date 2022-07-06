@@ -60,11 +60,23 @@ assert "CMMD_DATA_PATH" in os.environ, "Expecting environment variable CMMD_DATA
 mode = 'default'  # Options: 'default', 'debug'. See details in FuseDebug
 debug = FuseDebug(mode)
 
-def create_model(num_classes: int) -> torch.nn.Module:
+def create_model(train: NDict,paths: NDict) -> torch.nn.Module:
     """ 
     creates the model 
     See HeadGlobalPoolingClassifier for details 
     """
+    if train['target'] == "classification" :
+        num_classes = 2
+        gt_label = "data.gt.classification"
+        skip_keys=['data.gt.subtype']
+        class_names = ["Benign", "Malignant"] 
+    elif train['target'] == "subtype" :
+        num_classes = 4
+        gt_label = "data.gt.subtype"
+        skip_keys=['data.gt.classification']
+        class_names = ["Luminal A", "Luminal B", "HER2-enriched" , "triple negative"] 
+    else:
+        raise("unsuported target!!")
     model = ModelMultiHead(
         conv_inputs=(('data.input.img', 1),),
         backbone=BackboneInceptionResnetV2(input_channels_num=1),
@@ -77,7 +89,14 @@ def create_model(num_classes: int) -> torch.nn.Module:
                                             pooling="avg"),
         ]
     )
-    return model
+    # create lightining trainer.
+    pl_trainer = Trainer(default_root_dir=paths['model_dir'],
+                            max_epochs=train['trainer']['num_epochs'],
+                            accelerator=train['trainer']['accelerator'],
+                            devices=train['trainer']['devices'],
+                            num_sanity_val_steps = -1,
+                            auto_select_gpus=True)
+    return model, pl_trainer, num_classes, gt_label, skip_keys , class_names
 #################################
 # Train Template
 #################################
@@ -89,7 +108,13 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
     lgr = logging.getLogger('Fuse')
 
     # Download data
-    # TBD
+    # ==============================================================================
+    # Model
+    # ==============================================================================
+    lgr.info('Model:', {'attrs': 'bold'})
+
+    model, pl_trainer, num_classes, gt_label, skip_keys , class_names = create_model(train, paths)
+    lgr.info('Model: Done', {'attrs': 'bold'})
 
     lgr.info('\nFuse Train', {'attrs': ['bold', 'underline']})
 
@@ -97,20 +122,6 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
     lgr.info(f'cache_dir={paths["cache_dir"]}', {'color': 'magenta'})
 
     #### Train Data
-    if train['target'] == "classification" :
-        num_classes = 2
-        mode = "approx"
-        gt_label = "data.gt.classification"
-        skip_keys=['data.gt.subtype']
-        class_names = ["Benign", "Malignant"] 
-    elif train['target'] == "subtype" :
-        num_classes = 4
-        mode = "approx"
-        gt_label = "data.gt.subtype"
-        skip_keys=['data.gt.classification']
-        class_names = ["Luminal A", "Luminal B", "HER2-enriched" , "triple negative"] 
-    else:
-        raise("unsuported target!!")
     # split to folds randomly - temp
     dataset_all = CMMD.dataset(paths["data_dir"], paths["data_misc_dir"], train['target'], paths["cache_dir"], reset_cache=False, num_workers=train["num_workers"], train=True)
     folds = dataset_balanced_division_to_folds(dataset=dataset_all,
@@ -137,7 +148,7 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
                                        balanced_class_name=gt_label,
                                        num_balanced_classes=num_classes,
                                        batch_size=train["batch_size"],
-                                       mode = mode,
+                                       mode = "approx",
                                        workers=train["num_workers"],
                                        balanced_class_weights=None
                                        )
@@ -163,15 +174,6 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
                                        num_workers=train["num_workers"],
                                        collate_fn=CollateDefault(skip_keys=skip_keys))
     lgr.info(f'Validation Data: Done', {'attrs': 'bold'})
-    # ===================================================================
-    # ==============================================================================
-    # Model
-    # ==============================================================================
-    lgr.info('Model:', {'attrs': 'bold'})
-
-    model = create_model(num_classes)
-    lgr.info('Model: Done', {'attrs': 'bold'})
-
 
     # ====================================================================================
     #  Loss
@@ -237,12 +239,11 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
     pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=train['trainer']['ckpt_path'])
     lgr.info('Train: Done', {'attrs': 'bold'})
     
-    return model, pl_trainer
 
 ######################################
 # Inference Template
 ######################################
-def run_infer(model: torch.nn.Module, pl_trainer: Trainer, paths : NDict , infer: NDict):
+def run_infer(train : NDict, paths : NDict , infer: NDict):
     create_dir(paths['inference_dir'])
     #### Logger
     fuse_logger_start(output_path=paths["inference_dir"], console_verbose_level=logging.INFO)
@@ -252,7 +253,10 @@ def run_infer(model: torch.nn.Module, pl_trainer: Trainer, paths : NDict , infer
     checkpoint_file = os.path.join(paths["model_dir"], infer["checkpoint"])
     lgr.info(f'infer_filename={checkpoint_file}', {'color': 'magenta'})
 
+    lgr.info('Model:', {'attrs': 'bold'})
 
+    model, pl_trainer, num_classes, gt_label, skip_keys , class_names = create_model(train, paths)
+    lgr.info('Model: Done', {'attrs': 'bold'})
     ## Data
     folds = load_pickle(os.path.join( paths["data_misc_dir"], paths["data_split_filename"])) # assume exists and created in train func
 
@@ -261,7 +265,7 @@ def run_infer(model: torch.nn.Module, pl_trainer: Trainer, paths : NDict , infer
         infer_sample_ids += folds[fold]
 
     test_dataset = CMMD.dataset(paths["data_dir"], paths["data_misc_dir"], infer['target'], paths["cache_dir"], sample_ids=infer_sample_ids, train=False)
-
+    model = create_model(num_classes)
     ## Create dataloader
     infer_dataloader = DataLoader(dataset=test_dataset,
                                   shuffle=False, drop_last=False,
@@ -326,13 +330,11 @@ def main(cfg : DictConfig) -> None:
 
     # train
     if 'train' in cfg["run.running_modes"]:
-        model, trainer = run_train(cfg["paths"] ,cfg["train"])
-    else:
-        assert "Expecting train mode to be set."
+        run_train(cfg["paths"] ,cfg["train"])
 
     # infer
     if 'infer' in cfg["run.running_modes"]:
-        run_infer(model, trainer, cfg["paths"] , cfg["infer"])
+        run_infer(cfg["train"], cfg["paths"] , cfg["infer"])
     #
     # analyze
     if 'eval' in cfg["run.running_modes"]:

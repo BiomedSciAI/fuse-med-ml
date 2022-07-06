@@ -11,7 +11,7 @@ run:
 train:
   target : classification
   reset_cache: False
-  num_workers : 12
+  num_workers : 10
   num_folds : 5
   train_folds : [0,1,2]
   validation_folds : [3]

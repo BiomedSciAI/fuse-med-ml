@@ -71,8 +71,8 @@ class ClassificationMGCmmdTestCase(unittest.TestCase):
         force_gpus = None  # [0]
         choose_and_enable_multiple_gpus(self.cfg["train.trainer.devices"], force_gpus=force_gpus)
 
-        model, trainer =run_train(self.cfg["paths"] ,self.cfg["train"])
-        run_infer(model, trainer, self.cfg["paths"] , self.cfg["infer"])
+        run_train(self.cfg["paths"] ,self.cfg["train"])
+        run_infer(self.cfg["train"], self.cfg["paths"] , self.cfg["infer"])
         results = run_eval(self.cfg["paths"] , self.cfg["infer"])
 
         self.assertTrue('metrics.auc' in results)
