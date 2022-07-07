@@ -57,6 +57,7 @@ create_env() {
         if find_in_conda_env $ENV_NAME ; then
             echo "Environment exist: $env"
         else
+            echo "Mode=$mode"
             # create an environment
             echo "Creating new environment: $env"
             conda create $env python=$PYTHON_VER -y
@@ -73,10 +74,10 @@ create_env() {
             conda run $env --no-capture-output --live-stream pip install -r fuse/requirements.txt
             echo "Installing core requirements - Done"
 
-            if [ $mode = "fusimg" ] || [ $mode = "examples" ]; then
-                echo "Installing fusimg requirements"
+            if [ $mode = "fuseimg" ] || [ $mode = "examples" ]; then
+                echo "Installing fuseimg requirements"
                 conda run $env --no-capture-output --live-stream pip install -r fuseimg/requirements.txt
-                echo "Installing fusimg requirements - Done"
+                echo "Installing fuseimg requirements - Done"
             fi
 
             if [ $mode = "examples" ]; then
