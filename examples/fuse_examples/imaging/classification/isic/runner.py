@@ -305,7 +305,6 @@ INFER_COMMON_PARAMS = {}
 INFER_COMMON_PARAMS["infer_filename"] = "infer_file.gz"
 INFER_COMMON_PARAMS["checkpoint"] = "best_epoch.ckpt"
 INFER_COMMON_PARAMS["data.num_workers"] = TRAIN_COMMON_PARAMS["data.train_num_workers"]
-INFER_COMMON_PARAMS["data.validation_num_workers"] = TRAIN_COMMON_PARAMS["data.validation_num_workers"]
 INFER_COMMON_PARAMS["data.infer_folds"] = [4]  # infer validation set
 INFER_COMMON_PARAMS["data.batch_size"] = 4
 
@@ -316,7 +315,6 @@ INFER_COMMON_PARAMS["trainer.accelerator"] = "gpu"
 ######################################
 # Inference Template
 ######################################
-
 
 def run_infer(paths: dict, infer_common_params: dict) -> None:
     create_dir(paths["inference_dir"])
@@ -416,10 +414,7 @@ def run_eval(paths: dict, eval_common_params: dict) -> None:
 ######################################
 if __name__ == "__main__":
     # allocate gpus
-    # To use cpu - set NUM_GPUS to 0
     NUM_GPUS = 1
-    if NUM_GPUS == 0:
-        TRAIN_COMMON_PARAMS["manager.train_params"]["device"] = "cpu"
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None  # [0]
     GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)

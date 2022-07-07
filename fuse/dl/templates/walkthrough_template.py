@@ -21,12 +21,14 @@ import os
 from typing import OrderedDict
 import logging
 
+import pytorch_lightning as pl
 import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
 
 from fuse.utils.utils_debug import FuseDebug
 import fuse.utils.gpu as GPU
 from fuse.utils.utils_logger import fuse_logger_start
+from fuse.utils.file_io.file_io import create_dir, save_dataframe
 
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuse.data.datasets.dataset_default import DatasetDefault
@@ -35,7 +37,8 @@ from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.samplers import BatchSamplerDefault
 
 from fuse.dl.models import ModelMultiHead
-from fuse.dl.managers.manager_default import ManagerDefault
+from fuse.dl.lightning.pl_module import LightningModuleDefault
+from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
 
 from fuse.eval.evaluator import EvaluatorDefault
 
@@ -66,7 +69,7 @@ from fuse.eval.evaluator import EvaluatorDefault
 #    `sample_dict[“data.input.img”]` is the equivalent of `sample_dict["data"]["input"]["img"]`
 #    Another recommended convention is to include suffix specifying the type of the value ("img", "seg", "bbox")
 # 3. epoch_result -
-#    A dictionary created by the manager and includes the losses and metrics value
+#    A dictionary created by the manager TODO and includes the losses and metrics value
 #    as defined within the template and calculated for the specific epoch.
 # 4. Fuse base classes - *Base -
 #    Abstract classes of the object forming together Fuse framework .
@@ -95,17 +98,17 @@ PATHS = {'model_dir': model_dir,
 ##########################################
 # Train Common Params
 ##########################################
+TRAIN_COMMON_PARAMS = {}
 # ============
 # Data
 # ============
-TRAIN_COMMON_PARAMS = {}
 TRAIN_COMMON_PARAMS['data.batch_size'] = 2
 TRAIN_COMMON_PARAMS['data.train_num_workers'] = 8
 TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 8
 TRAIN_COMMON_PARAMS['data.cache_num_workers'] = 10
 
 # ===============
-# Manager - Train # TODO: Deleted 
+# Manager - Train # TODO: Delete
 # ===============
 TRAIN_COMMON_PARAMS['manager.train_params'] = {
     'virtual_batch_size': 1,  # number of batches in one virtual batch
@@ -137,7 +140,7 @@ TRAIN_COMMON_PARAMS['opt.weight_decay'] = 1e-3
 #################################
 # Train Template
 #################################
-def train_template(paths: dict, train_common_params: dict):
+def run_train(paths: dict, train_common_params: dict):
     # ==============================================================================
     # Logger
     #   - output log automatically to three destinations:
@@ -239,7 +242,6 @@ def train_template(paths: dict, train_common_params: dict):
         dynamic_pipeline=validation_dynamic_pipeline,
         cacher=cacher,            
     )
-    
 
     lgr.info(f'- Load and cache data:')
     validation_dataset.create()
@@ -296,15 +298,23 @@ def train_template(paths: dict, train_common_params: dict):
 
     # =========================================================================================================
     # Metrics - details can be found in (fuse/eval/README.md)[../../fuse/eval/README.md]
+    #   1. Create seperately for train and validation (might be a deep copy, but not a shallow one).
+    #   2. Set best_epoch_source:
+    #       monitor: # TODO: ELABORATE
+    #       mode: # TODO: ELABORATE
     # =========================================================================================================
-    metrics = OrderedDict([
+    train_metrics = OrderedDict([
         # TODO add metrics here (<name>, <instance of MetricBase>)
-
     ])
+    validation_metrics = OrderedDict([
+        # TODO add metrics here (<name>, <instance of MetricBase>)
+    ])
+
+    best_epoch_source = dict(monitor="validation.metrics.auc.macro_avg", mode="max")
         
     # =====================================================================================
-    #  Manager - Train TODO sagi
-    #  Create a manager, training objects and run a training process.
+    #  Train - using PyTorch Lightning
+    #  Create training object, PL module and PL trainer.
     # =====================================================================================
     lgr.info('Train:', {'attrs': 'bold'})
 
@@ -313,28 +323,36 @@ def train_template(paths: dict, train_common_params: dict):
                            weight_decay=train_common_params['manager.weight_decay'])
 
     # create scheduler
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+    lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+    lr_sch_config = dict(scheduler=lr_scheduler, monitor="validation.losses.total_loss")
 
-    # train from scratch
-    manager = ManagerDefault(output_model_dir=paths['model_dir'], force_reset=paths['force_reset_model_dir'])
-    # Providing the objects required for the training process.
-    manager.set_objects(net=model,
-                        optimizer=optimizer,
-                        losses=losses,
-                        metrics=metrics,
-                        best_epoch_source=train_common_params['manager.best_epoch_source'],
-                        lr_scheduler=scheduler,
-                        callbacks=callbacks,
-                        train_params=train_common_params['manager.train_params'])
+    # optimizier and lr sch - see pl.LightningModule.configure_optimizers return value for all options
+    optimizers_and_lr_schs = dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
 
-    ## Continue training
-    if train_common_params['manager.resume_checkpoint_filename'] is not None:
-        # Loading the checkpoint including model weights, learning rate, and epoch_index.
-        manager.load_checkpoint(checkpoint=train_common_params['manager.resume_checkpoint_filename'], mode='train')
+    # create instance of PL module - FuseMedML generic version
+    pl_module = LightningModuleDefault(
+        model_dir=paths["model_dir"],
+        model=model,
+        losses=losses,
+        train_metrics=train_metrics,
+        validation_metrics=validation_metrics,
+        best_epoch_source=best_epoch_source,
+        optimizers_and_lr_schs=optimizers_and_lr_schs,
+    )
 
-    # Start training
-    manager.train(train_dataloader=train_dataloader,
-                  validation_dataloader=validation_dataloader)
+    # create lightining trainer.
+    pl_trainer = pl.Trainer(
+        default_root_dir=paths["model_dir"],
+        max_epochs=train_common_params["trainer.num_epochs"],
+        accelerator=train_common_params["trainer.accelerator"],
+        devices=train_common_params["trainer.num_devices"],
+        auto_select_gpus=True,
+    )
+
+    # train
+    pl_trainer.fit(
+        pl_module, train_dataloader, validation_dataloader, ckpt_path=train_common_params["trainer.ckpt_path"]
+    )
 
     lgr.info('Train: Done', {'attrs': 'bold'})
 
@@ -343,19 +361,25 @@ def train_template(paths: dict, train_common_params: dict):
 # Inference Common Params
 ######################################
 INFER_COMMON_PARAMS = {}
+INFER_COMMON_PARAMS["data.num_workers"] = TRAIN_COMMON_PARAMS["data.train_num_workers"]
+INFER_COMMON_PARAMS["data.batch_size"] = 4
 INFER_COMMON_PARAMS['infer_filename'] = os.path.join(PATHS['inference_dir'], 'validation_set_infer.pickle')
 INFER_COMMON_PARAMS['checkpoint'] = 'best'  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
-
 
 ######################################
 # Inference Template
 ######################################
-def infer_template(paths: dict, infer_common_params: dict):
-    #### Logger
-    fuse_logger_start(output_path=paths['inference_dir'], console_verbose_level=logging.INFO)
-    lgr = logging.getLogger('Fuse')
-    lgr.info('Fuse Inference', {'attrs': ['bold', 'underline']})
-    lgr.info(f'infer_filename={infer_common_params["infer_filename"]}', {'color': 'magenta'})
+
+def run_infer(paths: dict, infer_common_params: dict):
+    create_dir(paths["inference_dir"])
+    infer_file = os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])
+    checkpoint_file = os.path.join(paths["model_dir"], infer_common_params["checkpoint"])
+
+    ## Logger
+    fuse_logger_start(output_path=paths["inference_dir"], console_verbose_level=logging.INFO)
+    lgr = logging.getLogger("Fuse")
+    lgr.info("Fuse Inference", {"attrs": ["bold", "underline"]})
+    lgr.info(f"infer_filename={infer_file}", {"color": "magenta"})
 
     #### create infer dataset
     infer_dataset = None # TODO: follow the same steps to create dataset as in run_train
@@ -368,16 +392,26 @@ def infer_template(paths: dict, infer_common_params: dict):
                                        batch_size=infer_common_params['data.batch_size'],
                                        num_workers=infer_common_params['data.num_workers'],
                                        collate_fn=CollateDefault())
-    #### Manager for inference
-    manager = ManagerDefault()
-    # TODO - define the keys out of batch_dict that will be saved to a file
-    output_columns = [None] # TODO: specify the key name out of the batch_dict to dump. Optionally also include the key of the target name
-    manager.infer(data_loader=infer_dataloader,
-                  input_model_dir=paths['model_dir'],
-                  checkpoint=infer_common_params['checkpoint'],
-                  output_columns=output_columns,
-                  output_file_name=infer_common_params['infer_filename'])
+    # load python lightning module
+    model = # TODO
+    pl_module = LightningModuleDefault.load_from_checkpoint(
+        checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True
+    )
+    # set the prediction keys to extract (the ones used be the evaluation function).
+    pl_module.set_predictions_keys(["model.output.head_0", "data.label"])  # which keys to extract and dump into file
 
+    # create a trainer instance
+    pl_trainer = pl.Trainer(
+        default_root_dir=paths["model_dir"],
+        accelerator=infer_common_params["trainer.accelerator"],
+        devices=infer_common_params["trainer.num_devices"],
+        auto_select_gpus=True,
+    )
+    predictions = pl_trainer.predict(pl_module, infer_dataloader, return_predictions=True)
+
+    # convert list of batch outputs into a dataframe
+    infer_df = convert_predictions_to_dataframe(predictions)
+    save_dataframe(infer_df, infer_file)
 
 
 ######################################
@@ -407,6 +441,7 @@ def run_eval(paths: dict, eval_common_params: dict):
 
     return results
 
+
 ######################################
 # Run
 ######################################
@@ -421,11 +456,11 @@ if __name__ == "__main__":
 
     # train
     if 'train' in RUNNING_MODES:
-        train_template(paths=PATHS, train_common_params=TRAIN_COMMON_PARAMS)
+        run_train(paths=PATHS, train_common_params=TRAIN_COMMON_PARAMS)
 
     # infer
     if 'infer' in RUNNING_MODES:
-        infer_template(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS)
+        run_infer(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS)
 
      # eval
     if 'eval' in RUNNING_MODES:
