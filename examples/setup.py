@@ -6,10 +6,6 @@ from setuptools import setup, find_packages
 # The directory containing this file
 HERE = pathlib.Path(__file__).parent
 
-# The text of the README file
-with open(os.path.join(HERE, "../README.md"), "r", encoding="utf-8") as fh:
-    long_description = fh.read()
-
 # list of requirements
 requirements = []
 with open(os.path.join(HERE, 'requirements.txt'), 'r') as fh:
@@ -17,14 +13,9 @@ with open(os.path.join(HERE, 'requirements.txt'), 'r') as fh:
         if not line.startswith('#'):
             requirements.append(line.strip())
 
-# version
-version_file = open(os.path.join(HERE, '../VERSION.txt'))
-version = version_file.read().strip()
-
 setup(name='fuse-med-ml-examples',
-      version=version,
-      description='Open-source PyTorch based framework designed to facilitate deep learning R&D in medical imaging',
-      long_description=long_description,
+      description="examples package for 'https://github.com/IBM/fuse-med-ml/'",
+      long_description="examples package for 'https://github.com/IBM/fuse-med-ml/'",
       long_description_content_type="text/markdown",
       url='https://github.com/IBM/fuse-med-ml/',
       author='IBM Research - Machine Learning for Healthcare and Life Sciences',

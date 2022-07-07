@@ -17,6 +17,7 @@ Created on June 30, 2021
 
 """
 
+import copy
 from typing import Hashable, List, Optional, Dict, Union
 from fuse.utils.file_io.file_io import read_dataframe
 import pandas as pd
