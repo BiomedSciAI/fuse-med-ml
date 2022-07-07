@@ -9,9 +9,12 @@
 
 A python framework accelerating ML based discovery in the medical field by encouraging code reuse. Batteries included :) 
 
-Skip to [install instructions section](#installation)  
-Skip to [complete code examples](#fusemedml-from-the-ground-up)  
-Skip to [community support](#community-support)
+## Skip to:  
+    * [install instructions section](#installation)  
+    * [complete code examples](#examples)  
+    * [community support](#community-support---join-the-discussion)  
+    * [cite us](#citation)  
+
 
 # Motivation - *"*Oh, the pain!*"*
 Analyzing **many** ML research projects we discovered that 
@@ -194,9 +197,7 @@ $ pip install -e examples
 $ pip install fuse-med-ml
 ```
 
-# FuseMedML from the ground up
-
-## Examples
+# Examples
 
 * Easy access "Hello World" [colab notebook](https://colab.research.google.com/github/IBM/fuse-med-ml/blob/master/fuse_examples/imaging/hello_world/hello_world.ipynb)
 * classification
@@ -209,14 +210,10 @@ $ pip install fuse-med-ml
 ## Walkthrough template
 * [**Walkthrough Template**](./fuse/dl/templates/walkthrough_template.py) - includes several TODO notes, marking the minimal scope of code required to get your pipeline up and running. The template also includes useful explanations and tips.
 
-## Community support
-We use the Slack workspace at fusemedml.slack.com for informal communication.
-We encourage you to ask questions regarding FuseMedML that don't necessarily merit opening an issue on Github.
+# Community support - join the discussion!
 
-[**Use this invite link to join FuseMedML on Slack**](https://join.slack.com/t/fusemedml/shared_invite/zt-xr1jaj29-h7IMsSc0Lq4qpVNxW97Phw).
-
-IBMers can also join a Slack channel in the IBM Research organization: 
-[**#fusers**](https://ibm-research.slack.com/archives/C0176S37QNP) .
+* Slack workspace at fusemedml.slack.com for informal communication - click [here](https://join.slack.com/t/fusemedml/shared_invite/zt-xr1jaj29-h7IMsSc0Lq4qpVNxW97Phw) to join
+* [Github Discussions](https://github.com/IBM/fuse-med-ml/discussions)
 
 # Citation
 If you use FuseMedML in scientific context, please consider citing us:
