@@ -78,10 +78,6 @@ MetricAUCROC(
 
 Note that several components return answers directly and not write it into the nested dictionary. This is perfectly fine, and to allow maximum flexibility we do not require any usage of output path keys.
 
-* metrics
-* loss
-* multihead model
-
 ### Creating a custom FuseMedML component
 
 Creating custom FuseMedML components is easy - in the following example we add a new data processing operator:
@@ -143,13 +139,13 @@ See [Simple FuseMedML + PytorchLightning Example](./examples/fuse_examples/imagi
 fuse-med-ml, the core library, is completely domain agnostic!
 Domain extensions are optionally installable packages that deal with specific (sub) domains. For example:
 
-* **fuseimg** which was battletested in many medical imaging related projects (different organs, imaging modalities, tasks, etc.)
-* **fusedrug** which focuses on molecular biology and chemistry - prediction, generation and more
+* **[fuseimg](./fuseimg)** which was battletested in many medical imaging related projects (different organs, imaging modalities, tasks, etc.)
+* **fusedrug (to be released soon)** which focuses on molecular biology and chemistry - prediction, generation and more
 
 Domain extensions contain concrete implementation of components and components parts within the relevant domain, for example:  
-* Data pipeline operations - for example, a 3d affine transformation of a 3d image
-* Evaluation metrics - for example, a custom metric evaluating docking of a potential drug with a protein target
-* Loss functions - for example, a custom segmentation evaluation loss
+* [Data pipeline operations](./fuse/data) - for example, a 3d affine transformation of a 3d image
+* [Evaluation metrics](./fuse/eval) - for example, a custom metric evaluating docking of a potential drug with a protein target
+* [Loss functions](./fuse/dl) - for example, a custom segmentation evaluation loss
 
 The recommended directory structure mimics fuse-med-ml core structure
 ```
@@ -166,23 +162,32 @@ There's no need to wait for any approval, you can create domain extensions on yo
 Note - in general, we find it helpful to follow the same directory structure shown above even in small and specific research projects that use FuseMedML for consistency and easy landing for newcomers into your project :)
  
 # Installation
-The best way to install `FuseMedML` is to clone the repository and install it in an editable mode using `pip`:
-```bash
-$ pip install -e .
-```
-This mode, allows to edit the source code and easily contribute back to the open-source project.
 
-In this mode  you can also install and run our end to end examples using:
+## We recommend using a Conda environment
+
+Create a conda environment using the following command (you can replace FUSEMEDML with your preferred enviornment name)
+```bash
+conda create -n FUSEMEDML python=3.7
+conda activate FUSEMEDML
+```
+FuseMedML is tested on Python >= 3.7 (3.7 is recommended) and PyTorch >= 1.5   
+
+## Option 1: Install from source (recommended)
+The best way to install `FuseMedML` is to clone the repository and install it in an [editable mode](https://pip.pypa.io/en/stable/topics/local-project-installs/#editable-installs) using `pip`:
+```bash
+$ pip install -e .[all]
+```
+This mode installs all the currently publicly available domain extensions - fuseimg as of now, fusedrug will be added soon.
+
+In this mode you can also install and run our end to end examples using:
 ```bash
 $ pip install -e examples
 ```
-An alternative, is to simply install using PyPI 
+
+## Option 2: Install from PyPI (does not include examples)
 ```bash
 $ pip install fuse-med-ml
 ```
- 
- FuseMedML supports Python 3.7 or later and PyTorch 1.5 or later. A full list of dependencies can be found in [**requirements.txt**](https://github.com/IBM/fuse-med-ml/tree/master/requirements.txt).
- 
 
 # FuseMedML from the ground up
 [**User Guide**](https://github.com/IBM/fuse-med-ml/tree/master/fuse/doc/user_guide.md) - including detailed explanation about FuseMedML modules, structure, concept, and more.
