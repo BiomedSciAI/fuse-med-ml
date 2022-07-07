@@ -38,7 +38,7 @@ import fuse.utils.gpu as GPU
 from fuse.utils.rand.seed import Seed
 from fuseimg.datasets.isic import ISIC
 
-
+@unittest.skip("temp skip")
 class ClassificationISICTestCase(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.mkdtemp()
