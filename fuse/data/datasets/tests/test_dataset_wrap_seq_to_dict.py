@@ -46,7 +46,7 @@ class TestDatasetWrapSeqToDict(unittest.TestCase):
             transforms.Normalize((0.1307,), (0.3081,))
         ])
 
-        torch_train_dataset = torchvision.datasets.MNIST(path, download=True, train=True, transform=transform)
+        torch_train_dataset = torchvision.datasets.MNIST(path, download=False, train=True, transform=transform)
         # wrapping torch dataset
         train_dataset = DatasetWrapSeqToDict(name='train', dataset=torch_train_dataset, sample_keys=('data.image', 'data.label'))
         train_dataset.create()

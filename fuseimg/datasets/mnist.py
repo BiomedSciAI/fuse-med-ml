@@ -26,9 +26,7 @@ from fuse.data import DatasetDefault
 
 class MNIST:
     """
-    2021 Kidney and Kidney Tumor Segmentation Challenge Dataset
-    KITS21 data pipeline impelemtation. See https://github.com/neheller/kits21
-    Currently including only the image and segmentation map
+    FuseMedML style of MNIST dataset: http://yann.lecun.com/exdb/mnist/ 
     """
     # bump whenever the static pipeline modified
     MNIST_DATASET_VER = 0
@@ -47,7 +45,7 @@ class MNIST:
             transforms.Normalize((0.1307,), (0.3081,))
         ])
         # Create dataset
-        torch_train_dataset = torchvision.datasets.MNIST(cache_dir, download=True, train=train, transform=transform)
+        torch_train_dataset = torchvision.datasets.MNIST(cache_dir, download=cache_dir is not None, train=train, transform=transform)
         # wrapping torch dataset
         train_dataset = DatasetWrapSeqToDict(name=f'mnist-{train}', dataset=torch_train_dataset, sample_keys=('data.image', 'data.label'))
         train_dataset.create()
