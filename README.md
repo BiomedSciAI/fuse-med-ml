@@ -163,6 +163,8 @@ Note - in general, we find it helpful to follow the same directory structure sho
  
 # Installation
 
+FuseMedML is tested on Python >= 3.7 (3.7 is recommended) and PyTorch >= 1.5   
+
 ## We recommend using a Conda environment
 
 Create a conda environment using the following command (you can replace FUSEMEDML with your preferred enviornment name)
@@ -170,7 +172,10 @@ Create a conda environment using the following command (you can replace FUSEMEDM
 conda create -n FUSEMEDML python=3.7
 conda activate FUSEMEDML
 ```
-FuseMedML is tested on Python >= 3.7 (3.7 is recommended) and PyTorch >= 1.5   
+
+and then do Option 1 or Option 2 below inside the activated conda env 
+
+
 
 ## Option 1: Install from source (recommended)
 The best way to install `FuseMedML` is to clone the repository and install it in an [editable mode](https://pip.pypa.io/en/stable/topics/local-project-installs/#editable-installs) using `pip`:
@@ -190,13 +195,10 @@ $ pip install fuse-med-ml
 ```
 
 # FuseMedML from the ground up
-[**User Guide**](https://github.com/IBM/fuse-med-ml/tree/master/fuse/doc/user_guide.md) - including detailed explanation about FuseMedML modules, structure, concept, and more.
-
-[**Hello World**](https://colab.research.google.com/github/IBM/fuse-med-ml/blob/master/fuse_examples/imaging/hello_world/hello_world.ipynb) - Introductory hands-on notebook on the well-known MNIST dataset. 
-
-[**High Level Code Example**](https://github.com/IBM/fuse-med-ml/tree/master/fuse/doc/high_level_example.md) - example of binary classifier for mammography with an auxiliary segmentation loss and clinical data
 
 ## Examples
+
+* Easy access "Hello World" [colab notebook](https://colab.research.google.com/github/IBM/fuse-med-ml/blob/master/fuse_examples/imaging/hello_world/hello_world.ipynb)
 * classification
     * [**MNIST**](https://github.com/IBM/fuse-med-ml/tree/master/examples/fuse_examples/imaging/classification/mnist/)  - a simple example, including training, inference and evaluation over [MNIST dataset](http://yann.lecun.com/exdb/mnist/)
     * [**KNIGHT Challenge**](https://github.com/IBM/fuse-med-ml/tree/master/examples/fuse_examples/imaging/classification/knight) - preoperative prediction of risk class for patients with renal masses identified in clinical Computed Tomography (CT) imaging of the kidneys. Including data pre-processing, baseline implementation and evaluation pipeline for the challenge.
