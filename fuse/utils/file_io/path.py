@@ -15,7 +15,7 @@ def change_extension(filepath:str, new_extension:str):
     ans = os.path.join(os.path.dirname(filepath), _basename[:last_dot]+new_extension)
     return ans
 
-def get_extension(filepath:str)    :
+def get_extension(filepath:str) -> str:
     '''
     Returns the extension. 
     For example - get_extension('/a/b/c/d/banana.txt') will return '.txt'
