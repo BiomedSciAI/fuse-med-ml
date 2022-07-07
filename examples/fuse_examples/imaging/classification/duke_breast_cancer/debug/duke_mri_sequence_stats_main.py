@@ -1,5 +1,5 @@
-import examples.fuse_examples.imaging.classification.duke_breast_cancer.debug
-import examples.fuse_examples.imaging.classification.duke_breast_cancer.debug.duke_debug_main
+import fuse_examples.imaging.classification.duke_breast_cancer.debug
+import fuse_examples.imaging.classification.duke_breast_cancer.debug.duke_debug_main
 from fuseimg.datasets import duke
 from fuseimg.data.ops import ops_mri
 from fuse.utils.file_io.file_io import load_pickle, save_pickle_safe
@@ -28,7 +28,7 @@ def main():
     df_g = get_group_statistics(df.reset_index(), cols_2_group)
     df_g.to_csv('/user/ozery/output/duke_stats.csv', index=False)
 
-    annotations_df = examples.fuse_examples.imaging.classification.duke_breast_cancer.debug.get_duke_annotations_from_tal_df()
+    annotations_df = fuse_examples.imaging.classification.duke_breast_cancer.debug.get_duke_annotations_from_tal_df()
     df2 = df.loc[annotations_df['Patient ID']]
     df2_g = get_group_statistics(df2.reset_index(), cols_2_group)
     df2_g.to_csv('/user/ozery/output/duke_stats2.csv', index=False)

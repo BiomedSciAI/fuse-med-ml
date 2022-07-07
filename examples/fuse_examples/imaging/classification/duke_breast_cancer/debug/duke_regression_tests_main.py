@@ -4,13 +4,13 @@ import os
 import torch
 import numpy as np
 
-import examples.fuse_examples.imaging.classification.duke_breast_cancer.debug
+import fuse_examples.imaging.classification.duke_breast_cancer.debug
 import fuseimg.datasets.duke_label_type
 
 from fuse.data.utils.sample import create_initial_sample
 from fuse.data.ops import ops_cast
 from fuseimg.datasets import duke
-from examples.fuse_examples.imaging.classification import duke_breast_cancer
+from fuse_examples.imaging.classification import duke_breast_cancer
 from deepdiff import DeepDiff
 
 
@@ -61,11 +61,11 @@ def test_duke(root_path, cache_dir, sample_ids_2_test, check_dynamic, verbose=Fa
         print(f"--------------------- {sample_id}: test {s}")
         pipeline_cache_file = os.path.join(cache_dir, f'{s}_pipeline_output.pkl.gz')
         if os.path.exists(pipeline_cache_file):
-            ref_dict_obj = examples.fuse_examples.imaging.classification.duke_breast_cancer.debug.load_object(pipeline_cache_file)
+            ref_dict_obj = fuse_examples.imaging.classification.duke_breast_cancer.debug.load_object(pipeline_cache_file)
             compare_dicts(dict_obj, ref_dict_obj)
         else:
             print("\tno previous results to compare to - writing current results for future tests")
-            examples.fuse_examples.imaging.classification.duke_breast_cancer.debug.save_object(dict_obj, pipeline_cache_file)
+            fuse_examples.imaging.classification.duke_breast_cancer.debug.save_object(dict_obj, pipeline_cache_file)
             print("wrote", pipeline_cache_file)
 
 

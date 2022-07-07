@@ -1,6 +1,6 @@
 import os
 
-from examples.fuse_examples.fuse_examples_utils import get_fuse_examples_user_dir
+from fuse_examples.fuse_examples_utils import get_fuse_examples_user_dir
 
 
 def get_duke_user_dir():

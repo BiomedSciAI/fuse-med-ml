@@ -26,7 +26,7 @@ import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
 
 import fuse.utils.gpu as GPU
-from fuse_examples.fuse_examples_utils import ask_user
+from fuse_fuse_examples_utils import ask_user
 from fuse_examples.imaging.utils.backbone_3d_multichannel import Fuse_model_3d_multichannel, ResNet
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.samplers import BatchSamplerDefault

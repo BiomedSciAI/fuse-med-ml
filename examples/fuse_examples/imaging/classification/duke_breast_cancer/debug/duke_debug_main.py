@@ -1,8 +1,8 @@
 # import nibabel as nib
 
 import fuseimg.datasets.duke_label_type
-from examples.fuse_examples.imaging.classification import duke_breast_cancer
-from examples.fuse_examples.imaging.classification.duke_breast_cancer.debug import DUKE_PROCESSED_FILE_DIR, get_duke_annotations_from_tal_df, \
+from fuse_examples.imaging.classification import duke_breast_cancer
+from fuse_examples.imaging.classification.duke_breast_cancer.debug import DUKE_PROCESSED_FILE_DIR, get_duke_annotations_from_tal_df, \
     get_col_mapping
 from fuse.utils.file_io.file_io import load_pickle, save_pickle_safe
 from fuseimg.datasets import duke
