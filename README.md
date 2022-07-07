@@ -10,12 +10,14 @@
 
 A python framework accelerating ML based discovery in the medical field by encouraging code reuse. Batteries included :) 
 
-## Skip to:  
+## Jump to:  
 
-* [install instructions section](#installation)  
-* [complete code examples](#examples)  
+* install instructions [section](#installation)  
+* complete code [examples](#examples)  
 * [community support](#community-support---join-the-discussion)  
+* Contributing to FuseMedML [guide](./CONTRIBUTING.md)  
 * [citation info](#citation)  
+
 
 
 # Motivation - *"*Oh, the pain!*"*
