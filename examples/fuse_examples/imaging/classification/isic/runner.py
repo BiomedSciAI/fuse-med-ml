@@ -316,6 +316,7 @@ INFER_COMMON_PARAMS["trainer.accelerator"] = "gpu"
 # Inference Template
 ######################################
 
+
 def run_infer(paths: dict, infer_common_params: dict) -> None:
     create_dir(paths["inference_dir"])
     infer_file = os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])
