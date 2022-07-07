@@ -49,7 +49,7 @@ class TestSamplers(unittest.TestCase):
         ])
         # Create dataset
         mnist_data_path = os.environ.get("MNIST_DATA_PATH", tempfile.mkdtemp(prefix="mnist"))
-        torch_dataset = torchvision.datasets.MNIST(mnist_data_path download=True, train=True, transform=transform)
+        torch_dataset = torchvision.datasets.MNIST(mnist_data_path, download=True, train=True, transform=transform)
         print(f"torch dataset size = {len(torch_dataset)}")
 
         num_classes = 10
