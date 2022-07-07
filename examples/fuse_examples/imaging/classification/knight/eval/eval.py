@@ -98,7 +98,7 @@ def decode_results(results: NDict, output_dir: str, task1: bool, task2: bool) ->
     :param task2: if true will evaluate task2
     :return: ordered dict summarizing the results and markdown text
     """
-    results = results["metrics"]
+    results = NDict(results["metrics"])
     results_table = OrderedDict()
     # Table
     ## task1
@@ -244,7 +244,7 @@ if __name__ == "__main__":
         target_filename = os.path.join(dir_path, "example/example_targets.csv")
         task1_prediction_filename = os.path.join(dir_path, "example/example_task1_predictions.csv")
         task2_prediction_filename = os.path.join(dir_path, "example/example_task2_predictions.csv")
-        output_dir = "example/results"
+        output_dir = "example/result"
     else:
         # get arguments from sys.argv
         assert len(sys.argv) == 5, f'Error: expecting 4 input arguments, but got {len(sys.argv)-1}. Usage: python eval.py <target_filename> <task1_prediction_filename> <task2_prediction_filename> <output_dir>. See details in function eval()'

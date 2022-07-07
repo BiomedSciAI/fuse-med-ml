@@ -1,9 +1,5 @@
-import os
-import pathlib
-
 # version
-with open(os.path.join(pathlib.Path(__file__).parent, "..", "..", "VERSION.txt")) as version_file:
-    __version__ = version_file.read().strip()
+from fuse.version import __version__
 
 # import shortcuts
 from fuse.data.utils.sample import get_sample_id, set_sample_id, get_sample_id_key

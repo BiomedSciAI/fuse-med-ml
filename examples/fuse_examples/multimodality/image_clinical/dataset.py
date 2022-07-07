@@ -1,152 +1,92 @@
 
-import os
-import sys
-from typing import Callable, Optional
+from typing import Optional, Sequence, Tuple
+from fuse.data import OpBase
+from fuse.data.utils.collates import CollateDefault
+from fuse.data.utils.samplers import BatchSamplerDefault
+from fuse.data.utils.split import dataset_balanced_division_to_folds
 
-from fuse.data.visualizer.visualizer_default import VisualizerDefault
-from fuse.data.augmentor.augmentor_default import AugmentorDefault
-from fuse.data.augmentor.augmentor_toolbox import aug_op_affine, aug_op_color, aug_op_gaussian
-from fuse.data.dataset.dataset_default import DatasetDefault
-from fuse.data.sampler.sampler_balanced_batch import SamplerBalancedBatch
-from fuse.data.processor.processor_csv import ProcessorCSV
+from fuseimg.datasets.isic import ISIC
 
-from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
-from fuse_examples.tutorials.multimodality_image_clinical.download import download_and_extract_isic
 from torch.utils.data.dataloader import DataLoader
 
-sys.path.append(".")
-from .input_processor import SkinInputProcessor
-from .ground_truth_processor import SkinGroundTruthProcessor
-from .data_source import SkinDataSource
 
-def isic_2019_dataset(data_dir: str = 'data', size: int = None, reset_cache: bool = False, post_cache_processing_func: Optional[Callable] = None):
-    #data_dir = "data"
-    cache_dir = "cache"
-    augmentation_pipeline = [
-        [
-            ('data.input.image',),
-            aug_op_affine,
-            {'rotate': Uniform(-180.0, 180.0), 'translate': (RandInt(-50, 50), RandInt(-50, 50)),
-            'flip': (RandBool(0.3), RandBool(0.3)), 'scale': Uniform(0.9, 1.1)},
-            {'apply': RandBool(0.9)}
-        ],
-        [
-            ('data.input.image',),
-            aug_op_color,
-            {'add': Uniform(-0.06, 0.06), 'mul': Uniform(0.95, 1.05), 'gamma': Uniform(0.9, 1.1),
-            'contrast': Uniform(0.85, 1.15)},
-            {'apply': RandBool(0.7)}
-        ],
-        [
-            ('data.input.image',),
-            aug_op_gaussian,
-            {'std': 0.03},
-            {'apply': RandBool(0.7)}
-        ],
-    ]
-    path = os.path.join(data_dir, 'ISIC2019/ISIC_2019_Training_GroundTruth.csv')
-    train_data_source = SkinDataSource(path,
-                                           partition_file=os.path.join(data_dir, 'ISIC2019/partition.pickle'),
-                                           train=True,
-                                           size=size,
-                                           override_partition=True)
+def isic_2019_dataloaders(data_path: str, 
+                      cache_path: str, 
+                      reset_cache: bool = False, 
+                      reset_split_file: bool = False, 
+                      append_dyn_pipeline: Optional[Sequence[Tuple[OpBase, dict]]] = None, 
+                      sample_ids: Optional[Sequence[str]] = None) -> Tuple[DataLoader, DataLoader]:
+    """
+    Create train_dataloader and validation_dataloadr with specific parameters for image_clinical_multimodality tutorial
+    :param data_path: path to download the data to
+    :param cache_path: path to store the cached files
+    :param reset_cache: restart cache or not
+    :param reset_split_file: reuse previous split or create a new one.
+    :param append_dyn_pipeline: steps to append at the end of the dynamic pipeline (doesn't require recaching)
+    :param sample_ids: list of sample_ids tp include - otherwise will consider all the sample_ids
+    :return: train_dataloader and validation_dataloader
+    """
+    # internal arguments used for this example
+    n_folds = 3
+    train_folds = [0, 1]
+    validation_folds = [2]
+    batch_size = 8
+    num_workers = 4
+    data_split_filename="data_split.pkl"
+    # split to folds randomly
+    all_dataset = ISIC.dataset(data_path, cache_path, reset_cache=reset_cache,
+                               append_dyn_pipeline=append_dyn_pipeline, 
+                               num_workers=num_workers,
+                               samples_ids=sample_ids)
 
+    folds = dataset_balanced_division_to_folds(dataset=all_dataset,
+                                                output_split_filename=data_split_filename,
+                                                keys_to_balance=['data.label'],
+                                                nfolds=n_folds,
+                                                reset_split=reset_split_file)
 
-    input_processors = {
-        'image': SkinInputProcessor(input_data=os.path.join(data_dir, 'ISIC2019/ISIC_2019_Training_Input')),
-        # 'clinical': SkinClinicalProcessor(input_data=os.path.join(data_dir, 'ISIC2019/ISIC_2019_Training_Metadata.csv'))
-        'clinical': ProcessorCSV(csv_filename=os.path.join(data_dir, 'ISIC2019/ISIC_2019_Training_Metadata.csv'), sample_desc_column="image")
-    }
- 
-    gt_processors = {
-        'gt_global': SkinGroundTruthProcessor(input_data=os.path.join(data_dir, 'ISIC2019/ISIC_2019_Training_GroundTruth.csv'))
-    }
-
-    # Create data augmentation (optional)
-    augmentor = AugmentorDefault(
-        augmentation_pipeline=augmentation_pipeline)
-
-    # Create visualizer (optional)
-    visualizer = VisualizerDefault(image_name='data.input.image', label_name='data.gt.gt_global.tensor', metadata_names=["data.input.clinical"], gray_scale=False)
-
-    # Create dataset
-    train_dataset = DatasetDefault(cache_dest=cache_dir,
-                                       data_source=train_data_source,
-                                       input_processors=input_processors,
-                                       gt_processors=gt_processors,
-                                       post_processing_func=post_cache_processing_func,
-                                       augmentor=augmentor,
-                                       visualizer=visualizer)
-
-    print(f'- Load and cache data:')
-    train_dataset.create(reset_cache=reset_cache)
     
-    print(f'- Load and cache data: Done')
+    train_sample_ids = []
+    for fold in train_folds:
+        train_sample_ids += folds[fold]
+    validation_sample_ids = []
+    for fold in validation_folds:
+        validation_sample_ids += folds[fold]
 
-    ## Create sampler
-    print(f'- Create sampler:')
-    sampler = SamplerBalancedBatch(dataset=train_dataset,
-                                       balanced_class_name='data.gt.gt_global.tensor',
+    train_dataset = ISIC.dataset(data_path, cache_path, samples_ids=train_sample_ids, append_dyn_pipeline=append_dyn_pipeline, train=True)
+
+    print('- Create sampler:')
+    sampler = BatchSamplerDefault(dataset=train_dataset,
+                                       balanced_class_name='data.label',
                                        num_balanced_classes=8,
-                                       batch_size=8,
-                                       use_dataset_cache=True)
+                                       batch_size=batch_size)
+    print('- Create sampler: Done')
 
-    print(f'- Create sampler: Done')
-
-    ## Create dataloader
+    # Create dataloader
     train_dataloader = DataLoader(dataset=train_dataset,
-                                  shuffle=False, drop_last=False,
-                                  batch_sampler=sampler, collate_fn=train_dataset.collate_fn,
-                                  num_workers=8)
-    print(f'Train Data: Done', {'attrs': 'bold'})
-
-    #### Validation data
-    print(f'Validation Data:', {'attrs': 'bold'})
-
-    ## Create data source
-    validation_data_source = SkinDataSource(os.path.join(data_dir, 'ISIC2019/ISIC_2019_Training_GroundTruth.csv'),
-                                                size=size,
-                                                partition_file=os.path.join(data_dir, 'ISIC2019/partition.pickle'),
-                                                train=False)
+                                  batch_sampler=sampler,
+                                  collate_fn=CollateDefault(),
+                                  num_workers=num_workers)
 
 
-    ## Create dataset
-    validation_dataset = DatasetDefault(cache_dest=cache_dir,
-                                            data_source=validation_data_source,
-                                            input_processors=input_processors,
-                                            gt_processors=gt_processors,
-                                            post_processing_func=post_cache_processing_func,
-                                            visualizer=visualizer)
+    # dataset
+    validation_dataset = ISIC.dataset(data_path, cache_path, samples_ids=validation_sample_ids, append_dyn_pipeline=append_dyn_pipeline, train=False)
 
-    print(f'- Load and cache data:')
-    validation_dataset.create(pool_type='thread')  # use ThreadPool to create this dataset, to avoid cv2 problems in multithreading
-    print(f'- Load and cache data: Done')
-
-    ## Create dataloader
+    # dataloader
     validation_dataloader = DataLoader(dataset=validation_dataset,
-                                       shuffle=False,
-                                       drop_last=False,
-                                       batch_sampler=None,
-                                       batch_size=8,
-                                       num_workers=8,
-                                       collate_fn=validation_dataset.collate_fn)
-    print(f'Validation Data: Done', {'attrs': 'bold'})
-
+                                       batch_size=batch_size,
+                                       collate_fn=CollateDefault(),
+                                       num_workers=num_workers)
+    
     return train_dataloader, validation_dataloader
-
 
 SEX_INDEX = {
     'male': 0,
-    'female': 1
+    'female': 1,
+    'N/A': 2
 }
 ANATOM_SITE_INDEX = {
     'anterior torso': 0, 'upper extremity': 1, 'posterior torso': 2,
     'lower extremity': 3, 'lateral torso': 4, 'head/neck': 5,
-    'palms/soles': 6, 'oral/genital': 7
+    'palms/soles': 6, 'oral/genital': 7, "N/A": 8
 }
-
-if __name__ == "__main__":
-    download_and_extract_isic(golden_only=True)
-    tt, tt2 = isic_2019_dataset(reset_cache=True, size=400)
-    tt.dataset.summary(["data.gt.gt_global.tensor"])
-    tt.dataset.visualize_augmentation(0)
