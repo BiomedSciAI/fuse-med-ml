@@ -20,9 +20,6 @@ Created on June 30, 2021
 from typing import Sequence, Dict, Tuple, Callable, Optional
 
 import torch
-
-from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
-from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
 from fuse.utils.ndict import NDict
 
 

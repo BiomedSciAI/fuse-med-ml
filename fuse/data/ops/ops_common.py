@@ -1,4 +1,6 @@
-from typing import Callable, Dict, List, Optional, OrderedDict, Sequence, Tuple, Union
+import math
+import numbers
+from typing import Any, Callable, Dict, List, Optional, OrderedDict, Sequence, Tuple, Union
 from fuse.data.key_types import TypeDetectorBase
 import copy
 from enum import Enum
@@ -427,4 +429,22 @@ class OpConcat(OpBase):
         values = [v if len(v.shape) > 0 else np.expand_dims(v, axis=0) for v in values]
         sample_dict[key_out] = np.concatenate(values, axis=axis)
 
+        return sample_dict
+
+
+class OpOverrideNaN(OpBase):
+    """
+    Override missing values (value equals to nan)
+    """
+    def __call__(self, sample_dict: NDict, key: str, value_to_fill: Any) -> NDict:
+        assert key in sample_dict, f"Error: missing {key}, available keys {sample_dict.keypaths()} "
+        if isinstance(sample_dict[key], numbers.Number) and math.isnan(sample_dict[key]):
+            sample_dict[key] = value_to_fill
+        return sample_dict
+        
+class OpZScoreNorm(OpBase):
+    
+    def __call__(self, sample_dict: NDict, key: str, mean: float,
+                           std: float):
+        sample_dict[key] = (sample_dict[key]-mean)/std
         return sample_dict

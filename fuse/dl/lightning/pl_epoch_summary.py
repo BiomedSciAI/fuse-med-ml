@@ -86,7 +86,7 @@ Stats for epoch: 9 (best tpoch is 7 for source validation.metrics.accuracy!)
                 pass
             return val_as_str
 
-        stats_table = pd.DataFrame(columns=['', f'Best Epoch ({epoch_source_index})', f'Current Epoch ({self._best_epoch_index})'])
+        stats_table = pd.DataFrame(columns=['', f'Best Epoch ({self._best_epoch_index})', f'Current Epoch ({epoch_source_index})'])
         idx = 0
 
         eval_keys = sorted(epoch_metircs.keys())

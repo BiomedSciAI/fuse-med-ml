@@ -22,8 +22,6 @@ from typing import Sequence, Dict, Tuple
 import torch
 
 from fuse.dl.models import ModelMultiHead
-from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
-from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
 from fuse.utils.ndict import NDict
 
 
@@ -33,10 +31,9 @@ class ModelSiamese(ModelMultiHead):
     """
 
     def __init__(self,
+                 conv_inputs_0: Tuple[Tuple[str, int], ...], 
+                 conv_inputs_1: Tuple[Tuple[str, int], ...],
                  backbone: torch.nn.Module,
-                 conv_inputs_0: Tuple[Tuple[str, int], ...] = None, 
-                 conv_inputs_1: Tuple[Tuple[str, int], ...] = None,
-                 #backbone: torch.nn.Module ,
                  heads: Sequence[torch.nn.Module] = None,
                  ) -> None:
         """

@@ -26,28 +26,26 @@ from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 from fuse.utils.rand.seed import Seed
 import fuse.utils.gpu as GPU
 
-from fuse_examples.imaging.classification.mnist.run_mnist import TRAIN_COMMON_PARAMS, run_train, run_infer, run_eval
+from fuse_examples.imaging.classification.mnist.run_mnist import EVAL_COMMON_PARAMS, INFER_COMMON_PARAMS, TRAIN_COMMON_PARAMS, run_train, run_infer, run_eval
 
 class ClassificationMnistTestCase(unittest.TestCase):
 
     def setUp(self):
         self.root = tempfile.mkdtemp()
-
+        model_dir = os.path.join(self.root, 'model_dir')
         self.paths = {
-            'model_dir': os.path.join(self.root, 'mnist/model_dir'),
+            'model_dir': model_dir,
             'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
-            'cache_dir': os.path.join(self.root, 'mnist/cache_dir'),
-            'eval_dir': os.path.join(self.root, 'mnist/eval_dir')}
+            'cache_dir': os.path.join(self.root, 'cache_dir'),
+            'inference_dir': os.path.join(model_dir, 'infer_dir'),
+            'eval_dir': os.path.join(model_dir, 'eval_dir')}
 
 
         self.train_common_params = TRAIN_COMMON_PARAMS
 
-        self.infer_common_params = {}
-        self.infer_common_params['infer_filename'] = os.path.join(self.paths["model_dir"], 'infer.gz')
-        self.infer_common_params['checkpoint'] = os.path.join(self.paths["model_dir"], "best_epoch.ckpt")
+        self.infer_common_params = INFER_COMMON_PARAMS
 
-        self.eval_common_params = {}
-        self.eval_common_params['infer_filename'] = self.infer_common_params['infer_filename']
+        self.eval_common_params = EVAL_COMMON_PARAMS
 
     
     @run_in_subprocess()
