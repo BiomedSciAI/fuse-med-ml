@@ -33,3 +33,6 @@ medpy
 pytorch_lightning
 hydra-core
 omegaconf
+mypy
+flake8
+black

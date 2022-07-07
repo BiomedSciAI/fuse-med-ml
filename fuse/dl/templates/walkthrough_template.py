@@ -22,12 +22,11 @@ from typing import OrderedDict
 import logging
 
 import torch.optim as optim
-
 from torch.utils.data.dataloader import DataLoader
+
 from fuse.utils.utils_debug import FuseDebug
 import fuse.utils.gpu as GPU
 from fuse.utils.utils_logger import fuse_logger_start
-
 
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuse.data.datasets.dataset_default import DatasetDefault
@@ -36,9 +35,6 @@ from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.samplers import BatchSamplerDefault
 
 from fuse.dl.models import ModelMultiHead
-from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
-from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
-from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
 from fuse.dl.managers.manager_default import ManagerDefault
 
 from fuse.eval.evaluator import EvaluatorDefault
