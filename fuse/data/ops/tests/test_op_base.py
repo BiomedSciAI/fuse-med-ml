@@ -25,7 +25,7 @@ class TestOpBase(unittest.TestCase):
 
     def test_op_base(self):
         class OpImp(OpBase):            
-            def __call__(self, sample_dict: NDict, op_id: str, **kwargs) -> Union[None, dict, List[dict]]:
+            def __call__(self, sample_dict: NDict, **kwargs) -> Union[None, dict, List[dict]]:
                 sample_dict["data.cc.seg_for_testing"] = 5
                 return sample_dict
 

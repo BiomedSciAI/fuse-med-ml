@@ -28,7 +28,7 @@ class OpBasicSetter(OpBase):
     def __init__(self):
         super().__init__()
     
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key, set_key_to_val, **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, key, set_key_to_val, **kwargs) -> Union[None, dict, List[dict]]:
         sample_dict[key] = set_key_to_val
         return sample_dict            
 

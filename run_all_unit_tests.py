@@ -26,12 +26,15 @@ if __name__ == '__main__':
     output = f"{search_base}/test-reports/"
     print('will generate unit tests output xml at :',output)
 
-    sub_sections_core = [("fuse/dl", search_base), ("fuse/eval", search_base), ("fuse/utils", search_base), ("fuseimg", search_base)]
+    sub_sections_core = [("fuse/dl", search_base), ("fuse/eval", search_base), ("fuse/utils", search_base), ("fuse/data", search_base)]
+    sub_sections_fuseimg = [("fuseimg", search_base)]
     sub_sections_examples = [("examples/fuse_examples/tests", os.path.join(search_base, "examples"))] 
     if mode is None:
-        sub_sections = sub_sections_core + sub_sections_examples
+        sub_sections = sub_sections_core + sub_sections_fuseimg + sub_sections_examples
     elif mode == "core":
         sub_sections = sub_sections_core
+    elif mode == "fuseimg":
+        sub_sections = sub_sections_fuseimg
     elif mode == "examples":
         sub_sections = sub_sections_examples
     else:

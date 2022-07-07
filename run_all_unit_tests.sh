@@ -19,7 +19,12 @@ create_env() {
     env_path=$2
     mode=$3
 
-    requirements=$(cat requirements.txt)
+    requirements=$(cat fuse/requirements.txt)
+    
+    if [ $mode = "fuseimg" ]; then
+        requirements+=$(cat fuseimg/requirements.txt)
+    fi
+
     if [ $mode = "examples" ]; then
         requirements+=$(cat examples/requirements.txt)
     fi
@@ -65,8 +70,14 @@ create_env() {
 
             # install local repository (fuse-med-ml)
             echo "Installing core requirements"
-            conda run $env --no-capture-output --live-stream pip install -r requirements.txt
+            conda run $env --no-capture-output --live-stream pip install -r fuse/requirements.txt
             echo "Installing core requirements - Done"
+
+            if [ $mode = "fusimg" ] || [ $mode = "examples" ]; then
+                echo "Installing fusimg requirements"
+                conda run $env --no-capture-output --live-stream pip install -r fuseimg/requirements.txt
+                echo "Installing fusimg requirements - Done"
+            fi
 
             if [ $mode = "examples" ]; then
                 echo "Installing examples requirements"
@@ -102,6 +113,14 @@ echo "Create core env - Done"
 
 echo "Running core unittests in $ENV_TO_USE"
 conda run $env --no-capture-output --live-stream python ./run_all_unit_tests.py core
+echo "Running core unittests - Done"
+
+echo "Create core env"
+create_env $force_cuda_version $env_path "fuseimg"
+echo "Create core env - Done"
+
+echo "Running core unittests in $ENV_TO_USE"
+conda run $env --no-capture-output --live-stream python ./run_all_unit_tests.py fuseimg
 echo "Running core unittests - Done"
 
 echo "Create examples env"

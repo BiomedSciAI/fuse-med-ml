@@ -34,8 +34,8 @@ class TestOpsRead(unittest.TestCase):
         """
         data = {
             "sample_id": ["a", "b", "c", "d"],
-            "value1": [10, 7, 3, 9],
-            "value2": ["5", "4", "3", "2"]
+            "data.value1": [10, 7, 3, 9],
+            "data.value2": ["5", "4", "3", "2"]
         }
         df = pd.DataFrame(data)
         op = OpReadDataframe(data=df)
@@ -50,7 +50,7 @@ class TestOpsRead(unittest.TestCase):
         self.assertEqual(sample_dict["data.value2"], "3")
        
 
-        op = OpReadDataframe(data=df, columns_to_extract=["sample_id", "value2"])
+        op = OpReadDataframe(data=df, columns_to_extract=["sample_id", "data.value2"])
         sample_dict = NDict({
             "data":
             {
@@ -61,7 +61,7 @@ class TestOpsRead(unittest.TestCase):
         self.assertFalse("data.value1" in sample_dict)
         self.assertEqual(sample_dict["data.value2"], "3")
 
-        op = OpReadDataframe(data=df, columns_to_extract=["sample_id", "value2"], rename_columns={"value2": "value3"})
+        op = OpReadDataframe(data=df, columns_to_extract=["sample_id", "data.value2"], rename_columns={"data.value2": "data.value3"})
         sample_dict = NDict({
             "data":
             {

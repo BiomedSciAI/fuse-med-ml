@@ -12,13 +12,22 @@ HERE = pathlib.Path(__file__).parent
 with open(os.path.join(HERE, "README.md"), "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-# list of requirements
-requirements = []
-with open(os.path.join(HERE, 'requirements.txt'), 'r') as fh:
+# list of requirements for core packages
+fuse_requirements = []
+with open(os.path.join(HERE, 'fuse/requirements.txt'), 'r') as fh:
     for line in fh:
         if not line.startswith('#'):
-            requirements.append(line.strip())
+            fuse_requirements.append(line.strip())
 
+# list of requirements for fuseimg
+fuseimg_requirements = []
+with open(os.path.join(HERE, 'fuseimg/requirements.txt'), 'r') as fh:
+    for line in fh:
+        if not line.startswith('#'):
+            fuseimg_requirements.append(line.strip())
+
+# all extra requires
+all_requirements = fuseimg_requirements
 # version
 from fuse.version import __version__
 version = __version__
@@ -33,5 +42,6 @@ setup(name='fuse-med-ml',
       author_email='moshiko.raboh@ibm.com',
       packages=find_namespace_packages(),
       license='Apache License 2.0',
-      install_requires=requirements
+      install_requires=fuse_requirements,
+      extras_requires={"fuseimg": fuseimg_requirements, "all": all_requirements},
       )

@@ -4,7 +4,7 @@ import enum
 
 from fuse.utils.ndict import NDict
 from fuse.data.visualizer.visualizer_base import VisualizerBase
-from .op_base import OpBase
+from .op_base import OpBase, OpReversibleBase
 from fuse.data.key_types import TypeDetectorBase
 
 class VisFlag(enum.IntFlag):
@@ -18,7 +18,7 @@ class VisFlag(enum.IntFlag):
     REVERSE = 128       #visualization operation will be activated on reverse pipeline execution flow
     SHOW_ALL_COLLECTED = 256 #show comparison of all previuosly collected states
 
-class VisProbe(OpBase):
+class VisProbe(OpReversibleBase):
     """
     Handle visualization, saves, shows and compares the sample with respect to the current state inside a pipeline
     In most cases VisProbe can be used regardless of the domain, and the domain specific code will be implemented 

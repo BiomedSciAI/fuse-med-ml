@@ -132,8 +132,8 @@ class TestSamplers(unittest.TestCase):
         # datainfo
         data = {
             "sample_id": ["a", "b", "c", "d", "e"],
-            "values": [7, 4, 9, 2, 4],
-            "class": [0, 1, 2, 0, 0],
+            "data.values": [7, 4, 9, 2, 4],
+            "data.class": [0, 1, 2, 0, 0],
         }
         df = pds.DataFrame(data)
 

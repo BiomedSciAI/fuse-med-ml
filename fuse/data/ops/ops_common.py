@@ -274,7 +274,7 @@ class OpApplyTypes(OpReversibleBase):
             op_kwargs.update(op_kwargs_to_add)
             if 'key' in op_kwargs:
                 raise Exception('OpApplyTypes::"key" is already found in kwargs. Are you calling OpApplyTypes from within OpApplyTypes? it is not supported.')
-            sample_dict = op_call(op, sample_dict, f"{op_id}_{key}", key, **op_kwargs)
+            sample_dict = op_call(op, sample_dict, f"{op_id}_{key}", key=key, **op_kwargs)
 
             assert not isinstance(sample_dict, list), f"splitting samples within {type(self).__name__} operation is not supported"
             
@@ -294,7 +294,7 @@ class OpApplyTypes(OpReversibleBase):
         if op is None:
             return
 
-        sample_dict = op_call(op, sample_dict, key_to_reverse, key_to_follow, f"{op_id}_{key_to_follow}")
+        sample_dict = op_reverse(op, sample_dict, key_to_reverse, key_to_follow, f"{op_id}_{key_to_follow}")
 
         return sample_dict
 

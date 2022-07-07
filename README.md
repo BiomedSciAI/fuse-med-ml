@@ -44,11 +44,7 @@ If you use FuseMedML in scientific context, please consider citing us:
 ```
 # Installation
 The best way to install `FuseMedML` is to clone the repository and install it in an editable mode using `pip`:
-```bash
-$ pip install -e .
-```
-This mode, allows to edit the source code and easily contribute back to the open-source project.
-
+git 
 In this mode  you can also install and run our end to end examples using:
 ```bash
 $ pip install -e examples
