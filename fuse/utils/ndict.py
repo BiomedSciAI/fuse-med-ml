@@ -160,12 +160,18 @@ class NDict(dict):
             
         return value
 
-    def __setitem__(self, key: str, value: Any):
+    def __setitem__(self, key: str, value: Any) -> None:
         """
         go over the the dictionary according to the path, create the nodes that does not exist
         :param key: the keypath
         :param value: value to set
         """
+        # if value is dictionary add to self key by key to avoid from keys with delimeter "."
+        if isinstance(value, dict):
+            for sub_key in value:
+                self[f"{key}.{sub_key}"] = value[sub_key]
+            return
+
         nested_key = key.split('.')
         element = self._stored
         for key in nested_key[:-1]:
