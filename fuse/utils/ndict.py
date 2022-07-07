@@ -173,7 +173,7 @@ class NDict(dict):
                 self[f"{key}.{sub_key}"] = value[sub_key]
             return
 
-        nested_key = key.split('.')
+        nested_key = key.split(".")
         element = self._stored
         for key in nested_key[:-1]:
             if key not in element:
