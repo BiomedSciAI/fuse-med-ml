@@ -107,20 +107,37 @@ class Cast:
         return value
 
     @staticmethod
-    def to(value: Any, type_name: str) -> Any:
+    def to(value: Any, type_name: str, **kwargs) -> Any:
         """
         Convert any type to type specified in type_name
         """
 
         if type_name == "ndarray":
-            return Cast.to_numpy(value)
+            return Cast.to_numpy(value, **kwargs)
         if type_name == "Tensor":
-            return Cast.to_tensor(value)
+            return Cast.to_tensor(value, **kwargs)
         if type_name == "float":
-            return Cast.to_float(value)
+            return Cast.to_float(value, **kwargs)
         if type_name == "int":
-            return Cast.to_int(value)
+            return Cast.to_int(value, **kwargs)
         if type_name == "list":
+            return Cast.to_list(value, **kwargs)
+    
+    @staticmethod
+    def like(value: Any, like_value: Any) -> Any:
+        """
+        Convert any type to type specified in type_name
+        """
+
+        if isinstance(like_value, np.ndarray):
+            return Cast.to_numpy(value, dtype=like_value.dtype)
+        if isinstance(like_value, torch.Tensor):
+            return Cast.to_tensor(value, dtype=like_value.dtype, device=like_value.device)
+        if isinstance(like_value, float):
+            return Cast.to_float(value)
+        if isinstance(like_value, int):
+            return Cast.to_int(value)
+        if isinstance(like_value, list):
             return Cast.to_list(value)
 
 

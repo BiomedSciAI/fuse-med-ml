@@ -2,6 +2,7 @@ from typing import List, Optional
 from fuse.data.ops.op_base import OpBase
 from fuse.utils.ndict import NDict
 from fuse.utils.rand.param_sampler import Gaussian
+from fuse.data.ops.ops_cast import Cast
 from fuseimg.data.ops.color import OpClip
 from torch import Tensor
 import torch
@@ -125,9 +126,12 @@ class OpAugGaussian(OpBase):
         aug_tensor = aug_input
         if channels is None:
             rand_patch = Gaussian(aug_tensor.shape, mean, std).sample()
+            rand_patch = Cast.like(rand_patch, aug_tensor)
             aug_tensor = aug_tensor + rand_patch
+
         else:
             rand_patch = Gaussian(aug_tensor[channels].shape, mean, std).sample()
+            rand_patch = Cast.like(rand_patch, aug_tensor)
             aug_tensor[channels] = aug_tensor[channels] + rand_patch
         
         sample_dict[key] = aug_tensor

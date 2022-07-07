@@ -167,7 +167,13 @@ class NDict(dict):
         :param key: the keypath
         :param value: value to set
         """
-        nested_key = key.split(".")
+        # if value is dictionary add to self key by key to avoid from keys with delimeter "."
+        if isinstance(value, dict):
+            for sub_key in value:
+                self[f"{key}.{sub_key}"] = value[sub_key]
+            return
+
+        nested_key = key.split('.')
         element = self._stored
         for key in nested_key[:-1]:
             if key not in element:
