@@ -6,5 +6,4 @@ SimpleITK>=1.2.0
 opencv-python<=4.3.0.36 
 pydicom
 nibabel
-pycocotools>=2.0.1
 medpy

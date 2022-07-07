@@ -26,3 +26,5 @@ ipykernel
 pytorch_lightning
 hydra-core
 omegaconf
+pycocotools>=2.0.1
+
