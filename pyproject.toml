@@ -1,0 +1,62 @@
+[tool.black]
+line-length = 120
+
+exclude = """
+    ^/(
+    ##### examples/
+    examples/fuse_examples/imaging/classification/bright
+    | examples/fuse_examples/imaging/classification/cmmd
+    | examples/fuse_examples/imaging/classification/duke_breast_cancer
+    | examples/fuse_examples/imaging/classification/knight
+    | examples/fuse_examples/imaging/classification/mnist
+    | examples/fuse_examples/imaging/classification/prostate_x
+    | examples/fuse_examples/imaging/classification/stoic21
+
+    | examples/fuse_examples/multimodality/
+
+    | examples/fuse_examples/tests/
+
+    
+    ##### fuse
+    | fuse/data
+    | fuse/dl
+    | fuse/docs
+    | fuse/eval
+    | fuse/losses
+    | fuse/managers
+    | fuse/models
+    | fuse/tests
+
+    #### fuse/utils
+    | fuse/utils/config_tools
+    | fuse/utils/cpu_profiling
+    | fuse/utils/data
+    | fuse/utils/dl
+    | fuse/utils/file_io
+    | fuse/utils/imaging
+    | fuse/utils/misc
+    | fuse/utils/multiprocessing
+    | fuse/utils/rand
+    | fuse/utils/remote_execution
+    | fuse/utils/tests
+    | fuse/utils/add_preamble.py
+    | fuse/utils/gpu.py
+    | fuse/utils/utils_debug.py
+    | fuse/utils/utils_hierarchical_dict.py
+    | fuse/utils/utils_logger.py
+
+    ##### fuseimg/
+    | fuseimg/data
+    | fuseimg/utils
+
+    #### fuseimg/datasets
+    | fuseimg/datasets/tests
+    | fuseimg/datasets/kits21_example.ipynb
+    | fuseimg/datasets/kits21.py
+    | fuseimg/datasets/mnist.py
+    | fuseimg/datasets/stoic21.py
+    )
+
+    # Global files
+    | setup.py
+"""

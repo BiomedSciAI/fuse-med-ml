@@ -578,7 +578,7 @@ class ManagerDefault:
 
         # average losses into mean_loss
         if 'losses' in epoch_results:
-            for loss in epoch_results['losses'].keypaths():
+            for loss in epoch_results['losses'].keys():
                 batch_losses = epoch_results['losses.' + loss]
                 loss_mean = np.nansum(batch_losses) / len(batch_losses)
                 epoch_results["losses." + loss] = loss_mean
