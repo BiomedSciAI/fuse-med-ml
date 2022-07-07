@@ -43,5 +43,5 @@ setup(name='fuse-med-ml',
       packages=find_namespace_packages(),
       license='Apache License 2.0',
       install_requires=fuse_requirements,
-      extras_requires={"fuseimg": fuseimg_requirements, "all": all_requirements},
+      extras_require={"fuseimg": fuseimg_requirements, "all": all_requirements},
       )

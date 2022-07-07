@@ -34,12 +34,12 @@ class OpSetForTest(OpReversibleBase):
 
 
 class OpNoneForTest(OpBase):
-    def __call__(self, sample_dict: NDict, op_id: str, **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, **kwargs) -> Union[None, dict, List[dict]]:
         return None
 
 
 class OpSplitForTest(OpBase):
-    def __call__(self, sample_dict: NDict, op_id: str, **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, **kwargs) -> Union[None, dict, List[dict]]:
         sample_id = sample_dict['data.sample_id']
         samples = []
         split_num = 10

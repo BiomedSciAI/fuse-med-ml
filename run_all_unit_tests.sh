@@ -21,7 +21,7 @@ create_env() {
 
     requirements=$(cat fuse/requirements.txt)
     
-    if [ $mode = "fuseimg" ]; then
+    if [ $mode = "fuseimg" ] || [ $mode = "examples" ]; then
         requirements+=$(cat fuseimg/requirements.txt)
     fi
 
@@ -115,13 +115,13 @@ echo "Running core unittests in $ENV_TO_USE"
 conda run $env --no-capture-output --live-stream python ./run_all_unit_tests.py core
 echo "Running core unittests - Done"
 
-echo "Create core env"
+echo "Create fuseimg env"
 create_env $force_cuda_version $env_path "fuseimg"
-echo "Create core env - Done"
+echo "Create fuseimg env - Done"
 
-echo "Running core unittests in $ENV_TO_USE"
+echo "Running fuseimg unittests in $ENV_TO_USE"
 conda run $env --no-capture-output --live-stream python ./run_all_unit_tests.py fuseimg
-echo "Running core unittests - Done"
+echo "Running fuseimg unittests - Done"
 
 echo "Create examples env"
 create_env $force_cuda_version $env_path "examples"
