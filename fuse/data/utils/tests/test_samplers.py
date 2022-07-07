@@ -18,6 +18,7 @@ Created on June 30, 2021
 """
 
 import os
+import tempfile
 import unittest
 import pandas as pds
 import numpy as np
@@ -47,7 +48,8 @@ class TestSamplers(unittest.TestCase):
             transforms.Normalize((0.1307,), (0.3081,))
         ])
         # Create dataset
-        torch_dataset = torchvision.datasets.MNIST(download=False, train=True, transform=transform)
+        mnist_data_path = os.environ.get("MNIST_DATA_PATH", tempfile.mkdtemp(prefix="mnist"))
+        torch_dataset = torchvision.datasets.MNIST(mnist_data_path download=True, train=True, transform=transform)
         print(f"torch dataset size = {len(torch_dataset)}")
 
         num_classes = 10
@@ -91,7 +93,8 @@ class TestSamplers(unittest.TestCase):
             transforms.Normalize((0.1307,), (0.3081,))
         ])
         # Create dataset
-        torch_dataset = torchvision.datasets.MNIST('/tmp/mnist', download=True, train=True, transform=transform)
+        mnist_data_path = os.environ.get("MNIST_DATA_PATH", tempfile.mkdtemp(prefix="mnist"))
+        torch_dataset = torchvision.datasets.MNIST(mnist_data_path, download=True, train=True, transform=transform)
         print(f"torch dataset size = {len(torch_dataset)}")
 
         num_classes = 10
