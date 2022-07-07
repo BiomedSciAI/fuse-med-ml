@@ -52,8 +52,7 @@ from fuse.eval.evaluator import EvaluatorDefault
 # (2) Model
 # (3) Losses
 # (4) Metrics and Evaluation - detailed README file can be found at [fuse/eval](../../fuse/eval)
-# (5) Callbacks
-# (6) Manager
+# TODO: Added PL part
 #
 # The template will create each of those building blocks and will eventually run Manager.train()
 #
@@ -110,10 +109,9 @@ TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 8
 TRAIN_COMMON_PARAMS['data.cache_num_workers'] = 10
 
 # ===============
-# Manager - Train
+# Manager - Train # TODO: Deleted 
 # ===============
 TRAIN_COMMON_PARAMS['manager.train_params'] = {
-    'num_epochs': 100,
     'virtual_batch_size': 1,  # number of batches in one virtual batch
     'start_saving_epochs': 10,  # first epoch to start saving checkpoints from
     'gap_between_saving_epochs': 5,  # number of epochs between saved checkpoint
@@ -123,9 +121,21 @@ TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = {
     'source': 'TODO',  # can be any key from 'epoch_results' (either metrics or losses result)
     'optimization': 'max',  # can be either min/max
 }
-TRAIN_COMMON_PARAMS['manager.learning_rate'] = 1e-4
-TRAIN_COMMON_PARAMS['manager.weight_decay'] = 0.001
 TRAIN_COMMON_PARAMS['manager.resume_checkpoint_filename'] = None  # if not None, will try to load the checkpoint
+
+# ===============
+# PL Trainer
+# ===============
+TRAIN_COMMON_PARAMS['trainer.num_epochs'] = 100
+TRAIN_COMMON_PARAMS['trainer.num_devices'] = 1
+TRAIN_COMMON_PARAMS['trainer.accelerator'] = "gpu"
+TRAIN_COMMON_PARAMS['trainer.ckpt_path'] = None
+
+# ===============
+# Optimizer
+# ===============
+TRAIN_COMMON_PARAMS['opt.lr'] = 1e-4
+TRAIN_COMMON_PARAMS['opt.weight_decay'] = 1e-3
 
 
 #################################
@@ -185,7 +195,6 @@ def train_template(paths: dict, train_common_params: dict):
     validation_dynamic_pipeline = PipelineDefault("template_dynamic", [
 
     ])
-
 
     # Create dataset
     cacher = SamplesCacher(f'template_cache', 
@@ -297,22 +306,8 @@ def train_template(paths: dict, train_common_params: dict):
 
     ])
         
-    # ==========================================================================================================
-    #  Callbacks
-    #  Callbacks are sub-classes of CallbackBase.
-    #  A callback is an object that can perform actions at various stages of training,
-    #  In each stage it allows to manipulate either the data, batch_dict or epoch_results.
-    # ==========================================================================================================
-    callbacks = [
-        # Fuse TIPs: add additional callbacks here
-        # default callbacks
-        TensorboardCallback(model_dir=paths['model_dir']),  # save statistics for tensorboard
-        MetricStatisticsCallback(output_path=paths['model_dir'] + "/metrics.csv"),  # save statistics in a csv file
-        TimeStatisticsCallback(num_epochs=train_common_params['manager.train_params']['num_epochs'], load_expected_part=0.1)  # time profiler
-    ]
-
     # =====================================================================================
-    #  Manager - Train
+    #  Manager - Train TODO sagi
     #  Create a manager, training objects and run a training process.
     # =====================================================================================
     lgr.info('Train:', {'attrs': 'bold'})

@@ -111,23 +111,6 @@ TRAIN_COMMON_PARAMS['opt.weight_decay'] = 1e-3
 # ===============
 TRAIN_COMMON_PARAMS['model'] = dict(dropout_rate=0.5)
 
-# ===============
-# Manager - Train
-# ===============
-# TRAIN_COMMON_PARAMS['manager.train_params'] = {
-#     'virtual_batch_size': 1,  # number of batches in one virtual batch
-#     'start_saving_epochs': 20,  # first epoch to start saving checkpoints from
-#     'gap_between_saving_epochs': 10,  # number of epochs between saved checkpoint
-# }
-# # best_epoch_source
-# # if an epoch values are the best so far, the epoch is saved as a checkpoint.
-# TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = {
-#     'source': 'metrics.auc.macro_avg',  # can be any key from 'epoch_results'
-#     'optimization': 'max',  # can be either min/max
-#     'on_equal_values': 'better',
-#     # can be either better/worse - whether to consider best epoch when values are equal
-# }
-# TRAIN_COMMON_PARAMS['manager.resume_checkpoint_filename'] = None  # if not None, will try to load the checkpoint
 
 def create_model(dropout_rate: float) -> torch.nn.Module:
     """ 
