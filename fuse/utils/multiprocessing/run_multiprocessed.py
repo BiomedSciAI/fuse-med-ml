@@ -246,18 +246,18 @@ def get_from_global_storage(key: str) -> Any:
 
 class Process(mp.Process):
     def __init__(self, *args, **kwargs):
-        mp.Process.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._pconn, self._cconn = mp.Pipe()
         self._exception = None
 
     def run(self):
         try:
-            mp.Process.run(self)
+            super().run()
             self._cconn.send(None)
         except Exception as e:
             tb = traceback.format_exc()
             self._cconn.send((e, tb))
-            # raise e  # You can still rise this exception if you need to
+            raise e  # You can still rise this exception if you need to
 
     @property
     def exception(self):
@@ -296,3 +296,12 @@ def run_in_subprocess(timeout: int = 600):
 
         return wrapper
     return inner
+
+
+if __name__ == '__main__':
+    @run_in_subprocess()
+    def problematic_func():
+        print("in problematic_func")
+        raise ValueError('Fake Error!!!')
+
+    problematic_func()
