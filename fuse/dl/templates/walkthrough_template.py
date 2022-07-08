@@ -51,7 +51,7 @@ from fuse.eval.evaluator import EvaluatorDefault
 # (2) Model
 # (3) Losses
 # (4) Metrics and Evaluation - detailed README file can be found at [fuse/eval](../../fuse/eval)
-# TODO: Added PL part
+# TODO SAGI: Added PL part
 #
 # The template will create each of those building blocks and will eventually run Manager.train()
 #
@@ -106,21 +106,6 @@ TRAIN_COMMON_PARAMS['data.batch_size'] = 2
 TRAIN_COMMON_PARAMS['data.train_num_workers'] = 8
 TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 8
 TRAIN_COMMON_PARAMS['data.cache_num_workers'] = 10
-
-# ===============
-# Manager - Train # TODO: Delete
-# ===============
-TRAIN_COMMON_PARAMS['manager.train_params'] = {
-    'virtual_batch_size': 1,  # number of batches in one virtual batch
-    'start_saving_epochs': 10,  # first epoch to start saving checkpoints from
-    'gap_between_saving_epochs': 5,  # number of epochs between saved checkpoint
-    'lr_sch_target': "train.losses.total_loss" # key to a value in epoch results dictionary to pass to the learning rate scheduler. (typically: 'validation.losses.total_loss' or 'train.losses.total_loss')
-}
-TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = {
-    'source': 'TODO',  # can be any key from 'epoch_results' (either metrics or losses result)
-    'optimization': 'max',  # can be either min/max
-}
-TRAIN_COMMON_PARAMS['manager.resume_checkpoint_filename'] = None  # if not None, will try to load the checkpoint
 
 # ===============
 # PL Trainer
@@ -300,8 +285,8 @@ def run_train(paths: dict, train_common_params: dict):
     # Metrics - details can be found in (fuse/eval/README.md)[../../fuse/eval/README.md]
     #   1. Create seperately for train and validation (might be a deep copy, but not a shallow one).
     #   2. Set best_epoch_source:
-    #       monitor: # TODO: ELABORATE
-    #       mode: # TODO: ELABORATE
+    #       monitor: # TODO SAGI: ELABORATE
+    #       mode: # TODO SAGI: ELABORATE
     # =========================================================================================================
     train_metrics = OrderedDict([
         # TODO add metrics here (<name>, <instance of MetricBase>)
@@ -397,10 +382,11 @@ def run_infer(paths: dict, infer_common_params: dict):
     pl_module = LightningModuleDefault.load_from_checkpoint(
         checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True
     )
-    # set the prediction keys to extract (the ones used be the evaluation function).
-    pl_module.set_predictions_keys(["model.output.head_0", "data.label"])  # which keys to extract and dump into file
 
-    # create a trainer instance
+    # set the prediction keys to extract (the ones used be the evaluation function). TODO SAGI
+    pl_module.set_predictions_keys(["<key>", "<key>"])  # which keys to extract and dump into file
+
+    # create a trainer instance and predict
     pl_trainer = pl.Trainer(
         default_root_dir=paths["model_dir"],
         accelerator=infer_common_params["trainer.accelerator"],
@@ -462,6 +448,6 @@ if __name__ == "__main__":
     if 'infer' in RUNNING_MODES:
         run_infer(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS)
 
-     # eval
+    # eval
     if 'eval' in RUNNING_MODES:
         run_eval(paths=PATHS, eval_common_params=EVAL_COMMON_PARAMS)

@@ -65,7 +65,7 @@ class ClassificationMGCmmdTestCase(unittest.TestCase):
         
         print(self.cfg)
 
-    # @run_in_subprocess()
+    @run_in_subprocess()
     def test_runner(self):
         # uncomment if you want to use specific gpus instead of automatically looking for free ones
         force_gpus = None  # [0]
