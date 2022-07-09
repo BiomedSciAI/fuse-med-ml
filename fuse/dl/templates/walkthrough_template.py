@@ -124,7 +124,7 @@ TRAIN_COMMON_PARAMS["opt.weight_decay"] = 1e-3
 #################################
 # Train Template
 #################################
-def run_train(paths: dict, train_common_params: dict):
+def run_train(paths: dict, train_common_params: dict) -> None:
     # ==============================================================================
     # Logger
     #   - output log automatically to three destinations:
@@ -155,7 +155,7 @@ def run_train(paths: dict, train_common_params: dict):
 
     #### Train Data
 
-    lgr.info(f"Train Data:", {"attrs": "bold"})
+    lgr.info("Train Data:", {"attrs": "bold"})
 
     ## TODO - list your sample ids:
     # Fuse TIP - splitting the sample_ids to folds can be done by fuse.data.utils.split.dataset_balanced_division_to_folds().
@@ -190,7 +190,7 @@ def run_train(paths: dict, train_common_params: dict):
 
     # Create dataset
     cacher = SamplesCacher(
-        f"template_cache",
+        "template_cache",
         static_pipeline,
         [paths["cache_dir"]],
         restart_cache=False,
@@ -204,9 +204,9 @@ def run_train(paths: dict, train_common_params: dict):
         cacher=cacher,
     )
 
-    lgr.info(f"- Load and cache data:")
+    lgr.info("- Load and cache data:")
     train_dataset.create()
-    lgr.info(f"- Load and cache data: Done")
+    lgr.info("- Load and cache data: Done")
 
     ## Create batch sampler
     # Fuse TIPs:
@@ -215,7 +215,7 @@ def run_train(paths: dict, train_common_params: dict):
     # 2. You don't have to equally balance between the classes.
     #    Use balanced_class_weights to specify the number of required samples in a batch per each class
     # 3. Use mode to specify probabilities rather then exact number of samples from  a class in each batch
-    lgr.info(f"- Create sampler:")
+    lgr.info("- Create sampler:")
     sampler = BatchSamplerDefault(
         dataset=train_dataset,
         balanced_class_name="TODO",
@@ -224,7 +224,7 @@ def run_train(paths: dict, train_common_params: dict):
         balanced_class_weights=None,
     )
 
-    lgr.info(f"- Create sampler: Done")
+    lgr.info("- Create sampler: Done")
 
     ## Create dataloader
     train_dataloader = DataLoader(
@@ -235,10 +235,10 @@ def run_train(paths: dict, train_common_params: dict):
         collate_fn=CollateDefault(),
         num_workers=train_common_params["data.train_num_workers"],
     )
-    lgr.info(f"Train Data: Done", {"attrs": "bold"})
+    lgr.info("Train Data: Done", {"attrs": "bold"})
 
     #### Validation data
-    lgr.info(f"Validation Data:", {"attrs": "bold"})
+    lgr.info("Validation Data:", {"attrs": "bold"})
 
     validation_dataset = DatasetDefault(
         sample_ids=validation_sample_ids,
@@ -247,9 +247,9 @@ def run_train(paths: dict, train_common_params: dict):
         cacher=cacher,
     )
 
-    lgr.info(f"- Load and cache data:")
+    lgr.info("- Load and cache data:")
     validation_dataset.create()
-    lgr.info(f"- Load and cache data: Done")
+    lgr.info("- Load and cache data: Done")
 
     ## Create dataloader
     validation_dataloader = DataLoader(
@@ -261,7 +261,7 @@ def run_train(paths: dict, train_common_params: dict):
         num_workers=train_common_params["data.validation_num_workers"],
         collate_fn=CollateDefault(),
     )
-    lgr.info(f"Validation Data: Done", {"attrs": "bold"})
+    lgr.info("Validation Data: Done", {"attrs": "bold"})
 
     # ===================================================================================================================
     # Model
@@ -384,7 +384,7 @@ INFER_COMMON_PARAMS["checkpoint"] = "best"  # Fuse TIP: possible values are 'bes
 ######################################
 
 
-def run_infer(paths: dict, infer_common_params: dict):
+def run_infer(paths: dict, infer_common_params: dict) -> None:
     create_dir(paths["inference_dir"])
     infer_file = os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])
     checkpoint_file = os.path.join(paths["model_dir"], infer_common_params["checkpoint"])
@@ -449,7 +449,7 @@ EVAL_COMMON_PARAMS = {}
 EVAL_COMMON_PARAMS["infer_filename"] = INFER_COMMON_PARAMS["infer_filename"]
 
 
-def run_eval(paths: dict, eval_common_params: dict):
+def run_eval(paths: dict, eval_common_params: dict) -> None:
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger("Fuse")
     lgr.info("Fuse Eval", {"attrs": ["bold", "underline"]})
