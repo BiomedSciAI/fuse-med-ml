@@ -23,7 +23,7 @@ import tempfile
 import shutil
 from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 
-from fuse_examples.imaging.classification.isic.runner import (
+from fuse_examples.imaging.classification.isic.isic_runner import (
     TRAIN_COMMON_PARAMS,
     INFER_COMMON_PARAMS,
     EVAL_COMMON_PARAMS,
@@ -36,7 +36,6 @@ from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN
 
 import fuse.utils.gpu as GPU
 from fuse.utils.rand.seed import Seed
-from fuseimg.datasets.isic import ISIC
 
 
 class ClassificationISICTestCase(unittest.TestCase):
