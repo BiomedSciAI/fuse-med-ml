@@ -46,14 +46,14 @@ from fuse.eval.evaluator import EvaluatorDefault
 # Fuse
 # Example of a training template:
 #
-# Training template contains 6 fundamental building blocks:
+# Training template contains 5 fundamental building blocks:
 # (1) Data - detailed README file can be found at [fuse/data](../../fuse/data)
 # (2) Model
 # (3) Losses
 # (4) Metrics and Evaluation - detailed README file can be found at [fuse/eval](../../fuse/eval)
-# TODO SAGI: Added PL part
+# (5) Train - using PyTorch Lightning
 #
-# The template will create each of those building blocks and will eventually run Manager.train()
+# The template will create each of those building blocks and will eventually run pl_trainer.fit()
 #
 # Terminology:
 # 1. sample-id -
@@ -68,12 +68,9 @@ from fuse.eval.evaluator import EvaluatorDefault
 #    NDict (fuse/utils/ndict.py) class is used instead of python standard dictionary in order to allow easy "." separated access. For example:
 #    `sample_dict[“data.input.img”]` is the equivalent of `sample_dict["data"]["input"]["img"]`
 #    Another recommended convention is to include suffix specifying the type of the value ("img", "seg", "bbox")
-# 3. epoch_result -
-#    A dictionary created by the manager TODO and includes the losses and metrics value
-#    as defined within the template and calculated for the specific epoch.
-# 4. Fuse base classes - *Base -
+# 3. Fuse base classes - *Base -
 #    Abstract classes of the object forming together Fuse framework .
-# 5. Fuse default classes - *Default -
+# 4. Fuse default classes - *Default -
 #    A default generic implementation of the equivalent base class.
 #    Those generic implementation will be useful for most common use cases.
 #    Alternative implementations could be implemented for the special cases.
@@ -169,18 +166,27 @@ def run_train(paths: dict, train_common_params: dict):
     ## Create data static_pipeline -
     #                                the output of this pipeline will be cached to optimize the running time and to better utilize the GPU:
     #                                See example in (fuseimg/datasets/stoic21.py)[../../examples/fuse_examples/imaging/classification/stoic21/runner_stoic21.py] STOIC21.static_pipeline().
-    static_pipeline = PipelineDefault("template_static", [
-        # TODO
-    ])
+    static_pipeline = PipelineDefault(
+        "template_static",
+        [
+            # TODO
+        ],
+    )
     ## Create data dynamic_pipeline - Dynamic pipeline follows the static pipeline and continues to pre-process the sample.
     #                                 In contrast to the static pipeline, the output of the dynamic pipeline is not be cached and allows modifying the pre-precessing steps without recaching,
     #                                 The recommendation is to include in the dynamic pipeline pre-processing steps that we intend to experiment with or augmentation steps.
-    train_dynamic_pipeline = PipelineDefault("template_dynamic", [
-        # TODO
-    ])
-    validation_dynamic_pipeline = PipelineDefault("template_dynamic", [
-        # TODO
-    ])
+    train_dynamic_pipeline = PipelineDefault(
+        "template_dynamic",
+        [
+            # TODO
+        ],
+    )
+    validation_dynamic_pipeline = PipelineDefault(
+        "template_dynamic",
+        [
+            # TODO
+        ],
+    )
 
     # Create dataset
     cacher = SamplesCacher(
@@ -300,8 +306,8 @@ def run_train(paths: dict, train_common_params: dict):
     # Metrics - details can be found in (fuse/eval/README.md)[../../fuse/eval/README.md]
     #   1. Create seperately for train and validation (might be a deep copy, but not a shallow one).
     #   2. Set best_epoch_source:
-    #       monitor: # TODO SAGI: ELABORATE
-    #       mode: # TODO SAGI: ELABORATE
+    #       monitor: the metric name to track
+    #       mode: either consider the "min" value to be best or the "max" value to be the best
     # =========================================================================================================
     train_metrics = OrderedDict(
         [
@@ -314,19 +320,19 @@ def run_train(paths: dict, train_common_params: dict):
         ]
     )
 
-    best_epoch_source = dict(monitor="validation.metrics.auc.macro_avg", mode="max")
+    best_epoch_source = dict(monitor="TODO", mode="TODO")
 
     # =====================================================================================
     #  Train - using PyTorch Lightning
-    #  Create training object, PL module and PL trainer.
+    #  Create training objects, PL module and PL trainer.
     # =====================================================================================
     lgr.info("Train:", {"attrs": "bold"})
 
     # create optimizer
     optimizer = optim.Adam(
         model.parameters(),
-        lr=train_common_params["manager.learning_rate"],
-        weight_decay=train_common_params["manager.weight_decay"],
+        lr=train_common_params["opt.lr"],
+        weight_decay=train_common_params["opt.weight_decay"],
     )
 
     # create scheduler
@@ -409,13 +415,18 @@ def run_infer(paths: dict, infer_common_params: dict):
         backbone="TODO",  # Reference: BackboneInceptionResnetV2
         heads=["TODO"],  # References: HeadGlobalPoolingClassifier, HeadDenseSegmentation
     )
+
     # load python lightning module
     pl_module = LightningModuleDefault.load_from_checkpoint(
         checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True
     )
 
-    # set the prediction keys to extract (the ones used be the evaluation function). TODO SAGI
-    pl_module.set_predictions_keys(["<key>", "<key>"])  # which keys to extract and dump into file
+    # set the prediction keys to extract and dump into file (the ones used be the evaluation function).
+    pl_module.set_predictions_keys(
+        [
+            # TODO
+        ]
+    )
 
     # create a trainer instance and predict
     pl_trainer = pl.Trainer(
