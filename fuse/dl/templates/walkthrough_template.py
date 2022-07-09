@@ -62,7 +62,7 @@ from fuse.eval.evaluator import EvaluatorDefault
 #    * path to the image file
 #    * Tuple of (provider_id, patient_id, image_id)
 #    * Running index
-# 2. sample_dict - 
+# 2. sample_dict -
 #    Represents a single sample and contains all relevant information about the sample.
 #    No specific structure of this dictionary is required, but a useful pattern is to split it into sections (keys that define a "namespace" ): such as "data", "model",  etc.
 #    NDict (fuse/utils/ndict.py) class is used instead of python standard dictionary in order to allow easy "." separated access. For example:
@@ -82,18 +82,20 @@ from fuse.eval.evaluator import EvaluatorDefault
 ##########################################
 # Debug modes
 ##########################################
-mode = 'default'  # Options: 'default', 'debug'. See details in FuseDebug
+mode = "default"  # Options: 'default', 'debug'. See details in FuseDebug
 debug = FuseDebug(mode)
 
 ##########################################
 # Output Paths
 ##########################################
-model_dir = None # TODO: fill in a path to model dir
-PATHS = {'model_dir': model_dir,
-         'force_reset_model_dir': False,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
-         'cache_dir': 'TODO',
-         'inference_dir': os.path.join(model_dir, "infer"),
-         'eval_dir': os.path.join(model_dir, "eval")}
+model_dir = None  # TODO: fill in a path to model dir
+PATHS = {
+    "model_dir": model_dir,
+    "force_reset_model_dir": False,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
+    "cache_dir": "TODO",
+    "inference_dir": os.path.join(model_dir, "infer"),
+    "eval_dir": os.path.join(model_dir, "eval"),
+}
 
 ##########################################
 # Train Common Params
@@ -102,24 +104,24 @@ TRAIN_COMMON_PARAMS = {}
 # ============
 # Data
 # ============
-TRAIN_COMMON_PARAMS['data.batch_size'] = 2
-TRAIN_COMMON_PARAMS['data.train_num_workers'] = 8
-TRAIN_COMMON_PARAMS['data.validation_num_workers'] = 8
-TRAIN_COMMON_PARAMS['data.cache_num_workers'] = 10
+TRAIN_COMMON_PARAMS["data.batch_size"] = 2
+TRAIN_COMMON_PARAMS["data.train_num_workers"] = 8
+TRAIN_COMMON_PARAMS["data.validation_num_workers"] = 8
+TRAIN_COMMON_PARAMS["data.cache_num_workers"] = 10
 
 # ===============
 # PL Trainer
 # ===============
-TRAIN_COMMON_PARAMS['trainer.num_epochs'] = 100
-TRAIN_COMMON_PARAMS['trainer.num_devices'] = 1
-TRAIN_COMMON_PARAMS['trainer.accelerator'] = "gpu"
-TRAIN_COMMON_PARAMS['trainer.ckpt_path'] = None
+TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 100
+TRAIN_COMMON_PARAMS["trainer.num_devices"] = 1
+TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
+TRAIN_COMMON_PARAMS["trainer.ckpt_path"] = None
 
 # ===============
 # Optimizer
 # ===============
-TRAIN_COMMON_PARAMS['opt.lr'] = 1e-4
-TRAIN_COMMON_PARAMS['opt.weight_decay'] = 1e-3
+TRAIN_COMMON_PARAMS["opt.lr"] = 1e-4
+TRAIN_COMMON_PARAMS["opt.weight_decay"] = 1e-3
 
 
 #################################
@@ -132,68 +134,73 @@ def run_train(paths: dict, train_common_params: dict):
     #     (1) console (2) file - copy of the console (3) verbose file - used for debug
     #   - save a copy of the template file
     # ==============================================================================
-    fuse_logger_start(output_path=paths['model_dir'], console_verbose_level=logging.INFO)
-    lgr = logging.getLogger('Fuse')
-    lgr.info('Fuse Train', {'attrs': ['bold', 'underline']})
+    fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
+    lgr = logging.getLogger("Fuse")
+    lgr.info("Fuse Train", {"attrs": ["bold", "underline"]})
 
-    lgr.info(f'model_dir={paths["model_dir"]}', {'color': 'magenta'})
-    lgr.info(f'cache_dir={paths["cache_dir"]}', {'color': 'magenta'})
+    lgr.info(f'model_dir={paths["model_dir"]}', {"color": "magenta"})
+    lgr.info(f'cache_dir={paths["cache_dir"]}', {"color": "magenta"})
 
     # ==============================================================================
     # Data
     #   Build dataloaders (torch.utils.data.DataLoader) for both train and validation.
-    #   
+    #
     #   Default dataset implementation built from a sequence of op(erator)s.
-    #   Operators are the building blocks of the sample processing pipeline. 
-    #   Each operator gets as input the *sample_dict* as created by the previous operators and can either add/delete/modify fields in sample_dict. 
-    #   The operator interface is specified in OpBase class. 
-    #   
-    #   We split the pipeline into two parts - static and dynamic, which allow us to control the part out of the entire pipeline that will be cached. 
-    # 
+    #   Operators are the building blocks of the sample processing pipeline.
+    #   Each operator gets as input the *sample_dict* as created by the previous operators and can either add/delete/modify fields in sample_dict.
+    #   The operator interface is specified in OpBase class.
+    #
+    #   We split the pipeline into two parts - static and dynamic, which allow us to control the part out of the entire pipeline that will be cached.
+    #
     #   For more details and examples, read (fuse/data/README.md)[../../fuse/data/README.md]
-    #   A complete example implementation of a dataset can be bound in  (fuseimg/datasets/stoic21.py)[../../examples/fuse_examples/imaging/classification/stoic21/runner_stoic21.py] STOIC21.static_pipeline(). 
+    #   A complete example implementation of a dataset can be bound in  (fuseimg/datasets/stoic21.py)[../../examples/fuse_examples/imaging/classification/stoic21/runner_stoic21.py] STOIC21.static_pipeline().
     # ==============================================================================
 
     #### Train Data
 
-    lgr.info(f'Train Data:', {'attrs': 'bold'})
+    lgr.info(f"Train Data:", {"attrs": "bold"})
 
     ## TODO - list your sample ids:
     # Fuse TIP - splitting the sample_ids to folds can be done by fuse.data.utils.split.dataset_balanced_division_to_folds().
-    #            See (examples/fuse_examples/imaging/classification/stoic21/runner_stoic21.py)[../../examples/fuse_examples/imaging/classification/stoic21/runner_stoic21.py] 
+    #            See (examples/fuse_examples/imaging/classification/stoic21/runner_stoic21.py)[../../examples/fuse_examples/imaging/classification/stoic21/runner_stoic21.py]
     train_sample_ids = None
     validation_sample_ids = None
 
-    ## Create data static_pipeline - 
+    ## Create data static_pipeline -
     #                                the output of this pipeline will be cached to optimize the running time and to better utilize the GPU:
     #                                See example in (fuseimg/datasets/stoic21.py)[../../examples/fuse_examples/imaging/classification/stoic21/runner_stoic21.py] STOIC21.static_pipeline().
     static_pipeline = PipelineDefault("template_static", [
-        
+        # TODO
     ])
-    ## Create data dynamic_pipeline - Dynamic pipeline follows the static pipeline and continues to pre-process the sample. 
-    #                                 In contrast to the static pipeline, the output of the dynamic pipeline is not be cached and allows modifying the pre-precessing steps without recaching, 
+    ## Create data dynamic_pipeline - Dynamic pipeline follows the static pipeline and continues to pre-process the sample.
+    #                                 In contrast to the static pipeline, the output of the dynamic pipeline is not be cached and allows modifying the pre-precessing steps without recaching,
     #                                 The recommendation is to include in the dynamic pipeline pre-processing steps that we intend to experiment with or augmentation steps.
     train_dynamic_pipeline = PipelineDefault("template_dynamic", [
-
+        # TODO
     ])
     validation_dynamic_pipeline = PipelineDefault("template_dynamic", [
-
+        # TODO
     ])
 
     # Create dataset
-    cacher = SamplesCacher(f'template_cache', 
-            static_pipeline,
-            [paths['cache_dir']], restart_cache=False, workers=train_common_params["data.cache_num_workers"])            
-
-    train_dataset = DatasetDefault(sample_ids=train_sample_ids,
-        static_pipeline=static_pipeline,
-        dynamic_pipeline=train_dynamic_pipeline,
-        cacher=cacher,            
+    cacher = SamplesCacher(
+        f"template_cache",
+        static_pipeline,
+        [paths["cache_dir"]],
+        restart_cache=False,
+        workers=train_common_params["data.cache_num_workers"],
     )
 
-    lgr.info(f'- Load and cache data:')
+    train_dataset = DatasetDefault(
+        sample_ids=train_sample_ids,
+        static_pipeline=static_pipeline,
+        dynamic_pipeline=train_dynamic_pipeline,
+        cacher=cacher,
+    )
+
+    lgr.info(f"- Load and cache data:")
     train_dataset.create()
-    lgr.info(f'- Load and cache data: Done')
+    lgr.info(f"- Load and cache data: Done")
 
     ## Create batch sampler
     # Fuse TIPs:
@@ -202,45 +209,53 @@ def run_train(paths: dict, train_common_params: dict):
     # 2. You don't have to equally balance between the classes.
     #    Use balanced_class_weights to specify the number of required samples in a batch per each class
     # 3. Use mode to specify probabilities rather then exact number of samples from  a class in each batch
-    lgr.info(f'- Create sampler:')
-    sampler = BatchSamplerDefault(dataset=train_dataset,
-                                       balanced_class_name='TODO',
-                                       num_balanced_classes='TODO',
-                                       batch_size=train_common_params['data.batch_size'],
-                                       balanced_class_weights=None)
-
-    lgr.info(f'- Create sampler: Done')
-
-    ## Create dataloader
-    train_dataloader = DataLoader(dataset=train_dataset,
-                                  shuffle=False, drop_last=False,
-                                  batch_sampler=sampler,
-                                  collate_fn=CollateDefault(),
-                                  num_workers=train_common_params['data.train_num_workers'])
-    lgr.info(f'Train Data: Done', {'attrs': 'bold'})
-
-    #### Validation data
-    lgr.info(f'Validation Data:', {'attrs': 'bold'})
-    
-    validation_dataset = DatasetDefault(sample_ids=validation_sample_ids,
-        static_pipeline=static_pipeline,
-        dynamic_pipeline=validation_dynamic_pipeline,
-        cacher=cacher,            
+    lgr.info(f"- Create sampler:")
+    sampler = BatchSamplerDefault(
+        dataset=train_dataset,
+        balanced_class_name="TODO",
+        num_balanced_classes="TODO",
+        batch_size=train_common_params["data.batch_size"],
+        balanced_class_weights=None,
     )
 
-    lgr.info(f'- Load and cache data:')
-    validation_dataset.create()
-    lgr.info(f'- Load and cache data: Done')
+    lgr.info(f"- Create sampler: Done")
 
     ## Create dataloader
-    validation_dataloader = DataLoader(dataset=validation_dataset,
-                                       shuffle=False,
-                                       drop_last=False,
-                                       batch_sampler=None,
-                                       batch_size=train_common_params['data.batch_size'],
-                                       num_workers=train_common_params['data.validation_num_workers'],
-                                       collate_fn=CollateDefault())
-    lgr.info(f'Validation Data: Done', {'attrs': 'bold'})
+    train_dataloader = DataLoader(
+        dataset=train_dataset,
+        shuffle=False,
+        drop_last=False,
+        batch_sampler=sampler,
+        collate_fn=CollateDefault(),
+        num_workers=train_common_params["data.train_num_workers"],
+    )
+    lgr.info(f"Train Data: Done", {"attrs": "bold"})
+
+    #### Validation data
+    lgr.info(f"Validation Data:", {"attrs": "bold"})
+
+    validation_dataset = DatasetDefault(
+        sample_ids=validation_sample_ids,
+        static_pipeline=static_pipeline,
+        dynamic_pipeline=validation_dynamic_pipeline,
+        cacher=cacher,
+    )
+
+    lgr.info(f"- Load and cache data:")
+    validation_dataset.create()
+    lgr.info(f"- Load and cache data: Done")
+
+    ## Create dataloader
+    validation_dataloader = DataLoader(
+        dataset=validation_dataset,
+        shuffle=False,
+        drop_last=False,
+        batch_sampler=None,
+        batch_size=train_common_params["data.batch_size"],
+        num_workers=train_common_params["data.validation_num_workers"],
+        collate_fn=CollateDefault(),
+    )
+    lgr.info(f"Validation Data: Done", {"attrs": "bold"})
 
     # ===================================================================================================================
     # Model
@@ -256,14 +271,14 @@ def run_train(paths: dict, train_common_params: dict):
     #   * ModelEnsemble - runs several sub-modules sequentially
     #   * ModelMultistream - convolutional neural network with multiple processing streams and multiple heads
     # ===================================================================================================================
-    lgr.info('Model:', {'attrs': 'bold'})
+    lgr.info("Model:", {"attrs": "bold"})
     # TODO - define / create a model
     model = ModelMultiHead(
-        conv_inputs=(('data.input.input_0.tensor', 1),),
-        backbone='TODO',  # Reference: BackboneInceptionResnetV2
-        heads=['TODO']  # References: HeadGlobalPoolingClassifier, HeadDenseSegmentation
+        conv_inputs=(("data.input.input_0.tensor", 1),),
+        backbone="TODO",  # Reference: BackboneInceptionResnetV2
+        heads=["TODO"],  # References: HeadGlobalPoolingClassifier, HeadDenseSegmentation
     )
-    lgr.info('Model: Done', {'attrs': 'bold'})
+    lgr.info("Model: Done", {"attrs": "bold"})
 
     # ==========================================================================================================================================
     #   Loss
@@ -288,24 +303,31 @@ def run_train(paths: dict, train_common_params: dict):
     #       monitor: # TODO SAGI: ELABORATE
     #       mode: # TODO SAGI: ELABORATE
     # =========================================================================================================
-    train_metrics = OrderedDict([
-        # TODO add metrics here (<name>, <instance of MetricBase>)
-    ])
-    validation_metrics = OrderedDict([
-        # TODO add metrics here (<name>, <instance of MetricBase>)
-    ])
+    train_metrics = OrderedDict(
+        [
+            # TODO add metrics here (<name>, <instance of MetricBase>)
+        ]
+    )
+    validation_metrics = OrderedDict(
+        [
+            # TODO add metrics here (<name>, <instance of MetricBase>)
+        ]
+    )
 
     best_epoch_source = dict(monitor="validation.metrics.auc.macro_avg", mode="max")
-        
+
     # =====================================================================================
     #  Train - using PyTorch Lightning
     #  Create training object, PL module and PL trainer.
     # =====================================================================================
-    lgr.info('Train:', {'attrs': 'bold'})
+    lgr.info("Train:", {"attrs": "bold"})
 
     # create optimizer
-    optimizer = optim.Adam(model.parameters(), lr=train_common_params['manager.learning_rate'],
-                           weight_decay=train_common_params['manager.weight_decay'])
+    optimizer = optim.Adam(
+        model.parameters(),
+        lr=train_common_params["manager.learning_rate"],
+        weight_decay=train_common_params["manager.weight_decay"],
+    )
 
     # create scheduler
     lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
@@ -339,7 +361,7 @@ def run_train(paths: dict, train_common_params: dict):
         pl_module, train_dataloader, validation_dataloader, ckpt_path=train_common_params["trainer.ckpt_path"]
     )
 
-    lgr.info('Train: Done', {'attrs': 'bold'})
+    lgr.info("Train: Done", {"attrs": "bold"})
 
 
 ######################################
@@ -348,12 +370,13 @@ def run_train(paths: dict, train_common_params: dict):
 INFER_COMMON_PARAMS = {}
 INFER_COMMON_PARAMS["data.num_workers"] = TRAIN_COMMON_PARAMS["data.train_num_workers"]
 INFER_COMMON_PARAMS["data.batch_size"] = 4
-INFER_COMMON_PARAMS['infer_filename'] = os.path.join(PATHS['inference_dir'], 'validation_set_infer.pickle')
-INFER_COMMON_PARAMS['checkpoint'] = 'best'  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
+INFER_COMMON_PARAMS["infer_filename"] = os.path.join(PATHS["inference_dir"], "validation_set_infer.pickle")
+INFER_COMMON_PARAMS["checkpoint"] = "best"  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
 
 ######################################
 # Inference Template
 ######################################
+
 
 def run_infer(paths: dict, infer_common_params: dict):
     create_dir(paths["inference_dir"])
@@ -367,18 +390,26 @@ def run_infer(paths: dict, infer_common_params: dict):
     lgr.info(f"infer_filename={infer_file}", {"color": "magenta"})
 
     #### create infer dataset
-    infer_dataset = None # TODO: follow the same steps to create dataset as in run_train
-    
+    infer_dataset = None  # TODO: follow the same steps to create dataset as in run_train
+
     ## Create dataloader
-    infer_dataloader = DataLoader(dataset=infer_dataset,
-                                       shuffle=False,
-                                       drop_last=False,
-                                       batch_sampler=None,
-                                       batch_size=infer_common_params['data.batch_size'],
-                                       num_workers=infer_common_params['data.num_workers'],
-                                       collate_fn=CollateDefault())
+    infer_dataloader = DataLoader(
+        dataset=infer_dataset,
+        shuffle=False,
+        drop_last=False,
+        batch_sampler=None,
+        batch_size=infer_common_params["data.batch_size"],
+        num_workers=infer_common_params["data.num_workers"],
+        collate_fn=CollateDefault(),
+    )
+
+    # TODO - define / create a model
+    model = ModelMultiHead(
+        conv_inputs=(("data.input.input_0.tensor", 1),),
+        backbone="TODO",  # Reference: BackboneInceptionResnetV2
+        heads=["TODO"],  # References: HeadGlobalPoolingClassifier, HeadDenseSegmentation
+    )
     # load python lightning module
-    model = # TODO
     pl_module = LightningModuleDefault.load_from_checkpoint(
         checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True
     )
@@ -404,26 +435,31 @@ def run_infer(paths: dict, infer_common_params: dict):
 # Eval Template
 ######################################
 EVAL_COMMON_PARAMS = {}
-EVAL_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
+EVAL_COMMON_PARAMS["infer_filename"] = INFER_COMMON_PARAMS["infer_filename"]
+
 
 def run_eval(paths: dict, eval_common_params: dict):
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
-    lgr = logging.getLogger('Fuse')
-    lgr.info('Fuse Eval', {'attrs': ['bold', 'underline']})
+    lgr = logging.getLogger("Fuse")
+    lgr.info("Fuse Eval", {"attrs": ["bold", "underline"]})
 
     # metrics
-    metrics = OrderedDict([
-        # TODO add metrics here (<name>, <instance of MetricBase>)
-    ])
-   
+    metrics = OrderedDict(
+        [
+            # TODO add metrics here (<name>, <instance of MetricBase>)
+        ]
+    )
+
     # create evaluator
     evaluator = EvaluatorDefault()
 
     # run
-    results = evaluator.eval(ids=None,
-                     data=os.path.join(paths["inference_dir"], eval_common_params["infer_filename"]),
-                     metrics=metrics,
-                     output_dir=paths['eval_dir'])
+    results = evaluator.eval(
+        ids=None,
+        data=os.path.join(paths["inference_dir"], eval_common_params["infer_filename"]),
+        metrics=metrics,
+        output_dir=paths["eval_dir"],
+    )
 
     return results
 
@@ -438,16 +474,16 @@ if __name__ == "__main__":
     force_gpus = None  # [0]
     GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
-    RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
+    RUNNING_MODES = ["train", "infer", "eval"]  # Options: 'train', 'infer', 'eval'
 
     # train
-    if 'train' in RUNNING_MODES:
+    if "train" in RUNNING_MODES:
         run_train(paths=PATHS, train_common_params=TRAIN_COMMON_PARAMS)
 
     # infer
-    if 'infer' in RUNNING_MODES:
+    if "infer" in RUNNING_MODES:
         run_infer(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS)
 
     # eval
-    if 'eval' in RUNNING_MODES:
+    if "eval" in RUNNING_MODES:
         run_eval(paths=PATHS, eval_common_params=EVAL_COMMON_PARAMS)
