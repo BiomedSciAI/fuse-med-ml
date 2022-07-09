@@ -33,5 +33,5 @@ medpy
 pytorch_lightning
 hydra-core
 omegaconf
-pyradiomics
-openpyxl
+#pyradiomics
+#openpyxl
