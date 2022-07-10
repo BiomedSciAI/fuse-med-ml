@@ -7,9 +7,10 @@ import logging
 import sys
 import unittest
 import os
+import termcolor
+import xmlrunner
 
 print(os.path.dirname(os.path.realpath(__file__)))
-import termcolor
 
 
 def mehikon(a, b):
@@ -17,7 +18,6 @@ def mehikon(a, b):
 
 
 termcolor.cprint = mehikon  # since junit/jenkins doesn't like text color ...
-import xmlrunner
 
 if __name__ == "__main__":
     mode = None

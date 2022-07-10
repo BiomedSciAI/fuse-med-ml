@@ -30,16 +30,10 @@ from fuse.data.utils.export import ExportDataset
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 
 
-
-
 class TestDatasetExport(unittest.TestCase):
     def test_export_to_dataframe(self):
         # datainfo
-        data = {
-            "sample_id": ["a", "b", "c", "d", "e"],
-            "values": [7, 4, 9, 2, 4],
-            "not_important": [12] * 5
-        }
+        data = {"sample_id": ["a", "b", "c", "d", "e"], "values": [7, 4, 9, 2, 4], "not_important": [12] * 5}
         df = pds.DataFrame(data)
 
         # create simple pipeline
@@ -51,7 +45,7 @@ class TestDatasetExport(unittest.TestCase):
         dataset.create()
 
         df = df.set_index("sample_id")
-        
+
         # export dataset - only get
         export_df = ExportDataset.export_to_dataframe(dataset, ["values"])
         export_df = export_df.set_index("data.sample_id")
@@ -67,5 +61,5 @@ class TestDatasetExport(unittest.TestCase):
             self.assertEqual(export_df.loc[sid]["values"], df.loc[sid]["values"])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

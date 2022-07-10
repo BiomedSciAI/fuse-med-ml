@@ -42,18 +42,20 @@ class ClassificationISICTestCase(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.mkdtemp()
 
-        model_dir = os.path.join(self.root, 'model_dir')
+        model_dir = os.path.join(self.root, "model_dir")
         self.paths = {
             "model_dir": model_dir,
-            "data_dir": os.environ["ISIC19_DATA_PATH"] if "ISIC19_DATA_PATH" in os.environ else os.path.join(self.root, "isic/data_dir"),
+            "data_dir": os.environ["ISIC19_DATA_PATH"]
+            if "ISIC19_DATA_PATH" in os.environ
+            else os.path.join(self.root, "isic/data_dir"),
             "cache_dir": os.path.join(self.root, "cache_dir"),
             "inference_dir": os.path.join(model_dir, "infer_dir"),
             "eval_dir": os.path.join(model_dir, "eval_dir"),
-            'data_split_filename': os.path.join(self.root, 'split.pkl')
+            "data_split_filename": os.path.join(self.root, "split.pkl"),
         }
 
         self.train_common_params = TRAIN_COMMON_PARAMS
-        self.train_common_params['trainer.num_epochs'] = 2
+        self.train_common_params["trainer.num_epochs"] = 2
         self.train_common_params["samples_ids"] = FULL_GOLDEN_MEMBERS
 
         self.infer_common_params = INFER_COMMON_PARAMS
@@ -64,15 +66,13 @@ class ClassificationISICTestCase(unittest.TestCase):
         # Must use GPU due a long running time
         GPU.choose_and_enable_multiple_gpus(1, use_cpu_if_fail=False)
 
-        Seed.set_seed(
-            0, False
-        )  # previous test (in the pipeline) changed the deterministic behavior to True
+        Seed.set_seed(0, False)  # previous test (in the pipeline) changed the deterministic behavior to True
 
         run_train(self.paths, self.train_common_params)
         run_infer(self.paths, self.infer_common_params)
         results = run_eval(self.paths, self.eval_common_params)
 
-        self.assertTrue('metrics.auc' in results)
+        self.assertTrue("metrics.auc" in results)
 
     def tearDown(self):
         # Delete temporary directories

@@ -21,17 +21,16 @@ from typing import Dict, List
 
 import torch
 import torch.nn as nn
-from fuse.utils.ndict import NDict
 
 
 class BackboneMultilayerPerceptron(torch.nn.Module):
-
-    def __init__(self,
-                 layers: List[int] = (64, 192, 320, 320, 1088, 384),
-                 mlp_input_size: int = 103,
-                 activation_layer: torch.nn.Module = nn.ReLU(inplace=False),
-                 dropout_rate: float = 0.0,
-                 ) -> None:
+    def __init__(
+        self,
+        layers: List[int] = (64, 192, 320, 320, 1088, 384),
+        mlp_input_size: int = 103,
+        activation_layer: torch.nn.Module = nn.ReLU(inplace=False),
+        dropout_rate: float = 0.0,
+    ) -> None:
         super().__init__()
 
         mlp_layers = [nn.Linear(mlp_input_size, layers[0])]
