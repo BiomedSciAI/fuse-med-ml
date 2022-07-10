@@ -21,6 +21,7 @@ import os
 from typing import OrderedDict
 import logging
 
+import torch
 import pytorch_lightning as pl
 import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
@@ -120,6 +121,31 @@ TRAIN_COMMON_PARAMS["trainer.ckpt_path"] = None
 TRAIN_COMMON_PARAMS["opt.lr"] = 1e-4
 TRAIN_COMMON_PARAMS["opt.weight_decay"] = 1e-3
 
+# ===================================================================================================================
+# Model
+#   Build a model (torch.nn.Module) using generic Fuse components:
+#   1. ModelMultiHead - generic component supporting single backbone with multiple heads
+#   2. Backbone - simple backbone model
+#   3. Head* - generic head implementations
+#   The model outputs will be aggregated in batch_dict['model.*']
+#   Each head output will be aggregated in batch_dict['model.<head name>.*']
+#
+#   Additional implemented models:
+#   * ModelWrapper - allow to use single standard PyTorch module as is - see (examples/fuse_examples/imaging/classification/mnist/runner.py)[../../examples/fuse_examples/imaging/classification/mnist/runner.py]
+#   * ModelEnsemble - runs several sub-modules sequentially
+#   * ModelMultistream - convolutional neural network with multiple processing streams and multiple heads
+# ===================================================================================================================
+
+
+def create_model() -> torch.nn.Module:
+    # TODO - define / create a model
+    model = ModelMultiHead(
+        conv_inputs=(("data.input.input_0.tensor", 1),),
+        backbone="TODO",  # Reference: BackboneInceptionResnetV2
+        heads=["TODO"],  # References: HeadGlobalPoolingClassifier, HeadDenseSegmentation
+    )
+    return model
+
 
 #################################
 # Train Template
@@ -132,11 +158,10 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     #   - save a copy of the template file
     # ==============================================================================
     fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
-    lgr = logging.getLogger("Fuse")
-    lgr.info("Fuse Train", {"attrs": ["bold", "underline"]})
 
-    lgr.info(f'model_dir={paths["model_dir"]}', {"color": "magenta"})
-    lgr.info(f'cache_dir={paths["cache_dir"]}', {"color": "magenta"})
+    print("Fuse Train")
+    print(f'model_dir={paths["model_dir"]}')
+    print(f'cache_dir={paths["cache_dir"]}')
 
     # ==============================================================================
     # Data
@@ -155,7 +180,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
 
     #### Train Data
 
-    lgr.info("Train Data:", {"attrs": "bold"})
+    print("Train Data:")
 
     ## TODO - list your sample ids:
     # Fuse TIP - splitting the sample_ids to folds can be done by fuse.data.utils.split.dataset_balanced_division_to_folds().
@@ -204,9 +229,9 @@ def run_train(paths: dict, train_common_params: dict) -> None:
         cacher=cacher,
     )
 
-    lgr.info("- Load and cache data:")
+    print("- Load and cache data:")
     train_dataset.create()
-    lgr.info("- Load and cache data: Done")
+    print("- Load and cache data: Done")
 
     ## Create batch sampler
     # Fuse TIPs:
@@ -215,7 +240,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     # 2. You don't have to equally balance between the classes.
     #    Use balanced_class_weights to specify the number of required samples in a batch per each class
     # 3. Use mode to specify probabilities rather then exact number of samples from  a class in each batch
-    lgr.info("- Create sampler:")
+    print("- Create sampler:")
     sampler = BatchSamplerDefault(
         dataset=train_dataset,
         balanced_class_name="TODO",
@@ -224,7 +249,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
         balanced_class_weights=None,
     )
 
-    lgr.info("- Create sampler: Done")
+    print("- Create sampler: Done")
 
     ## Create dataloader
     train_dataloader = DataLoader(
@@ -235,10 +260,10 @@ def run_train(paths: dict, train_common_params: dict) -> None:
         collate_fn=CollateDefault(),
         num_workers=train_common_params["data.train_num_workers"],
     )
-    lgr.info("Train Data: Done", {"attrs": "bold"})
+    print("Train Data: Done")
 
     #### Validation data
-    lgr.info("Validation Data:", {"attrs": "bold"})
+    print("Validation Data:")
 
     validation_dataset = DatasetDefault(
         sample_ids=validation_sample_ids,
@@ -247,9 +272,9 @@ def run_train(paths: dict, train_common_params: dict) -> None:
         cacher=cacher,
     )
 
-    lgr.info("- Load and cache data:")
+    print("- Load and cache data:")
     validation_dataset.create()
-    lgr.info("- Load and cache data: Done")
+    print("- Load and cache data: Done")
 
     ## Create dataloader
     validation_dataloader = DataLoader(
@@ -261,30 +286,12 @@ def run_train(paths: dict, train_common_params: dict) -> None:
         num_workers=train_common_params["data.validation_num_workers"],
         collate_fn=CollateDefault(),
     )
-    lgr.info("Validation Data: Done", {"attrs": "bold"})
+    print("Validation Data: Done")
 
-    # ===================================================================================================================
-    # Model
-    #   Build a model (torch.nn.Module) using generic Fuse components:
-    #   1. ModelMultiHead - generic component supporting single backbone with multiple heads
-    #   2. Backbone - simple backbone model
-    #   3. Head* - generic head implementations
-    #   The model outputs will be aggregated in batch_dict['model.*']
-    #   Each head output will be aggregated in batch_dict['model.<head name>.*']
-    #
-    #   Additional implemented models:
-    #   * ModelWrapper - allow to use single standard PyTorch module as is - see (examples/fuse_examples/imaging/classification/mnist/runner.py)[../../examples/fuse_examples/imaging/classification/mnist/runner.py]
-    #   * ModelEnsemble - runs several sub-modules sequentially
-    #   * ModelMultistream - convolutional neural network with multiple processing streams and multiple heads
-    # ===================================================================================================================
-    lgr.info("Model:", {"attrs": "bold"})
-    # TODO - define / create a model
-    model = ModelMultiHead(
-        conv_inputs=(("data.input.input_0.tensor", 1),),
-        backbone="TODO",  # Reference: BackboneInceptionResnetV2
-        heads=["TODO"],  # References: HeadGlobalPoolingClassifier, HeadDenseSegmentation
-    )
-    lgr.info("Model: Done", {"attrs": "bold"})
+    ## Create model
+    print("Model:")
+    model = create_model()
+    print("Model: Done")
 
     # ==========================================================================================================================================
     #   Loss
@@ -326,7 +333,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     #  Train - using PyTorch Lightning
     #  Create training objects, PL module and PL trainer.
     # =====================================================================================
-    lgr.info("Train:", {"attrs": "bold"})
+    print("Fuse Train:")
 
     # create optimizer
     optimizer = optim.Adam(
@@ -367,7 +374,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
         pl_module, train_dataloader, validation_dataloader, ckpt_path=train_common_params["trainer.ckpt_path"]
     )
 
-    lgr.info("Train: Done", {"attrs": "bold"})
+    print("Fuse Train: Done")
 
 
 ######################################
@@ -391,9 +398,8 @@ def run_infer(paths: dict, infer_common_params: dict) -> None:
 
     ## Logger
     fuse_logger_start(output_path=paths["inference_dir"], console_verbose_level=logging.INFO)
-    lgr = logging.getLogger("Fuse")
-    lgr.info("Fuse Inference", {"attrs": ["bold", "underline"]})
-    lgr.info(f"infer_filename={infer_file}", {"color": "magenta"})
+    print("Fuse Inference")
+    print(f"infer_filename={infer_file}")
 
     #### create infer dataset
     infer_dataset = None  # TODO: follow the same steps to create dataset as in run_train
@@ -441,6 +447,8 @@ def run_infer(paths: dict, infer_common_params: dict) -> None:
     infer_df = convert_predictions_to_dataframe(predictions)
     save_dataframe(infer_df, infer_file)
 
+    print("Fuse Inference: Done")
+
 
 ######################################
 # Eval Template
@@ -451,8 +459,7 @@ EVAL_COMMON_PARAMS["infer_filename"] = INFER_COMMON_PARAMS["infer_filename"]
 
 def run_eval(paths: dict, eval_common_params: dict) -> None:
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
-    lgr = logging.getLogger("Fuse")
-    lgr.info("Fuse Eval", {"attrs": ["bold", "underline"]})
+    print("Fuse Eval")
 
     # metrics
     metrics = OrderedDict(
@@ -472,6 +479,7 @@ def run_eval(paths: dict, eval_common_params: dict) -> None:
         output_dir=paths["eval_dir"],
     )
 
+    print("Fuse Eval: Done")
     return results
 
 
