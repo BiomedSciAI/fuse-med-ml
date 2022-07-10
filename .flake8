@@ -1,0 +1,103 @@
+[flake8]
+per-file-ignores =
+    # imported but unused
+    __init__.py: F401, F403
+
+max-line-length = 120
+
+# Errors to ignore   - TODO: Double check
+ignore = 
+    # Line too long
+    E501,
+    # whitespace before ','
+    E203,
+    # block comment should start with ‘# ‘ 
+    E265,
+    # too many leading ‘#’ for block comment
+    E266,
+    # do not use bare 'except'  <- Consider fix and delete ignore
+    E722
+    # do not use variables named ‘l’, ‘O’, or ‘I’
+    E741,
+    # line break before binary operator
+    W503,
+
+# Files to exclude:
+exclude =
+    ##### examples/
+    examples/fuse_examples/imaging/classification/bright
+    examples/fuse_examples/imaging/classification/cmmd
+    examples/fuse_examples/imaging/classification/knight
+    examples/fuse_examples/imaging/classification/mnist
+    examples/fuse_examples/imaging/classification/stoic21
+
+    examples/fuse_examples/multimodality/
+
+    examples/fuse_examples/tests/
+
+    ##### fuse/
+    fuse/data
+    fuse/docs
+    fuse/eval
+    fuse/losses
+    fuse/managers
+    fuse/models
+    fuse/tests
+
+    #### fuse/dl
+    fuse/dl/lightning
+    fuse/dl/losses
+    fuse/dl/models
+    fuse/dl/optimizers
+
+
+    #### fuse/utils/
+    fuse/utils/config_tools
+    fuse/utils/cpu_profiling
+    fuse/utils/data
+    fuse/utils/dl
+    fuse/utils/file_io
+    fuse/utils/imaging
+    fuse/utils/misc
+    fuse/utils/multiprocessing
+    fuse/utils/rand
+    fuse/utils/remote_execution
+    fuse/utils/tests
+    fuse/utils/add_preamble.py
+    fuse/utils/gpu.py
+    fuse/utils/utils_debug.py
+    fuse/utils/utils_hierarchical_dict.py
+    fuse/utils/utils_logger.py
+
+    ##### fuseimg/
+    fuseimg/data
+    fuseimg/utils
+
+    #### fuseimg/datasets
+    fuseimg/datasets/tests
+    fuseimg/datasets/kits21_example.ipynb
+    fuseimg/datasets/kits21.py
+    fuseimg/datasets/mnist.py
+    fuseimg/datasets/stoic21.py
+    fuseimg/datasets/cmmd.py
+
+    # General Excludes (TEMP, double check)
+    __init__.py
+    run_all_unit_tests.py
+    .cache
+    .dvc
+    .git
+    .github
+    .idea
+    .mypy_cache
+    .pytest_cache
+    .venv
+    .vscode
+    __pycache__
+    algos
+    build
+    dist
+    ext_deps
+    libs
+    releases
+    setup.py

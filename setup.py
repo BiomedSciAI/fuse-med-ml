@@ -14,24 +14,25 @@ with open(os.path.join(HERE, "README.md"), "r", encoding="utf-8") as fh:
 
 # list of requirements
 requirements = []
-with open(os.path.join(HERE, 'requirements.txt'), 'r') as fh:
+with open(os.path.join(HERE, "requirements.txt"), "r") as fh:
     for line in fh:
-        if not line.startswith('#'):
+        if not line.startswith("#"):
             requirements.append(line.strip())
 
 # version
-version_file = open(os.path.join(HERE, 'VERSION.txt'))
-version = version_file.read().strip()
+from fuse.version import __version__
+version = __version__
 
-setup(name='fuse-med-ml',
-      version=version,
-      description='Open-source PyTorch based framework designed to facilitate deep learning R&D in medical imaging',
-      long_description=long_description,
-      long_description_content_type="text/markdown",
-      url='https://github.com/IBM/fuse-med-ml/',
-      author='IBM Research - Machine Learning for Healthcare and Life Sciences',
-      author_email='moshiko.raboh@ibm.com',
-      packages=find_namespace_packages(),
-      license='Apache License 2.0',
-      install_requires=requirements
-      )
+setup(
+    name="fuse-med-ml",
+    version=version,
+    description="Open-source PyTorch based framework designed to facilitate deep learning R&D in medical imaging",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url="https://github.com/IBM/fuse-med-ml/",
+    author="IBM Research - Machine Learning for Healthcare and Life Sciences",
+    author_email="moshiko.raboh@ibm.com",
+    packages=find_namespace_packages(),
+    license="Apache License 2.0",
+    install_requires=requirements,
+)

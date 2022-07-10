@@ -20,12 +20,16 @@ Created on June 30, 2021
 import logging
 import os
 from typing import OrderedDict
-from fuse.utils.file_io.file_io import load_pickle
+import copy
+from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
+
+
 
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
+import pytorch_lightning as pl
 
 from fuse.eval.evaluator import EvaluatorDefault 
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
@@ -36,17 +40,15 @@ from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.split import dataset_balanced_division_to_folds
     
 from fuse.dl.losses.loss_default import LossDefault
-from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
-from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
-from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
-from fuse.dl.managers.manager_default import ManagerDefault
 from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
 from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.heads.head_3D_classifier import Head3DClassifier
+from fuse.dl.lightning.pl_module import LightningModuleDefault
 
 from fuse.utils.utils_debug import FuseDebug
-import fuse.utils.gpu as GPU
 from fuse.utils.utils_logger import fuse_logger_start
+from fuse.utils.file_io.file_io import create_dir, load_pickle, save_dataframe
+import fuse.utils.gpu as GPU
 
 from fuseimg.datasets.stoic21 import STOIC21
 
@@ -63,15 +65,15 @@ debug = FuseDebug(mode)
 # Output Paths
 ##########################################
 assert "STOIC21_DATA_PATH" in os.environ, "Expecting environment variable STOIC21_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
-ROOT = 'examples/stoic21' # TODO: fill path here
+ROOT = '_examples/stoic21' # TODO: fill path here
 model_dir = os.path.join(ROOT, 'model_dir')
 PATHS = {'model_dir': model_dir,
-         'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
          'cache_dir': os.path.join(ROOT, 'cache_dir'),
          'data_split_filename': os.path.join(ROOT, 'stoic21_split.pkl'),
          'data_dir': os.environ["STOIC21_DATA_PATH"],
          'inference_dir': os.path.join(model_dir, 'infer_dir'),
          'eval_dir': os.path.join(model_dir, 'eval_dir')}
+NUM_GPUS = 1
 
 ##########################################
 # Train Common Params
@@ -80,6 +82,9 @@ TRAIN_COMMON_PARAMS = {}
 # ============
 # Model
 # ============
+TRAIN_COMMON_PARAMS['model'] = dict(imaging_dropout=0.5,
+                                     fused_dropout=0.0,
+                                     clinical_dropout=0.0)
 
 # ============
 # Data
@@ -91,35 +96,49 @@ TRAIN_COMMON_PARAMS['data.num_folds'] = 5
 TRAIN_COMMON_PARAMS['data.train_folds'] = [0, 1, 2, 3]
 TRAIN_COMMON_PARAMS['data.validation_folds'] = [4]
 
+# ===============
+# PL Trainer
+# ===============
+TRAIN_COMMON_PARAMS['trainer.num_epochs'] = 50
+TRAIN_COMMON_PARAMS['trainer.num_devices'] = NUM_GPUS
+TRAIN_COMMON_PARAMS['trainer.accelerator'] = "gpu"
+# use "dp" strategy temp when working with multiple GPUS - workaround for pytorch lightning issue: https://github.com/Lightning-AI/lightning/issues/11807
+TRAIN_COMMON_PARAMS['trainer.strategy'] = "dp" if TRAIN_COMMON_PARAMS['trainer.num_devices'] > 1 else None
+TRAIN_COMMON_PARAMS['trainer.ckpt_path'] = None  #  path to the checkpoint you wish continue the training from
 
 # ===============
-# Manager - Train
+# Optimizer
 # ===============
-TRAIN_COMMON_PARAMS['manager.train_params'] = {
-    'device': 'cuda', 
-    'num_epochs': 50,
-    'virtual_batch_size': 1,  # number of batches in one virtual batch
-    'start_saving_epochs': 30,  # first epoch to start saving checkpoints from
-    'gap_between_saving_epochs': 5,  # number of epochs between saved checkpoint
-    'lr_sch_target': 'validation.losses.total_loss'
-}
-TRAIN_COMMON_PARAMS['manager.best_epoch_source'] = {
-    'source': 'metrics.auc',  # can be any key from 'epoch_results'
-    'optimization': 'max',  # can be either min/max
-    'on_equal_values': 'better',
-    # can be either better/worse - whether to consider best epoch when values are equal
-}
-TRAIN_COMMON_PARAMS['manager.learning_rate'] = 1e-3
-TRAIN_COMMON_PARAMS['manager.weight_decay'] = 0.005
-TRAIN_COMMON_PARAMS['manager.resume_checkpoint_filename'] = None  # if not None, will try to load the checkpoint
-TRAIN_COMMON_PARAMS['imaging_dropout'] = 0.5
-TRAIN_COMMON_PARAMS['fused_dropout'] = 0.0
-TRAIN_COMMON_PARAMS['clinical_dropout'] = 0.0
+TRAIN_COMMON_PARAMS['opt.lr'] = 1e-3
+TRAIN_COMMON_PARAMS['opt.weight_decay'] = 0.005
+
+def create_model(imaging_dropout: float, clinical_dropout: float, fused_dropout: float) -> torch.nn.Module:
+    """ 
+    creates the model 
+    See Head3DClassifier for details about imaging_dropout, clinical_dropout, fused_dropout
+    """
+    model = ModelMultiHead(
+        conv_inputs=(('data.input.img', 1),),
+        backbone=BackboneResnet3D(in_channels=1),
+        heads=[
+            Head3DClassifier(head_name='classification',
+                                conv_inputs=[("model.backbone_features", 512)],
+                                dropout_rate=imaging_dropout,
+                                append_dropout_rate=clinical_dropout,
+                                fused_dropout_rate=fused_dropout,
+                                num_classes=2,
+                                append_features=[("data.input.clinical", 8)],
+                                append_layers_description=(256,128),
+                                ),
+        ]
+    )
+    return model
+
 
 #################################
 # Train Template
 #################################
-def run_train(paths: dict, train_params: dict):
+def run_train(paths: dict, train_common_params: dict):
     # ==============================================================================
     # Logger
     # ==============================================================================
@@ -141,61 +160,40 @@ def run_train(paths: dict, train_params: dict):
     folds = dataset_balanced_division_to_folds(dataset=dataset_all,
                                         output_split_filename=paths["data_split_filename"], 
                                         keys_to_balance=["data.gt.probSevere"], 
-                                        nfolds=train_params["data.num_folds"])
+                                        nfolds=train_common_params["data.num_folds"])
 
     train_sample_ids = []
-    for fold in train_params["data.train_folds"]:
+    for fold in train_common_params["data.train_folds"]:
         train_sample_ids += folds[fold]
     validation_sample_ids = []
-    for fold in train_params["data.validation_folds"]:
+    for fold in train_common_params["data.validation_folds"]:
         validation_sample_ids += folds[fold]
 
     train_dataset = STOIC21.dataset(paths["data_dir"], paths["cache_dir"], sample_ids=train_sample_ids, train=True)
-    # for _ in train_dataset:
-    #     pass
     validation_dataset = STOIC21.dataset(paths["data_dir"], paths["cache_dir"], sample_ids=validation_sample_ids, train=False)
 
     lgr.info(f'- Create sampler:')
     sampler = BatchSamplerDefault(dataset=train_dataset,
                                        balanced_class_name='data.gt.probSevere',
                                        num_balanced_classes=2,
-                                       batch_size=train_params['data.batch_size'],
+                                       batch_size=train_common_params['data.batch_size'],
                                        balanced_class_weights=None)
     lgr.info(f'- Create sampler: Done')
 
     # Create dataloader
-    train_dataloader = DataLoader(dataset=train_dataset, batch_sampler=sampler, collate_fn=CollateDefault(), num_workers=train_params['data.train_num_workers'])
+    train_dataloader = DataLoader(dataset=train_dataset, batch_sampler=sampler, collate_fn=CollateDefault(), num_workers=train_common_params['data.train_num_workers'])
     lgr.info(f'Train Data: Done', {'attrs': 'bold'})
 
 
     # dataloader
-    validation_dataloader = DataLoader(dataset=validation_dataset, batch_size=train_params['data.batch_size'], collate_fn=CollateDefault(),
-                                       num_workers=train_params['data.validation_num_workers'])
+    validation_dataloader = DataLoader(dataset=validation_dataset, batch_size=train_common_params['data.batch_size'], collate_fn=CollateDefault(),
+                                       num_workers=train_common_params['data.validation_num_workers'])
     lgr.info(f'Validation Data: Done', {'attrs': 'bold'})
 
     # ==============================================================================
     # Model
     # ==============================================================================
-    lgr.info('Model:', {'attrs': 'bold'})
-
-    model = ModelMultiHead(
-    conv_inputs=(('data.input.img', 1),),
-    backbone=BackboneResnet3D(in_channels=1),
-    heads=[
-        Head3DClassifier(head_name='classification',
-                             conv_inputs=[("model.backbone_features", 512)],
-                             dropout_rate=train_params['imaging_dropout'],
-                             append_dropout_rate=train_params['clinical_dropout'],
-                             fused_dropout_rate=train_params['fused_dropout'],
-                             num_classes=2,
-                             append_features=[("data.input.clinical", 8)],
-                             append_layers_description=(256,128),
-                             ),
-    ]
-)
-
-
-    lgr.info('Model: Done', {'attrs': 'bold'})
+    model = create_model(**train_common_params["model"])
 
     # ====================================================================================
     #  Loss
@@ -207,51 +205,58 @@ def run_train(paths: dict, train_params: dict):
     # ====================================================================================
     # Metrics
     # ====================================================================================
-    metrics = OrderedDict([
+    train_metrics = OrderedDict([
         ('auc', MetricAUCROC(pred='model.output.classification', target="data.gt.probSevere")),
     ])
 
-    # =====================================================================================
-    #  Callbacks
-    # =====================================================================================
-    callbacks = [
-        # default callbacks
-        TensorboardCallback(model_dir=paths['model_dir']),  # save statistics for tensorboard
-        MetricStatisticsCallback(output_path=paths['model_dir'] + "/metrics.csv"),  # save statistics a csv file
-        TimeStatisticsCallback(num_epochs=train_params['manager.train_params']['num_epochs'], load_expected_part=0.1)  # time profiler
-    ]
+    validation_metrics = copy.deepcopy(train_metrics) # use the same metrics in validation as well
+ 
+    # either a dict with arguments to pass to ModelCheckpoint or list dicts for multiple ModelCheckpoint callbacks (to monitor and save checkpoints for more then one metric). 
+    best_epoch_source = dict(
+        monitor="validation.metrics.auc",
+        mode="max",
+    )
+    
+    # ====================================================================================
+    # Training components
+    # ====================================================================================
+    # create optimizer
+    optimizer = optim.SGD(model.parameters(), lr=train_common_params['opt.lr'], weight_decay=train_common_params['opt.weight_decay'], momentum=0.9, nesterov=True)
+
+    # create learning scheduler
+    lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+    lr_sch_config = dict(scheduler=lr_scheduler,
+                        monitor="validation.losses.total_loss")
+
+    # optimizier and lr sch - see pl.LightningModule.configure_optimizers return value for all options
+    optimizers_and_lr_schs = dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
 
     # =====================================================================================
-    #  Manager - Train
+    #  Train
     # =====================================================================================
     lgr.info('Train:', {'attrs': 'bold'})
 
-    # create optimizer
-    # optimizer = optim.Adam(model.parameters(), lr=train_params['manager.learning_rate'], weight_decay=train_params['manager.weight_decay'])
-    optimizer = optim.SGD(model.parameters(), lr=train_params['manager.learning_rate'], weight_decay=train_params['manager.weight_decay'], momentum=0.9, nesterov=True)
 
-    # create learning scheduler
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+    # create instance of PL module - FuseMedML generic version
+    pl_module = LightningModuleDefault(model_dir=paths["model_dir"], 
+                                       model=model,
+                                       losses=losses,
+                                       train_metrics=train_metrics,
+                                       validation_metrics=validation_metrics,
+                                       best_epoch_source=best_epoch_source,
+                                       optimizers_and_lr_schs=optimizers_and_lr_schs)
 
-    # train from scratch
-    manager = ManagerDefault(output_model_dir=paths['model_dir'], force_reset=paths['force_reset_model_dir'])
-    # Providing the objects required for the training process.
-    manager.set_objects(net=model,
-                        optimizer=optimizer,
-                        losses=losses,
-                        metrics=metrics,
-                        best_epoch_source=train_params['manager.best_epoch_source'],
-                        lr_scheduler=scheduler,
-                        callbacks=callbacks,
-                        train_params=train_params['manager.train_params'])
+    # create lightining trainer.
+    pl_trainer = pl.Trainer(default_root_dir=paths['model_dir'],
+                            max_epochs=train_common_params['trainer.num_epochs'],
+                            accelerator=train_common_params["trainer.accelerator"],
+                            devices=train_common_params["trainer.num_devices"],
+                            strategy=train_common_params["trainer.strategy"],
+                            auto_select_gpus=True)
+    
+    # train
+    pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=train_common_params['trainer.ckpt_path'])
 
-    ## Continue training
-    if train_params['manager.resume_checkpoint_filename'] is not None:
-        # Loading the checkpoint including model weights, learning rate, and epoch_index.
-        manager.load_checkpoint(checkpoint=train_params['manager.resume_checkpoint_filename'], mode='train')
-
-    # Start training
-    manager.train(train_dataloader=train_dataloader, validation_dataloader=validation_dataloader)
 
     lgr.info('Train: Done', {'attrs': 'bold'})
 
@@ -260,22 +265,29 @@ def run_train(paths: dict, train_params: dict):
 # Inference Common Params
 ######################################
 INFER_COMMON_PARAMS = {}
-INFER_COMMON_PARAMS['infer_filename'] = 'validation_set_infer.gz'
-INFER_COMMON_PARAMS['checkpoint'] = 'best'  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
+INFER_COMMON_PARAMS['infer_filename'] = 'infer_file.gz'
+INFER_COMMON_PARAMS['checkpoint'] = "best_epoch.ckpt"
 INFER_COMMON_PARAMS['data.infer_folds'] = [4]  # infer validation set
 INFER_COMMON_PARAMS['data.batch_size'] = 4
 INFER_COMMON_PARAMS['data.num_workers'] = 16
-
+INFER_COMMON_PARAMS['model'] = TRAIN_COMMON_PARAMS['model']
+INFER_COMMON_PARAMS['trainer.num_devices'] = 1 # infer must use single device
+INFER_COMMON_PARAMS['trainer.accelerator'] = "gpu"
+INFER_COMMON_PARAMS['trainer.strategy'] = None
 
 ######################################
 # Inference Template
 ######################################
+
 def run_infer(paths: dict, infer_common_params: dict):
+    create_dir(paths['inference_dir'])
+    infer_file = os.path.join(paths['inference_dir'], infer_common_params['infer_filename'])
+    checkpoint_file  = os.path.join(paths['model_dir'], infer_common_params['checkpoint'])
     #### Logger
     fuse_logger_start(output_path=paths['inference_dir'], console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Inference', {'attrs': ['bold', 'underline']})
-    lgr.info(f'infer_filename={os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])}', {'color': 'magenta'})
+    lgr.info(f'infer_filename={infer_file}', {'color': 'magenta'})
 
     ## Data
     folds = load_pickle(paths["data_split_filename"]) # assume exists and created in train func
@@ -285,36 +297,42 @@ def run_infer(paths: dict, infer_common_params: dict):
         infer_sample_ids += folds[fold]
 
     infer_dataset = STOIC21.dataset(paths["data_dir"], paths["cache_dir"], sample_ids=infer_sample_ids, train=False)
+    infer_dataloader = DataLoader(dataset=infer_dataset, collate_fn=CollateDefault(), batch_size=2, num_workers=2)
 
-    # dataloader
-    infer_dataloader = DataLoader(dataset=infer_dataset, batch_size=infer_common_params['data.batch_size'], collate_fn=CollateDefault(),
-                                       num_workers=infer_common_params['data.num_workers'])
+    # load python lightning module
+    model = create_model(**infer_common_params["model"])
+    pl_module = LightningModuleDefault.load_from_checkpoint(checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True)
+    # set the prediction keys to extract (the ones used be the evaluation function).
+    pl_module.set_predictions_keys(['model.output.classification', 'data.gt.probSevere']) # which keys to extract and dump into file
 
+    # create a trainer instance
+    pl_trainer = pl.Trainer(default_root_dir=paths['model_dir'],
+                            accelerator=infer_common_params["trainer.accelerator"],
+                            devices=infer_common_params["trainer.num_devices"],
+                            strategy=infer_common_params["trainer.strategy"],
+                            auto_select_gpus=True)
+    predictions = pl_trainer.predict(pl_module, infer_dataloader, return_predictions=True)
 
-    ## Manager for inference
-    manager = ManagerDefault()
-    output_columns = ['model.output.classification', 'data.gt.probSevere']
-    manager.infer(data_loader=infer_dataloader,
-                  input_model_dir=paths['model_dir'],
-                  checkpoint=infer_common_params['checkpoint'],
-                  output_columns=output_columns,
-                  output_file_name=os.path.join(paths["inference_dir"], infer_common_params["infer_filename"]))
-
+    # convert list of batch outputs into a dataframe
+    infer_df = convert_predictions_to_dataframe(predictions)
+    save_dataframe(infer_df, infer_file)
 
 ######################################
-# Analyze Common Params
+# Eval Common Params
 ######################################
 EVAL_COMMON_PARAMS = {}
 EVAL_COMMON_PARAMS['infer_filename'] = INFER_COMMON_PARAMS['infer_filename']
 
 
 ######################################
-# Analyze Template
+# Eval Template
 ######################################
 def run_eval(paths: dict, eval_common_params: dict):
+    infer_file = os.path.join(paths['inference_dir'], eval_common_params['infer_filename'])
+
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
-    lgr.info('Fuse Analyze', {'attrs': ['bold', 'underline']})
+    lgr.info('Fuse Eval', {'attrs': ['bold', 'underline']})
 
     # metrics
     metrics = OrderedDict([
@@ -329,7 +347,7 @@ def run_eval(paths: dict, eval_common_params: dict):
 
     # run
     results = evaluator.eval(ids=None,
-                     data=os.path.join(paths["inference_dir"], eval_common_params["infer_filename"]),
+                     data=infer_file,
                      metrics=metrics,
                      output_dir=paths['eval_dir'])
 
@@ -341,8 +359,6 @@ def run_eval(paths: dict, eval_common_params: dict):
 ######################################
 if __name__ == "__main__":
     # allocate gpus
-    # To use cpu - set NUM_GPUS to 0
-    NUM_GPUS = 1
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None # [0]
     GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
@@ -350,7 +366,7 @@ if __name__ == "__main__":
     RUNNING_MODES = ['train', 'infer', 'eval']  # Options: 'train', 'infer', 'eval'
     # train
     if 'train' in RUNNING_MODES:
-        run_train(paths=PATHS, train_params=TRAIN_COMMON_PARAMS)
+        run_train(paths=PATHS, train_common_params=TRAIN_COMMON_PARAMS)
 
     # infer
     if 'infer' in RUNNING_MODES:

@@ -26,40 +26,36 @@ from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 from fuse.utils.rand.seed import Seed
 import fuse.utils.gpu as GPU
 
-from fuse_examples.imaging.classification.mnist.runner import TRAIN_COMMON_PARAMS, run_train, run_infer, run_eval, INFER_COMMON_PARAMS, \
-   EVAL_COMMON_PARAMS
+from fuse_examples.imaging.classification.mnist.run_mnist import EVAL_COMMON_PARAMS, INFER_COMMON_PARAMS, TRAIN_COMMON_PARAMS, run_train, run_infer, run_eval
 
 class ClassificationMnistTestCase(unittest.TestCase):
 
     def setUp(self):
         self.root = tempfile.mkdtemp()
-
+        model_dir = os.path.join(self.root, 'model_dir')
         self.paths = {
-            'model_dir': os.path.join(self.root, 'mnist/model_dir'),
+            'model_dir': model_dir,
             'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
-            'cache_dir': os.path.join(self.root, 'mnist/cache_dir'),
-            'inference_dir': os.path.join(self.root, 'mnist/infer_dir'),
-            'eval_dir': os.path.join(self.root, 'mnist/analyze_dir')}
+            'cache_dir': os.path.join(self.root, 'cache_dir'),
+            'inference_dir': os.path.join(model_dir, 'infer_dir'),
+            'eval_dir': os.path.join(model_dir, 'eval_dir')}
 
 
         self.train_common_params = TRAIN_COMMON_PARAMS
 
         self.infer_common_params = INFER_COMMON_PARAMS
 
-        self.analyze_common_params = EVAL_COMMON_PARAMS
+        self.eval_common_params = EVAL_COMMON_PARAMS
 
     
-    @run_in_subprocess
+    @run_in_subprocess()
     def test_template(self):
-        num_gpus_allocated = GPU.choose_and_enable_multiple_gpus(1, use_cpu_if_fail=True)
-        if num_gpus_allocated == 0:
-            self.train_common_params['manager.train_params']['device'] = 'cpu'
         Seed.set_seed(0, False) # previous test (in the pipeline) changed the deterministic behavior to True
         run_train(self.paths, self.train_common_params)
         run_infer(self.paths, self.infer_common_params)
-        results = run_eval(self.paths, self.analyze_common_params)
+        results = run_eval(self.paths, self.eval_common_params)
 
-        threshold = 0.98
+        threshold = 0.95
         self.assertGreaterEqual(results['metrics.auc.macro_avg'], threshold)
 
     def tearDown(self):
@@ -68,4 +64,4 @@ class ClassificationMnistTestCase(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(verbosity=2)

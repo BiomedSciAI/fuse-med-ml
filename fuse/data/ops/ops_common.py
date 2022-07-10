@@ -1,4 +1,6 @@
-from typing import Callable, Dict, List, Optional, OrderedDict, Sequence, Tuple, Union
+import math
+import numbers
+from typing import Any, Callable, Dict, List, Optional, OrderedDict, Sequence, Tuple, Union
 from fuse.data.key_types import TypeDetectorBase
 import copy
 from enum import Enum
@@ -348,7 +350,7 @@ class OpKeepKeypaths(OpBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], keep_keypaths:List[str]) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, keep_keypaths:List[str]) -> Union[None, dict, List[dict]]:
         prev_sample_dict = sample_dict
         sample_dict = NDict()
         for k in keep_keypaths:
@@ -363,11 +365,14 @@ class OpLookup(OpBase):
     Example:
     To read the gender represented by strings "male" and "female" and convert it to int do the following
     (OpLookup(map={"male": 0, "female": 1}). dict(key_in="data.input.gender", key_out="data.input,gender"))
-
     """
-    def __init__(self, map: dict):
+    def __init__(self, map: dict, not_exist_error : bool = True):
+        """
+        :param not_exist_error: false iff if the value does not exist it will keep the previous value
+        """
         super().__init__()
         self._map = map
+        self._not_exist_error = not_exist_error
 
     def __call__(self, sample_dict: NDict, key_in: str, key_out: str) -> Union[None, dict, List[dict]]:
         """
@@ -375,7 +380,11 @@ class OpLookup(OpBase):
         :param key_out: key to store the converted vale
         """
         value = sample_dict[key_in]
-        sample_dict[key_out] = self._map[value]
+        if value in self._map :
+            sample_dict[key_out] = self._map[value]
+        elif self._not_exist_error:
+            raise Exception(f"value {value} does not exist in mapping")
+        
 
         return sample_dict
 
@@ -420,4 +429,22 @@ class OpConcat(OpBase):
         values = [v if len(v.shape) > 0 else np.expand_dims(v, axis=0) for v in values]
         sample_dict[key_out] = np.concatenate(values, axis=axis)
 
+        return sample_dict
+
+
+class OpOverrideNaN(OpBase):
+    """
+    Override missing values (value equals to nan)
+    """
+    def __call__(self, sample_dict: NDict, key: str, value_to_fill: Any) -> NDict:
+        assert key in sample_dict, f"Error: missing {key}, available keys {sample_dict.keypaths()} "
+        if isinstance(sample_dict[key], numbers.Number) and math.isnan(sample_dict[key]):
+            sample_dict[key] = value_to_fill
+        return sample_dict
+        
+class OpZScoreNorm(OpBase):
+    
+    def __call__(self, sample_dict: NDict, key: str, mean: float,
+                           std: float):
+        sample_dict[key] = (sample_dict[key]-mean)/std
         return sample_dict

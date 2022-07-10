@@ -115,9 +115,16 @@ def uncollate(batch: Dict) -> List[Dict]:
     
     batch_size = None
     for key in keys:
-        if isinstance(batch[key], (np.ndarray, torch.Tensor, list, tuple)):
+        if isinstance(batch[key], torch.Tensor):
             batch_size = len(batch[key])
             break
+    
+    if batch_size is None:
+        for key in keys:
+            if isinstance(batch[key], (np.ndarray, list, tuple)):
+                batch_size = len(batch[key])
+                break
+        
     if batch_size is None:
         return batch # assuming batch dict with no samples
           

@@ -17,6 +17,7 @@ Created on June 30, 2021
 
 """
 
+import copy
 from typing import Hashable, List, Optional, Dict, Union
 from fuse.utils.file_io.file_io import read_dataframe
 import pandas as pd
@@ -76,7 +77,8 @@ class OpReadDataframe(OpBase):
             df.rename(self._rename_columns, axis=1, inplace=True)
 
         # convert to dictionary: {index -> {column -> value}}
-        df = df.set_index(self._key_column)
+        if self._key_column is not None :
+            df = df.set_index(self._key_column)
         self._data = df.to_dict(orient='index')
 
     def __call__(self, sample_dict: NDict, **kwargs) -> Union[None, dict, List[dict]]:
