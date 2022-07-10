@@ -16,11 +16,6 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-import torch
-
-"""
-Fuse miscellaneous utils
-"""
 import logging
 import sys
 import time

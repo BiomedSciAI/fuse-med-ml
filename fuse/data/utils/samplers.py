@@ -100,7 +100,7 @@ class BatchSamplerDefault(Sampler):
 
         if self._mode == "approx":
             if self._batch_size is None:
-                raise Exception(f"Error: in mode 'approx', batch size must be set.")
+                raise Exception("Error: in mode 'approx', batch size must be set.")
             if balanced_class_weights is not None:
                 for weight in balanced_class_weights:
                     if not isinstance(weight, float):

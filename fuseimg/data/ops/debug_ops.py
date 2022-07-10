@@ -1,5 +1,4 @@
 import cv2
-from typing import Optional
 
 from fuse.data.ops.op_base import OpBase
 from fuseimg.utils.typing.key_types_imaging import DataTypeImaging

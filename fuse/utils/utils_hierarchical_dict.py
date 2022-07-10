@@ -12,7 +12,7 @@ limitations under the License.
 Created on June 30, 2021
 """
 
-from typing import Any, Set, Callable, Optional, List, Sequence, Union
+from typing import Any, Callable, Optional, List, Sequence, Union
 
 import numpy
 import torch
@@ -117,7 +117,6 @@ class FuseUtilsHierarchicalDict:
         @param hierarchical_dict: dict to flatten
         @return: dict where keys are the hierarchical_dict keys separated by periods.
         """
-        flat_dict = {}
         return cls.get_all_keys(hierarchical_dict, include_values=True)
 
     @classmethod

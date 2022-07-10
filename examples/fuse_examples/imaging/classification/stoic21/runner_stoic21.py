@@ -105,7 +105,7 @@ TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
 # use "dp" strategy temp when working with multiple GPUS - workaround for pytorch lightning issue: https://github.com/Lightning-AI/lightning/issues/11807
 TRAIN_COMMON_PARAMS["trainer.strategy"] = "dp" if TRAIN_COMMON_PARAMS["trainer.num_devices"] > 1 else None
-TRAIN_COMMON_PARAMS["trainer.ckpt_path"] = None  #  path to the checkpoint you wish continue the training from
+TRAIN_COMMON_PARAMS["trainer.ckpt_path"] = None  # path to the checkpoint you wish continue the training from
 
 # ===============
 # Optimizer
@@ -156,7 +156,7 @@ def run_train(paths: dict, train_common_params: dict):
     # Data
     # ==============================================================================
     # Train Data
-    lgr.info(f"Train Data:", {"attrs": "bold"})
+    lgr.info("Train Data:", {"attrs": "bold"})
 
     # split to folds randomly - temp
     dataset_all = STOIC21.dataset(paths["data_dir"], paths["cache_dir"], reset_cache=False)
@@ -179,7 +179,7 @@ def run_train(paths: dict, train_common_params: dict):
         paths["data_dir"], paths["cache_dir"], sample_ids=validation_sample_ids, train=False
     )
 
-    lgr.info(f"- Create sampler:")
+    lgr.info("- Create sampler:")
     sampler = BatchSamplerDefault(
         dataset=train_dataset,
         balanced_class_name="data.gt.probSevere",
@@ -187,7 +187,7 @@ def run_train(paths: dict, train_common_params: dict):
         batch_size=train_common_params["data.batch_size"],
         balanced_class_weights=None,
     )
-    lgr.info(f"- Create sampler: Done")
+    lgr.info("- Create sampler: Done")
 
     # Create dataloader
     train_dataloader = DataLoader(
@@ -196,7 +196,7 @@ def run_train(paths: dict, train_common_params: dict):
         collate_fn=CollateDefault(),
         num_workers=train_common_params["data.train_num_workers"],
     )
-    lgr.info(f"Train Data: Done", {"attrs": "bold"})
+    lgr.info("Train Data: Done", {"attrs": "bold"})
 
     # dataloader
     validation_dataloader = DataLoader(
@@ -205,7 +205,7 @@ def run_train(paths: dict, train_common_params: dict):
         collate_fn=CollateDefault(),
         num_workers=train_common_params["data.validation_num_workers"],
     )
-    lgr.info(f"Validation Data: Done", {"attrs": "bold"})
+    lgr.info("Validation Data: Done", {"attrs": "bold"})
 
     # ==============================================================================
     # Model

@@ -12,7 +12,6 @@ limitations under the License.
 Created on June 30, 2021
 """
 
-import pickle
 import os
 from typing import Hashable, Sequence
 from fuse.data.datasets.dataset_base import DatasetBase
@@ -21,7 +20,7 @@ from sklearn.utils import shuffle
 import pandas as pd
 import numpy as np
 from fuse.data.utils.export import ExportDataset
-from fuse.data.utils.sample import get_sample_id, get_sample_id_key
+from fuse.data.utils.sample import get_sample_id_key
 
 
 def print_folds_stat(db: pd.DataFrame, nfolds: int, key_columns: np.ndarray):

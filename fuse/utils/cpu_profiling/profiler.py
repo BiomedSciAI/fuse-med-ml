@@ -1,7 +1,6 @@
-import time
-import cProfile, pstats
+import cProfile
+import pstats
 from io import StringIO
-from typing import Callable
 
 
 class Profiler:

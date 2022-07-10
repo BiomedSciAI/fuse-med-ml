@@ -1,14 +1,9 @@
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, Hashable
-from fuse.eval.metrics.libs.model_comparison import ModelComparison
+from typing import Optional, Sequence, Tuple, Union, Hashable
 from fuse.eval.metrics.libs.thresholding import Thresholding
 from fuse.eval.metrics.utils import PerSampleData
 
-import pandas as pd
-import traceback
-
 import numpy as np
 
-from fuse.eval.metrics.metrics_common import MetricWithCollectorBase
 from .metrics_classification_common import MetricMultiClassDefault
 
 

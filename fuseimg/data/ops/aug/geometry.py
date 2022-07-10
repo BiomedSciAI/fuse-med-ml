@@ -1,5 +1,4 @@
 from typing import List, Optional, Tuple, Union
-from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
 
 from PIL import Image
 
@@ -393,7 +392,6 @@ class OpRotation3D(OpBase):
         """
         aug_input = sample_dict[key]
         assert len(aug_input.shape) == 3  # will only work for 3d
-        channels = range(aug_input.shape[0])
         if z_rot != 0:
             aug_input = TTF.rotate(aug_input, angle=z_rot)
         if x_rot != 0:

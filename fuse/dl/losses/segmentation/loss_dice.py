@@ -19,11 +19,10 @@ Created on June 30, 2021
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import numpy as np
 from fuse.dl.losses.loss_base import LossBase
 from fuse.utils.ndict import NDict
-from typing import Callable, Dict, Optional
+from typing import Callable, Optional
 
 
 def make_one_hot(input, num_classes, device="cuda"):

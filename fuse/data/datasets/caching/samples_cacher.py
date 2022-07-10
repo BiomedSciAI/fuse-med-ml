@@ -12,11 +12,9 @@ limitations under the License.
 Created on June 30, 2021
 """
 from functools import partial
-from typing import Hashable, List, Optional, Sequence, Union, Callable, Dict, Callable, Any, Tuple
+from typing import Hashable, List, Optional, Sequence, Union, Callable, Any, Tuple
 
 from fuse.data.pipelines.pipeline_default import PipelineDefault
-from fuse.data.utils.sample import set_initial_sample_id
-import numpy as np
 from collections import OrderedDict
 from fuse.data.datasets.caching.object_caching_handlers import _object_requires_hdf5_recurse
 from fuse.utils.ndict import NDict
@@ -28,7 +26,6 @@ import hashlib
 from fuse.utils.file_io import delete_directory_tree
 from glob import glob
 from fuse.utils.multiprocessing.run_multiprocessed import run_multiprocessed, get_from_global_storage
-from collections import OrderedDict
 from fuse.data.datasets.sample_caching_audit import SampleCachingAudit
 from fuse.data.utils.sample import get_initial_sample_id, set_initial_sample_id
 from warnings import warn

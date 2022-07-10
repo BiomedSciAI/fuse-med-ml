@@ -22,7 +22,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from typing import Dict, Tuple, Sequence, Optional
-from fuse.utils.ndict import NDict
 
 
 class ClassifierLinear(nn.Module):

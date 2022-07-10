@@ -17,7 +17,7 @@ Created on June 30, 2021
 
 """
 
-from typing import Dict, Union
+from typing import Union
 
 import numpy as np
 import torch

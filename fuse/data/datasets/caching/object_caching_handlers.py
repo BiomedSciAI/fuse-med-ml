@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List
 import numpy as np
 from fuse.utils.ndict import NDict
 import torch

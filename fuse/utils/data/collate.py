@@ -17,7 +17,7 @@ Created on June 30, 2021
 
 """
 import logging
-from typing import Any, Callable, Dict, List, Sequence, Tuple
+from typing import Callable, Dict, List, Sequence, Tuple
 
 from fuse.utils import NDict
 

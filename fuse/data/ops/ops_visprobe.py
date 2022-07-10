@@ -1,10 +1,9 @@
-from typing import Callable, Dict, List, Optional, OrderedDict, Sequence, Tuple, Union
-import copy
+from typing import List, Optional, Union
 import enum
 
 from fuse.utils.ndict import NDict
 from fuse.data.visualizer.visualizer_base import VisualizerBase
-from .op_base import OpBase, OpReversibleBase
+from .op_base import OpReversibleBase
 from fuse.data.key_types import TypeDetectorBase
 
 
@@ -73,7 +72,7 @@ class VisProbe(OpReversibleBase):
 
     def _extract_collected(self, sample_dict: NDict):
         res = []
-        if not self._collected_prefix in sample_dict:
+        if self._collected_prefix not in sample_dict:
             return res
         else:
             for vdata in sample_dict[self._collected_prefix]:
@@ -146,10 +145,10 @@ class VisProbe(OpReversibleBase):
         both_fr = (VisFlag.REVERSE | VisFlag.FORWARD) in self._flags
         dir_forward = flow == VisFlag.FORWARD
         dir_reverse = flow == VisFlag.REVERSE
-        any_show_collected = VisFlag.SHOW_ALL_COLLECTED | VisFlag.SHOW_COLLECTED
+        # any_show_collected = VisFlag.SHOW_ALL_COLLECTED | VisFlag.SHOW_COLLECTED
 
         if VisFlag.COLLECT in self._flags or (dir_forward and both_fr):
-            if not self._collected_prefix in sample_dict:
+            if self._collected_prefix not in sample_dict:
                 sample_dict[self._collected_prefix] = []
             sample_dict[self._collected_prefix].append(vis_data)
 

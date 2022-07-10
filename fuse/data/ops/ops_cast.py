@@ -17,7 +17,6 @@ Created on June 30, 2021
 
 """
 from abc import abstractmethod
-from os import stat
 from typing import Any, List, Optional, Sequence, Union
 from fuse.data.ops.op_base import OpReversibleBase
 import numpy as np

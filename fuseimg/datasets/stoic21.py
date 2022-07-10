@@ -41,7 +41,6 @@ from fuse.data.ops.ops_read import OpReadDataframe
 from fuse.data.ops.ops_cast import OpToFloat, OpToInt, OpToNumpy
 from fuse.data.utils.sample import get_sample_id
 
-from fuseimg.data.ops.aug.color import OpAugColor
 from fuseimg.data.ops.aug.geometry import OpAugAffine2D
 from fuseimg.data.ops.image_loader import OpLoadImage
 from fuseimg.data.ops.color import OpClip, OpToRange

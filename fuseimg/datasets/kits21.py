@@ -33,7 +33,7 @@ import wget
 from fuse.data import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuse.data import PipelineDefault, OpSampleAndRepeat, OpToTensor, OpRepeat
-from fuse.data.ops.op_base import OpBase, OpReversibleBase
+from fuse.data.ops.op_base import OpReversibleBase
 from fuse.data.ops.ops_aug_common import OpSample
 from fuse.data.ops.ops_common import OpLambda
 

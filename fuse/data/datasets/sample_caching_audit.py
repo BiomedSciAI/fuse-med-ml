@@ -7,8 +7,8 @@ from fuse.data import get_sample_id
 By auditing the samples, "stale" caches can be found, which is very important to detect.
 A stale cache of a sample is a cached sample which contains different information then the same sample as it is being freshly created.
 There are several reasons that it can happen, for example, a change in some code dependency in some operation in the sample processing pipeline.
-Note - setting a too high audit frequency will slow your training.        
-audit example usage: 
+Note - setting a too high audit frequency will slow your training.
+audit example usage:
 # a minimalistic approach, testing only the first sample. Almost no slow down of entire train session, but not periodic audit so higher chance to miss a stale cached sample.
 SampleCachingAudit(audit_first_sample=True,audit_rate=None)
 )

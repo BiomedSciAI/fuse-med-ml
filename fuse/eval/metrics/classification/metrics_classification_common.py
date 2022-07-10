@@ -89,7 +89,7 @@ class MetricMultiClassDefault(MetricWithCollectorBase):
                             metric_results[f"{sub_metric_name}.{cls_name}"] = cls_res[sub_metric_name]
                     else:
                         assert (
-                            is_dict == False
+                            is_dict is False
                         ), "expect all sub metric results to either return dictionary or single value"
                         metric_results[f"{cls_name}"] = cls_res
 

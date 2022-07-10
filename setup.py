@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 import os
 import pathlib
-from setuptools import setup, find_packages, find_namespace_packages
+from setuptools import setup, find_namespace_packages
 
-import sys
 
 # The directory containing this file
 HERE = pathlib.Path(__file__).parent
@@ -29,7 +28,7 @@ with open(os.path.join(HERE, "fuseimg/requirements.txt"), "r") as fh:
 # all extra requires
 all_requirements = fuseimg_requirements
 # version
-from fuse.version import __version__
+from fuse.version import __version__  # noqa
 
 version = __version__
 

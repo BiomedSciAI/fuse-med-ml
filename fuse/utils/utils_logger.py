@@ -147,7 +147,7 @@ def fuse_logger_start(
 
     if list_of_source_files is None or list_of_source_files:
         if output_path is not None:
-            source_files_output_path = os.path.join(output_path, f"source_files", timestr)
+            source_files_output_path = os.path.join(output_path, "source_files", timestr)
             create_or_reset_dir(source_files_output_path)
 
             lgr.info(f"Copy source files to {source_files_output_path}")

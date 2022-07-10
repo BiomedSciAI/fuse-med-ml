@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Dict, List, Optional
+from typing import List, Optional
 from fuse.eval.metrics.libs.instance_segmentation import MetricsInstanceSegmentaion
 
 import numpy as np

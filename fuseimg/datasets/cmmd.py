@@ -1,4 +1,3 @@
-from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuseimg.data.ops.image_loader import OpLoadImage
@@ -19,7 +18,8 @@ import torch
 import pandas as pd
 import numpy as np
 import pydicom
-import os, glob
+import os
+import glob
 from pathlib import Path
 from fuse.data.utils.sample import get_sample_id
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
@@ -207,7 +207,7 @@ class CMMD:
         dynamic_pipeline = CMMD.dynamic_pipeline(train=train)
 
         cacher = SamplesCacher(
-            f"cmmd_cache_ver",
+            "cmmd_cache_ver",
             static_pipeline,
             cache_dirs=[cache_dir],
             restart_cache=reset_cache,

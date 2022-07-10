@@ -1,20 +1,18 @@
 import functools
-from typing import Any, Callable, List, Optional, Tuple
+from typing import Any, List, Optional
 from fuse.utils.utils_debug import FuseDebug
 import torch
-from tqdm import tqdm, trange
+from tqdm import tqdm
 import multiprocessing as mp
 from termcolor import cprint
 import os
 import traceback
-from collections.abc import Iterable
-import inspect
 
 """
 global dictionary that stores arguments to a new created process
 Direct access is not allowed - use get_from_global_storage to access it from a worker function.
 call the following "private" functions only if you know what you're doing: _store_in_global_storage, _remove_from_global_storage
-Typically, you'd only need to call get_from_global_storage from your worker_func, and call run_multiprocessed and provide copy_global_storage to it, 
+Typically, you'd only need to call get_from_global_storage from your worker_func, and call run_multiprocessed and provide copy_global_storage to it,
     with a dict of values that you want accesible from the worker_func.
 """
 _multiprocess_global_storage = {}

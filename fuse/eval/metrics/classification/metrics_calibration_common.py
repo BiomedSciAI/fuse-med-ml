@@ -1,13 +1,6 @@
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, Hashable, List
-from fuse.eval.metrics.utils import PerSampleData
-
-import pandas as pd
-import traceback
-
-import numpy as np
+from typing import Optional, Union
 
 from fuse.eval.metrics.libs.calibration import Calibration
-from fuse.eval.metrics.metrics_common import MetricWithCollectorBase
 from .metrics_classification_common import MetricMultiClassDefault
 
 from functools import partial

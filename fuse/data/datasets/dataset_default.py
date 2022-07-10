@@ -17,7 +17,7 @@ Created on June 30, 2021
 
 """
 
-from typing import Any, Dict, Hashable, List, Optional, Sequence, Union
+from typing import Dict, Hashable, List, Optional, Sequence, Union
 
 from warnings import warn
 from fuse.data.datasets.dataset_base import DatasetBase
@@ -30,7 +30,6 @@ from fuse.data import get_sample_id, create_initial_sample, get_specific_sample_
 import copy
 from collections import OrderedDict
 import numpy as np
-from fuse.data import OpToTensor, OpRepeat
 
 
 class DatasetDefault(DatasetBase):

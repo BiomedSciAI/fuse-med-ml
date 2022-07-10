@@ -13,9 +13,8 @@ import numpy as np
 from fuse.utils.file_io.file_io import create_or_reset_dir
 
 from fuse.eval.evaluator import EvaluatorDefault
-from fuse.eval.metrics.classification.metrics_classification_common import MetricBSS, MetricConfusion, MetricROCCurve
+from fuse.eval.metrics.classification.metrics_classification_common import MetricBSS, MetricConfusion
 from fuse.eval.metrics.metrics_common import CI
-from pandas.core.frame import DataFrame
 
 
 ## Constants
@@ -130,7 +129,7 @@ def decode_results(results: dict, output_dir: str) -> Tuple[OrderedDict, str]:
     results_text += "\n|"
     results_text += "".join([f" {column} |" for column in table_columns])
     results_text += "\n|"
-    results_text += "".join([f" ------ |" for column in table_columns])
+    results_text += "".join([" ------ |" for column in table_columns])
     results_text += "\n|"
     results_text += "".join(
         [f" {results_table[f'Task1-{column}']} {results_table[f'Task1-{column}-CI']} |" for column in table_columns]
@@ -148,7 +147,7 @@ def decode_results(results: dict, output_dir: str) -> Tuple[OrderedDict, str]:
     results_text += "\n|"
     results_text += "".join([f" {column} |" for column in table_columns])
     results_text += "\n|"
-    results_text += "".join([f" ------ |" for column in table_columns])
+    results_text += "".join([" ------ |" for column in table_columns])
     results_text += "\n|"
     results_text += "".join(
         [f" {results_table[f'Task2-{column}']} {results_table[f'Task2-{column}-CI']} |" for column in table_columns]

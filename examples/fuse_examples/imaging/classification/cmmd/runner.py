@@ -36,7 +36,6 @@ from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.split import dataset_balanced_division_to_folds
 from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
-from fuse.utils.file_io.file_io import load_pickle
 from fuse.dl.losses.loss_default import LossDefault
 
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy
@@ -49,7 +48,6 @@ from fuse.utils.file_io.file_io import create_dir, load_pickle, save_dataframe
 from fuse.eval.evaluator import EvaluatorDefault
 import torch
 import hydra
-from typing import Dict
 from omegaconf import DictConfig, OmegaConf
 
 assert (
@@ -178,7 +176,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     )
 
     ## Create sampler
-    lgr.info(f"- Create sampler:")
+    lgr.info("- Create sampler:")
     sampler = BatchSamplerDefault(
         dataset=train_dataset,
         balanced_class_name=gt_label,
@@ -189,7 +187,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
         balanced_class_weights=None,
     )
 
-    lgr.info(f"- Create sampler: Done")
+    lgr.info("- Create sampler: Done")
 
     ## Create dataloader
     train_dataloader = DataLoader(
@@ -200,10 +198,10 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
         collate_fn=CollateDefault(skip_keys=skip_keys),
         num_workers=train["num_workers"],
     )
-    lgr.info(f"Train Data: Done", {"attrs": "bold"})
+    lgr.info("Train Data: Done", {"attrs": "bold"})
 
     #### Validation data
-    lgr.info(f"Validation Data:", {"attrs": "bold"})
+    lgr.info("Validation Data:", {"attrs": "bold"})
 
     ## Create dataloader
     validation_dataloader = DataLoader(
@@ -215,7 +213,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
         num_workers=train["num_workers"],
         collate_fn=CollateDefault(skip_keys=skip_keys),
     )
-    lgr.info(f"Validation Data: Done", {"attrs": "bold"})
+    lgr.info("Validation Data: Done", {"attrs": "bold"})
 
     # ====================================================================================
     #  Loss
@@ -335,7 +333,7 @@ def run_infer(train: NDict, paths: NDict, infer: NDict):
     pl_module.set_predictions_keys(
         ["model.output.head_0", "data.gt.classification"]
     )  # which keys to extract and dump into file
-    lgr.info(f"Test Data: Done", {"attrs": "bold"})
+    lgr.info("Test Data: Done", {"attrs": "bold"})
 
     # create a trainer instance
     predictions = pl_trainer.predict(pl_module, infer_dataloader, return_predictions=True)

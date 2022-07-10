@@ -1,7 +1,6 @@
 import numpy as np
 from fuse.data.key_types import DataTypeBasic
 from fuse.data.patterns import Patterns
-from fuse.utils.ndict import NDict
 
 
 class TypedElement:

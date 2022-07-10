@@ -41,7 +41,6 @@ from fuse.eval.metrics.classification.metrics_classification_common import (
     MetricROCCurve,
 )
 from fuse.eval.metrics.classification.metrics_model_comparison_common import (
-    MetricContingencyTable,
     MetricDelongsTest,
     MetricMcnemarsTest,
 )

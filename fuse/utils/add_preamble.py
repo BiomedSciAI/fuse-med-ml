@@ -17,8 +17,8 @@ Created on June 30, 2021
 
 """
 
-
-import sys, os
+import sys
+import os
 import os.path as path
 import fileinput
 
@@ -100,7 +100,7 @@ if __name__ == "__main__":
 
     if len(files) > 0:
         confirm = input("proceed ? [y/N] ")
-        if confirm is not "y":
+        if confirm != "y":
             exit(0)
 
         add_preamble(files, preamble)

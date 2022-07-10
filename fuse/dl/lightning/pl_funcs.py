@@ -14,13 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 Created on June 30, 2021
-"""
 
-"""
+======================================
+
 Collection of useful functions to implement FuseMedML pytorch lightning based module and train loop
 """
 import traceback
-from typing import Any, Dict, List, Optional, OrderedDict, Sequence, Tuple, Union
+from typing import Any, Dict, List, OrderedDict, Sequence, Union
 from statistics import mean
 from fuse.data.utils.sample import get_sample_id_key
 from fuse.utils.data.collate import uncollate

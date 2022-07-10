@@ -17,7 +17,7 @@ Created on June 30, 2021
 
 """
 
-from typing import Callable, Dict, Union, Optional
+from typing import Callable, Optional
 
 import torch
 import torch.nn as nn

@@ -4,6 +4,7 @@ import getpass
 from .shell_handler import ShellHandler
 from os.path import abspath, join, dirname
 from glob import glob
+from collections import namedtuple
 
 SCRIPT_RUNNER_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "script_runner")
 
@@ -11,8 +12,6 @@ SCRIPT_RUNNER_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "s
 def get_script_runner_path(postfix="_DETACHED"):
     return SCRIPT_RUNNER_PATH + postfix + ".sh"
 
-
-from collections import namedtuple
 
 RemoteCommand = namedtuple("RemoteCommand", "machine command")
 

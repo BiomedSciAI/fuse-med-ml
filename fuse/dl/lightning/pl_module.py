@@ -17,7 +17,7 @@ Created on June 30, 2021
 """
 
 import pytorch_lightning as pl
-from fuse.dl.lightning.pl_funcs import *
+from fuse.dl.lightning.pl_funcs import *  # noqa
 
 
 class LightningModuleDefault(pl.LightningModule):

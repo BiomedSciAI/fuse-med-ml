@@ -16,7 +16,7 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from typing import Any, Callable, Dict, List, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Sequence
 
 import numpy as np
 import torch
@@ -25,7 +25,7 @@ import torch.nn.functional as F
 
 from fuse.utils import NDict
 from fuse.utils.data.collate import CollateToBatchList
-from fuse.data import get_sample_id, get_sample_id_key
+from fuse.data import get_sample_id_key
 
 
 class CollateDefault(CollateToBatchList):

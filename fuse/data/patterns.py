@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import *
+from typing import Any, Sequence
 import re
 
 

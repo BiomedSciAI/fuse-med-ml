@@ -28,6 +28,7 @@ from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.utils.ndict import NDict
 
+
 # Dataset processor
 class OpReadDataset(OpBase):
     """

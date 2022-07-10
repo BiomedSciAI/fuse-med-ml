@@ -6,13 +6,11 @@ import gzip
 import socket
 import os
 import numpy as np
-import warnings
 import time
 import datetime
 
 import pandas as pd
 import shutil
-import tables
 import h5py
 import hdf5plugin
 
@@ -198,7 +196,7 @@ def save_hdf5_safe(filename: str, use_blosc: bool = True, **kwarrays):
                 _use_kwargs = hdf5plugin.Blosc()
             h5f.create_dataset(k, data=d, **_use_kwargs)
 
-    os.rename(scrambed_filename, filename)  #'.' + saved_tensors_format)
+    os.rename(scrambed_filename, filename)  # '.' + saved_tensors_format)
 
     return filename
 
@@ -259,8 +257,6 @@ def load_hdf5(
             index = None
 
         dset = h5f[k]
-
-        full_shape = dset.shape
 
         if index is None:
             np_arr = dset[:]

@@ -4,7 +4,6 @@ from typing import Any, Callable, Dict, List, Optional, OrderedDict, Sequence, T
 from fuse.data.key_types import TypeDetectorBase
 import copy
 from enum import Enum
-from fuse.data.key_types import TypeDetectorBase
 from .op_base import OpBase, OpReversibleBase, Patterns, op_call, op_reverse  # DataType,
 from fuse.utils.ndict import NDict
 import numpy as np

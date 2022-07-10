@@ -16,11 +16,8 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from typing import Dict, Union, List, Sequence, Any, Optional, Callable
-from abc import ABC, abstractmethod
-from enum import Enum
-from collections import OrderedDict
-from fuse.data.patterns import Patterns
+from typing import Union, List, Optional
+from abc import abstractmethod
 from fuse.data.utils.sample import get_sample_id
 from fuse.utils.ndict import NDict
 from fuse.data.ops.hashable_class import HashableClass

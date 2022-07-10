@@ -1,4 +1,3 @@
-from enum import unique
 from typing import Any, Dict, Hashable, Optional, Sequence
 from collections import Counter
 from fuse.eval.metrics.metrics_common import MetricWithCollectorBase

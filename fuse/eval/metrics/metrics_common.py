@@ -18,8 +18,6 @@ Created on June 30, 2021
 """
 
 from abc import ABC, abstractmethod
-from enum import Enum
-from functools import partial
 from typing import Any, Callable, Dict, Hashable, Optional, Sequence, Tuple, Union
 import copy
 from fuse.utils import uncollate

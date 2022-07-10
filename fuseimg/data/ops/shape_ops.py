@@ -2,10 +2,8 @@ from typing import Optional, Tuple, List
 import numpy as np
 from torch import Tensor
 import skimage
-import skimage.transform as transform
 import torch
 import torchvision.transforms.functional as TTF
-from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
 
 from fuse.utils.ndict import NDict
 

@@ -21,7 +21,6 @@ from typing import Dict, List
 
 import torch
 import torch.nn as nn
-from fuse.utils.ndict import NDict
 
 
 class BackboneMultilayerPerceptron(torch.nn.Module):

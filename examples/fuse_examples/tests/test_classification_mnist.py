@@ -24,7 +24,6 @@ import os
 from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 
 from fuse.utils.rand.seed import Seed
-import fuse.utils.gpu as GPU
 
 from fuse_examples.imaging.classification.mnist.run_mnist import (
     EVAL_COMMON_PARAMS,

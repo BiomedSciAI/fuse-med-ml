@@ -15,19 +15,15 @@ limitations under the License.
 
 Created on June 30, 2021
 
-"""
+==========================
 
-"""
 MNIST classfier implementation that demonstrate end to end training, inference and evaluation using FuseMedML
-This example shows how to directly train a model using custom (your own) pytorch lightning module implementation 
+This example shows how to directly train a model using custom (your own) pytorch lightning module implementation
 """
-
-
 import copy
 import logging
 import os
-from typing import Any, Dict, List, OrderedDict, Sequence, Tuple
-from fuse.utils.file_io.file_io import create_dir, save_dataframe
+from typing import Any, List, OrderedDict, Sequence, Tuple
 from fuse.utils.ndict import NDict
 
 import torch
@@ -63,6 +59,8 @@ from fuse_examples.imaging.classification.mnist import lenet
 ##########################################
 # Lightning Module
 ##########################################
+
+
 class LightningModuleMnist(pl.LightningModule):
     """
     Implementation of pl.LightningModule
@@ -226,7 +224,7 @@ TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
 # use "dp" strategy temp when working with multiple GPUS - workaround for pytorch lightning issue: https://github.com/Lightning-AI/lightning/issues/11807
 TRAIN_COMMON_PARAMS["trainer.strategy"] = "dp" if TRAIN_COMMON_PARAMS["trainer.num_devices"] > 1 else None
-TRAIN_COMMON_PARAMS["trainer.ckpt_path"] = None  #  path to the checkpoint you wish continue the training from
+TRAIN_COMMON_PARAMS["trainer.ckpt_path"] = None  # path to the checkpoint you wish continue the training from
 
 # ===============
 # PL Module
@@ -254,9 +252,9 @@ def run_train(paths: dict, train_params: dict):
     # Data
     # ==============================================================================
     # Train Data
-    print(f"Data - trainset:")
+    print("Data - trainset:")
     train_dataset = MNIST.dataset(paths["cache_dir"], train=True)
-    print(f"- Create sampler:")
+    print("- Create sampler:")
     sampler = BatchSamplerDefault(
         dataset=train_dataset,
         balanced_class_name="data.label",
@@ -264,7 +262,7 @@ def run_train(paths: dict, train_params: dict):
         batch_size=train_params["data.batch_size"],
         balanced_class_weights=None,
     )
-    print(f"- Create sampler: Done")
+    print("- Create sampler: Done")
 
     # Create dataloader
     train_dataloader = DataLoader(
@@ -273,10 +271,10 @@ def run_train(paths: dict, train_params: dict):
         collate_fn=CollateDefault(),
         num_workers=train_params["data.train_num_workers"],
     )
-    print(f"Data - trainset: Done")
+    print("Data - trainset: Done")
 
     ## Validation data
-    print(f"Data - validation set:")
+    print("Data - validation set:")
     # wrapping torch dataset
     validation_dataset = MNIST.dataset(paths["cache_dir"], train=False)
 
@@ -287,7 +285,7 @@ def run_train(paths: dict, train_params: dict):
         collate_fn=CollateDefault(),
         num_workers=train_params["data.validation_num_workers"],
     )
-    print(f"Data - validation set: Done")
+    print("Data - validation set: Done")
 
     # ==============================================================================
     # Train
@@ -327,6 +325,8 @@ INFER_COMMON_PARAMS["trainer.strategy"] = None
 ######################################
 # Inference Template
 ######################################
+
+
 def run_infer(paths: dict, infer_common_params: dict):
     create_dir(paths["inference_dir"])
     infer_file = os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])
