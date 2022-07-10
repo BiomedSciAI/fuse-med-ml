@@ -65,7 +65,7 @@ mode = 'default'  # Options: 'default', 'debug'. See details in FuseDebug
 debug = FuseDebug(mode)
 
 ##########################################
-# Output Paths
+# Output paths
 ##########################################
 ROOT = '_examples/mnist' # TODO: fill path here
 model_dir = os.path.join(ROOT, 'model_dir')
