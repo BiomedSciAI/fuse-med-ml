@@ -17,13 +17,18 @@ exclude = """
     
     ##### fuse
     | fuse/data
-    | fuse/dl
     | fuse/docs
     | fuse/eval
     | fuse/losses
     | fuse/managers
     | fuse/models
     | fuse/tests
+
+    #### fuse/dl
+    | fuse/dl/lightning
+    | fuse/dl/losses
+    | fuse/dl/models
+    | fuse/dl/optimizers
 
     #### fuse/utils
     | fuse/utils/config_tools
