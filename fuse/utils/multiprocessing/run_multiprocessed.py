@@ -6,15 +6,14 @@ from tqdm import tqdm,trange
 import multiprocessing as mp
 from termcolor import cprint
 import os
+import traceback
 from collections.abc import Iterable
 import inspect
 
 '''
 global dictionary that stores arguments to a new created process
 Direct access is not allowed - use get_from_global_storage to access it from a worker function.
-
 call the following "private" functions only if you know what you're doing: _store_in_global_storage, _remove_from_global_storage
-
 Typically, you'd only need to call get_from_global_storage from your worker_func, and call run_multiprocessed and provide copy_global_storage to it, 
     with a dict of values that you want accesible from the worker_func.
 '''
@@ -39,7 +38,6 @@ def __orig__run_multiprocessed(worker_func, args_list, workers=0, verbose=0,
         This allows to create a significant speedup in certain cases, and the main idea is that it allows to drastically reduce the amount of data
          that gets (automatically) pickled by python's multiprocessing library.
         Instead of copying it for each worker_func invocation, it will be copied once, upon worker process initialization.
-
     Returns:
         List of results from calling func, in the same order as args_list
     '''
@@ -104,8 +102,6 @@ def run_multiprocessed(worker_func, args_list, workers=0, verbose=0,
          or in the case that you want to parallelize some calculation with the generation.
          if False, the answers will be accumulated to a list and returned.
     :param mp_context: "fork", "spawn", "thread" or None for multiprocessing default
-
-
     Returns:
         if as_iterator is set to True, returns an iterator. 
         Otherwise, returns a list of results from calling func
@@ -248,6 +244,27 @@ def get_from_global_storage(key: str) -> Any:
     return _multiprocess_global_storage[key]
 
 
+class Process(mp.Process):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._pconn, self._cconn = mp.Pipe()
+        self._exception = None
+
+    def run(self):
+        try:
+            super().run()
+            self._cconn.send(None)
+        except Exception as e:
+            tb = traceback.format_exc()
+            self._cconn.send((e, tb))
+            raise e  # You can still rise this exception if you need to
+
+    @property
+    def exception(self):
+        if self._pconn.poll():
+            self._exception = self._pconn.recv()
+        return self._exception
+
 def run_in_subprocess(timeout: int = 600):
     """A decorator that makes function run in a subprocess.
     This can be useful when you want allocate GPU and memory and to release it when you're done.
@@ -260,15 +277,31 @@ def run_in_subprocess(timeout: int = 600):
         def wrapper(*args, **kwargs):
             # create the machinery python uses to fork a subprocess
             # and run a function in it.
-            p = mp.Process(target=f, args=args, kwargs=kwargs)
+            # p = mp.Process(target=f, args=args, kwargs=kwargs)
+            p = Process(target=f, args=args, kwargs=kwargs) # using a subclass of Process
             p.start()
             try:
                 p.join(timeout=timeout)
             except:
                 p.terminate()
                 raise
-            
+
+            if p.exception:
+               error, traceback = p.exception
+               print(f"process func {f} had an exception: {error}")
+               print(traceback)
+               raise RuntimeError(f"process func {f} had an exception: {error}")
+
             assert p.exitcode == 0, f"process func {f} failed with exit code {p.exitcode}"
 
         return wrapper
     return inner
+
+
+if __name__ == '__main__':
+    @run_in_subprocess()
+    def problematic_func():
+        print("in problematic_func")
+        raise ValueError('Fake Error!!!')
+
+    problematic_func()

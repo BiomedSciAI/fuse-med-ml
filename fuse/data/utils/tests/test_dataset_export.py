@@ -53,16 +53,18 @@ class TestDatasetExport(unittest.TestCase):
         df = df.set_index("sample_id")
         
         # export dataset - only get
-        export_df = ExportDataset.export_to_dataframe(dataset, ["data.values"])
+        export_df = ExportDataset.export_to_dataframe(dataset, ["values"])
+        export_df = export_df.set_index("data.sample_id")
         for sid in data["sample_id"]:
-            self.assertEqual(export_df.loc[sid]["data.values"], df.loc[sid]["values"])
+            self.assertEqual(export_df.loc[sid]["values"], df.loc[sid]["values"])
 
         # export dataset - including save
         _, filename = mkstemp(suffix=".gz")
-        _ = ExportDataset.export_to_dataframe(dataset, ["data.values"], output_filename=filename)
+        _ = ExportDataset.export_to_dataframe(dataset, ["values"], output_filename=filename)
         export_df = read_dataframe(filename)
+        export_df = export_df.set_index("data.sample_id")
         for sid in data["sample_id"]:
-            self.assertEqual(export_df.loc[sid]["data.values"], df.loc[sid]["values"])
+            self.assertEqual(export_df.loc[sid]["values"], df.loc[sid]["values"])
 
 
 if __name__ == '__main__':

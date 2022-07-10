@@ -1,1 +1,2 @@
-include requirements.txt
+include fuse/requirements.txt
+include fuseimg/requirements.txt

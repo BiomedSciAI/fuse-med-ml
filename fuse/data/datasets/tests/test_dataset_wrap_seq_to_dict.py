@@ -38,7 +38,7 @@ class TestDatasetWrapSeqToDict(unittest.TestCase):
     
     def test_dataset_wrap_seq_to_dict(self):
         Seed.set_seed(1234)
-        path = tempfile.gettempdir()
+        path = tempfile.mkdtemp()
         
         # Create dataset
         transform = transforms.Compose([
@@ -46,7 +46,8 @@ class TestDatasetWrapSeqToDict(unittest.TestCase):
             transforms.Normalize((0.1307,), (0.3081,))
         ])
 
-        torch_train_dataset = torchvision.datasets.MNIST(path, download=True, train=True, transform=transform)
+        mnist_data_path = os.environ.get("MNIST_DATA_PATH", tempfile.mkdtemp(prefix="mnist"))
+        torch_train_dataset = torchvision.datasets.MNIST(mnist_data_path, download=True, train=True, transform=transform)
         # wrapping torch dataset
         train_dataset = DatasetWrapSeqToDict(name='train', dataset=torch_train_dataset, sample_keys=('data.image', 'data.label'))
         train_dataset.create()
@@ -70,13 +71,13 @@ class TestDatasetWrapSeqToDict(unittest.TestCase):
             transforms.Normalize((0.1307,), (0.3081,))
         ])
         # Create dataset
-        torch_dataset = torchvision.datasets.MNIST('/tmp/mnist', download=True, train=True, transform=None)
+        mnist_data_path = os.environ.get("MNIST_DATA_PATH", tempfile.mkdtemp(prefix="mnist"))
+        torch_dataset = torchvision.datasets.MNIST(mnist_data_path, download=True, train=True, transform=None)
         print(f"torch dataset size = {len(torch_dataset)}")
 
     
         # wrapping torch dataset
-        tmpdir = tempfile.gettempdir()
-        cache_dir = os.path.join(tmpdir, 'cache_dir')
+        cache_dir = tempfile.mkdtemp()
         
         dataset = DatasetWrapSeqToDict(name='test', dataset=torch_dataset, sample_keys=('data.image', 'data.label'), cache_dir=cache_dir)
         dataset.create()

@@ -131,8 +131,8 @@ class PipelineDefault(OpReversibleBase):
         """
         # set op_id if not specified
         if op_id is None:
-            op_id = self._name
-
+            op_id = f"internal.{self._name}"
+        
         for sub_op_id, (op, _) in zip(reversed(self._op_ids), reversed(self._ops_and_kwargs)):
             sample_dict = op_reverse(op,
                 sample_dict, f"{op_id}.{sub_op_id}", key_to_reverse, key_to_follow)

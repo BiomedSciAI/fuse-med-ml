@@ -33,7 +33,7 @@ from fuse.data.ops.op_base import OpBase
 from fuse.data import get_sample_id
 
 class OpCustomCollateDefTest(OpBase):
-    def __call__(self, sample_dict: dict, op_id: Optional[str], **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: dict, **kwargs) -> Union[None, dict, List[dict]]:
         if get_sample_id(sample_dict) == "a":
             sample_dict["data.partial"] = 1
         return sample_dict
@@ -43,10 +43,10 @@ class TestCollate(unittest.TestCase):
         # datainfo
         data = {
             "sample_id": ["a", "b", "c", "d", "e"],
-            "values": [7, 4, 9, 2, 4],
-            "nps": [np.array(4), np.array(2), np.array(5), np.array(1), np.array(4)],
-            "torch": [torch.tensor(7), torch.tensor(4), torch.tensor(9), torch.tensor(2), torch.tensor(4)],
-            "not_important": [12] * 5
+            "data.values": [7, 4, 9, 2, 4],
+            "data.nps": [np.array(4), np.array(2), np.array(5), np.array(1), np.array(4)],
+            "data.torch": [torch.tensor(7), torch.tensor(4), torch.tensor(9), torch.tensor(2), torch.tensor(4)],
+            "data.not_important": [12] * 5
         }
         df = pds.DataFrame(data)
 
