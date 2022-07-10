@@ -32,11 +32,13 @@ from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.ops.op_base import OpBase
 from fuse.data import get_sample_id
 
+
 class OpCustomCollateDefTest(OpBase):
     def __call__(self, sample_dict: dict, **kwargs) -> Union[None, dict, List[dict]]:
         if get_sample_id(sample_dict) == "a":
             sample_dict["data.partial"] = 1
         return sample_dict
+
 
 class TestCollate(unittest.TestCase):
     def test_collate_default(self):
@@ -46,7 +48,7 @@ class TestCollate(unittest.TestCase):
             "data.values": [7, 4, 9, 2, 4],
             "data.nps": [np.array(4), np.array(2), np.array(5), np.array(1), np.array(4)],
             "data.torch": [torch.tensor(7), torch.tensor(4), torch.tensor(9), torch.tensor(2), torch.tensor(4)],
-            "data.not_important": [12] * 5
+            "data.not_important": [12] * 5,
         }
         df = pds.DataFrame(data)
 
@@ -60,21 +62,22 @@ class TestCollate(unittest.TestCase):
         dataset.create()
 
         # Use the collate function
-        dl = DataLoader(dataset, 3, collate_fn=CollateDefault(skip_keys=["data.not_important"], raise_error_key_missing=False))
+        dl = DataLoader(
+            dataset, 3, collate_fn=CollateDefault(skip_keys=["data.not_important"], raise_error_key_missing=False)
+        )
         batch = next(iter(dl))
 
         # verify
         self.assertTrue("data.sample_id" in batch)
         self.assertListEqual(batch["data.sample_id"], ["a", "b", "c"])
         self.assertTrue((batch["data.values"] == torch.tensor([7, 4, 9])).all())
-        self.assertTrue( "data.nps" in batch)
+        self.assertTrue("data.nps" in batch)
         self.assertTrue((batch["data.nps"] == torch.stack([torch.tensor(4), torch.tensor(2), torch.tensor(5)])).all())
         self.assertTrue("data.torch" in batch)
         self.assertTrue((batch["data.torch"] == torch.stack([torch.tensor(7), torch.tensor(4), torch.tensor(9)])).all())
         self.assertTrue("data.partial" in batch)
         self.assertListEqual(batch["data.partial"], [1, None, None])
         self.assertFalse("data.not_important" in batch)
-    
 
     def test_pad_all_tensors_to_same_size(self):
         a = torch.zeros((1, 1, 3))
@@ -95,7 +98,8 @@ class TestCollate(unittest.TestCase):
         b = torch.ones((3, 2, 1))
         c = torch.ones((1, 3, 2))
         values = CollateDefault.pad_all_tensors_to_same_size([a, b, c])
-        self.assertListEqual(list(values.shape),  [3, 3, 3, 3])
-        
-if __name__ == '__main__':
+        self.assertListEqual(list(values.shape), [3, 3, 3, 3])
+
+
+if __name__ == "__main__":
     unittest.main()

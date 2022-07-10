@@ -29,14 +29,15 @@ class ModelWrapSeqToDict(torch.nn.Module):
     Fuse model wrapper for wrapping torch modules and passing through Fuse
     """
 
-    def __init__(self,
-                 *, #preventing positional args
-                 model: torch.nn.Module = None,
-                 model_inputs: Sequence[str] = None, 
-                 model_outputs: Sequence[str] = None, 
-                 pre_forward_processing_function: Callable = None,
-                 post_forward_processing_function: Callable = None,                 
-                 ) -> None:
+    def __init__(
+        self,
+        *,  # preventing positional args
+        model: torch.nn.Module = None,
+        model_inputs: Sequence[str] = None,
+        model_outputs: Sequence[str] = None,
+        pre_forward_processing_function: Callable = None,
+        post_forward_processing_function: Callable = None,
+    ) -> None:
         """
         Default Fuse model wrapper - extracts batch_dict data from model_inputs keys and calls forward of model.
         Then, puts forward's output into batch_dict model_output keys.
@@ -50,8 +51,8 @@ class ModelWrapSeqToDict(torch.nn.Module):
             for example: model_outputs=('output.output_0',)
         :param pre_forward_processing_function: utility function to process input data before forward is called (after it's extracted from batch_dict)
         :param post_forward_processing_function: utility function to process forward's output data before it is saved into batch_dict
-        
-        
+
+
 
         """
         super().__init__()
@@ -61,9 +62,7 @@ class ModelWrapSeqToDict(torch.nn.Module):
         self.post_forward_processing_function = post_forward_processing_function
         self.model_outputs = model_outputs
 
-    
-    def forward(self,
-                batch_dict: NDict) -> Dict:
+    def forward(self, batch_dict: NDict) -> Dict:
         # convert input to the model's expected input
         model_input = [batch_dict[conv_input] for conv_input in self.model_inputs]
 
@@ -79,10 +78,9 @@ class ModelWrapSeqToDict(torch.nn.Module):
             model_output = self.post_forward_processing_function(model_output)
 
         if len(self.model_outputs) == 1:
-            batch_dict['model.' + self.model_outputs[0]] = model_output
+            batch_dict["model." + self.model_outputs[0]] = model_output
         else:
             for i, output_name in enumerate(self.model_outputs):
-                batch_dict['model.' + output_name] = model_output[i]
+                batch_dict["model." + output_name] = model_output[i]
 
-        return batch_dict['model']
-    
+        return batch_dict["model"]

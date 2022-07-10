@@ -50,15 +50,17 @@ class OpReadDataset(OpBase):
         """
         # extact dataset index
         name, dataset_index = get_sample_id(sample_dict)
-        
+
         # extract values
         sample_values = self._dataset[dataset_index]
         if not isinstance(sample_values, Sequence):
             sample_values = [sample_values]
-        assert len(self._sample_keys) == len(sample_values), f"Error: expecting dataset[i] to return {len(self._sample_keys)} to match sample keys"
+        assert len(self._sample_keys) == len(
+            sample_values
+        ), f"Error: expecting dataset[i] to return {len(self._sample_keys)} to match sample keys"
 
         # add values to sample_dict
-        for key, elem in zip(self._sample_keys, sample_values): 
+        for key, elem in zip(self._sample_keys, sample_values):
             sample_dict[key] = elem
         return sample_dict
 
@@ -70,7 +72,7 @@ class DatasetWrapSeqToDict(DatasetDefault):
     Each value extracted from pytorch sequence dataset will be added to sample_dict.
     Plus this dataset inherits all DatasetDefault features
 
-    Example: 
+    Example:
         torch_seq_dataset = torchvision.datasets.MNIST(path, download=True, train=True)
         # wrapping torch dataset
         dataset = DatasetWrapSeqToDict(name='train', dataset=torch_seq_dataset, sample_keys=('data.image', 'data.label'))
@@ -80,7 +82,14 @@ class DatasetWrapSeqToDict(DatasetDefault):
         sample = train_dataset[index] # sample is a dict with keys: 'data.sample_id', 'data.image' and 'data.label'
     """
 
-    def __init__(self, name: str, dataset: Dataset, sample_keys: Union[Sequence[str], str], cache_dir: Optional[str] = None, **kwargs):
+    def __init__(
+        self,
+        name: str,
+        dataset: Dataset,
+        sample_keys: Union[Sequence[str], str],
+        cache_dir: Optional[str] = None,
+        **kwargs,
+    ):
         """
         :param name: name of the data extracted from dataset, typically: 'train', 'validation;, 'test'
         :param dataset: the dataset to extract the data from
@@ -88,10 +97,10 @@ class DatasetWrapSeqToDict(DatasetDefault):
         :param cache_dir: Optional - provied a path in case caching is required to help optimize the running time
         :param kwargs: optional, additional arguments to provide to DatasetDefault
         """
-        sample_ids =[(name, i) for i in range(len(dataset))]
+        sample_ids = [(name, i) for i in range(len(dataset))]
         static_pipeline = PipelineDefault(name="staticp", ops_and_kwargs=[(OpReadDataset(dataset, sample_keys), {})])
         if cache_dir is not None:
-            cacher = SamplesCacher('dataset_test_cache', static_pipeline, cache_dir, restart_cache=True)
+            cacher = SamplesCacher("dataset_test_cache", static_pipeline, cache_dir, restart_cache=True)
         else:
             cacher = None
-        super().__init__(sample_ids=sample_ids, static_pipeline=static_pipeline,  cacher=cacher, **kwargs)
+        super().__init__(sample_ids=sample_ids, static_pipeline=static_pipeline, cacher=cacher, **kwargs)

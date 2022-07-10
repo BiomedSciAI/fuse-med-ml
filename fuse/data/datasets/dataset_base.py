@@ -22,6 +22,7 @@ from typing import Dict, Hashable, List, Optional, Sequence, Union
 
 import torch
 
+
 class DatasetBase(torch.nn.Module):
     @abstractmethod
     def create(self, **kwargs) -> None:

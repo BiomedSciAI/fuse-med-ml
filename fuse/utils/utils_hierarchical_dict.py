@@ -28,7 +28,7 @@ class FuseUtilsHierarchicalDict:
         get(dict, 'x.y.z') <==> dict['x']['y']['z']
         """
         # split according to '.'
-        hierarchical_key = key.split('.')
+        hierarchical_key = key.split(".")
 
         # go over the the dictionary towards the requested value
         try:
@@ -41,7 +41,7 @@ class FuseUtilsHierarchicalDict:
             if key in flat_dict:
                 return flat_dict[key]
             else:
-                raise KeyError(f'key {key} does not exist\n. Possible keys are: {str(list(flat_dict.keys()))}')
+                raise KeyError(f"key {key} does not exist\n. Possible keys are: {str(list(flat_dict.keys()))}")
 
     @classmethod
     def set(cls, hierarchical_dict: dict, key: str, value: Any) -> None:
@@ -50,7 +50,7 @@ class FuseUtilsHierarchicalDict:
         If either 'x', 'y' or 'z' nodes do not exist, this function will create them
         """
         # split according to '.'
-        hierarchical_key = key.split('.')
+        hierarchical_key = key.split(".")
 
         # go over the the dictionary according to the path, create the nodes that does not exist
         element = hierarchical_dict
@@ -71,7 +71,7 @@ class FuseUtilsHierarchicalDict:
         for key in hierarchical_dict:
             if isinstance(hierarchical_dict[key], dict):
                 all_sub_keys = FuseUtilsHierarchicalDict.get_all_keys(hierarchical_dict[key], include_values=True)
-                keys_to_add = {f'{key}.{sub_key}':all_sub_keys[sub_key] for sub_key in all_sub_keys}
+                keys_to_add = {f"{key}.{sub_key}": all_sub_keys[sub_key] for sub_key in all_sub_keys}
                 all_keys.update(keys_to_add)
             else:
                 all_keys[key] = hierarchical_dict[key]
@@ -90,7 +90,7 @@ class FuseUtilsHierarchicalDict:
         :param end: end index, not including
         :return: str
         """
-        key_parts = key.split('.')
+        key_parts = key.split(".")
 
         # if end not specified set to max.
         if end is None:
@@ -99,7 +99,7 @@ class FuseUtilsHierarchicalDict:
         if len(key_parts) < start or len(key_parts) < end:
             return None
 
-        res = '.'.join(key_parts[start:end])
+        res = ".".join(key_parts[start:end])
         return res
 
     @classmethod
@@ -135,7 +135,7 @@ class FuseUtilsHierarchicalDict:
             if isinstance(value, numpy.ndarray) or isinstance(value, torch.Tensor):
                 new_value = value[indices]
             elif isinstance(value, Sequence):
-                new_value =[item for i, item in enumerate(value) if indices[i]]
+                new_value = [item for i, item in enumerate(value) if indices[i]]
             else:
                 new_value = value
             cls.set(new_dict, key, new_value)
@@ -150,21 +150,21 @@ class FuseUtilsHierarchicalDict:
         """
         keys = cls.get_all_keys(hierarchical_dict)
         keys = sorted(keys)
-        res = ''
+        res = ""
         for key in keys:
-            res += f'{key} = {FuseUtilsHierarchicalDict.get(hierarchical_dict, key)}\n'
+            res += f"{key} = {FuseUtilsHierarchicalDict.get(hierarchical_dict, key)}\n"
 
         return res
 
     @classmethod
-    def pop(cls, hierarchical_dict: dict, key:str):
+    def pop(cls, hierarchical_dict: dict, key: str):
         """
         return the value hierarchical_dict[key] and remove the key from the dict.
         :param hierarchical_dict: the dictionary
         :param key: the key to return and remove
         """
         # split according to '.'
-        hierarchical_key = key.split('.')
+        hierarchical_key = key.split(".")
         # go over the the dictionary towards the requested value
         try:
             key_idx = len(hierarchical_key) - 1
@@ -177,10 +177,10 @@ class FuseUtilsHierarchicalDict:
             if key in flat_dict:
                 return flat_dict[key]
             else:
-                raise KeyError(f'key {key} does not exist\n. Possible keys are: {str(list(flat_dict.keys()))}')
+                raise KeyError(f"key {key} does not exist\n. Possible keys are: {str(list(flat_dict.keys()))}")
 
     @classmethod
-    def is_in(cls, hierarchical_dict: dict, key:str) -> bool:
+    def is_in(cls, hierarchical_dict: dict, key: str) -> bool:
         """
         Returns True if the full key is in dict, False otherwise.
         e.g., for dict = {'a':1, 'b.c':2} is_in(dict, 'b.c') returns True, but is_in(dict, 'c') returns False.

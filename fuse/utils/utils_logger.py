@@ -31,7 +31,7 @@ from typing import Dict, Optional, Any, List
 
 from termcolor import colored
 
-from fuse.utils.file_io.file_io import create_dir, create_or_reset_dir  
+from fuse.utils.file_io.file_io import create_dir, create_or_reset_dir
 
 
 class ProcessSafeHandler(logging.StreamHandler):
@@ -63,22 +63,20 @@ class ConsoleFormatter(logging.Formatter):
     LEVEL_FORMATS = {
         logging.WARNING: yellow + warn_format + reset,
         logging.ERROR: red + err_format + reset,
-        logging.CRITICAL: bold_red + err_format + reset
+        logging.CRITICAL: bold_red + err_format + reset,
     }
 
     def format(self, record):
         if record.levelno in [logging.INFO, logging.DEBUG]:
-            if isinstance(record.__dict__['args'], dict):
-                color = record.__dict__['args'].get('color', None)
-                on_color = record.__dict__['args'].get('on_color', None)
-                attrs = record.__dict__['args'].get('attrs', None)
+            if isinstance(record.__dict__["args"], dict):
+                color = record.__dict__["args"].get("color", None)
+                on_color = record.__dict__["args"].get("on_color", None)
+                attrs = record.__dict__["args"].get("attrs", None)
                 if attrs is not None and not isinstance(attrs, list):
                     attrs = [attrs]
-                log_fmt = colored('%(message)s', color=color,
-                                  on_color=on_color,
-                                  attrs=attrs)
+                log_fmt = colored("%(message)s", color=color, on_color=on_color, attrs=attrs)
             else:
-                log_fmt = '%(message)s'
+                log_fmt = "%(message)s"
         else:
             log_fmt = self.LEVEL_FORMATS.get(record.levelno)
         formatter = logging.Formatter(log_fmt)
@@ -86,8 +84,11 @@ class ConsoleFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-def fuse_logger_start(output_path: Optional[str] = None, console_verbose_level: int = logging.INFO,
-                      list_of_source_files: Optional[List[str]] = None) -> None:
+def fuse_logger_start(
+    output_path: Optional[str] = None,
+    console_verbose_level: int = logging.INFO,
+    list_of_source_files: Optional[List[str]] = None,
+) -> None:
     """
     Start Fuse logger:
     Define output destination; console, file and file including also debug
@@ -104,7 +105,7 @@ def fuse_logger_start(output_path: Optional[str] = None, console_verbose_level: 
 
     :return: None
     """
-    lgr = logging.getLogger('Fuse')
+    lgr = logging.getLogger("Fuse")
     # skip if already configured
     if lgr.level != 0:
         return
@@ -123,33 +124,33 @@ def fuse_logger_start(output_path: Optional[str] = None, console_verbose_level: 
 
     # log to files - only if output_path is provided
     if output_path is not None:
-        log_output_path = os.path.join(output_path, 'logs')
+        log_output_path = os.path.join(output_path, "logs")
         # Create log dir
         create_dir(log_output_path)
 
         # file info
-        file_handler = logging.FileHandler(os.path.join(log_output_path, f'fuse_{timestr}.log'))
+        file_handler = logging.FileHandler(os.path.join(log_output_path, f"fuse_{timestr}.log"))
         file_handler.setLevel(logging.INFO)
-        formatter = logging.Formatter('(%(filename)s:%(lineno)d) : %(levelname)s : %(message)s')
+        formatter = logging.Formatter("(%(filename)s:%(lineno)d) : %(levelname)s : %(message)s")
         file_handler.setFormatter(formatter)
         lgr.addHandler(file_handler)
 
         # file verbose
-        file_handler = RotatingFileHandler(os.path.join(log_output_path, 'fuse_verbose.log'), maxBytes=1e6)
+        file_handler = RotatingFileHandler(os.path.join(log_output_path, "fuse_verbose.log"), maxBytes=1e6)
         file_handler.setLevel(logging.DEBUG)
-        formatter = logging.Formatter('%(asctime)s : (%(filename)s:%(lineno)d) : %(message)s')
+        formatter = logging.Formatter("%(asctime)s : (%(filename)s:%(lineno)d) : %(message)s")
         file_handler.setFormatter(formatter)
         lgr.addHandler(file_handler)
 
     start_time = time.strftime("%d/%m/%y %H:%M:%S")
-    lgr.info(f'Fuse: {start_time}', {'color': 'cyan', 'attrs': ['dark', 'bold']})
+    lgr.info(f"Fuse: {start_time}", {"color": "cyan", "attrs": ["dark", "bold"]})
 
     if list_of_source_files is None or list_of_source_files:
         if output_path is not None:
-            source_files_output_path = os.path.join(output_path, f'source_files', timestr)
+            source_files_output_path = os.path.join(output_path, f"source_files", timestr)
             create_or_reset_dir(source_files_output_path)
 
-            lgr.info(f'Copy source files to {source_files_output_path}')
+            lgr.info(f"Copy source files to {source_files_output_path}")
             if list_of_source_files is None:
                 # copy just the caller function file name
                 caller_function_file_name = inspect.stack()[1][1]
@@ -158,6 +159,7 @@ def fuse_logger_start(output_path: Optional[str] = None, console_verbose_level: 
             for src_file in list_of_source_files:
                 copyfile(os.path.abspath(src_file), os.path.join(source_files_output_path, os.path.basename(src_file)))
 
+
 def fuse_logger_end():
     lgr = logging.getLogger("Fuse")
     # skip if not already configured
@@ -165,6 +167,7 @@ def fuse_logger_end():
         return
     for h in lgr.handlers:
         lgr.removeHandler(h)
+
 
 def convert_state_to_str(input_state: Any):
     """
@@ -189,9 +192,9 @@ def log_object_input_state(obj: Any, input_state: Dict) -> None:
                              To get them call this function first thing in the constructors with input_parameters=locals()
     :return: None
     """
-    lgr = logging.getLogger('Fuse')
+    lgr = logging.getLogger("Fuse")
     input_state_copy = input_state.copy()
     # remove self from the state if exist
-    input_state_copy.pop('self', None)
+    input_state_copy.pop("self", None)
     input_paramters_str = convert_state_to_str(input_state_copy)
-    lgr.debug(f'\n-----\n{str(obj)} created: \n\tinput state {input_paramters_str} \n-----\n')
+    lgr.debug(f"\n-----\n{str(obj)} created: \n\tinput state {input_paramters_str} \n-----\n")

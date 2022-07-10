@@ -34,24 +34,25 @@ from fuse.data import OpToTensor, OpRepeat
 
 
 class DatasetDefault(DatasetBase):
-    def __init__(self, 
-        sample_ids: Sequence[Hashable], 
+    def __init__(
+        self,
+        sample_ids: Sequence[Hashable],
         static_pipeline: Optional[PipelineDefault] = None,
         dynamic_pipeline: Optional[PipelineDefault] = None,
-        cacher:Optional[SamplesCacher] = None,
-        allow_uncached_sample_morphing:bool = False,        
+        cacher: Optional[SamplesCacher] = None,
+        allow_uncached_sample_morphing: bool = False,
     ):
         """
         :param sample_ids:      list of sample_ids included in dataset.
-        :param static_pipeline:   static_pipeline, the output of this pipeline will be automatically cached. 
-        :param dynamic_pipeline:  dynamic_pipeline. applied sequentially after the static_pipeline, but not automatically cached. 
+        :param static_pipeline:   static_pipeline, the output of this pipeline will be automatically cached.
+        :param dynamic_pipeline:  dynamic_pipeline. applied sequentially after the static_pipeline, but not automatically cached.
                                 changing it will NOT trigger recaching of the static_pipeline part.
         :param cacher: optional SamplesCacher instance which will be used for caching samples to speed up samples loading
         :param allow_uncached_sample_morphing:  when enabled, allows an Op, to return None, or to return multiple samples (in a list)
-        
+
         """
         super().__init__()
-        
+
         # store arguments
         self._static_pipeline = static_pipeline
         self._dynamic_pipeline = dynamic_pipeline
@@ -59,29 +60,36 @@ class DatasetDefault(DatasetBase):
         self._orig_sample_ids = sample_ids
         self._allow_uncached_sample_morphing = allow_uncached_sample_morphing
 
-        #verify unique names for dynamic pipelines
+        # verify unique names for dynamic pipelines
         if self._dynamic_pipeline is not None and self._static_pipeline is not None:
             if self._static_pipeline.get_name() == self._dynamic_pipeline.get_name():
-                raise Exception(f'Detected identical name for static pipeline and dynamic pipeline ({self._static_pipeline.get_name(self._static_pipeline.get_name())}).\nThis is not allowed, please initiate the pipelines with different names.')
+                raise Exception(
+                    f"Detected identical name for static pipeline and dynamic pipeline ({self._static_pipeline.get_name(self._static_pipeline.get_name())}).\nThis is not allowed, please initiate the pipelines with different names."
+                )
 
         if self._static_pipeline is None:
             self._static_pipeline = PipelineDefault("dummy_static_pipeline", ops_and_kwargs=[])
         if self._dynamic_pipeline is None:
             self._dynamic_pipeline = PipelineDefault("dummy_dynamic_pipeline", ops_and_kwargs=[])
-            
+
         if self._dynamic_pipeline is not None:
-            assert isinstance(self._dynamic_pipeline, PipelineDefault), f'dynamic_pipeline may be None or a PipelineDefault instance. Instead got {type(self._dynamic_pipeline)}'
+            assert isinstance(
+                self._dynamic_pipeline, PipelineDefault
+            ), f"dynamic_pipeline may be None or a PipelineDefault instance. Instead got {type(self._dynamic_pipeline)}"
 
         if self._static_pipeline is not None:
-            assert isinstance(self._static_pipeline, PipelineDefault), f'static_pipeline may be None or a PipelineDefault instance. Instead got {type(self._static_pipeline)}'
+            assert isinstance(
+                self._static_pipeline, PipelineDefault
+            ), f"static_pipeline may be None or a PipelineDefault instance. Instead got {type(self._static_pipeline)}"
 
         if self._allow_uncached_sample_morphing:
-            warn("allow_uncached_sample_morphing is enabled! It is a significantly slower mode and should be used ONLY for debugging")        
+            warn(
+                "allow_uncached_sample_morphing is enabled! It is a significantly slower mode and should be used ONLY for debugging"
+            )
 
         self._created = False
 
-
-    def create(self, num_workers:int = 0, mp_context: Optional[str] = None) -> None:
+    def create(self, num_workers: int = 0, mp_context: Optional[str] = None) -> None:
         """
         Create the data set, including caching
         :param num_workers: number of workers. used only when caching is disabled and allow_uncached_sample_morphing is enabled
@@ -90,28 +98,31 @@ class DatasetDefault(DatasetBase):
         :param mp_context: "fork", "spawn", "thread" or None for multiprocessing default
         :return: None
         """
-        
+
         self._output_sample_ids_info = None
-        if self._cacher is not None: 
+        if self._cacher is not None:
             self._output_sample_ids_info = self._cacher.cache_samples(self._orig_sample_ids)
         elif self._allow_uncached_sample_morphing:
-            _output_sample_ids_info_list = run_multiprocessed(DatasetDefault._process_orig_sample_id, 
-                [(sid, self._static_pipeline, False) for sid in self._orig_sample_ids], 
-                workers=num_workers, mp_context=mp_context)    
-            
+            _output_sample_ids_info_list = run_multiprocessed(
+                DatasetDefault._process_orig_sample_id,
+                [(sid, self._static_pipeline, False) for sid in self._orig_sample_ids],
+                workers=num_workers,
+                mp_context=mp_context,
+            )
+
             self._output_sample_ids_info = OrderedDict()
             self._final_sid_to_orig_sid = {}
             for sample_in_out_info in _output_sample_ids_info_list:
-                orig_sid, out_sids = sample_in_out_info[0], sample_in_out_info[1]                
+                orig_sid, out_sids = sample_in_out_info[0], sample_in_out_info[1]
                 self._output_sample_ids_info[orig_sid] = out_sids
                 if out_sids is not None:
                     assert isinstance(out_sids, list)
                     for final_sid in out_sids:
                         self._final_sid_to_orig_sid[final_sid] = orig_sid
-                
-        if self._output_sample_ids_info is not None: #sample morphing is allowed
+
+        if self._output_sample_ids_info is not None:  # sample morphing is allowed
             self._final_sample_ids = []
-            for orig_sid,out_sids in self._output_sample_ids_info.items():
+            for orig_sid, out_sids in self._output_sample_ids_info.items():
                 if out_sids is None:
                     continue
                 self._final_sample_ids.extend(out_sids)
@@ -122,10 +133,9 @@ class DatasetDefault(DatasetBase):
 
     def get_all_sample_ids(self):
         if not self._created:
-            raise Exception('you must first call create()')
+            raise Exception("you must first call create()")
 
         return copy.deepcopy(self._final_sample_ids)
-
 
     def __getitem__(self, item: Union[int, Hashable]) -> dict:
         """
@@ -134,8 +144,13 @@ class DatasetDefault(DatasetBase):
         :return: sample_dict
         """
         return self.getitem(item)
-    
-    def getitem(self, item: Union[int, Hashable], collect_marker_name: Optional[str] = None, keys: Optional[Sequence[str]] = None) -> NDict:
+
+    def getitem(
+        self,
+        item: Union[int, Hashable],
+        collect_marker_name: Optional[str] = None,
+        keys: Optional[Sequence[str]] = None,
+    ) -> NDict:
         """
         Get sample, read from cache if possible
         :param item: either int representing sample index or sample_id
@@ -144,7 +159,7 @@ class DatasetDefault(DatasetBase):
         :return: sample_dict
         """
         if not self._created:
-            raise Exception('you must first call create()')
+            raise Exception("you must first call create()")
 
         # get sample id
         if isinstance(item, (int, np.integer)):
@@ -158,26 +173,30 @@ class DatasetDefault(DatasetBase):
         # read sample
         if self._cacher is not None:
             sample = self._cacher.load_sample(sample_id, collect_marker_info["static_keys_deps"])
-        
-        if self._cacher is None:            
+
+        if self._cacher is None:
             if not self._allow_uncached_sample_morphing:
                 sample = create_initial_sample(sample_id)
                 sample = self._static_pipeline(sample)
                 if not isinstance(sample, dict):
-                    raise Exception(f'By default when caching is disabled sample morphing is not allowed, and the output of the static pipeline is expected to be a dict. Instead got {type(sample)}. You can use "allow_uncached_sample_morphing=True" to allow this, but be aware it is slow and should be used only for debugging')                    
-            else:                     
+                    raise Exception(
+                        f'By default when caching is disabled sample morphing is not allowed, and the output of the static pipeline is expected to be a dict. Instead got {type(sample)}. You can use "allow_uncached_sample_morphing=True" to allow this, but be aware it is slow and should be used only for debugging'
+                    )
+            else:
                 orig_sid = self._final_sid_to_orig_sid[sample_id]
                 sample = create_initial_sample(orig_sid)
-                sample = self._static_pipeline(sample)     
-                           
+                sample = self._static_pipeline(sample)
+
                 assert sample is not None
-                sample = get_specific_sample_from_potentially_morphed(sample, sample_id)                        
-                        
-        sample = self._dynamic_pipeline(sample, until_op_id=collect_marker_info['op_id'])
+                sample = get_specific_sample_from_potentially_morphed(sample, sample_id)
+
+        sample = self._dynamic_pipeline(sample, until_op_id=collect_marker_info["op_id"])
 
         if not isinstance(sample, dict):
-            raise Exception(f'The final output of dataset static (+optional dynamic) pipelines is expected to be a dict. Instead got {type(sample)}')
-        
+            raise Exception(
+                f"The final output of dataset static (+optional dynamic) pipelines is expected to be a dict. Instead got {type(sample)}"
+            )
+
         # get just required keys
         if keys is not None:
             sample = sample.get_multi(keys)
@@ -187,7 +206,7 @@ class DatasetDefault(DatasetBase):
     def _get_multi_multiprocess_func(self, args):
         sid, kwargs = args
         return self.getitem(sid, **kwargs)
-                            
+
     @staticmethod
     def _getitem_multiprocess(item: Union[Hashable, int, np.integer]):
         """
@@ -197,11 +216,18 @@ class DatasetDefault(DatasetBase):
         kwargs = get_from_global_storage("dataset_default_get_multi_kwargs")
         return dataset.getitem(item, **kwargs)
 
-    def get_multi(self, items: Optional[Sequence[Union[int, Hashable]]] = None, workers: int = 10, verbose: int = 1, mp_context: Optional[str] = None, **kwargs) -> List[Dict]:
+    def get_multi(
+        self,
+        items: Optional[Sequence[Union[int, Hashable]]] = None,
+        workers: int = 10,
+        verbose: int = 1,
+        mp_context: Optional[str] = None,
+        **kwargs,
+    ) -> List[Dict]:
         """
         See super class
         :param workers: number of processes to read the data. set to 0 to not use multi processing (useful when debugging).
-        :param mp_context: "fork", "spawn", "thread" or None for multiprocessing default  
+        :param mp_context: "fork", "spawn", "thread" or None for multiprocessing default
         """
         if items is None:
             sample_ids = self._final_sample_ids
@@ -211,14 +237,18 @@ class DatasetDefault(DatasetBase):
         for_global_storage = {"dataset_default_get_multi_dataset": self, "dataset_default_get_multi_kwargs": kwargs}
 
         list_sample_dict = run_multiprocessed(
-            worker_func=self._getitem_multiprocess, 
+            worker_func=self._getitem_multiprocess,
             copy_to_global_storage=for_global_storage,
-            args_list=sample_ids, workers=workers, verbose=verbose, mp_context=mp_context)
+            args_list=sample_ids,
+            workers=workers,
+            verbose=verbose,
+            mp_context=mp_context,
+        )
         return list_sample_dict
 
     def __len__(self):
         if not self._created:
-            raise Exception('you must first call create()')
+            raise Exception("you must first call create()")
 
         return len(self._final_sample_ids)
 
@@ -226,9 +256,9 @@ class DatasetDefault(DatasetBase):
 
     @staticmethod
     def _process_orig_sample_id(args):
-        '''
+        """
         Process, without caching, single sample
-        '''        
+        """
         orig_sample_id, pipeline, return_sample_dict = args
         sample = create_initial_sample(orig_sample_id)
 
@@ -236,7 +266,7 @@ class DatasetDefault(DatasetBase):
 
         output_sample_ids = None
 
-        if sample is not None:        
+        if sample is not None:
             output_sample_ids = []
             if not isinstance(sample, list):
                 sample = [sample]
@@ -247,7 +277,7 @@ class DatasetDefault(DatasetBase):
             return orig_sample_id, output_sample_ids
 
         return orig_sample_id, output_sample_ids, sample
-    
+
     def _get_collect_marker_info(self, collect_marker_name: str):
         """
         Find the required collect marker (OpCollectMarker in the dynamic pipeline).
@@ -258,30 +288,28 @@ class DatasetDefault(DatasetBase):
         """
         # default values for case collect marker info is not used
         if collect_marker_name is None:
-            return {
-                "name": None,
-                "op_id": None,
-                "static_keys_deps": None
-            }
-        
+            return {"name": None, "op_id": None, "static_keys_deps": None}
+
         # find the required collect markers and extract the info
         collect_marker_info = None
         for (op, _), op_id in reversed(zip(self._dynamic_pipeline.ops_and_kwargs, self._dynamic_pipeline._op_ids)):
-            if isinstance(op, OpCollectMarker): 
+            if isinstance(op, OpCollectMarker):
                 collect_marker_info_cur = op.get_info()
-                if collect_marker_info_cur['name'] == collect_marker_name:
+                if collect_marker_info_cur["name"] == collect_marker_name:
                     if collect_marker_info is None:
                         collect_marker_info = collect_marker_info_cur
-                        collect_marker_info['op_id'] = op_id
+                        collect_marker_info["op_id"] = op_id
                         # continue to make sure this is the only one
                     else:
                         # throw an error if found more than one collect marker
-                        raise Exception(f"Error: two collect markers with name {collect_marker_info} found in dynamic pipeline")
+                        raise Exception(
+                            f"Error: two collect markers with name {collect_marker_info} found in dynamic pipeline"
+                        )
         if collect_marker_info is None:
             raise Exception(f"Error: didn't find collect marker with name {collect_marker_info} in dynamic pipeline.")
-        
+
         return collect_marker_info
-    
+
     def summary(self) -> str:
         sum = ""
         sum += f"Type: {type(self).__name__}\n"
@@ -292,12 +320,3 @@ class DatasetDefault(DatasetBase):
         # sum += f"Pipeline dynamic: {self._dynamic_pipeline.summary()}"
 
         return sum
-        
-
-
-
-
-
-
-
-    

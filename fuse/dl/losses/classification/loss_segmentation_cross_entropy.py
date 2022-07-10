@@ -27,12 +27,14 @@ from fuse.utils.ndict import NDict
 
 
 class LossSegmentationCrossEntropy(LossBase):
-    def __init__(self,
-                 pred_name: str = None,
-                 target_name: str = None,
-                 weight: float = 1.0,
-                 class_weights: Union[str, torch.tensor, None] = 'ipw',
-                 resize_mode: str = 'interpolate') -> None:
+    def __init__(
+        self,
+        pred_name: str = None,
+        target_name: str = None,
+        weight: float = 1.0,
+        class_weights: Union[str, torch.tensor, None] = "ipw",
+        resize_mode: str = "interpolate",
+    ) -> None:
         """
         SegmentationCrossEntropy loss.
         This class calculates cross entropy loss per location ("dense") of a class activation map ("segmentation"),
@@ -54,7 +56,7 @@ class LossSegmentationCrossEntropy(LossBase):
         self.weight = weight
         self.class_weights = class_weights
         self.resize_mode = resize_mode
-        assert resize_mode in ['maxpool', 'interpolate']
+        assert resize_mode in ["maxpool", "interpolate"]
 
     def __call__(self, batch_dict: NDict) -> torch.Tensor:
         preds = batch_dict[self.pred_name]  # preds shape [batch_size, num_classes, height, width]
@@ -70,15 +72,17 @@ class LossSegmentationCrossEntropy(LossBase):
         if (targets_height > preds_height) or (targets_width > preds_width):
             if targets.dtype != torch.float32:
                 targets = targets.type(torch.float32).to(targets.device)
-            if self.resize_mode == 'maxpool':
+            if self.resize_mode == "maxpool":
                 block_height = int(targets_height / preds_height)
                 block_width = int(targets_width / preds_width)
                 residual_h = int((targets_height - (block_height * preds_height)) / 2)
                 residual_w = int((targets_width - (block_width * preds_width)) / 2)
 
-                targets = torch.nn.functional.max_pool2d(targets[:, :, residual_h:targets_height - residual_h, residual_w:targets_width - residual_w],
-                                                         kernel_size=(block_height, block_width))
-            elif self.resize_mode == 'interpolate':
+                targets = torch.nn.functional.max_pool2d(
+                    targets[:, :, residual_h : targets_height - residual_h, residual_w : targets_width - residual_w],
+                    kernel_size=(block_height, block_width),
+                )
+            elif self.resize_mode == "interpolate":
                 targets = torch.nn.functional.interpolate(targets, size=(preds_height, preds_width))
             else:
                 raise Exception
@@ -87,14 +91,14 @@ class LossSegmentationCrossEntropy(LossBase):
         # ======================
         if self.class_weights is None:
             segmentation_weights = None
-        elif isinstance(self.class_weights, str) and self.class_weights.lower() == 'ipw':
+        elif isinstance(self.class_weights, str) and self.class_weights.lower() == "ipw":
             # =============================================================================
             # NOTE: PyTorch also has an equivalent 'unique' method with counts, but it was introduced in a later version
             # See: https://github.com/pytorch/pytorch/issues/12598
             values, counts = np.unique(targets.cpu(), return_counts=True)
             # =============================================================================
-            values = values.astype('uint16')
-            segmentation_weights = np.zeros(num_classes, dtype='float32')
+            values = values.astype("uint16")
+            segmentation_weights = np.zeros(num_classes, dtype="float32")
             segmentation_weights[values] = 1 / counts
             segmentation_weights = segmentation_weights * (1 / segmentation_weights.max())
             segmentation_weights = torch.FloatTensor(segmentation_weights).to(targets.device)
