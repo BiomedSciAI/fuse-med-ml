@@ -299,7 +299,7 @@ class NDict(dict):
             keys = data_dict.keys()
             level += 1
             for key in keys:
-                print('---' * level, key)
+                print("---" * level, key)
                 NDict._print_tree_static(data_dict[key], level)
 
 
