@@ -16,6 +16,7 @@ limitations under the License.
 Created on June 30, 2021
 
 """
+
 import os
 import copy
 import logging
@@ -373,6 +374,7 @@ def run_infer(paths: dict, infer_common_params: dict) -> None:
 ######################################
 EVAL_COMMON_PARAMS = {}
 EVAL_COMMON_PARAMS["infer_filename"] = INFER_COMMON_PARAMS["infer_filename"]
+
 
 ######################################
 # Eval Template
