@@ -17,6 +17,7 @@ Created on June 30, 2021
 """
 
 import pytorch_lightning as pl
+from typing import Optional
 from fuse.dl.lightning.pl_funcs import *  # noqa
 
 
