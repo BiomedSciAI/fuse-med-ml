@@ -26,7 +26,8 @@ class OpAugAffine2D(OpBase):
 
     def __call__(self, sample_dict: NDict, key: str, rotate: float = 0.0, translate: Tuple[float, float] = (0.0, 0.0),
                     scale: Tuple[float, float] = 1.0, flip: Tuple[bool, bool] = (False, False), shear: float = 0.0,
-                    channels: Optional[List[int]] = None) -> Union[None, dict, List[dict]]:
+                    channels: Optional[List[int]] = None,
+                    interpolation: int = Image.BILINEAR ) -> Union[None, dict, List[dict]]:
         """
         :param key: key to a tensor stored in sample_dict: 2D tensor representing an image to augment, shape [num_channels, height, width] or [height, width]
         :param rotate: angle [-360.0 - 360.0]
@@ -35,6 +36,7 @@ class OpAugAffine2D(OpBase):
         :param flip: flip per spatial axis flip[0] for vertical flip and flip[1] for horizontal flip
         :param shear: shear factor
         :param channels: apply the augmentation on the specified channels. Set to None to apply to all channels.
+        :param interpolation: used PIL interpolation method see TTF.affine for details.
         :return: the augmented image
         """
         aug_input = sample_dict[key]
@@ -58,7 +60,8 @@ class OpAugAffine2D(OpBase):
         for channel in channels:
             aug_channel_tensor = aug_input[channel].numpy()
             aug_channel_tensor = Image.fromarray(aug_channel_tensor)
-            aug_channel_tensor = TTF.affine(aug_channel_tensor, angle=rotate, scale=scale, translate=translate, shear=shear)
+            aug_channel_tensor = TTF.affine(aug_channel_tensor, angle=rotate, scale=scale, 
+                                            resample=interpolation, translate=translate, shear=shear)
             if flip[0]:
                 aug_channel_tensor = TTF.vflip(aug_channel_tensor)
             if flip[1]:
