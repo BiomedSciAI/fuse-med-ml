@@ -1,8 +1,4 @@
 [flake8]
-per-file-ignores =
-    # imported but unused
-    __init__.py: F401, F403
-
 max-line-length = 120
 
 # Errors to ignore   - TODO: Double check
@@ -28,9 +24,9 @@ ignore =
     # '<X>' may be undefined, or defined from star imports: <Y>
     F405
 
-; # Files to exclude:
+# Files to exclude:
 exclude =
-    # ignore all tests
+    # TEMP - ignore all tests
     test_*
 
     # TEMP - delete when fixing knight
@@ -39,9 +35,12 @@ exclude =
     # TEMP - delete when removing managers
     fuse/managers
 
-    # General Excludes (TEMP, double check)
+    ## General Excludes (TEMP, double check)
+    # .py files
     __init__.py
     run_all_unit_tests.py
+    setup.py
+    # others
     .cache
     .dvc
     .git
@@ -58,4 +57,4 @@ exclude =
     ext_deps
     libs
     releases
-    setup.py
+    
