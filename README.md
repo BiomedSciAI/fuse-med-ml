@@ -206,7 +206,7 @@ $ pip install fuse-med-ml
 
 # Examples
 
-* Easy access "Hello World" [colab notebook](https://colab.research.google.com/github/IBM/fuse-med-ml/blob/master/fuse_examples/imaging/hello_world/hello_world.ipynb)
+* Easy access "Hello World" [colab notebook](https://colab.research.google.com/github/IBM/fuse-med-ml/blob/master/examples/fuse_examples/imaging/hello_world/hello_world.ipynb)
 * classification
     * [**MNIST**](https://github.com/IBM/fuse-med-ml/tree/master/examples/fuse_examples/imaging/classification/mnist/)  - a simple example, including training, inference and evaluation over [MNIST dataset](http://yann.lecun.com/exdb/mnist/)
     * [**KNIGHT Challenge**](./examples/fuse_examples/imaging/classification/knight) - preoperative prediction of risk class for patients with renal masses identified in clinical Computed Tomography (CT) imaging of the kidneys. Including data pre-processing, baseline implementation and evaluation pipeline for the challenge.
