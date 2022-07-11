@@ -70,7 +70,6 @@ def create_model(train: NDict,paths: NDict) -> torch.nn.Module:
     #### Train Data
     if train['target'] == "classification" :
         num_classes = 2
-        mode = "approx"
         gt_label = "data.gt.classification"
         skip_keys=['data.gt.subtype']
         class_names = ["Male", "Female"] 
@@ -116,7 +115,13 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
 
     lgr.info(f'model_dir={paths["model_dir"]}', {'color': 'magenta'})
     lgr.info(f'cache_dir={paths["cache_dir"]}', {'color': 'magenta'})
+    # ==============================================================================
+    # Model
+    # ==============================================================================
+    lgr.info('Model:', {'attrs': 'bold'})
     model, pl_trainer, num_classes, gt_label, skip_keys , class_names = create_model(train, paths)
+    lgr.info('Model: Done', {'attrs': 'bold'})
+    
     # split to folds randomly - temp
     sample_ids = pd.read_csv(os.path.join(paths["data_misc_dir"],"samples.csv"))['file'].to_list()
     print(sample_ids)
@@ -146,7 +151,7 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
                                        balanced_class_name=gt_label,
                                        num_balanced_classes=num_classes,
                                        batch_size=train["batch_size"],
-                                       mode = mode,
+                                       mode = "approx",
                                        workers=train["num_workers"],
                                        balanced_class_weights=None
                                        )
@@ -173,14 +178,6 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
                                        collate_fn=CollateDefault(skip_keys=skip_keys))
     lgr.info(f'Validation Data: Done', {'attrs': 'bold'})
     # ===================================================================
-    # ==============================================================================
-    # Model
-    # ==============================================================================
-    lgr.info('Model:', {'attrs': 'bold'})
-
-    model = create_model(num_classes)
-    lgr.info('Model: Done', {'attrs': 'bold'})
-
 
     # ====================================================================================
     #  Loss
@@ -234,13 +231,6 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
                                        best_epoch_source=best_epoch_source,
                                        optimizers_and_lr_schs=optimizers_and_lr_schs)
 
-    # create lightining trainer.
-    pl_trainer = Trainer(default_root_dir=paths['model_dir'],
-                            max_epochs=train['trainer']['num_epochs'],
-                            accelerator=train['trainer']['accelerator'],
-                            devices=train['trainer']['devices'],
-                            num_sanity_val_steps = -1,
-                            auto_select_gpus=True)
 
     # train from scratch
     pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=train['trainer']['ckpt_path'])
@@ -339,7 +329,7 @@ def main(cfg : DictConfig) -> None:
 
     # train
     if 'train' in cfg["run.running_modes"]:
-        model, trainer = run_train(cfg["paths"] ,cfg["train"])
+        run_train(cfg["paths"] ,cfg["train"])
     else:
         assert "Expecting train mode to be set."
 

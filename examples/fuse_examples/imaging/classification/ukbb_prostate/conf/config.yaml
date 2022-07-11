@@ -8,7 +8,7 @@ paths:
   data_dir : ${oc.env:UKBB_DATA_PATH}
   sample_ids : sample_ids.csv
 run:
-  running_modes : ['infer', 'eval']
+  running_modes : ['train', 'infer', 'eval']
 train:
   target : classification
   reset_cache: False
@@ -23,7 +23,7 @@ train:
   trainer:
     accelerator : gpu
     devices : 1
-    num_epochs : 100
+    num_epochs : 3
     ckpt_path : 
 infer:
   infer_filename : validation_set_infer.gz
