@@ -30,7 +30,7 @@ create_env() {
     fi
 
     PYTHON_VER=3.7
-    ENV_NAME="fuse_$PYTHON_VER-CUDA_$force_cuda_version-$(echo -n $requirements | sha256sum | awk '{print $1;}')"
+    ENV_NAME="fuse_$PYTHON_VER-CUDA-$force_cuda_version-$(echo -n $requirements | sha256sum | awk '{print $1;}')"
     echo $ENV_NAME
     
     # env full name
@@ -66,7 +66,7 @@ create_env() {
             # install PyTorch
             if [ $force_cuda_version != "no" ]; then
                 echo "forcing cudatoolkit $force_cuda_version"
-                conda install $env pytorch torchvision --extra-index-url https://download.pytorch.org/whl/cu$force_cuda_version -c pytorch -y
+                conda install pytorch torchvision cudatoolkit=$force_cuda_version -c pytorch -c conda-forge -y
                 echo "forcing cudatoolkit $force_cuda_version - Done"
             fi
 
