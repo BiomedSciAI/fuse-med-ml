@@ -62,11 +62,20 @@ assert "UKBB_DATA_PATH" in os.environ, "Expecting environment variable UKBB_DATA
 mode = 'default'  # Options: 'default', 'debug'. See details in FuseDebug
 debug = FuseDebug(mode)
 
-def create_model(num_classes: int) -> torch.nn.Module:
+def create_model(train: NDict,paths: NDict) -> torch.nn.Module:
     """ 
     creates the model 
     See HeadGlobalPoolingClassifier for details 
     """
+    #### Train Data
+    if train['target'] == "classification" :
+        num_classes = 2
+        mode = "approx"
+        gt_label = "data.gt.classification"
+        skip_keys=['data.gt.subtype']
+        class_names = ["Male", "Female"] 
+    else:
+        raise("unsuported target!!")
     model = ModelMultiHead(
     conv_inputs=(('data.input.img', 1),),
     backbone=BackboneResnet3D(in_channels=1),
@@ -81,7 +90,15 @@ def create_model(num_classes: int) -> torch.nn.Module:
                             #  append_layers_description=(256,128),
                              ),
     ])
-    return model
+    # create lightining trainer.
+    pl_trainer = Trainer(default_root_dir=paths['model_dir'],
+                            max_epochs=train['trainer']['num_epochs'],
+                            accelerator=train['trainer']['accelerator'],
+                            devices=train['trainer']['devices'],
+                            num_sanity_val_steps = -1,
+                            auto_select_gpus=True)
+    return model, pl_trainer, num_classes, gt_label, skip_keys , class_names
+
 #################################
 # Train Template
 #################################
@@ -99,20 +116,12 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
 
     lgr.info(f'model_dir={paths["model_dir"]}', {'color': 'magenta'})
     lgr.info(f'cache_dir={paths["cache_dir"]}', {'color': 'magenta'})
-
-    #### Train Data
-    if train['target'] == "classification" :
-        num_classes = 2
-        mode = "approx"
-        gt_label = "data.gt.classification"
-        skip_keys=['data.gt.subtype']
-        class_names = ["Male", "Female"] 
-    else:
-        raise("unsuported target!!")
+    model, pl_trainer, num_classes, gt_label, skip_keys , class_names = create_model(train, paths)
     # split to folds randomly - temp
     sample_ids = pd.read_csv(os.path.join(paths["data_misc_dir"],"samples.csv"))['file'].to_list()
     print(sample_ids)
     dataset_all = UKBB.dataset(paths["data_dir"], paths["data_misc_dir"], train['target'], paths["cache_dir"], reset_cache=False, num_workers=train["num_workers"], sample_ids=sample_ids,train=True)
+    print("dataset size",len(dataset_all))
     folds = dataset_balanced_division_to_folds(dataset=dataset_all,
                                         output_split_filename=os.path.join( paths["data_misc_dir"], paths["data_split_filename"]), 
                                         id = 'data.patientID',
@@ -242,7 +251,7 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
 ######################################
 # Inference Template
 ######################################
-def run_infer(model: torch.nn.Module, pl_trainer: Trainer, paths : NDict , infer: NDict):
+def run_infer(train : NDict, paths : NDict , infer: NDict):
     create_dir(paths['inference_dir'])
     #### Logger
     fuse_logger_start(output_path=paths["inference_dir"], console_verbose_level=logging.INFO)
@@ -252,7 +261,10 @@ def run_infer(model: torch.nn.Module, pl_trainer: Trainer, paths : NDict , infer
     checkpoint_file = os.path.join(paths["model_dir"], infer["checkpoint"])
     lgr.info(f'infer_filename={checkpoint_file}', {'color': 'magenta'})
 
+    lgr.info('Model:', {'attrs': 'bold'})
 
+    model, pl_trainer, num_classes, gt_label, skip_keys , class_names = create_model(train, paths)
+    lgr.info('Model: Done', {'attrs': 'bold'})
     ## Data
     folds = load_pickle(os.path.join( paths["data_misc_dir"], paths["data_split_filename"])) # assume exists and created in train func
 
@@ -262,6 +274,7 @@ def run_infer(model: torch.nn.Module, pl_trainer: Trainer, paths : NDict , infer
 
     test_dataset = UKBB.dataset(paths["data_dir"], paths["data_misc_dir"], infer['target'], paths["cache_dir"], sample_ids=infer_sample_ids, train=False)
 
+    print(len(test_dataset))
     ## Create dataloader
     infer_dataloader = DataLoader(dataset=test_dataset,
                                   shuffle=False, drop_last=False,
@@ -332,7 +345,7 @@ def main(cfg : DictConfig) -> None:
 
     # infer
     if 'infer' in cfg["run.running_modes"]:
-        run_infer(model, trainer, cfg["paths"] , cfg["infer"])
+        run_infer(cfg["train"], cfg["paths"] , cfg["infer"])
     #
     # analyze
     if 'eval' in cfg["run.running_modes"]:

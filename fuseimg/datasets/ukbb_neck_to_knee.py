@@ -69,7 +69,11 @@ class OpLoadUKBBZip(OpBase):
         '''
         scans = []
         zip_filename = os.path.join(self._dir_path,sample_dict[key_in])
-        zip_file = zipfile.ZipFile(zip_filename)
+        try:
+            zip_file = zipfile.ZipFile(zip_filename)
+        except:
+            print("error in opening",zip_filename, os.path.exists(zip_filename))
+            return None
         filenames_list = [f.filename for f in zip_file.infolist() if '.dcm' in f.filename]
         
         for dicom_file in filenames_list:
