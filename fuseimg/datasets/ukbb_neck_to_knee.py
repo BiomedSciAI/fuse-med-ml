@@ -185,7 +185,7 @@ class UKBB:
 
 
     
-    def get_dicom_data_df(gt_file_path: str, data_dir: str, data_misc_dir:str, target: str,sample_ids : Sequence = None) -> str:
+    def get_dicom_data_df(gt_file_path: str, data_dir: str, data_misc_dir:str, target: str,sample_ids : Sequence = None, is_female: int = None) -> str:
         """
         Creates a csv file that contains label for each image ( instead of patient as in dataset given file)
         by reading metadata ( breast side and view ) from the dicom files and merging it with the input csv
@@ -193,7 +193,8 @@ class UKBB:
         :param gt_file_path                 path to ground trouth file
         :param data_dir                     dataset root path
         :param data_misc_dir                path to save misc files to be used later
-        :param sample_ids                      list of ids to scan in data_dir
+        :param sample_ids                   list of ids to scan in data_dir
+        :param is_female                    filter only male/females from database
         :return: the new csv file path
         :return: sample ids of used images
         """
@@ -206,27 +207,29 @@ class UKBB:
             merged_clinical_data = pd.read_csv(combined_file_path)
             if sample_ids != None :
                 merged_clinical_data = merged_clinical_data[merged_clinical_data['file'].isin(sample_ids)]
+        else:
+            print("Did not find exising ground truth file!")
+            Path(data_misc_dir).mkdir(parents=True, exist_ok=True)
+            print(data_dir)
+            if sample_ids != None :
+                zip_files = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if file in sample_ids]
+            else:
+                zip_files = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if '.zip' in file]
+            print("zip files",len(zip_files))
+            with multiprocessing.Pool(64) as pool:
+                dfs = [x for x in pool.imap(create_df_from_zip, zip_files) if x is not None]
+            df = pd.concat(dfs)
+            if gt_file_path is not None:
+                gt_file = pd.read_csv(gt_file_path)
+                merged_clinical_data = pd.merge(df, gt_file, how='inner', on=['file'])
+            else:
+                print("Did not merge with ground truth file as it was None")
+            merged_clinical_data.to_csv(combined_file_path)
+        if is_female == None:
             all_sample_ids = list(set(merged_clinical_data['file'].to_list()))
-            return merged_clinical_data, all_sample_ids
-        print("Did not find exising ground truth file!")
-        Path(data_misc_dir).mkdir(parents=True, exist_ok=True)
-        print(data_dir)
-        if sample_ids != None :
-            zip_files = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if file in sample_ids]
         else:
-            zip_files = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if '.zip' in file]
-        print("zip files",len(zip_files))
-        with multiprocessing.Pool(64) as pool:
-            dfs = [x for x in pool.imap(create_df_from_zip, zip_files) if x is not None]
-        df = pd.concat(dfs)
-        if gt_file_path is not None:
-            gt_file = pd.read_csv(gt_file_path)
-            df = pd.merge(df, gt_file, how='inner', on=['file'])
-        else:
-            print("Did not merge with ground truth file as it was None")
-        df.to_csv(combined_file_path)
-        all_sample_ids = list(set(df['file'].to_list()))
-        return df, all_sample_ids
+            all_sample_ids = list(set(merged_clinical_data[merged_clinical_data['is female'] == is_female]['file'].to_list()))
+        return merged_clinical_data, all_sample_ids
     
     @staticmethod
     def dataset(
@@ -238,7 +241,8 @@ class UKBB:
                 num_workers:int = 10,
                 sample_ids: Optional[Sequence[Hashable]] = None,
                 train: bool = False,
-                gt_file_path: str = None,) :
+                gt_file_path: str = None,
+                is_female: int = None) :
         """
         Creates Fuse Dataset single object (either for training, validation and test or user defined set)
         
@@ -251,9 +255,10 @@ class UKBB:
         :param sample_ids: dataset including the specified sample_ids or None for all the samples. sample_id is case_{id:05d} (for example case_00001 or case_00100).
         :param train: True if used for training  - adds augmentation operations to the pipeline
         :param gt_file_path                 path to ground trouth file
+        :param is_female                    filter only male/females from database
         :return: DatasetDefault object
         """
-        input_source_gt , all_sample_ids= UKBB.get_dicom_data_df(gt_file_path, data_dir, data_misc_dir, target,sample_ids =sample_ids)
+        input_source_gt , all_sample_ids= UKBB.get_dicom_data_df(gt_file_path, data_dir, data_misc_dir, target,sample_ids =sample_ids, is_female = is_female)
         if sample_ids is None:
             sample_ids = all_sample_ids
             

@@ -12,6 +12,7 @@ run:
   running_modes : ['train', 'infer', 'eval']
 train:
   target : had prostatectomy
+  is_female : 0
   reset_cache: False
   num_workers : 12
   num_folds : 5
