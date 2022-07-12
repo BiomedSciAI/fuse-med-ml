@@ -36,7 +36,7 @@ from fuse_examples.imaging.classification.mnist.run_mnist import (
     run_eval,
 )
 
-def run_mnist(root: str) -> NDict:
+def run_mnist(root: str) -> None:
     model_dir = os.path.join(root, "model_dir")
     paths = {
         "model_dir": model_dir,

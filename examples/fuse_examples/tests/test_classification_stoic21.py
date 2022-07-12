@@ -37,6 +37,32 @@ if "STOIC21_DATA_PATH" in os.environ:
         EVAL_COMMON_PARAMS,
     )
 
+def run_stoic21(root: str) -> None:
+    model_dir = os.path.join(root, "model_dir")
+    paths = {
+        "model_dir": model_dir,
+        "data_dir": PATHS["data_dir"],
+        "cache_dir": os.path.join(root, "cache_dir"),
+        "data_split_filename": os.path.join(root, "split.pkl"),
+        "inference_dir": os.path.join(model_dir, "infer_dir"),
+        "eval_dir": os.path.join(model_dir, "eval_dir"),
+    }
+
+    train_common_params = TRAIN_COMMON_PARAMS
+    train_common_params["trainer.num_epochs"] = 2
+    infer_common_params = INFER_COMMON_PARAMS
+
+    analyze_common_params = EVAL_COMMON_PARAMS
+
+    GPU.choose_and_enable_multiple_gpus(1)
+
+    Seed.set_seed(0, False)  # previous test (in the pipeline) changed the deterministic behavior to True
+    run_train(paths, train_common_params)
+    run_infer(paths, infer_common_params)
+    results = run_eval(paths, analyze_common_params)
+
+    assert "metrics.auc" in results
+
 
 @unittest.skipIf(
     "STOIC21_DATA_PATH" not in os.environ, "define environment variable 'STOIC21_DATA_PATH' to run this test"
@@ -45,33 +71,10 @@ class ClassificationStoic21TestCase(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.mkdtemp()
 
-        model_dir = os.path.join(self.root, "model_dir")
-        self.paths = {
-            "model_dir": model_dir,
-            "data_dir": PATHS["data_dir"],
-            "cache_dir": os.path.join(self.root, "cache_dir"),
-            "data_split_filename": os.path.join(self.root, "split.pkl"),
-            "inference_dir": os.path.join(model_dir, "infer_dir"),
-            "eval_dir": os.path.join(model_dir, "eval_dir"),
-        }
-
-        self.train_common_params = TRAIN_COMMON_PARAMS
-        self.train_common_params["trainer.num_epochs"] = 2
-        self.infer_common_params = INFER_COMMON_PARAMS
-
-        self.analyze_common_params = EVAL_COMMON_PARAMS
-
-    @run_in_subprocess(1200)
+    
     def test_template(self):
-        GPU.choose_and_enable_multiple_gpus(1)
-
-        Seed.set_seed(0, False)  # previous test (in the pipeline) changed the deterministic behavior to True
-        run_train(self.paths, self.train_common_params)
-        run_infer(self.paths, self.infer_common_params)
-        results = run_eval(self.paths, self.analyze_common_params)
-
-        self.assertTrue("metrics.auc" in results)
-
+        run_in_subprocess(run_stoic21, self.root, timeout=1200)
+        
     def tearDown(self):
         # Delete temporary directories
         shutil.rmtree(self.root)
