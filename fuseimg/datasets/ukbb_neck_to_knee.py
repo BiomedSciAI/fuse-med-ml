@@ -152,7 +152,7 @@ class UKBB:
         """
         dynamic_pipeline = PipelineDefault("cmmd_dynamic", [
             (OpToTensor(), dict(key="data.input.img",dtype=torch.float32)),
-            (OpToTensor(), dict(key="data.gt.classification", dtype=torch.long)),
+            # (OpToTensor(), dict(key="data.gt.classification", dtype=torch.long)),
             (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")) ])
         # augmentation
         if train:
@@ -206,7 +206,7 @@ class UKBB:
             merged_clinical_data = pd.read_csv(combined_file_path)
             if sample_ids != None :
                 merged_clinical_data = merged_clinical_data[merged_clinical_data['file'].isin(sample_ids)]
-            all_sample_ids = set(merged_clinical_data['file'].to_list())
+            all_sample_ids = list(set(merged_clinical_data['file'].to_list()))
             return merged_clinical_data, all_sample_ids
         print("Did not find exising ground truth file!")
         Path(data_misc_dir).mkdir(parents=True, exist_ok=True)
@@ -225,7 +225,7 @@ class UKBB:
         else:
             print("Did not merge with ground truth file as it was None")
         df.to_csv(combined_file_path)
-        all_sample_ids = set(df['file'].to_list())
+        all_sample_ids = list(set(df['file'].to_list()))
         return df, all_sample_ids
     
     @staticmethod
@@ -254,7 +254,6 @@ class UKBB:
         :return: DatasetDefault object
         """
         input_source_gt , all_sample_ids= UKBB.get_dicom_data_df(gt_file_path, data_dir, data_misc_dir, target,sample_ids =sample_ids)
-        
         if sample_ids is None:
             sample_ids = all_sample_ids
             
@@ -274,7 +273,7 @@ class UKBB:
             cacher=cacher,            
         )
 
-        my_dataset.create()
+        my_dataset.create(num_workers = num_workers)
         return my_dataset
 def create_df_from_zip(file):
         scans = []
