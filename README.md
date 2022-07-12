@@ -112,7 +112,7 @@ class OpPad(OpBase):
         return sample_dict
 ```
 
-Since the key location isn't hardcoded, this module can be eaily reused across different research projects with very different data sample structures. More code reuse - Hooray!  
+Since the key location isn't hardcoded, this module can be easily reused across different research projects with very different data sample structures. More code reuse - Hooray!  
   
 FuseMedML-style components in general are any classes or functions that define which key paths will be written and which will be read.
 Arguments can be freely named, and you don't even have to write anything to the nested dict.
@@ -201,7 +201,7 @@ $ pip install -e examples
 
 ## Option 2: Install from PyPI (does not include examples)
 ```bash
-$ pip install fuse-med-ml
+$ pip install fuse-med-ml[all]
 ```
 
 # Examples
