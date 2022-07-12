@@ -1,5 +1,7 @@
 import functools
+from re import L
 from typing import Any, List, Optional
+from unittest import result
 from fuse.utils.utils_debug import FuseDebug
 import torch
 from tqdm import tqdm
@@ -273,68 +275,53 @@ def get_from_global_storage(key: str) -> Any:
     global _multiprocess_global_storage
     return _multiprocess_global_storage[key]
 
-
-class Process(mp.Process):
+ctx = mp.get_context('fork')
+class Process(ctx.Process):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._pconn, self._cconn = mp.Pipe()
-        self._exception = None
 
     def run(self):
         try:
-            super().run()
-            self._cconn.send(None)
+            results = super().run()
+            print(results)
+            self._cconn.send((results, None))
         except Exception as e:
             tb = traceback.format_exc()
-            self._cconn.send((e, tb))
+            self._cconn.send((None, (e, tb)))
             raise e  # You can still rise this exception if you need to
 
     @property
-    def exception(self):
+    def results_and_error(self):
         if self._pconn.poll():
-            self._exception = self._pconn.recv()
-        return self._exception
+            return self._pconn.recv()
+        return (None, None)
 
 
-def run_in_subprocess(timeout: int = 600):
+def run_in_subprocess(f: callable, *args, timeout: int = 600, **kwargs):
     """A decorator that makes function run in a subprocess.
     This can be useful when you want allocate GPU and memory and to release it when you're done.
     :param f: the function to run in a subprocess
     :param timeout: the maximum time to wait for the process to complete
     """
+    if not os.environ.get("FORCE_RUN_IN_SUBPROCESS", True):
+        return f(*args, **kwargs)
 
-    def inner(f: callable):
-        @functools.wraps(f)
-        def wrapper(*args, **kwargs):
-            # create the machinery python uses to fork a subprocess
-            # and run a function in it.
-            # p = mp.Process(target=f, args=args, kwargs=kwargs)
-            p = Process(target=f, args=args, kwargs=kwargs)  # using a subclass of Process
-            p.start()
-            try:
-                p.join(timeout=timeout)
-            except:
-                p.terminate()
-                raise
+    # create process
+    p = Process(target=f, args=args, kwargs=kwargs)  # using a subclass of Process
+    p.start()
+    try:
+        p.join(timeout=timeout)
+    except:
+        p.terminate()
+        raise
 
-            if p.exception:
-                error, traceback = p.exception
-                print(f"process func {f} had an exception: {error}")
-                print(traceback)
-                raise RuntimeError(f"process func {f} had an exception: {error}")
+    results, error = p.results_and_error
+    if error is not None:
+        exception, traceback = error
+        print(f"process func {f} had an exception: {exception}")
+        print(traceback)
+        raise RuntimeError(f"process func {f} had an exception: {exception}")
 
-            assert p.exitcode == 0, f"process func {f} failed with exit code {p.exitcode}"
-
-        return wrapper
-
-    return inner
-
-
-if __name__ == "__main__":
-
-    @run_in_subprocess()
-    def problematic_func():
-        print("in problematic_func")
-        raise ValueError("Fake Error!!!")
-
-    problematic_func()
+    assert p.exitcode == 0, f"process func {f} failed with exit code {p.exitcode}"
+    return results
