@@ -119,7 +119,8 @@ echo "Running core unittests in $ENV_TO_USE"
 conda run $env --no-capture-output --live-stream python ./run_all_unit_tests.py core
 echo "Running core unittests - Done"
 
-echo "Create fuseimg env"create_env $force_cuda_version $env_path "fuseimg"
+echo "Create fuseimg env"
+create_env $force_cuda_version $env_path "fuseimg"
 echo "Create fuseimg env - Done"
 
 echo "Running fuseimg unittests in $ENV_TO_USE"
