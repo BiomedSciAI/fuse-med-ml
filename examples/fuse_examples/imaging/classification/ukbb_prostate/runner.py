@@ -69,7 +69,7 @@ def create_model(train: NDict,paths: NDict) -> torch.nn.Module:
     """
     #### Train Data
     if train['target'] == "classification" :
-        num_classes = 2
+        num_classes = 3
         gt_label = "data.gt.classification"
         skip_keys=['data.gt.subtype']
         class_names = ["Male", "Female","Male-prostate-excision"] 
