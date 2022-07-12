@@ -32,6 +32,7 @@ import tempfile
 import shutil
 import skimage
 import skimage.transform
+import sys
 
 from matplotlib import pyplot as plt
 def dump(img, filename, slice):
@@ -138,8 +139,8 @@ class UKBB:
             (OpToNumpy(), dict(key='data.input.img', dtype=np.float32)), 
             # (OpLambda(partial(dump, filename="first.png", slice = 25)), dict(key="data.input.img")),
             (OpReadDataframe(data_source,
-                    key_column="data.ID",key_name="data.ID", columns_to_extract=['patient_id','dcm_unique','is female'],
-                    rename_columns={'dcm_unique' : 'data.ID' ,'patient_id' :"data.patientID", 'is female': "data.gt.classification" }), dict()),
+                    key_column="data.ID",key_name="data.ID", columns_to_extract=['patient_id','dcm_unique', target],
+                    rename_columns={'dcm_unique' : 'data.ID' ,'patient_id' :"data.patientID", target: "data.gt.classification" }), dict()),
             ])
         return static_pipeline
 
@@ -205,14 +206,16 @@ class UKBB:
             merged_clinical_data = pd.read_csv(combined_file_path)
             if sample_ids != None :
                 merged_clinical_data = merged_clinical_data[merged_clinical_data['file'].isin(sample_ids)]
-            all_sample_ids = merged_clinical_data['file'].to_list()
+            all_sample_ids = set(merged_clinical_data['file'].to_list())
             return merged_clinical_data, all_sample_ids
         print("Did not find exising ground truth file!")
         Path(data_misc_dir).mkdir(parents=True, exist_ok=True)
+        print(data_dir)
         if sample_ids != None :
             zip_files = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if file in sample_ids]
         else:
             zip_files = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if '.zip' in file]
+        print("zip files",len(zip_files))
         with multiprocessing.Pool(64) as pool:
             dfs = [x for x in pool.imap(create_df_from_zip, zip_files) if x is not None]
         df = pd.concat(dfs)
@@ -222,7 +225,7 @@ class UKBB:
         else:
             print("Did not merge with ground truth file as it was None")
         df.to_csv(combined_file_path)
-        all_sample_ids = df['file'].to_list()
+        all_sample_ids = set(df['file'].to_list())
         return df, all_sample_ids
     
     @staticmethod
@@ -275,7 +278,11 @@ class UKBB:
         return my_dataset
 def create_df_from_zip(file):
         scans = []
-        zip_file = zipfile.ZipFile(file)
+        try:
+            zip_file = zipfile.ZipFile(file)
+        except:
+            print("error in opening",file, os.path.exists(file))
+            return None
         filenames_list = [f.filename for f in zip_file.infolist() if '.dcm' in f.filename]
         for dicom_file in filenames_list:
             with zip_file.open(dicom_file) as f:

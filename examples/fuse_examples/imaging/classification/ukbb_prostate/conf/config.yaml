@@ -7,6 +7,7 @@ paths:
   data_split_filename:  cmmd_split.pkl
   data_dir : ${oc.env:UKBB_DATA_PATH}
   sample_ids : sample_ids.csv
+  gt_file : data_misc/ground_truth.csv
 run:
   running_modes : ['train', 'infer', 'eval']
 train:
