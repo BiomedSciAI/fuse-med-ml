@@ -254,7 +254,7 @@ class UKBB:
         :return: DatasetDefault object
         """
         input_source_gt , all_sample_ids= UKBB.get_dicom_data_df(gt_file_path, data_dir, data_misc_dir, target,sample_ids =sample_ids)
-        target = 'is female'
+        
         if sample_ids is None:
             sample_ids = all_sample_ids
             

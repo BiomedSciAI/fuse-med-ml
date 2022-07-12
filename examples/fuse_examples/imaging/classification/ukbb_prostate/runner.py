@@ -73,6 +73,11 @@ def create_model(train: NDict,paths: NDict) -> torch.nn.Module:
         gt_label = "data.gt.classification"
         skip_keys=['data.gt.subtype']
         class_names = ["Male", "Female","Male-prostate-excision"] 
+    elif train['target'] == "had prostatectomy" :
+        num_classes = 2
+        gt_label = "data.gt.classification"
+        skip_keys=['data.gt.subtype']
+        class_names = ["No-surgery","surgery"] 
     else:
         raise("unsuported target!!")
     model = ModelMultiHead(
@@ -132,6 +137,7 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
         sample_ids = None
     dataset_all = UKBB.dataset(paths["data_dir"], paths["data_misc_dir"], train['target'], paths["cache_dir"], reset_cache=False, num_workers=train["num_workers"], sample_ids=sample_ids,train=True, gt_file_path=paths["gt_file"])
     print("dataset size",len(dataset_all))
+    
     folds = dataset_balanced_division_to_folds(dataset=dataset_all,
                                         output_split_filename=os.path.join( paths["data_misc_dir"], paths["data_split_filename"]), 
                                         id = 'data.patientID',
