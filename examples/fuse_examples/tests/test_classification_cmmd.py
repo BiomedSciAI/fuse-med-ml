@@ -42,11 +42,11 @@ def run_cmmd(root: str) -> None:
         {
             "paths": {
                 "data_dir": os.environ["CMMD_DATA_PATH"],
-                "model_dir": os.path.join(self.root, "model_new/InceptionResnetV2_2017_test"),
-                "inference_dir": os.path.join(self.root, "model_new/infer_dir"),
-                "eval_dir": os.path.join(self.root, "model_new/eval_dir"),
-                "cache_dir": os.path.join(self.root, "examples/CMMD_cache_dir"),
-                "data_misc_dir": os.path.join(self.root, "data_misc"),
+                "model_dir": os.path.join(root, "model_new/InceptionResnetV2_2017_test"),
+                "inference_dir": os.path.join(root, "model_new/infer_dir"),
+                "eval_dir": os.path.join(root, "model_new/eval_dir"),
+                "cache_dir": os.path.join(root, "examples/CMMD_cache_dir"),
+                "data_misc_dir": os.path.join(root, "data_misc"),
                 "data_split_filename": "cmmd_split.pkl",
             },
             "run": {"running_modes": ["train", "infer", "eval"]},

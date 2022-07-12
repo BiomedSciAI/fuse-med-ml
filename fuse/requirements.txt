@@ -21,13 +21,9 @@ xmlrunner
 paramiko
 tables
 psutil
-testbook
 ipykernel
 pytorch_lightning
 hydra-core
 omegaconf
 pycocotools>=2.0.1
 nibabel
-mypy==0.950
-flake8
-black==22.3.0

@@ -1,0 +1,6 @@
+# All requirements
+# python>=3.7
+testbook
+mypy==0.950
+flake8
+black==22.3.0
