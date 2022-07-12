@@ -55,7 +55,8 @@ def run_mnist(root: str) -> NDict:
     run_train(paths, train_common_params)
     run_infer(paths, infer_common_params)
     results = run_eval(paths, eval_common_params)
-    return results
+    assert results["metrics.auc.macro_avg"] >= 0.95, "Error: expecting higher performence"
+
     
 
 class ClassificationMnistTestCase(unittest.TestCase):
@@ -64,10 +65,7 @@ class ClassificationMnistTestCase(unittest.TestCase):
 
     
     def test_template(self):
-        results = run_in_subprocess(run_mnist, self.root)
-        threshold = 0.95
-        self.assertGreaterEqual(results["metrics.auc.macro_avg"], threshold)
-
+        run_in_subprocess(run_mnist, self.root)
 
     def tearDown(self):
         # Delete temporary directories

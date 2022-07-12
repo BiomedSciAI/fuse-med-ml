@@ -275,16 +275,16 @@ def get_from_global_storage(key: str) -> Any:
     global _multiprocess_global_storage
     return _multiprocess_global_storage[key]
 
-ctx = mp.get_context('fork')
+ctx = mp.get_context('spawn')
 class Process(ctx.Process):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._pconn, self._cconn = mp.Pipe()
+        self._start_method = None # don't force spawn from now on
 
     def run(self):
         try:
-            results = super().run()
-            print(results)
+            results = self._target(*self._args, **self._kwargs)
             self._cconn.send((results, None))
         except Exception as e:
             tb = traceback.format_exc()
