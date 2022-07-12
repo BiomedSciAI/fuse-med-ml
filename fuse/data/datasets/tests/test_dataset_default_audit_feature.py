@@ -25,7 +25,7 @@ import numpy as np
 import tempfile
 import os
 from fuse.data.ops.op_base import OpBase
-from typing import List, Union, Optional
+from typing import List, Union
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuse.data.datasets.dataset_default import DatasetDefault
 
@@ -90,7 +90,7 @@ class TestDatasetDefault(unittest.TestCase):
         pass
 
     def test_audit(self):
-        tmpdir = tempfile.gettempdir()
+        tmpdir = tempfile.mkdtemp()
         cache_dirs = [
             os.path.join(tmpdir, "cache_a"),
             os.path.join(tmpdir, "cache_b"),

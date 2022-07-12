@@ -2,6 +2,7 @@ import unittest
 from testbook import testbook
 from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 
+
 def run_notebook() -> None:
     notebook_path = "examples/fuse_examples/imaging/hello_world/hello_world.ipynb"
 
@@ -11,9 +12,11 @@ def run_notebook() -> None:
         test_result_acc = tb.ref("test_result_acc")
         assert test_result_acc > 0.95
 
+
 class NotebookHelloWorldTestCase(unittest.TestCase):
     def test_notebook(self):
-        run_in_subprocess(run_notebook)    
+        run_in_subprocess(run_notebook)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -84,7 +84,7 @@ class TestDatasetDefault(unittest.TestCase):
         pass
 
     def test_cache_samples_with_sample_morphing(self):
-        tmpdir = tempfile.gettempdir()
+        tmpdir = tempfile.mkdtemp()
         cache_dirs = [
             os.path.join(tmpdir, "cache_a"),
             os.path.join(tmpdir, "cache_b"),
@@ -149,7 +149,7 @@ class TestDatasetDefault(unittest.TestCase):
         banana = 123
 
     def test_cache_samples_no_sample_morphing(self):
-        tmpdir = tempfile.gettempdir()
+        tmpdir = tempfile.mkdtemp()
         cache_dirs = [
             os.path.join(tmpdir, "cache_a"),
             os.path.join(tmpdir, "cache_b"),

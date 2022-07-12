@@ -36,6 +36,7 @@ from fuse_examples.imaging.classification.mnist.run_mnist import (
     run_eval,
 )
 
+
 def run_mnist(root: str) -> None:
     model_dir = os.path.join(root, "model_dir")
     paths = {
@@ -57,13 +58,11 @@ def run_mnist(root: str) -> None:
     results = run_eval(paths, eval_common_params)
     assert results["metrics.auc.macro_avg"] >= 0.95, "Error: expecting higher performence"
 
-    
 
 class ClassificationMnistTestCase(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.mkdtemp()
 
-    
     def test_template(self):
         run_in_subprocess(run_mnist, self.root)
 

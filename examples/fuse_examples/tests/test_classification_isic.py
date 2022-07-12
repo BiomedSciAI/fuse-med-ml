@@ -37,6 +37,7 @@ from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN
 import fuse.utils.gpu as GPU
 from fuse.utils.rand.seed import Seed
 
+
 def run_isic(root: str) -> None:
     model_dir = os.path.join(root, "model_dir")
     paths = {
@@ -56,7 +57,7 @@ def run_isic(root: str) -> None:
 
     infer_common_params = INFER_COMMON_PARAMS
     eval_common_params = EVAL_COMMON_PARAMS
-    
+
     # Must use GPU due a long running time
     GPU.choose_and_enable_multiple_gpus(1, use_cpu_if_fail=False)
 

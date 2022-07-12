@@ -1,7 +1,5 @@
 import functools
-from re import L
 from typing import Any, List, Optional
-from unittest import result
 from fuse.utils.utils_debug import FuseDebug
 import torch
 from tqdm import tqdm
@@ -275,12 +273,15 @@ def get_from_global_storage(key: str) -> Any:
     global _multiprocess_global_storage
     return _multiprocess_global_storage[key]
 
-ctx = mp.get_context('spawn')
+
+ctx = mp.get_context("spawn")
+
+
 class Process(ctx.Process):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._pconn, self._cconn = mp.Pipe()
-        self._start_method = None # don't force spawn from now on
+        self._start_method = None  # don't force spawn from now on
 
     def run(self):
         try:

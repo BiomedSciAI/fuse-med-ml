@@ -24,7 +24,7 @@ import numpy as np
 import tempfile
 import os
 from fuse.data.ops.op_base import OpBase
-from typing import List, Union, Optional, Dict
+from typing import List, Union
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 
 from fuse.utils.ndict import NDict
@@ -65,7 +65,7 @@ class TestSampleCaching(unittest.TestCase):
 
     def test_cache_samples(self):
         orig_sample_ids = ["case_1", "case_2", "case_3", "case_4"]
-        tmpdir = tempfile.gettempdir()
+        tmpdir = tempfile.mkdtemp()
         cache_dirs = [
             os.path.join(tmpdir, "cache_a"),
             os.path.join(tmpdir, "cache_b"),
@@ -91,7 +91,7 @@ class TestSampleCaching(unittest.TestCase):
 
     def test_same_uniquely_named_cache_and_multiple_pipeline_hashes(self):
         orig_sample_ids = ["case_1", "case_2", "case_3", "case_4"]
-        tmpdir = tempfile.gettempdir()
+        tmpdir = tempfile.mkdtemp()
         cache_dirs = [
             os.path.join(tmpdir, "cache_c"),
             os.path.join(tmpdir, "cache_d"),

@@ -36,6 +36,7 @@ from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 if "CMMD_DATA_PATH" in os.environ:
     from fuse_examples.imaging.classification.cmmd.runner import run_train, run_eval, run_infer
 
+
 def run_cmmd(root: str) -> None:
     cfg = NDict(
         {
@@ -83,13 +84,11 @@ def run_cmmd(root: str) -> None:
     assert "metrics.auc" in results
 
 
-
 @unittest.skipIf("CMMD_DATA_PATH" not in os.environ, "define environment variable 'CMMD_DATA_PATH' to run this test")
 class ClassificationMGCmmdTestCase(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.mkdtemp()
 
-    @run_in_subprocess()
     def test_runner(self):
         run_in_subprocess(run_cmmd, self.root)
 

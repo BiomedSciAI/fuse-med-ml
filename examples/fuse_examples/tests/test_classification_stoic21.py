@@ -37,6 +37,7 @@ if "STOIC21_DATA_PATH" in os.environ:
         EVAL_COMMON_PARAMS,
     )
 
+
 def run_stoic21(root: str) -> None:
     model_dir = os.path.join(root, "model_dir")
     paths = {
@@ -71,10 +72,9 @@ class ClassificationStoic21TestCase(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.mkdtemp()
 
-    
     def test_template(self):
-        run_in_subprocess(run_stoic21, self.root, timeout=1200)
-        
+        run_in_subprocess(run_stoic21, self.root, timeout=1800)
+
     def tearDown(self):
         # Delete temporary directories
         shutil.rmtree(self.root)
