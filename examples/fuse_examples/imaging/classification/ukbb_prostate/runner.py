@@ -138,7 +138,8 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
         print(sample_ids)
     else:
         sample_ids = None
-    dataset_all = UKBB.dataset(paths["data_dir"], paths["data_misc_dir"], train['target'], paths["cache_dir"], reset_cache=False, num_workers=train["num_workers"], sample_ids=sample_ids,train=True, gt_file_path=paths["gt_file"] , is_female = train["is_female"])
+    input_source_gt = pd.read_csv(paths["gt_file"])
+    dataset_all = UKBB.dataset(paths["data_dir"],  train['target'], input_source_gt, paths["cache_dir"], reset_cache=False, num_workers=train["num_workers"], sample_ids=sample_ids,train=True , is_female = train["is_female"])
     print("dataset size",len(dataset_all))
     
     folds = dataset_balanced_division_to_folds(dataset=dataset_all,
@@ -155,9 +156,9 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
     for fold in train["validation_folds"]:
         validation_sample_ids += folds[fold]
 
-    train_dataset = UKBB.dataset(paths["data_dir"], paths["data_misc_dir"], train['target'], paths["cache_dir"], reset_cache=False, num_workers=train["num_workers"], sample_ids=train_sample_ids, train=True , is_female = train["is_female"])
+    train_dataset = UKBB.dataset(paths["data_dir"], train['target'], input_source_gt, paths["cache_dir"], reset_cache=False, num_workers=train["num_workers"], sample_ids=train_sample_ids, train=True , is_female = train["is_female"])
     
-    validation_dataset = UKBB.dataset(paths["data_dir"], paths["data_misc_dir"], train['target'], paths["cache_dir"],  reset_cache=False, num_workers=train["num_workers"], sample_ids=validation_sample_ids , is_female = train["is_female"])
+    validation_dataset = UKBB.dataset(paths["data_dir"], train['target'], input_source_gt, paths["cache_dir"],  reset_cache=False, num_workers=train["num_workers"], sample_ids=validation_sample_ids , is_female = train["is_female"])
 
     ## Create sampler
     lgr.info(f'- Create sampler:')
@@ -276,7 +277,8 @@ def run_infer(train : NDict, paths : NDict , infer: NDict):
     for fold in infer["infer_folds"]:
         infer_sample_ids += folds[fold]
 
-    test_dataset = UKBB.dataset(paths["data_dir"], paths["data_misc_dir"], infer['target'], paths["cache_dir"], sample_ids=infer_sample_ids, train=False , is_female = train["is_female"])
+    input_source_gt = pd.read_csv(paths["gt_file"])
+    test_dataset = UKBB.dataset(paths["data_dir"], infer['target'], input_source_gt, paths["cache_dir"], sample_ids=infer_sample_ids, train=False , is_female = train["is_female"])
 
     ## Create dataloader
     infer_dataloader = DataLoader(dataset=test_dataset,

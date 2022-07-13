@@ -149,7 +149,7 @@ class UKBB:
         """
         dynamic_pipeline = PipelineDefault("cmmd_dynamic", [
             (OpReadDataframe(data_source,
-                    key_column="file",key_name="file", columns_to_extract=['file','patient_id', target],
+                    key_column="file", columns_to_extract=['file','patient_id', target],
                     rename_columns={'patient_id' :"data.patientID", target: "data.gt.classification" }), dict()),
             (OpToTensor(), dict(key="data.input.img",dtype=torch.float32)),
             # (OpToTensor(), dict(key="data.gt.classification", dtype=torch.long)),
@@ -188,31 +188,28 @@ class UKBB:
     @staticmethod
     def dataset(
                 data_dir: str,
-                data_misc_dir : str,
                 target: str,
+                input_source_gt: pd.DataFrame = None,
                 cache_dir : str = None,
                 reset_cache : bool = True,
                 num_workers:int = 10,
                 sample_ids: Optional[Sequence[Hashable]] = None,
                 train: bool = False,
-                gt_file_path: str = None,
                 is_female: int = None) :
         """
         Creates Fuse Dataset single object (either for training, validation and test or user defined set)
         
         :param data_dir:                    dataset root path
-        :param data_misc_dir                path to save misc files to be used later
         :param target                       target name used from the ground truth dataframe
+        :param input_source_gt              dataframe with ground truth file
         :param cache_dir:                   Optional, name of the cache folder
         :param reset_cache:                 Optional,specifies if we want to clear the cache first
         :param num_workers: number of processes used for caching 
         :param sample_ids: dataset including the specified sample_ids or None for all the samples. sample_id is case_{id:05d} (for example case_00001 or case_00100).
         :param train: True if used for training  - adds augmentation operations to the pipeline
-        :param gt_file_path                 path to ground trouth file
         :param is_female                    filter only male/females from database
         :return: DatasetDefault object
         """
-        input_source_gt = pd.read_csv(gt_file_path)
         if is_female == None:
             all_sample_ids = [file for file in os.listdir(data_dir) if '.zip' in file]
         else:

@@ -14,7 +14,7 @@ train:
   target : had prostatectomy
   is_female : 0
   reset_cache: False
-  num_workers : 12
+  num_workers : 0
   num_folds : 5
   train_folds : [0,1,2]
   validation_folds : [3]
