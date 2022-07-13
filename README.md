@@ -106,7 +106,7 @@ class OpPad(OpBase):
         
         #store the result in the requested output key (or in key_in if no key_out is provided)
         key_out = key_in if key_out is None
-        sample_dict[key] = processed_img 
+        sample_dict[key_out] = processed_img 
 
         #returned the modified nested dict
         return sample_dict
