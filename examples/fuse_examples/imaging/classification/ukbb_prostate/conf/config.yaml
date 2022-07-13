@@ -9,7 +9,7 @@ paths:
   sample_ids : sample_ids.csv
   gt_file : data_misc/ground_truth.csv
 run:
-  running_modes : ['infer', 'eval']
+  running_modes : ['train', 'infer', 'eval']
 train:
   target : had prostatectomy
   is_female : 0

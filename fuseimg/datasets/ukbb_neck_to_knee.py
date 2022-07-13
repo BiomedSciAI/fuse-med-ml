@@ -90,6 +90,9 @@ class OpLoadUKBBZip(OpBase):
                     station_list.append(i+1)
         dicom_tags['station'] = station_list
         dcm_unique = dicom_tags[dicom_tags['station'] == station][dicom_tags['series'] == series]['dcm_unique'].iloc[0]
+        if len(dicom_tags) != 24:
+            print(zip_filename, "has missing/extra sequences ",len(dicom_tags),"instead of 24")
+            return None
         dirpath = tempfile.mkdtemp()
         # ... do stuff with dirpath
         for dicom_file in filenames_list:
@@ -146,8 +149,8 @@ class UKBB:
         """
         dynamic_pipeline = PipelineDefault("cmmd_dynamic", [
             (OpReadDataframe(data_source,
-                    key_column="data.ID",key_name="data.ID", columns_to_extract=['patient_id','dcm_unique', target],
-                    rename_columns={'dcm_unique' : 'data.ID' ,'patient_id' :"data.patientID", target: "data.gt.classification" }), dict()),
+                    key_column="file",key_name="file", columns_to_extract=['file','patient_id', target],
+                    rename_columns={'patient_id' :"data.patientID", target: "data.gt.classification" }), dict()),
             (OpToTensor(), dict(key="data.input.img",dtype=torch.float32)),
             # (OpToTensor(), dict(key="data.gt.classification", dtype=torch.long)),
             (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")) ])
@@ -182,52 +185,6 @@ class UKBB:
 
 
     
-    def get_dicom_data_df(gt_file_path: str, data_dir: str, data_misc_dir:str, target: str,sample_ids : Sequence = None, is_female: int = None) -> str:
-        """
-        Creates a csv file that contains label for each image ( instead of patient as in dataset given file)
-        by reading metadata ( breast side and view ) from the dicom files and merging it with the input csv
-        If the csv already exists , it will skip the creation proccess
-        :param gt_file_path                 path to ground trouth file
-        :param data_dir                     dataset root path
-        :param data_misc_dir                path to save misc files to be used later
-        :param sample_ids                   list of ids to scan in data_dir
-        :param is_female                    filter only male/females from database
-        :return: the new csv file path
-        :return: sample ids of used images
-        """
-
-
-    
-        combined_file_path = os.path.join(data_misc_dir, 'files_combined.csv')
-        if os.path.isfile(combined_file_path):
-            print("Found ground truth file:",combined_file_path )
-            merged_clinical_data = pd.read_csv(combined_file_path)
-            if sample_ids != None :
-                merged_clinical_data = merged_clinical_data[merged_clinical_data['file'].isin(sample_ids)]
-        else:
-            print("Did not find exising ground truth file!")
-            Path(data_misc_dir).mkdir(parents=True, exist_ok=True)
-            print(data_dir)
-            if sample_ids != None :
-                zip_files = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if file in sample_ids]
-            else:
-                zip_files = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if '.zip' in file]
-            print("zip files",len(zip_files))
-            with multiprocessing.Pool(64) as pool:
-                dfs = [x for x in pool.imap(create_df_from_zip, zip_files) if x is not None]
-            df = pd.concat(dfs)
-            if gt_file_path is not None:
-                gt_file = pd.read_csv(gt_file_path)
-                merged_clinical_data = pd.merge(df, gt_file, how='inner', on=['file'])
-            else:
-                print("Did not merge with ground truth file as it was None")
-            merged_clinical_data.to_csv(combined_file_path)
-        if is_female == None:
-            all_sample_ids = list(set(merged_clinical_data['file'].to_list()))
-        else:
-            all_sample_ids = list(set(merged_clinical_data[merged_clinical_data['is female'] == is_female]['file'].to_list()))
-        return merged_clinical_data, all_sample_ids
-    
     @staticmethod
     def dataset(
                 data_dir: str,
@@ -255,7 +212,12 @@ class UKBB:
         :param is_female                    filter only male/females from database
         :return: DatasetDefault object
         """
-        input_source_gt , all_sample_ids= UKBB.get_dicom_data_df(gt_file_path, data_dir, data_misc_dir, target,sample_ids =sample_ids, is_female = is_female)
+        input_source_gt = pd.read_csv(gt_file_path)
+        if is_female == None:
+            all_sample_ids = [file for file in os.listdir(data_dir) if '.zip' in file]
+        else:
+            all_sample_ids = [file for file in os.listdir(data_dir) if '.zip' in file]
+            all_sample_ids = list(set(input_source_gt[input_source_gt['is female'] == is_female][input_source_gt['file'].isin(all_sample_ids)]['file'].to_list()))
         if sample_ids is None:
             sample_ids = all_sample_ids
             
@@ -277,29 +239,3 @@ class UKBB:
 
         my_dataset.create(num_workers = num_workers)
         return my_dataset
-def create_df_from_zip(file):
-        scans = []
-        try:
-            zip_file = zipfile.ZipFile(file)
-        except:
-            print("error in opening",file, os.path.exists(file))
-            return None
-        filenames_list = [f.filename for f in zip_file.infolist() if '.dcm' in f.filename]
-        for dicom_file in filenames_list:
-            with zip_file.open(dicom_file) as f:
-                dcm = pydicom.read_file(io.BytesIO(f.read()))
-                scans.append({'file': file.split("/")[-1], 'dcm_unique': dcm[0x0020000e].value, 'time':dcm[0x00080031].value, 'series': dcm[0x0008103e].value,
-                            'sex': dcm[0x00100040].value, 'birthday': dcm[0x00100030].value, 'age': dcm[0x00101010].value, 'size': dcm[0x00101020].value, 'weight': dcm[0x00101030].value})
-        dicom_tags = pd.DataFrame(scans)
-        dicom_tags['n_slices'] = dicom_tags.groupby(dicom_tags.columns.to_list())['file'].transform('size')
-        dicom_tags = dicom_tags.drop_duplicates()
-        dicom_tags = dicom_tags.sort_values(by=['time'])
-        if len(dicom_tags) != 24:
-            print(file, "has missing/extra sequences ",len(dicom_tags),"instead of 24")
-            return None
-        station_list = []
-        for i in range(6) :
-            for j in range(4) :
-                    station_list.append(i+1)
-        dicom_tags['station'] = station_list
-        return dicom_tags
