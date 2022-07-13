@@ -84,15 +84,15 @@ class OpLoadUKBBZip(OpBase):
         dicom_tags['n_slices'] = dicom_tags.groupby(dicom_tags.columns.to_list())['file'].transform('size')
         dicom_tags = dicom_tags.drop_duplicates()
         dicom_tags = dicom_tags.sort_values(by=['time'])
+        if len(dicom_tags) != 24:
+            print(zip_filename, "has missing/extra sequences ",len(dicom_tags),"instead of 24")
+            return None
         station_list = []
         for i in range(6) :
             for j in range(4) :
                     station_list.append(i+1)
         dicom_tags['station'] = station_list
         dcm_unique = dicom_tags[dicom_tags['station'] == station][dicom_tags['series'] == series]['dcm_unique'].iloc[0]
-        if len(dicom_tags) != 24:
-            print(zip_filename, "has missing/extra sequences ",len(dicom_tags),"instead of 24")
-            return None
         dirpath = tempfile.mkdtemp()
         # ... do stuff with dirpath
         for dicom_file in filenames_list:
