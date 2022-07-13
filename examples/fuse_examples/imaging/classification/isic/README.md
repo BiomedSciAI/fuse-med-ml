@@ -12,7 +12,7 @@ The model used is an InceptionResnetV2 pretrained on ImageNet and we evaluate it
 ### Train a model
 
 ```sh
-python3 runner.py
+python runner_isic.py
 ```
 
 ### Related papers
