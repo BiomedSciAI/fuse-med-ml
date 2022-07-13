@@ -25,7 +25,7 @@ from fuse.utils.ndict import NDict
 from typing import Callable, Optional
 
 
-def make_one_hot(input, num_classes, device="cuda"):
+def make_one_hot(input, num_classes):
     """Convert class index tensor to one hot encoding tensor.
     Args:
          input: A tensor of shape [N, 1, *]
@@ -36,7 +36,7 @@ def make_one_hot(input, num_classes, device="cuda"):
     shape = np.array(input.shape)
     shape[1] = num_classes
     shape = tuple(shape)
-    result = torch.zeros(shape, device=device)
+    result = torch.zeros(shape, device=input.device)
     result = result.scatter_(1, input, 1)
 
     return result

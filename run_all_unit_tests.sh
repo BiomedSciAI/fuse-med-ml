@@ -20,6 +20,7 @@ create_env() {
     mode=$3
 
     requirements=$(cat fuse/requirements.txt)
+    requirements+=$(cat fuse/requirements_dev.txt)
     
     if [ $mode = "fuseimg" ] || [ $mode = "examples" ]; then
         requirements+=$(cat fuseimg/requirements.txt)
@@ -30,7 +31,7 @@ create_env() {
     fi
 
     PYTHON_VER=3.7
-    ENV_NAME="fuse_$PYTHON_VER-$(echo -n $requirements | sha256sum | awk '{print $1;}')"
+    ENV_NAME="fuse_$PYTHON_VER-CUDA-$force_cuda_version-$(echo -n $requirements | sha256sum | awk '{print $1;}')"
     echo $ENV_NAME
     
     # env full name
@@ -41,7 +42,7 @@ create_env() {
     fi
 
 
-    # create a lokc
+    # create a lock
     mkdir -p ~/env_locks # will create dir if not exist
     lock_filename=~/env_locks/.$ENV_NAME.lock
     echo "Lock filename $lock_filename"
@@ -63,15 +64,17 @@ create_env() {
             conda create $env python=$PYTHON_VER -y
             echo "Creating new environment: $env - Done"
 
+            # install PyTorch
             if [ $force_cuda_version != "no" ]; then
                 echo "forcing cudatoolkit $force_cuda_version"
-                conda install $env pytorch torchvision cudatoolkit=$force_cuda_version -c pytorch -y
+                conda install $env pytorch torchvision cudatoolkit=$force_cuda_version -c pytorch -c conda-forge -y
                 echo "forcing cudatoolkit $force_cuda_version - Done"
             fi
 
             # install local repository (fuse-med-ml)
             echo "Installing core requirements"
             conda run $env --no-capture-output --live-stream pip install -r fuse/requirements.txt
+            conda run $env --no-capture-output --live-stream pip install -r fuse/requirements_dev.txt
             echo "Installing core requirements - Done"
 
             if [ $mode = "fuseimg" ] || [ $mode = "examples" ]; then
