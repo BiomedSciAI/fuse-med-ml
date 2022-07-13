@@ -121,7 +121,7 @@ class UKBB:
     CMMD_DATASET_VER = 0
 
     @staticmethod
-    def static_pipeline(data_dir: str,data_source : pd.DataFrame, target: str) -> PipelineDefault:
+    def static_pipeline(data_dir: str) -> PipelineDefault:
         """
         Get suggested static pipeline (which will be cached), typically loading the data plus design choices that we won't experiment with.
         :param data_path: path to original kits21 data (can be downloaded by KITS21.download())
@@ -138,19 +138,19 @@ class UKBB:
             (OpNormalizeAgainstSelf(), dict(key="data.input.img")),
             (OpToNumpy(), dict(key='data.input.img', dtype=np.float32)), 
             # (OpLambda(partial(dump, filename="first.png", slice = 25)), dict(key="data.input.img")),
-            (OpReadDataframe(data_source,
-                    key_column="data.ID",key_name="data.ID", columns_to_extract=['patient_id','dcm_unique', target],
-                    rename_columns={'dcm_unique' : 'data.ID' ,'patient_id' :"data.patientID", target: "data.gt.classification" }), dict()),
             ])
         return static_pipeline
 
     @staticmethod
-    def dynamic_pipeline(train: bool = False):
+    def dynamic_pipeline(data_source : pd.DataFrame, target: str, train: bool = False):
         """
         Get suggested dynamic pipeline. including pre-processing that might be modified and augmentation operations. 
         :param train : True iff we request dataset for train purpouse
         """
         dynamic_pipeline = PipelineDefault("cmmd_dynamic", [
+            (OpReadDataframe(data_source,
+                    key_column="data.ID",key_name="data.ID", columns_to_extract=['patient_id','dcm_unique', target],
+                    rename_columns={'dcm_unique' : 'data.ID' ,'patient_id' :"data.patientID", target: "data.gt.classification" }), dict()),
             (OpToTensor(), dict(key="data.input.img",dtype=torch.float32)),
             # (OpToTensor(), dict(key="data.gt.classification", dtype=torch.long)),
             (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")) ])
@@ -262,8 +262,8 @@ class UKBB:
         if sample_ids is None:
             sample_ids = all_sample_ids
             
-        static_pipeline = UKBB.static_pipeline(data_dir,input_source_gt, target)
-        dynamic_pipeline = UKBB.dynamic_pipeline(train=train)
+        static_pipeline = UKBB.static_pipeline(data_dir)
+        dynamic_pipeline = UKBB.dynamic_pipeline(input_source_gt, target,train=train)
                                 
         cacher = SamplesCacher(f'cmmd_cache_ver', 
             static_pipeline,
