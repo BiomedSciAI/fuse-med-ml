@@ -72,17 +72,14 @@ def create_model(train: NDict,paths: NDict) -> torch.nn.Module:
     if train['target'] == "classification" :
         num_classes = 3
         gt_label = "data.gt.classification"
-        skip_keys=['data.gt.subtype']
         class_names = ["Male", "Female","Male-prostate-excision"] 
     elif train['target'] == "had prostatectomy" :
         num_classes = 2
         gt_label = "data.gt.classification"
-        skip_keys=['data.gt.subtype']
         class_names = ["No-surgery","surgery"] 
     elif train['target'] == "is female" :
         num_classes = 2
         gt_label = "data.gt.classification"
-        skip_keys=['data.gt.subtype']
         class_names = ["Male","Female"] 
     else:
         raise("unsuported target!!")
@@ -107,7 +104,7 @@ def create_model(train: NDict,paths: NDict) -> torch.nn.Module:
                             devices=train['trainer']['devices'],
                             num_sanity_val_steps = -1,
                             auto_select_gpus=True)
-    return model, pl_trainer, num_classes, gt_label, skip_keys , class_names
+    return model, pl_trainer, num_classes, gt_label , class_names
 
 #################################
 # Train Template
@@ -130,7 +127,7 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
     # Model
     # ==============================================================================
     lgr.info('Model:', {'attrs': 'bold'})
-    model, pl_trainer, num_classes, gt_label, skip_keys , class_names = create_model(train, paths)
+    model, pl_trainer, num_classes, gt_label , class_names = create_model(train, paths)
     lgr.info('Model: Done', {'attrs': 'bold'})
     
     # split to folds randomly - temp
@@ -178,7 +175,7 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
     ## Create dataloader
     train_dataloader = DataLoader(dataset=train_dataset,
                                   shuffle=False, drop_last=False,
-                                  batch_sampler=sampler, collate_fn=CollateDefault(skip_keys=skip_keys),
+                                  batch_sampler=sampler, collate_fn=CollateDefault(),
                                   num_workers=train["num_workers"])
     lgr.info(f'Train Data: Done', {'attrs': 'bold'})
 
@@ -192,7 +189,7 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
                                        batch_sampler=None,
                                        batch_size=train["batch_size"],
                                        num_workers=train["num_workers"],
-                                       collate_fn=CollateDefault(skip_keys=skip_keys))
+                                       collate_fn=CollateDefault())
     lgr.info(f'Validation Data: Done', {'attrs': 'bold'})
     # ===================================================================
 
@@ -270,7 +267,7 @@ def run_infer(train : NDict, paths : NDict , infer: NDict):
 
     lgr.info('Model:', {'attrs': 'bold'})
 
-    model, pl_trainer, num_classes, gt_label, skip_keys , class_names = create_model(train, paths)
+    model, pl_trainer, num_classes, gt_label , class_names = create_model(train, paths)
     lgr.info('Model: Done', {'attrs': 'bold'})
     ## Data
     folds = load_pickle(os.path.join( paths["data_misc_dir"], paths["data_split_filename"])) # assume exists and created in train func
@@ -335,13 +332,10 @@ def main(cfg : DictConfig) -> None:
     force_gpus = None  # [0]
     choose_and_enable_multiple_gpus(cfg["train.trainer.devices"], force_gpus=force_gpus)
 
-
-    # Path to the stored dataset location
-    # dataset should be download from https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508
-    # download requires NBIA data retriever https://wiki.cancerimagingarchive.net/display/NBIA/Downloading+TCIA+Images
-    # put on the following in the main folder  - 
-    # 1. CMMD_clinicaldata_revision.csv which is a converted version of CMMD_clinicaldata_revision.xlsx 
-    # 2. folder named CMMD which is the downloaded data folder
+    # instructions how to get the ukbb data
+    # 1. apply for access in his website https://www.ukbiobank.ac.uk/enable-your-research/apply-for-access
+    # 2. download all data to the path configured in os env variable UKBB_DATA_PATH
+    
 
     # train
     if 'train' in cfg["run.running_modes"]:

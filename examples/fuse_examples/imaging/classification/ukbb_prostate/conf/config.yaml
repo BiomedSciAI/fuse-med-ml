@@ -9,7 +9,7 @@ paths:
   sample_ids : sample_ids.csv
   gt_file : data_misc/ground_truth.csv
 run:
-  running_modes : ['train', 'infer', 'eval']
+  running_modes : ['infer', 'eval']
 train:
   target : had prostatectomy
   is_female : 0
@@ -25,11 +25,11 @@ train:
   trainer:
     accelerator : gpu
     devices : 1
-    num_epochs : 3
+    num_epochs : 10
     ckpt_path : 
 infer:
   infer_filename : validation_set_infer.gz
   checkpoint : best_epoch.ckpt
   infer_folds : [4]
-  target : classification
+  target : had prostatectomy
   num_workers : 12

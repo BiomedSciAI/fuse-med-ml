@@ -1,9 +1,7 @@
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
-from fuseimg.data.ops.image_loader import OpLoadImage
 from fuseimg.data.ops.color import OpNormalizeAgainstSelf
-from fuseimg.data.ops.shape_ops import OpFlipBrightSideOnLeft2D , OpFindBiggestNonEmptyBbox2D, OpResizeAndPad2D
 from fuse.data import PipelineDefault, OpToTensor
 from fuse.data.ops.ops_common import OpLambda
 from fuseimg.data.ops.aug.color import OpAugColor
@@ -78,7 +76,6 @@ class OpLoadUKBBZip(OpBase):
         filenames_list = [f.filename for f in zip_file.infolist() if '.dcm' in f.filename]
         
         for dicom_file in filenames_list:
-            
             with zip_file.open(dicom_file) as f:
                 dcm = pydicom.read_file(io.BytesIO(f.read()))
                 scans.append({'file': zip_filename.split("/")[-1], 'dcm_unique': dcm[0x0020000e].value, 'time':dcm[0x00080031].value, 'series': dcm[0x0008103e].value})
