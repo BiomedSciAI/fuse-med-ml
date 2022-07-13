@@ -25,6 +25,11 @@ import fuse.utils.gpu as GPU
 from fuse.utils.rand.seed import Seed
 import logging
 import time
+import copy
+from fuse.dl.losses.loss_default import LossDefault
+from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
+from fuse.dl.lightning.pl_module import LightningModuleDefault
+import pytorch_lightning as pl
 
 ## Parameters:
 ##############################################################################
@@ -34,10 +39,10 @@ import time
 # uncomment if you want to use specific gpus instead of automatically looking for free ones
 experiment_num = 0
 task_num = 1  # 1 or 2
-force_gpus = [experiment_num * 2, (experiment_num * 2) + 1]  # specify the GPU indices you want to use
+force_gpus = [experiment_num]
 use_data = {"imaging": True, "clinical": True}  # specify whether to use imaging, clinical data or both
 batch_size = 2
-resize_to = (110, 256, 256)
+resize_to = (80, 256, 256)
 
 if task_num == 1:
     num_epochs = 150
@@ -47,7 +52,7 @@ if task_num == 1:
     clinical_dropout = 0.0
     fused_dropout = 0.5
     target_name = "data.gt.gt_global.task_1_label"
-    target_metric = "metrics.auc"
+    target_metric = "validation.metrics.auc"
 
 elif task_num == 2:
     num_epochs = 150
@@ -57,7 +62,7 @@ elif task_num == 2:
     clinical_dropout = 0.0
     fused_dropout = 0.0
     target_name = "data.gt.gt_global.task_2_label"
-    target_metric = "metrics.auc.macro_avg"
+    target_metric = "validation.metrics.auc.macro_avg"
 
 
 def main():
@@ -148,7 +153,7 @@ def main():
 
     # Metrics definition:
     ##############################################################################
-    metrics = OrderedDict(
+    train_metrics = OrderedDict(
         [
             ("op", MetricApplyThresholds(pred="model.output.head_0")),  # will apply argmax
             ("auc", MetricAUCROC(pred="model.output.head_0", target=target_name)),
@@ -159,11 +164,12 @@ def main():
             ),
         ]
     )
+    val_metrics = copy.deepcopy(train_metrics)  # use the same metrics in validation as well
 
-    best_epoch_source = {
-        "source": target_metric,  # can be any key from losses or metrics dictionaries
-        "optimization": "max",  # can be either min/max
-    }
+    best_epoch_source = dict(
+        monitor=target_metric, # can be any key from losses or metrics dictionaries
+        mode="max",            # can be either min/max
+    )
 
     # Optimizer definition:
     ##############################################################################
@@ -171,7 +177,9 @@ def main():
 
     # Scheduler definition:
     ##############################################################################
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+    lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+    lr_sch_config = dict(scheduler=lr_scheduler, monitor="validation.losses.total_loss")
+    optimizers_and_lr_schs = dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
 
     ## Training
     ##############################################################################
@@ -181,24 +189,30 @@ def main():
         TensorboardCallback(model_dir=model_dir),  # save statistics for tensorboard
         MetricStatisticsCallback(output_path=model_dir + "/metrics.csv"),  # save statistics a csv file
     }
-    manager = ManagerDefault(output_model_dir=model_dir, force_reset=True)
-    manager.set_objects(
-        net=model,
-        optimizer=optimizer,
-        losses=losses,
-        metrics=metrics,
-        best_epoch_source=best_epoch_source,
-        lr_scheduler=scheduler,
-        callbacks=callbacks,
-        train_params={
-            "num_epochs": num_epochs,
-            "lr_sch_target": "train.losses.total_loss",
-        },  # 'lr_sch_target': 'validation.metrics.auc.macro_avg'
-        output_model_dir=model_dir,
-    )
 
-    print("Training...")
-    manager.train(train_dataloader=train_dl, validation_dataloader=valid_dl)
+    # create instance of PL module - FuseMedML generic version
+    pl_module = LightningModuleDefault(
+            model_dir=model_dir,
+            model=model,
+            losses=losses,
+            train_metrics=train_metrics,
+            validation_metrics=val_metrics,
+            best_epoch_source=best_epoch_source,
+            optimizers_and_lr_schs=optimizers_and_lr_schs,
+        )    
+    # create lightining trainer.
+    pl_trainer = pl.Trainer(
+        default_root_dir=model_dir,
+        max_epochs=num_epochs,
+        accelerator="gpu",
+        devices=force_gpus,
+        strategy=None,
+        auto_select_gpus=True,)
+
+    # train
+    pl_trainer.fit(
+        pl_module, train_dl, valid_dl, ckpt_path=None
+    )
 
 
 if __name__ == "__main__":

@@ -16,7 +16,7 @@ from fuseimg.data.ops.aug.color import OpAugColor
 from fuseimg.data.ops.aug.geometry import OpAugAffine2D, OpCrop3D, OpRotation3D, OpResizeTo
 from fuseimg.data.ops.image_loader import OpLoadImage
 from fuseimg.data.ops.color import OpClip, OpToRange
-
+from fuseimg.data.ops.shape_ops import OpHWCToCHW
 import numpy as np
 from fuse.data.utils.sample import get_sample_id
 from typing import Hashable, List, Optional, Sequence, Tuple, Union
@@ -184,15 +184,11 @@ def knight_dataset(
             (OpClinicalLoad(data_dir), dict(test=("test" in split))),
             # loading data
             (OpLoadImage(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", format="nib")),
-            # (OpLoadImage(data_dir), dict(key_in="data.gt.seg_path", key_out="data.gt.seg", format="nib")),
             # fixed image normalization
             (OpClip(), dict(key="data.input.img", clip=(-62, 301))),
             (OpZScoreNorm(), dict(key="data.input.img", mean=104.0, std=75.3)),  # kits normalization
             # transposing so the depth channel will be first
-            (
-                OpLambda(lambda x: np.moveaxis(x, -1, 0)),
-                dict(key="data.input.img"),
-            ),  # convert image from shape [H, W, D] to shape [D, H, W]
+            (OpLambda(partial(np.moveaxis,source=-1,destination=0)), dict(key="data.input.img"),),  # convert image from shape [H, W, D] to shape [D, H, W]
             (OpPrepare_Clinical(), dict()),  # process clinical data
         ],
     )
@@ -205,7 +201,7 @@ def knight_dataset(
             (OpToTensor(), dict(key="data.input.img", dtype=torch.float)),
             (OpToTensor(), dict(key="data.input.clinical.all")),
             # add channel dimension -> [C=1, D, H, W]
-            (OpLambda(lambda x: x.unsqueeze(dim=0)), dict(key="data.input.img")),
+            (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")),
         ],
     )
 
@@ -234,7 +230,7 @@ def knight_dataset(
                 ),
             ),
             # add channel dimension -> [C=1, D, H, W]
-            (OpLambda(lambda x: x.unsqueeze(dim=0)), dict(key="data.input.img")),
+            (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")),
         ],
     )
 
