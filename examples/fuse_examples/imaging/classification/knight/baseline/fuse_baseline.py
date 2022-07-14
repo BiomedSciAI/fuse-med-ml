@@ -36,7 +36,7 @@ import pytorch_lightning as pl
 # uncomment if you want to use specific gpus instead of automatically looking for free ones
 experiment_num = 0
 task_num = 1  # 1 or 2
-force_gpus = [experiment_num]
+num_gpus = 1
 use_data = {"imaging": True, "clinical": True}  # specify whether to use imaging, clinical data or both
 batch_size = 2
 resize_to = (80, 256, 256)
@@ -92,8 +92,8 @@ def main():
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"  # required for pytorch deterministic mode
     rand_gen = Seed.set_seed(1234, deterministic_mode=True)
 
-    # select gpus
-    GPU.choose_and_enable_multiple_gpus(len(force_gpus), force_gpus=force_gpus)
+    # # select gpus
+    # GPU.choose_and_enable_multiple_gpus(len(force_gpus), force_gpus=force_gpus)
 
     ## FuseMedML dataset preparation
     ##############################################################################
@@ -196,7 +196,7 @@ def main():
         default_root_dir=model_dir,
         max_epochs=num_epochs,
         accelerator="gpu",
-        devices=force_gpus,
+        gpus=num_gpus,
         strategy=None,
         auto_select_gpus=True,
     )
