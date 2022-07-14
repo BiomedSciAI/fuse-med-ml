@@ -55,6 +55,12 @@ from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
 from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.heads.head_3D_classifier import Head3DClassifier
 
+from fuse.dl.models.model_wrapper import ModelWrapDictToSeq
+from medcam import medcam
+import numpy as np
+from cv2 import cv2
+import skimage
+import nibabel as nib
 
 assert "UKBB_DATA_PATH" in os.environ, "Expecting environment variable UKBB_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
 ##########################################
@@ -128,6 +134,7 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
     # ==============================================================================
     lgr.info('Model:', {'attrs': 'bold'})
     model, pl_trainer, num_classes, gt_label , class_names = create_model(train, paths)
+    model = medcam.inject(model, output_dir="attention_maps", save_maps=True)
     lgr.info('Model: Done', {'attrs': 'bold'})
     
     # split to folds randomly - temp
@@ -276,7 +283,6 @@ def run_infer(train : NDict, paths : NDict , infer: NDict):
     infer_sample_ids = []                              
     for fold in infer["infer_folds"]:
         infer_sample_ids += folds[fold]
-
     input_source_gt = pd.read_csv(paths["gt_file"])
     test_dataset = UKBB.dataset(paths["data_dir"], infer['target'], input_source_gt, paths["cache_dir"], sample_ids=infer_sample_ids, train=False , is_female = train["is_female"])
 
@@ -287,17 +293,51 @@ def run_infer(train : NDict, paths : NDict , infer: NDict):
                                   num_workers=infer["num_workers"])
     # load python lightning module
     pl_module = LightningModuleDefault.load_from_checkpoint(checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True)
-    # set the prediction keys to extract (the ones used be the evaluation function).
-    pl_module.set_predictions_keys(['model.output.head_0', 'data.gt.classification']) # which keys to extract and dump into file
-    lgr.info(f'Test Data: Done', {'attrs': 'bold'})
+    model = ModelWrapDictToSeq(pl_module._model)
+    model = medcam.inject(model, output_dir="attention_maps", backend='gcam', save_maps=True, layer='auto',return_attention=True)
+    for i, batch in enumerate(infer_dataloader):
+            logit, attention_map = model(batch['data.input.img'],batch['data.gt.classification'])
+            batch['data.input.img'] = batch['data.input.img'][0][0].numpy()
+            attention_map = show_cam_on_image(batch['data.input.img'],attention_map[0][0].numpy())
+            nib.save(attention_map, filename=os.path.join('attention_maps','output_'+str(i)+'label_='+str(batch['data.gt.classification'])+'.nii.gz'))
 
-    # create a trainer instance
-    predictions = pl_trainer.predict(pl_module, infer_dataloader, return_predictions=True)
+    # lgr.info(f'Test Data: Done', {'attrs': 'bold'})
+    # #set the prediction keys to extract (the ones used be the evaluation function).
+    # pl_module.set_predictions_keys(['model.output.head_0', 'data.gt.classification']) # which keys to extract and dump into file
+    # # create a trainer instance
+    # predictions = pl_trainer.predict(pl_module, infer_dataloader, return_predictions=True)
 
     # convert list of batch outputs into a dataframe
-    infer_df = convert_predictions_to_dataframe(predictions)
-    save_dataframe(infer_df, infer_file)
+    # infer_df = convert_predictions_to_dataframe(predictions)
+    # save_dataframe(infer_df, infer_file)
     
+def show_cam_on_image(img: np.ndarray,
+                      mask: np.ndarray,
+                      use_rgb: bool = False,
+                      colormap: int = cv2.COLORMAP_JET) -> np.ndarray:
+    """ This function overlays the cam mask on the image as an heatmap.
+    By default the heatmap is in BGR format.
+    :param img: The base image in RGB or BGR format.
+    :param mask: The cam mask.
+    :param use_rgb: Whether to use an RGB or BGR heatmap, this should be set to True if 'img' is in RGB format.
+    :param colormap: The OpenCV colormap to be used.
+    :returns: The default image with the cam overlay.
+    """
+    heatmaps = [np.float32(cv2.applyColorMap(np.uint8(255 * mask[i]), colormap))/255 for i in range(mask.shape[0])]
+    images =  [cv2.cvtColor(img[i],cv2.COLOR_GRAY2RGB) for i in range(img.shape[0])]
+    RGB_DTYPE = np.dtype([('R', 'u1'), ('G', 'u1'), ('B', 'u1')])
+    cams = []
+    for i in range(len(images)) :
+        if np.max(images[i]) > 1:
+             images[i] *= (1.0/ images[i].max())
+        
+        cam = heatmaps[i] + images[i]
+        cam = cam / np.max(cam)
+        cam = np.uint8(255 * cam)
+        cam = cam.view(RGB_DTYPE )
+        cams.append(cam)
+    nifti = nib.Nifti1Image(np.concatenate( cams, axis=2 ), np.eye(4)) 
+    return nifti
 
 
 ######################################

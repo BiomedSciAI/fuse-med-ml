@@ -9,12 +9,12 @@ paths:
   sample_ids : sample_ids.csv
   gt_file : data_misc/ground_truth.csv
 run:
-  running_modes : ['train', 'infer', 'eval']
+  running_modes : ['infer', 'eval']
 train:
   target : had prostatectomy
   is_female : 0
   reset_cache: False
-  num_workers : 0
+  num_workers : 12
   num_folds : 5
   train_folds : [0,1,2]
   validation_folds : [3]
