@@ -134,7 +134,6 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
     # ==============================================================================
     lgr.info('Model:', {'attrs': 'bold'})
     model, pl_trainer, num_classes, gt_label , class_names = create_model(train, paths)
-    model = medcam.inject(model, output_dir="attention_maps", save_maps=True)
     lgr.info('Model: Done', {'attrs': 'bold'})
     
     # split to folds randomly - temp
