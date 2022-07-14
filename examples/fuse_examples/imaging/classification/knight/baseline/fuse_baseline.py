@@ -43,7 +43,7 @@ resize_to = (80, 256, 256)
 
 if task_num == 1:
     num_epochs = 150
-    num_classes = 2
+    num_classes = 2 
     learning_rate = 1e-4 if use_data["clinical"] else 1e-5
     imaging_dropout = 0.5
     clinical_dropout = 0.0
@@ -92,8 +92,8 @@ def main():
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"  # required for pytorch deterministic mode
     rand_gen = Seed.set_seed(1234, deterministic_mode=True)
 
-    # # select gpus
-    # GPU.choose_and_enable_multiple_gpus(len(force_gpus), force_gpus=force_gpus)
+    # select gpus
+    GPU.choose_and_enable_multiple_gpus(num_gpus, force_gpus=None)
 
     ## FuseMedML dataset preparation
     ##############################################################################
@@ -196,9 +196,10 @@ def main():
         default_root_dir=model_dir,
         max_epochs=num_epochs,
         accelerator="gpu",
-        gpus=num_gpus,
+        devices=num_gpus,
         strategy=None,
         auto_select_gpus=True,
+        num_sanity_val_steps=-1
     )
 
     # train

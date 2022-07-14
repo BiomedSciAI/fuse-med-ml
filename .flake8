@@ -29,12 +29,6 @@ exclude =
     # TEMP - ignore all tests
     test_*
 
-    # TEMP - delete when fixing knight
-    examples/fuse_examples/imaging/classification/knight
-
-    # TEMP - delete when removing managers
-    fuse/managers
-
     ## General Excludes (TEMP, double check)
     # .py files
     __init__.py
