@@ -43,7 +43,7 @@ resize_to = (80, 256, 256)
 
 if task_num == 1:
     num_epochs = 150
-    num_classes = 2 
+    num_classes = 2
     learning_rate = 1e-4 if use_data["clinical"] else 1e-5
     imaging_dropout = 0.5
     clinical_dropout = 0.0
@@ -199,7 +199,7 @@ def main():
         devices=num_gpus,
         strategy=None,
         auto_select_gpus=True,
-        num_sanity_val_steps=-1
+        num_sanity_val_steps=-1,
     )
 
     # train
