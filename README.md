@@ -124,11 +124,11 @@ Some FuseMedML components return a value directly - for example, loss functions.
 * Easy dealing with complex multi modality scenario
 * Advanced caching, including periodic audits to automatically detect stale caches
 * Default ready-to-use Dataset and Sampler classes
-* See detailed introduction [here](https://github.com/IBM/fuse-med-ml/tree/master/fuse/data/README.md) 
+* See detailed introduction [here](./fuse/data/README.md) 
   
 ### **[fuse.eval](./fuse/eval)** - a standalone library for **evaluating ML models** (not necessarily trained with FuseMedML)  
 The package includes collection of off-the-shelf metrics and utilities such as **statistical significance tests, calibration, thresholding, model comparison** and more.  
-See detailed introduction [here](https://github.com/IBM/fuse-med-ml/tree/master/fuse/eval/README.md)  
+See detailed introduction [here](./fuse/eval/README.md)  
 
 ### **[fuse.dl](./fuse/dl)** - reusable dl (deep learning) model architecture components, loss functions, etc.
 
@@ -208,11 +208,11 @@ $ pip install fuse-med-ml[all]
 
 * Easy access "Hello World" [colab notebook](https://colab.research.google.com/github/IBM/fuse-med-ml/blob/master/examples/fuse_examples/imaging/hello_world/hello_world.ipynb)
 * classification
-    * [**MNIST**](https://github.com/IBM/fuse-med-ml/tree/master/examples/fuse_examples/imaging/classification/mnist/)  - a simple example, including training, inference and evaluation over [MNIST dataset](http://yann.lecun.com/exdb/mnist/)
+    * [**MNIST**](./examples/fuse_examples/imaging/classification/mnist/)  - a simple example, including training, inference and evaluation over [MNIST dataset](http://yann.lecun.com/exdb/mnist/)
     * [**KNIGHT Challenge**](./examples/fuse_examples/imaging/classification/knight) - preoperative prediction of risk class for patients with renal masses identified in clinical Computed Tomography (CT) imaging of the kidneys. Including data pre-processing, baseline implementation and evaluation pipeline for the challenge.
-    * [**Multimodality tutorial**](https://github.com/IBM/fuse-med-ml/blob/master/examples/fuse_examples/multimodality/image_clinical/multimodality_image_clinical.ipynb) - demonstration of two popular simple methods integrating imaging and clinical data (tabular) using FuseMedML  
-    * [**Skin Lesion**](https://github.com/IBM/fuse-med-ml/tree/master/examples/fuse_examples/imaging/classification/isic/) - skin lesion classification , including training, inference and evaluation over the public dataset introduced in [ISIC challenge](https://challenge.isic-archive.com/landing/2019)   
-    * [**Breast Cancer Lesion Classification**](https://github.com/IBM/fuse-med-ml/tree/master/examples/fuse_examples/imaging/classification/cmmd) - lesions classification of tumor ( benign, malignant) in breast mammography over the public dataset introduced in [The Chinese Mammography Database (CMMD)](https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508)  
+    * [**Multimodality tutorial**](https://colab.research.google.com/github/IBM/fuse-med-ml/blob/master/examples/fuse_examples/multimodality/image_clinical/multimodality_image_clinical.ipynb) - demonstration of two popular simple methods integrating imaging and clinical data (tabular) using FuseMedML  
+    * [**Skin Lesion**](./examples/fuse_examples/imaging/classification/isic/) - skin lesion classification , including training, inference and evaluation over the public dataset introduced in [ISIC challenge](https://challenge.isic-archive.com/landing/2019)   
+    * [**Breast Cancer Lesion Classification**](./examples/fuse_examples/imaging/classification/cmmd) - lesions classification of tumor ( benign, malignant) in breast mammography over the public dataset introduced in [The Chinese Mammography Database (CMMD)](https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508)  
     
 ## Walkthrough template
 * [**Walkthrough Template**](./fuse/dl/templates/walkthrough_template.py) - includes several TODO notes, marking the minimal scope of code required to get your pipeline up and running. The template also includes useful explanations and tips.
