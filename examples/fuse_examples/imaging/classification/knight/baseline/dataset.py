@@ -16,7 +16,6 @@ from fuseimg.data.ops.aug.color import OpAugColor
 from fuseimg.data.ops.aug.geometry import OpAugAffine2D, OpCrop3D, OpRotation3D, OpResizeTo
 from fuseimg.data.ops.image_loader import OpLoadImage
 from fuseimg.data.ops.color import OpClip, OpToRange
-from fuseimg.data.ops.shape_ops import OpHWCToCHW
 import numpy as np
 from fuse.data.utils.sample import get_sample_id
 from typing import Hashable, List, Optional, Sequence, Tuple, Union
@@ -107,7 +106,7 @@ class OpClinicalLoad(OpBase):
         return sample_dict
 
 
-class OpPrepare_Clinical(OpBase):
+class OpPrepareClinical(OpBase):
     def __call__(
         self, sample_dict: NDict
     ) -> NDict:  # , op_id: Optional[str]) -> NDict:, op_id: Optional[str]) -> NDict:
@@ -188,8 +187,11 @@ def knight_dataset(
             (OpClip(), dict(key="data.input.img", clip=(-62, 301))),
             (OpZScoreNorm(), dict(key="data.input.img", mean=104.0, std=75.3)),  # kits normalization
             # transposing so the depth channel will be first
-            (OpLambda(partial(np.moveaxis,source=-1,destination=0)), dict(key="data.input.img"),),  # convert image from shape [H, W, D] to shape [D, H, W]
-            (OpPrepare_Clinical(), dict()),  # process clinical data
+            (
+                OpLambda(partial(np.moveaxis, source=-1, destination=0)),
+                dict(key="data.input.img"),
+            ),  # convert image from shape [H, W, D] to shape [D, H, W]
+            (OpPrepareClinical(), dict()),  # process clinical data
         ],
     )
 

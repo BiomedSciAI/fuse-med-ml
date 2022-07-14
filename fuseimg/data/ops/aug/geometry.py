@@ -76,7 +76,12 @@ class OpAugAffine2D(OpBase):
             aug_channel_tensor = aug_input[channel].numpy()
             aug_channel_tensor = Image.fromarray(aug_channel_tensor)
             aug_channel_tensor = TTF.affine(
-                aug_channel_tensor, angle=rotate, scale=scale, interpolation=interpolation, translate=translate, shear=shear
+                aug_channel_tensor,
+                angle=rotate,
+                scale=scale,
+                interpolation=interpolation,
+                translate=translate,
+                shear=shear,
             )
             if flip[0]:
                 aug_channel_tensor = TTF.vflip(aug_channel_tensor)

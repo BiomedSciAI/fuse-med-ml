@@ -18,9 +18,6 @@ import torch.nn as nn
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy, MetricConfusion
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 import torch.optim as optim
-from fuse.dl.managers.manager_default import ManagerDefault
-from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
-from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
 import fuse.utils.gpu as GPU
 from fuse.utils.rand.seed import Seed
 import logging
@@ -167,8 +164,8 @@ def main():
     val_metrics = copy.deepcopy(train_metrics)  # use the same metrics in validation as well
 
     best_epoch_source = dict(
-        monitor=target_metric, # can be any key from losses or metrics dictionaries
-        mode="max",            # can be either min/max
+        monitor=target_metric,  # can be any key from losses or metrics dictionaries
+        mode="max",  # can be either min/max
     )
 
     # Optimizer definition:
@@ -184,22 +181,16 @@ def main():
     ## Training
     ##############################################################################
 
-    # set tensorboard callback
-    callbacks = {
-        TensorboardCallback(model_dir=model_dir),  # save statistics for tensorboard
-        MetricStatisticsCallback(output_path=model_dir + "/metrics.csv"),  # save statistics a csv file
-    }
-
     # create instance of PL module - FuseMedML generic version
     pl_module = LightningModuleDefault(
-            model_dir=model_dir,
-            model=model,
-            losses=losses,
-            train_metrics=train_metrics,
-            validation_metrics=val_metrics,
-            best_epoch_source=best_epoch_source,
-            optimizers_and_lr_schs=optimizers_and_lr_schs,
-        )    
+        model_dir=model_dir,
+        model=model,
+        losses=losses,
+        train_metrics=train_metrics,
+        validation_metrics=val_metrics,
+        best_epoch_source=best_epoch_source,
+        optimizers_and_lr_schs=optimizers_and_lr_schs,
+    )
     # create lightining trainer.
     pl_trainer = pl.Trainer(
         default_root_dir=model_dir,
@@ -207,12 +198,11 @@ def main():
         accelerator="gpu",
         devices=force_gpus,
         strategy=None,
-        auto_select_gpus=True,)
+        auto_select_gpus=True,
+    )
 
     # train
-    pl_trainer.fit(
-        pl_module, train_dl, valid_dl, ckpt_path=None
-    )
+    pl_trainer.fit(pl_module, train_dl, valid_dl, ckpt_path=None)
 
 
 if __name__ == "__main__":
