@@ -79,7 +79,7 @@ def create_model(train: NDict,paths: NDict) -> torch.nn.Module:
         num_classes = 3
         gt_label = "data.gt.classification"
         class_names = ["Male", "Female","Male-prostate-excision"] 
-    elif train['target'] == "had prostatectomy" :
+    elif train['target'] == "preindex prostatectomy" :
         num_classes = 2
         gt_label = "data.gt.classification"
         class_names = ["No-surgery","surgery"] 
@@ -296,9 +296,14 @@ def run_infer(train : NDict, paths : NDict , infer: NDict):
     model = medcam.inject(model, output_dir="attention_maps", backend='gcam', save_maps=True, layer='auto',return_attention=True)
     for i, batch in enumerate(infer_dataloader):
             logit, attention_map = model(batch['data.input.img'],batch['data.gt.classification'])
+            max_volume = np.unravel_index(attention_map.argmax(), attention_map.shape)
+            print(i,max_volume)
             batch['data.input.img'] = batch['data.input.img'][0][0].numpy()
-            attention_map = show_cam_on_image(batch['data.input.img'],attention_map[0][0].numpy())
-            nib.save(attention_map, filename=os.path.join('attention_maps','output_'+str(i)+'label_='+str(batch['data.gt.classification'])+'.nii.gz'))
+            attention_map = show_attention_on_image(batch['data.input.img'],attention_map[0][0].numpy())
+            batch['data.input.img'] = np.transpose(batch['data.input.img'], axes=(1, 2, 0))
+            original =  nib.Nifti1Image(batch['data.input.img'], affine=np.eye(4))
+            nib.save(original, filename=os.path.join('attention_maps','original_'+str(i)+'_'+batch['data.input.img_path'][0]+'_label_='+str(batch['data.gt.classification'])+'.nii.gz'))
+            nib.save(attention_map, filename=os.path.join('attention_maps','attention_'+str(i)+'_'+batch['data.input.img_path'][0]+'_label_='+str(batch['data.gt.classification'])+'.nii.gz'))
 
     # lgr.info(f'Test Data: Done', {'attrs': 'bold'})
     # #set the prediction keys to extract (the ones used be the evaluation function).
@@ -310,15 +315,14 @@ def run_infer(train : NDict, paths : NDict , infer: NDict):
     # infer_df = convert_predictions_to_dataframe(predictions)
     # save_dataframe(infer_df, infer_file)
     
-def show_cam_on_image(img: np.ndarray,
+def show_attention_on_image(img: np.ndarray,
                       mask: np.ndarray,
-                      use_rgb: bool = False,
                       colormap: int = cv2.COLORMAP_JET) -> np.ndarray:
     """ This function overlays the cam mask on the image as an heatmap.
+    reference for fusing heat map and original image : https://github.com/jacobgil/pytorch-grad-cam/blob/61e9babae8600351b02b6e90864e4807f44f2d4a/pytorch_grad_cam/utils/image.py#L25
     By default the heatmap is in BGR format.
     :param img: The base image in RGB or BGR format.
     :param mask: The cam mask.
-    :param use_rgb: Whether to use an RGB or BGR heatmap, this should be set to True if 'img' is in RGB format.
     :param colormap: The OpenCV colormap to be used.
     :returns: The default image with the cam overlay.
     """

@@ -152,7 +152,7 @@ class UKBB:
                     key_column="file", columns_to_extract=['file','patient_id', target],
                     rename_columns={'patient_id' :"data.patientID", target: "data.gt.classification" }), dict()),
             (OpToTensor(), dict(key="data.input.img",dtype=torch.float32)),
-            # (OpToTensor(), dict(key="data.gt.classification", dtype=torch.long)),
+            (OpToTensor(), dict(key="data.gt.classification", dtype=torch.long)),
             (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")) ])
         # augmentation
         if train:
