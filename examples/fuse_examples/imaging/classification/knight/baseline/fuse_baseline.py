@@ -23,7 +23,7 @@ from fuse.dl.lightning.pl_module import LightningModuleDefault
 import pytorch_lightning as pl
 # add parent directory to path, so that 'baseline' folder is treated as a module
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-from baseline.dataset import knight_dataset #noqa
+from baseline.dataset import knight_dataset  # noqa
 
 ## Parameters:
 ##############################################################################
