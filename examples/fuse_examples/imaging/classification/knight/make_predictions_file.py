@@ -20,7 +20,6 @@ Created on June 30, 2021
 import sys
 import logging
 import os
-import pathlib
 
 from typing import Optional, Union
 import pandas as pd
@@ -33,14 +32,14 @@ from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
 from fuse.dl.models.heads.head_3D_classifier import Head3DClassifier
 
-
+# add parent directory to path, so that 'knight' folder is treated as a module
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 from examples.fuse_examples.imaging.classification.knight.eval.eval import TASK1_CLASS_NAMES, TASK2_CLASS_NAMES
 from baseline.dataset import knight_dataset
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 import pytorch_lightning as pl
 
-# add parent directory to path, so that 'knight' folder is treated as a module
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+
 
 
 def make_predictions_file(
@@ -57,7 +56,7 @@ def make_predictions_file(
     """
     Automaitically make prediction files in the requested format - given path to model dir create by FuseMedML during training
     :param model_dir: path to model dir create by FuseMedML during training
-    :param model: definition of the model 
+    :param model: definition of the model
     :param data_path: path to the original data downloaded from https://github.com/neheller/KNIGHT
     :param cache_path: Optional - path to the cache folder. If none, it will pre-processes the data again
     :param split: either path to pickled dictionary or the actual dictionary specifing the split between train and validation. the dictionary maps "train" to list of sample descriptors and "val" to list of sample descriptions
@@ -105,7 +104,7 @@ def make_predictions_file(
         auto_select_gpus=True,
     )
 
-    predictions = pl_trainer.predict(pl_module, dl , ckpt_path=checkpoint)
+    predictions = pl_trainer.predict(pl_module, dl, ckpt_path=checkpoint)
 
     # Convert to required format
     if task_num == 1:

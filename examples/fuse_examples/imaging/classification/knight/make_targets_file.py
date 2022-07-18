@@ -27,6 +27,7 @@ from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import save_dataframe
 from fuse.data.utils.export import ExportDataset
 from baseline.dataset import knight_dataset
+
 # add parent directory to path, so that 'knight' folder is treated as a module
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 

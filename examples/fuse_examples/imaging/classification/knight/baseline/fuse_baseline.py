@@ -1,6 +1,5 @@
 from collections import OrderedDict
 import pathlib
-from pickle import FALSE
 from fuse.utils.utils_logger import fuse_logger_start
 import os
 import sys
@@ -11,7 +10,6 @@ import pandas as pd
 from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
 from fuse.dl.models.heads.head_3D_classifier import Head3DClassifier
-from fuse.dl.losses.loss_default import LossDefault
 import torch.nn.functional as F
 import torch.nn as nn
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy, MetricConfusion
@@ -23,9 +21,9 @@ import logging
 import time
 import copy
 from fuse.dl.losses.loss_default import LossDefault
-from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 import pytorch_lightning as pl
+
 
 ## Parameters:
 ##############################################################################
