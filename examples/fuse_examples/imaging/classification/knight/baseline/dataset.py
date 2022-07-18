@@ -214,23 +214,23 @@ def knight_dataset(
             # Numpy to tensor
             (OpToTensor(), dict(key="data.input.img", dtype=torch.float)),
             (OpToTensor(), dict(key="data.input.clinical.all")),
-            # (
-            #     OpRandApply(OpSample(OpRotation3D()), 0.5),
-            #     dict(
-            #         key="data.input.img", z_rot=Uniform(-5.0, 5.0), x_rot=Uniform(-5.0, 5.0), y_rot=Uniform(-5.0, 5.0)
-            #     ),
-            # ),
+            (
+                OpRandApply(OpSample(OpRotation3D()), 0.5),
+                dict(
+                    key="data.input.img", z_rot=Uniform(-5.0, 5.0), x_rot=Uniform(-5.0, 5.0), y_rot=Uniform(-5.0, 5.0)
+                ),
+            ),
             # affine transformation per slice but with the same arguments
-            # (
-            #     OpRandApply(OpSample(OpAugAffine2D()), 0.5),
-            #     dict(
-            #         key="data.input.img",
-            #         rotate=Uniform(-180.0, 180.0),
-            #         scale=Uniform(0.8, 1.2),
-            #         flip=(RandBool(0.5), RandBool(0.5)),
-            #         translate=(RandInt(-15, 15), RandInt(-15, 15)),
-            #     ),
-            # ),
+            (
+                OpRandApply(OpSample(OpAugAffine2D()), 0.5),
+                dict(
+                    key="data.input.img",
+                    rotate=Uniform(-180.0, 180.0),
+                    scale=Uniform(0.8, 1.2),
+                    flip=(RandBool(0.5), RandBool(0.5)),
+                    translate=(RandInt(-15, 15), RandInt(-15, 15)),
+                ),
+            ),
             # add channel dimension -> [C=1, D, H, W]
             (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")),
         ],
