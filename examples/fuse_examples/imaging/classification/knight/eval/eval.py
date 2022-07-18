@@ -144,7 +144,7 @@ def decode_results(results: NDict, output_dir: str, task1: bool, task2: bool) ->
         results_text += "\n|"
         results_text += "".join([f" {column} |" for column in table_columns])
         results_text += "\n|"
-        results_text += "".join([f" ------ |" for column in table_columns])
+        results_text += "".join([" ------ |" for column in table_columns])
         results_text += "\n|"
         results_text += "".join(
             [f" {results_table[f'Task2-{column}']} {results_table[f'Task2-{column}-CI']} |" for column in table_columns]

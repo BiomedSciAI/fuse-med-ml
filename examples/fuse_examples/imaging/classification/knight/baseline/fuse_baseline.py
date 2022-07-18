@@ -3,6 +3,7 @@ import pathlib
 from fuse.utils.utils_logger import fuse_logger_start
 import os
 import sys
+
 # add parent directory to path, so that 'baseline' folder is treated as a module
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 from baseline.dataset import knight_dataset

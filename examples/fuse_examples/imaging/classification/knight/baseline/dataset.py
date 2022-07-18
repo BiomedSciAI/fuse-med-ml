@@ -118,7 +118,7 @@ class OpPrepareClinical(OpBase):
             bmi = np.array(-1.0).reshape(-1)
 
         radiographic_size = sample_dict["data.input.clinical.radiographic_size"]
-        if radiographic_size != None and radiographic_size > 0 and radiographic_size < 50:
+        if radiographic_size is not None and radiographic_size > 0 and radiographic_size < 50:
             radiographic_size = np.array(radiographic_size / 15.0).reshape(-1)
         else:
             radiographic_size = np.array(-1.0).reshape(-1)
@@ -229,12 +229,6 @@ def knight_dataset(
             (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")),
         ],
     )
-
-    if "train" in split:
-        image_dir = data_dir
-
-    else:  # split can contain BOTH 'train' and 'val', or JUST 'test'
-        image_dir = os.path.join(data_dir, "images")
 
     # Create dataset
     if "train" in split:

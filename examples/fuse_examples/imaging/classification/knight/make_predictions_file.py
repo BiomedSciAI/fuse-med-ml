@@ -40,8 +40,6 @@ from fuse.dl.lightning.pl_module import LightningModuleDefault
 import pytorch_lightning as pl
 
 
-
-
 def make_predictions_file(
     model_dir: str,
     model: torch.nn.Module,
