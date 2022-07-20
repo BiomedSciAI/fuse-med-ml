@@ -23,7 +23,6 @@ import random
 
 import numpy as np
 
-
 class ParamSamplerBase(ABC):
     """
     Base class for param sampler
@@ -55,7 +54,7 @@ class Uniform(ParamSamplerBase):
         return random.uniform(self.min, self.max)
 
     def __str__(self):
-        return f"Uniform [{self.min} - {self.max}] "
+        return f'Uniform [{self.min} - {self.max}] '
 
 
 class RandInt(ParamSamplerBase):
@@ -76,7 +75,7 @@ class RandInt(ParamSamplerBase):
         return random.randint(self.min, self.max)
 
     def __str__(self):
-        return f"RandInt [{self.min} - {self.max}] "
+        return f'RandInt [{self.min} - {self.max}] '
 
 
 class RandBool(ParamSamplerBase):
@@ -96,13 +95,11 @@ class RandBool(ParamSamplerBase):
         return random.uniform(0, 1) <= self.probability
 
     def __str__(self):
-        return f"RandBool p={self.probability}] "
+        return f'RandBool p={self.probability}] '
 
 
 class Choice(ParamSamplerBase):
-    def __init__(
-        self, seq: Sequence, probabilities: Optional[List[float]] = None, k: int = 0
-    ):
+    def __init__(self, seq: Sequence, probabilities: Optional[List[float]] = None, k: int = 0):
         """
         Random choice out of a sequence
         Return a k sized list of population elements chosen with replacement
@@ -125,14 +122,12 @@ class Choice(ParamSamplerBase):
             return random.choices(self.seq, weights=self.probabilities, k=self.k)
 
     def __str__(self):
-        return f"Choice seq={self.seq}, w={self.probabilities}] "
-
+        return f'Choice seq={self.seq}, w={self.probabilities}] '
 
 class Gaussian(ParamSamplerBase):
     """
     Gaussian noise
     """
-
     def __init__(self, shape: Tuple[int, ...], mean: float, std: float):
         """
         :param shape: patch size of the required noise
@@ -152,8 +147,7 @@ class Gaussian(ParamSamplerBase):
         """
         return self.std * np.random.randn(*list(self.shape)) + self.mean
 
-
-def draw_samples_recursively(data: Any) -> Any:
+def draw_samples_recursively (data: Any) -> Any:
     """
     Generate a copy of the data structure, replacing each ParamSamplerBase with a random sample.
 
@@ -164,21 +158,19 @@ def draw_samples_recursively(data: Any) -> Any:
     if isinstance(data, dict):
         data_dict: dict = data.copy()
         for key in data_dict:
-            data_dict[key] = draw_samples_recursively(data_dict[key])
+            data_dict[key] = draw_samples_recursively (data_dict[key])
         return data_dict
 
     # if a list  return a copy of the list try to sample each element recursively
     if isinstance(data, list):
         data_lst: list = data[:]
         for ii in range(len(data_lst)):
-            data_lst[ii] = draw_samples_recursively(data_lst[ii])
+            data_lst[ii] = draw_samples_recursively (data_lst[ii])
         return data_lst
 
     # if a tuple  return a copy of the tuple try to sample each element recursively
     if isinstance(data, Tuple):
-        data_tuple = tuple(
-            (draw_samples_recursively(data[ii]) for ii in range(len(data)))
-        )
+        data_tuple = tuple((draw_samples_recursively (data[ii]) for ii in range(len(data))))
         return data_tuple
 
     # if ParamSamplerBase, sample a number
@@ -188,3 +180,5 @@ def draw_samples_recursively(data: Any) -> Any:
 
     # otherwise return the original data
     return data
+
+

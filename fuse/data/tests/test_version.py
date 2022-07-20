@@ -34,5 +34,5 @@ class TestVersion(unittest.TestCase):
         # self.assertEqual(fuse.data.__version__, version)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

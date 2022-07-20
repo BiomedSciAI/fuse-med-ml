@@ -1,7 +1,7 @@
 from typing import Dict, Hashable
 from fuse.utils.ndict import NDict
 
-"""
+'''
 helper utilities for creating empty samples, and setting and getting sample_id within samples
 
 A sample is a NDict, which is a special "flavor" of a dictionry, allowing accessing elements within it using x['a.b.c.d'] instead of x['a']['b']['c']['d'],
@@ -19,80 +19,73 @@ The bare minimum that a sample is required to contain are:
 
 'sample_id' - the sample id, uniquely identifying it. It must be Hashable. Again, usually a string, but doesn't have to be.
 
-"""
+'''
 
-
-def create_initial_sample(initial_sample_id: Hashable, sample_id=None):
-    """
+def create_initial_sample(initial_sample_id:Hashable, sample_id=None):
+    '''
     creates an empty sample dict and sets both sample_id and initial_sample_id
     :param sample_id:
-    :param initial_sample_id: optional. If not provided, sample_id will be used for it as well
-    """
+    :param initial_sample_id: optional. If not provided, sample_id will be used for it as well    
+    '''
     ans = NDict()
 
     if sample_id is None:
         sample_id = initial_sample_id
 
     set_initial_sample_id(ans, initial_sample_id)
-    set_sample_id(ans, sample_id)
-
+    set_sample_id(ans, sample_id)    
+    
     return ans
 
 
 ##### sample_id
 
-
 def get_sample_id_key() -> str:
-    """
+    '''
     return sample id key
-    """
-    return "data.sample_id"
+    '''
+    return 'data.sample_id'
 
-
-def get_sample_id(sample: Dict) -> Hashable:
-    """
+def get_sample_id(sample:Dict) -> Hashable:
+    '''
     extracts sample_id from the sample dict
-    """
+    '''
     if get_sample_id_key() not in sample:
         raise Exception
     return sample[get_sample_id_key()]
 
 
-def set_sample_id(sample: Dict, sample_id: Hashable):
-    """
+def set_sample_id(sample:Dict, sample_id:Hashable):
+    '''
     sets sample_id in an existing sample dict
-    """
+    '''
     sample[get_sample_id_key()] = sample_id
 
 
 #### dealing with initial sample id - this is related to morphing, and describes the original provided sample_id, prior to the morphing effect
 
-
 def get_initial_sample_id_key() -> str:
-    """
+    '''
     return initial sample id key
-    """
-    return "data.initial_sample_id"
+    '''
+    return 'data.initial_sample_id'
 
-
-def set_initial_sample_id(sample: Dict, initial_sample_id: Hashable):
-    """
+def set_initial_sample_id(sample:Dict, initial_sample_id:Hashable):
+    '''
     sets initial_sample_id in an existing sample dict
-    """
-    sample[get_initial_sample_id_key()] = initial_sample_id
+    '''
+    sample[get_initial_sample_id_key()] = initial_sample_id    
 
-
-def get_initial_sample_id(sample: Dict) -> Hashable:
-    """
+def get_initial_sample_id(sample:Dict) -> Hashable:
+    '''
     extracts initial_sample_id from the sample dict
-    """
+    '''
     if get_initial_sample_id_key() not in sample:
         raise Exception
     return sample[get_initial_sample_id_key()]
 
 
 ####
-
 
 def get_specific_sample_from_potentially_morphed(sample, sample_id):
     if isinstance(sample, dict):
@@ -102,10 +95,8 @@ def get_specific_sample_from_potentially_morphed(sample, sample_id):
         for curr_sample in sample:
             if get_sample_id(curr_sample) == sample_id:
                 return curr_sample
-        raise Exception(f"Could not find requested sample_id={sample_id}")
+        raise Exception(f'Could not find requested sample_id={sample_id}')
     else:
-        raise Exception(
-            "Expected the sample to be either a dict or a list of dicts. None does not make sense in this context."
-        )
+        raise Exception('Expected the sample to be either a dict or a list of dicts. None does not make sense in this context.')
 
-    assert False  # should never reach here
+    assert False #should never reach here

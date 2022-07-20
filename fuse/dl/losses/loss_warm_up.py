@@ -1,7 +1,6 @@
 from typing import Dict
 import torch
 
-
 class LossWarmUp(torch.nn.Module):
     """
     Zero the loss until a defined amount of iterations have passed.
@@ -21,3 +20,4 @@ class LossWarmUp(torch.nn.Module):
             return torch.tensor(0.0)
         else:
             return self._loss.forward(*args, **kwargs)
+        

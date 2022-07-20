@@ -20,17 +20,7 @@ Created on June 30, 2021
 from typing import Dict, List
 
 
-from typing import (
-    Dict,
-    Any,
-    List,
-    Iterator,
-    Optional,
-    Union,
-    Sequence,
-    Hashable,
-    Callable,
-)
+from typing import Dict, Any, List, Iterator, Optional, Union, Sequence, Hashable, Callable
 import torch.nn as nn
 from torch.optim.optimizer import Optimizer
 from torch.utils.data.dataloader import DataLoader

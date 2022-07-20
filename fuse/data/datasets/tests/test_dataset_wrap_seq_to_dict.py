@@ -28,7 +28,6 @@ from fuse.utils.ndict import NDict
 import tempfile
 from fuse.data.datasets.dataset_wrap_seq_to_dict import DatasetWrapSeqToDict
 
-
 class TestDatasetWrapSeqToDict(unittest.TestCase):
     """
     Test sample caching
@@ -36,25 +35,20 @@ class TestDatasetWrapSeqToDict(unittest.TestCase):
 
     def setUp(self):
         pass
-
+    
     def test_dataset_wrap_seq_to_dict(self):
         Seed.set_seed(1234)
         path = tempfile.gettempdir()
-
+        
         # Create dataset
-        transform = transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-        )
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,))
+        ])
 
-        torch_train_dataset = torchvision.datasets.MNIST(
-            path, download=True, train=True, transform=transform
-        )
+        torch_train_dataset = torchvision.datasets.MNIST(path, download=True, train=True, transform=transform)
         # wrapping torch dataset
-        train_dataset = DatasetWrapSeqToDict(
-            name="train",
-            dataset=torch_train_dataset,
-            sample_keys=("data.image", "data.label"),
-        )
+        train_dataset = DatasetWrapSeqToDict(name='train', dataset=torch_train_dataset, sample_keys=('data.image', 'data.label'))
         train_dataset.create()
 
         # get value
@@ -63,36 +57,34 @@ class TestDatasetWrapSeqToDict(unittest.TestCase):
         item = torch_train_dataset[index]
 
         self.assertTrue(isinstance(sample, dict))
-        self.assertTrue("data.image" in sample)
-        self.assertTrue("data.label" in sample)
-        self.assertTrue((sample["data.image"] == item[0]).all())
-        self.assertEqual(sample["data.label"], item[1])
+        self.assertTrue('data.image' in sample)
+        self.assertTrue('data.label' in sample)
+        self.assertTrue((sample['data.image'] == item[0]).all())
+        self.assertEqual(sample['data.label'], item[1])
+
 
     def test_dataset_cache(self):
         Seed.set_seed(1234)
 
-        transform = transforms.Compose([transforms.Normalize((0.1307,), (0.3081,))])
+        transform = transforms.Compose([
+            transforms.Normalize((0.1307,), (0.3081,))
+        ])
         # Create dataset
-        torch_dataset = torchvision.datasets.MNIST(
-            "/tmp/mnist", download=True, train=True, transform=None
-        )
+        torch_dataset = torchvision.datasets.MNIST('/tmp/mnist', download=True, train=True, transform=None)
         print(f"torch dataset size = {len(torch_dataset)}")
 
+    
         # wrapping torch dataset
         tmpdir = tempfile.gettempdir()
-        cache_dir = os.path.join(tmpdir, "cache_dir")
-
-        dataset = DatasetWrapSeqToDict(
-            name="test",
-            dataset=torch_dataset,
-            sample_keys=("data.image", "data.label"),
-            cache_dir=cache_dir,
-        )
+        cache_dir = os.path.join(tmpdir, 'cache_dir')
+        
+        dataset = DatasetWrapSeqToDict(name='test', dataset=torch_dataset, sample_keys=('data.image', 'data.label'), cache_dir=cache_dir)
         dataset.create()
-
+    
+    
     def tearDown(self):
         pass
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

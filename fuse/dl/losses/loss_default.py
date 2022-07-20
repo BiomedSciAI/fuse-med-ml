@@ -29,7 +29,7 @@ class LossDefault(LossBase):
     """
     Default Fuse loss function
 
-    Basic Usage Example:
+    Basic Usage Example:        
     '''
     from fuse.dl.losses.loss_default import LossDefault
 
@@ -46,7 +46,7 @@ class LossDefault(LossBase):
 
     Custom Preprocessing Example:
     Sometimes you want custom preprocessing of the batch_dict - for example in the following scenario:
-
+    
     A multi-head / multi-task model, in which you have ground truth labels only for a subset of the samples.
     In such case, you may use the optional "preprocess_func" to filter out the samples that you don't have labels for both tasks.
 
@@ -68,15 +68,14 @@ class LossDefault(LossBase):
 
     """
 
-    def __init__(
-        self,
-        *,  # prevent positional args
+    def __init__(self,
+        *, #prevent positional args
         pred: str = None,
         target: str = None,
         callable: Callable = None,
         weight: Optional[float] = None,
         preprocess_func: Optional[Callable] = None,
-    ) -> None:
+        ) -> None:
         """
         This class wraps a PyTorch loss function with a Fuse api.
         Args:
@@ -86,7 +85,7 @@ class LossDefault(LossBase):
         :param weight:             scalar loss multiplier
         :param preprocess_func:             function that filters batch_dict/ The function gets an input batch_dict and returns filtered batch_dict
             the expected function signature is:
-                foo(batch_dict: NDict) -> NDict:
+                foo(batch_dict: NDict) -> NDict:                                               
         """
         super().__init__()
         self.pred = pred
@@ -106,5 +105,5 @@ class LossDefault(LossBase):
 
         if self.weight is not None:
             loss_obj *= self.weight
-
+        
         return loss_obj

@@ -13,30 +13,20 @@ from fuse.utils.ndict import NDict
 
 from fuse.data import OpBase
 
-
 class OpAugAffine2D(OpBase):
     """
-    2D affine transformation
+    2D affine transformation 
     """
-
     def __init__(self, verify_arguments: bool = True):
         """
-        :param verify_arguments: this op expects torch tensor with either 2 or 3 dimensions. Set to False to disable verification
+        :param verify_arguments: this op expects torch tensor with either 2 or 3 dimensions. Set to False to disable verification 
         """
         super().__init__()
         self._verify_arguments = verify_arguments
 
-    def __call__(
-        self,
-        sample_dict: NDict,
-        key: str,
-        rotate: float = 0.0,
-        translate: Tuple[float, float] = (0.0, 0.0),
-        scale: Tuple[float, float] = 1.0,
-        flip: Tuple[bool, bool] = (False, False),
-        shear: float = 0.0,
-        channels: Optional[List[int]] = None,
-    ) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, key: str, rotate: float = 0.0, translate: Tuple[float, float] = (0.0, 0.0),
+                    scale: Tuple[float, float] = 1.0, flip: Tuple[bool, bool] = (False, False), shear: float = 0.0,
+                    channels: Optional[List[int]] = None) -> Union[None, dict, List[dict]]:
         """
         :param key: key to a tensor stored in sample_dict: 2D tensor representing an image to augment, shape [num_channels, height, width] or [height, width]
         :param rotate: angle [-360.0 - 360.0]
@@ -49,39 +39,18 @@ class OpAugAffine2D(OpBase):
         """
         aug_input = sample_dict[key]
 
-        aug_tensor = auf_affine_2D(
-            aug_input,
-            translate=translate,
-            scale=scale,
-            flip=flip,
-            shear=shear,
-            channels=channels,
-            verify_arguments=self._verify_arguments,
-        )
+        aug_tensor = auf_affine_2D(aug_input, translate=translate, scale=scale, flip=flip, shear=shear, channels=channels, verify_arguments=self._verify_arguments)
 
         sample_dict[key] = aug_tensor
         return sample_dict
 
-
-def auf_affine_2D(
-    aug_input,
-    rotate: float = 0.0,
-    translate: Tuple[float, float] = (0.0, 0.0),
-    scale: Tuple[float, float] = 1.0,
-    flip: Tuple[bool, bool] = (False, False),
-    shear: float = 0.0,
-    channels: Optional[List[int]] = None,
-    verify_arguments: Optional[bool] = True,
-):
+def auf_affine_2D(aug_input, rotate: float = 0.0, translate: Tuple[float, float] = (0.0, 0.0),
+                    scale: Tuple[float, float] = 1.0, flip: Tuple[bool, bool] = (False, False), shear: float = 0.0,
+                    channels: Optional[List[int]] = None, verify_arguments:Optional[bool] = True):
     # verify
     if verify_arguments:
-        assert isinstance(
-            aug_input, torch.Tensor
-        ), f"Error: OpAugAffine2D expects torch Tensor, got {type(aug_input)}"
-        assert len(aug_input.shape) in [
-            2,
-            3,
-        ], f"Error: OpAugAffine2D expects tensor with 2 or 3 dimensions. got {aug_input.shape}"
+        assert isinstance(aug_input, torch.Tensor), f"Error: OpAugAffine2D expects torch Tensor, got {type(aug_input)}"
+        assert len(aug_input.shape) in [2, 3], f"Error: OpAugAffine2D expects tensor with 2 or 3 dimensions. got {aug_input.shape}"
 
     # Support for 2D inputs - implicit single channel
     if len(aug_input.shape) == 2:
@@ -97,13 +66,7 @@ def auf_affine_2D(
         for channel in channels:
             aug_channel_tensor = aug_input[channel].numpy()
             aug_channel_tensor = Image.fromarray(aug_channel_tensor)
-            aug_channel_tensor = TTF.affine(
-                aug_channel_tensor,
-                angle=rotate,
-                scale=scale,
-                translate=translate,
-                shear=shear,
-            )
+            aug_channel_tensor = TTF.affine(aug_channel_tensor, angle=rotate, scale=scale, translate=translate, shear=shear)
             if flip[0]:
                 aug_channel_tensor = TTF.vflip(aug_channel_tensor)
             if flip[1]:
@@ -126,21 +89,16 @@ class OpAugCropAndResize2D(OpBase):
     """
     Alternative to rescaling in OpAugAffine2D: center crop and resize back to the original dimensions. if scale is bigger than 1.0. the image first padded.
     """
-
     def __init__(self, verify_arguments: bool = True):
         """
-        :param verify_arguments: this ops expects torch tensor with either 2 or 3 dimensions. Set to False to disable verification
+        :param verify_arguments: this ops expects torch tensor with either 2 or 3 dimensions. Set to False to disable verification 
         """
         super().__init__()
         self._verify_arguments = verify_arguments
 
-    def __call__(
-        self,
-        sample_dict: NDict,
-        key: str,
-        scale: Tuple[float, float],
-        channels: Optional[List[int]] = None,
-    ) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, key: str,
+                                scale: Tuple[float, float],
+                                channels: Optional[List[int]] = None) ->  Union[None, dict, List[dict]]:
         """
         :param key: key to a tensor stored in sample_dict: 2D tensor representing an image to augment, shape [num_channels, height, width] or [height, width]
         :param scale: tuple of positive floats
@@ -148,17 +106,12 @@ class OpAugCropAndResize2D(OpBase):
         :return: the augmented tensor
         """
         aug_input = sample_dict[key]
-
+        
         # verify
         if self._verify_arguments:
-            assert isinstance(
-                aug_input, torch.Tensor
-            ), f"Error: OpAugCropAndResize2D expects torch Tensor, got {type(aug_input)}"
-            assert len(aug_input.shape) in [
-                2,
-                3,
-            ], f"Error: OpAugCropAndResize2D expects tensor with 2 or 3 dimensions. got {aug_input.shape}"
-
+            assert isinstance(aug_input, torch.Tensor), f"Error: OpAugCropAndResize2D expects torch Tensor, got {type(aug_input)}"
+            assert len(aug_input.shape) in [2, 3], f"Error: OpAugCropAndResize2D expects tensor with 2 or 3 dimensions. got {aug_input.shape}"
+        
         if len(aug_input.shape) == 2:
             aug_input = aug_input.unsqueeze(dim=0)
             remember_to_squeeze = True
@@ -172,29 +125,15 @@ class OpAugCropAndResize2D(OpBase):
             aug_channel_tensor = aug_input[channel]
 
             if scale[0] != 1.0 or scale[1] != 1.0:
-                cropped_shape = (
-                    int(aug_channel_tensor.shape[0] * scale[0]),
-                    int(aug_channel_tensor.shape[1] * scale[1]),
-                )
+                cropped_shape = (int(aug_channel_tensor.shape[0] * scale[0]), int(aug_channel_tensor.shape[1] * scale[1]))
                 padding = [[0, 0], [0, 0]]
                 for dim in range(2):
                     if scale[dim] > 1.0:
-                        padding[dim][0] = (
-                            cropped_shape[dim] - aug_channel_tensor.shape[dim]
-                        ) // 2
-                        padding[dim][1] = (
-                            cropped_shape[dim] - aug_channel_tensor.shape[dim]
-                        ) - padding[dim][0]
-                aug_channel_tensor_pad = TTF.pad(
-                    aug_channel_tensor.unsqueeze(0),
-                    (padding[1][0], padding[0][0], padding[1][1], padding[0][1]),
-                )
-                aug_channel_tensor_cropped = TTF.center_crop(
-                    aug_channel_tensor_pad, cropped_shape
-                )
-                aug_channel_tensor = TTF.resize(
-                    aug_channel_tensor_cropped, aug_channel_tensor.shape
-                ).squeeze(0)
+                        padding[dim][0] = (cropped_shape[dim] - aug_channel_tensor.shape[dim]) // 2
+                        padding[dim][1] = (cropped_shape[dim] - aug_channel_tensor.shape[dim]) - padding[dim][0]
+                aug_channel_tensor_pad = TTF.pad(aug_channel_tensor.unsqueeze(0), (padding[1][0], padding[0][0], padding[1][1], padding[0][1]))
+                aug_channel_tensor_cropped = TTF.center_crop(aug_channel_tensor_pad, cropped_shape)
+                aug_channel_tensor = TTF.resize(aug_channel_tensor_cropped, aug_channel_tensor.shape).squeeze(0)
                 # set the augmented channel
                 aug_tensor[channel] = aug_channel_tensor
 
@@ -210,10 +149,9 @@ class OpAugSqueeze3Dto2D(OpBase):
     """
     Squeeze selected axis of volume image into channel dimension, in order to fit the 2D augmentation functions
     """
-
     def __init__(self, verify_arguments: bool = True):
         """
-        :param verify_arguments: this ops expects torch tensor with 4 dimensions. Set to False to disable verification
+        :param verify_arguments: this ops expects torch tensor with 4 dimensions. Set to False to disable verification 
         """
         super().__init__()
         self._verify_arguments = verify_arguments
@@ -224,21 +162,16 @@ class OpAugSqueeze3Dto2D(OpBase):
         :param axis_squeeze: the axis (1, 2 or 3) to squeeze into channel dimension - typically z axis
         """
         aug_input = sample_dict[key]
-        aug_output = squeeze_3D_to_2D(aug_input, axis_squeeze, self._verify_arguments)
+        aug_output =squeeze_3D_to_2D(aug_input, axis_squeeze, self._verify_arguments)
 
         sample_dict[key] = aug_output
         return sample_dict
 
-
 def squeeze_3D_to_2D(aug_input, axis_squeeze: int, verify_arguments=True):
     # verify
     if verify_arguments:
-        assert isinstance(
-            aug_input, torch.Tensor
-        ), f"Error: OpAugSqueeze3Dto2D expects torch Tensor, got {type(aug_input)}"
-        assert (
-            len(aug_input.shape) == 4
-        ), f"Error: OpAugSqueeze3Dto2D expects tensor with 4 dimensions. got {aug_input.shape}"
+        assert isinstance(aug_input, torch.Tensor), f"Error: OpAugSqueeze3Dto2D expects torch Tensor, got {type(aug_input)}"
+        assert len(aug_input.shape) == 4, f"Error: OpAugSqueeze3Dto2D expects tensor with 4 dimensions. got {aug_input.shape}"
 
     # aug_input shape is [channels, axis_1, axis_2, axis_3]
     if axis_squeeze == 1:
@@ -252,16 +185,13 @@ def squeeze_3D_to_2D(aug_input, axis_squeeze: int, verify_arguments=True):
     else:
         raise Exception(f"Error: axis squeeze must be 1, 2, or 3, got {axis_squeeze}")
 
-    aug_output = aug_input.reshape(
-        (aug_input.shape[0] * aug_input.shape[1],) + aug_input.shape[2:]
-    )
+    aug_output = aug_input.reshape((aug_input.shape[0] * aug_input.shape[1],) + aug_input.shape[2:])
     return aug_output
-
 
 class OpAugUnsqueeze3DFrom2D(OpBase):
     def __init__(self, verify_arguments: bool = True):
         """
-        :param verify_arguments: this ops expects torch tensor with 2 dimensions. Set to False to disable verification
+        :param verify_arguments: this ops expects torch tensor with 2 dimensions. Set to False to disable verification 
         """
         super().__init__()
         self._verify_arguments = verify_arguments
@@ -269,42 +199,26 @@ class OpAugUnsqueeze3DFrom2D(OpBase):
     """
     Unsqueeze selected axis of volume image from channel dimension, restore the original shape squeezed by OpAugSqueeze3Dto2D
     """
-
-    def __call__(
-        self, sample_dict: NDict, key: str, axis_squeeze: int, channels: int
-    ) -> NDict:
+    def __call__(self, sample_dict: NDict, key: str, axis_squeeze: int, channels: int) -> NDict:
         """
         :param key: key to a tensor stored in sample_dict and squeezed by OpAugSqueeze3Dto2D
         :param axis_squeeze: axis squeeze as specified in OpAugSqueeze3Dto2D
         :param channels: number of channels in the original tensor (before OpAugSqueeze3Dto2D)
         """
         aug_input = sample_dict[key]
-        aug_output = unsqueeze_3D_from_2D(
-            aug_input, axis_squeeze, channels, self._verify_arguments
-        )
+        aug_output = unsqueeze_3D_from_2D(aug_input, axis_squeeze, channels, self._verify_arguments)
 
         sample_dict[key] = aug_output
         return sample_dict
 
-
-def unsqueeze_3D_from_2D(
-    aug_input: torch.Tensor,
-    axis_squeeze: int,
-    channels: int,
-    verify_arguments: Optional[bool] = True,
-):
+def unsqueeze_3D_from_2D(aug_input: torch.Tensor, axis_squeeze: int, channels: int, verify_arguments: Optional[bool]=True):
     # verify
     if verify_arguments:
-        assert isinstance(
-            aug_input, torch.Tensor
-        ), f"Error: OpAugUnsqueeze3DFrom2D expects torch Tensor, got {type(aug_input)}"
-        assert (
-            len(aug_input.shape) == 3
-        ), f"Error: OpAugUnsqueeze3DFrom2D expects tensor with 3 dimensions. got {aug_input.shape}"
+        assert isinstance(aug_input, torch.Tensor), f"Error: OpAugUnsqueeze3DFrom2D expects torch Tensor, got {type(aug_input)}"
+        assert len(aug_input.shape) == 3, f"Error: OpAugUnsqueeze3DFrom2D expects tensor with 3 dimensions. got {aug_input.shape}"
 
-    aug_output = aug_input.reshape(
-        (channels, aug_input.shape[0] // channels) + aug_input.shape[1:]
-    )
+
+    aug_output = aug_input.reshape((channels, aug_input.shape[0] // channels) + aug_input.shape[1:])
 
     if axis_squeeze == 1:
         pass
@@ -320,22 +234,14 @@ def unsqueeze_3D_from_2D(
         raise Exception(f"Error: axis squeeze must be 1, 2, or 3, got {axis_squeeze}")
     return aug_output
 
-
 class OpCrop3D(OpBase):
     """
     crop to certain size. if the image is smaller than the size then its padded.
     """
 
-    def __call__(
-        self,
-        sample_dict: NDict,
-        key: str,
-        output_shape: Tuple[int, int, int],
-        z_move=0.5,
-        x_move=0.5,
-        y_move=0.5,
-        fill: int = 0,
-    ):
+    def __call__(self, sample_dict: NDict, key: str, output_shape: Tuple[int, int, int],
+                           z_move=0.5,x_move=0.5,y_move=0.5,fill: int = 0,
+        ):
         """
         :param key: key to a tensor stored in sample_dict and get cropped by OpRandomCrop3D
         :param out_size: shape of the output tensor
@@ -345,34 +251,34 @@ class OpCrop3D(OpBase):
         """
         aug_input = sample_dict[key]
         assert len(aug_input.shape) == len(output_shape)
-        assert z_move >= 0 and z_move <= 1
-        assert x_move >= 0 and x_move <= 1
-        assert y_move >= 0 and y_move <= 1
-        depth, height, width = aug_input.shape  # input is in the form [D,H,W]
+        assert z_move>=0 and z_move<=1
+        assert x_move>=0 and x_move<=1
+        assert y_move>=0 and y_move<=1
+        depth, height, width = aug_input.shape #input is in the form [D,H,W]
 
         aug_tensor = torch.full(output_shape, fill, dtype=torch.float32)
 
         if depth > output_shape[0]:
-            crop_start = round(z_move * (depth - output_shape[0]))
-            aug_input = aug_input[crop_start : crop_start + output_shape[0], :, :]
+            crop_start = round(z_move*(depth - output_shape[0]))
+            aug_input = aug_input[crop_start:crop_start+output_shape[0] , :,:]
         if height > output_shape[1]:
-            crop_start = round(y_move * (height - output_shape[1]))
-            aug_input = aug_input[:, crop_start : crop_start + output_shape[1], :]
+            crop_start = round(y_move*(height - output_shape[1]))
+            aug_input = aug_input[:, crop_start:crop_start+output_shape[1],:]
         if width > output_shape[2]:
-            crop_start = round(x_move * (width - output_shape[2]))
-            aug_input = aug_input[:, :, crop_start : crop_start + output_shape[2]]
+            crop_start = round(x_move*(width - output_shape[2]))
+            aug_input = aug_input[:,:,crop_start:crop_start+output_shape[2]]
 
-        aug_tensor[:depth, :height, :width] = aug_input
+        aug_tensor[:depth,:height,:width] = aug_input
         sample_dict[key] = aug_tensor
 
         return sample_dict
+
 
 
 class OpResizeTo(OpBase):
     """
     Resizes an image into the given dimensions. Currently supports only ndarray
     """
-
     def __init__(self, channels_first: bool):
         """
         :param channels_first: assign True iff the input is in CxHxW format.
@@ -380,9 +286,7 @@ class OpResizeTo(OpBase):
         super().__init__()
         self._channels_first = channels_first
 
-    def __call__(
-        self, sample_dict: NDict, output_shape: Tuple[int], key: str, **kwargs
-    ) -> NDict:
+    def __call__(self, sample_dict: NDict, output_shape: Tuple[int], key: str, **kwargs) -> NDict:
         """
         :param key: key to a numpy array or tensor stored in the sample_dict in a H x W x C format.
         :param kwargs: additional arguments to pass to the resize function
@@ -398,9 +302,7 @@ class OpResizeTo(OpBase):
             aug_input = np.transpose(aug_input, axes=perm)
 
         # Apply Resize
-        aug_output = skimage.transform.resize(
-            image=aug_input, output_shape=output_shape, **kwargs
-        )
+        aug_output = skimage.transform.resize(image=aug_input, output_shape=output_shape, **kwargs)
 
         if self._channels_first:
             # Permutes back HxWxC -> CxHxW
@@ -432,8 +334,8 @@ class OpResizeTo(OpBase):
             perm = hw + channels
 
         else:
-            channels = [dim - 1]
-            hw = [i for i in range(0, dim - 1)]
+            channels = [dim-1]
+            hw = [i for i in range(0, dim-1)]
             perm = channels + hw
 
         perm = tuple(perm)
@@ -441,14 +343,9 @@ class OpResizeTo(OpBase):
 
 
 class OpRotation3D(OpBase):
-    def __call__(
-        self,
-        sample_dict: NDict,
-        key: str,
-        z_rot: float = 0.0,
-        y_rot: float = 0.0,
-        x_rot: float = 0,
-    ):
+
+    def __call__(self, sample_dict: NDict, key: str,
+                    z_rot: float = 0.0, y_rot: float = 0.0, x_rot: float = 0):
         """
         rotates an input tensor around an axis, when for example z_rot is chosen,
         the rotation is in the x-y plane.
@@ -466,13 +363,16 @@ class OpRotation3D(OpBase):
         if z_rot != 0:
             aug_input = TTF.rotate(aug_input, angle=z_rot)
         if x_rot != 0:
-            aug_input = aug_input.permute(dims=(2, 0, 1))
+            aug_input = aug_input.permute(dims = (2,0,1))
             aug_input = TTF.rotate(aug_input, angle=x_rot)
-            aug_input = aug_input.permute(dims=(1, 2, 0))
+            aug_input = aug_input.permute(dims = (1,2,0))
         if y_rot != 0:
-            aug_input = aug_input.permute(dims=(1, 0, 2))
-            aug_input = TTF.rotate(aug_input, angle=y_rot)
-            aug_input = aug_input.permute(dims=(1, 0, 2))
+           aug_input = aug_input.permute(dims = (1,0,2))
+           aug_input = TTF.rotate(aug_input, angle=y_rot)
+           aug_input = aug_input.permute(dims = (1,0,2))
 
         sample_dict[key] = aug_input
         return sample_dict
+
+
+

@@ -22,44 +22,46 @@ import unittest
 from fuse.utils.config_tools import Config
 import os
 
-
 class TestConfig(unittest.TestCase):
     def test_config_no_py_extension(self):
-        """ """
-        _curr_dir = os.path.dirname(os.path.abspath(__file__))
-        _reference_ans = {"test": 240, "banana": 123, "dvivonim": 10}
+        '''
+        '''
+        _curr_dir = os.path.dirname(os.path.abspath(__file__))        
+        _reference_ans = {'test': 240, 'banana': 123, 'dvivonim': 10}
 
         conf = Config()
         z_no_py_ext__internal_include = conf.load(
-            {"test": 14},
-            os.path.join(_curr_dir, "some_conf_internal_include"),
-            {"test": 240},
-        )
+            {'test': 14},
+            os.path.join(_curr_dir, 'some_conf_internal_include'),
+            {'test': 240},
+        )    
 
         z_with_ext__internal_include = conf.load(
-            {"test": 14},
-            os.path.join(_curr_dir, "some_conf_internal_include.py"),
-            {"test": 240},
-        )
+            {'test': 14},
+            os.path.join(_curr_dir, 'some_conf_internal_include.py'),
+            {'test': 240},
+        )   
 
         z_with_ext__external_include = conf.load(
-            {"test": 14},
-            os.path.join(_curr_dir, "base_conf_example.py"),
-            os.path.join(_curr_dir, "some_conf_no_include.py"),
-            {"test": 240},
+            {'test': 14},
+            os.path.join(_curr_dir, 'base_conf_example.py'),
+            os.path.join(_curr_dir, 'some_conf_no_include.py'),
+            {'test': 240},
         )
 
         z_with_ext__no_include = conf.load(
-            {"test": 14},
-            os.path.join(_curr_dir, "some_conf_no_include.py"),
-            {"test": 240},
+            {'test': 14},
+            os.path.join(_curr_dir, 'some_conf_no_include.py'),
+            {'test': 240},
         )
-
+                
         self.assertEqual(z_no_py_ext__internal_include, _reference_ans)
         self.assertEqual(z_no_py_ext__internal_include, z_with_ext__internal_include)
         self.assertEqual(z_no_py_ext__internal_include, z_with_ext__external_include)
         self.assertNotEqual(_reference_ans, z_with_ext__no_include)
 
 
-if __name__ == "__main__":
+
+
+if __name__ == '__main__':
     unittest.main()

@@ -24,28 +24,23 @@ from fuse.data.datasets.dataset_base import DatasetBase
 
 from fuse.utils.file_io.file_io import save_dataframe, save_pickle_safe, load_pickle
 
-
 class ExportDataset:
     """
     Export data
     """
 
     @staticmethod
-    def export_to_dataframe(
-        dataset: DatasetBase,
-        keys: Sequence[str],
-        output_filename: Optional[str] = None,
-        sample_id_key: str = "data.sample_id",
-        **dataset_get_kwargs,
-    ) -> pds.DataFrame:
+    def export_to_dataframe(dataset: DatasetBase, keys: Sequence[str], output_filename: Optional[str] = None,
+                            sample_id_key: str = "data.sample_id",
+                            **dataset_get_kwargs) -> pds.DataFrame:
         """
-        extract from dataset the specified and keys and create a dataframe.
-        If output_filename will be specified, the dataframe will also be saved in a file.
+        extract from dataset the specified and keys and create a dataframe. 
+        If output_filename will be specified, the dataframe will also be saved in a file. 
         :param dataset: the dataset to extract the values from
         :param keys: keys to extract from sample_dict
-        :param output_filename: Optional, if set, will save the dataframe into a file.
+        :param output_filename: Optional, if set, will save the dataframe into a file. 
                                 The file type will be inferred from filename, see fuse.utils.file_io.file_io.save_dataframe for more details
-        :param dataset_get_kwargs: additional parameters to dataset.get(), might be used to optimize the running time
+        :param dataset_get_kwargs: additional parameters to dataset.get(), might be used to optimize the running time 
         """
         # add sample_id to keys list
         if keys is not None:
@@ -59,26 +54,24 @@ class ExportDataset:
         # read all the data
         data = dataset.get_multi(keys=all_keys, **dataset_get_kwargs)
 
+
         # store in dataframe
         df = pds.DataFrame()
-
+        
         for key in all_keys:
             values = [sample_dict[key] for sample_dict in data]
             df[key] = values
 
         if output_filename is not None:
             save_dataframe(df, output_filename)
-
+        
         return df
 
+
     @staticmethod
-    def export_to_dir(
-        dataset: DatasetBase,
-        output_dir: str,
-        keys: Optional[Sequence[str]] = None,
-        sample_id_key: str = "data.sample_id",
-        **dataset_get_kwargs,
-    ):
+    def export_to_dir(dataset: DatasetBase, output_dir: str, keys: Optional[Sequence[str]]=None,
+                        sample_id_key: str = "data.sample_id",
+                        **dataset_get_kwargs) :
         """
         extract from dataset the specified and keys and writes to a specified directory in the disk
         :param dataset: the dataset to extract the values from
@@ -107,12 +100,13 @@ class ExportDataset:
             if all_keys is not None:
                 sample_dict = {sample_dict[k] for k in all_keys}
 
+
             d2 = {}
             for k, v in sample_dict.items():
                 if isinstance(v, torch.Tensor):
                     v = v.numpy()
                 d2[k] = v
-            output_file = os.path.join(output_dir, f"{sample_id}.pkl")
+            output_file = os.path.join(output_dir, f'{sample_id}.pkl')
             save_pickle_safe(d2, output_file)
             print(i, "wrote", output_file)
         print("done")

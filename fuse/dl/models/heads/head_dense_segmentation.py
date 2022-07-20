@@ -28,17 +28,16 @@ from fuse.utils.ndict import NDict
 
 
 class HeadDenseSegmentation(nn.Module):
-    def __init__(
-        self,
-        head_name: str = "head_0",
-        conv_inputs: Sequence[Tuple[str, int]] = None,
-        num_classes: int = 2,
-        post_concat_inputs: Optional[Sequence[Tuple[str, int]]] = None,
-        maxpool_kernel: Optional[Union[Tuple[int, int], int]] = None,
-        layers_description: Sequence[int] = (256,),
-        dropout_rate: float = 0.1,
-        shared_classifier_head: Optional[torch.nn.Module] = None,
-    ) -> None:
+    def __init__(self,
+                 head_name: str = 'head_0',
+                 conv_inputs: Sequence[Tuple[str, int]] = None,
+                 num_classes: int = 2,
+                 post_concat_inputs: Optional[Sequence[Tuple[str, int]]] = None,
+                 maxpool_kernel: Optional[Union[Tuple[int, int], int]] = None,
+                 layers_description: Sequence[int] = (256,),
+                 dropout_rate: float = 0.1,
+                 shared_classifier_head: Optional[torch.nn.Module] = None,
+                 ) -> None:
         """
         Dense segmentation head - predicts class scores for each location of input feature map ("conv_input").
 
@@ -59,39 +58,32 @@ class HeadDenseSegmentation(nn.Module):
         super().__init__()
 
         self.head_name = head_name
-        assert conv_inputs is not None, "conv_inputs must be provided"
+        assert conv_inputs is not None, 'conv_inputs must be provided'
         self.conv_inputs = conv_inputs
         self.maxpool_kernel = maxpool_kernel
 
         feature_depth = sum([conv_input[1] for conv_input in self.conv_inputs])
         if post_concat_inputs is not None:
-            feature_depth += sum(
-                [post_concat_input[1] for post_concat_input in post_concat_inputs]
-            )
+            feature_depth += sum([post_concat_input[1] for post_concat_input in post_concat_inputs])
 
         if shared_classifier_head is not None:
             self.classifier_head_module = shared_classifier_head
         else:
-            self.classifier_head_module = ClassifierFCN(
-                in_ch=feature_depth,
-                num_classes=num_classes,
-                layers_description=layers_description,
-                dropout_rate=dropout_rate,
-            )
+            self.classifier_head_module = ClassifierFCN(in_ch=feature_depth,
+                                                        num_classes=num_classes,
+                                                        layers_description=layers_description,
+                                                        dropout_rate=dropout_rate)
 
-    def forward(self, batch_dict: NDict) -> Dict:
-        conv_input = torch.cat(
-            [batch_dict[conv_input[0]] for conv_input in self.conv_inputs]
-        )
+    def forward(self,
+                batch_dict: NDict) -> Dict:
+        conv_input = torch.cat([batch_dict[conv_input[0]] for conv_input in self.conv_inputs])
         if self.maxpool_kernel is not None:
             conv_input = F.max_pool2d(conv_input, kernel_size=self.maxpool_kernel)
 
         logits = self.classifier_head_module(conv_input)
-        score_map = F.softmax(
-            logits, dim=1
-        )  # --> score_map.shape = [batch_size, 2, height, width]
+        score_map = F.softmax(logits, dim=1)  # --> score_map.shape = [batch_size, 2, height, width]
 
-        batch_dict["model.logits." + self.head_name] = logits
-        batch_dict["model.output." + self.head_name] = score_map
+        batch_dict['model.logits.' + self.head_name] = logits
+        batch_dict['model.output.' + self.head_name] = score_map
 
         return batch_dict

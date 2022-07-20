@@ -27,12 +27,10 @@ from fuse.data.processor.processor_base import ProcessorBase
 
 
 class SkinGroundTruthProcessor(ProcessorBase):
-    def __init__(
-        self,
-        input_data: str,
-        train: Optional[bool] = True,
-        year: Optional[str] = "2019",
-    ):
+    def __init__(self,
+                 input_data: str,
+                 train: Optional[bool] = True,
+                 year: Optional[str] = '2019'):
 
         """
         Create Ground Truth labels
@@ -49,24 +47,27 @@ class SkinGroundTruthProcessor(ProcessorBase):
         self.labels = input_df.to_dict(orient="index")
         self._num_classes = 9
         self._class_index = {
-            "MEL": 0,
-            "NV": 1,
-            "BCC": 2,
-            "AK": 3,
-            "BKL": 4,
-            "DF": 5,
-            "VASC": 6,
-            "SCC": 7,
-            "UNK": 8,
+            'MEL': 0,
+            'NV': 1,
+            'BCC': 2,
+            'AK': 3,
+            'BKL': 4,
+            'DF': 5,
+            'VASC': 6,
+            'SCC': 7,
+            'UNK': 8,
         }
+        
 
-    def __call__(self, sample_desc, *args, **kwargs):
+    def __call__(self,
+                 sample_desc,
+                 *args, **kwargs):
 
         labels = self.labels[sample_desc]
         result = torch.zeros(self._num_classes, dtype=torch.int64)
         for class_name, class_value in labels.items():
             result[self._class_index[class_name]] = class_value
         assert result.sum() == 1
-
-        result = {"tensor": result.argmax()}
+        
+        result = {'tensor': result.argmax()}
         return result

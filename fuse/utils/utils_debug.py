@@ -27,7 +27,7 @@ class FuseDebug(metaclass=Singleton):
     Debug settings. See __init__() for available modes
     """
 
-    def __init__(self, mode: str = "default"):
+    def __init__(self, mode: str = 'default'):
         """
         :param mode: debug mode that can later be customize by override_setting().
                     Supported modes:
@@ -36,26 +36,25 @@ class FuseDebug(metaclass=Singleton):
         """
         # possible values for each attribute
         self._settings_supported_values = {
-            # allows to disable multiprocessing and run everything using run_multiprocessed() on the main process instead
-            "multiprocessing": ["default", "main_process"],
+            # allows to disable multiprocessing and run everything using run_multiprocessed() on the main process instead 
+            'multiprocessing': ["default", "main_process"],
             # allows to override number of dataloader data workers
-            "manager_override_num_dataloader_workers": lambda x: isinstance(x, int)
-            and x >= 0,
+            'manager_override_num_dataloader_workers': lambda x: isinstance(x, int) and x >= 0,
             # allows to override number of gpus
-            "manager_override_num_gpus": lambda x: isinstance(x, int) and x >= 0,
+            'manager_override_num_gpus': lambda x: isinstance(x, int) and x >= 0,
         }
         # defined the supported modes
         self._modes = {}
         # normal mode
-        default_settings = {key: "default" for key in self._settings_supported_values}
-        self._modes["default"] = default_settings
+        default_settings = {key: 'default' for key in self._settings_supported_values}
+        self._modes['default'] = default_settings
         # debug mode
         debug_settings = {
-            "multiprocessing": "main_process",
-            "manager_override_num_gpus": 1,
-            "manager_override_num_dataloader_workers": 0,
+            'multiprocessing': "main_process",
+            'manager_override_num_gpus': 1,
+            'manager_override_num_dataloader_workers': 0
         }
-        self._modes["debug"] = debug_settings
+        self._modes['debug'] = debug_settings
 
         self._settings: dict
 
@@ -66,7 +65,7 @@ class FuseDebug(metaclass=Singleton):
         set debug mode
         :param mode: see __init__{} for available modes
         """
-        self._settings = self._modes["default"]
+        self._settings = self._modes['default']
         self.override_mode(mode)
 
     def override_mode(self, mode: str) -> None:
@@ -75,7 +74,7 @@ class FuseDebug(metaclass=Singleton):
         :param mode: see __init__{} for available modes
         """
         assert mode in self._modes
-        if mode != "default":
+        if mode != 'default':
             for key, value in self._modes[mode].items():
                 self.set_setting(key, value)
 
@@ -84,18 +83,12 @@ class FuseDebug(metaclass=Singleton):
         :param name: setting name. See self._settings_supported_values for available settings.
         :param value: value to override to. See self._settings_supported_values for possible values.
         """
-        assert (
-            name in self._settings_supported_values
-        ), f"setting {name} is not supported"
+        assert name in self._settings_supported_values, f'setting {name} is not supported'
         supported_values = self._settings_supported_values[name]
         if isinstance(supported_values, list):
-            assert (
-                value in supported_values
-            ), f"value {value} is not supported for setting {name}, supported values are {supported_values}"
+            assert value in supported_values, f'value {value} is not supported for setting {name}, supported values are {supported_values}'
         else:
-            assert supported_values(
-                value
-            ), f"value {value} is not supported for setting {name}"
+            assert supported_values(value), f'value {value} is not supported for setting {name}'
 
         self._settings[name] = value
 
@@ -104,7 +97,5 @@ class FuseDebug(metaclass=Singleton):
         :param name: setting name. See self._settings_supported_values for possible settings.
         :return: te value of that setting. See self._settings_supported_values for possible values.
         """
-        assert (
-            name in self._settings_supported_values
-        ), f"setting {name} is not supported"
+        assert name in self._settings_supported_values, f'setting {name} is not supported'
         return self._settings[name]

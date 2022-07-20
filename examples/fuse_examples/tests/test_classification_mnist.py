@@ -26,56 +26,44 @@ from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 from fuse.utils.rand.seed import Seed
 import fuse.utils.gpu as GPU
 
-from fuse_examples.imaging.classification.mnist.run_mnist import (
-    TRAIN_COMMON_PARAMS,
-    run_train,
-    run_infer,
-    run_eval,
-)
-
+from fuse_examples.imaging.classification.mnist.run_mnist import TRAIN_COMMON_PARAMS, run_train, run_infer, run_eval
 
 class ClassificationMnistTestCase(unittest.TestCase):
+
     def setUp(self):
         self.root = tempfile.mkdtemp()
 
         self.paths = {
-            "model_dir": os.path.join(self.root, "mnist/model_dir"),
-            "force_reset_model_dir": True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
-            "cache_dir": os.path.join(self.root, "mnist/cache_dir"),
-            "eval_dir": os.path.join(self.root, "mnist/eval_dir"),
-        }
+            'model_dir': os.path.join(self.root, 'mnist/model_dir'),
+            'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
+            'cache_dir': os.path.join(self.root, 'mnist/cache_dir'),
+            'eval_dir': os.path.join(self.root, 'mnist/eval_dir')}
+
 
         self.train_common_params = TRAIN_COMMON_PARAMS
 
         self.infer_common_params = {}
-        self.infer_common_params["infer_filename"] = os.path.join(
-            self.paths["model_dir"], "infer.gz"
-        )
-        self.infer_common_params["checkpoint"] = os.path.join(
-            self.paths["model_dir"], "best_epoch.ckpt"
-        )
+        self.infer_common_params['infer_filename'] = os.path.join(self.paths["model_dir"], 'infer.gz')
+        self.infer_common_params['checkpoint'] = os.path.join(self.paths["model_dir"], "best_epoch.ckpt")
 
         self.eval_common_params = {}
-        self.eval_common_params["infer_filename"] = self.infer_common_params[
-            "infer_filename"
-        ]
+        self.eval_common_params['infer_filename'] = self.infer_common_params['infer_filename']
 
+    
     @run_in_subprocess()
     def test_template(self):
-        Seed.set_seed(
-            0, False
-        )  # previous test (in the pipeline) changed the deterministic behavior to True
+        Seed.set_seed(0, False) # previous test (in the pipeline) changed the deterministic behavior to True
         run_train(self.paths, self.train_common_params)
         run_infer(self.paths, self.infer_common_params)
         results = run_eval(self.paths, self.eval_common_params)
 
         threshold = 0.95
-        self.assertGreaterEqual(results["metrics.auc.macro_avg"], threshold)
+        self.assertGreaterEqual(results['metrics.auc.macro_avg'], threshold)
 
     def tearDown(self):
         # Delete temporary directories
         shutil.rmtree(self.root)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main(verbosity=2)

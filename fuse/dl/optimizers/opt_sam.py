@@ -49,7 +49,6 @@ class SAM(torch.optim.Optimizer):
     callbacks.append(CallbackSamOpt())
 
     """
-
     def __init__(self, params, base_optimizer, rho=0.05, **kwargs):
         assert rho >= 0.0, f"Invalid rho, should be non-negative: {rho}"
 
@@ -66,46 +65,37 @@ class SAM(torch.optim.Optimizer):
             scale = group["rho"] / (grad_norm + 1e-12)
 
             for p in group["params"]:
-                if p.grad is None:
-                    continue
+                if p.grad is None: continue
                 e_w = p.grad * scale.to(p)
                 p.add_(e_w)  # climb to the local maximum "w + e(w)"
                 self.state[p]["e_w"] = e_w
 
-        if zero_grad:
-            self.zero_grad()
+        if zero_grad: self.zero_grad()
 
     @torch.no_grad()
     def second_step(self, zero_grad=False):
         for group in self.param_groups:
             for p in group["params"]:
-                if p.grad is None:
-                    continue
+                if p.grad is None: continue
                 p.sub_(self.state[p]["e_w"])  # get back to "w" from "w + e(w)"
 
         self.base_optimizer.step()  # do the actual "sharpness-aware" update
 
-        if zero_grad:
-            self.zero_grad()
+        if zero_grad: self.zero_grad()
 
     def step(self, closure=None):
         # do nothing, instead use first_step and second_step
         return
 
     def _grad_norm(self):
-        shared_device = self.param_groups[0]["params"][
-            0
-        ].device  # put everything on the same device, in case of model parallelism
+        shared_device = self.param_groups[0]["params"][0].device  # put everything on the same device, in case of model parallelism
         return torch.norm(
-            torch.stack(
-                [
-                    p.grad.norm(p=2).to(shared_device)
-                    for group in self.param_groups
-                    for p in group["params"]
-                    if p.grad is not None
-                ]
-            ),
-            p=2,
+            torch.stack([
+                p.grad.norm(p=2).to(shared_device)
+                for group in self.param_groups for p in group["params"]
+                if p.grad is not None
+            ]),
+            p=2
         )
 
 
@@ -119,15 +109,15 @@ class CallbackSamOpt(Callback):
 
     def on_batch_end(self, mode: str, batch: int, batch_dict: NDict = None):
         # self.virtual_batch.append(batch_dict)
-        if mode == "train":
+        if mode == 'train':
             self.state.optimizer.first_step(zero_grad=True)
             # forward net
-            batch_dict["model"] = self.state.net(batch_dict)
+            batch_dict['model'] = self.state.net(batch_dict)
             # compute total loss and keep loss results
             total_loss: torch.Tensor = 0
             for loss_name, loss_function in self.state.losses.items():
                 current_loss_result = loss_function(batch_dict)
-                batch_dict["losses." + loss_name] = current_loss_result.data.item()
+                batch_dict['losses.' + loss_name] = current_loss_result.data.item()
                 # sum all losses for backward
                 total_loss += current_loss_result
             total_loss.backward()

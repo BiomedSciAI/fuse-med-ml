@@ -2,13 +2,11 @@ from collections import OrderedDict
 from typing import *
 import re
 
-
 class Patterns:
     """
     Utility to match a string to a pattern.
     Typically used to infer data type from key in sample_dict
     """
-
     def __init__(self, patterns_dict: OrderedDict, default_value: Any = None):
         """
         :param patterns_dict: ordered dictionary, the key is a regex expression.
@@ -55,5 +53,4 @@ class Patterns:
         val_type = self.get_value(key)
         if val_type not in values:
             raise ValueError(
-                f"key {key} mapped to unsupported type {val_type}.\n List of supported types {values} \n Patterns {self._patterns}"
-            )
+                f"key {key} mapped to unsupported type {val_type}.\n List of supported types {values} \n Patterns {self._patterns}")
