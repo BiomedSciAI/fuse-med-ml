@@ -21,10 +21,12 @@ from typing import Dict
 from fuse.dl.managers.callbacks.callback_base import Callback
 from fuse.dl.managers.manager_state import ManagerState
 
+
 class CallbackOptClosure(Callback):
     """
     Use this callback if an optimizer requires closure argument
     """
+
     def on_train_begin(self, state: ManagerState):
         self.virtual_batch = []
         self.state = state
@@ -39,7 +41,7 @@ class CallbackOptClosure(Callback):
     def opt_closure(self) -> None:
         for batch in self.virtual_batch:
             # forward pass
-            batch['model'] = self.state.net(batch)
+            batch["model"] = self.state.net(batch)
 
             # compute loss
             total_loss: torch.Tensor = 0

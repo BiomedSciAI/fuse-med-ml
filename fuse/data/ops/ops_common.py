@@ -3,7 +3,13 @@ from fuse.data.key_types import TypeDetectorBase
 import copy
 from enum import Enum
 from fuse.data.key_types import TypeDetectorBase
-from .op_base import OpBase, OpReversibleBase, Patterns, op_call, op_reverse #DataType, 
+from .op_base import (
+    OpBase,
+    OpReversibleBase,
+    Patterns,
+    op_call,
+    op_reverse,
+)  # DataType,
 from fuse.utils.ndict import NDict
 import numpy as np
 
@@ -16,12 +22,12 @@ class OpRepeat(OpReversibleBase):
     Example:
     "
 
-    repeat_for = 
+    repeat_for =
 
         #...
-        (OpRepeat(OpCropToMinimalBBox(), 
+        (OpRepeat(OpCropToMinimalBBox(),
             [dict(key='data.cc.image'), dict(key='data.mlo.image'),dict(key='data.mlo.seg', margin=100)] #per provided dict a new OpCropToMinimalBBox invocation will be triggered
-            )), 
+            )),
             dict(margin=12)), #this value will be passed to all OpCropToMinimalBBox invocations
         #...
     ]
@@ -32,32 +38,37 @@ class OpRepeat(OpReversibleBase):
 
     "
     """
-    def __init__(self,
-                op: OpBase,
-                kwargs_per_step_to_add: Sequence[dict]):
+
+    def __init__(self, op: OpBase, kwargs_per_step_to_add: Sequence[dict]):
         """
         See example above
         :param op: the operation to repeat
-        :param kwargs_per_step_to_add: sequence of arguments (kwargs format) specific for a single repetition. those arguments will be added/overide the kwargs provided in __call__() function.  
+        :param kwargs_per_step_to_add: sequence of arguments (kwargs format) specific for a single repetition. those arguments will be added/overide the kwargs provided in __call__() function.
         """
         super().__init__()
         self._op = op
-        self._kwargs_per_step_to_add  = kwargs_per_step_to_add
+        self._kwargs_per_step_to_add = kwargs_per_step_to_add
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, op_id: Optional[str], **kwargs
+    ) -> Union[None, dict, List[dict]]:
         """
         See super class
         """
-        
+
         for step_index, step_kwargs_to_add in enumerate(self._kwargs_per_step_to_add):
             step_kwargs = copy.copy(kwargs)
             step_kwargs.update(step_kwargs_to_add)
             full_step_id = f"{op_id}_{step_index}"
-            sample_dict[full_step_id+'_debug_info.op_name'] = self._op.__class__.__name__
-            sample_dict = op_call(self._op, sample_dict, full_step_id,  **step_kwargs)
+            sample_dict[
+                full_step_id + "_debug_info.op_name"
+            ] = self._op.__class__.__name__
+            sample_dict = op_call(self._op, sample_dict, full_step_id, **step_kwargs)
 
-            assert not isinstance(sample_dict, list), f"splitting samples within {type(self).__name__} operation is not supported"
-            
+            assert not isinstance(
+                sample_dict, list
+            ), f"splitting samples within {type(self).__name__} operation is not supported"
+
             if sample_dict is None:
                 return None
             elif not isinstance(sample_dict, dict):
@@ -65,14 +76,27 @@ class OpRepeat(OpReversibleBase):
 
         return sample_dict
 
-    def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
+    def reverse(
+        self,
+        sample_dict: NDict,
+        key_to_reverse: str,
+        key_to_follow: str,
+        op_id: Optional[str],
+    ) -> dict:
         """
         See super class
         """
         for step_index in reversed(range(len(self._kwargs_per_step_to_add))):
-            sample_dict = op_reverse(self._op, sample_dict, key_to_reverse, key_to_follow, f"{op_id}_{step_index}")
+            sample_dict = op_reverse(
+                self._op,
+                sample_dict,
+                key_to_reverse,
+                key_to_follow,
+                f"{op_id}_{step_index}",
+            )
 
         return sample_dict
+
 
 class OpLambda(OpReversibleBase):
     """
@@ -81,16 +105,23 @@ class OpLambda(OpReversibleBase):
     Example:
     OpLambda(func=lambda x: torch.tensor(x))
     """
-    def __init__(self, 
-                func: Callable,
-                func_reverse: Optional[Callable] = None, 
-                **kwargs):
+
+    def __init__(
+        self, func: Callable, func_reverse: Optional[Callable] = None, **kwargs
+    ):
         super().__init__(**kwargs)
         self._func = func
         self._func_reverse = func_reverse
-    
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: Optional[str] = None, key_out:Optional[str]=None, **kwargs) -> Union[None, dict, List[dict]]:
-        """        
+
+    def __call__(
+        self,
+        sample_dict: NDict,
+        op_id: Optional[str],
+        key: Optional[str] = None,
+        key_out: Optional[str] = None,
+        **kwargs,
+    ) -> Union[None, dict, List[dict]]:
+        """
         More details in super class
         :param key [Optional]: apply lambda func on sample_dict[key]. If none (default) the input and output of the lambda function are the entire sample_dict
         :param key_out [Optional]: sample_dict[key_out] = func(sample_dict[key])
@@ -108,10 +139,16 @@ class OpLambda(OpReversibleBase):
             sample_dict[key] = res
         else:
             sample_dict = res
-        
+
         return sample_dict
-    
-    def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
+
+    def reverse(
+        self,
+        sample_dict: NDict,
+        key_to_reverse: str,
+        key_to_follow: str,
+        op_id: Optional[str],
+    ) -> dict:
         """
         See super class
         """
@@ -123,17 +160,18 @@ class OpLambda(OpReversibleBase):
                 sample_dict[key_to_reverse] = value
         else:
             sample_dict = self._func_reverse(sample_dict)
-        
+
         return sample_dict
 
+
 class OpFunc(OpReversibleBase):
-    '''
+    """
     Helps to wrap an existing simple python function without writing boilerplate code.
 
     The wrapped function format is:
 
     def foo(*, *kwargs) -> Tuple:
-        pass        
+        pass
 
 
     Example:
@@ -146,31 +184,39 @@ class OpFunc(OpReversibleBase):
     usage in pipeline:
 
     pipeline = [
-        (OpAddSeperator, dict(inputs={'data.text_input':'text'}, outputs='data.text_input'), #        
+        (OpAddSeperator, dict(inputs={'data.text_input':'text'}, outputs='data.text_input'), #
     ]
 
 
-    '''
+    """
+
     def __init__(self, func: Callable, **kwargs):
         """
-        :param func: a callable to call in  __call__() 
+        :param func: a callable to call in  __call__()
         """
         super().__init__(**kwargs)
         self._func = func
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], inputs: Dict[str, str], outputs: Union[Sequence[str], str], **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self,
+        sample_dict: NDict,
+        op_id: Optional[str],
+        inputs: Dict[str, str],
+        outputs: Union[Sequence[str], str],
+        **kwargs,
+    ) -> Union[None, dict, List[dict]]:
         """
         See super class
         :param inputs: dictionary that map between the key_name of a value stored in sample_dict the the input argument name in func
         :param outputs: sequence of key_names to store each return value of func.
 
         """
-        # extract inputs from sample dict 
+        # extract inputs from sample dict
         kwargs_from_sample_dict = {}
         for input_key_name, func_arg_name in inputs.items():
             value = sample_dict[input_key_name]
             kwargs_from_sample_dict[func_arg_name] = value
-        
+
         # all kwargs
         all_kwargs = copy.copy(kwargs)
         all_kwargs.update(kwargs_from_sample_dict)
@@ -179,15 +225,19 @@ class OpFunc(OpReversibleBase):
         # add to sample_dict
         if isinstance(outputs, str):
             sample_dict[outputs] = func_outputs
-        elif isinstance(outputs, Sequence):    
-            assert len(func_outputs) == len(outputs), f"expecting that function {self._func} will output {len(outputs)} values"
+        elif isinstance(outputs, Sequence):
+            assert len(func_outputs) == len(
+                outputs
+            ), f"expecting that function {self._func} will output {len(outputs)} values"
             for output_name, output_value in zip(outputs, func_outputs):
                 sample_dict[output_name] = output_value
         else:
-            raise Exception(f"expecting outputs to be either str or sequence of str. got {type(self._outputs).__name__}")
-            
-        
+            raise Exception(
+                f"expecting outputs to be either str or sequence of str. got {type(self._outputs).__name__}"
+            )
+
         return sample_dict
+
 
 class OpApplyPatterns(OpReversibleBase):
     """
@@ -198,20 +248,23 @@ class OpApplyPatterns(OpReversibleBase):
                                 (r"^.*.mlo.img$|^.*.mlo.seg$", (op_affine, dict(rotate=Uniform(-45.0, 54.0)))])
     op_apply_pat = OpApplyPatterns(patterns_dict)
     """
+
     def __init__(self, patterns_dict: Optional[OrderedDict] = None):
         """
         :param patterns_dict: map a regex pattern to a pair of op and arguments (will be added/override the arguments provided in __call__() function).
-                             For given value in a sample dict, it will look for the first match in the order dict and will apply the op on this specific key. 
+                             For given value in a sample dict, it will look for the first match in the order dict and will apply the op on this specific key.
                              The ops specified in patterns_dict, must implement a __call__ method with an argument called key.
         """
         super().__init__()
         self._patterns_dict = Patterns(patterns_dict, (None, None))
-        
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs) -> Union[None, dict, List[dict]]:
+
+    def __call__(
+        self, sample_dict: NDict, op_id: Optional[str], **kwargs
+    ) -> Union[None, dict, List[dict]]:
         """
         See super class
         """
-            
+
         for key in sample_dict.keypaths():
             op, op_kwargs_to_add = self._patterns_dict.get_value(key)
             if op is None:
@@ -219,18 +272,28 @@ class OpApplyPatterns(OpReversibleBase):
 
             op_kwargs = copy.copy(kwargs)
             op_kwargs.update(op_kwargs_to_add)
-            sample_dict = op_call(op, sample_dict, f"{op_id}_{key}", key=key, **op_kwargs)
+            sample_dict = op_call(
+                op, sample_dict, f"{op_id}_{key}", key=key, **op_kwargs
+            )
 
-            assert not isinstance(sample_dict, list), f"splitting samples within {type(self).__name__} operation is not supported"
-            
+            assert not isinstance(
+                sample_dict, list
+            ), f"splitting samples within {type(self).__name__} operation is not supported"
+
             if sample_dict is None:
                 return None
             elif not isinstance(sample_dict, dict):
                 raise Exception(f"unexpected sample_dict type {type(sample_dict)}")
-        
+
         return sample_dict
 
-    def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
+    def reverse(
+        self,
+        sample_dict: NDict,
+        key_to_reverse: str,
+        key_to_follow: str,
+        op_id: Optional[str],
+    ) -> dict:
         """
         See super class
         """
@@ -238,9 +301,12 @@ class OpApplyPatterns(OpReversibleBase):
         if op is None:
             return
 
-        sample_dict = op_reverse(op, sample_dict, key_to_reverse, key_to_follow, f"{op_id}_{key_to_follow}")
+        sample_dict = op_reverse(
+            op, sample_dict, key_to_reverse, key_to_follow, f"{op_id}_{key_to_follow}"
+        )
 
         return sample_dict
+
 
 class OpApplyTypes(OpReversibleBase):
     """
@@ -253,44 +319,59 @@ class OpApplyTypes(OpReversibleBase):
 
     op_apply_type = OpApplyTypes(types_dict)
     """
-    def __init__(self, 
-        type_to_op_dict: Dict[Enum, Tuple[OpBase, dict]], 
-        type_detector: TypeDetectorBase):
+
+    def __init__(
+        self,
+        type_to_op_dict: Dict[Enum, Tuple[OpBase, dict]],
+        type_detector: TypeDetectorBase,
+    ):
         """
-        :param type_to_op_dict: map a type (See enum DataType) to a pair of op and correspending arguments (will be added/override the arguments provided in __call__() function) 
+        :param type_to_op_dict: map a type (See enum DataType) to a pair of op and correspending arguments (will be added/override the arguments provided in __call__() function)
         """
         super().__init__()
         self._type_to_op_dict = type_to_op_dict
         self._type_detector = type_detector
-        
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs) -> Union[None, dict, List[dict]]:
+
+    def __call__(
+        self, sample_dict: NDict, op_id: Optional[str], **kwargs
+    ) -> Union[None, dict, List[dict]]:
         """
         See super class
         """
         all_keys = sample_dict.keypaths()
-        for key in all_keys:            
+        for key in all_keys:
             key_type = self._type_detector.get_type(sample_dict, key)
-    
+
             op, op_kwargs_to_add = self._type_to_op_dict.get(key_type, (None, None))
             if op is None:
                 continue
 
             op_kwargs = copy.copy(kwargs)
             op_kwargs.update(op_kwargs_to_add)
-            if 'key' in op_kwargs:
-                raise Exception('OpApplyTypes::"key" is already found in kwargs. Are you calling OpApplyTypes from within OpApplyTypes? it is not supported.')
+            if "key" in op_kwargs:
+                raise Exception(
+                    'OpApplyTypes::"key" is already found in kwargs. Are you calling OpApplyTypes from within OpApplyTypes? it is not supported.'
+                )
             sample_dict = op_call(op, sample_dict, f"{op_id}_{key}", key, **op_kwargs)
 
-            assert not isinstance(sample_dict, list), f"splitting samples within {type(self).__name__} operation is not supported"
-            
+            assert not isinstance(
+                sample_dict, list
+            ), f"splitting samples within {type(self).__name__} operation is not supported"
+
             if sample_dict is None:
                 return None
             elif not isinstance(sample_dict, dict):
                 raise Exception(f"unexpected sample_dict type {type(sample_dict)}")
-        
+
         return sample_dict
 
-    def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
+    def reverse(
+        self,
+        sample_dict: NDict,
+        key_to_reverse: str,
+        key_to_follow: str,
+        op_id: Optional[str],
+    ) -> dict:
         """
         See super class
         """
@@ -299,9 +380,12 @@ class OpApplyTypes(OpReversibleBase):
         if op is None:
             return
 
-        sample_dict = op_call(op, sample_dict, key_to_reverse, key_to_follow, f"{op_id}_{key_to_follow}")
+        sample_dict = op_call(
+            op, sample_dict, key_to_reverse, key_to_follow, f"{op_id}_{key_to_follow}"
+        )
 
         return sample_dict
+
 
 class OpCollectMarker(OpReversibleBase):
     """
@@ -314,7 +398,7 @@ class OpCollectMarker(OpReversibleBase):
     The static pipeline generates a sample including an image ('data.image') and a label ('data.label').
     The training set sampler configured to balance a batch according to 'data.label'
     To optimize the reading time of the sampler:
-    Add at the beginning of the dynamic pipeline - 
+    Add at the beginning of the dynamic pipeline -
     OpCollectMarker(name="sampler", static_keys_deps=["data.label"])
     2.
     The static pipeline generate an image ('data.image') and a metadata ('data.metadata').
@@ -323,28 +407,35 @@ class OpCollectMarker(OpReversibleBase):
     Move op_do and op_convert to the beginning of the pipeline.
     Add just after them the following op:
     OpCollectMarker(name="sampler", static_kets_deps=["data.metadata"])
-    
+
     In both cases the sampler can now read subset of the sample using: dataset.get_multi(collect_marker_name="sampler", ..)
     """
+
     def __init__(self, name: str, static_key_deps: Sequence[str]):
         super().__init__()
         self._name = name
         self._static_keys_deps = static_key_deps
-    
+
     def get_info(self) -> dict:
         """
         Returns collect marker info including name and static_keys_deps
         """
-        return {
-            "name": self._name,
-            "static_keys_deps": self._static_keys_deps
-        }
+        return {"name": self._name, "static_keys_deps": self._static_keys_deps}
 
-    def __call__(self, sample_dict: dict, op_id: Optional[str], **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: dict, op_id: Optional[str], **kwargs
+    ) -> Union[None, dict, List[dict]]:
         return sample_dict
 
-    def reverse(self, sample_dict: dict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
+    def reverse(
+        self,
+        sample_dict: dict,
+        key_to_reverse: str,
+        key_to_follow: str,
+        op_id: Optional[str],
+    ) -> dict:
         return sample_dict
+
 
 class OpKeepKeypaths(OpBase):
     """
@@ -352,13 +443,16 @@ class OpKeepKeypaths(OpBase):
     A case where this is useful is if you want to limit the amount of data that gets transferred by multiprocessing by DataLoader workers.
     You can keep only what you want to enter the collate.
     """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def __call__(self, sample_dict: NDict, keep_keypaths:List[str]) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, keep_keypaths: List[str]
+    ) -> Union[None, dict, List[dict]]:
         prev_sample_dict = sample_dict
         sample_dict = NDict()
-        for k in ['data.initial_sample_id', 'data.sample_id']+keep_keypaths:
+        for k in ["data.initial_sample_id", "data.sample_id"] + keep_keypaths:
             sample_dict[k] = prev_sample_dict[k]
         return sample_dict
 
@@ -370,7 +464,8 @@ class OpLookup(OpBase):
     To read the gender represented by strings "male" and "female" and convert it to int do the following
     (OpLookup(map={"male": 0, "female": 1}). dict(key_in="data.input.gender", key_out="data.input,gender"))
     """
-    def __init__(self, map: dict, not_exist_error : bool = True):
+
+    def __init__(self, map: dict, not_exist_error: bool = True):
         """
         :param not_exist_error: false iff if the value does not exist it will keep the previous value
         """
@@ -378,17 +473,18 @@ class OpLookup(OpBase):
         self._map = map
         self._not_exist_error = not_exist_error
 
-    def __call__(self, sample_dict: NDict, key_in: str, key_out: str) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, key_in: str, key_out: str
+    ) -> Union[None, dict, List[dict]]:
         """
         :param key_in: key to a value
         :param key_out: key to store the converted vale
         """
         value = sample_dict[key_in]
-        if value in self._map :
+        if value in self._map:
             sample_dict[key_out] = self._map[value]
         elif self._not_exist_error:
             raise Exception(f"value {value} does not exist in mapping")
-
 
         return sample_dict
 
@@ -397,14 +493,17 @@ class OpToOneHot(OpBase):
     """
     Map category value to one hot vector
     """
+
     def __init__(self, num_classes: int):
         """
         :param num_classes: the size of the one hot vector
         """
         super().__init__()
         self._num_classes = num_classes
-        
-    def __call__(self, sample_dict: NDict, key_in: str, key_out: str) -> Union[None, dict, List[dict]]:
+
+    def __call__(
+        self, sample_dict: NDict, key_in: str, key_out: str
+    ) -> Union[None, dict, List[dict]]:
         """
         :param key_in: key to a class number (int)
         :param key_out: key to store the one hot vector
@@ -423,11 +522,14 @@ class OpConcat(OpBase):
     To create clinical vector that includes all the clinical information about a patient and save into "data.input.clinical" do:
     (OpConcat(), dict(keys_int=["data.input.age", "data.input.gender_one_hot", "data.input.smoking_history"], key_out="data.input_clinical", axis=0)
     """
-    def __call__(self, sample_dict: NDict, keys_in: Sequence[str], key_out: str, axis:int = 0) -> Union[None, dict, List[dict]]:
+
+    def __call__(
+        self, sample_dict: NDict, keys_in: Sequence[str], key_out: str, axis: int = 0
+    ) -> Union[None, dict, List[dict]]:
         """
         :param keys_in: sequence of keys to numpy arrays we want to concatenate
         :param key_out: the key to store the concatenated vector
-        :param axis: concatenate along the specified axis   
+        :param axis: concatenate along the specified axis
         """
         values = [np.asarray(sample_dict[key_in]) for key_in in keys_in]
         values = [v if len(v.shape) > 0 else np.expand_dims(v, axis=0) for v in values]
@@ -435,10 +537,8 @@ class OpConcat(OpBase):
 
         return sample_dict
 
-class OpZScoreNorm(OpBase):
-    
-    def __call__(self, sample_dict: NDict, key: str, mean: float,
-                           std: float):
-        sample_dict[key] = (sample_dict[key]-mean)/std
-        return sample_dict
 
+class OpZScoreNorm(OpBase):
+    def __call__(self, sample_dict: NDict, key: str, mean: float, std: float):
+        sample_dict[key] = (sample_dict[key] - mean) / std
+        return sample_dict

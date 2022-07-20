@@ -21,8 +21,12 @@ from typing import Sequence, Dict, Tuple, Callable, Optional
 
 import torch
 
-from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
-from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
+from fuse.dl.models.backbones.backbone_inception_resnet_v2 import (
+    BackboneInceptionResnetV2,
+)
+from fuse.dl.models.heads.head_global_pooling_classifier import (
+    HeadGlobalPoolingClassifier,
+)
 from fuse.utils.ndict import NDict
 
 
@@ -31,14 +35,17 @@ class ModelMultistream(torch.nn.Module):
     Multi-stream Fuse model - convolutional neural network with multiple processing streams and multiple heads
     """
 
-    def __init__(self,
-                 conv_inputs: Tuple[str, int] = None, 
-                 backbone_streams: Sequence[torch.nn.Module] = (BackboneInceptionResnetV2(logical_units_num=12),
-                                                                BackboneInceptionResnetV2(logical_units_num=12)),
-                 heads: Sequence[torch.nn.Module] = None, 
-                 split_logic: Optional[Callable] = None,
-                 join_logic: Optional[Callable] = None,
-                 ) -> None:
+    def __init__(
+        self,
+        conv_inputs: Tuple[str, int] = None,
+        backbone_streams: Sequence[torch.nn.Module] = (
+            BackboneInceptionResnetV2(logical_units_num=12),
+            BackboneInceptionResnetV2(logical_units_num=12),
+        ),
+        heads: Sequence[torch.nn.Module] = None,
+        split_logic: Optional[Callable] = None,
+        join_logic: Optional[Callable] = None,
+    ) -> None:
         """
         Multi-stream Fuse model - convolutional neural network with multiple processing streams and multiple heads
         :param conv_inputs:             batch_dict name for model input and its number of input channels
@@ -52,35 +59,42 @@ class ModelMultistream(torch.nn.Module):
                                             Signature: feature_map = join_logic(batch_dict, stream_outputs)
         """
         super().__init__()
-        assert conv_inputs is not None, "You must provide conv_inputs - for example: conv_inputs=('data.input.input_0.tensor', 1)"
+        assert (
+            conv_inputs is not None
+        ), "You must provide conv_inputs - for example: conv_inputs=('data.input.input_0.tensor', 1)"
         self.conv_inputs = conv_inputs
         self.split_logic = split_logic
         self.join_logic = join_logic
 
         # Register modules
         self.backbone_streams = torch.nn.ModuleList(backbone_streams)
-        self.add_module('backbones', self.backbone_streams)
-        assert heads is not None, "You must provide heads - for example: heads=(HeadGlobalPoolingClassifier(conv_inputs = (('model.backbone_features', 384),)),)"
+        self.add_module("backbones", self.backbone_streams)
+        assert (
+            heads is not None
+        ), "You must provide heads - for example: heads=(HeadGlobalPoolingClassifier(conv_inputs = (('model.backbone_features', 384),)),)"
         self.heads = torch.nn.ModuleList(heads)
-        self.add_module('heads', self.heads)
+        self.add_module("heads", self.heads)
 
-    def forward(self,
-                batch_dict: NDict) -> Dict:
+    def forward(self, batch_dict: NDict) -> Dict:
 
         # Forward pass through multiple streams
         # -------------------------------------
         if self.split_logic is None:
             # If no split logic is provided, send each channel to different stream
-            conv_input = batch_dict[self.conv_inputs[0]]  # shape = [batch_size, num_channels, height, width]
+            conv_input = batch_dict[
+                self.conv_inputs[0]
+            ]  # shape = [batch_size, num_channels, height, width]
             stream_outputs = []
             for ch_idx in range(conv_input.shape[1]):
-                single_channel_batch = conv_input[:, ch_idx, :, :].unsqueeze(dim=1)  # shape = [batch_size, 1, height, width]
+                single_channel_batch = conv_input[:, ch_idx, :, :].unsqueeze(
+                    dim=1
+                )  # shape = [batch_size, 1, height, width]
                 stream_output = self.backbone_streams[ch_idx](single_channel_batch)
                 stream_outputs.append(stream_output)
         elif callable(self.split_logic):
             stream_outputs = self.split_logic(batch_dict, self.backbone_streams)
         else:
-            raise Exception('Error in ModelMultistream - bad split logic provided')
+            raise Exception("Error in ModelMultistream - bad split logic provided")
 
         # Combining feature maps from multiple streams
         # --------------------------------------------
@@ -90,69 +104,81 @@ class ModelMultistream(torch.nn.Module):
         elif callable(self.join_logic):
             backbone_features = self.join_logic(batch_dict, stream_outputs)
         else:
-            raise Exception('Error in ModelMultistream - bad join logic provided')
+            raise Exception("Error in ModelMultistream - bad join logic provided")
 
-        batch_dict['model.backbone_features'] = backbone_features
+        batch_dict["model.backbone_features"] = backbone_features
         for head in self.heads:
             batch_dict = head.forward(batch_dict)
 
-        return batch_dict['model']
+        return batch_dict["model"]
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from fuse.dl.models.heads.head_dense_segmentation import HeadDenseSegmentation
 
     backbone_0 = BackboneInceptionResnetV2(logical_units_num=8)
     backbone_1 = BackboneInceptionResnetV2(logical_units_num=8)
 
     non_shared_model = ModelMultistream(
-        conv_inputs=('data.input.input_0.tensor', 2),
+        conv_inputs=("data.input.input_0.tensor", 2),
         backbone_streams=[backbone_0, backbone_1],
         heads=[
-            HeadGlobalPoolingClassifier(head_name='head_0',
-                                            conv_inputs=[('model.backbone_features', 640)],
-                                            post_concat_inputs=None,
-                                            num_classes=2),
-
-            HeadDenseSegmentation(head_name='head_1',
-                                      conv_inputs=[('model.backbone_features', 640)],
-                                      num_classes=2)
-        ]
+            HeadGlobalPoolingClassifier(
+                head_name="head_0",
+                conv_inputs=[("model.backbone_features", 640)],
+                post_concat_inputs=None,
+                num_classes=2,
+            ),
+            HeadDenseSegmentation(
+                head_name="head_1",
+                conv_inputs=[("model.backbone_features", 640)],
+                num_classes=2,
+            ),
+        ],
     )
 
     shared_model = ModelMultistream(
-        conv_inputs=('data.input.input_0.tensor', 2),
+        conv_inputs=("data.input.input_0.tensor", 2),
         backbone_streams=[backbone_0, backbone_0],
         heads=[
-            HeadGlobalPoolingClassifier(head_name='head_0',
-                                            conv_inputs=[('model.backbone_features', 640)],
-                                            post_concat_inputs=None,
-                                            num_classes=2),
-
-            HeadDenseSegmentation(head_name='head_1',
-                                      conv_inputs=[('model.backbone_features', 640)],
-                                      num_classes=2)
-        ]
+            HeadGlobalPoolingClassifier(
+                head_name="head_0",
+                conv_inputs=[("model.backbone_features", 640)],
+                post_concat_inputs=None,
+                num_classes=2,
+            ),
+            HeadDenseSegmentation(
+                head_name="head_1",
+                conv_inputs=[("model.backbone_features", 640)],
+                num_classes=2,
+            ),
+        ],
     )
 
-    dummy_data = {'data':
-                      {'input':
-                           {'input_0': {'tensor': torch.zeros([20, 2, 200, 100]), 'metadata': None}},
-                       'gt':
-                           {'gt_0': torch.zeros([0])}
-                       }
-                  }
+    dummy_data = {
+        "data": {
+            "input": {
+                "input_0": {"tensor": torch.zeros([20, 2, 200, 100]), "metadata": None}
+            },
+            "gt": {"gt_0": torch.zeros([0])},
+        }
+    }
 
-    for model_name, model in [('Shared-model', shared_model), ('Non-shared-model', non_shared_model)]:
+    for model_name, model in [
+        ("Shared-model", shared_model),
+        ("Non-shared-model", non_shared_model),
+    ]:
         res = {}
-        res['model'] = shared_model.forward(dummy_data)
-        print(model_name + ', forward pass shape - head_0: ', end='')
-        print(str(res['model']['logits']['head_0'].shape))
-        print(model_name + ', forward pass shape - head_1: ', end='')
-        print(str(res['model']['logits']['head_1'].shape))
+        res["model"] = shared_model.forward(dummy_data)
+        print(model_name + ", forward pass shape - head_0: ", end="")
+        print(str(res["model"]["logits"]["head_0"].shape))
+        print(model_name + ", forward pass shape - head_1: ", end="")
+        print(str(res["model"]["logits"]["head_1"].shape))
         total_params = sum(p.numel() for p in model.parameters())
-        backbone_params = sum(p.numel() for p in model._modules['backbones'].parameters())
-        print(model_name + ', backbone params = %d' % backbone_params)
-        print(model_name + ', heads params = %d' % (total_params - backbone_params))
-        print(model_name + ', total params = %d' % total_params)
+        backbone_params = sum(
+            p.numel() for p in model._modules["backbones"].parameters()
+        )
+        print(model_name + ", backbone params = %d" % backbone_params)
+        print(model_name + ", heads params = %d" % (total_params - backbone_params))
+        print(model_name + ", total params = %d" % total_params)
         print()

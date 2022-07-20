@@ -27,6 +27,7 @@ from fuse.utils import NDict
 from fuse.utils.data.collate import CollateToBatchList
 from fuse.data import get_sample_id, get_sample_id_key
 
+
 class CollateDefault(CollateToBatchList):
     """
     Default collate_fn method to be used when creating a DataLoader.
@@ -35,7 +36,13 @@ class CollateDefault(CollateToBatchList):
     sample_id key will be collected to a list.
     Few options to special handlers implemented in this class as static methods
     """
-    def __init__(self, skip_keys: Sequence[str]=tuple(), raise_error_key_missing: bool = True, special_handlers_keys: Dict[str, Callable] = None):
+
+    def __init__(
+        self,
+        skip_keys: Sequence[str] = tuple(),
+        raise_error_key_missing: bool = True,
+        special_handlers_keys: Dict[str, Callable] = None,
+    ):
         """
         :param skip_keys: do not collect the listed keys
         :param special_handlers_keys: per key specify a callable which gets as an input list of values and convert it to a batch.
@@ -46,7 +53,9 @@ class CollateDefault(CollateToBatchList):
         self._special_handlers_keys = {}
         if special_handlers_keys is not None:
             self._special_handlers_keys.update(special_handlers_keys)
-        self._special_handlers_keys[get_sample_id_key()] = CollateDefault.just_collect_to_list
+        self._special_handlers_keys[
+            get_sample_id_key()
+        ] = CollateDefault.just_collect_to_list
 
     def __call__(self, samples: List[Dict]) -> Dict:
         """
@@ -55,30 +64,39 @@ class CollateDefault(CollateToBatchList):
         :return: batch_dict
         """
         batch_dict = NDict()
-        
+
         # collect all keys
         keys = self._collect_all_keys(samples)
-        
+
         # collect values
         for key in keys:
 
             # skip keys
             if key in self._skip_keys:
                 continue
-            
+
             try:
                 # collect values into a list
                 collected_values, has_error = self._collect_values_to_list(samples, key)
-                
+
                 # batch values
-                self._batch_dispatch(batch_dict, samples, key, has_error, collected_values)
+                self._batch_dispatch(
+                    batch_dict, samples, key, has_error, collected_values
+                )
             except:
-                print(f'Error: Failed to collect key {key}')
+                print(f"Error: Failed to collect key {key}")
                 raise
 
         return batch_dict
-    
-    def _batch_dispatch(self, batch_dict: dict, samples: List[dict], key: str, has_error: bool, collected_values: list) -> None:
+
+    def _batch_dispatch(
+        self,
+        batch_dict: dict,
+        samples: List[dict],
+        key: str,
+        has_error: bool,
+        collected_values: list,
+    ) -> None:
         """
         dispatch a key into collate function and save it into batch_dict
         :param batch_dict: batch dictionary to update
@@ -90,16 +108,17 @@ class CollateDefault(CollateToBatchList):
         """
         if has_error:
             # do nothing when error occurs
-            batch_dict[key] = collected_values 
+            batch_dict[key] = collected_values
         elif key in self._special_handlers_keys:
             # use special handler if specified
             batch_dict[key] = self._special_handlers_keys[key](collected_values)
-        elif isinstance(collected_values[0], (torch.Tensor, np.ndarray, float, int, str, bytes)):
+        elif isinstance(
+            collected_values[0], (torch.Tensor, np.ndarray, float, int, str, bytes)
+        ):
             # batch with default PyTorch implementation
             batch_dict[key] = default_collate(collected_values)
         else:
-            batch_dict[key] = collected_values 
-
+            batch_dict[key] = collected_values
 
     @staticmethod
     def just_collect_to_list(values: List[Any]):
@@ -109,28 +128,34 @@ class CollateDefault(CollateToBatchList):
         return values
 
     @staticmethod
-    def pad_all_tensors_to_same_size(values: List[torch.Tensor], pad_val: float=0.0):
+    def pad_all_tensors_to_same_size(values: List[torch.Tensor], pad_val: float = 0.0):
         """
         pad tensors and create a batch - the shape will be the max size per dim
         values: list of tensor - all should have the same number of dimensions
         pad_val: constant value for padding
         :return: torch.stack of padded tensors
         """
-        
+
         # verify all are tensor and that they have the same dim size
-        assert isinstance(values[0], torch.Tensor), f"Expecting just tensors, got {type(values[0])}"
+        assert isinstance(
+            values[0], torch.Tensor
+        ), f"Expecting just tensors, got {type(values[0])}"
         num_dims = len(values[0].shape)
         for value in values:
-            assert isinstance(value, torch.Tensor), f"Expecting just tensors, got {type(value)}"
-            assert len(value.shape) == num_dims, f"Expecting all tensors to have the same dim size, got {len(value.shape)} and {num_dims}"
-        
+            assert isinstance(
+                value, torch.Tensor
+            ), f"Expecting just tensors, got {type(value)}"
+            assert (
+                len(value.shape) == num_dims
+            ), f"Expecting all tensors to have the same dim size, got {len(value.shape)} and {num_dims}"
+
         # get max per dim
         max_per_dim = np.amax(np.stack([value.shape for value in values]), axis=0)
-        
+
         # pad
         def _pad_size(value, dim):
             assert max_per_dim[dim] >= value.shape[dim]
-            return [0, max_per_dim[dim]-value.shape[dim]]
+            return [0, max_per_dim[dim] - value.shape[dim]]
 
         padded_values = []
 
@@ -138,9 +163,8 @@ class CollateDefault(CollateToBatchList):
             padding = []
             # F.pad padding description is expected to be provided in REVERSE order (see torch.nn.functional.pad doc)
             for dim in reversed(range(num_dims)):
-                padding += _pad_size(value,dim)
-            padded_value = F.pad(value, padding, mode='constant', value=pad_val)
+                padding += _pad_size(value, dim)
+            padded_value = F.pad(value, padding, mode="constant", value=pad_val)
             padded_values.append(padded_value)
 
-        
         return default_collate(padded_values)

@@ -21,76 +21,78 @@ from abc import abstractmethod
 from fuse.utils.ndict import NDict
 import torch
 
+
 class LossBase(torch.nn.Module):
-   """
-   Base class for Fuse loss functions. 
-   Essentially it is torch.nn.Module whose forward method gets as an input batch_dict and returns loss tensor
-   Note - if you already have a pytorch implementation of the loss, a useful alternative that you can use is LossDefault class to wrap it
+    """
+    Base class for Fuse loss functions.
+    Essentially it is torch.nn.Module whose forward method gets as an input batch_dict and returns loss tensor
+    Note - if you already have a pytorch implementation of the loss, a useful alternative that you can use is LossDefault class to wrap it
 
-   LossBase Usage example:
+    LossBase Usage example:
 
-   '''
-   from fuse.dl.losses import LossBase
-   Class MyCustomLoss(LossBase):
-         '''
-         Extracts prediction and data from batch_dict and performs a dummy loss calculation,
-         clamping the loss value to be at most "cap"
-         '''
-         def __init__(self, 
-            pred: str = None,
-            target: str = None,
-            cap:float = 0.3,
-            ):
-            self._pred = pred
-            self._target = target
-            self._cap = cap            
+    '''
+    from fuse.dl.losses import LossBase
+    Class MyCustomLoss(LossBase):
+          '''
+          Extracts prediction and data from batch_dict and performs a dummy loss calculation,
+          clamping the loss value to be at most "cap"
+          '''
+          def __init__(self,
+             pred: str = None,
+             target: str = None,
+             cap:float = 0.3,
+             ):
+             self._pred = pred
+             self._target = target
+             self._cap = cap
 
-         def forward(self, batch_dict:NDict) -> torch.Tensor:
-            #extract pred and target from batch_dict
-            pred = batch_dict[self.pred]
-            target = batch_dict[self.target]
+          def forward(self, batch_dict:NDict) -> torch.Tensor:
+             #extract pred and target from batch_dict
+             pred = batch_dict[self.pred]
+             target = batch_dict[self.target]
 
-            #apply our loss logic, and clamp to cap
-            z = torch.mean(pred)-torch.mean(target)
-            z = torch.sqrt(z**2) 
-            z = torch.clamp(z, max=self._cap) #clamp to cap
-            return z
+             #apply our loss logic, and clamp to cap
+             z = torch.mean(pred)-torch.mean(target)
+             z = torch.sqrt(z**2)
+             z = torch.clamp(z, max=self._cap) #clamp to cap
+             return z
 
-   batch_dict = ... #some batch_dict, containing tensors in keys 'input.preds' and 'groundtruth.targets'
-   my_loss = MyCustomLoss(pred='input.preds', target='groundtruth.target', cap=0.4 )
-   loss_val = my_loss(batch_dict)
-   ...
-   
-
-   '''
-   Advanced example - L2 regularization - in this case there are no predictions or ground truth involved, only the model weights/params
-   from fuse.dl.losses import LossBase
-   Class MyL2Loss(LossBase):
-         '''
-         Extracts prediction and data from batch_dict and performs a dummy loss calculation,
-         clamping the loss value to be at most "cap"
-         '''
-         def __init__(self, 
-            params:str,
-            ):
-            self._params = params     
-
-         def forward(self, batch_dict:NDict) -> torch.Tensor:
-            #extract pred and target from batch_dict
-            params = batch_dict[self.params]            
-            l2_loss = sum(torch.linalg.norm(p, 2) for p in params)            
-            return l2_loss
-
-   
-   batch_dict = ... #some batch_dict, containing a key 'model.regularize_params' mapping to a list of model params to be considered in the L2 loss calculation
-   loss_func = MyL2Loss(params='model.regularize_params')
-   loss = loss_func(batch_dict))
-   '''
+    batch_dict = ... #some batch_dict, containing tensors in keys 'input.preds' and 'groundtruth.targets'
+    my_loss = MyCustomLoss(pred='input.preds', target='groundtruth.target', cap=0.4 )
+    loss_val = my_loss(batch_dict)
+    ...
 
 
+    '''
+    Advanced example - L2 regularization - in this case there are no predictions or ground truth involved, only the model weights/params
+    from fuse.dl.losses import LossBase
+    Class MyL2Loss(LossBase):
+          '''
+          Extracts prediction and data from batch_dict and performs a dummy loss calculation,
+          clamping the loss value to be at most "cap"
+          '''
+          def __init__(self,
+             params:str,
+             ):
+             self._params = params
 
-   
-   """
-   @abstractmethod
-   def forward(self, batch_dict: NDict) -> torch.Tensor:
-      raise NotImplementedError
+          def forward(self, batch_dict:NDict) -> torch.Tensor:
+             #extract pred and target from batch_dict
+             params = batch_dict[self.params]
+             l2_loss = sum(torch.linalg.norm(p, 2) for p in params)
+             return l2_loss
+
+
+    batch_dict = ... #some batch_dict, containing a key 'model.regularize_params' mapping to a list of model params to be considered in the L2 loss calculation
+    loss_func = MyL2Loss(params='model.regularize_params')
+    loss = loss_func(batch_dict))
+    '''
+
+
+
+
+    """
+
+    @abstractmethod
+    def forward(self, batch_dict: NDict) -> torch.Tensor:
+        raise NotImplementedError

@@ -31,12 +31,13 @@ from fuse.data.processor.processor_base import ProcessorBase
 
 
 class SkinInputProcessor(ProcessorBase):
-    def __init__(self,
-                 input_data: str,
-                 normalized_target_range: Tuple = (0, 1),
-                 resize_to: Optional[Tuple] = (299, 299),
-                 padding: Optional[Tuple] = (0, 0),
-                 ):
+    def __init__(
+        self,
+        input_data: str,
+        normalized_target_range: Tuple = (0, 1),
+        resize_to: Optional[Tuple] = (299, 299),
+        padding: Optional[Tuple] = (0, 0),
+    ):
         """
         Create Input processor
         :param input_data:              path to images
@@ -47,27 +48,30 @@ class SkinInputProcessor(ProcessorBase):
 
         self.input_data = input_data
         self.normalized_target_range = normalized_target_range
-        self.resize_to = np.subtract(resize_to, (2*padding[0], 2*padding[1]))
+        self.resize_to = np.subtract(resize_to, (2 * padding[0], 2 * padding[1]))
         self.padding = padding
 
-    def __call__(self,
-                 inner_image_desc,
-                 *args, **kwargs):
+    def __call__(self, inner_image_desc, *args, **kwargs):
         try:
-            img_path = os.path.join(self.input_data, str(inner_image_desc) + '.jpg')
+            img_path = os.path.join(self.input_data, str(inner_image_desc) + ".jpg")
 
             # read image
             inner_image = skimage.io.imread(img_path)
 
             # convert to numpy
             inner_image = np.asarray(inner_image)
-            
+
             # normalize
-            inner_image = normalize_to_range(inner_image, range=self.normalized_target_range)
+            inner_image = normalize_to_range(
+                inner_image, range=self.normalized_target_range
+            )
 
             # resize
-            inner_image_height, inner_image_width = inner_image.shape[0], inner_image.shape[1]
-            
+            inner_image_height, inner_image_width = (
+                inner_image.shape[0],
+                inner_image.shape[1],
+            )
+
             if self.resize_to is not None:
                 if inner_image_height > self.resize_to[0]:
                     h_ratio = self.resize_to[0] / inner_image_height
@@ -80,30 +84,41 @@ class SkinInputProcessor(ProcessorBase):
 
                 resize_ratio = min(h_ratio, w_ratio)
                 if resize_ratio != 1:
-                    inner_image = skimage.transform.resize(inner_image,
-                                                           output_shape=(int(inner_image_height * resize_ratio),
-                                                                         int(inner_image_width * resize_ratio)),
-                                                           mode='reflect',
-                                                           anti_aliasing=True
-                                                           )
+                    inner_image = skimage.transform.resize(
+                        inner_image,
+                        output_shape=(
+                            int(inner_image_height * resize_ratio),
+                            int(inner_image_width * resize_ratio),
+                        ),
+                        mode="reflect",
+                        anti_aliasing=True,
+                    )
 
             # padding
             if self.padding is not None:
                 # "Pad" around inner image
-                inner_image = inner_image.astype('float32')
+                inner_image = inner_image.astype("float32")
 
-                inner_image_height, inner_image_width = inner_image.shape[0], inner_image.shape[1]
+                inner_image_height, inner_image_width = (
+                    inner_image.shape[0],
+                    inner_image.shape[1],
+                )
                 inner_image[0:inner_image_height, 0] = 0
-                inner_image[0:inner_image_height, inner_image_width-1] = 0
+                inner_image[0:inner_image_height, inner_image_width - 1] = 0
                 inner_image[0, 0:inner_image_width] = 0
-                inner_image[inner_image_height-1, 0:inner_image_width] = 0
+                inner_image[inner_image_height - 1, 0:inner_image_width] = 0
 
                 if self.normalized_target_range is None:
                     pad_value = 0
                 else:
                     pad_value = self.normalized_target_range[0]
 
-                image = pad_image(inner_image, outer_height=self.resize_to[0] + 2*self.padding[0], outer_width=self.resize_to[1] + 2*self.padding[1], pad_value=pad_value)
+                image = pad_image(
+                    inner_image,
+                    outer_height=self.resize_to[0] + 2 * self.padding[0],
+                    outer_width=self.resize_to[1] + 2 * self.padding[1],
+                    pad_value=pad_value,
+                )
 
             else:
                 image = inner_image
@@ -115,7 +130,7 @@ class SkinInputProcessor(ProcessorBase):
             sample = torch.from_numpy(image)
 
         except Exception as e:
-            lgr = logging.getLogger('Fuse')
+            lgr = logging.getLogger("Fuse")
             track = traceback.format_exc()
             lgr.error(e)
             lgr.error(track)
@@ -155,6 +170,8 @@ def pad_image(image: np.ndarray, outer_height: int, outer_width: int, pad_value:
     h_offset = int((outer_height - inner_height) / 2.0)
     w_offset = int((outer_width - inner_width) / 2.0)
     outer_image = np.ones((outer_height, outer_width, 3), dtype=image.dtype) * pad_value
-    outer_image[h_offset:h_offset + inner_height, w_offset:w_offset + inner_width, :] = image
+    outer_image[
+        h_offset : h_offset + inner_height, w_offset : w_offset + inner_width, :
+    ] = image
 
     return outer_image

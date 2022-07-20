@@ -27,13 +27,13 @@ class AtomicFileWriter:
 
     def __init__(self, filename: str):
         self.filename = filename
-        self.temp_filename = f'{filename}_{os.getpid()}_{threading.get_ident() }.tmp'
+        self.temp_filename = f"{filename}_{os.getpid()}_{threading.get_ident() }.tmp"
 
     def __enter__(self):
-        if self.filename.endswith('.gz'):
-            self.filehandle = gzip.open(self.temp_filename, 'wb')
+        if self.filename.endswith(".gz"):
+            self.filehandle = gzip.open(self.temp_filename, "wb")
         else:
-            self.filehandle = open(self.temp_filename, 'wb')
+            self.filehandle = open(self.temp_filename, "wb")
         return self.filehandle
 
     def __exit__(self, exc_type, exc_value, exc_traceback):

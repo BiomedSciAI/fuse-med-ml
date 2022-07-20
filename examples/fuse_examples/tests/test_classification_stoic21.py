@@ -27,47 +27,58 @@ from fuse.utils.rand.seed import Seed
 import fuse.utils.gpu as GPU
 
 if "STOIC21_DATA_PATH" in os.environ:
-    from fuse_examples.imaging.classification.stoic21.runner_stoic21 import PATHS, TRAIN_COMMON_PARAMS, run_train, run_infer, run_eval, INFER_COMMON_PARAMS, \
-        EVAL_COMMON_PARAMS
+    from fuse_examples.imaging.classification.stoic21.runner_stoic21 import (
+        PATHS,
+        TRAIN_COMMON_PARAMS,
+        run_train,
+        run_infer,
+        run_eval,
+        INFER_COMMON_PARAMS,
+        EVAL_COMMON_PARAMS,
+    )
 
-@unittest.skipIf("STOIC21_DATA_PATH" not in os.environ, "define environment variable 'STOIC21_DATA_PATH' to run this test")
+
+@unittest.skipIf(
+    "STOIC21_DATA_PATH" not in os.environ,
+    "define environment variable 'STOIC21_DATA_PATH' to run this test",
+)
 class ClassificationStoic21TestCase(unittest.TestCase):
-
     def setUp(self):
         self.root = tempfile.mkdtemp()
 
         self.paths = {
-            'model_dir': os.path.join(self.root, 'stoic/model_dir'),
-            'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
-            'data_dir': PATHS["data_dir"],
-            'cache_dir': os.path.join(self.root, 'stoic/cache_dir'),
-            'data_split_filename': os.path.join(self.root, 'split.pkl'),
-            'inference_dir': os.path.join(self.root, 'stoic/infer_dir'),
-            'eval_dir': os.path.join(self.root, 'stoic/analyze_dir')}
-
+            "model_dir": os.path.join(self.root, "stoic/model_dir"),
+            "force_reset_model_dir": True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
+            "data_dir": PATHS["data_dir"],
+            "cache_dir": os.path.join(self.root, "stoic/cache_dir"),
+            "data_split_filename": os.path.join(self.root, "split.pkl"),
+            "inference_dir": os.path.join(self.root, "stoic/infer_dir"),
+            "eval_dir": os.path.join(self.root, "stoic/analyze_dir"),
+        }
 
         self.train_common_params = TRAIN_COMMON_PARAMS
         self.train_common_params["manager.train_params"]["num_epochs"] = 2
         self.infer_common_params = INFER_COMMON_PARAMS
 
         self.analyze_common_params = EVAL_COMMON_PARAMS
-    
-    
+
     @run_in_subprocess(1200)
     def test_template(self):
         GPU.choose_and_enable_multiple_gpus(1)
-    
-        Seed.set_seed(0, False) # previous test (in the pipeline) changed the deterministic behavior to True
+
+        Seed.set_seed(
+            0, False
+        )  # previous test (in the pipeline) changed the deterministic behavior to True
         run_train(self.paths, self.train_common_params)
         run_infer(self.paths, self.infer_common_params)
         results = run_eval(self.paths, self.analyze_common_params)
 
-        self.assertTrue('metrics.auc' in results)
+        self.assertTrue("metrics.auc" in results)
 
     def tearDown(self):
         # Delete temporary directories
         shutil.rmtree(self.root)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

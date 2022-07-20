@@ -19,23 +19,27 @@ Created on June 30, 2021
 import pytorch_lightning as pl
 from fuse.dl.lightning.pl_funcs import *
 
+
 class LightningModuleDefault(pl.LightningModule):
     """
     Generic implementation of LightningModule using FuseMedML style focusing primarily on supervised training.
-    FuseMedML conventions make it possible to have such a generic implementation. 
+    FuseMedML conventions make it possible to have such a generic implementation.
     """
-    def __init__(self,
-                 model_dir: str,
-                 model: Optional[torch.nn.Module] = None,
-                 losses: Optional[Dict[str, LossBase]] = None,
-                 train_metrics: Optional[OrderedDict[str, MetricBase]] = None,
-                 validation_metrics: Optional[OrderedDict[str, MetricBase]] = None,
-                 test_metrics: Optional[OrderedDict[str, MetricBase]] = None,
-                 optimizers_and_lr_schs: Any = None,
-                 callbacks: Optional[Sequence[pl.Callback]] = None,
-                 best_epoch_source: Optional[Union[Dict, List[Dict]]] = None,
-                 save_hyperparameters: Optional[List[str]] = None,
-                 **kwargs):
+
+    def __init__(
+        self,
+        model_dir: str,
+        model: Optional[torch.nn.Module] = None,
+        losses: Optional[Dict[str, LossBase]] = None,
+        train_metrics: Optional[OrderedDict[str, MetricBase]] = None,
+        validation_metrics: Optional[OrderedDict[str, MetricBase]] = None,
+        test_metrics: Optional[OrderedDict[str, MetricBase]] = None,
+        optimizers_and_lr_schs: Any = None,
+        callbacks: Optional[Sequence[pl.Callback]] = None,
+        best_epoch_source: Optional[Union[Dict, List[Dict]]] = None,
+        save_hyperparameters: Optional[List[str]] = None,
+        **kwargs
+    ):
         """
         :param model_dir: location for checkpoints and logs
         :param model: Pytorch model to use
@@ -48,7 +52,7 @@ class LightningModuleDefault(pl.LightningModule):
         :param callbacks: see pl.LightningModule.configure_callbacks return value for details
         :param best_epoch_source: Create list of pl.callbacks that saves checkpoints using (pl.callbacks.ModelCheckpoint) and print per epoch summary (fuse.dl.lightning.pl_epoch_summary.ModelEpochSummary).
                                   Either a dict with arguments to pass to ModelCheckpoint or list dicts for multiple ModelCheckpoint callbacks (to monitor and save checkpoints for more then one metric).
-        :param save_hyperparameters: specify which hyperparameters you would like to save. Default None.  See pl.LightningModule.save_hyperparameters() for more details.                   
+        :param save_hyperparameters: specify which hyperparameters you would like to save. Default None.  See pl.LightningModule.save_hyperparameters() for more details.
         """
         super().__init__(**kwargs)
         if save_hyperparameters is not None:
@@ -61,19 +65,19 @@ class LightningModuleDefault(pl.LightningModule):
         self._train_metrics = train_metrics
         self._validation_metrics = validation_metrics
         self._test_metrics = test_metrics
-        
+
         self._optimizers_and_lr_schs = optimizers_and_lr_schs
         self._callbacks = callbacks if callbacks is not None else []
         if best_epoch_source is not None:
             self._callbacks += model_checkpoint_callbacks(model_dir, best_epoch_source)
-        
+
         # init state
         self._prediction_keys = None
-   
+
     ## forward
     def forward(self, batch_dict: NDict) -> NDict:
         return self._model(batch_dict)
-    
+
     ## Step
     def training_step(self, batch_dict: NDict, batch_idx: int) -> dict:
         # run forward function and store the outputs in batch_dict["model"]
@@ -84,8 +88,8 @@ class LightningModuleDefault(pl.LightningModule):
         step_metrics(self._train_metrics, batch_dict)
 
         # return the total_loss, the losses and drop everything else
-        return {"loss": total_loss, "losses": batch_dict["losses"]} 
-     
+        return {"loss": total_loss, "losses": batch_dict["losses"]}
+
     def validation_step(self, batch_dict: NDict, batch_idx: int) -> dict:
         # run forward function and store the outputs in batch_dict["model"]
         batch_dict["model"] = self.forward(batch_dict)
@@ -95,8 +99,8 @@ class LightningModuleDefault(pl.LightningModule):
         step_metrics(self._validation_metrics, batch_dict)
 
         # return just the losses and drop everything else
-        return {"losses": batch_dict["losses"]} 
-     
+        return {"losses": batch_dict["losses"]}
+
     def test_step(self, batch_dict: NDict, batch_idx: int) -> dict:
         # run forward function and store the outputs in batch_dict["model"]
         batch_dict["model"] = self.forward(batch_dict)
@@ -106,46 +110,52 @@ class LightningModuleDefault(pl.LightningModule):
         step_metrics(self._test_metrics, batch_dict)
 
         # return just the losses and drop everything else
-        return {"losses": batch_dict["losses"]} 
+        return {"losses": batch_dict["losses"]}
 
     def predict_step(self, batch_dict: NDict, batch_idx: int) -> dict:
         if self._prediction_keys is None:
-            raise Exception("Error: predict_step expectes list of prediction keys to extract from batch_dict. Please specify it using set_predictions_keys() method ")
+            raise Exception(
+                "Error: predict_step expectes list of prediction keys to extract from batch_dict. Please specify it using set_predictions_keys() method "
+            )
         # run forward function and store the outputs in batch_dict["model"]
         batch_dict["model"] = self.forward(batch_dict)
         # extract the requried keys - defined in self.set_predictions_keys()
         return step_extract_predictions(self._prediction_keys, batch_dict)
-        
+
     ## Epoch end
     def training_epoch_end(self, step_outputs) -> None:
         # calc average epoch loss and log it
-        epoch_end_compute_and_log_losses(self, "train", [e["losses"] for e in step_outputs])
+        epoch_end_compute_and_log_losses(
+            self, "train", [e["losses"] for e in step_outputs]
+        )
         # evaluate  and log it
         epoch_end_compute_and_log_metrics(self, "train", self._train_metrics)
-    
+
     def validation_epoch_end(self, step_outputs) -> None:
         # calc average epoch loss and log it
-        epoch_end_compute_and_log_losses(self, "validation", [e["losses"] for e in step_outputs])
+        epoch_end_compute_and_log_losses(
+            self, "validation", [e["losses"] for e in step_outputs]
+        )
         # evaluate  and log it
         epoch_end_compute_and_log_metrics(self, "validation", self._validation_metrics)
-    
+
     def test_epoch_end(self, step_outputs) -> None:
         # calc average epoch loss and log it
-        epoch_end_compute_and_log_losses(self, "test", [e["losses"] for e in step_outputs])
+        epoch_end_compute_and_log_losses(
+            self, "test", [e["losses"] for e in step_outputs]
+        )
         # evaluate  and log it
         epoch_end_compute_and_log_metrics(self, "test", self._test_metrics)
-             
 
     # confiugration
     def configure_callbacks(self) -> Sequence[pl.Callback]:
-        """ train loop callbacks """
+        """train loop callbacks"""
         return self._callbacks
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
-        """ See pl.LightningModule.configure_optimizers return value for all options """
+        """See pl.LightningModule.configure_optimizers return value for all options"""
         return self._optimizers_and_lr_schs
 
-    
     def set_predictions_keys(self, keys: List[str]) -> None:
-        """ Define which keys to extract from batch_dict  on prediction mode """
+        """Define which keys to extract from batch_dict  on prediction mode"""
         self._prediction_keys = keys

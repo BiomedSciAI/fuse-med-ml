@@ -21,8 +21,12 @@ from typing import Sequence, Dict, Tuple
 
 import torch
 
-from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
-from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
+from fuse.dl.models.backbones.backbone_inception_resnet_v2 import (
+    BackboneInceptionResnetV2,
+)
+from fuse.dl.models.heads.head_global_pooling_classifier import (
+    HeadGlobalPoolingClassifier,
+)
 from fuse.utils.ndict import NDict
 
 
@@ -31,13 +35,13 @@ class ModelMultiHead(torch.nn.Module):
     Default Fuse model - convolutional neural network with multiple heads
     """
 
-    def __init__(self,
-
-                 backbone: torch.nn.Module,
-                 heads: Sequence[torch.nn.Module],
-                 conv_inputs: Tuple[Tuple[str, int], ...]=None,
-                 backbone_args: Tuple[Tuple[str, int], ...]=None,
-                 ) -> None:
+    def __init__(
+        self,
+        backbone: torch.nn.Module,
+        heads: Sequence[torch.nn.Module],
+        conv_inputs: Tuple[Tuple[str, int], ...] = None,
+        backbone_args: Tuple[Tuple[str, int], ...] = None,
+    ) -> None:
         """
         Default Fuse model - convolutional neural network with multiple heads
         :param conv_inputs:     batch_dict name for convolutional backbone model input and its number of input channels. Unused if None. Kept for backward compatibility
@@ -47,29 +51,34 @@ class ModelMultiHead(torch.nn.Module):
         """
         super().__init__()
         if (conv_inputs is not None) and (backbone_args is not None):
-            raise Exception('Both conv_inputs and backbone_args are set. Only one may be set (conv_inputs soon to be deprecated)')
+            raise Exception(
+                "Both conv_inputs and backbone_args are set. Only one may be set (conv_inputs soon to be deprecated)"
+            )
         if (conv_inputs is None) and (backbone_args is None):
-            raise Exception('Neither conv_inputs nor backbone_args are None. One must be set (conv_inputs soon to be deprecated)')
+            raise Exception(
+                "Neither conv_inputs nor backbone_args are None. One must be set (conv_inputs soon to be deprecated)"
+            )
 
         self.conv_inputs = conv_inputs
         self.backbone_args = backbone_args
         self.backbone = backbone
-        self.add_module('backbone', self.backbone)
+        self.add_module("backbone", self.backbone)
         self.heads = torch.nn.ModuleList(heads)
-        self.add_module('heads', self.heads)
+        self.add_module("heads", self.heads)
 
     def forward(self, batch_dict: NDict) -> Dict:
         if self.conv_inputs is not None:
-            conv_input = torch.cat([batch_dict[conv_input[0]] for conv_input in self.conv_inputs], 1)
+            conv_input = torch.cat(
+                [batch_dict[conv_input[0]] for conv_input in self.conv_inputs], 1
+            )
             backbone_features = self.backbone.forward(conv_input)
         else:
             backbone_args = [batch_dict[inp[0]] for inp in self.backbone_args]
             backbone_features = self.backbone.forward(*backbone_args)
 
-        batch_dict['model.backbone_features'] = backbone_features
+        batch_dict["model.backbone_features"] = backbone_features
 
         for head in self.heads:
             batch_dict = head.forward(batch_dict)
 
-        return batch_dict['model']
-
+        return batch_dict["model"]

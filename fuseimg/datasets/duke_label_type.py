@@ -5,10 +5,10 @@ import pandas as pd
 
 
 class DukeLabelType(Enum):
-    ispCR = 'ispCR'
-    STAGING_TUMOR_SIZE = 'Staging Tumor Size'
-    HISTOLOGY_TYPE = 'Histology Type'
-    IS_HIGH_TUMOR_GRADE_TOTAL = 'is High Tumor Grade Total'
+    ispCR = "ispCR"
+    STAGING_TUMOR_SIZE = "Staging Tumor Size"
+    HISTOLOGY_TYPE = "Histology Type"
+    IS_HIGH_TUMOR_GRADE_TOTAL = "is High Tumor Grade Total"
 
     def get_value(self, clinical_features):
         col_name = self.get_column_name()
@@ -23,43 +23,48 @@ class DukeLabelType(Enum):
         return value
 
     def select_features(self, clinical_features):  # todo: ask Tal
-        group1 = ['MRI Findings:Skin/Nipple Invovlement',  # 'Skin Invovlement',
-                  'US features:Tumor Size (cm)',  # 'Tumor Size US',
-                  'Mammography Characteristics:Tumor Size (cm)',  # 'Tumor Size MG',
-                  'MRI Technical Information:FOV Computed (Field of View) in cm ',  # 'Field of View',
-                  'MRI Technical Information:Contrast Bolus Volume (mL)',  # 'Contrast Bolus Volume',
-                  'Demographics:Race and Ethnicity',  # 'Race',
-                  'MRI Technical Information:Manufacturer Model Name',  # 'Manufacturer',
-                  'MRI Technical Information:Slice Thickness',  # 'Slice Thickness']
-                  ]
+        group1 = [
+            "MRI Findings:Skin/Nipple Invovlement",  # 'Skin Invovlement',
+            "US features:Tumor Size (cm)",  # 'Tumor Size US',
+            "Mammography Characteristics:Tumor Size (cm)",  # 'Tumor Size MG',
+            "MRI Technical Information:FOV Computed (Field of View) in cm ",  # 'Field of View',
+            "MRI Technical Information:Contrast Bolus Volume (mL)",  # 'Contrast Bolus Volume',
+            "Demographics:Race and Ethnicity",  # 'Race',
+            "MRI Technical Information:Manufacturer Model Name",  # 'Manufacturer',
+            "MRI Technical Information:Slice Thickness",  # 'Slice Thickness']
+        ]
         if self in (DukeLabelType.ispCR, DukeLabelType.STAGING_TUMOR_SIZE):
             fnames = group1
         elif self == DukeLabelType.HISTOLOGY_TYPE:
-            fname = 'MRI Findings:Multicentric/Multifocal'  # 'Multicentric'
+            fname = "MRI Findings:Multicentric/Multifocal"  # 'Multicentric'
             fnames = group1 + [fname]
         elif self == DukeLabelType.IS_HIGH_TUMOR_GRADE_TOTAL:
-            fnames = ['Mammography Characteristics:Breast Density',  # 'Breast Density MG',
-                      'Tumor Characteristics:PR',  # 'PR',
-                      'Tumor Characteristics:HER2',  # 'HER2',
-                      'Tumor Characteristics:ER',  # 'ER']
-                      ]
+            fnames = [
+                "Mammography Characteristics:Breast Density",  # 'Breast Density MG',
+                "Tumor Characteristics:PR",  # 'PR',
+                "Tumor Characteristics:HER2",  # 'HER2',
+                "Tumor Characteristics:ER",  # 'ER']
+            ]
         else:
             raise NotImplementedError(self)
         return clinical_features[fnames]
 
     def get_column_name(self):
         if self == DukeLabelType.ispCR:
-            return 'Near Complete Response:Overall Near-complete Response:  Stricter Definition'  # 'Near pCR Strict'
+            return "Near Complete Response:Overall Near-complete Response:  Stricter Definition"  # 'Near pCR Strict'
         if self == DukeLabelType.STAGING_TUMOR_SIZE:
-            return 'Tumor Characteristics:Staging(Tumor Size)# [T]'  # 'Staging Tumor Size'
+            return (
+                "Tumor Characteristics:Staging(Tumor Size)# [T]"  # 'Staging Tumor Size'
+            )
         if self == DukeLabelType.HISTOLOGY_TYPE:
-            return 'Tumor Characteristics:Histologic type'  # 'Histologic type'
+            return "Tumor Characteristics:Histologic type"  # 'Histologic type'
         # if self == DukeLabelType.IS_HIGH_TUMOR_GRADE_TOTAL:
         #     return 'Tumor Grade Total'
         raise NotImplementedError(self)
 
     def get_process_func(self):
         if self == DukeLabelType.ispCR:
+
             def update_func(ispCR):
                 if ispCR > 2:
                     return np.NaN
@@ -74,6 +79,7 @@ class DukeLabelType(Enum):
             return lambda val: 1 if val > 1 else 0
 
         if self == DukeLabelType.HISTOLOGY_TYPE:
+
             def update_func(histology_type):
                 if histology_type == 1:
                     return 0

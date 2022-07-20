@@ -28,9 +28,11 @@ class TestSeed(unittest.TestCase):
     """
     Test Seed functionality
     """
+
     def test_dataloader(self):
         # FIXME: test dataloader after dataset implementation
         pass
-        
-if __name__ == '__main__':
+
+
+if __name__ == "__main__":
     unittest.main()

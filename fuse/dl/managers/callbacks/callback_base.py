@@ -24,8 +24,8 @@ from fuse.dl.managers.manager_state import ManagerState
 
 class Callback(object):
     """
-        Abstract base class used to build new callbacks.
-        Callbacks are called at various stages during training and infer.
+    Abstract base class used to build new callbacks.
+    Callbacks are called at various stages during training and infer.
 
     """
 
@@ -42,7 +42,13 @@ class Callback(object):
         """
         pass
 
-    def on_step_end(self, step: int, train_results: Dict = None, validation_results: Dict = None, learning_rate: float = None) -> None:
+    def on_step_end(
+        self,
+        step: int,
+        train_results: Dict = None,
+        validation_results: Dict = None,
+        learning_rate: float = None,
+    ) -> None:
         """
         In general, a step is the part of the train that:
         handle_epoch for both train and validation data, update the scheduler and save checkpoint.
@@ -102,7 +108,9 @@ class Callback(object):
         """
         pass
 
-    def on_virtual_batch_end(self, mode: str, virtual_batch: int, virtual_batch_results: Dict = None) -> None:
+    def on_virtual_batch_end(
+        self, mode: str, virtual_batch: int, virtual_batch_results: Dict = None
+    ) -> None:
         """
 
         :param mode: either 'train', 'validation' or 'infer'
