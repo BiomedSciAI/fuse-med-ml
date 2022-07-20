@@ -38,7 +38,7 @@ def make_final_seq(foo: Callable, num: int, *args, **kwargs):
     Makes a sequence of blocks, but passes 'final_block'= True (to cut inside final block17)
     """
     l = [foo(*args, **kwargs) for i in range(num - 1)]
-    kwargs['final_block'] = True
+    kwargs["final_block"] = True
     l.append(foo(*args, **kwargs))
     return nn.Sequential(*l)
 
@@ -46,13 +46,10 @@ def make_final_seq(foo: Callable, num: int, *args, **kwargs):
 class BasicConv2d(nn.Module):
     def __init__(self, in_planes, out_planes, kernel_size, stride, padding=0):
         super(BasicConv2d, self).__init__()
-        self.conv = nn.Conv2d(in_planes, out_planes,
-                              kernel_size=kernel_size, stride=stride,
-                              padding=padding, bias=False)  # verify bias false
-        self.bn = nn.BatchNorm2d(out_planes,
-                                 eps=0.001,
-                                 momentum=0.01,  # changed from original 0.1
-                                 affine=True)
+        self.conv = nn.Conv2d(
+            in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=padding, bias=False
+        )  # verify bias false
+        self.bn = nn.BatchNorm2d(out_planes, eps=0.001, momentum=0.01, affine=True)  # changed from original 0.1
         self.relu = nn.ReLU(inplace=False)
 
     def forward(self, x):
@@ -69,19 +66,17 @@ class Mixed_5b(nn.Module):
         self.branch0 = BasicConv2d(192, 96, kernel_size=1, stride=1)
 
         self.branch1 = nn.Sequential(
-            BasicConv2d(192, 48, kernel_size=1, stride=1),
-            BasicConv2d(48, 64, kernel_size=5, stride=1, padding=2)
+            BasicConv2d(192, 48, kernel_size=1, stride=1), BasicConv2d(48, 64, kernel_size=5, stride=1, padding=2)
         )
 
         self.branch2 = nn.Sequential(
             BasicConv2d(192, 64, kernel_size=1, stride=1),
             BasicConv2d(64, 96, kernel_size=3, stride=1, padding=1),
-            BasicConv2d(96, 96, kernel_size=3, stride=1, padding=1)
+            BasicConv2d(96, 96, kernel_size=3, stride=1, padding=1),
         )
 
         self.branch3 = nn.Sequential(
-            nn.AvgPool2d(3, stride=1, padding=1, count_include_pad=False),
-            BasicConv2d(192, 64, kernel_size=1, stride=1)
+            nn.AvgPool2d(3, stride=1, padding=1, count_include_pad=False), BasicConv2d(192, 64, kernel_size=1, stride=1)
         )
 
     def forward(self, x):
@@ -102,14 +97,13 @@ class Block35(nn.Module):
         self.branch0 = BasicConv2d(320, 32, kernel_size=1, stride=1)
 
         self.branch1 = nn.Sequential(
-            BasicConv2d(320, 32, kernel_size=1, stride=1),
-            BasicConv2d(32, 32, kernel_size=3, stride=1, padding=1)
+            BasicConv2d(320, 32, kernel_size=1, stride=1), BasicConv2d(32, 32, kernel_size=3, stride=1, padding=1)
         )
 
         self.branch2 = nn.Sequential(
             BasicConv2d(320, 32, kernel_size=1, stride=1),
             BasicConv2d(32, 48, kernel_size=3, stride=1, padding=1),
-            BasicConv2d(48, 64, kernel_size=3, stride=1, padding=1)
+            BasicConv2d(48, 64, kernel_size=3, stride=1, padding=1),
         )
 
         self.conv2d = nn.Conv2d(128, 320, kernel_size=1, stride=1)
@@ -135,7 +129,7 @@ class Mixed_6a(nn.Module):
         self.branch1 = nn.Sequential(
             BasicConv2d(320, 256, kernel_size=1, stride=1),
             BasicConv2d(256, 256, kernel_size=3, stride=1, padding=1),
-            BasicConv2d(256, 384, kernel_size=3, stride=2)
+            BasicConv2d(256, 384, kernel_size=3, stride=2),
         )
 
         self.branch2 = nn.MaxPool2d(3, stride=2)
@@ -161,7 +155,7 @@ class Block17(nn.Module):
         self.branch1 = nn.Sequential(
             BasicConv2d(1088, 128, kernel_size=1, stride=1),
             BasicConv2d(128, 160, kernel_size=(1, 7), stride=1, padding=(0, 3)),
-            BasicConv2d(160, 192, kernel_size=(7, 1), stride=1, padding=(3, 0))
+            BasicConv2d(160, 192, kernel_size=(7, 1), stride=1, padding=(3, 0)),
         )
 
         self.conv2d = nn.Conv2d(384, 1088, kernel_size=1, stride=1)
@@ -187,19 +181,17 @@ class Mixed_7a(nn.Module):
         super(Mixed_7a, self).__init__()
 
         self.branch0 = nn.Sequential(
-            BasicConv2d(1088, 256, kernel_size=1, stride=1),
-            BasicConv2d(256, 384, kernel_size=3, stride=2)
+            BasicConv2d(1088, 256, kernel_size=1, stride=1), BasicConv2d(256, 384, kernel_size=3, stride=2)
         )
 
         self.branch1 = nn.Sequential(
-            BasicConv2d(1088, 256, kernel_size=1, stride=1),
-            BasicConv2d(256, 288, kernel_size=3, stride=2)
+            BasicConv2d(1088, 256, kernel_size=1, stride=1), BasicConv2d(256, 288, kernel_size=3, stride=2)
         )
 
         self.branch2 = nn.Sequential(
             BasicConv2d(1088, 256, kernel_size=1, stride=1),
             BasicConv2d(256, 288, kernel_size=3, stride=1, padding=1),
-            BasicConv2d(288, 320, kernel_size=3, stride=2)
+            BasicConv2d(288, 320, kernel_size=3, stride=2),
         )
 
         self.branch3 = nn.MaxPool2d(3, stride=2)
@@ -225,7 +217,7 @@ class Block8(nn.Module):
         self.branch1 = nn.Sequential(
             BasicConv2d(2080, 192, kernel_size=1, stride=1),
             BasicConv2d(192, 224, kernel_size=(1, 3), stride=1, padding=(0, 1)),
-            BasicConv2d(224, 256, kernel_size=(3, 1), stride=1, padding=(1, 0))
+            BasicConv2d(224, 256, kernel_size=(3, 1), stride=1, padding=(1, 0)),
         )
 
         self.conv2d = nn.Conv2d(448, 2080, kernel_size=1, stride=1)
@@ -244,17 +236,20 @@ class Block8(nn.Module):
 
 
 class BackboneInceptionResnetV2(nn.Module):
-    def __init__(self,
-                 logical_units_num: int = 14,
-                 intra_block_cut_level: int = 384,
-                 input_channels_num: int = 1,
-                 pretrained_weights_url: Optional[str] = 'http://data.lip6.fr/cadene/pretrainedmodels/inceptionresnetv2-520b38e4.pth') -> None:
+    def __init__(
+        self,
+        logical_units_num: int = 14,
+        intra_block_cut_level: int = 384,
+        input_channels_num: int = 1,
+        pretrained_weights_url: Optional[
+            str
+        ] = "http://data.lip6.fr/cadene/pretrainedmodels/inceptionresnetv2-520b38e4.pth",
+    ) -> None:
 
         super().__init__()
         self.logical_units_num = logical_units_num
         self.intra_block_cut_level = intra_block_cut_level
         self.input_channels_num = input_channels_num
-
 
         # Modules
         self.conv2d_1a = BasicConv2d(3, 32, kernel_size=3, stride=2)
@@ -277,8 +272,12 @@ class BackboneInceptionResnetV2(nn.Module):
 
         if self.logical_units_num >= 12:
             if 12 <= self.logical_units_num < 32:
-                self.repeat_1 = make_final_seq(Block17, min(self.logical_units_num - 12 + 1, 20), scale=0.10,
-                                               intra_block_cut_level=self.intra_block_cut_level)
+                self.repeat_1 = make_final_seq(
+                    Block17,
+                    min(self.logical_units_num - 12 + 1, 20),
+                    scale=0.10,
+                    intra_block_cut_level=self.intra_block_cut_level,
+                )
                 self.feature_depth = self.intra_block_cut_level
 
             else:
@@ -307,14 +306,12 @@ class BackboneInceptionResnetV2(nn.Module):
                 state_dict = load_state_dict_from_url(pretrained_weights_url)
                 self.load_state_dict(state_dict, strict=False)
             except AttributeError:
-                logger = logging.getLogger('Fuse')
-                logger.info('Invalid URL for InceptionResnetV2 pretrained weights')
+                logger = logging.getLogger("Fuse")
+                logger.info("Invalid URL for InceptionResnetV2 pretrained weights")
 
         # recreate the first conv with the required number of input parameters
         if input_channels_num != 3:
             self.conv2d_1a = BasicConv2d(input_channels_num, 32, kernel_size=3, stride=2)
-        
-
 
     def features(self, input_tensor):
         x = self.conv2d_1a(input_tensor)
@@ -349,7 +346,9 @@ class BackboneInceptionResnetV2(nn.Module):
         return x
 
     def forward(self, input_tensor):
-        feature_map = self.features(input_tensor)  # typical features shape when cutting at level 14 is [batch_size, 384, H, W]
+        feature_map = self.features(
+            input_tensor
+        )  # typical features shape when cutting at level 14 is [batch_size, 384, H, W]
         return feature_map
 
     def get_feature_depth(self):

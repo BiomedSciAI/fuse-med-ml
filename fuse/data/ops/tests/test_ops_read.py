@@ -25,53 +25,34 @@ from fuse.utils.ndict import NDict
 from fuse.data.ops.ops_read import OpReadDataframe
 
 
-
 class TestOpsRead(unittest.TestCase):
-    
     def test_op_read_dataframe(self):
         """
         Test OpReadDataframe
         """
-        data = {
-            "sample_id": ["a", "b", "c", "d"],
-            "value1": [10, 7, 3, 9],
-            "value2": ["5", "4", "3", "2"]
-        }
+        data = {"sample_id": ["a", "b", "c", "d"], "data.value1": [10, 7, 3, 9], "data.value2": ["5", "4", "3", "2"]}
         df = pd.DataFrame(data)
         op = OpReadDataframe(data=df)
-        sample_dict = NDict({
-            "data":
-            {
-                "sample_id": "c"
-            }
-        })
+        sample_dict = NDict({"data": {"sample_id": "c"}})
         sample_dict = op_call(op, sample_dict, "id")
         self.assertEqual(sample_dict["data.value1"], 3)
         self.assertEqual(sample_dict["data.value2"], "3")
-       
 
-        op = OpReadDataframe(data=df, columns_to_extract=["sample_id", "value2"])
-        sample_dict = NDict({
-            "data":
-            {
-                "sample_id": "c"
-            }
-        })
+        op = OpReadDataframe(data=df, columns_to_extract=["sample_id", "data.value2"])
+        sample_dict = NDict({"data": {"sample_id": "c"}})
         sample_dict = op_call(op, sample_dict, "id")
         self.assertFalse("data.value1" in sample_dict)
         self.assertEqual(sample_dict["data.value2"], "3")
 
-        op = OpReadDataframe(data=df, columns_to_extract=["sample_id", "value2"], rename_columns={"value2": "value3"})
-        sample_dict = NDict({
-            "data":
-            {
-                "sample_id": "c"
-            }
-        })
+        op = OpReadDataframe(
+            data=df, columns_to_extract=["sample_id", "data.value2"], rename_columns={"data.value2": "data.value3"}
+        )
+        sample_dict = NDict({"data": {"sample_id": "c"}})
         sample_dict = op_call(op, sample_dict, "id")
         self.assertFalse("data.value1" in sample_dict)
         self.assertFalse("data.value2" in sample_dict)
         self.assertEqual(sample_dict["data.value3"], "3")
-       
-if __name__ == '__main__':
+
+
+if __name__ == "__main__":
     unittest.main()

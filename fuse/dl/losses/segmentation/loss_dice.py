@@ -19,14 +19,13 @@ Created on June 30, 2021
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import numpy as np
 from fuse.dl.losses.loss_base import LossBase
 from fuse.utils.ndict import NDict
-from typing import Callable, Dict, Optional
+from typing import Callable, Optional
 
 
-def make_one_hot(input, num_classes, device='cuda'):
+def make_one_hot(input, num_classes):
     """Convert class index tensor to one hot encoding tensor.
     Args:
          input: A tensor of shape [N, 1, *]
@@ -37,16 +36,15 @@ def make_one_hot(input, num_classes, device='cuda'):
     shape = np.array(input.shape)
     shape[1] = num_classes
     shape = tuple(shape)
-    result = torch.zeros(shape, device=device)
+    result = torch.zeros(shape, device=input.device)
     result = result.scatter_(1, input, 1)
 
     return result
 
 
 class BinaryDiceLoss(nn.Module):
-
-    def __init__(self, power: int=1, eps: float =1., reduction: str = 'mean'):
-        '''
+    def __init__(self, power: int = 1, eps: float = 1.0, reduction: str = "mean"):
+        """
         :param power:       Denominator value: \sum{x^p} + \sum{y^p}, default: 1
         :param eps:         A float number to smooth loss, and avoid NaN error, default: 1
         :param reduction:   Reduction method to apply, return mean over batch if 'mean',
@@ -54,7 +52,7 @@ class BinaryDiceLoss(nn.Module):
 
         Returns:            Loss tensor according to arg reduction
         Raise:              Exception if unexpected reduction
-        '''
+        """
         super().__init__()
         self.p = power
         self.reduction = reduction
@@ -67,31 +65,33 @@ class BinaryDiceLoss(nn.Module):
 
         if target.dtype == torch.int64:
             target = target.type(torch.float32).to(target.device)
-        num = 2*torch.sum(torch.mul(predict, target), dim=1) + self.eps
+        num = 2 * torch.sum(torch.mul(predict, target), dim=1) + self.eps
         den = torch.sum(predict.pow(self.p) + target.pow(self.p), dim=1) + self.eps
         loss = 1 - num / den
 
         # return loss
-        if self.reduction == 'mean':
+        if self.reduction == "mean":
             return loss.mean()
-        elif self.reduction == 'sum':
+        elif self.reduction == "sum":
             return loss.sum()
-        elif self.reduction == 'none':
+        elif self.reduction == "none":
             return loss
         else:
-            raise Exception('Unexpected reduction {}'.format(self.reduction))
+            raise Exception("Unexpected reduction {}".format(self.reduction))
 
 
 class DiceLoss(LossBase):
-
-    def __init__(self, pred_name,
-                 target_name,
-                 filter_func: Optional[Callable] = None,
-                 class_weights=None,
-                 ignore_cls_index_list=None,
-                 resize_mode: str = 'maxpool',
-                 **kwargs):
-        '''
+    def __init__(
+        self,
+        pred_name,
+        target_name,
+        filter_func: Optional[Callable] = None,
+        class_weights=None,
+        ignore_cls_index_list=None,
+        resize_mode: str = "maxpool",
+        **kwargs
+    ):
+        """
 
         :param pred_name:                batch_dict key for predicted output (e.g., class probabilities after softmax).
                                          Expected Tensor shape = [batch, num_classes, height, width]
@@ -102,7 +102,7 @@ class DiceLoss(LossBase):
         :param resize_mode:              Resize mode- either using a max pooling kernel(default), or using PyTorch
                                          interpolation ('interpolate'/'maxpool')
         :param kwargs:                   args pass to BinaryDiceLoss
-        '''
+        """
 
         super().__init__(pred_name, target_name, class_weights)
         self.class_weights = class_weights
@@ -126,15 +126,17 @@ class DiceLoss(LossBase):
         nt, ct, ht, wt = target.shape
 
         if h != ht or w != wt:  # upsample
-            if self.resize_mode == 'maxpool':
+            if self.resize_mode == "maxpool":
                 block_height = int(ht / h)
                 block_width = int(wt / w)
                 residual_h = int((ht - (block_height * h)) / 2)
                 residual_w = int((wt - (block_width * w)) / 2)
 
-                target = torch.nn.functional.max_pool2d(target[:, :, residual_h:ht - residual_h, residual_w:wt - residual_w],
-                                                         kernel_size=(block_height, block_width))
-            elif self.resize_mode == 'interpolate':
+                target = torch.nn.functional.max_pool2d(
+                    target[:, :, residual_h : ht - residual_h, residual_w : wt - residual_w],
+                    kernel_size=(block_height, block_width),
+                )
+            elif self.resize_mode == "interpolate":
                 target = torch.nn.functional.interpolate(target, size=(h, w))
             else:
                 raise Exception
@@ -146,17 +148,18 @@ class DiceLoss(LossBase):
         if n_classes > 1 and target.shape[1] != n_classes:
             target = make_one_hot(target, n_classes)
 
-        assert predict.shape == target.shape, 'predict & target shape do not match'
+        assert predict.shape == target.shape, "predict & target shape do not match"
 
         total_class_weights = sum(self.class_weights) if self.class_weights is not None else n_classes
         for cls_index in range(n_classes):
             if cls_index not in self.ignore_cls_index_list:
                 dice_loss = self.dice(predict[:, cls_index, :, :], target[:, cls_index, :, :])
                 if self.class_weights is not None:
-                    assert self.class_weights.shape[0] == n_classes, \
-                        'Expect weight shape [{}], got[{}]'.format(n_classes, self.class_weights.shape[0])
+                    assert self.class_weights.shape[0] == n_classes, "Expect weight shape [{}], got[{}]".format(
+                        n_classes, self.class_weights.shape[0]
+                    )
                     dice_loss *= self.class_weights[cls_index]
                 total_loss += dice_loss
         total_loss /= total_class_weights
 
-        return self.weight*total_loss
+        return self.weight * total_loss

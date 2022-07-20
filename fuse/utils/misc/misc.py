@@ -16,11 +16,6 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-import torch
-
-"""
-Fuse miscellaneous utils
-"""
 import logging
 import sys
 import time
@@ -62,9 +57,8 @@ class Misc:
         # can't prompt for answer in notebooks, assume yes
         if Misc.in_ipynb():
             return True
-        
-        valid = {"yes": True, "y": True, "ye": True,
-                 "no": False, "n": False}
+
+        valid = {"yes": True, "y": True, "ye": True, "no": False, "n": False}
         if default is None:
             prompt = " [y/n] "
         elif default == "yes":
@@ -77,14 +71,13 @@ class Misc:
         while True:
             sys.stdout.write(question + prompt)
             sys.stdout.flush()
-            choice = sys.stdin.readline().rstrip('\r\n').lower()
-            if default is not None and choice == '':
+            choice = sys.stdin.readline().rstrip("\r\n").lower()
+            if default is not None and choice == "":
                 return valid[default]
             elif choice in valid:
                 return valid[choice]
             else:
-                sys.stdout.write("Please respond with 'yes' or 'no' "
-                                 "(or 'y' or 'n').\n")
+                sys.stdout.write("Please respond with 'yes' or 'no' " "(or 'y' or 'n').\n")
 
     @staticmethod
     def squeeze_obj(obj: Any) -> Any:
@@ -117,16 +110,16 @@ class Misc:
         :param batch_dict: might be any dict
         :return: string representation of the batch dict
         """
-        res = ''
+        res = ""
         all_keys = batch_dict.keypaths()
         for key in all_keys:
             value = batch_dict[key]
-            res += f'{key} : type={type(value)}'
+            res += f"{key} : type={type(value)}"
             if isinstance(value, (np.ndarray, Tensor)):
-                res += f', dtype={value.dtype}, shape={value.shape}'
+                res += f", dtype={value.dtype}, shape={value.shape}"
             elif isinstance(value, Sequence):
-                res += f', length={len(value)}'
-            res += '\n'
+                res += f", length={len(value)}"
+            res += "\n"
         return res
 
     @staticmethod
@@ -144,10 +137,10 @@ class Misc:
 def time_display(seconds, granularity=3):
     intervals = (
         # ('weeks', 604800),  # 60 * 60 * 24 * 7
-        ('days', 86400),  # 60 * 60 * 24
-        ('hours', 3600),  # 60 * 60
-        ('minutes', 60),
-        ('seconds', 1),
+        ("days", 86400),  # 60 * 60 * 24
+        ("hours", 3600),  # 60 * 60
+        ("minutes", 60),
+        ("seconds", 1),
     )
     if seconds < 1:
         return "< second"
@@ -157,25 +150,25 @@ def time_display(seconds, granularity=3):
         if value:
             seconds -= value * count
             if value == 1:
-                name = name.rstrip('s')
+                name = name.rstrip("s")
             result.append("%d %s" % (value, name))
-    return ', '.join(result[:granularity])
+    return ", ".join(result[:granularity])
 
 
 def get_pretty_dataframe(df, col_width=25):
     # check is col_width needs to be widen (so that dashes are in one line)
-    max_val_width = np.vectorize(len)(df.values.astype(str)).max() # get maximum length of all values
+    max_val_width = np.vectorize(len)(df.values.astype(str)).max()  # get maximum length of all values
     max_col_width = max([len(x) for x in df.columns])  # get the maximum lengths of all column names
     col_width = max(max_col_width, max_val_width, col_width)
 
     dashes = (col_width + 2) * len(df.columns.values)
     df_as_string = f"\n{'-' * dashes}\n"
     for col in df.columns.values:
-        df_as_string += f'| {col:{col_width}}'
+        df_as_string += f"| {col:{col_width}}"
     df_as_string += f"|\n{'-' * dashes}\n"
     for idx, row in df.iterrows():
         for col in df.columns.values:
-            df_as_string += f'| {row[col]:{col_width}}'
+            df_as_string += f"| {row[col]:{col_width}}"
 
         df_as_string += f"|\n{'-' * dashes}\n"
     return df_as_string
@@ -212,24 +205,24 @@ def autodetect_input_source(input_source: Union[str, pd.DataFrame, Sequence[Hash
     # Python list of sample descriptors
     # ---------------------------------
     elif isinstance(input_source, (list, tuple)):
-        df = pd.DataFrame({'sample_desc': input_source})
+        df = pd.DataFrame({"sample_desc": input_source})
 
     # Path to:
     # --------
     elif isinstance(input_source, str):
-        file_extension = input_source.lower().split('.')[-1]
+        file_extension = input_source.lower().split(".")[-1]
 
         # Text file
         # ---------
-        if file_extension in ['text', 'txt']:
-            with open(input_source, 'r') as f:
+        if file_extension in ["text", "txt"]:
+            with open(input_source, "r") as f:
                 lines = f.readlines()
                 sample_descs = [line.strip() for line in lines]
-                df = pd.DataFrame({'sample_desc': sample_descs})
+                df = pd.DataFrame({"sample_desc": sample_descs})
 
         # Pickled DataFrame
         # -----------------
-        if file_extension in ['p', 'pkl', 'pickle', 'gz', 'bz2', 'zip', 'xz']:
+        if file_extension in ["p", "pkl", "pickle", "gz", "bz2", "zip", "xz"]:
             df = pd.read_pickle(input_source)
 
     return df
@@ -239,6 +232,7 @@ class Singleton(type):
     """
     Singleton metaclass
     """
+
     _instances = {}
     _lock = Lock()
 
@@ -248,6 +242,8 @@ class Singleton(type):
                 cls._instances[cls] = super().__call__(*args, **kwargs)
             else:
                 if len(args) + len(kwargs) > 0:
-                    logging.getLogger('Fuse').warning('Ignoring a redefinition of the singleton of class {class_.__name__}')
+                    logging.getLogger("Fuse").warning(
+                        "Ignoring a redefinition of the singleton of class {class_.__name__}"
+                    )
 
             return cls._instances[cls]

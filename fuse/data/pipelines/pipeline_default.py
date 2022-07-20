@@ -22,6 +22,7 @@ from fuse.utils.misc.context import DummyContext
 from fuse.utils.ndict import NDict
 from fuse.utils.cpu_profiling.timer import Timer
 
+
 class PipelineDefault(OpReversibleBase):
     """
     Pipeline default implementation
@@ -29,7 +30,13 @@ class PipelineDefault(OpReversibleBase):
     See OpBase for more information
     """
 
-    def __init__(self, name: str, ops_and_kwargs: List[Tuple[OpBase, dict]], op_ids: Optional[List[str]] = None, verbose: bool=False):
+    def __init__(
+        self,
+        name: str,
+        ops_and_kwargs: List[Tuple[OpBase, dict]],
+        op_ids: Optional[List[str]] = None,
+        verbose: bool = False,
+    ):
         """
         :param name: pipeline name
         :param ops_and_args: List of tuples. Each tuple include op and dictionary includes op specific arguments.
@@ -47,7 +54,7 @@ class PipelineDefault(OpReversibleBase):
             self._op_ids = op_ids
         self._verbose = verbose
 
-    def extend(self,  ops_and_kwargs: List[Tuple[OpBase, dict]], op_ids: Optional[List[str]] = None):
+    def extend(self, ops_and_kwargs: List[Tuple[OpBase, dict]], op_ids: Optional[List[str]] = None):
         """
         Extends pipeline
         :param ops_and_args: Ops to append, List of tuples. Each tuple include op and dictionary includes op specific arguments.
@@ -59,10 +66,9 @@ class PipelineDefault(OpReversibleBase):
             assert len(ops_and_kwargs) == len(op_ids), "Expecting op_id for every op"
             all_op_ids = self._op_ids + op_ids
             assert len(set(all_op_ids)) == len(all_op_ids), "Expecting unique op id for every op."
-        
+
         self._ops_and_kwargs.extend(ops_and_kwargs)
         self._op_ids.extend(op_ids)
-        
 
     def get_name(self) -> str:
         return self._name
@@ -71,10 +77,12 @@ class PipelineDefault(OpReversibleBase):
         text = []
         for (op_id, op_kwargs) in zip(self._op_ids, self._ops_and_kwargs):
             op, kwargs = op_kwargs
-            text.append(str(op_id)+'@'+op.get_hashable_string_representation() + '@' + str(kwargs)+'@')            
-        return ''.join(text) #this is faster than accumulate_str+=new_str
-    
-    def __call__(self, sample_dict: NDict, op_id: Optional[str] = None, until_op_id: Optional[str] = None) -> Union[None, dict, List[dict]]:
+            text.append(str(op_id) + "@" + op.get_hashable_string_representation() + "@" + str(kwargs) + "@")
+        return "".join(text)  # this is faster than accumulate_str+=new_str
+
+    def __call__(
+        self, sample_dict: NDict, op_id: Optional[str] = None, until_op_id: Optional[str] = None
+    ) -> Union[None, dict, List[dict]]:
         """
         See super class
         plus
@@ -91,27 +99,25 @@ class PipelineDefault(OpReversibleBase):
             else:
                 context = DummyContext()
             with context:
-                    samples_to_process_next = []
+                samples_to_process_next = []
 
-                    for sample in samples_to_process:
+                for sample in samples_to_process:
 
-                        
-                        sample = op_call(op, sample, f"{op_id}.{sub_op_id}", **op_kwargs)
-          
-                        # three options for return value:
-                        # None - ignore the sample
-                        # List of dicts - split sample
-                        # dict - modified sample
-                        if sample is None:
-                            return None
-                        elif isinstance(sample, list):
-                            samples_to_process_next += sample
-                        elif isinstance(sample, dict):
-                            samples_to_process_next.append(sample)
-                        else:
-                            raise Exception(
-                                f"unexpected sample type returned by {type(op)}: {type(sample)}")
-                
+                    sample = op_call(op, sample, f"{op_id}.{sub_op_id}", **op_kwargs)
+
+                    # three options for return value:
+                    # None - ignore the sample
+                    # List of dicts - split sample
+                    # dict - modified sample
+                    if sample is None:
+                        return None
+                    elif isinstance(sample, list):
+                        samples_to_process_next += sample
+                    elif isinstance(sample, dict):
+                        samples_to_process_next.append(sample)
+                    else:
+                        raise Exception(f"unexpected sample type returned by {type(op)}: {type(sample)}")
+
             # continue to process with next op
             samples_to_process = samples_to_process_next
 
@@ -131,10 +137,9 @@ class PipelineDefault(OpReversibleBase):
         """
         # set op_id if not specified
         if op_id is None:
-            op_id = self._name
+            op_id = f"internal.{self._name}"
 
         for sub_op_id, (op, _) in zip(reversed(self._op_ids), reversed(self._ops_and_kwargs)):
-            sample_dict = op_reverse(op,
-                sample_dict, f"{op_id}.{sub_op_id}", key_to_reverse, key_to_follow)
+            sample_dict = op_reverse(op, sample_dict, f"{op_id}.{sub_op_id}", key_to_reverse, key_to_follow)
 
         return sample_dict

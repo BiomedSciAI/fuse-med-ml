@@ -22,14 +22,16 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from typing import Dict, Tuple, Sequence, Optional
-from fuse.utils.ndict import NDict
+
 
 class ClassifierLinear(nn.Module):
-    def __init__(self,
-                 in_ch: Sequence[int] = (256,),
-                 num_classes: float = 2,
-                 layers_description: Sequence[int] = (256,),
-                 dropout_rate: float = 0.1,):
+    def __init__(
+        self,
+        in_ch: Sequence[int] = (256,),
+        num_classes: float = 2,
+        layers_description: Sequence[int] = (256,),
+        dropout_rate: float = 0.1,
+    ):
 
         super(ClassifierLinear, self).__init__()
 
@@ -40,7 +42,7 @@ class ClassifierLinear(nn.Module):
             if dropout_rate is not None and dropout_rate > 0:
                 layer_list.append(nn.Dropout(p=dropout_rate))
             last_layer_size = layers_description[0]
-            if len(layers_description)>1:
+            if len(layers_description) > 1:
                 for curr_layer_size in layers_description[1:]:
                     layer_list.append(nn.Linear(last_layer_size, curr_layer_size))
                     layer_list.append(nn.ReLU())
@@ -57,11 +59,14 @@ class ClassifierLinear(nn.Module):
         x = self.classifier(x)
         return x
 
+
 class LinearLayers(nn.Module):
-    def __init__(self,
-                 in_ch: Sequence[int] = (256,),
-                 layers_description: Sequence[int] = (256,),
-                 dropout_rate: float = 0.1,):
+    def __init__(
+        self,
+        in_ch: Sequence[int] = (256,),
+        layers_description: Sequence[int] = (256,),
+        dropout_rate: float = 0.1,
+    ):
 
         super(LinearLayers, self).__init__()
         layer_list = []
@@ -70,7 +75,7 @@ class LinearLayers(nn.Module):
         if dropout_rate is not None and dropout_rate > 0:
             layer_list.append(nn.Dropout(p=dropout_rate))
         last_layer_size = layers_description[0]
-        if len(layers_description)>1:
+        if len(layers_description) > 1:
             for curr_layer_size in layers_description[1:]:
                 layer_list.append(nn.Linear(last_layer_size, curr_layer_size))
                 layer_list.append(nn.ReLU())
@@ -84,18 +89,19 @@ class LinearLayers(nn.Module):
         x = self.classifier(x)
         return x
 
-class Head1DClassifier(nn.Module):
-    def __init__(self,
-                 head_name: str = 'head_0',
-                 conv_inputs: Sequence[Tuple[str, int]] = None, 
-                 num_classes: int = 2,
-                 post_concat_inputs: Optional[Sequence[Tuple[str, int]]] = None,
-                 post_concat_model: Optional[Sequence[int]] = None,
-                 layers_description: Sequence[int] = (256,),
-                 dropout_rate: float = 0.1,
-                 shared_classifier_head: Optional[torch.nn.Module] = None,
 
-                 ) -> None:
+class Head1DClassifier(nn.Module):
+    def __init__(
+        self,
+        head_name: str = "head_0",
+        conv_inputs: Sequence[Tuple[str, int]] = None,
+        num_classes: int = 2,
+        post_concat_inputs: Optional[Sequence[Tuple[str, int]]] = None,
+        post_concat_model: Optional[Sequence[int]] = None,
+        layers_description: Sequence[int] = (256,),
+        dropout_rate: float = 0.1,
+        shared_classifier_head: Optional[torch.nn.Module] = None,
+    ) -> None:
         """
         Classifier head 1d.
 
@@ -116,9 +122,8 @@ class Head1DClassifier(nn.Module):
         """
         super().__init__()
 
-
         self.head_name = head_name
-        assert conv_inputs is not None, 'conv_inputs must be provided'
+        assert conv_inputs is not None, "conv_inputs must be provided"
         self.conv_inputs = conv_inputs
         self.post_concat_inputs = post_concat_inputs
         self.post_concat_model = post_concat_model
@@ -132,38 +137,33 @@ class Head1DClassifier(nn.Module):
         elif self.post_concat_model is not None:
             # concat post_concat_input features from classifier_post_concat_model to conv_input
             features_depth_post_concat = sum([post_concat_input[1] for post_concat_input in post_concat_inputs])
-            self.classifier_post_concat_model = LinearLayers(in_ch=features_depth_post_concat,
-                                                           layers_description=self.post_concat_model,
-                                                           dropout_rate=dropout_rate)
-
-
-
+            self.classifier_post_concat_model = LinearLayers(
+                in_ch=features_depth_post_concat, layers_description=self.post_concat_model, dropout_rate=dropout_rate
+            )
 
         if shared_classifier_head is not None:
             self.classifier_head_module = shared_classifier_head
         else:
-            self.classifier_head_module = ClassifierLinear(in_ch=feature_depth,
-                                                        num_classes=num_classes,
-                                                        layers_description=layers_description,
-                                                        dropout_rate=dropout_rate)
+            self.classifier_head_module = ClassifierLinear(
+                in_ch=feature_depth,
+                num_classes=num_classes,
+                layers_description=layers_description,
+                dropout_rate=dropout_rate,
+            )
 
-
-
-
-    def forward(self,
-                batch_dict: Dict) -> Dict:
+    def forward(self, batch_dict: Dict) -> Dict:
 
         conv_input = torch.cat([batch_dict[conv_input[0]] for conv_input in self.conv_inputs])
 
         res = conv_input
 
-
         if self.post_concat_inputs is not None:
             post_concat_input = torch.cat(
-                [batch_dict[post_concat_input[0]] for post_concat_input in self.post_concat_inputs])
+                [batch_dict[post_concat_input[0]] for post_concat_input in self.post_concat_inputs]
+            )
             if self.post_concat_model is None:
                 # concat post_concat_input directly to conv_input
-                res = torch.cat([res, post_concat_input],dim=1)
+                res = torch.cat([res, post_concat_input], dim=1)
             else:
                 # concat post_concat_input features from classifier_post_concat_model to conv_input
                 post_concat_input_feat = self.classifier_post_concat_model(post_concat_input)
@@ -176,7 +176,7 @@ class Head1DClassifier(nn.Module):
 
         cls_preds = F.softmax(logits, dim=1)
 
-        batch_dict['model.logits.' + self.head_name] = logits
-        batch_dict['model.output.' + self.head_name] = cls_preds
+        batch_dict["model.logits." + self.head_name] = logits
+        batch_dict["model.output." + self.head_name] = cls_preds
 
         return batch_dict

@@ -1,0 +1,54 @@
+[flake8]
+max-line-length = 120
+
+# Errors to ignore   - TODO: Double check
+ignore = 
+    # Line too long
+    E501,
+    # whitespace before ','
+    E203,
+    # block comment should start with ‘# ‘ 
+    E265,
+    # too many leading ‘#’ for block comment
+    E266,
+    # do not use bare 'except'  <- Consider fix and delete ignore
+    E722
+    # do not use variables named ‘l’, ‘O’, or ‘I’
+    E741,
+    # do not assign a lambda expression, use a def
+    E731
+    # line break before binary operator
+    W503,
+    # invalid escape sequence '\s'
+    W605
+    # '<X>' may be undefined, or defined from star imports: <Y>
+    F405
+
+# Files to exclude:
+exclude =
+    # TEMP - ignore all tests
+    test_*
+
+    ## General Excludes (TEMP, double check)
+    # .py files
+    __init__.py
+    run_all_unit_tests.py
+    setup.py
+    # others
+    .cache
+    .dvc
+    .git
+    .github
+    .idea
+    .mypy_cache
+    .pytest_cache
+    .venv
+    .vscode
+    __pycache__
+    algos
+    build
+    dist
+    ext_deps
+    libs
+    releases
+    
