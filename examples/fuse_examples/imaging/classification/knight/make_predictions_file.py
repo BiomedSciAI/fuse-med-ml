@@ -28,10 +28,6 @@ import torch
 from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import save_dataframe
 
-from fuse.dl.models import ModelMultiHead
-from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
-from fuse.dl.models.heads.head_3D_classifier import Head3DClassifier
-
 from examples.fuse_examples.imaging.classification.knight.eval.eval import TASK1_CLASS_NAMES, TASK2_CLASS_NAMES
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 import pytorch_lightning as pl
