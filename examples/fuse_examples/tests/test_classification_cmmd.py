@@ -37,68 +37,65 @@ if "CMMD_DATA_PATH" in os.environ:
     from fuse_examples.imaging.classification.cmmd.runner import run_train, run_eval, run_infer
 
 
+def run_cmmd(root: str) -> None:
+    cfg = NDict(
+        {
+            "paths": {
+                "data_dir": os.environ["CMMD_DATA_PATH"],
+                "model_dir": os.path.join(root, "model_new/InceptionResnetV2_2017_test"),
+                "inference_dir": os.path.join(root, "model_new/infer_dir"),
+                "eval_dir": os.path.join(root, "model_new/eval_dir"),
+                "cache_dir": os.path.join(root, "examples/CMMD_cache_dir"),
+                "data_misc_dir": os.path.join(root, "data_misc"),
+                "data_split_filename": "cmmd_split.pkl",
+            },
+            "run": {"running_modes": ["train", "infer", "eval"]},
+            "train": {
+                "target": "classification",
+                "reset_cache": False,
+                "num_workers": 10,
+                "num_folds": 5,
+                "train_folds": [0, 1, 2],
+                "validation_folds": [3],
+                "batch_size": 2,
+                "learning_rate": 0.0001,
+                "weight_decay": 0,
+                "resume_checkpoint_filename": None,
+                "trainer": {"accelerator": "gpu", "devices": 1, "num_epochs": 2, "ckpt_path": None},
+            },
+            "infer": {
+                "infer_filename": "validation_set_infer.gz",
+                "checkpoint": "best_epoch.ckpt",
+                "infer_folds": [4],
+                "target": "classification",
+                "num_workers": 10,
+            },
+        }
+    )
+    print(cfg)
+    # uncomment if you want to use specific gpus instead of automatically looking for free ones
+    force_gpus = None  # [0]
+    choose_and_enable_multiple_gpus(cfg["train.trainer.devices"], force_gpus=force_gpus)
+
+    run_train(cfg["paths"], cfg["train"])
+    run_infer(cfg["train"], cfg["paths"], cfg["infer"])
+    results = run_eval(cfg["paths"], cfg["infer"])
+
+    assert "metrics.auc" in results
+
+
 @unittest.skipIf("CMMD_DATA_PATH" not in os.environ, "define environment variable 'CMMD_DATA_PATH' to run this test")
 class ClassificationMGCmmdTestCase(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.mkdtemp()
-        self.cfg = NDict(
-            {
-                "paths": {
-                    "data_dir": os.environ["CMMD_DATA_PATH"],
-                    "model_dir": os.path.join(self.root, "model_new/InceptionResnetV2_2017_test"),
-                    "inference_dir": os.path.join(self.root, "model_new/infer_dir"),
-                    "eval_dir": os.path.join(self.root, "model_new/eval_dir"),
-                    "cache_dir": os.path.join(self.root, "examples/CMMD_cache_dir"),
-                    "data_misc_dir": os.path.join(self.root, "data_misc"),
-                    "data_split_filename": "cmmd_split.pkl",
-                },
-                "run": {"running_modes": ["train", "infer", "eval"]},
-                "train": {
-                    "target": "classification",
-                    "reset_cache": False,
-                    "num_workers": 10,
-                    "num_folds": 5,
-                    "train_folds": [0, 1, 2],
-                    "validation_folds": [3],
-                    "batch_size": 2,
-                    "learning_rate": 0.0001,
-                    "weight_decay": 0,
-                    "resume_checkpoint_filename": None,
-                    "trainer": {"accelerator": "gpu", "devices": 1, "num_epochs": 2, "ckpt_path": None},
-                },
-                "infer": {
-                    "infer_filename": "validation_set_infer.gz",
-                    "checkpoint": "best_epoch.ckpt",
-                    "infer_folds": [4],
-                    "target": "classification",
-                    "num_workers": 10,
-                },
-            }
-        )
 
-        print(self.cfg)
-
-    @run_in_subprocess()
     def test_runner(self):
-        # uncomment if you want to use specific gpus instead of automatically looking for free ones
-        force_gpus = None  # [0]
-        choose_and_enable_multiple_gpus(self.cfg["train.trainer.devices"], force_gpus=force_gpus)
-
-        run_train(self.cfg["paths"], self.cfg["train"])
-        run_infer(self.cfg["train"], self.cfg["paths"], self.cfg["infer"])
-        results = run_eval(self.cfg["paths"], self.cfg["infer"])
-
-        self.assertTrue("metrics.auc" in results)
+        run_in_subprocess(run_cmmd, self.root)
 
     def tearDown(self):
         # Delete temporary directories
         shutil.rmtree(self.root)
 
 
-def main() -> None:
-
-    unittest.main()
-
-
 if __name__ == "__main__":
-    main()
+    unittest.main()

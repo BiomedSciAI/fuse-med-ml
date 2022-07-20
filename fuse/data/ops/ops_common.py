@@ -92,19 +92,31 @@ class OpLambda(OpReversibleBase):
         self._func_reverse = func_reverse
 
     def __call__(
-        self, sample_dict: NDict, op_id: Optional[str], key: Optional[str] = None, **kwargs
+        self,
+        sample_dict: NDict,
+        op_id: Optional[str],
+        key: Optional[str] = None,
+        key_out: Optional[str] = None,
+        **kwargs,
     ) -> Union[None, dict, List[dict]]:
         """
         More details in super class
-        :param key: apply lambda func on sample_dict[key]. If none the input and output of the lambda function are the entire sample_dict
+        :param key [Optional]: apply lambda func on sample_dict[key]. If none (default) the input and output of the lambda function are the entire sample_dict
+        :param key_out [Optional]: sample_dict[key_out] = func(sample_dict[key])
         """
         sample_dict[op_id] = key
         if key is not None:
             value = sample_dict[key]
             value = self._func(value, **kwargs)
-            sample_dict[key] = value
+            res = value
         else:
-            sample_dict = self._func(sample_dict)
+            res = self._func(sample_dict)
+        if key_out is not None:
+            sample_dict[key_out] = res
+        elif key is not None:
+            sample_dict[key] = res
+        else:
+            sample_dict = res
 
         return sample_dict
 
@@ -376,9 +388,8 @@ class OpKeepKeypaths(OpBase):
     def __call__(self, sample_dict: NDict, keep_keypaths: List[str]) -> Union[None, dict, List[dict]]:
         prev_sample_dict = sample_dict
         sample_dict = NDict()
-        for k in keep_keypaths:
+        for k in ["data.initial_sample_id", "data.sample_id"] + keep_keypaths:
             sample_dict[k] = prev_sample_dict[k]
-
         return sample_dict
 
 

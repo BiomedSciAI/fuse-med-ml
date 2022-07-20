@@ -18,6 +18,13 @@ with open(os.path.join(HERE, "fuse/requirements.txt"), "r") as fh:
         if not line.startswith("#"):
             fuse_requirements.append(line.strip())
 
+# list of requirements for core packages for development
+fuse_requirements_dev = []
+with open(os.path.join(HERE, "fuse/requirements_dev.txt"), "r") as fh:
+    for line in fh:
+        if not line.startswith("#"):
+            fuse_requirements_dev.append(line.strip())
+
 # list of requirements for fuseimg
 fuseimg_requirements = []
 with open(os.path.join(HERE, "fuseimg/requirements.txt"), "r") as fh:
@@ -26,7 +33,7 @@ with open(os.path.join(HERE, "fuseimg/requirements.txt"), "r") as fh:
             fuseimg_requirements.append(line.strip())
 
 # all extra requires
-all_requirements = fuseimg_requirements
+all_requirements = fuseimg_requirements + fuse_requirements_dev
 # version
 from fuse.version import __version__  # noqa
 
@@ -44,5 +51,5 @@ setup(
     packages=find_namespace_packages(),
     license="Apache License 2.0",
     install_requires=fuse_requirements,
-    extras_require={"fuseimg": fuseimg_requirements, "all": all_requirements},
+    extras_require={"fuseimg": fuseimg_requirements, "dev": fuse_requirements_dev, "all": all_requirements},
 )

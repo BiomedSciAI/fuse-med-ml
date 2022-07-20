@@ -16,7 +16,6 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-
 import pathlib
 import sys
 import os
@@ -34,11 +33,9 @@ from fuse.eval.evaluator import EvaluatorDefault
 
 from fuse.eval.metrics.classification.metrics_classification_common import (
     MetricAUCROC,
-    MetricConfusionMatrix,
     MetricROCCurve,
 )
 from fuse.eval.metrics.metrics_common import CI
-from pandas.core.frame import DataFrame
 
 
 ## Constants
@@ -135,7 +132,7 @@ def decode_results(results: NDict, output_dir: str, task1: bool, task2: bool) ->
         results_text += "# Task 1 - adjuvant treatment candidacy classification\n"
         results_text += f"AUC: {results_table['Task1-AUC']} {results_table['Task1-AUC-CI']}\n"
         results_text += "## ROC Curve\n"
-        results_text += f'<br/>\n<img src="task1_roc.png" alt="drawing" width="40%"/>\n<br/>\n'
+        results_text += '<br/>\n<img src="task1_roc.png" alt="drawing" width="40%"/>\n<br/>\n'
 
     ## task 2
     if task2:
@@ -147,13 +144,13 @@ def decode_results(results: NDict, output_dir: str, task1: bool, task2: bool) ->
         results_text += "\n|"
         results_text += "".join([f" {column} |" for column in table_columns])
         results_text += "\n|"
-        results_text += "".join([f" ------ |" for column in table_columns])
+        results_text += "".join([" ------ |" for column in table_columns])
         results_text += "\n|"
         results_text += "".join(
             [f" {results_table[f'Task2-{column}']} {results_table[f'Task2-{column}-CI']} |" for column in table_columns]
         )
         results_text += "\n## ROC Curve\n"
-        results_text += f'<br/>\n<img src="task2_roc.png" alt="drawing" width="40%"/>\n<br/>\n'
+        results_text += '<br/>\n<img src="task2_roc.png" alt="drawing" width="40%"/>\n<br/>\n'
 
     # save files
     with open(os.path.join(output_dir, "results.md"), "w") as output_file:
@@ -291,7 +288,7 @@ if __name__ == "__main__":
     Run evaluation:
     Usage: python eval.py <target_filename> <task1 prediction_filename> <task2 prediction_filename> <output dir>
     See details in function eval()
-    Run dummy example (set the working dir to fuse-med-ml/fuse_examples/imaging/classification/knight/eval): python eval.py example/example_targets.csv example/example_task1_predictions.csv example/example_task2_predictions.csv example/results
+    Run dummy example (set the working dir to fuse-med-ml/examples/fuse_examples/imaging/classification/knight/eval): python eval.py example/example_targets.csv example/example_task1_predictions.csv example/example_task2_predictions.csv example/results
     """
     if len(sys.argv) == 1:
         dir_path = pathlib.Path(__file__).parent.resolve()

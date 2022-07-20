@@ -5,6 +5,7 @@ from PIL import Image
 import numpy as np
 import torch
 import torchvision.transforms.functional as TTF
+import torchvision.transforms as transforms
 import skimage
 import skimage.transform
 
@@ -35,7 +36,7 @@ class OpAugAffine2D(OpBase):
         flip: Tuple[bool, bool] = (False, False),
         shear: float = 0.0,
         channels: Optional[List[int]] = None,
-        interpolation: int = Image.BILINEAR,
+        interpolation: int = transforms.InterpolationMode.BILINEAR,
     ) -> Union[None, dict, List[dict]]:
         """
         :param key: key to a tensor stored in sample_dict: 2D tensor representing an image to augment, shape [num_channels, height, width] or [height, width]
@@ -75,7 +76,12 @@ class OpAugAffine2D(OpBase):
             aug_channel_tensor = aug_input[channel].numpy()
             aug_channel_tensor = Image.fromarray(aug_channel_tensor)
             aug_channel_tensor = TTF.affine(
-                aug_channel_tensor, angle=rotate, scale=scale, resample=interpolation, translate=translate, shear=shear
+                aug_channel_tensor,
+                angle=rotate,
+                scale=scale,
+                interpolation=interpolation,
+                translate=translate,
+                shear=shear,
             )
             if flip[0]:
                 aug_channel_tensor = TTF.vflip(aug_channel_tensor)

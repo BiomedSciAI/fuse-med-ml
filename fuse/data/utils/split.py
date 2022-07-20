@@ -13,7 +13,7 @@ Created on June 30, 2021
 """
 
 import os
-from typing import Hashable, Sequence
+from typing import Hashable, Sequence, Optional
 from fuse.data.datasets.dataset_base import DatasetBase
 from fuse.utils.file_io.file_io import load_pickle, save_pickle
 from sklearn.utils import shuffle
@@ -139,8 +139,8 @@ def dataset_balanced_division_to_folds(
     :param keys_to_balance: balancing any possible combination of values. For example for ["data.gender", "data.cancer"], the algorithm will balance each one of the following groups between the folds.
                             (gender=male, cancer=True), (gender=male, cancer=False), (gender=female, cancer=True), (gender=female, cancer=False)
 
-    :param  nfolds : number of folds
-    :param  id  : id to balance the split by ( not allowed 2 in same fold)
+    :param nfolds: number of folds
+    :param id: id to balance the split by ( not allowed 2 in same fold)
     :param reset_split: delete output_split_filename and recompute the split
     :param workers : numbers of workers for multiprocessing (eport dataset into dataframe)
     :param mp_context : multiprocessing context: "fork", "spawn", etc.
