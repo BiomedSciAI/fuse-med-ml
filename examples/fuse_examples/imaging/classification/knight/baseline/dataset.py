@@ -1,6 +1,4 @@
-import json
 import os
-
 
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
 from torch.utils.data.dataloader import DataLoader
@@ -8,21 +6,17 @@ from fuse.utils.ndict import NDict
 
 from fuse.data import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
-from fuse.data import PipelineDefault, OpSampleAndRepeat, OpToTensor, OpRepeat
+from fuse.data import PipelineDefault, OpToTensor
 from fuse.data.ops.op_base import OpBase
 from fuse.data.ops.ops_aug_common import OpSample, OpRandApply
 from fuse.data.ops.ops_common import OpLambda, OpZScoreNorm
-from fuseimg.data.ops.aug.color import OpAugColor
-from fuseimg.data.ops.aug.geometry import OpAugAffine2D, OpCrop3D, OpRotation3D, OpResizeTo
+from fuseimg.data.ops.aug.geometry import OpAugAffine2D, OpRotation3D, OpResizeTo
 from fuseimg.data.ops.image_loader import OpLoadImage
-from fuseimg.data.ops.color import OpClip, OpToRange
-
+from fuseimg.data.ops.color import OpClip
 import numpy as np
 from fuse.data.utils.sample import get_sample_id
-from typing import Hashable, List, Optional, Sequence, Tuple, Union
 from functools import partial
 import torch
-from torch import Tensor
 import pandas as pd
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.samplers import BatchSamplerDefault
@@ -107,30 +101,30 @@ class OpClinicalLoad(OpBase):
         return sample_dict
 
 
-class OpPrepare_Clinical(OpBase):
+class OpPrepareClinical(OpBase):
     def __call__(
         self, sample_dict: NDict
     ) -> NDict:  # , op_id: Optional[str]) -> NDict:, op_id: Optional[str]) -> NDict:
         age = sample_dict["data.input.clinical.age_at_nephrectomy"]
-        if age != None and age > 0 and age < 120:
+        if age is not None and age > 0 and age < 120:
             age = np.array(age / 120.0).reshape(-1)
         else:
             age = np.array(-1.0).reshape(-1)
 
         bmi = sample_dict["data.input.clinical.body_mass_index"]
-        if bmi != None and bmi > 10 and bmi < 100:
+        if bmi is not None and bmi > 10 and bmi < 100:
             bmi = np.array(bmi / 50.0).reshape(-1)
         else:
             bmi = np.array(-1.0).reshape(-1)
 
         radiographic_size = sample_dict["data.input.clinical.radiographic_size"]
-        if radiographic_size != None and radiographic_size > 0 and radiographic_size < 50:
+        if radiographic_size is not None and radiographic_size > 0 and radiographic_size < 50:
             radiographic_size = np.array(radiographic_size / 15.0).reshape(-1)
         else:
             radiographic_size = np.array(-1.0).reshape(-1)
 
         preop_egfr = sample_dict["data.input.clinical.last_preop_egfr"]
-        if preop_egfr != None and preop_egfr > 0 and preop_egfr < 200:
+        if preop_egfr is not None and preop_egfr > 0 and preop_egfr < 200:
             preop_egfr = np.array(preop_egfr / 90.0).reshape(-1)
         else:
             preop_egfr = np.array(-1.0).reshape(-1)
@@ -170,7 +164,6 @@ def knight_dataset(
     task_num=1,
     target_name="data.gt.gt_global.task_1_label",
     num_classes=2,
-    only_labels=False,
 ):
 
     static_pipeline = PipelineDefault(
@@ -184,16 +177,15 @@ def knight_dataset(
             (OpClinicalLoad(data_dir), dict(test=("test" in split))),
             # loading data
             (OpLoadImage(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", format="nib")),
-            # (OpLoadImage(data_dir), dict(key_in="data.gt.seg_path", key_out="data.gt.seg", format="nib")),
             # fixed image normalization
             (OpClip(), dict(key="data.input.img", clip=(-62, 301))),
             (OpZScoreNorm(), dict(key="data.input.img", mean=104.0, std=75.3)),  # kits normalization
             # transposing so the depth channel will be first
             (
-                OpLambda(lambda x: np.moveaxis(x, -1, 0)),
+                OpLambda(partial(np.moveaxis, source=-1, destination=0)),
                 dict(key="data.input.img"),
             ),  # convert image from shape [H, W, D] to shape [D, H, W]
-            (OpPrepare_Clinical(), dict()),  # process clinical data
+            (OpPrepareClinical(), dict()),  # process clinical data
         ],
     )
 
@@ -205,7 +197,7 @@ def knight_dataset(
             (OpToTensor(), dict(key="data.input.img", dtype=torch.float)),
             (OpToTensor(), dict(key="data.input.clinical.all")),
             # add channel dimension -> [C=1, D, H, W]
-            (OpLambda(lambda x: x.unsqueeze(dim=0)), dict(key="data.input.img")),
+            (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")),
         ],
     )
 
@@ -234,17 +226,9 @@ def knight_dataset(
                 ),
             ),
             # add channel dimension -> [C=1, D, H, W]
-            (OpLambda(lambda x: x.unsqueeze(dim=0)), dict(key="data.input.img")),
+            (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")),
         ],
     )
-
-    if "train" in split:
-        image_dir = data_dir
-        json_filename = os.path.join(image_dir, "knight.json")
-
-    else:  # split can contain BOTH 'train' and 'val', or JUST 'test'
-        image_dir = os.path.join(data_dir, "images")
-        json_filepath = os.path.join(data_dir, "features.json")
 
     # Create dataset
     if "train" in split:
@@ -259,13 +243,13 @@ def knight_dataset(
             cacher=train_cacher,
         )
 
-        print(f"- Load and cache data:")
+        print("- Load and cache data:")
         train_dataset.create()
 
-        print(f"- Load and cache data: Done")
+        print("- Load and cache data: Done")
 
         ## Create sampler
-        print(f"- Create sampler:")
+        print("- Create sampler:")
         sampler = BatchSamplerDefault(
             dataset=train_dataset,
             balanced_class_name=target_name,
@@ -274,7 +258,7 @@ def knight_dataset(
             balanced_class_weights=[1.0 / num_classes] * num_classes if task_num == 2 else None,
         )
 
-        print(f"- Create sampler: Done")
+        print("- Create sampler: Done")
 
         ## Create dataloader
         train_dataloader = DataLoader(
@@ -286,10 +270,10 @@ def knight_dataset(
             num_workers=8,
             generator=rand_gen,
         )
-        print(f"Train Data: Done", {"attrs": "bold"})
+        print("Train Data: Done", {"attrs": "bold"})
 
         #### Validation data
-        print(f"Validation Data:", {"attrs": "bold"})
+        print("Validation Data:", {"attrs": "bold"})
 
         val_cacher = SamplesCacher(
             "val_cache", static_pipeline, cache_dirs=[f"{cache_dir}/val"], restart_cache=reset_cache
@@ -302,9 +286,9 @@ def knight_dataset(
             cacher=val_cacher,
         )
 
-        print(f"- Load and cache data:")
+        print("- Load and cache data:")
         validation_dataset.create()
-        print(f"- Load and cache data: Done")
+        print("- Load and cache data: Done")
 
         ## Create dataloader
         validation_dataloader = DataLoader(
@@ -317,11 +301,11 @@ def knight_dataset(
             collate_fn=CollateDefault(),
             generator=rand_gen,
         )
-        print(f"Validation Data: Done", {"attrs": "bold"})
+        print("Validation Data: Done", {"attrs": "bold"})
         test_dataloader = test_dataset = None
     else:  # test only
         #### Test data
-        print(f"Test Data:", {"attrs": "bold"})
+        print("Test Data:", {"attrs": "bold"})
 
         ## Create dataset
         test_dataset = DatasetDefault(
@@ -330,9 +314,9 @@ def knight_dataset(
             dynamic_pipeline=val_dynamic_pipeline,
         )
 
-        print(f"- Load and cache data:")
+        print("- Load and cache data:")
         test_dataset.create()
-        print(f"- Load and cache data: Done")
+        print("- Load and cache data: Done")
 
         ## Create dataloader
         test_dataloader = DataLoader(
@@ -345,7 +329,7 @@ def knight_dataset(
             collate_fn=CollateDefault(),
             generator=rand_gen,
         )
-        print(f"Test Data: Done", {"attrs": "bold"})
+        print("Test Data: Done", {"attrs": "bold"})
         train_dataloader = train_dataset = validation_dataloader = validation_dataset = None
     return train_dataloader, validation_dataloader, test_dataloader, train_dataset, validation_dataset, test_dataset
 
