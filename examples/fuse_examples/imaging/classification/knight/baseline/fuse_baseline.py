@@ -59,35 +59,36 @@ elif task_num == 2:
     target_name = "data.gt.gt_global.task_2_label"
     target_metric = "validation.metrics.auc.macro_avg"
 
-def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_dropout: float):
-        if use_data["imaging"]:
-            backbone = BackboneResnet3D(in_channels=1)
-            conv_inputs = [("model.backbone_features", 512)]
-        else:
-            backbone = nn.Identity()
-            conv_inputs = None
-        if use_data["clinical"]:
-            append_features = [("data.input.clinical.all", 11)]
-        else:
-            append_features = None
 
-        model = ModelMultiHead(
-            conv_inputs=(("data.input.img", 1),),
-            backbone=backbone,
-            heads=[
-                Head3DClassifier(
-                    head_name="head_0",
-                    conv_inputs=conv_inputs,
-                    dropout_rate=imaging_dropout,
-                    num_classes=num_classes,
-                    append_features=append_features,
-                    append_layers_description=(256, 128),
-                    append_dropout_rate=clinical_dropout,
-                    fused_dropout_rate=fused_dropout,
-                ),
-            ],
-        )
-        return model
+def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_dropout: float):
+    if use_data["imaging"]:
+        backbone = BackboneResnet3D(in_channels=1)
+        conv_inputs = [("model.backbone_features", 512)]
+    else:
+        backbone = nn.Identity()
+        conv_inputs = None
+    if use_data["clinical"]:
+        append_features = [("data.input.clinical.all", 11)]
+    else:
+        append_features = None
+
+    model = ModelMultiHead(
+        conv_inputs=(("data.input.img", 1),),
+        backbone=backbone,
+        heads=[
+            Head3DClassifier(
+                head_name="head_0",
+                conv_inputs=conv_inputs,
+                dropout_rate=imaging_dropout,
+                num_classes=num_classes,
+                append_features=append_features,
+                append_layers_description=(256, 128),
+                append_dropout_rate=clinical_dropout,
+                fused_dropout_rate=fused_dropout,
+            ),
+        ],
+    )
+    return model
 
 
 def main():
@@ -141,7 +142,7 @@ def main():
 
     ## Model definition
     ##############################################################################
-    
+
     model = make_model(use_data, imaging_dropout, num_classes, fused_dropout)
 
     # Loss definition:

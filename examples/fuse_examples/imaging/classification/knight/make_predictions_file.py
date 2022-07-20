@@ -148,7 +148,9 @@ if __name__ == "__main__":
     clinical_dropout = 0.0
     fused_dropout = 0.5
 
-    model = make_model(use_data=use_data, num_classes=num_classes, imaging_dropout=imaging_dropout, fused_dropout=fused_dropout)
+    model = make_model(
+        use_data=use_data, num_classes=num_classes, imaging_dropout=imaging_dropout, fused_dropout=fused_dropout
+    )
 
     make_predictions_file(
         model_dir=model_dir,
