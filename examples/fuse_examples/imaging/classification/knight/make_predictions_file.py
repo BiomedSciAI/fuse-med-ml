@@ -39,6 +39,7 @@ import pytorch_lightning as pl
 # add parent directory to path, so that 'knight' folder is treated as a module
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 from baseline.dataset import knight_dataset  # noqa
+from baseline.fuse_baseline import make_model  # noqa
 
 
 def make_predictions_file(
@@ -143,35 +144,11 @@ if __name__ == "__main__":
 
     use_data = {"imaging": True, "clinical": True}  # specify whether to use imaging, clinical data or both
     num_classes = 2
+    imaging_dropout = 0.5
+    clinical_dropout = 0.0
+    fused_dropout = 0.5
 
-    target_name = "data.gt.gt_global.task_1_label"
-    target_metric = "validation.metrics.auc"
-    if use_data["imaging"]:
-        backbone = BackboneResnet3D(in_channels=1)
-        conv_inputs = [("model.backbone_features", 512)]
-    else:
-        backbone = torch.nn.Identity()
-        conv_inputs = None
-    if use_data["clinical"]:
-        append_features = [("data.input.clinical.all", 11)]
-    else:
-        append_features = None
-
-    model = ModelMultiHead(
-        conv_inputs=(("data.input.img", 1),),
-        backbone=backbone,
-        heads=[
-            Head3DClassifier(
-                head_name="head_0",
-                conv_inputs=conv_inputs,
-                dropout_rate=0.5,
-                num_classes=num_classes,
-                append_features=append_features,
-                append_layers_description=(256, 128),
-                fused_dropout_rate=0.5,
-            ),
-        ],
-    )
+    model = make_model(use_data=use_data, num_classes=num_classes, imaging_dropout=imaging_dropout, fused_dropout=fused_dropout)
 
     make_predictions_file(
         model_dir=model_dir,
