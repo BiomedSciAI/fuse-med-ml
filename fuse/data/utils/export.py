@@ -36,7 +36,7 @@ class ExportDataset:
         keys: Sequence[str],
         output_filename: Optional[str] = None,
         sample_id_key: str = "data.sample_id",
-        **dataset_get_kwargs
+        **dataset_get_kwargs,
     ) -> pds.DataFrame:
         """
         extract from dataset the specified and keys and create a dataframe.
@@ -71,11 +71,14 @@ class ExportDataset:
 
         return df
 
-
     @staticmethod
-    def export_to_dir(dataset: DatasetBase, output_dir: str, keys: Optional[Sequence[str]]=None,
-                        sample_id_key: str = "data.sample_id",
-                        **dataset_get_kwargs) :
+    def export_to_dir(
+        dataset: DatasetBase,
+        output_dir: str,
+        keys: Optional[Sequence[str]] = None,
+        sample_id_key: str = "data.sample_id",
+        **dataset_get_kwargs,
+    ):
         """
         extract from dataset the specified and keys and writes to a specified directory in the disk
         :param dataset: the dataset to extract the values from
@@ -104,13 +107,12 @@ class ExportDataset:
             if all_keys is not None:
                 sample_dict = {sample_dict[k] for k in all_keys}
 
-
             d2 = {}
             for k, v in sample_dict.items():
                 if isinstance(v, torch.Tensor):
                     v = v.numpy()
                 d2[k] = v
-            output_file = os.path.join(output_dir, f'{sample_id}.pkl')
+            output_file = os.path.join(output_dir, f"{sample_id}.pkl")
             save_pickle_safe(d2, output_file)
             print(i, "wrote", output_file)
         print("done")
