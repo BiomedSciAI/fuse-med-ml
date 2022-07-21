@@ -1,7 +1,7 @@
 import os
 
 
-def change_extension(filepath: str, new_extension: str, add_if_no_extension: bool = False):
+def change_extension(filepath: str, new_extension: str, add_if_no_extension: bool = False) -> str:
     """
     modifies [filepath] extension to be [new_extension]
 
