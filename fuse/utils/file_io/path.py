@@ -15,8 +15,8 @@ def change_extension(filepath: str, new_extension: str, add_if_no_extension: boo
         if not add_if_no_extension:
             return filepath
         else:
-            return filepath + '.' + new_extension
-    ans = os.path.join(os.path.dirname(filepath), _basename[:last_dot] + '.' + new_extension)
+            return filepath + "." + new_extension
+    ans = os.path.join(os.path.dirname(filepath), _basename[:last_dot] + "." + new_extension)
     return ans
 
 
