@@ -300,7 +300,7 @@ def run_train(paths: dict, train_params: dict, reset_cache=None, audit_cache=Non
     params["train"] = False
     validation_dataset = prostate_x.ProstateX.dataset(**params)
 
-    lgr.info(f"- Create sampler:")
+    lgr.info("- Create sampler:")
     sampler = BatchSamplerDefault(
         dataset=train_dataset,
         balanced_class_name="data.ground_truth",
@@ -308,7 +308,7 @@ def run_train(paths: dict, train_params: dict, reset_cache=None, audit_cache=Non
         batch_size=train_params["data.batch_size"],
         workers=0,  # train_params['data.train_num_workers'] #todo: stuck
     )
-    lgr.info(f"- Create sampler: Done")
+    lgr.info("- Create sampler: Done")
 
     # Create dataloader
     train_dataloader = DataLoader(
@@ -317,7 +317,7 @@ def run_train(paths: dict, train_params: dict, reset_cache=None, audit_cache=Non
         collate_fn=CollateDefault(),
         num_workers=train_params["data.train_num_workers"],
     )
-    lgr.info(f"Train Data: Done", {"attrs": "bold"})
+    lgr.info("Train Data: Done", {"attrs": "bold"})
 
     # dataloader
     validation_dataloader = DataLoader(
@@ -326,7 +326,7 @@ def run_train(paths: dict, train_params: dict, reset_cache=None, audit_cache=Non
         collate_fn=CollateDefault(),
         num_workers=train_params["data.validation_num_workers"],
     )
-    lgr.info(f"Validation Data: Done", {"attrs": "bold"})
+    lgr.info("Validation Data: Done", {"attrs": "bold"})
 
     # ==============================================================================
     # Model

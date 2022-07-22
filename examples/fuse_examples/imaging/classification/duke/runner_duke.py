@@ -44,7 +44,6 @@ from fuse.eval.metrics.classification.metrics_classification_common import Metri
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 from fuse.utils.file_io.file_io import load_pickle
 from fuse.utils.rand.seed import Seed
-from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.utils_logger import fuse_logger_start
 from fuseimg.datasets import duke
 
@@ -109,7 +108,7 @@ def get_setting(
     # Debug modes
     ##########################################
 
-    debug = FuseDebug(mode)
+    # debug = FuseDebug(mode)
     ##########################################
     # Output Paths
     ##########################################

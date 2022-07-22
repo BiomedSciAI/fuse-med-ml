@@ -39,7 +39,6 @@ from fuse.eval.evaluator import EvaluatorDefault
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 from fuse.utils.rand.seed import Seed
-from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import create_dir, load_pickle, save_dataframe
 
@@ -49,8 +48,6 @@ from fuse.dl.lightning.pl_module import LightningModuleDefault
 from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
 import pytorch_lightning as pl
 from fuse_examples import fuse_examples_utils
-
-from fuse.data.utils.export import ExportDataset
 
 
 def main():
@@ -98,7 +95,6 @@ def get_setting(mode, num_devices, label_type=prostate_x.ProstateXLabelType.Clin
     # Debug modes
     ##########################################
 
-    debug = FuseDebug(mode)
     input_channels_num = 5
     ##########################################
     # Output Paths
@@ -120,7 +116,7 @@ def get_setting(mode, num_devices, label_type=prostate_x.ProstateXLabelType.Clin
         num_epoch = 5
     else:
         data_split_file = os.path.join(ROOT, f"prostatex_{n_folds}folds.pkl")
-        cache_dir = os.path.join(ROOT, f"cache_dir_pl")
+        cache_dir = os.path.join(ROOT, "cache_dir_pl")
         model_dir = os.path.join(ROOT, f"model_dir_pl_{heldout_fold}")
         selected_sample_ids = None
 
@@ -307,7 +303,7 @@ def run_train(paths: dict, train_params: dict):
     # Data
     # ==============================================================================
     # Train Data
-    lgr.info(f"Train Data:", {"attrs": "bold"})
+    lgr.info("Train Data:", {"attrs": "bold"})
 
     reset_cache = ask_user("Do you want to reset cache?")
     cache_kwargs = {"use_pipeline_hash": False}
@@ -361,7 +357,7 @@ def run_train(paths: dict, train_params: dict):
     params["train"] = False
     validation_dataset = prostate_x.ProstateX.dataset(**params)
 
-    lgr.info(f"- Create sampler:")
+    lgr.info("- Create sampler:")
     sampler = BatchSamplerDefault(
         dataset=train_dataset,
         balanced_class_name="data.ground_truth",
@@ -369,7 +365,7 @@ def run_train(paths: dict, train_params: dict):
         batch_size=train_params["data.batch_size"],
         workers=0,  # train_params['data.train_num_workers'] #todo: stuck
     )
-    lgr.info(f"- Create sampler: Done")
+    lgr.info("- Create sampler: Done")
 
     # Create dataloader
     train_dataloader = DataLoader(
@@ -378,7 +374,7 @@ def run_train(paths: dict, train_params: dict):
         collate_fn=CollateDefault(),
         num_workers=train_params["data.train_num_workers"],
     )
-    lgr.info(f"Train Data: Done", {"attrs": "bold"})
+    lgr.info("Train Data: Done", {"attrs": "bold"})
 
     # dataloader
     validation_dataloader = DataLoader(
@@ -387,7 +383,7 @@ def run_train(paths: dict, train_params: dict):
         collate_fn=CollateDefault(),
         num_workers=train_params["data.validation_num_workers"],
     )
-    lgr.info(f"Validation Data: Done", {"attrs": "bold"})
+    lgr.info("Validation Data: Done", {"attrs": "bold"})
 
     # ==============================================================================
     # Model

@@ -1,11 +1,7 @@
-from typing import List, Optional, Tuple, Union
+from typing import List, Union
 
 from torch import Tensor
-from PIL import Image
 
-import numpy
-import torch
-import torchvision.transforms.functional as TTF
 from fuseimg.data.ops.aug import geometry
 
 from fuse.utils.ndict import NDict

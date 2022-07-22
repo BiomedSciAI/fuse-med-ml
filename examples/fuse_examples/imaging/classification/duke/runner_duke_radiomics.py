@@ -5,18 +5,16 @@ import fuseimg.datasets.duke_label_type
 
 import getpass
 from fuseimg.datasets import duke
-from fuse.utils.utils_debug import FuseDebug
 import logging
 from fuse.utils.utils_logger import fuse_logger_start
 from fuse.data.utils.split import dataset_balanced_division_to_folds
-from typing import OrderedDict
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 
 
 def main():
-    mode = "debug"  #'default'  #  'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
+    mode = "debug"  # 'default'  #  'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
 
     PATHS, TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS = get_setting(mode)
     print(PATHS)
@@ -27,15 +25,15 @@ def main():
         print(TRAIN_COMMON_PARAMS)
         run_train(paths=PATHS, train_params=TRAIN_COMMON_PARAMS)
 
-    # # infer
-    # if 'infer' in RUNNING_MODES:
-    #     print(INFER_COMMON_PARAMS)
-    #     run_infer(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS)
-    #
-    # # eval
-    # if 'eval' in RUNNING_MODES:
-    #     print(EVAL_COMMON_PARAMS)
-    #     run_eval(paths=PATHS, eval_common_params=EVAL_COMMON_PARAMS)
+    # infer
+    if 'infer' in RUNNING_MODES:
+        print(INFER_COMMON_PARAMS)
+        # run_infer(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS)
+
+    # eval
+    if 'eval' in RUNNING_MODES:
+        print(EVAL_COMMON_PARAMS)
+        # run_eval(paths=PATHS, eval_common_params=EVAL_COMMON_PARAMS)
 
 
 def get_setting(
@@ -48,7 +46,7 @@ def get_setting(
     # Debug modes
     ##########################################
 
-    debug = FuseDebug(mode)
+    # debug = FuseDebug(mode)
 
     ##########################################
     # Output Paths
@@ -152,7 +150,7 @@ def run_train(paths: dict, train_params: dict, reset_cache=False):
     # Data
     # ==============================================================================
     # Train Data
-    lgr.info(f"Train Data:", {"attrs": "bold"})
+    lgr.info("Train Data:", {"attrs": "bold"})
 
     # split to folds randomly - temp
     params = dict(
