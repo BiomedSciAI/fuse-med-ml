@@ -12,7 +12,7 @@ limitations under the License.
 Created on June 30, 2021
 """
 
-from typing import Sequence, Dict, Tuple
+from typing import Sequence, Dict, Tuple, Any
 
 import torch
 import torch.nn as nn
@@ -24,17 +24,13 @@ from fuse.dl.models.heads import Head1DClassifier
 
 
 # 3x3 convolution
-def conv3x3(in_channels, out_channels, stride=1):
-    return nn.Conv3d(in_channels, out_channels, kernel_size=3,
-                     stride=stride, padding=1, bias=False)
-
+def conv3x3(in_channels: Any, out_channels: Any, stride: int = 1) -> Any:  # fix type Any
+    return nn.Conv3d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
 
 
 # Residual block
 class ResidualBlock(torch.nn.Module):
-
-
-    def __init__(self, in_channels, out_channels, stride=1, downsample=None):
+    def __init__(self, in_channels: Any, out_channels: Any, stride: int = 1, downsample: Any = None):  # fix type Any
         super(ResidualBlock, self).__init__()
         self.conv1 = conv3x3(in_channels, out_channels, stride)
         self.bn1 = nn.BatchNorm3d(out_channels)
@@ -43,46 +39,44 @@ class ResidualBlock(torch.nn.Module):
         self.bn2 = nn.BatchNorm3d(out_channels)
         self.downsample = downsample
 
-
-
-    def forward(self, x):
+    def forward(self, x: Any) -> Any:  # fix type Any
         residual = x
         out = self.conv1(x)
         out = self.bn1(out)
         out = self.relu(out)
         out = self.conv2(out)
         out = self.bn2(out)
-        res_mod = 'concat'
-        if res_mod=='sum':
+        res_mod = "concat"
+        if res_mod == "sum":
             if self.downsample:
                 residual = self.downsample(x)
             out += residual
-        elif res_mod=='concat':
-            out = torch.cat((residual,out),1)
+        elif res_mod == "concat":
+            out = torch.cat((residual, out), 1)
         out = self.relu(out)
         return out
 
 
 # ResNet
 class ResNet(torch.nn.Module):
-    def __init__(self,
-                 conv_inputs:Tuple[Tuple[str, int], ...] = (('data.input', 1),),
-                 ch_num: int = None,
-                 ) -> None:
+    def __init__(
+        self,
+        conv_inputs: Tuple[Tuple[str, int], ...] = (("data.input", 1),),
+        ch_num: int = None,
+    ) -> None:
 
         super(ResNet, self).__init__()
         block = ResidualBlock
         self.ch_num = ch_num
-        layers = [1,1,1,1,1]
-        out_features = [32,64,128,256,512]
+        layers = [1, 1, 1, 1, 1]
+        out_features = [32, 64, 128, 256, 512]
         self.in_channels = 16
-        in_features = [self.in_channels ,48,112,240,496]
+        in_features = [self.in_channels, 48, 112, 240, 496]
         self.conv_inputs = conv_inputs
         if self.ch_num is None:
             self.conv = conv3x3(1, 16)
         else:
             self.conv = conv3x3(self.ch_num, 16)
-
 
         self.bn = nn.BatchNorm3d(16)
         self.relu = nn.ReLU(inplace=True)
@@ -96,8 +90,8 @@ class ResNet(torch.nn.Module):
         self.layer4 = self.make_layer(block, out_features[3], layers[3])
         self.in_channels = in_features[4]
         self.layer5 = self.make_layer(block, out_features[4], layers[4])
-        self.max_pool2 = nn.MaxPool3d((2,2,2),stride=(2,2,2))
-        self.max_pool1 = nn.MaxPool3d((1,2,2),stride=(1,2,2))
+        self.max_pool2 = nn.MaxPool3d((2, 2, 2), stride=(2, 2, 2))
+        self.max_pool1 = nn.MaxPool3d((1, 2, 2), stride=(1, 2, 2))
 
         self.conv_last = conv3x3(1008, 1008)
         self.bn_last = nn.BatchNorm3d(1008)
@@ -106,13 +100,12 @@ class ResNet(torch.nn.Module):
         self.fc1 = nn.Linear(1008, 2048)
         self.fc2 = nn.Linear(2048, 512)
 
-
-    def make_layer(self, block, out_channels, blocks, stride=1):
+    def make_layer(self, block: Any, out_channels: Any, blocks: int, stride: int = 1) -> Any:  # fix type Any
         downsample = None
         if (stride != 1) or (self.in_channels != out_channels):
             downsample = nn.Sequential(
-                conv3x3(self.in_channels, out_channels, stride=stride),
-                nn.BatchNorm3d(out_channels))
+                conv3x3(self.in_channels, out_channels, stride=stride), nn.BatchNorm3d(out_channels)
+            )
         layers = []
         layers.append(block(self.in_channels, out_channels, stride, downsample))
         self.in_channels = out_channels
@@ -120,16 +113,21 @@ class ResNet(torch.nn.Module):
             layers.append(block(out_channels, out_channels))
         return nn.Sequential(*layers)
 
-    def forward(self, batch_dict: NDict):
-        if len(self.conv_inputs)>1:
+    def forward(self, batch_dict: NDict) -> Any:  # fix type Any
+        if len(self.conv_inputs) > 1:
             tensors_list = [batch_dict[conv_input[0]].float() for conv_input in self.conv_inputs]
             max_tensor_dim = max([len(tmp_tensor.shape) for tmp_tensor in tensors_list])
-            conv_input = torch.cat([tmp_tensor.unsqueeze_(0) if len(tmp_tensor.shape)<max_tensor_dim else tmp_tensor for tmp_tensor in tensors_list], 1)
+            conv_input = torch.cat(
+                [
+                    tmp_tensor.unsqueeze_(0) if len(tmp_tensor.shape) < max_tensor_dim else tmp_tensor
+                    for tmp_tensor in tensors_list
+                ],
+                1,
+            )
         else:
             conv_input = torch.cat([batch_dict[conv_input[0]] for conv_input in self.conv_inputs], 1)
 
-
-        if len(conv_input.shape)<4:
+        if len(conv_input.shape) < 4:
             conv_input = conv_input.unsqueeze_(0)
 
         out = self.conv(conv_input)
@@ -169,12 +167,13 @@ class Fuse_model_3d_multichannel(torch.nn.Module):
 
     """
 
-    def __init__(self,
-                 conv_inputs: Tuple[Tuple[str, int], ...] = (('data.input', 1),),
-                 backbone: ResNet = None,
-                 heads: Sequence[torch.nn.Module] = None,
-                 ch_num = None,
-                 ) -> None:
+    def __init__(
+        self,
+        conv_inputs: Tuple[Tuple[str, int], ...] = (("data.input", 1),),
+        backbone: ResNet = None,
+        heads: Sequence[torch.nn.Module] = None,
+        ch_num: int = None,
+    ) -> None:
         """
         Default Fuse model - convolutional neural network with multiple heads
         :param conv_inputs:     batch_dict name for model input and its number of input channels
@@ -187,16 +186,13 @@ class Fuse_model_3d_multichannel(torch.nn.Module):
         if backbone is None:
             backbone = ResNet(conv_inputs=conv_inputs)
         if heads is None:
-            heads =  (Head1dClassifier(),)
+            heads = (Head1DClassifier(),)
         self.backbone = backbone
         self.heads = torch.nn.ModuleList(heads)
-        self.add_module('heads', self.heads)
+        self.add_module("heads", self.heads)
         self.ch_num = ch_num
 
-
-
-    def forward(self,
-                batch_dict: Dict) -> Dict:
+    def forward(self, batch_dict: Dict) -> Dict:
         """
         Forward function of the model
         :param input: Tensor [BATCH_SIZE, 1, H, W]
@@ -204,36 +200,38 @@ class Fuse_model_3d_multichannel(torch.nn.Module):
         """
 
         features = self.backbone(batch_dict)
-        batch_dict['model.backbone_features'] = features
+        batch_dict["model.backbone_features"] = features
 
         for head in self.heads:
             batch_dict = head.forward(batch_dict)
 
-        return batch_dict['model']
+        return batch_dict["model"]
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
 
     import torch
     import os
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = "0, 1"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0, 1"
 
-    DEVICE = 'cpu'  # 'cuda'
+    DEVICE = "cpu"  # 'cuda'
     DATAPARALLEL = False  # True
     num_features = 515
     model = Fuse_model_3d_multichannel(
-        conv_inputs=(('data.input', 1),),
-        backbone= ResNet(),
+        conv_inputs=(("data.input", 1),),
+        backbone=ResNet(),
         heads=[
-        Head1DClassifier(head_name='ClinSig',
-                                        conv_inputs=[('model.backbone_features', num_features)],
-                                        post_concat_inputs=None,
-                                        dropout_rate=0.25,
-                                        shared_classifier_head=None,
-                                        layers_description=None,
-                                        num_classes=2),
-
-        ]
+            Head1DClassifier(
+                head_name="ClinSig",
+                conv_inputs=[("model.backbone_features", num_features)],
+                post_concat_inputs=None,
+                dropout_rate=0.25,
+                shared_classifier_head=None,
+                layers_description=None,
+                num_classes=2,
+            ),
+        ],
     )
 
     model = model.to(DEVICE)
@@ -243,40 +241,39 @@ if __name__ == '__main__':
     import gzip
     import pickle
 
-    real_data_example = '/gpfs/haifa/projects/m/msieve_dev3/usr/Tal/fus_sessions/prostate/ProstateX_runs/V4/cache_fold4_T2_DWI_ADC_Ktrans/0000000001.pkl.gz'
-    with gzip.open(real_data_example, 'rb') as pickle_file:
+    real_data_example = "/gpfs/haifa/projects/m/msieve_dev3/usr/Tal/fus_sessions/prostate/ProstateX_runs/V4/cache_fold4_T2_DWI_ADC_Ktrans/0000000001.pkl.gz"
+    with gzip.open(real_data_example, "rb") as pickle_file:
         dummy_data = pickle.load(pickle_file)
         clinical_data = torch.rand([1]).to(DEVICE)
         clinical_data = clinical_data.unsqueeze(0)
-        input = dummy_data['data.input']
-        dummy_data['data.input'] = input
-        zone = dummy_data['data.zone']
+        input = dummy_data["data.input"]
+        dummy_data["data.input"] = input
+        zone = dummy_data["data.zone"]
         zone2feature = {
-                        'PZ':torch.tensor(np.array([0,0,0]),dtype=torch.float32).unsqueeze(0),
-                        'TZ': torch.tensor(np.array([0,0,1]), dtype=torch.float32).unsqueeze(0),
-                        'AS': torch.tensor(np.array([0,1,0]), dtype=torch.float32).unsqueeze(0),
-                        'SV': torch.tensor(np.array([1,0,0]), dtype=torch.float32).unsqueeze(0),
-                        }
-        dummy_data['data.input'] = torch.cat((input.unsqueeze(0),input.unsqueeze(0)),dim=0)
-        dummy_data['data.tensor_clinical'] = torch.cat((zone2feature[zone],zone2feature[zone]),dim=0)
-
+            "PZ": torch.tensor(np.array([0, 0, 0]), dtype=torch.float32).unsqueeze(0),
+            "TZ": torch.tensor(np.array([0, 0, 1]), dtype=torch.float32).unsqueeze(0),
+            "AS": torch.tensor(np.array([0, 1, 0]), dtype=torch.float32).unsqueeze(0),
+            "SV": torch.tensor(np.array([1, 0, 0]), dtype=torch.float32).unsqueeze(0),
+        }
+        dummy_data["data.input"] = torch.cat((input.unsqueeze(0), input.unsqueeze(0)), dim=0)
+        dummy_data["data.tensor_clinical"] = torch.cat((zone2feature[zone], zone2feature[zone]), dim=0)
 
     res = {}
     # manager = ManagerDefault()
     # manager.set_objects(net=model)
     # checkpoint =  '/gpfs/haifa/projects/m/msieve_dev3/usr/Tal/fus_sessions/multiclass_MG/malignant_multi_class_sentara_baptist_froedtert/exp_12_pretrain_normal-mal-benign_head/model_2/checkpoint_80_epoch.pth'
     # aa = manager.load_checkpoint(checkpoint)
-    res['model'] = model.forward(dummy_data)
-    print('Forward pass shape - head_0: ', end='')
-    print(str(res['model']['logits']['head_1'].shape))
+    res["model"] = model.forward(dummy_data)
+    print("Forward pass shape - head_0: ", end="")
+    print(str(res["model"]["logits"]["head_1"].shape))
 
-    print('\nForward pass shape - head_1: ', end='')
-    print(str(res['model']['logits']['head_1'].shape))
+    print("\nForward pass shape - head_1: ", end="")
+    print(str(res["model"]["logits"]["head_1"].shape))
 
     total_params = sum(p.numel() for p in model.parameters())
     if not DATAPARALLEL:
-        backbone_params = sum(p.numel() for p in model._modules['backbone_clinical'].parameters())
-        print('backbone_clinical params = %d' % backbone_params)
-        print('Heads params = %d' % (total_params - backbone_params))
+        backbone_params = sum(p.numel() for p in model._modules["backbone_clinical"].parameters())
+        print("backbone_clinical params = %d" % backbone_params)
+        print("Heads params = %d" % (total_params - backbone_params))
 
-    print('\nTotal params = %d' % total_params)
+    print("\nTotal params = %d" % total_params)
