@@ -26,12 +26,12 @@ def main():
         run_train(paths=PATHS, train_params=TRAIN_COMMON_PARAMS)
 
     # infer
-    if 'infer' in RUNNING_MODES:
+    if "infer" in RUNNING_MODES:
         print(INFER_COMMON_PARAMS)
         # run_infer(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS)
 
     # eval
-    if 'eval' in RUNNING_MODES:
+    if "eval" in RUNNING_MODES:
         print(EVAL_COMMON_PARAMS)
         # run_eval(paths=PATHS, eval_common_params=EVAL_COMMON_PARAMS)
 

@@ -225,7 +225,7 @@ def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=
 #################################
 # Train Template
 #################################
-def run_train(paths: dict, train_params: dict, reset_cache=None, audit_cache=None):
+def run_train(paths: dict, train_params: dict, reset_cache=None, audit_cache=None) -> None:
     Seed.set_seed(222, False)
 
     # ==============================================================================
