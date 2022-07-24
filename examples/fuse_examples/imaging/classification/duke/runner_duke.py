@@ -28,16 +28,16 @@ from torch.utils.data.dataloader import DataLoader
 import fuse.utils.gpu as GPU
 import fuseimg.datasets.duke.duke_label_type as duke_label_type
 from fuse_examples.fuse_examples_utils import ask_user
-from fuse_examples.imaging.classification import duke_breast_cancer
-from fuse_examples.imaging.utils.backbone_3d_multichannel import Fuse_model_3d_multichannel, ResNet
+from fuse_examples.imaging.classification import duke
+# from fuse_examples.imaging.utils.backbone_3d_multichannel import Fuse_model_3d_multichannel, ResNet
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.split import dataset_balanced_division_to_folds
 from fuse.dl.losses.loss_default import LossDefault
-from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
-from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
-from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
-from fuse.dl.managers.manager_default import ManagerDefault
+# from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
+# from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
+# from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
+# from fuse.dl.managers.manager_default import ManagerDefault
 from fuse.dl.models.heads import Head1DClassifier
 from fuse.eval.evaluator import EvaluatorDefault
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
@@ -116,7 +116,7 @@ def get_setting(
     assert (
         "DUKE_DATA_PATH" in os.environ
     ), "Expecting environment variable DUKE_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
-    ROOT = duke_breast_cancer.get_duke_user_dir()
+    ROOT = duke.get_duke_user_dir()
 
     data_dir = os.environ["DUKE_DATA_PATH"]
 

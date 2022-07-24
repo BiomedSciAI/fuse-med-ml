@@ -21,13 +21,15 @@ import shutil
 import tempfile
 import unittest
 import os
+
 from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
+from fuse_examples.imaging.classification.duke.runner_duke import get_setting, run_train, run_infer, run_eval
 
 from fuse.utils.rand.seed import Seed
 import fuse.utils.gpu as GPU
 
 # if "DUKE_DATA_PATH" in os.environ:
-#     from fuse_examples.imaging.classification.duke_breast_cancer.runner_duke import get_setting, run_train, run_infer, run_eval
+#     from fuse_examples.imaging.classification.duke_breast_cancer.runner_duke import get_setting, run_train, run_infer, run_eval - DELETE
 
 # @unittest.skipIf("DUKE_DATA_PATH" not in os.environ, "define environment variable 'DUKE_DATA_PATH' to run this test")
 @unittest.skip("Waiting for implementation")
@@ -59,7 +61,7 @@ class ClassificationDukeTestCase(unittest.TestCase):
 
         self.analyze_common_params = EVAL_COMMON_PARAMS
 
-    @run_in_subprocess(1200)
+    # @run_in_subprocess(1200)
     def test_template(self):
         GPU.choose_and_enable_multiple_gpus(1)
 

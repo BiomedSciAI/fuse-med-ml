@@ -32,10 +32,10 @@ from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.split import dataset_balanced_division_to_folds
 from fuse.dl.losses.loss_default import LossDefault
-from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
-from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
-from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
-from fuse.dl.managers.manager_default import ManagerDefault
+# from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
+# from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
+# from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
+# from fuse.dl.managers.manager_default import ManagerDefault
 from fuse.dl.models.heads import Head1DClassifier
 from fuse.eval.evaluator import EvaluatorDefault
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
