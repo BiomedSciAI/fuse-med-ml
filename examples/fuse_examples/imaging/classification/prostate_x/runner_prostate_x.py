@@ -84,7 +84,13 @@ def main() -> None:
     print(f"Done running with heldout={INFER_COMMON_PARAMS['data.infer_folds']}")
 
 
-def get_setting(mode: str, label_type: str=prostate_x.ProstateXLabelType.ClinSig, n_folds: int=8, heldout_fold: int=7, num_epoch: Optional[int]=None) -> List[Dict[str, Any]]:
+def get_setting(
+    mode: str,
+    label_type: str = prostate_x.ProstateXLabelType.ClinSig,
+    n_folds: int = 8,
+    heldout_fold: int = 7,
+    num_epoch: Optional[int] = None,
+) -> List[Dict[str, Any]]:
     ###########################################################################################################
     # Fuse
     ###########################################################################################################
@@ -226,7 +232,9 @@ def get_setting(mode: str, label_type: str=prostate_x.ProstateXLabelType.ClinSig
 #################################
 # Train Template
 #################################
-def run_train(paths: dict, train_params: dict, reset_cache: Optional[bool]=None, audit_cache: Optional[bool]=None) -> None:
+def run_train(
+    paths: dict, train_params: dict, reset_cache: Optional[bool] = None, audit_cache: Optional[bool] = None
+) -> None:
     Seed.set_seed(222, False)
 
     # ==============================================================================

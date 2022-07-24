@@ -1,7 +1,9 @@
 import os
+from typing import Any, List, Dict
 import numpy as np
+from fuse.data.datasets.dataset_default import DatasetDefault
 
-import fuseimg.datasets.duke_label_type
+import fuseimg.datasets.duke.duke_label_type
 
 import getpass
 from fuseimg.datasets.duke import duke
@@ -13,7 +15,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 
 
-def main():
+def main() -> None:
     mode = "debug"  # 'default'  #  'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
 
     PATHS, TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS = get_setting(mode)
@@ -37,8 +39,11 @@ def main():
 
 
 def get_setting(
-    mode, label_type=fuseimg.datasets.duke_label_type.DukeLabelType.STAGING_TUMOR_SIZE, n_folds=5, heldout_fold=4
-):
+    mode: str,
+    label_type: str = fuseimg.datasets.duke.duke_label_type.DukeLabelType.STAGING_TUMOR_SIZE,
+    n_folds: int = 5,
+    heldout_fold: int = 4,
+) -> List[Dict[str, Any]]:
     ###########################################################################################################
     # Fuse
     ###########################################################################################################
@@ -101,7 +106,7 @@ def get_setting(
     TRAIN_COMMON_PARAMS["data.validation_folds"] = [validation_fold]
     TRAIN_COMMON_PARAMS["data.train_num_workers"] = num_workers
 
-    def get_selected_series_index_radiomics(sample_id, seq_id):
+    def get_selected_series_index_radiomics(sample_id: List[str], seq_id: str) -> List[int]:
         patient_id = sample_id[0]
         if patient_id in ["Breast_MRI_120", "Breast_MRI_596"]:
             map = {"DCE_mix": [1, 2], "MASK": [0]}
@@ -135,7 +140,7 @@ def get_setting(
     return PATHS, TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS
 
 
-def run_train(paths: dict, train_params: dict, reset_cache=False):
+def run_train(paths: dict, train_params: dict, reset_cache: bool = False) -> None:
     # ==============================================================================
     # Logger
     # ==============================================================================
@@ -201,7 +206,7 @@ def run_train(paths: dict, train_params: dict, reset_cache=False):
     lgr.info("Train: Done", {"attrs": "bold"})
 
 
-def get_radiomics_extractor_setting(norm_method="default"):
+def get_radiomics_extractor_setting(norm_method: str = "default") -> None:  # Should return 'setting' ?? ask michal
     setting = {}
 
     setting["seq_vec"] = ["DCE"]
@@ -221,7 +226,7 @@ def get_radiomics_extractor_setting(norm_method="default"):
     setting["applyWavelet"] = False
 
 
-def get_radiomics_extractor_setting2(norm_method="default"):
+def get_radiomics_extractor_setting2(norm_method: str = "default") -> Dict[str, Any]:
     setting = {}
     setting["seq_list"] = ["DCE0", "DCE1"]
     setting["seq_inx_list"] = [0, 1]
@@ -243,7 +248,7 @@ def get_radiomics_extractor_setting2(norm_method="default"):
     return setting
 
 
-def get_X_y(a_dataset):
+def get_X_y(a_dataset: DatasetDefault) -> Any:  # fix type Any
     feature_keys = fnames = None
     y_list = []
     X_list = []

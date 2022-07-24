@@ -26,7 +26,7 @@ import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
 
 import fuse.utils.gpu as GPU
-import fuseimg.datasets.duke_label_type
+import fuseimg.datasets.duke.duke_label_type as duke_label_type
 from fuse_examples.fuse_examples_utils import ask_user
 from fuse_examples.imaging.classification import duke_breast_cancer
 from fuse_examples.imaging.utils.backbone_3d_multichannel import Fuse_model_3d_multichannel, ResNet
@@ -44,6 +44,7 @@ from fuse.eval.metrics.classification.metrics_classification_common import Metri
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 from fuse.utils.file_io.file_io import load_pickle
 from fuse.utils.rand.seed import Seed
+from fuse.utils.ndict import NDict
 from fuse.utils.utils_logger import fuse_logger_start
 import fuseimg.datasets.duke.duke as duke
 
@@ -95,11 +96,11 @@ def main() -> None:
 
 def get_setting(
     mode: str,
-    label_type=fuseimg.datasets.duke_label_type.DukeLabelType.STAGING_TUMOR_SIZE,
-    n_folds: int=5,
-    heldout_fold: int=4,
-    selected_sample_ids: List[str]=None,
-    num_epoch=None,
+    label_type: str = duke_label_type.DukeLabelType.STAGING_TUMOR_SIZE,
+    n_folds: int = 5,
+    heldout_fold: int = 4,
+    selected_sample_ids: List[str] = None,
+    num_epoch: Optional[int] = None,
 ) -> List[Dict[str, Any]]:
     ###########################################################################################################
     # Fuse
@@ -246,7 +247,9 @@ def get_setting(
 #################################
 # Train Template
 #################################
-def run_train(paths: dict, train_params: dict, reset_cache=None, audit_cache=None):
+def run_train(
+    paths: dict, train_params: dict, reset_cache: Optional[bool] = None, audit_cache: Optional[bool] = None
+) -> None:
     Seed.set_seed(222, False)
     # ==============================================================================
     # Logger
@@ -444,7 +447,7 @@ def run_train(paths: dict, train_params: dict, reset_cache=None, audit_cache=Non
 ######################################
 # Inference Template
 ######################################
-def run_infer(paths: dict, infer_common_params: dict, audit_cache: Optional[bool] = True):
+def run_infer(paths: dict, infer_common_params: dict, audit_cache: Optional[bool] = True) -> None:
     #### Logger
     fuse_logger_start(output_path=paths["inference_dir"], console_verbose_level=logging.INFO)
     lgr = logging.getLogger("Fuse")
@@ -499,7 +502,7 @@ def run_infer(paths: dict, infer_common_params: dict, audit_cache: Optional[bool
 ######################################
 # Analyze Template
 ######################################
-def run_eval(paths: dict, eval_common_params: dict):
+def run_eval(paths: dict, eval_common_params: dict) -> NDict:
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger("Fuse")
     lgr.info("Fuse Analyze", {"attrs": ["bold", "underline"]})

@@ -87,7 +87,13 @@ def main() -> None:
     print(f"Done running with heldout={INFER_COMMON_PARAMS['data.infer_folds']}")
 
 
-def get_setting(mode: str, num_devices: int, label_type: str=prostate_x.ProstateXLabelType.ClinSig, n_folds: int=8, heldout_fold: int=7) -> List[Dict[str, Any]]:
+def get_setting(
+    mode: str,
+    num_devices: int,
+    label_type: str = prostate_x.ProstateXLabelType.ClinSig,
+    n_folds: int = 8,
+    heldout_fold: int = 7,
+) -> List[Dict[str, Any]]:
     ###########################################################################################################
     # Fuse
     ###########################################################################################################

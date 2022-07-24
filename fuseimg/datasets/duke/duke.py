@@ -2,7 +2,7 @@ import numpy as np
 import glob
 import os
 import radiomics
-from typing import Hashable, Optional, Sequence
+from typing import Any, Callable, Hashable, Optional, Sequence, List, Dict
 
 import fuse.data.ops.ops_common
 
@@ -10,7 +10,7 @@ import fuse.data.ops.ops_common
 from fuse.data.ops import ops_common
 from functools import partial
 
-from fuseimg.data.ops.aug import geometry, geometry3d
+from fuseimg.data.ops.aug import geometry, geometry_3d
 from fuse.data.ops.ops_aug_common import OpSample, OpRandApply
 from fuse.utils.rand.param_sampler import RandBool, RandInt, Uniform
 
@@ -27,10 +27,10 @@ from fuseimg.data.ops import ops_mri
 
 import torch
 
-from fuseimg.datasets.duke_label_type import DukeLabelType
+from fuseimg.datasets.duke.duke_label_type import DukeLabelType
 
 
-def get_selected_series_index(sample_id, seq_id):
+def get_selected_series_index(sample_id: List[str], seq_id: str) -> List[int]:  # Not so sure about types
     patient_id = sample_id[0]
     if patient_id in ["Breast_MRI_120", "Breast_MRI_596"]:
         map = {"DCE_mix": [2], "MASK": [0]}
@@ -48,7 +48,7 @@ class Duke:
         train: Optional[int] = False,
         cache_dir: Optional[str] = None,
         data_dir: Optional[str] = None,
-        select_series_func=get_selected_series_index,
+        select_series_func: Callable = get_selected_series_index,
         reset_cache: bool = False,
         num_workers: int = 10,
         sample_ids: Optional[Sequence[Hashable]] = None,
@@ -97,19 +97,19 @@ class Duke:
         return my_dataset
 
     @staticmethod
-    def sample_ids():
+    def sample_ids() -> List[str]:
         return [f"Breast_MRI_{i:03d}" for i in range(1, 923)]
 
     @staticmethod
     def static_pipeline(
-        select_series_func,
-        data_dir=None,
+        select_series_func: Callable,
+        data_dir: Optional[str] = None,
         with_rescale: Optional[bool] = True,
         output_stk_volumes: Optional[bool] = False,
         output_patch_volumes: Optional[bool] = True,
         verbose: Optional[bool] = True,
         duke_patch_annotations_df: Optional[pd.DataFrame] = None,
-        name_suffix="",
+        name_suffix: str = "",
     ) -> PipelineDefault:
 
         data_dir = Duke.get_data_dir_from_environment_variable() if data_dir is None else data_dir
@@ -252,11 +252,11 @@ class Duke:
         verbose: Optional[bool] = True,
         use_entire_lesion_volume: Optional[bool] = True,
         add_clinical_features: Optional[bool] = False,
-    ):
+    ) -> PipelineDefault:
         assert use_entire_lesion_volume
         volume_key = "data.input.patch_volume" if use_entire_lesion_volume else "data.input.patch_volume_orig"
 
-        def delete_last_channel_in_volume(sample_dict: NDict):
+        def delete_last_channel_in_volume(sample_dict: NDict) -> NDict:
             vol = sample_dict[volume_key]
             vol = vol[:-1]  # remove last channel
             sample_dict[volume_key] = vol
@@ -279,7 +279,7 @@ class Duke:
                 #     {'apply': RandBool(0.5)}
                 # ],
                 (
-                    OpRandApply(OpSample(geometry3d.OpRotation3D()), 0.5),
+                    OpRandApply(OpSample(geometry_3d.OpRotation3D()), 0.5),
                     dict(
                         key="data.input.patch_volume",
                         ax1_rot=Uniform(-5.0, 5.0),
@@ -391,7 +391,7 @@ class Duke:
         return dynamic_pipeline
 
     @staticmethod
-    def get_data_dir_from_environment_variable():
+    def get_data_dir_from_environment_variable() -> str:
         return os.environ["DUKE_DATA_PATH"]
 
 
@@ -400,7 +400,7 @@ class OpDukeSampleIDDecode(OpReversibleBase):
     decodes sample id into path of MRI images
     """
 
-    def __init__(self, data_path: str, **kwargs):
+    def __init__(self, data_path: str, **kwargs: Any):
         super().__init__(**kwargs)
         self._data_path = data_path
 
@@ -420,7 +420,7 @@ class OpAddDukeLabelAndClinicalFeatures(OpBase):
     decodes sample id into path of MRI images
     """
 
-    def __init__(self, label_type: DukeLabelType, is_concat_features_to_input: Optional[bool] = False, **kwargs):
+    def __init__(self, label_type: DukeLabelType, is_concat_features_to_input: Optional[bool] = False, **kwargs: Any):
         super().__init__(**kwargs)
         self._label_type = label_type
         self._is_concat_features_to_input = is_concat_features_to_input
@@ -455,13 +455,13 @@ class OpAddDukeLabelAndClinicalFeatures(OpBase):
         return sample_dict
 
 
-def get_duke_raw_annotations_df(duke_data_dir):
+def get_duke_raw_annotations_df(duke_data_dir: str) -> pd.DataFrame:
     annotations_path = os.path.join(duke_data_dir, "Annotation_Boxes.csv")
     annotations_df = pd.read_csv(annotations_path)
     return annotations_df
 
 
-def get_duke_clinical_data_df(duke_data_dir):
+def get_duke_clinical_data_df(duke_data_dir: str) -> pd.DataFrame:
     annotations_path = os.path.join(duke_data_dir, "Clinical_and_Other_Features.xlsx")
 
     df = pd.read_excel(annotations_path, sheet_name="Data", nrows=10)
@@ -485,7 +485,9 @@ def get_duke_clinical_data_df(duke_data_dir):
     return annotations_df
 
 
-def get_samples_for_debug(data_dir, n_pos, n_neg, label_type, sample_ids=None):
+def get_samples_for_debug(
+    data_dir: str, n_pos: int, n_neg: int, label_type: Any, sample_ids: List[str] = None
+) -> List[str]:  # fix type Any
     annotations_df = get_duke_clinical_data_df(data_dir).set_index("Patient Information:Patient ID")
     if sample_ids is not None:
         annotations_df = annotations_df.loc[sample_ids]
@@ -497,7 +499,7 @@ def get_samples_for_debug(data_dir, n_pos, n_neg, label_type, sample_ids=None):
     return debug_sample_ids
 
 
-def get_series_desc_2_sequence_mapping(metadata_path: str):
+def get_series_desc_2_sequence_mapping(metadata_path: str) -> Dict[str, str]:
     # read metadata file and match between series_desc in metadata file and sequence
     metadata_df = pd.read_csv(metadata_path)
     series_description_list = metadata_df["Series Description"].unique()
@@ -521,7 +523,7 @@ def get_series_desc_2_sequence_mapping(metadata_path: str):
     return series_desc_2_sequence_mapping
 
 
-def get_sample_path(data_path, sample_id):
+def get_sample_path(data_path: str, sample_id: str) -> str:
     sample_path_pattern = os.path.join(data_path, sample_id, "*")
     sample_path = glob.glob(sample_path_pattern)
     assert len(sample_path) == 1
@@ -532,7 +534,7 @@ def get_sample_path(data_path, sample_id):
 class DukeRadiomics(Duke):
     @staticmethod
     def static_pipeline(
-        select_series_func, data_dir: Optional[str] = None, verbose: Optional[bool] = True
+        select_series_func: Callable, data_dir: Optional[str] = None, verbose: Optional[bool] = True
     ) -> PipelineDefault:
         # remove scaling operator for radiomics calculation
         static_pipline = Duke.static_pipeline(
@@ -548,7 +550,7 @@ class DukeRadiomics(Duke):
     @staticmethod
     def dynamic_pipeline(
         radiomics_extractor_setting: dict, label_type: Optional[DukeLabelType] = None, verbose: Optional[bool] = False
-    ):
+    ) -> PipelineDefault:
 
         radiomics_extractor = radiomics.featureextractor.RadiomicsFeatureExtractor(
             **radiomics_extractor_setting
@@ -587,7 +589,7 @@ class DukeRadiomics(Duke):
         label_type: Optional[DukeLabelType] = None,
         cache_dir: Optional[str] = None,
         data_dir: Optional[str] = None,
-        select_series_func=get_selected_series_index,
+        select_series_func: Callable = get_selected_series_index,
         reset_cache: bool = False,
         num_workers: int = 10,
         sample_ids: Optional[Sequence[Hashable]] = None,
@@ -638,14 +640,14 @@ class DukeRadiomics(Duke):
         return my_dataset
 
 
-def remove_entries_with_nan_label(sample_dict, key):
+def remove_entries_with_nan_label(sample_dict: NDict, key: str) -> NDict:
     if np.isnan(sample_dict[key]):
         print(f"====== {get_sample_id(sample_dict)} has nan label ==> excluded")
         return None
     return sample_dict
 
 
-def get_selected_sample_ids():
+def get_selected_sample_ids() -> List[str]:
     all_sample_ids = Duke.sample_ids()
     excluded_indexes = [
         "029",

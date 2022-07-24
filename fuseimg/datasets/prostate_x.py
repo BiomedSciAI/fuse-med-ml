@@ -4,7 +4,7 @@ import os
 import logging
 
 import pickle
-from typing import Hashable, Optional, Sequence
+from typing import Callable, Hashable, Optional, Sequence, List, Any, Dict
 
 import pandas as pd
 from functools import partial
@@ -21,14 +21,14 @@ from fuse.data.ops import ops_common
 from fuse.data.ops.ops_aug_common import OpSample, OpRandApply
 from fuse.utils.rand.param_sampler import RandBool, RandInt, Uniform, Choice
 
-from fuseimg.data.ops.aug import geometry, geometry3d
+from fuseimg.data.ops.aug import geometry, geometry_3d
 
 from enum import Enum
 
 import torch
 
 
-def get_selected_series_index(sample_id, seq_id):
+def get_selected_series_index(sample_id: List[str], seq_id: str) -> int:
     patient_id = sample_id[:-2]
     map = {"T2": -1, "ADC": 0, "ktrans": 0, "MASK": 0}
     if patient_id in ["ProstateX-0148", "ProstateX-0180"]:
@@ -45,25 +45,25 @@ def get_selected_series_index(sample_id, seq_id):
 class ProstateXLabelType(Enum):
     ClinSig = "ClinSig"
 
-    def get_features_to_use(self):
+    def get_features_to_use(self) -> List[str]:
         if self == ProstateXLabelType.ClinSig:
             return ["zone"]
 
         raise NotImplementedError(self)
 
-    def get_column_name(self):
+    def get_column_name(self) -> str:
         if self == ProstateXLabelType.ClinSig:
             return "ClinSig"
 
-    def get_process_func(self):
+    def get_process_func(self) -> Callable:
         if self == ProstateXLabelType.ClinSig:
             return lambda val: 1 if val > 0 else 0
 
         raise NotImplementedError(self)
 
-    def get_value(self, clinical_features):
+    def get_value(self, clinical_features: pd.DataFrame) -> Any:
         col_name = self.get_column_name()
-        value = clinical_features[col_name] + 0  # why should be add 0??
+        value = clinical_features[col_name] + 0  # why should be add 0?? ask michal
         process_func = self.get_process_func()
         if process_func is None:
             return value
@@ -73,7 +73,7 @@ class ProstateXLabelType(Enum):
             value = process_func(value)
         return value
 
-    def get_num_classes(self):
+    def get_num_classes(self) -> int:
         return 2  # currrently all are binary classification tasks
 
 
@@ -83,14 +83,14 @@ class ProstateX:
     PATCH_Z_SIZE = 13
 
     @staticmethod
-    def sample_ids(data_dir):
+    def sample_ids(data_dir: str) -> Any:  # fix type Any - I think it should by List[str], need 2 double check
         annotations_df = get_prostate_x_annotations_df(data_dir)
         return annotations_df["Sample ID"].values
 
     @staticmethod
     def static_pipeline(
-        root_path,
-        select_series_func,
+        root_path: str,
+        select_series_func: Callable,
         with_rescale: Optional[bool] = True,
         keep_stk_volumes: Optional[bool] = False,
         verbose: Optional[bool] = True,
@@ -235,7 +235,7 @@ class ProstateX:
         label_type: Optional[ProstateXLabelType] = None,
         num_channels: int = 5,
         verbose: Optional[bool] = True,
-    ):
+    ) -> PipelineDefault:
         volume_key = "data.input.patch_volume"
         dynamic_steps = [(ops_cast.OpToTensor(), dict(key=volume_key, dtype=torch.float32))]
 
@@ -267,7 +267,7 @@ class ProstateX:
                 #     {'apply': RandBool(0.5)}
                 # ],
                 (
-                    OpRandApply(OpSample(geometry3d.OpRotation3D()), 0.5),
+                    OpRandApply(OpSample(geometry_3d.OpRotation3D()), 0.5),
                     dict(
                         key="data.input.patch_volume",
                         ax1_rot=Uniform(-5.0, 5.0),
@@ -351,7 +351,7 @@ class ProstateX:
         train: Optional[bool] = False,
         cache_dir: Optional[str] = None,
         data_dir: Optional[str] = None,
-        select_series_func=get_selected_series_index,
+        select_series_func: Callable = get_selected_series_index,
         num_channels: int = 5,
         reset_cache: bool = False,
         num_workers: int = 10,
@@ -407,7 +407,7 @@ class ProstateX:
         return my_dataset
 
 
-def fix_certain_b_sequences(sample_dict, key_in_volumes_info, key_volumes):
+def fix_certain_b_sequences(sample_dict: NDict, key_in_volumes_info: str, key_volumes: str) -> NDict:
     volumes_info = sample_dict[key_in_volumes_info]
     volumes = sample_dict[key_volumes]
 
@@ -437,7 +437,7 @@ def fix_certain_b_sequences(sample_dict, key_in_volumes_info, key_volumes):
     return sample_dict
 
 
-def get_ktrans_image_file_from_sample_id(sample_id, data_dir):
+def get_ktrans_image_file_from_sample_id(sample_id: str, data_dir: str) -> Any:  # fix type
     patient_id = sample_id.split("_")[0]
     ktrans_patient_dir = os.path.join(data_dir, "ProstateXKtrains-train-fixed", patient_id)
     ktrans_mhd_files = glob.glob(os.path.join(ktrans_patient_dir, "*.mhd"))
@@ -450,7 +450,7 @@ class OpProstateXSampleIDDecode(OpReversibleBase):
     decodes sample id into path of MRI images
     """
 
-    def __init__(self, data_path: str, **kwargs):
+    def __init__(self, data_path: str, **kwargs: Any):
         super().__init__(**kwargs)
         self._data_path = data_path
 
@@ -472,7 +472,9 @@ class OpAdProstateXLabelAndClinicalFeatures(OpBase):
     decodes sample id into path of MRI images
     """
 
-    def __init__(self, label_type: ProstateXLabelType, is_concat_features_to_input: Optional[bool] = False, **kwargs):
+    def __init__(
+        self, label_type: ProstateXLabelType, is_concat_features_to_input: Optional[bool] = False, **kwargs: Any
+    ):
         super().__init__(**kwargs)
         self._label_type = label_type
         self._is_concat_features_to_input = is_concat_features_to_input
@@ -515,7 +517,7 @@ class OpAdProstateXLabelAndClinicalFeatures(OpBase):
         return sample_dict
 
 
-def get_prostate_x_annotations_df(data_dir):
+def get_prostate_x_annotations_df(data_dir: str) -> pd.DataFrame:
     if True:
         # v5
         annotations_df = pd.read_csv(os.path.join(data_dir, "Lesion Information", "ProstateX-Findings-Train.csv"))
@@ -569,7 +571,7 @@ def get_prostate_x_annotations_df(data_dir):
     return annotations_df
 
 
-def get_samples_for_debug(n_pos, n_neg, label_type):
+def get_samples_for_debug(n_pos: int, n_neg: int, label_type: Any) -> List[str]:  # fix type Any
     annotations_df = get_prostate_x_annotations_df()
     label_values = label_type.get_value(annotations_df)
     patient_ids = annotations_df["Sample ID"]
@@ -579,7 +581,7 @@ def get_samples_for_debug(n_pos, n_neg, label_type):
     return sample_ids
 
 
-def get_series_desc_2_sequence_mapping():
+def get_series_desc_2_sequence_mapping() -> Dict[str, str]:
     series_desc_2_sequence_mapping = {
         "t2_tse_tra": "T2",
         "t2_tse_tra_Grappa3": "T2",
@@ -606,7 +608,7 @@ def get_series_desc_2_sequence_mapping():
     return series_desc_2_sequence_mapping
 
 
-def get_sample_path(data_path, patient_id):
+def get_sample_path(data_path: str, patient_id: List[str]) -> Any:  # fix type Any
     patient_path_pattern = os.path.join(data_path, patient_id, "*")
     patient_path = sorted(glob.glob(patient_path_pattern))
     if len(patient_path) > 1:

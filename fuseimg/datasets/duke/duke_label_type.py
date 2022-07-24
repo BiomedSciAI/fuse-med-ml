@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Callable
+from typing import Any, Callable, Union
 
 import numpy as np
 import pandas as pd
@@ -11,7 +11,7 @@ class DukeLabelType(Enum):
     HISTOLOGY_TYPE = "Histology Type"
     IS_HIGH_TUMOR_GRADE_TOTAL = "is High Tumor Grade Total"
 
-    def get_value(self, clinical_features):
+    def get_value(self, clinical_features: pd.DataFrame) -> Any:  # fix type Any
         col_name = self.get_column_name()
         value = clinical_features[col_name]
         process_func = self.get_process_func()
@@ -23,7 +23,7 @@ class DukeLabelType(Enum):
             value = process_func(value)
         return value
 
-    def select_features(self, clinical_features):  # todo: ask Tal
+    def select_features(self, clinical_features: pd.DataFrame) -> pd.DataFrame:  # todo: ask Tal
         group1 = [
             "MRI Findings:Skin/Nipple Invovlement",  # 'Skin Invovlement',
             "US features:Tumor Size (cm)",  # 'Tumor Size US',
@@ -64,7 +64,7 @@ class DukeLabelType(Enum):
     def get_process_func(self) -> Callable:
         if self == DukeLabelType.ispCR:
 
-            def update_func(ispCR):
+            def update_func(ispCR: int) -> Union[np.Nan, int]:  # fix return type
                 if ispCR > 2:
                     return np.NaN
                 if ispCR == 0 or ispCR == 2:
@@ -79,7 +79,7 @@ class DukeLabelType(Enum):
 
         if self == DukeLabelType.HISTOLOGY_TYPE:
 
-            def update_func(histology_type):
+            def update_func(histology_type: int) -> Union[np.Nan, int]:  # fix return type
                 if histology_type == 1:
                     return 0
                 elif histology_type == 10:
