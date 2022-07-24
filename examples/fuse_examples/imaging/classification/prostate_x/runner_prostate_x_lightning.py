@@ -21,7 +21,7 @@ import torch
 import logging
 import os
 import copy
-from typing import OrderedDict, Optional
+from typing import OrderedDict, Optional, List, Dict, Any
 
 import torch.nn.functional as F
 import torch.optim as optim
@@ -38,6 +38,7 @@ from fuse.dl.models.heads import Head1DClassifier
 from fuse.eval.evaluator import EvaluatorDefault
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
+from fuse.utils.ndict import NDict
 from fuse.utils.rand.seed import Seed
 from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import create_dir, load_pickle, save_dataframe
@@ -49,7 +50,7 @@ from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
 import pytorch_lightning as pl
 
 
-def main():
+def main() -> None:
     mode = "default"  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
 
     # allocate gpus
@@ -86,7 +87,7 @@ def main():
     print(f"Done running with heldout={INFER_COMMON_PARAMS['data.infer_folds']}")
 
 
-def get_setting(mode, num_devices, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=8, heldout_fold=7):
+def get_setting(mode: str, num_devices: int, label_type: str=prostate_x.ProstateXLabelType.ClinSig, n_folds: int=8, heldout_fold: int=7) -> List[Dict[str, Any]]:
     ###########################################################################################################
     # Fuse
     ###########################################################################################################
@@ -283,7 +284,7 @@ def create_model(imaging_dropout: float, num_backbone_features: int, input_chann
 #################################
 # Train Template
 #################################
-def run_train(paths: dict, train_params: dict):
+def run_train(paths: dict, train_params: dict) -> None:
     Seed.set_seed(222, False)
 
     # ==============================================================================
@@ -465,7 +466,7 @@ def run_train(paths: dict, train_params: dict):
 ######################################
 # Inference Template
 ######################################
-def run_infer(paths: dict, infer_common_params: dict, audit_cache: Optional[bool] = True):
+def run_infer(paths: dict, infer_common_params: dict, audit_cache: Optional[bool] = True) -> None:
     create_dir(paths["inference_dir"])
     infer_file = os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])
     checkpoint_file = os.path.join(paths["model_dir"], infer_common_params["checkpoint"])
@@ -533,7 +534,7 @@ def run_infer(paths: dict, infer_common_params: dict, audit_cache: Optional[bool
 ######################################
 # Analyze Template
 ######################################
-def run_eval(paths: dict, eval_common_params: dict):
+def run_eval(paths: dict, eval_common_params: dict) -> NDict:
     infer_file = os.path.join(paths["inference_dir"], eval_common_params["infer_filename"])
 
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)

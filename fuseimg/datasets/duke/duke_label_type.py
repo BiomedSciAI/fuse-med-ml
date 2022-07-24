@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -49,7 +50,7 @@ class DukeLabelType(Enum):
             raise NotImplementedError(self)
         return clinical_features[fnames]
 
-    def get_column_name(self):
+    def get_column_name(self) -> str:
         if self == DukeLabelType.ispCR:
             return "Near Complete Response:Overall Near-complete Response:  Stricter Definition"  # 'Near pCR Strict'
         if self == DukeLabelType.STAGING_TUMOR_SIZE:
@@ -60,7 +61,7 @@ class DukeLabelType(Enum):
         #     return 'Tumor Grade Total'
         raise NotImplementedError(self)
 
-    def get_process_func(self):
+    def get_process_func(self) -> Callable:
         if self == DukeLabelType.ispCR:
 
             def update_func(ispCR):
@@ -92,5 +93,5 @@ class DukeLabelType(Enum):
             return lambda grade: 1 if grade >= 7 else 0
         raise NotImplementedError(self)
 
-    def get_num_classes(self):
+    def get_num_classes(self) -> int:
         return 2  # currrently all are binary classification tasks

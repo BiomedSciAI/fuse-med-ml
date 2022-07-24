@@ -19,7 +19,7 @@ Created on June 30, 2021
 
 import logging
 import os
-from typing import OrderedDict, Optional
+from typing import OrderedDict, Optional, List, Any, Dict
 
 import torch.nn.functional as F
 import torch.optim as optim
@@ -41,6 +41,7 @@ from fuse.eval.evaluator import EvaluatorDefault
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 from fuse.utils.file_io.file_io import load_pickle
+from fuse.utils.ndict import NDict
 from fuse.utils.rand.seed import Seed
 from fuse.utils.utils_logger import fuse_logger_start
 from fuseimg.datasets import prostate_x
@@ -48,7 +49,7 @@ from fuseimg.datasets import prostate_x
 from fuse_examples import fuse_examples_utils
 
 
-def main():
+def main() -> None:
     mode = "default"  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
 
     # allocate gpus
@@ -83,7 +84,7 @@ def main():
     print(f"Done running with heldout={INFER_COMMON_PARAMS['data.infer_folds']}")
 
 
-def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=8, heldout_fold=7, num_epoch=None):
+def get_setting(mode: str, label_type: str=prostate_x.ProstateXLabelType.ClinSig, n_folds: int=8, heldout_fold: int=7, num_epoch: Optional[int]=None) -> List[Dict[str, Any]]:
     ###########################################################################################################
     # Fuse
     ###########################################################################################################
@@ -225,7 +226,7 @@ def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=
 #################################
 # Train Template
 #################################
-def run_train(paths: dict, train_params: dict, reset_cache=None, audit_cache=None) -> None:
+def run_train(paths: dict, train_params: dict, reset_cache: Optional[bool]=None, audit_cache: Optional[bool]=None) -> None:
     Seed.set_seed(222, False)
 
     # ==============================================================================
@@ -427,7 +428,7 @@ def run_train(paths: dict, train_params: dict, reset_cache=None, audit_cache=Non
 ######################################
 # Inference Template
 ######################################
-def run_infer(paths: dict, infer_common_params: dict, audit_cache: Optional[bool] = True):
+def run_infer(paths: dict, infer_common_params: dict, audit_cache: Optional[bool] = True) -> None:
     #### Logger
     fuse_logger_start(output_path=paths["inference_dir"], console_verbose_level=logging.INFO)
     lgr = logging.getLogger("Fuse")
@@ -482,7 +483,7 @@ def run_infer(paths: dict, infer_common_params: dict, audit_cache: Optional[bool
 ######################################
 # Analyze Template
 ######################################
-def run_eval(paths: dict, eval_common_params: dict):
+def run_eval(paths: dict, eval_common_params: dict) -> NDict:
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger("Fuse")
     lgr.info("Fuse Analyze", {"attrs": ["bold", "underline"]})

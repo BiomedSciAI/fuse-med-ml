@@ -19,7 +19,7 @@ Created on June 30, 2021
 
 import logging
 import os
-from typing import OrderedDict, Optional
+from typing import OrderedDict, Optional, List, Dict, Any
 
 import torch.nn.functional as F
 import torch.optim as optim
@@ -27,7 +27,7 @@ from torch.utils.data.dataloader import DataLoader
 
 import fuse.utils.gpu as GPU
 import fuseimg.datasets.duke_label_type
-from fuse_fuse_examples_utils import ask_user
+from fuse_examples.fuse_examples_utils import ask_user
 from fuse_examples.imaging.classification import duke_breast_cancer
 from fuse_examples.imaging.utils.backbone_3d_multichannel import Fuse_model_3d_multichannel, ResNet
 from fuse.data.utils.collates import CollateDefault
@@ -45,10 +45,10 @@ from fuse.eval.metrics.classification.metrics_thresholding_common import MetricA
 from fuse.utils.file_io.file_io import load_pickle
 from fuse.utils.rand.seed import Seed
 from fuse.utils.utils_logger import fuse_logger_start
-from fuseimg.datasets import duke
+import fuseimg.datasets.duke.duke as duke
 
 
-def main():
+def main() -> None:
     mode = "default"  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
 
     # allocate gpus
@@ -94,13 +94,13 @@ def main():
 
 
 def get_setting(
-    mode,
+    mode: str,
     label_type=fuseimg.datasets.duke_label_type.DukeLabelType.STAGING_TUMOR_SIZE,
-    n_folds=5,
-    heldout_fold=4,
-    selected_sample_ids=None,
+    n_folds: int=5,
+    heldout_fold: int=4,
+    selected_sample_ids: List[str]=None,
     num_epoch=None,
-):
+) -> List[Dict[str, Any]]:
     ###########################################################################################################
     # Fuse
     ###########################################################################################################

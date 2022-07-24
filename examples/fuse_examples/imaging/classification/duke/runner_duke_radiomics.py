@@ -4,7 +4,7 @@ import numpy as np
 import fuseimg.datasets.duke_label_type
 
 import getpass
-from fuseimg.datasets import duke
+from fuseimg.datasets.duke import duke
 import logging
 from fuse.utils.utils_logger import fuse_logger_start
 from fuse.data.utils.split import dataset_balanced_division_to_folds

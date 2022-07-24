@@ -1,7 +1,7 @@
 import os
 
 
-def ask_user(yes_no_question) -> bool:
+def ask_user(yes_no_question: str) -> bool:
     res = ""
     while res not in ["y", "n"]:
         res = input(f"{yes_no_question}? [y/n]")
