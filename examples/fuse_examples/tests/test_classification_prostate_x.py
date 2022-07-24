@@ -34,7 +34,7 @@ from fuse_examples.imaging.classification.prostate_x.runner_prostate_x import (
 )
 
 # @unittest.skipIf("PROSTATEX_DATA_PATH" not in os.environ, "define environment variable 'PROSTATEX_DATA_PATH' to run this test")
-@unittest.skipIf(True)
+@unittest.skip("Waiting for implementation")
 class ClassificationProstateXTestCase(unittest.TestCase):
     def setUp(self):
         PATHS, TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS = get_setting("default", num_epoch=5)

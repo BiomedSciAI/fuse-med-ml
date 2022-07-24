@@ -28,7 +28,7 @@ import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
 
 import fuse.utils.gpu as GPU
-from fuse_fuse_examples_utils import ask_user
+from fuse_examples.fuse_examples_utils import ask_user, get_fuse_examples_user_dir
 from fuse_examples.imaging.utils.backbone_3d_multichannel import Fuse_model_3d_multichannel, ResNet
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.samplers import BatchSamplerDefault
@@ -47,7 +47,6 @@ from fuseimg.datasets import prostate_x
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
 import pytorch_lightning as pl
-from fuse_examples import fuse_examples_utils
 
 
 def main():
@@ -103,7 +102,7 @@ def get_setting(mode, num_devices, label_type=prostate_x.ProstateXLabelType.Clin
         "PROSTATEX_DATA_PATH" in os.environ
     ), "Expecting environment variable PROSTATEX_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
     data_dir = os.environ["PROSTATEX_DATA_PATH"]
-    ROOT = os.path.join(fuse_examples_utils.get_fuse_examples_user_dir(), "prostate_x")
+    ROOT = os.path.join(get_fuse_examples_user_dir(), "prostate_x")
 
     if mode == "debug":
         data_split_file = os.path.join(ROOT, f"prostate_x_{n_folds}folds_debug.pkl")
