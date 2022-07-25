@@ -216,31 +216,35 @@ class OpAugSqueeze3Dto2D(OpBase):
         """
         aug_input = sample_dict[key]
 
-        # verify
-        if self._verify_arguments:
-            assert isinstance(
-                aug_input, torch.Tensor
-            ), f"Error: OpAugSqueeze3Dto2D expects torch Tensor, got {type(aug_input)}"
-            assert (
-                len(aug_input.shape) == 4
-            ), f"Error: OpAugSqueeze3Dto2D expects tensor with 4 dimensions. got {aug_input.shape}"
-
-        # aug_input shape is [channels, axis_1, axis_2, axis_3]
-        if axis_squeeze == 1:
-            pass
-        elif axis_squeeze == 2:
-            aug_input = aug_input.permute((0, 2, 1, 3))
-            # aug_input shape is [channels, axis_2, axis_1, axis_3]
-        elif axis_squeeze == 3:
-            aug_input = aug_input.permute((0, 3, 1, 2))
-            # aug_input shape is [channels, axis_3, axis_1, axis_2]
-        else:
-            raise Exception(f"Error: axis squeeze must be 1, 2, or 3, got {axis_squeeze}")
-
-        aug_output = aug_input.reshape((aug_input.shape[0] * aug_input.shape[1],) + aug_input.shape[2:])
-
+        aug_output = squeeze_3D_to_2D(aug_input, axis_squeeze, self._verify_arguments)
         sample_dict[key] = aug_output
         return sample_dict
+
+
+def squeeze_3D_to_2D(aug_input, axis_squeeze: int, verify_arguments=True):
+    # verify
+    if verify_arguments:
+        assert isinstance(
+            aug_input, torch.Tensor
+        ), f"Error: OpAugSqueeze3Dto2D expects torch Tensor, got {type(aug_input)}"
+        assert (
+            len(aug_input.shape) == 4
+        ), f"Error: OpAugSqueeze3Dto2D expects tensor with 4 dimensions. got {aug_input.shape}"
+
+    # aug_input shape is [channels, axis_1, axis_2, axis_3]
+    if axis_squeeze == 1:
+        pass
+    elif axis_squeeze == 2:
+        aug_input = aug_input.permute((0, 2, 1, 3))
+        # aug_input shape is [channels, axis_2, axis_1, axis_3]
+    elif axis_squeeze == 3:
+        aug_input = aug_input.permute((0, 3, 1, 2))
+        # aug_input shape is [channels, axis_3, axis_1, axis_2]
+    else:
+        raise Exception(f"Error: axis squeeze must be 1, 2, or 3, got {axis_squeeze}")
+
+    aug_output = aug_input.reshape((aug_input.shape[0] * aug_input.shape[1],) + aug_input.shape[2:])
+    return aug_output
 
 
 class OpAugUnsqueeze3DFrom2D(OpBase):
@@ -263,32 +267,40 @@ class OpAugUnsqueeze3DFrom2D(OpBase):
         """
         aug_input = sample_dict[key]
 
-        # verify
-        if self._verify_arguments:
-            assert isinstance(
-                aug_input, torch.Tensor
-            ), f"Error: OpAugUnsqueeze3DFrom2D expects torch Tensor, got {type(aug_input)}"
-            assert (
-                len(aug_input.shape) == 3
-            ), f"Error: OpAugUnsqueeze3DFrom2D expects tensor with 3 dimensions. got {aug_input.shape}"
-
-        aug_output = aug_input.reshape((channels, aug_input.shape[0] // channels) + aug_input.shape[1:])
-
-        if axis_squeeze == 1:
-            pass
-        elif axis_squeeze == 2:
-            # aug_output shape is [channels, axis_2, axis_1, axis_3]
-            aug_output = aug_output.permute((0, 2, 1, 3))
-            # aug_input shape is [channels, axis 1, axis 2, axis 3]
-        elif axis_squeeze == 3:
-            # aug_output shape is [channels, axis_3, axis_1, axis_2]
-            aug_output = aug_output.permute((0, 2, 3, 1))
-            # aug_input shape is [channels, axis 1, axis 2, axis 3]
-        else:
-            raise Exception(f"Error: axis squeeze must be 1, 2, or 3, got {axis_squeeze}")
+        aug_output = unsqueeze_3D_from_2D(aug_input, axis_squeeze, channels, self._verify_arguments)
 
         sample_dict[key] = aug_output
         return sample_dict
+
+
+def unsqueeze_3D_from_2D(
+    aug_input: torch.Tensor, axis_squeeze: int, channels: int, verify_arguments: Optional[bool] = True
+):
+    # verify
+    if verify_arguments:
+        assert isinstance(
+            aug_input, torch.Tensor
+        ), f"Error: OpAugUnsqueeze3DFrom2D expects torch Tensor, got {type(aug_input)}"
+        assert (
+            len(aug_input.shape) == 3
+        ), f"Error: OpAugUnsqueeze3DFrom2D expects tensor with 3 dimensions. got {aug_input.shape}"
+
+    aug_output = aug_input.reshape((channels, aug_input.shape[0] // channels) + aug_input.shape[1:])
+
+    if axis_squeeze == 1:
+        pass
+    elif axis_squeeze == 2:
+        # aug_output shape is [channels, axis_2, axis_1, axis_3]
+        aug_output = aug_output.permute((0, 2, 1, 3))
+        # aug_input shape is [channels, axis 1, axis 2, axis 3]
+    elif axis_squeeze == 3:
+        # aug_output shape is [channels, axis_3, axis_1, axis_2]
+        aug_output = aug_output.permute((0, 2, 3, 1))
+        # aug_input shape is [channels, axis 1, axis 2, axis 3]
+    else:
+        raise Exception(f"Error: axis squeeze must be 1, 2, or 3, got {axis_squeeze}")
+
+    return aug_output
 
 
 class OpCrop3D(OpBase):

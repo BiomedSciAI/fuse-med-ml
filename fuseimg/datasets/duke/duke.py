@@ -393,7 +393,7 @@ class Duke:
                 dtype = torch.int64 if key == key_ground_truth else torch.float32
                 dynamic_steps += [(ops_cast.OpToTensor(), dict(key=key, dtype=dtype))]
         dynamic_steps.append((ops_common.OpKeepKeypaths(), dict(keep_keypaths=keys_2_keep)))
-        dynamic_steps += [(fuse.data.ops.ops_common.OpLambda(func=debug_print_keys), dict(key=None))]
+        # dynamic_steps += [(fuse.data.ops.ops_common.OpLambda(func=debug_print_keys), dict(key=None))] # TODO delete when finish PR
 
         dynamic_pipeline = PipelineDefault("dynamic", dynamic_steps, verbose=verbose)
 

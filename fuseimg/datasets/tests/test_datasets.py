@@ -94,11 +94,15 @@ class TestDatasets(unittest.TestCase):
     @unittest.skipIf("DUKE_DATA_PATH" not in os.environ, "Expecting environment variable DUKE_DATA_PATH to be defined")
     def test_duke(self):
         data_path = os.environ["DUKE_DATA_PATH"]
-        sample_ids = Duke.sample_ids()[:10]
+        num_samples = 3  # The number of samples to test the dataset's pipeline on them
+        sample_ids = Duke.sample_ids()[:num_samples]
         dataset = Duke.dataset(data_dir=data_path, train=True, sample_ids=sample_ids, reset_cache=True, num_workers=0)
-        self.assertEqual(len(dataset), 10)
 
-        for sample_index in range(10):
+        # Check that the dataset contains the correct number of samples
+        self.assertEqual(len(dataset), num_samples)
+
+        # Check the samples id's are correct
+        for sample_index in range(num_samples):
             sample = dataset[sample_index]
             self.assertEqual(get_sample_id(sample), sample_ids[sample_index])
 
