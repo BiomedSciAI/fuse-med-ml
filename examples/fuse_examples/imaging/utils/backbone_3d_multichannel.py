@@ -179,6 +179,7 @@ class Fuse_model_3d_multichannel(torch.nn.Module):
         :param conv_inputs:     batch_dict name for model input and its number of input channels
         :param backbone:        PyTorch backbone module - a convolutional neural network
         :param heads:           Sequence of head modules
+        :param ch_num: # TODO Sagi
         """
         super().__init__()
 

@@ -56,7 +56,7 @@ class BatchSamplerDefault(Sampler):
         :param balanced_class_weights: Optional, integer/float per balanced class, Expected length is num_balanced_classes.
                                         In mode 'exact' expecting list of integers that sums up to batch dict.
                                         In mode 'approx' expecting list of floats that sums up to ~1
-                                        If not specified and equal number of samples from each class will be used.
+                                        If not specified - an equal number of samples from each class will be used.
         :param num_batches: optional - if set will force num_batches, otherwise num_batches will be automatically to go over each sample at least once (exactly or approximately).
         :param dataset_get_multi_kwargs: extra parameters for dataset.get_multi() to optimize the running time.
         """

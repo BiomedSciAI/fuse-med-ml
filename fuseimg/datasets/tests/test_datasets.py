@@ -8,6 +8,8 @@ from fuse.utils.file_io.file_io import create_dir
 
 from fuseimg.datasets.kits21 import KITS21
 from fuseimg.datasets.stoic21 import STOIC21
+from fuseimg.datasets.isic import ISIC
+from fuseimg.datasets.duke.duke import Duke
 import numpy as np
 from tqdm import trange
 from testbook import testbook
@@ -16,7 +18,6 @@ from fuse.utils.multiprocessing.run_multiprocessed import get_from_global_storag
 from fuse.eval.evaluator import EvaluatorDefault
 import multiprocessing as mp
 
-from fuseimg.datasets.isic import ISIC
 from examples.fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS, TEN_GOLDEN_MEMBERS
 
 
@@ -89,6 +90,20 @@ class TestDatasets(unittest.TestCase):
 
         self.assertEqual(ds[0]["data.input.clinical"].shape[0], 8)
         self.assertTrue(5 in dict(results["metrics.age"]))
+
+    @unittest.skipIf("DUKE_DATA_PATH" not in os.environ, "Expecting environment variable DUKE_DATA_PATH to be defined")
+    def test_duke(self):
+        data_path = os.environ["DUKE_DATA_PATH"]
+        sample_ids = Duke.sample_ids()[:10]
+        dataset = Duke.dataset(data_dir=data_path, train=True, sample_ids=sample_ids, reset_cache=True, num_workers=0)
+        self.assertEqual(len(dataset), 10)
+
+        for sample_index in range(10):
+            sample = dataset[sample_index]
+            self.assertEqual(get_sample_id(sample), sample_ids[sample_index])
+
+        # TODO delete when done
+        print("test_duke: Done!")
 
     def test_isic(self):
 

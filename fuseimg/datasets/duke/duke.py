@@ -21,7 +21,7 @@ from fuse.data import PipelineDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuse.data.ops.op_base import OpReversibleBase, OpBase
 from fuse.data.ops import ops_read, ops_cast
-from fuse.data.utils.sample import get_sample_id
+from fuse.data.utils.sample import get_sample_id, get_sample_id_key
 from fuse.utils import NDict
 from fuseimg.data.ops import ops_mri
 
@@ -58,12 +58,15 @@ class Duke:
 
         """
         :param label_type: type of label to use
+        :param train: TODO
         :param cache_dir: path to store the cache of the static pipeline
         :param data_dir: path to the original data
         :param select_series_func: which series to select for DCE_mix sequences
         :param reset_cache:
         :param num_workers:  number of processes used for caching
         :param sample_ids: list of selected patient_ids for the dataset
+        :param verbose: TODO
+        :param cache_kwargs: TODO
         :return:
         """
 
@@ -262,6 +265,10 @@ class Duke:
             sample_dict[volume_key] = vol
             return sample_dict
 
+        def debug_print_keys(sample_dict: NDict) -> NDict:
+            print(f"!!! keys: {sample_dict.keypaths()}")
+            return sample_dict
+
         dynamic_steps = [
             # step 1: delete the mask channel
             (fuse.data.ops.ops_common.OpLambda(func=delete_last_channel_in_volume), dict(key=None)),
@@ -333,7 +340,8 @@ class Duke:
                 ),
             ]
 
-        keys_2_keep = [volume_key]
+        sid_key = get_sample_id_key()
+        keys_2_keep = [volume_key, sid_key]
         key_ground_truth = "data.ground_truth"
         if add_clinical_features or (label_type is not None):
             data_dir = Duke.get_data_dir_from_environment_variable() if data_dir is None else data_dir
@@ -384,8 +392,9 @@ class Duke:
                     continue
                 dtype = torch.int64 if key == key_ground_truth else torch.float32
                 dynamic_steps += [(ops_cast.OpToTensor(), dict(key=key, dtype=dtype))]
-
         dynamic_steps.append((ops_common.OpKeepKeypaths(), dict(keep_keypaths=keys_2_keep)))
+        dynamic_steps += [(fuse.data.ops.ops_common.OpLambda(func=debug_print_keys), dict(key=None))]
+
         dynamic_pipeline = PipelineDefault("dynamic", dynamic_steps, verbose=verbose)
 
         return dynamic_pipeline

@@ -49,12 +49,13 @@ def get_sample_id_key() -> str:
     return "data.sample_id"
 
 
-def get_sample_id(sample: Dict) -> Hashable:
+def get_sample_id(sample: NDict) -> Hashable:
     """
     extracts sample_id from the sample dict
     """
-    if get_sample_id_key() not in sample:
-        raise Exception
+    sid_key = get_sample_id_key()
+    if sid_key not in sample:
+        raise Exception(f"{sid_key} not in {sample.keypaths()}")
     return sample[get_sample_id_key()]
 
 

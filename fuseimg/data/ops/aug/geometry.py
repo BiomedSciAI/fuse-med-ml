@@ -51,56 +51,79 @@ class OpAugAffine2D(OpBase):
         """
         aug_input = sample_dict[key]
 
-        # verify
-        if self._verify_arguments:
-            assert isinstance(
-                aug_input, torch.Tensor
-            ), f"Error: OpAugAffine2D expects torch Tensor, got {type(aug_input)}"
-            assert len(aug_input.shape) in [
-                2,
-                3,
-            ], f"Error: OpAugAffine2D expects tensor with 2 or 3 dimensions. got {aug_input.shape}"
+        aug_output = auf_affine_2D(
+            aug_input,
+            translate=translate,
+            scale=scale,
+            flip=flip,
+            shear=shear,
+            channels=channels,
+            interpolation=interpolation,
+            verify_arguments=self._verify_arguments,
+        )
 
-        # Support for 2D inputs - implicit single channel
-        if len(aug_input.shape) == 2:
-            aug_input = aug_input.unsqueeze(dim=0)
-            remember_to_squeeze = True
-        else:
-            remember_to_squeeze = False
-
-        # convert to PIL (required by affine augmentation function)
-        if channels is None:
-            channels = list(range(aug_input.shape[0]))
-        aug_tensor = aug_input
-        for channel in channels:
-            aug_channel_tensor = aug_input[channel].numpy()
-            aug_channel_tensor = Image.fromarray(aug_channel_tensor)
-            aug_channel_tensor = TTF.affine(
-                aug_channel_tensor,
-                angle=rotate,
-                scale=scale,
-                interpolation=interpolation,
-                translate=translate,
-                shear=shear,
-            )
-            if flip[0]:
-                aug_channel_tensor = TTF.vflip(aug_channel_tensor)
-            if flip[1]:
-                aug_channel_tensor = TTF.hflip(aug_channel_tensor)
-
-            # convert back to torch tensor
-            aug_channel_tensor = np.array(aug_channel_tensor)
-            aug_channel_tensor = torch.from_numpy(aug_channel_tensor)
-
-            # set the augmented channel
-            aug_tensor[channel] = aug_channel_tensor
-
-        # squeeze back to 2-dim if needed
-        if remember_to_squeeze:
-            aug_tensor = aug_tensor.squeeze(dim=0)
-
-        sample_dict[key] = aug_tensor
+        sample_dict[key] = aug_output
         return sample_dict
+
+
+def auf_affine_2D(
+    aug_input,
+    rotate: float = 0.0,
+    translate: Tuple[float, float] = (0.0, 0.0),
+    scale: Tuple[float, float] = 1.0,
+    flip: Tuple[bool, bool] = (False, False),
+    shear: float = 0.0,
+    interpolation: int = transforms.InterpolationMode.BILINEAR,
+    channels: Optional[List[int]] = None,
+    verify_arguments: Optional[bool] = True,
+):
+
+    # verify
+    if verify_arguments:
+        assert isinstance(aug_input, torch.Tensor), f"Error: OpAugAffine2D expects torch Tensor, got {type(aug_input)}"
+        assert len(aug_input.shape) in [
+            2,
+            3,
+        ], f"Error: OpAugAffine2D expects tensor with 2 or 3 dimensions. got {aug_input.shape}"
+
+    # Support for 2D inputs - implicit single channel
+    if len(aug_input.shape) == 2:
+        aug_input = aug_input.unsqueeze(dim=0)
+        remember_to_squeeze = True
+    else:
+        remember_to_squeeze = False
+
+    # convert to PIL (required by affine augmentation function)
+    if channels is None:
+        channels = list(range(aug_input.shape[0]))
+    aug_tensor = aug_input
+    for channel in channels:
+        aug_channel_tensor = aug_input[channel].numpy()
+        aug_channel_tensor = Image.fromarray(aug_channel_tensor)
+        aug_channel_tensor = TTF.affine(
+            aug_channel_tensor,
+            angle=rotate,
+            scale=scale,
+            interpolation=interpolation,
+            translate=translate,
+            shear=shear,
+        )
+        if flip[0]:
+            aug_channel_tensor = TTF.vflip(aug_channel_tensor)
+        if flip[1]:
+            aug_channel_tensor = TTF.hflip(aug_channel_tensor)
+
+        # convert back to torch tensor
+        aug_channel_tensor = np.array(aug_channel_tensor)
+        aug_channel_tensor = torch.from_numpy(aug_channel_tensor)
+
+        # set the augmented channel
+        aug_tensor[channel] = aug_channel_tensor
+
+    # squeeze back to 2-dim if needed
+    if remember_to_squeeze:
+        aug_tensor = aug_tensor.squeeze(dim=0)
+    return aug_tensor
 
 
 class OpAugCropAndResize2D(OpBase):

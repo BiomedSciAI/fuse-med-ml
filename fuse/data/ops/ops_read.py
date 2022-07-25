@@ -83,9 +83,12 @@ class OpReadDataframe(OpBase):
             df = df.set_index(self._key_column)
         self._data = df.to_dict(orient="index")
 
-    def __call__(self, sample_dict: NDict, **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, key_out_group: Optional[str] = None, **kwargs
+    ) -> Union[None, dict, List[dict]]:
         """
         See base class
+        :param key_out_group: TODO
         """
         key = sample_dict[self._key_name]
 
@@ -93,8 +96,11 @@ class OpReadDataframe(OpBase):
         sample_data = self._data[key].copy()
 
         # add values tp sample_dict
-        for name, value in sample_data.items():
-            sample_dict[name] = value
+        if key_out_group is None:
+            for name, value in sample_data.items():
+                sample_dict[name] = value
+        else:
+            sample_dict[key_out_group] = sample_data
 
         return sample_dict
 

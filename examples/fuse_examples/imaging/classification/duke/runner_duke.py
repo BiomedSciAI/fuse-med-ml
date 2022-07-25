@@ -48,7 +48,7 @@ from fuse.utils.file_io.file_io import load_pickle
 from fuse.utils.rand.seed import Seed
 from fuse.utils.ndict import NDict
 from fuse.utils.utils_logger import fuse_logger_start
-import fuseimg.datasets.duke.duke as duke_dataset
+from fuseimg.datasets.duke.duke import Duke
 
 
 def main() -> None:
@@ -294,7 +294,7 @@ def run_train(
         verbose=False,
     )
 
-    dataset_all = duke_dataset.dataset(**params)
+    dataset_all = Duke.dataset(**params)
     folds = dataset_balanced_division_to_folds(
         dataset=dataset_all,
         output_split_filename=paths["data_split_filename"],
@@ -315,12 +315,12 @@ def run_train(
     params["reset_cache"] = False
     params["train"] = True
     params["cache_kwargs"] = dict(use_pipeline_hash=False, audit_first_sample=False, audit_rate=None)
-    train_dataset = duke_dataset.dataset(**params)
+    train_dataset = Duke.dataset(**params)
     # for _ in train_dataset:
     #     pass
     params["sample_ids"] = validation_sample_ids
     params["train"] = False
-    validation_dataset = duke_dataset.dataset(**params)
+    validation_dataset = Duke.dataset(**params)
 
     lgr.info("- Create sampler:")
     sampler = BatchSamplerDefault(
@@ -479,7 +479,7 @@ def run_infer(paths: dict, infer_common_params: dict, audit_cache: Optional[bool
         params["cache_kwargs"] = dict(use_pipeline_hash=False, audit_first_sample=False, audit_rate=None)
     else:
         params["cache_kwargs"] = dict(use_pipeline_hash=False)
-    validation_dataset = duke_dataset.dataset(**params)
+    validation_dataset = Duke.dataset(**params)
 
     # dataloader
     validation_dataloader = DataLoader(
