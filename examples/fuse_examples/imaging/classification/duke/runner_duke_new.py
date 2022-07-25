@@ -18,7 +18,8 @@ Created on June 30, 2021
 """
 
 import os
-from typing import OrderedDict
+import copy
+from typing import Any, OrderedDict
 import logging
 
 import torch
@@ -32,12 +33,17 @@ from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import create_dir, save_dataframe
 
 # import fuse_examples.imaging.classification.duke.duke_utils as duke_utils
+from fuse_examples.imaging.utils.backbone_3d_multichannel import Fuse_model_3d_multichannel, ResNet
+from fuse.dl.models.heads import Head1DClassifier
+from fuse.dl.losses.loss_default import LossDefault
 
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.samplers import BatchSamplerDefault
+from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC
+
 
 from fuse.dl.models import ModelMultiHead
 from fuse.dl.lightning.pl_module import LightningModuleDefault
@@ -93,15 +99,46 @@ TRAIN_COMMON_PARAMS["opt.weight_decay"] = 1e-3
 # ===================================================================================================================
 # Model
 # ===================================================================================================================
+TRAIN_COMMON_PARAMS["model."] = 1e-4
+
+## Backbone parameters
+TRAIN_COMMON_PARAMS["model.bb.input_channels_num"] = 1
 
 
-def create_model() -> torch.nn.Module:
-    # TODO - define / create a model
-    model = ModelMultiHead(
-        conv_inputs=(("data.input.input_0.tensor", 1),),
-        backbone="TODO",  # Reference: BackboneInceptionResnetV2
-        heads=["TODO"],  # References: HeadGlobalPoolingClassifier, HeadDenseSegmentation
+def create_model(
+    conv_inputs: Any,
+    backbone_ch_num: Any,
+    num_backbone_features: Any,
+    post_concat_inputs: Any,
+    post_concat_model: Any,
+    dropout_rate: float,
+) -> torch.nn.Module:
+    """
+    TODO: docu, fix type Any
+    """
+    model = Fuse_model_3d_multichannel(
+        conv_inputs=conv_inputs,  # previously 'data.input'. could be either 'data.input.patch_volume' or  'data.input.patch_volume_orig'
+        backbone=ResNet(conv_inputs=conv_inputs, ch_num=backbone_ch_num),
+        # since backbone resnet contains pooling and fc, the feature output is 1D,
+        # hence we use Head1dClassifier as classification head
+        heads=[
+            Head1DClassifier(
+                head_name="classification",
+                conv_inputs=[("model.backbone_features", num_backbone_features)],
+                post_concat_inputs=post_concat_inputs,
+                post_concat_model=post_concat_model,
+                dropout_rate=dropout_rate,
+                # append_dropout_rate=train_params['clinical_dropout'],
+                # fused_dropout_rate=train_params['fused_dropout'],
+                shared_classifier_head=None,
+                layers_description=None,
+                num_classes=2,
+                # append_features=[("data.input.clinical", 8)],
+                # append_layers_description=(256,128),
+            ),
+        ],
     )
+
     return model
 
 
@@ -231,42 +268,23 @@ def run_train(paths: dict, train_common_params: dict) -> None:
 
     ## Create model
     print("Model:")
-    model = create_model()
+    model = create_model() # TODO sagi: fill args
     print("Model: Done")
 
     # ==========================================================================================================================================
     #   Loss
-    #   Dictionary of loss elements each element is a sub-class of LossBase
-    #   The total loss will be the weighted sum of all the elements.
-    #   Each element output loss will be aggregated in batch_dict['losses.<loss name>']
-    #   The average batch loss per epoch will be included in epoch_result['losses.<loss name>'],
-    #   and the total loss in epoch_result['losses.total_loss']
-    #   The 'best_epoch_source', used to save the best model could be based on one of this losses.
-    #   Available Losses:
-    #   LossDefault - wraps a PyTorch loss function with an api.
-    #
     # ==========================================================================================================================================
     losses = {
-        # TODO add losses here (instances of LossBase)
+        "cls_loss": LossDefault(
+            pred="model.logits.classification", target="data.ground_truth", callable=F.cross_entropy, weight=1.0
+        ),
     }
 
     # =========================================================================================================
-    # Metrics - details can be found in (fuse/eval/README.md)[../../fuse/eval/README.md]
-    #   1. Create seperately for train and validation (might be a deep copy, but not a shallow one).
-    #   2. Set best_epoch_source:
-    #       monitor: the metric name to track
-    #       mode: either consider the "min" value to be best or the "max" value to be the best
+    # Metrics
     # =========================================================================================================
-    train_metrics = OrderedDict(
-        [
-            # TODO add metrics here (<name>, <instance of MetricBase>)
-        ]
-    )
-    validation_metrics = OrderedDict(
-        [
-            # TODO add metrics here (<name>, <instance of MetricBase>)
-        ]
-    )
+    train_metrics = OrderedDict([("auc", MetricAUCROC(pred="model.output.classification", target="data.ground_truth"))])
+    validation_metrics = copy.deepcopy(train_metrics)  # use the same metrics in validation as well
 
     best_epoch_source = dict(monitor="TODO", mode="TODO")
 
@@ -429,10 +447,7 @@ def run_eval(paths: dict, eval_common_params: dict) -> None:
 ######################################
 if __name__ == "__main__":
     # allocate gpus
-    if mode == "debug":
-        NUM_GPUS = 1
-    else:
-        NUM_GPUS = 2
+    NUM_GPUS = 1
 
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None  # [0]
