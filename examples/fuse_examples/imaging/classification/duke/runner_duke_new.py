@@ -268,7 +268,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
 
     ## Create model
     print("Model:")
-    model = create_model() # TODO sagi: fill args
+    model = create_model()  # TODO sagi: fill args
     print("Model: Done")
 
     # ==========================================================================================================================================
