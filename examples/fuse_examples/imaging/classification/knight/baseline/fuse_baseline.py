@@ -2,14 +2,15 @@ from collections import OrderedDict
 import pathlib
 from fuse.utils.utils_logger import fuse_logger_start
 import os
-import sys
 
 import pandas as pd
 from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
 from fuse.dl.models.heads.head_3D_classifier import Head3DClassifier
+from fuseimg.datasets.knight import KNIGHT
 import torch.nn.functional as F
 import torch.nn as nn
+import torch
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy, MetricConfusion
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 import torch.optim as optim
@@ -22,9 +23,6 @@ from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 import pytorch_lightning as pl
 
-# add parent directory to path, so that 'baseline' folder is treated as a module
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-from baseline.dataset import knight_dataset  # noqa
 
 ## Parameters:
 ##############################################################################
@@ -35,12 +33,12 @@ from baseline.dataset import knight_dataset  # noqa
 experiment_num = 0
 task_num = 1  # 1 or 2
 num_gpus = 1
-use_data = {"imaging": True, "clinical": False}  # specify whether to use imaging, clinical data or both
+use_data = {"imaging": True, "clinical": True}  # specify whether to use imaging, clinical data or both
 batch_size = 2
-resize_to = (80, 256, 256)
+resize_to = (70, 256, 256)
 
 if task_num == 1:
-    num_epochs = 150
+    num_epochs = 120
     num_classes = 2
     learning_rate = 1e-4 if use_data["clinical"] else 1e-5
     imaging_dropout = 0.5
@@ -83,7 +81,6 @@ def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_d
                 num_classes=num_classes,
                 append_features=append_features,
                 append_layers_description=(256, 128),
-                append_dropout_rate=clinical_dropout,
                 fused_dropout_rate=fused_dropout,
             ),
         ],
@@ -124,11 +121,16 @@ def main():
     # select gpus
     GPU.choose_and_enable_multiple_gpus(num_gpus, force_gpus=None)
 
+    ## Model definition
+    ##############################################################################
+
+    model = make_model(use_data, num_classes, imaging_dropout, fused_dropout)
+
     ## FuseMedML dataset preparation
     ##############################################################################
 
-    train_dl, valid_dl, _, _, _, _ = knight_dataset(
-        data_dir=data_path,
+    train_dl, valid_dl, _, _, _, _ = KNIGHT.dataset(
+        data_path=data_path,
         cache_dir=cache_path,
         split=split,
         reset_cache=False,
@@ -139,11 +141,6 @@ def main():
         target_name=target_name,
         num_classes=num_classes,
     )
-
-    ## Model definition
-    ##############################################################################
-
-    model = make_model(use_data, imaging_dropout, num_classes, fused_dropout)
 
     # Loss definition:
     ##############################################################################
