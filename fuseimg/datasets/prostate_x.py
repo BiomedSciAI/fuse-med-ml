@@ -102,56 +102,34 @@ class ProstateX:
         seq_reverse_map = {s: True for s in dicom_seq_ids}
 
         static_pipeline_steps = [
-            # step 1: map sample_ids to
+            # step 1: map sample_ids to MRI folders
             (OpProstateXSampleIDDecode(data_path=data_path),
-             dict(key_path_out='data.input.mri_path', key_patient_id_out='data.input.patient_id')),
-            # step 2: read files info for the sequences
+                dict(key_path_out='data.input.mri_path', key_patient_id_out='data.input.patient_id')),
+            # step 2: arrange DICOM files and read info from DICOM tags
             (ops_mri.OpExtractDicomsPerSeq(seq_ids=dicom_seq_ids, series_desc_2_sequence_map=series_desc_2_sequence_map,
                                            use_order_indicator=False),
-             dict(key_in='data.input.mri_path',
-                  key_out_seq_ids='data.input.seq_ids',
-                  key_out_sequence_prefix='data.input.sequence.')
-             ),
-            # step 3: Load STK volumes of MRI sequences
+                 dict(key_in='data.input.mri_path', key_out_seq_ids='data.input.seq_ids', key_out_sequence_prefix='data.input.sequence.')),
+            # step 3: Load MRI sequences into STK volumes
             (ops_mri.OpLoadDicomAsStkVol(seq_reverse_map=seq_reverse_map),
-             dict(key_in_seq_ids='data.input.seq_ids', key_sequence_prefix='data.input.sequence.')),
-
+                dict(key_in_seq_ids='data.input.seq_ids', key_sequence_prefix='data.input.sequence.')),
             # step 4: rename sequence b_mix (if exists) to b; fix certain b sequences
-            (ops_common.OpLambda(func=partial(ops_mri.rename_seqeunce_from_dict,
-                                              seq_id_old='b_mix', seq_id_new='b',
-                                              key_sequence_prefix='data.input.sequence.', key_seq_ids='data.input.seq_ids')
-                                 ),
-             dict(key=None)),
-
-            # step 5: read ktrans
-            (ops_mri.OpReadSTKImage(seq_id='ktrans',
-                                    get_image_file=partial(get_ktrans_image_file_from_sample_id,
-                                                           data_dir=root_path)),
-             dict(key_sequence_prefix='data.input.sequence.', key_seq_ids='data.input.seq_ids')),
-
-            # step 6: select single volume from b_mix/T2 sequence
-            (ops_mri.OpSelectVolumes(get_indexes_func=select_series_func, delete_input_volumes=True,
-                                     selected_seq_ids=['T2', 'b', 'ADC', 'ktrans']),
-             dict(key_in_seq_ids='data.input.seq_ids',
-                  key_in_sequence_prefix='data.input.sequence.',
-                  key_out_volumes='data.input.selected_volumes',
-                  key_out_volumes_info='data.input.selected_volumes_info',
-                  )),
-
-            # step 7
-            (ops_common.OpLambda(func=partial(fix_certain_b_sequences,
-                                              key_in_volumes_info='data.input.selected_volumes_info',
+            (ops_common.OpLambda(func=partial(ops_mri.rename_seqeunce_from_dict, seq_id_old='b_mix', seq_id_new='b', key_sequence_prefix='data.input.sequence.',
+                                              key_seq_ids='data.input.seq_ids')), dict(key=None)),
+            # step 5: load KTRANS sequences into STK volumes
+            (ops_mri.OpReadSTKImage(seq_id='ktrans', get_image_file=partial(get_ktrans_image_file_from_sample_id, data_dir=root_path)),
+                dict(key_sequence_prefix='data.input.sequence.', key_seq_ids='data.input.seq_ids')),
+            # step 6: select single volumes for b_mix & T2 sequences
+            (ops_mri.OpSelectVolumes(get_indexes_func=select_series_func, delete_input_volumes=True, selected_seq_ids=['T2', 'b', 'ADC', 'ktrans']),
+                dict(key_in_seq_ids='data.input.seq_ids', key_in_sequence_prefix='data.input.sequence.', key_out_volumes='data.input.selected_volumes',
+                  key_out_volumes_info='data.input.selected_volumes_info',)),
+            # step 7: fix certain B volumes
+            (ops_common.OpLambda(func=partial(fix_certain_b_sequences, key_in_volumes_info='data.input.selected_volumes_info',
                                               key_volumes='data.input.selected_volumes')), dict(key=None)),
-
-            # step 8: set reference volume to be first and register other volumes with respect to it
-            (ops_mri.OpResampleStkVolsBasedRef(reference_inx=0, interpolation='bspline'),
-             dict(key='data.input.selected_volumes')),
-
+            # step 8: Register volumes with respect to the first volume
+            (ops_mri.OpResampleStkVolsBasedRef(reference_inx=0, interpolation='bspline'), dict(key='data.input.selected_volumes')),
             # step 9: create a single 4D volume from all the sequences (4th channel is the sequence)
-            (ops_mri.OpStackList4DStk(delete_input_volumes=True), dict(key_in='data.input.selected_volumes',
-                                                                       key_out_volume4d='data.input.volume4D',
+            (ops_mri.OpStackList4DStk(delete_input_volumes=True), dict(key_in='data.input.selected_volumes', key_out_volume4d='data.input.volume4D',
                                                                        key_out_ref_volume='data.input.ref_volume')),
-
         ]
         if with_rescale:
             # step 10:
@@ -160,7 +138,6 @@ class ProstateX:
         static_pipeline_steps += [
             # step 11: read tabular data for each patch
             (ops_read.OpReadDataframe(data=annotations_df, key_column='Sample ID'), dict(key_out_group='data.input.patch_annotations')),
-
             # step 12: create patch volumes: (i) fixed size around center of annotatins (orig), and (ii) entire annotations
             (ops_mri.OpCreatePatchVolumes(lsn_shape=(ProstateX.PATCH_Z_SIZE, ProstateX.PATCH_XY_SIZE, ProstateX.PATCH_XY_SIZE),
                                           name_suffix='_T0', pos_key='pos', lsn_spacing=(3, 0.5, 0.5),
