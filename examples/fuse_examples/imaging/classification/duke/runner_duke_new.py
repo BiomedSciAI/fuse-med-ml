@@ -26,6 +26,7 @@ import torch
 import pytorch_lightning as pl
 import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
+import torch.nn.functional as F
 
 from fuse.utils.utils_debug import FuseDebug
 import fuse.utils.gpu as GPU
