@@ -2,7 +2,6 @@ import os
 from typing import Tuple
 
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
-from torch.utils.data.dataloader import DataLoader
 from fuse.utils.ndict import NDict
 
 from fuse.data import DatasetDefault
@@ -20,8 +19,6 @@ from fuse.data.utils.sample import get_sample_id
 from functools import partial
 import torch
 import pandas as pd
-from fuse.data.utils.collates import CollateDefault
-from fuse.data.utils.samplers import BatchSamplerDefault
 
 
 class OpKnightSampleIDDecode(OpBase):
@@ -245,12 +242,7 @@ class KNIGHT:
         cache_dir: str = "cache",
         split: dict = None,
         reset_cache: bool = False,
-        rand_gen=None,
-        batch_size=8,
-        resize_to=(110, 256, 256),
-        task_num=1,
-        target_name="data.gt.gt_global.task_1_label",
-        num_classes=2,
+        resize_to=(70, 256, 256),
     ) -> DatasetDefault:
 
         static_pipeline = KNIGHT.static_pipeline(data_path, resize_to=resize_to, test=("test" in split))
@@ -275,28 +267,7 @@ class KNIGHT:
 
             print("- Load and cache data: Done")
 
-            ## Create sampler
-            print("- Create sampler:")
-            sampler = BatchSamplerDefault(
-                dataset=train_dataset,
-                balanced_class_name=target_name,
-                num_balanced_classes=num_classes,
-                batch_size=batch_size,
-                balanced_class_weights=[1.0 / num_classes] * num_classes if task_num == 2 else None,
-            )
-
-            print("- Create sampler: Done")
-
-            ## Create dataloader
-            train_dataloader = DataLoader(
-                dataset=train_dataset,
-                shuffle=False,
-                drop_last=False,
-                batch_sampler=sampler,
-                collate_fn=CollateDefault(),
-                num_workers=8,
-                generator=rand_gen,
-            )
+            
             print("Train Data: Done", {"attrs": "bold"})
 
             #### Validation data
@@ -317,19 +288,10 @@ class KNIGHT:
             validation_dataset.create()
             print("- Load and cache data: Done")
 
-            ## Create dataloader
-            validation_dataloader = DataLoader(
-                dataset=validation_dataset,
-                shuffle=False,
-                drop_last=False,
-                batch_sampler=None,
-                batch_size=batch_size,
-                num_workers=8,
-                collate_fn=CollateDefault(),
-                generator=rand_gen,
-            )
+            
             print("Validation Data: Done", {"attrs": "bold"})
-            test_dataloader = test_dataset = None
+
+            return train_dataset, validation_dataset
         else:  # test only
             #### Test data
             print("Test Data:", {"attrs": "bold"})
@@ -344,22 +306,9 @@ class KNIGHT:
             print("- Load and cache data:")
             test_dataset.create()
             print("- Load and cache data: Done")
-
-            ## Create dataloader
-            test_dataloader = DataLoader(
-                dataset=test_dataset,
-                shuffle=False,
-                drop_last=False,
-                batch_sampler=None,
-                batch_size=batch_size,
-                num_workers=8,
-                collate_fn=CollateDefault(),
-                generator=rand_gen,
-            )
+            
             print("Test Data: Done", {"attrs": "bold"})
-            train_dataloader = train_dataset = validation_dataloader = validation_dataset = None
-
-        return train_dataloader, validation_dataloader, test_dataloader, train_dataset, validation_dataset, test_dataset
+            return test_dataset
 
 
 GENDER_INDEX = {"male": 0, "female": 1}

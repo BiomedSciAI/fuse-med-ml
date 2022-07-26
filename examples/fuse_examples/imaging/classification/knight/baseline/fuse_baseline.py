@@ -10,6 +10,10 @@ from fuse.dl.models.heads.head_3D_classifier import Head3DClassifier
 from fuseimg.datasets.knight import KNIGHT
 import torch.nn.functional as F
 import torch.nn as nn
+from torch.utils.data.dataloader import DataLoader
+from fuse.data.utils.collates import CollateDefault
+from fuse.data.utils.samplers import BatchSamplerDefault
+
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy, MetricConfusion
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 import torch.optim as optim
@@ -29,7 +33,7 @@ import pytorch_lightning as pl
 # and vice versa, or set both to True to use both.
 # allocate gpus
 # uncomment if you want to use specific gpus instead of automatically looking for free ones
-experiment_num = 0
+experiment_num = 4
 task_num = 1  # 1 or 2
 num_gpus = 1
 use_data = {"imaging": True, "clinical": True}  # specify whether to use imaging, clinical data or both
@@ -129,17 +133,42 @@ def main():
     ## FuseMedML dataset preparation
     ##############################################################################
 
-    train_dl, valid_dl, _, _, _, _ = KNIGHT.dataset(
+    train_ds, valid_ds = KNIGHT.dataset(
         data_path=data_path,
         cache_dir=cache_path,
         split=split,
         reset_cache=False,
-        rand_gen=rand_gen,
-        batch_size=batch_size,
         resize_to=resize_to,
-        task_num=task_num,
-        target_name=target_name,
-        num_classes=num_classes,
+    )
+
+    ## Create dataloader
+
+    sampler = BatchSamplerDefault(
+        dataset=train_ds,
+        balanced_class_name=target_name,
+        num_balanced_classes=num_classes,
+        batch_size=batch_size,
+        balanced_class_weights=[1.0 / num_classes] * num_classes if task_num == 2 else None,
+    )
+
+    train_dl = DataLoader(
+        dataset=train_ds,
+        shuffle=False,
+        drop_last=False,
+        batch_sampler=sampler,
+        collate_fn=CollateDefault(),
+        num_workers=8,
+    )
+
+    valid_dl = DataLoader(
+        dataset=valid_ds,
+        shuffle=False,
+        drop_last=False,
+        batch_sampler=None,
+        batch_size=batch_size,
+        num_workers=8,
+        collate_fn=CollateDefault(),
+        generator=rand_gen,
     )
 
     # Loss definition:
