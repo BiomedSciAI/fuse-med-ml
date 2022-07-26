@@ -80,6 +80,7 @@ def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_d
                 num_classes=num_classes,
                 append_features=append_features,
                 append_layers_description=(256, 128),
+                append_dropout_rate=clinical_dropout,
                 fused_dropout_rate=fused_dropout,
             ),
         ],

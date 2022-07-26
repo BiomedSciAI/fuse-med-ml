@@ -288,7 +288,7 @@ if __name__ == "__main__":
     Run evaluation:
     Usage: python eval.py <target_filename> <task1 prediction_filename> <task2 prediction_filename> <output dir>
     See details in function eval()
-    Run dummy example (set the working dir to fuse-med-ml/fuse_examples/imaging/classification/knight/eval): python eval.py example/example_targets.csv example/example_task1_predictions.csv example/example_task2_predictions.csv example/results
+    Run dummy example (set the working dir to fuse-med-ml/examples/fuse_examples/imaging/classification/knight/eval): python eval.py example/example_targets.csv example/example_task1_predictions.csv example/example_task2_predictions.csv example/results
     """
     if len(sys.argv) == 1:
         dir_path = pathlib.Path(__file__).parent.resolve()
