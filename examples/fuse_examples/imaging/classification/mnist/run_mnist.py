@@ -92,7 +92,7 @@ TRAIN_COMMON_PARAMS["data.validation_num_workers"] = 8
 # ===============
 TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 2
 TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
-TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
+TRAIN_COMMON_PARAMS["trainer.accelerator"] = "cpu"
 # use "dp" strategy temp when working with multiple GPUS - workaround for pytorch lightning issue: https://github.com/Lightning-AI/lightning/issues/11807
 TRAIN_COMMON_PARAMS["trainer.strategy"] = "dp" if TRAIN_COMMON_PARAMS["trainer.num_devices"] > 1 else None
 TRAIN_COMMON_PARAMS["trainer.ckpt_path"] = None  # path to the checkpoint you wish continue the training from

@@ -13,6 +13,7 @@ Created on June 30, 2021
 """
 
 import os
+import logging
 from typing import Hashable, Sequence
 from fuse.data.datasets.dataset_base import DatasetBase
 from fuse.utils.file_io.file_io import load_pickle, save_pickle
@@ -128,6 +129,7 @@ def dataset_balanced_division_to_folds(
     reset_split: bool = False,
     workers: int = 10,
     mp_context: str = None,
+    verbose: bool = False,
     **kwargs
 ):
 
@@ -139,16 +141,27 @@ def dataset_balanced_division_to_folds(
     :param keys_to_balance: balancing any possible combination of values. For example for ["data.gender", "data.cancer"], the algorithm will balance each one of the following groups between the folds.
                             (gender=male, cancer=True), (gender=male, cancer=False), (gender=female, cancer=True), (gender=female, cancer=False)
 
-    :param  nfolds : number of folds
-    :param  id  : id to balance the split by ( not allowed 2 in same fold)
+    :param nfolds: number of folds
+    :param id: id to balance the split by ( not allowed 2 in same fold)
     :param reset_split: delete output_split_filename and recompute the split
-    :param workers : numbers of workers for multiprocessing (eport dataset into dataframe)
-    :param mp_context : multiprocessing context: "fork", "spawn", etc.
+    :param workers: numbers of workers for multiprocessing (eport dataset into dataframe)
+    :param mp_context: multiprocessing context: "fork", "spawn", etc.
+    :param verbose: TODO 
     :param kwargs: more arguments controlling the split. See function balanced_division() for details
     """
+
+    if verbose:
+        lgr = logging.getLogger("Fuse")
+
     if os.path.exists(output_split_filename) and not reset_split:
+        if verbose:
+            lgr.info(f"{output_split_filename} exists. Loading...")
         return load_pickle(output_split_filename)
+
     else:
+        if verbose:
+            lgr.info(f"{output_split_filename} does not exists. Generating...")
+
         if id == get_sample_id_key():
             keys = [get_sample_id_key()]
         else:
@@ -162,4 +175,8 @@ def dataset_balanced_division_to_folds(
         for fold in range(nfolds):
             folds[fold] = list(df_folds[df_folds["fold"] == fold][get_sample_id_key()])
         save_pickle(folds, output_split_filename)
+
+        if verbose:
+            lgr.info(f"wrote {output_split_filename}")
+
         return folds

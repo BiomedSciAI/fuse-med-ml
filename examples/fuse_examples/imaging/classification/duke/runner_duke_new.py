@@ -34,7 +34,7 @@ from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import create_dir, save_dataframe, load_pickle
 from fuse.data.utils.split import dataset_balanced_division_to_folds
 
-# import fuse_examples.imaging.classification.duke.duke_utils as duke_utils
+import fuse_examples.imaging.classification.duke.duke_utils as duke_utils
 from fuse_examples.imaging.utils.backbone_3d_multichannel import Fuse_model_3d_multichannel, ResNet
 from fuse.dl.models.heads import Head1DClassifier
 from fuse.dl.losses.loss_default import LossDefault
@@ -49,6 +49,8 @@ from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
 
 from fuse.eval.evaluator import EvaluatorDefault
 from fuseimg.datasets.duke.duke import Duke
+from fuseimg.datasets.duke.duke_label_type import DukeLabelType
+
 
 
 ##########################################
@@ -60,50 +62,131 @@ debug = FuseDebug(mode)
 ##########################################
 # Output Paths
 ##########################################
-model_dir = None  # TODO: fill in a path to model dir
+# ROOT = duke_utils.get_duke_user_dir()
+ROOT = "/tmp/_duke_sagi"
+data_dir = os.environ["DUKE_DATA_PATH"]
+
+# if mode == "debug": # super temp :)
+if True: # super temp :)
+    data_split_file = "DUKE_folds_debug.pkl"
+
+    selected_positive = [1, 2, 3, 5, 6, 10, 12, 596, 900, 901]
+    selected_negative = [4, 6, 7, 8, 11, 13, 14, 120, 902, 903]
+    selected_sample_ids = [f"Breast_MRI_{ii:03d}" for ii in selected_positive + selected_negative]
+
+    model_dir = os.path.join(ROOT, "model_dir_debug")
+    cache_dir = os.path.join(ROOT, "cache_dir_debug")
+    force_reset_model_dir = True
+
+    num_workers = 10
+    batch_size = 2
+    num_epochs = 2
+    num_devices = 1
+
+else:
+    data_split_file = "DUKE_folds.pkl"
+
+    selected_sample_ids = None
+
 PATHS = {
     "model_dir": model_dir,
-    "force_reset_model_dir": False,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
-    "cache_dir": "TODO",
+    "force_reset_model_dir": force_reset_model_dir,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
+    "data_dir": data_dir,
+    "cache_dir": cache_dir,
     "inference_dir": os.path.join(model_dir, "infer"),
     "eval_dir": os.path.join(model_dir, "eval"),
+    "data_split_filename": os.path.join(ROOT, data_split_file),
 }
 
 ##########################################
 # Train Common Params
 ##########################################
+num_folds = 5
+heldout_fold = 4
+label_type: str = DukeLabelType.STAGING_TUMOR_SIZE
+
+train_folds = [i % num_folds for i in range(heldout_fold + 1, heldout_fold + num_folds - 1)]
+validation_folds = [(heldout_fold - 1) % num_folds]
+
+
 TRAIN_COMMON_PARAMS = {}
 # ============
 # Data
 # ============
-TRAIN_COMMON_PARAMS["data.batch_size"] = 2
-TRAIN_COMMON_PARAMS["data.train_num_workers"] = 8
-TRAIN_COMMON_PARAMS["data.validation_num_workers"] = 8
-TRAIN_COMMON_PARAMS["data.cache_num_workers"] = 10
-TRAIN_COMMON_PARAMS["data.sample_ids"] = []
+TRAIN_COMMON_PARAMS["data.batch_size"] = batch_size
+TRAIN_COMMON_PARAMS["data.train_num_workers"] = num_workers
+TRAIN_COMMON_PARAMS["data.validation_num_workers"] = num_workers
+TRAIN_COMMON_PARAMS["data.cache_num_workers"] = num_workers
+TRAIN_COMMON_PARAMS["data.sample_ids"] = selected_sample_ids
+TRAIN_COMMON_PARAMS["data.num_folds"] = num_folds
+TRAIN_COMMON_PARAMS["data.train_folds"] = train_folds
+TRAIN_COMMON_PARAMS["data.validation_folds"] = validation_folds
 
 # ===============
 # PL Trainer
 # ===============
-TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 100
-TRAIN_COMMON_PARAMS["trainer.num_devices"] = 1
+TRAIN_COMMON_PARAMS["trainer.num_epochs"] = num_epochs
+TRAIN_COMMON_PARAMS["trainer.num_devices"] = num_devices
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
 TRAIN_COMMON_PARAMS["trainer.ckpt_path"] = None
 
 # ===============
 # Optimizer
 # ===============
-TRAIN_COMMON_PARAMS["opt.lr"] = 1e-4
+TRAIN_COMMON_PARAMS["opt.lr"] = 1e-5
 TRAIN_COMMON_PARAMS["opt.weight_decay"] = 1e-3
 
 # ===================================================================================================================
 # Model
 # ===================================================================================================================
-TRAIN_COMMON_PARAMS["model."] = 1e-4
+TRAIN_COMMON_PARAMS["model.momentum"] = 0.9
+TRAIN_COMMON_PARAMS["model.dropout_rate"] = 0.5
+TRAIN_COMMON_PARAMS["model.imaging_dropout"] = 0.25
+TRAIN_COMMON_PARAMS["model.post_concat_inputs"] = None  # [('data.clinical_features',9),]
+TRAIN_COMMON_PARAMS["model.post_concat_model"] = None  # (256,256)
 
+TRAIN_COMMON_PARAMS["model.classification_task"] = label_type
+TRAIN_COMMON_PARAMS["model.class_num"] = label_type.get_num_classes()
 ## Backbone parameters
 TRAIN_COMMON_PARAMS["model.bb.input_channels_num"] = 1
-TRAIN_COMMON_PARAMS["model.dropout_rate"] = 0.5
+TRAIN_COMMON_PARAMS["model.bb.num_features_imaging"] = 512
+TRAIN_COMMON_PARAMS["model.bb.num_features_clinical"] = None # 256
+
+
+# TODO sagi, maybe set 'clinical' to 0 ?
+if TRAIN_COMMON_PARAMS["model.bb.num_features_clinical"] is None:
+    TRAIN_COMMON_PARAMS["model.bb.num_features"] = TRAIN_COMMON_PARAMS["model.bb.num_features_imaging"]
+else:
+    TRAIN_COMMON_PARAMS["model.bb.num_features"] = (
+        TRAIN_COMMON_PARAMS["model.bb.num_features_imaging"] + TRAIN_COMMON_PARAMS["model.bb.num_features_clinical"]
+    )
+
+######################################
+# Inference Common Params
+######################################
+INFER_COMMON_PARAMS = {}
+INFER_COMMON_PARAMS["infer_filename"] = "infer_file.gz"
+INFER_COMMON_PARAMS["checkpoint"] = "best_epoch.ckpt"  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
+INFER_COMMON_PARAMS["data.infer_folds"] = [heldout_fold]  # infer validation set
+INFER_COMMON_PARAMS["data.batch_size"] = 4
+INFER_COMMON_PARAMS["data.num_workers"] = num_workers
+INFER_COMMON_PARAMS["model.classification_task"] = TRAIN_COMMON_PARAMS["model.classification_task"]
+INFER_COMMON_PARAMS["trainer.accelerator"] = "gpu"
+INFER_COMMON_PARAMS["trainer.ckpt_path"] = None
+INFER_COMMON_PARAMS["trainer.num_devices"] = num_devices
+
+INFER_COMMON_PARAMS["model.bb.input_channels_num"] = TRAIN_COMMON_PARAMS["model.bb.input_channels_num"]
+INFER_COMMON_PARAMS["model.bb.num_features"] = TRAIN_COMMON_PARAMS["model.bb.num_features"]
+INFER_COMMON_PARAMS["model.post_concat_inputs"] = TRAIN_COMMON_PARAMS["model.post_concat_inputs"]
+INFER_COMMON_PARAMS["model.post_concat_model"] = TRAIN_COMMON_PARAMS["model.post_concat_model"]
+INFER_COMMON_PARAMS["model.dropout_rate"] = TRAIN_COMMON_PARAMS["model.dropout_rate"]
+
+######################################
+# Analyze Common Params
+######################################
+EVAL_COMMON_PARAMS = {}
+EVAL_COMMON_PARAMS["infer_filename"] = INFER_COMMON_PARAMS["infer_filename"]
+
 
 
 def create_model(
@@ -173,10 +256,11 @@ def run_train(paths: dict, train_common_params: dict) -> None:
 
     #### Split Data
     all_dataset = Duke.dataset(
-        label_type=train_common_params["classification_task"],
+        label_type=train_common_params["model.classification_task"],
         data_dir=paths["data_dir"],
         cache_dir=paths["cache_dir"],
-        reset_cache=train_common_params["data.reset_cache"],
+        # reset_cache=train_common_params["data.reset_cache"],
+        reset_cache= False,
         sample_ids=train_common_params["data.sample_ids"],
         num_workers=train_common_params["data.train_num_workers"],
         train=False,
@@ -205,7 +289,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     ## Create dataset
     print("- Create Dataset:")
     train_dataset = Duke.dataset(
-        label_type=train_common_params["classification_task"],
+        label_type=train_common_params["model.classification_task"],
         data_dir=paths["data_dir"],
         cache_dir=paths["cache_dir"],
         # reset_cache=train_common_params["data.reset_cache"],
@@ -221,7 +305,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     sampler = BatchSamplerDefault(
         dataset=train_dataset,
         balanced_class_name="data.ground_truth",
-        num_balanced_classes=train_common_params["data.class_num"],
+        num_balanced_classes=train_common_params["model.class_num"],
         batch_size=train_common_params["data.batch_size"],
         balanced_class_weights=None,
         # workers = 0 # from michal, not sure if applicable / why
@@ -244,7 +328,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     print("Validation Data:")
 
     validation_dataset = Duke.dataset(
-        label_type=train_common_params["classification_task"],
+        label_type=train_common_params["model.classification_task"],
         data_dir=paths["data_dir"],
         cache_dir=paths["cache_dir"],
         # reset_cache=train_common_params["data.reset_cache"],
@@ -271,8 +355,8 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     print("Model:")
     model = create_model(
         conv_inputs=(("data.input.patch_volume", 1),),
-        backbone_ch_num=train_common_params["model.bb.ch_num"],
-        num_backbone_features=train_common_params["model.bb.features"],
+        backbone_ch_num=train_common_params["model.bb.input_channels_num"],
+        num_backbone_features=train_common_params["model.bb.num_features"],
         post_concat_inputs=train_common_params["model.post_concat_inputs"],
         post_concat_model=train_common_params["model.post_concat_model"],
         dropout_rate=train_common_params["model.dropout_rate"],
@@ -294,7 +378,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     train_metrics = OrderedDict([("auc", MetricAUCROC(pred="model.output.classification", target="data.ground_truth"))])
     validation_metrics = copy.deepcopy(train_metrics)  # use the same metrics in validation as well
 
-    best_epoch_source = dict(monitor="metrics.auc", mode="max")
+    best_epoch_source = dict(monitor="validation.metrics.auc", mode="max")
 
     # =====================================================================================
     #  Train - using PyTorch Lightning
@@ -347,11 +431,11 @@ def run_train(paths: dict, train_common_params: dict) -> None:
 ######################################
 # Inference Common Params
 ######################################
-INFER_COMMON_PARAMS = {}
-INFER_COMMON_PARAMS["data.num_workers"] = TRAIN_COMMON_PARAMS["data.train_num_workers"]
-INFER_COMMON_PARAMS["data.batch_size"] = 4
-INFER_COMMON_PARAMS["infer_filename"] = os.path.join(PATHS["inference_dir"], "validation_set_infer.pickle")
-INFER_COMMON_PARAMS["checkpoint"] = "best"  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
+# INFER_COMMON_PARAMS = {}
+# INFER_COMMON_PARAMS["data.num_workers"] = TRAIN_COMMON_PARAMS["data.train_num_workers"]
+# INFER_COMMON_PARAMS["data.batch_size"] = 4
+# INFER_COMMON_PARAMS["infer_filename"] = os.path.join(PATHS["inference_dir"], "validation_set_infer.pickle")
+# INFER_COMMON_PARAMS["checkpoint"] = "best"  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
 
 ######################################
 # Inference Template
@@ -374,7 +458,17 @@ def run_infer(paths: dict, infer_common_params: dict) -> None:
     for fold in infer_common_params["data.infer_folds"]:
         infer_sample_ids += folds[fold]
 
-    infer_dataset = Duke.dataset()  # TODO fill params
+    infer_dataset = Duke.dataset(
+        label_type=infer_common_params["model.classification_task"],
+        data_dir=paths["data_dir"],
+        cache_dir=paths["cache_dir"],
+        # reset_cache=train_common_params["data.reset_cache"],
+        reset_cache=False,
+        sample_ids=infer_sample_ids,
+        num_workers=infer_common_params["data.num_workers"],
+        train=False,
+        verbose=False,
+    )
 
     ## Create dataloader
     infer_dataloader = DataLoader(
@@ -388,7 +482,14 @@ def run_infer(paths: dict, infer_common_params: dict) -> None:
     )
 
     print("- Create Model:")
-    model = create_model()  # TODO fill params
+    model = create_model(
+        conv_inputs=(("data.input.patch_volume", 1),),
+        backbone_ch_num=infer_common_params["model.bb.input_channels_num"],
+        num_backbone_features=infer_common_params["model.bb.num_features"],
+        post_concat_inputs=infer_common_params["model.post_concat_inputs"],
+        post_concat_model=infer_common_params["model.post_concat_model"],
+        dropout_rate=infer_common_params["model.dropout_rate"],
+    )
 
     # load python lightning module
     pl_module = LightningModuleDefault.load_from_checkpoint(
@@ -396,11 +497,7 @@ def run_infer(paths: dict, infer_common_params: dict) -> None:
     )
 
     # set the prediction keys to extract and dump into file (the ones used be the evaluation function).
-    pl_module.set_predictions_keys(
-        [
-            # TODO
-        ]
-    )
+    pl_module.set_predictions_keys(["model.output.classification", "data.ground_truth"])
 
     # create a trainer instance and predict
     pl_trainer = pl.Trainer(
@@ -421,8 +518,8 @@ def run_infer(paths: dict, infer_common_params: dict) -> None:
 ######################################
 # Eval Template
 ######################################
-EVAL_COMMON_PARAMS = {}
-EVAL_COMMON_PARAMS["infer_filename"] = INFER_COMMON_PARAMS["infer_filename"]
+# EVAL_COMMON_PARAMS = {}
+# EVAL_COMMON_PARAMS["infer_filename"] = INFER_COMMON_PARAMS["infer_filename"]
 
 
 def run_eval(paths: dict, eval_common_params: dict) -> None:
@@ -434,17 +531,17 @@ def run_eval(paths: dict, eval_common_params: dict) -> None:
     # metrics
     metrics = OrderedDict(
         [
-            ("op", MetricApplyThresholds(pred="model.output.head_0")),  # will apply argmax
-            ("auc", MetricAUCROC(pred="model.output.head_0", target="data.label")),
-            ("accuracy", MetricAccuracy(pred="results:metrics.op.cls_pred", target="data.label")),
+            ("operation_point", MetricApplyThresholds(pred="model.output.classification")),  # will apply argmax
+            ("accuracy", MetricAccuracy(pred="results:metrics.operation_point.cls_pred", target="data.ground_truth")),
             (
                 "roc",
                 MetricROCCurve(
-                    pred="model.output.head_0",
-                    target="data.label",
+                    pred="model.output.classification",
+                    target="data.ground_truth",
                     output_filename=os.path.join(paths["inference_dir"], "roc_curve.png"),
                 ),
             ),
+            ("auc", MetricAUCROC(pred="model.output.classification", target="data.ground_truth")),
         ]
     )
 

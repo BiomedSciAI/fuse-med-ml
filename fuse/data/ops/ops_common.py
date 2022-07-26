@@ -108,9 +108,16 @@ class OpLambda(OpReversibleBase):
         if key is not None:
             value = sample_dict[key]
             value = self._func(value, **kwargs)
-            sample_dict[key] = value
+            res = value
         else:
-            sample_dict = self._func(sample_dict)
+            res = self._func(sample_dict)
+
+        if key_out is not None:
+            sample_dict[key_out] = res
+        elif key is not None:
+            sample_dict[key] = res
+        else:
+            sample_dict = res
 
         return sample_dict
 
@@ -382,7 +389,7 @@ class OpKeepKeypaths(OpBase):
     def __call__(self, sample_dict: NDict, keep_keypaths: List[str]) -> Union[None, dict, List[dict]]:
         prev_sample_dict = sample_dict
         sample_dict = NDict()
-        for k in keep_keypaths:
+        for k in ['data.initial_sample_id', 'data.sample_id']+keep_keypaths: # from michal. why?
             sample_dict[k] = prev_sample_dict[k]
 
         return sample_dict

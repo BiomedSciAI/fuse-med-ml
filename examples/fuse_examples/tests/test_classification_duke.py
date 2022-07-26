@@ -23,7 +23,7 @@ import unittest
 import os
 
 from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
-from fuse_examples.imaging.classification.duke.runner_duke import get_setting, run_train, run_infer, run_eval
+from fuse_examples.imaging.classification.duke.runner_duke_new import run_train, run_infer, run_eval, PATHS, TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS
 
 from fuse.utils.rand.seed import Seed
 import fuse.utils.gpu as GPU
@@ -39,9 +39,6 @@ class ClassificationDukeTestCase(unittest.TestCase):
         selected_negative = [4, 6, 7, 8, 11, 13, 14, 120, 902, 903]
 
         selected_sample_ids = [f"Breast_MRI_{ii:03d}" for ii in selected_positive + selected_negative]
-        PATHS, TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS = get_setting(
-            "default", selected_sample_ids=selected_sample_ids, num_epoch=2
-        )
 
         self.root = tempfile.mkdtemp()
 
@@ -56,19 +53,21 @@ class ClassificationDukeTestCase(unittest.TestCase):
         }
 
         self.train_common_params = TRAIN_COMMON_PARAMS
-        # self.train_common_params["manager.train_params"]["num_epochs"] = 2
+        self.train_common_params["trainer.num_epochs"] = 2
         self.infer_common_params = INFER_COMMON_PARAMS
 
-        self.analyze_common_params = EVAL_COMMON_PARAMS
+        self.eval_common_params = EVAL_COMMON_PARAMS
 
-    # @run_in_subprocess(1200)
+    @run_in_subprocess(1200)
     def test_template(self):
-        GPU.choose_and_enable_multiple_gpus(1)
+        GPU.choose_and_enable_multiple_gpus(1, use_cpu_if_fail=False)
 
         Seed.set_seed(0, False)  # previous test (in the pipeline) changed the deterministic behavior to True
-        run_train(self.paths, self.train_common_params, reset_cache=True, audit_cache=False)
-        run_infer(self.paths, self.infer_common_params, audit_cache=False)
-        results = run_eval(self.paths, self.analyze_common_params)
+        # run_train(self.paths, self.train_common_params, reset_cache=True, audit_cache=False)
+        run_train(self.paths, self.train_common_params)
+        # run_infer(self.paths, self.infer_common_params, audit_cache=False)
+        run_infer(self.paths, self.infer_common_params)
+        results = run_eval(self.paths, self.eval_common_params)
 
         self.assertTrue("metrics.auc" in results)
 

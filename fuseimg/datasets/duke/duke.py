@@ -4,10 +4,8 @@ import os
 import radiomics
 from typing import Any, Callable, Hashable, Optional, Sequence, List, Dict
 
-import fuse.data.ops.ops_common
-
 # import fuseimg.data.ops.ops_common_imaging
-from fuse.data.ops import ops_common
+from fuse.data.ops.ops_common import OpLambda, OpKeepKeypaths
 from functools import partial
 
 from fuseimg.data.ops.aug import geometry, geometry_3d
@@ -20,10 +18,12 @@ from fuse.data import DatasetDefault
 from fuse.data import PipelineDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuse.data.ops.op_base import OpReversibleBase, OpBase
-from fuse.data.ops import ops_read, ops_cast
+from fuse.data.ops import ops_read
+from fuse.data.ops.ops_cast import OpToTensor
 from fuse.data.utils.sample import get_sample_id, get_sample_id_key
 from fuse.utils import NDict
 from fuseimg.data.ops import ops_mri
+from fuseimg.data.ops.ops_mri import OpExtractRadiomics
 
 import torch
 
@@ -269,11 +269,15 @@ class Duke:
             print(f"!!! keys: {sample_dict.keypaths()}")
             return sample_dict
 
+        def debug_print(sample_dict:NDict) -> NDict:
+            print("debug lambda op - im here")
+            return sample_dict
+
         dynamic_steps = [
             # step 1: delete the mask channel
-            (fuse.data.ops.ops_common.OpLambda(func=delete_last_channel_in_volume), dict(key=None)),
+            (OpLambda(func=delete_last_channel_in_volume), dict(key=None)),
             # step 2: turn volume to tensor
-            (ops_cast.OpToTensor(), dict(key=volume_key, dtype=torch.float32)),
+            (OpToTensor(), dict(key=volume_key, dtype=torch.float32)),
         ]
         if train:
             # step 3: augmentations
@@ -363,15 +367,17 @@ class Duke:
                 # step 5: add ground truth label
                 dynamic_steps.append(
                     (
-                        ops_common.OpLambda(func=label_type.get_value),
+                        OpLambda(func=label_type.get_value),
                         dict(key="data.input.clinical_data", key_out=key_ground_truth),
                     )
                 )
+                # dynamic_steps.append((OpLambda(func=debug_print_keys), dict(key=None))) # TODO delete when finish PR
+
 
                 # step 6: remove entries with Nan labels
                 dynamic_steps.append(
                     (
-                        ops_common.OpLambda(func=partial(remove_entries_with_nan_label, key=key_ground_truth)),
+                        OpLambda(func=partial(remove_entries_with_nan_label, key=key_ground_truth)),
                         dict(key=None),
                     )
                 )
@@ -381,22 +387,25 @@ class Duke:
                 key_clinical_features = "data.clinical_features"
                 dynamic_steps.append(
                     (
-                        ops_common.OpLambda(func=label_type.select_features),
+                        OpLambda(func=label_type.select_features),
                         dict(key="data.input.clinical_data", key_out=key_clinical_features),
                     )
                 )
                 keys_2_keep.append(key_clinical_features)
 
+            print(f"key_2_keep = {keys_2_keep}")
             for key in keys_2_keep:
-                if key == volume_key:
+                if key == volume_key or key == "data.sample_id":
                     continue
                 dtype = torch.int64 if key == key_ground_truth else torch.float32
-                dynamic_steps += [(ops_cast.OpToTensor(), dict(key=key, dtype=dtype))]
-        dynamic_steps.append((ops_common.OpKeepKeypaths(), dict(keep_keypaths=keys_2_keep)))
-        # dynamic_steps += [(fuse.data.ops.ops_common.OpLambda(func=debug_print_keys), dict(key=None))] # TODO delete when finish PR
+                # dynamic_steps += [(OpLambda(func=debug_print), dict(key=None))]  # TODO delete when finish PR
+                dynamic_steps += [(OpToTensor(), dict(key=key, dtype=dtype))]
+                # dynamic_steps += [(OpLambda(func=debug_print), dict(key=None))]  # TODO delete when finish PR
+        dynamic_steps.append((OpKeepKeypaths(), dict(keep_keypaths=keys_2_keep)))
+        # dynamic_steps += [(OpLambda(func=debug_print_keys), dict(key=None))] # TODO delete when finish PR
 
         dynamic_pipeline = PipelineDefault("dynamic", dynamic_steps, verbose=verbose)
-
+        print("DEBUG - Dynamic pipeline: Done")
         return dynamic_pipeline
 
     @staticmethod
@@ -567,7 +576,7 @@ class DukeRadiomics(Duke):
         dynamic_steps = [
             (ops_mri.OpDict2Stk(), dict(keys=["data.input.volume4D", "data.input.ref_volume"])),
             (
-                ops_mri.OpExtractRadiomics(radiomics_extractor, radiomics_extractor_setting),
+                OpExtractRadiomics(radiomics_extractor, radiomics_extractor_setting),
                 dict(key_in_vol_4d="data.input.volume4D", key_out_radiomics_results="data.radiomics"),
             ),
         ]
@@ -586,7 +595,7 @@ class DukeRadiomics(Duke):
                 )
             )
             keys_2_keep.append(key_ground_truth)
-        dynamic_steps.append((ops_common.OpKeepKeypaths(), dict(keep_keypaths=keys_2_keep)))
+        dynamic_steps.append((OpKeepKeypaths(), dict(keep_keypaths=keys_2_keep)))
 
         dynamic_pipeline = PipelineDefault("dynamic", dynamic_steps, verbose=verbose)
 

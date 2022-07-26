@@ -56,6 +56,8 @@ class ExportDataset:
             all_keys = None
 
         # read all the data
+        print(f"debug keys: {keys}")
+        print(f"debug kwargs:{dataset_get_kwargs}")
         data = dataset.get_multi(keys=all_keys, **dataset_get_kwargs)
 
         # store in dataframe
