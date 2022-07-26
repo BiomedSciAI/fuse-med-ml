@@ -30,7 +30,7 @@ import tempfile
 import shutil
 import skimage
 import skimage.transform
-import sys
+from glob import glob
 
 from matplotlib import pyplot as plt
 def dump(img, filename, slice):
@@ -67,7 +67,10 @@ class OpLoadUKBBZip(OpBase):
         
         '''
         scans = []
-        zip_filename = os.path.join(self._dir_path,sample_dict[key_in])
+        zip_filenames = glob(os.path.join(self._dir_path,sample_dict[key_in]))
+        if len(zip_filenames) >1:
+            raise NotImplementedError(f"{sample_dict[key_in]} has more then one match. Currently not supported")
+        zip_filename = zip_filenames[0]
         try:
             zip_file = zipfile.ZipFile(zip_filename)
         except:
@@ -210,11 +213,15 @@ class UKBB:
         :param is_female                    filter only male/females from database
         :return: DatasetDefault object
         """
-        if is_female == None:
-            all_sample_ids = [file for file in os.listdir(data_dir) if '.zip' in file]
-        else:
-            all_sample_ids = [file for file in os.listdir(data_dir) if '.zip' in file]
-            all_sample_ids = list(set(input_source_gt[input_source_gt['is female'] == is_female][input_source_gt['file'].isin(all_sample_ids)]['file'].to_list()))
+
+        existing_files = [file for file in os.listdir(data_dir) if '.zip' in file]
+        existing_sample_id_fields = [f.split("_") for f in existing_files]
+        existing_sample_ids = set([a[0] + "_*_" + a[2] + "_" + a[3] for a in existing_sample_id_fields])
+        a_filter = input_source_gt['file'].isin(existing_sample_ids)
+        if is_female is not None:
+            a_filter &= input_source_gt['is female'] == is_female
+
+        all_sample_ids = list(set(input_source_gt[a_filter]['file'].to_list()))
         if sample_ids is None:
             sample_ids = all_sample_ids
             
