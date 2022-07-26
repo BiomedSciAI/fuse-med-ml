@@ -31,26 +31,24 @@ import torch.nn.functional as F
 from fuse.utils.utils_debug import FuseDebug
 import fuse.utils.gpu as GPU
 from fuse.utils.utils_logger import fuse_logger_start
-from fuse.utils.file_io.file_io import create_dir, save_dataframe
+from fuse.utils.file_io.file_io import create_dir, save_dataframe, load_pickle
+from fuse.data.utils.split import dataset_balanced_division_to_folds
 
 # import fuse_examples.imaging.classification.duke.duke_utils as duke_utils
 from fuse_examples.imaging.utils.backbone_3d_multichannel import Fuse_model_3d_multichannel, ResNet
 from fuse.dl.models.heads import Head1DClassifier
 from fuse.dl.losses.loss_default import LossDefault
 
-from fuse.data.datasets.caching.samples_cacher import SamplesCacher
-from fuse.data.datasets.dataset_default import DatasetDefault
-from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.samplers import BatchSamplerDefault
-from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC
+from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
+from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
 
-
-from fuse.dl.models import ModelMultiHead
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
 
 from fuse.eval.evaluator import EvaluatorDefault
+from fuseimg.datasets.duke.duke import Duke
 
 
 ##########################################
@@ -82,6 +80,7 @@ TRAIN_COMMON_PARAMS["data.batch_size"] = 2
 TRAIN_COMMON_PARAMS["data.train_num_workers"] = 8
 TRAIN_COMMON_PARAMS["data.validation_num_workers"] = 8
 TRAIN_COMMON_PARAMS["data.cache_num_workers"] = 10
+TRAIN_COMMON_PARAMS["data.sample_ids"] = []
 
 # ===============
 # PL Trainer
@@ -104,6 +103,7 @@ TRAIN_COMMON_PARAMS["model."] = 1e-4
 
 ## Backbone parameters
 TRAIN_COMMON_PARAMS["model.bb.input_channels_num"] = 1
+TRAIN_COMMON_PARAMS["model.dropout_rate"] = 0.5
 
 
 def create_model(
@@ -149,9 +149,6 @@ def create_model(
 def run_train(paths: dict, train_common_params: dict) -> None:
     # ==============================================================================
     # Logger
-    #   - output log automatically to three destinations:
-    #     (1) console (2) file - copy of the console (3) verbose file - used for debug
-    #   - save a copy of the template file
     # ==============================================================================
     fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
 
@@ -163,69 +160,71 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     # Data
     # ==============================================================================
 
-    #### Train Data
+    # Holds all datasets' params in one dictionary.
+    # because most of the datasets params are common
+    # TODO: consider use this method. only when runner is running.
+    # For now we'll define it seperatly
+    common_dataset_params = {}
+    # example
+    train_dataset_params = common_dataset_params
+    train_dataset_params["train"] = True
+    validation_dataset_params = common_dataset_params
+    validation_dataset_params["train"] = False
 
+    #### Split Data
+    all_dataset = Duke.dataset(
+        label_type=train_common_params["classification_task"],
+        data_dir=paths["data_dir"],
+        cache_dir=paths["cache_dir"],
+        reset_cache=train_common_params["data.reset_cache"],
+        sample_ids=train_common_params["data.sample_ids"],
+        num_workers=train_common_params["data.train_num_workers"],
+        train=False,
+        verbose=False,
+    )
+    folds = dataset_balanced_division_to_folds(
+        dataset=all_dataset,
+        output_split_filename=paths["data_split_filename"],
+        keys_to_balance=["data.ground_truth"],
+        workers=0,  # todo: stuck in Export to dataframe
+        nfolds=train_common_params["data.num_folds"],
+        verbose=True,
+    )
+
+    ## sample ids:
+    train_sample_ids = []
+    for fold in train_common_params["data.train_folds"]:
+        train_sample_ids += folds[fold]
+    validation_sample_ids = []
+    for fold in train_common_params["data.validation_folds"]:
+        validation_sample_ids += folds[fold]
+
+    #### Train Data
     print("Train Data:")
 
-    ## TODO - list your sample ids:
-    # Fuse TIP - splitting the sample_ids to folds can be done by fuse.data.utils.split.dataset_balanced_division_to_folds().
-    #            See (examples/fuse_examples/imaging/classification/stoic21/runner_stoic21.py)[../../examples/fuse_examples/imaging/classification/stoic21/runner_stoic21.py]
-    train_sample_ids = None
-    validation_sample_ids = None
-
-    ## Create data static_pipeline -
-    #                                the output of this pipeline will be cached to optimize the running time and to better utilize the GPU:
-    #                                See example in (fuseimg/datasets/stoic21.py)[../../examples/fuse_examples/imaging/classification/stoic21/runner_stoic21.py] STOIC21.static_pipeline().
-    static_pipeline = PipelineDefault(
-        "template_static",
-        [
-            # TODO
-        ],
-    )
-    ## Create data dynamic_pipeline - Dynamic pipeline follows the static pipeline and continues to pre-process the sample.
-    #                                 In contrast to the static pipeline, the output of the dynamic pipeline is not be cached and allows modifying the pre-precessing steps without recaching,
-    #                                 The recommendation is to include in the dynamic pipeline pre-processing steps that we intend to experiment with or augmentation steps.
-    train_dynamic_pipeline = PipelineDefault(
-        "template_dynamic",
-        [
-            # TODO
-        ],
-    )
-    validation_dynamic_pipeline = PipelineDefault(
-        "template_dynamic",
-        [
-            # TODO
-        ],
-    )
-
-    # Create dataset
-    cacher = SamplesCacher(
-        "template_cache",
-        static_pipeline,
-        [paths["cache_dir"]],
-        restart_cache=False,
-        workers=train_common_params["data.cache_num_workers"],
-    )
-
-    train_dataset = DatasetDefault(
+    ## Create dataset
+    print("- Create Dataset:")
+    train_dataset = Duke.dataset(
+        label_type=train_common_params["classification_task"],
+        data_dir=paths["data_dir"],
+        cache_dir=paths["cache_dir"],
+        # reset_cache=train_common_params["data.reset_cache"],
+        reset_cache=False,
         sample_ids=train_sample_ids,
-        static_pipeline=static_pipeline,
-        dynamic_pipeline=train_dynamic_pipeline,
-        cacher=cacher,
+        num_workers=train_common_params["data.train_num_workers"],
+        train=True,
+        verbose=False,
     )
-
-    print("- Load and cache data:")
-    train_dataset.create()
-    print("- Load and cache data: Done")
 
     ## Create batch sampler
     print("- Create sampler:")
     sampler = BatchSamplerDefault(
         dataset=train_dataset,
-        balanced_class_name="TODO",
-        num_balanced_classes="TODO",
+        balanced_class_name="data.ground_truth",
+        num_balanced_classes=train_common_params["data.class_num"],
         batch_size=train_common_params["data.batch_size"],
         balanced_class_weights=None,
+        # workers = 0 # from michal, not sure if applicable / why
     )
 
     print("- Create sampler: Done")
@@ -244,16 +243,17 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     #### Validation data
     print("Validation Data:")
 
-    validation_dataset = DatasetDefault(
+    validation_dataset = Duke.dataset(
+        label_type=train_common_params["classification_task"],
+        data_dir=paths["data_dir"],
+        cache_dir=paths["cache_dir"],
+        # reset_cache=train_common_params["data.reset_cache"],
+        reset_cache=False,
         sample_ids=validation_sample_ids,
-        static_pipeline=static_pipeline,
-        dynamic_pipeline=validation_dynamic_pipeline,
-        cacher=cacher,
+        num_workers=train_common_params["data.validation_num_workers"],
+        train=False,
+        verbose=False,
     )
-
-    print("- Load and cache data:")
-    validation_dataset.create()
-    print("- Load and cache data: Done")
 
     ## Create dataloader
     validation_dataloader = DataLoader(
@@ -269,7 +269,14 @@ def run_train(paths: dict, train_common_params: dict) -> None:
 
     ## Create model
     print("Model:")
-    model = create_model()  # TODO sagi: fill args
+    model = create_model(
+        conv_inputs=(("data.input.patch_volume", 1),),
+        backbone_ch_num=train_common_params["model.bb.ch_num"],
+        num_backbone_features=train_common_params["model.bb.features"],
+        post_concat_inputs=train_common_params["model.post_concat_inputs"],
+        post_concat_model=train_common_params["model.post_concat_model"],
+        dropout_rate=train_common_params["model.dropout_rate"],
+    )
     print("Model: Done")
 
     # ==========================================================================================================================================
@@ -287,7 +294,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     train_metrics = OrderedDict([("auc", MetricAUCROC(pred="model.output.classification", target="data.ground_truth"))])
     validation_metrics = copy.deepcopy(train_metrics)  # use the same metrics in validation as well
 
-    best_epoch_source = dict(monitor="TODO", mode="TODO")
+    best_epoch_source = dict(monitor="metrics.auc", mode="max")
 
     # =====================================================================================
     #  Train - using PyTorch Lightning
@@ -362,7 +369,12 @@ def run_infer(paths: dict, infer_common_params: dict) -> None:
     print(f"infer_filename={infer_file}")
 
     #### create infer dataset
-    infer_dataset = None  # TODO: follow the same steps to create dataset as in run_train
+    folds = load_pickle(paths["data_split_filename"])  # assume exists and created in train func
+    infer_sample_ids = []
+    for fold in infer_common_params["data.infer_folds"]:
+        infer_sample_ids += folds[fold]
+
+    infer_dataset = Duke.dataset()  # TODO fill params
 
     ## Create dataloader
     infer_dataloader = DataLoader(
@@ -375,12 +387,8 @@ def run_infer(paths: dict, infer_common_params: dict) -> None:
         collate_fn=CollateDefault(),
     )
 
-    # TODO - define / create a model
-    model = ModelMultiHead(
-        conv_inputs=(("data.input.input_0.tensor", 1),),
-        backbone="TODO",  # Reference: BackboneInceptionResnetV2
-        heads=["TODO"],  # References: HeadGlobalPoolingClassifier, HeadDenseSegmentation
-    )
+    print("- Create Model:")
+    model = create_model()  # TODO fill params
 
     # load python lightning module
     pl_module = LightningModuleDefault.load_from_checkpoint(
@@ -421,10 +429,22 @@ def run_eval(paths: dict, eval_common_params: dict) -> None:
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     print("Fuse Eval")
 
+    infer_file = os.path.join(paths["inference_dir"], eval_common_params["infer_filename"])
+
     # metrics
     metrics = OrderedDict(
         [
-            # TODO add metrics here (<name>, <instance of MetricBase>)
+            ("op", MetricApplyThresholds(pred="model.output.head_0")),  # will apply argmax
+            ("auc", MetricAUCROC(pred="model.output.head_0", target="data.label")),
+            ("accuracy", MetricAccuracy(pred="results:metrics.op.cls_pred", target="data.label")),
+            (
+                "roc",
+                MetricROCCurve(
+                    pred="model.output.head_0",
+                    target="data.label",
+                    output_filename=os.path.join(paths["inference_dir"], "roc_curve.png"),
+                ),
+            ),
         ]
     )
 
@@ -434,7 +454,7 @@ def run_eval(paths: dict, eval_common_params: dict) -> None:
     # run
     results = evaluator.eval(
         ids=None,
-        data=os.path.join(paths["inference_dir"], eval_common_params["infer_filename"]),
+        data=infer_file,
         metrics=metrics,
         output_dir=paths["eval_dir"],
     )

@@ -502,7 +502,7 @@ def run_infer(paths: dict, infer_common_params: dict, audit_cache: Optional[bool
 
 
 ######################################
-# Analyze Template
+# Eval Template
 ######################################
 def run_eval(paths: dict, eval_common_params: dict) -> NDict:
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
