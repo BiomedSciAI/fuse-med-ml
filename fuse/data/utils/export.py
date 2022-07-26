@@ -35,7 +35,7 @@ class ExportDataset:
         keys: Sequence[str],
         output_filename: Optional[str] = None,
         sample_id_key: str = "data.sample_id",
-        **dataset_get_kwargs
+        **dataset_get_kwargs,
     ) -> pds.DataFrame:
         """
         extract from dataset the specified and keys and create a dataframe.

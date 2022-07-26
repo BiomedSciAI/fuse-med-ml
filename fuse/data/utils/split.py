@@ -130,7 +130,7 @@ def dataset_balanced_division_to_folds(
     workers: int = 10,
     mp_context: str = None,
     verbose: bool = False,
-    **kwargs
+    **kwargs,
 ):
 
     """
@@ -146,7 +146,7 @@ def dataset_balanced_division_to_folds(
     :param reset_split: delete output_split_filename and recompute the split
     :param workers: numbers of workers for multiprocessing (eport dataset into dataframe)
     :param mp_context: multiprocessing context: "fork", "spawn", etc.
-    :param verbose: TODO 
+    :param verbose: TODO
     :param kwargs: more arguments controlling the split. See function balanced_division() for details
     """
 

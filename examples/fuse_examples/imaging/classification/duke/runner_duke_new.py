@@ -34,7 +34,7 @@ from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import create_dir, save_dataframe, load_pickle
 from fuse.data.utils.split import dataset_balanced_division_to_folds
 
-import fuse_examples.imaging.classification.duke.duke_utils as duke_utils
+# import fuse_examples.imaging.classification.duke.duke_utils as duke_utils
 from fuse_examples.imaging.utils.backbone_3d_multichannel import Fuse_model_3d_multichannel, ResNet
 from fuse.dl.models.heads import Head1DClassifier
 from fuse.dl.losses.loss_default import LossDefault
@@ -52,7 +52,6 @@ from fuseimg.datasets.duke.duke import Duke
 from fuseimg.datasets.duke.duke_label_type import DukeLabelType
 
 
-
 ##########################################
 # Debug modes
 ##########################################
@@ -67,7 +66,7 @@ ROOT = "/tmp/_duke_sagi"
 data_dir = os.environ["DUKE_DATA_PATH"]
 
 # if mode == "debug": # super temp :)
-if True: # super temp :)
+if True:  # super temp :)
     data_split_file = "DUKE_folds_debug.pkl"
 
     selected_positive = [1, 2, 3, 5, 6, 10, 12, 596, 900, 901]
@@ -150,7 +149,7 @@ TRAIN_COMMON_PARAMS["model.class_num"] = label_type.get_num_classes()
 ## Backbone parameters
 TRAIN_COMMON_PARAMS["model.bb.input_channels_num"] = 1
 TRAIN_COMMON_PARAMS["model.bb.num_features_imaging"] = 512
-TRAIN_COMMON_PARAMS["model.bb.num_features_clinical"] = None # 256
+TRAIN_COMMON_PARAMS["model.bb.num_features_clinical"] = None  # 256
 
 
 # TODO sagi, maybe set 'clinical' to 0 ?
@@ -186,7 +185,6 @@ INFER_COMMON_PARAMS["model.dropout_rate"] = TRAIN_COMMON_PARAMS["model.dropout_r
 ######################################
 EVAL_COMMON_PARAMS = {}
 EVAL_COMMON_PARAMS["infer_filename"] = INFER_COMMON_PARAMS["infer_filename"]
-
 
 
 def create_model(
@@ -260,7 +258,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
         data_dir=paths["data_dir"],
         cache_dir=paths["cache_dir"],
         # reset_cache=train_common_params["data.reset_cache"],
-        reset_cache= False,
+        reset_cache=False,
         sample_ids=train_common_params["data.sample_ids"],
         num_workers=train_common_params["data.train_num_workers"],
         train=False,

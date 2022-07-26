@@ -269,7 +269,7 @@ class Duke:
             print(f"!!! keys: {sample_dict.keypaths()}")
             return sample_dict
 
-        def debug_print(sample_dict:NDict) -> NDict:
+        def debug_print(sample_dict: NDict) -> NDict:
             print("debug lambda op - im here")
             return sample_dict
 
@@ -372,7 +372,6 @@ class Duke:
                     )
                 )
                 # dynamic_steps.append((OpLambda(func=debug_print_keys), dict(key=None))) # TODO delete when finish PR
-
 
                 # step 6: remove entries with Nan labels
                 dynamic_steps.append(

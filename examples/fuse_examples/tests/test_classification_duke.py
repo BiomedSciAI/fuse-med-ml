@@ -23,7 +23,15 @@ import unittest
 import os
 
 from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
-from fuse_examples.imaging.classification.duke.runner_duke_new import run_train, run_infer, run_eval, PATHS, TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS
+from fuse_examples.imaging.classification.duke.runner_duke_new import (
+    run_train,
+    run_infer,
+    run_eval,
+    PATHS,
+    TRAIN_COMMON_PARAMS,
+    INFER_COMMON_PARAMS,
+    EVAL_COMMON_PARAMS,
+)
 
 from fuse.utils.rand.seed import Seed
 import fuse.utils.gpu as GPU
