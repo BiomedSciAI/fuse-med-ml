@@ -10,7 +10,6 @@ from fuse.dl.models.heads.head_3D_classifier import Head3DClassifier
 from fuseimg.datasets.knight import KNIGHT
 import torch.nn.functional as F
 import torch.nn as nn
-import torch
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy, MetricConfusion
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 import torch.optim as optim
