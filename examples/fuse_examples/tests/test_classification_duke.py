@@ -66,7 +66,7 @@ class ClassificationDukeTestCase(unittest.TestCase):
 
         self.eval_common_params = EVAL_COMMON_PARAMS
 
-    @run_in_subprocess(1200)
+    # @run_in_subprocess(1200)
     def test_template(self):
         GPU.choose_and_enable_multiple_gpus(1, use_cpu_if_fail=False)
 
