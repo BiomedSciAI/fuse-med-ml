@@ -39,7 +39,7 @@ fuse_examples/imaging/classification/mnist/examples
 fuse_examples/imaging/hello_world/examples/
 .vscode/
 examples/fuse_examples/imaging/classification/knight/baseline/sandbox.ipynb
-fuse_examples/imaging/ml_pipelines/mnist/results
+examples/fuse_examples/imaging/ml_pipelines/mnist/results/
 fuse/eval/tests/*.png
 fuse/eval/examples/tmp_outputs/
 **/ensemble_output.gz
