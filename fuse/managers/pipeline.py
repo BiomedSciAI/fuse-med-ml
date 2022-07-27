@@ -1,6 +1,6 @@
 from typing import Dict, Callable
 from fuse.utils import gpu as FuseUtilsGPU
-from fuse.utils.utils_debug import FuseUtilsDebug
+from fuse.utils.utils_debug import FuseDebug
 from sklearn.model_selection import KFold
 import multiprocessing
 from functools import partial
@@ -110,8 +110,8 @@ def run(num_folds: int, num_folds_used: int, num_gpus_total: int, num_gpus_per_s
             train_params['manager.train_params']['device'] = 'cpu'
     
     # set debug mode:
-    mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseUtilsDebug
-    debug = FuseUtilsDebug(mode)
+    mode = 'default'  # Options: 'default', 'debug'. See details in FuseDebug
+    debug = FuseDebug(mode)
 
     available_gpu_ids = FuseUtilsGPU.get_available_gpu_ids()
     if num_gpus_total < len(available_gpu_ids):

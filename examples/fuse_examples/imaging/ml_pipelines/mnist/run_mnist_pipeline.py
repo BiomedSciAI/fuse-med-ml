@@ -58,8 +58,16 @@ train_params['data.train_num_workers'] = 8
 train_params['data.validation_num_workers'] = 8
 
 # ===============
-# Manager - Train
+# Train
 # ===============
+train_params['opt.learning_rate'] = 1e-4
+train_params['opt.weight_decay'] = 0.001
+
+train_params["trainer.num_epochs"] = 5
+train_params["trainer.accelerator"] = ""
+train_params["trainer.strategy"] = ""
+
+
 train_params['manager.train_params'] = {
     'device': 'cuda', 
     'num_epochs': 5,
@@ -73,8 +81,6 @@ train_params['manager.best_epoch_source'] = {
     'on_equal_values': 'better',
     # can be either better/worse - whether to consider best epoch when values are equal
 }
-train_params['manager.learning_rate'] = 1e-4
-train_params['manager.weight_decay'] = 0.001
 train_params['manager.resume_checkpoint_filename'] = None  # if not None, will try to load the checkpoint
 
 

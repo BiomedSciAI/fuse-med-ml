@@ -1,5 +1,5 @@
 # ML Pipelines
-The examples in this folder demonstrate automation of an ML pipeline which consists of:
+The examples in this folder demonstrates automation of an ML pipeline which consists of:
 * Model training on multiple cross validation splits
 * Per split evaluation
 * Ensembling the models from all the cross validation splits
@@ -14,7 +14,7 @@ The required parameters are as follows:
 2. `num_folds_used` - Number of folds/splits to use. For example, for training a single model with 80% of the samples used for training and 20% for validation, set `num_folds=5` and `num_folds_used=1`.
 3. `num_gpus_total` - Number of GPUs to use in total for executing the pipeline.  
 4. `num_gpus_per_split` - Number of GPUs to use for a single model training/inference.
-5. `num_repetitions` - Number of repetitions of the procedure with different random seeds. Note that this does not change the random decision on cross validation fold sample ids.
+5. `num_repetitions` - Number of repetitions of the procedu re with different random seeds. Note that this does not change the random decision on cross validation fold sample ids.
 6. `dataset_func` - Callable to a custom function that implements a dataset creation. Its input is a path to cache directory and it should return a train and test dataset. 
 7. `train_func` - Callable to a custom function that executes model training. 
 8. `infer_func` - Callable to a custom inference function.
