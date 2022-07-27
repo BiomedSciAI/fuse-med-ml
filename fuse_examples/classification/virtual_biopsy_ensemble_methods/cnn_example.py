@@ -30,8 +30,9 @@ import pickle
 def update_parameters_by_task(data_path,task_num):
     parameters = {}
     parameters['knight_data'] = data_path
-    parameters['dir_path'] = '/projects/msieve_dev2/usr/Tal/git_repos_virtual_biopsy/fuse-med-ml/fuse_examples/classification/knight/baseline/'
-    parameters['force_gpus'] = [0]  # specify the GPU indices you want to use
+    #parameters['dir_path'] = os.path.join(pathlib.Path(__file__).parent.resolve(), 'splits_final.pkl')#'/user/vesnares/Documents/VirtualBiopsy/fuse-med-ml/fuse_examples/classification/knight/baseline/'
+    parameters['dir_path'] = pathlib.Path(__file__).parent.resolve()
+    parameters['force_gpus'] = None #[0] # specify the GPU indices you want to use
     parameters['use_data'] = {'imaging': True,
                               'clinical': False}  # specify whether to use imaging, clinical data or both
     parameters['batch_size'] = 2
@@ -67,7 +68,7 @@ def update_parameters_by_task(data_path,task_num):
 
         parameters['task_num'] = 2
         parameters['knight_results_path'] = root_path + '/task_2_model_example/'
-        parameters['resume_checkpoint_filename'] = root_path + '/task_1_model_example/checkpoint_best_epoch.pth'
+        parameters['resume_checkpoint_filename'] = root_path + '/task_1_model_example/checkpoint_best_0_epoch.pth'
         parameters['knight_cache'] = root_path + 'task_2_cache'
         parameters['init_backbone'] = True
 
@@ -81,6 +82,7 @@ def run_train(parameters):
     splits = pd.read_pickle(os.path.join(parameters['dir_path'], 'splits_final.pkl'))
     # For this example, we use split 0 out of the 5 available cross validation splits
     split = splits[0]
+    #split = splits
 
     # read environment variables for data, cache and results locations
     data_path = parameters['knight_data']
@@ -107,7 +109,7 @@ def run_train(parameters):
     rand_gen = Seed.set_seed(1235, deterministic_mode=True)
 
     # select gpus
-    FuseUtilsGPU.choose_and_enable_multiple_gpus(len(parameters['force_gpus']), force_gpus=parameters['force_gpus'])
+    FuseUtilsGPU.choose_and_enable_multiple_gpus(1, force_gpus=parameters['force_gpus'])
 
     ## FuseMedML dataset preparation
     ##############################################################################
@@ -255,7 +257,7 @@ def train_example(root_path,data_path):
     task_loop = [1,2]
 
     for task_num in task_loop:
-        parameters = update_parameters_by_task(task_num)
+        parameters = update_parameters_by_task(data_path, task_num)
         run_train(parameters)
     return parameters
 
@@ -293,6 +295,7 @@ def run_infer(parameters,train_file,infer_file):
                   checkpoint='best',
                   output_columns=output_columns,
                   output_file_name=train_file)
+    manager = FuseManagerDefault()
     results_infer = manager.infer(data_loader=infer_dataloader,
                   input_model_dir=parameters['knight_results_path'],
                   checkpoint='best',
@@ -303,17 +306,20 @@ def run_infer(parameters,train_file,infer_file):
 def infer_example(parameters,train_file, infer_file):
     # allocate gpus
     NUM_GPUS = 1
-    force_gpus = [1] # [0]
+    force_gpus = None #None
     FuseUtilsGPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
     run_infer(parameters,train_file,infer_file)
 
-def save_results_csv(infer_file,csv_path=None):
+def save_results_csv(infer_file, task_num, csv_path=None):
     if csv_path is None:
         csv_path = os.path.join(infer_path,'infer_validation.csv')
     with gzip.open(infer_file, 'rb') as pickle_file:
         results_df = pickle.load(pickle_file)
-    results_df[['pred_classA', 'pred_classB', 'pred_classC','pred_classD','pred_classE']] =\
-        pd.DataFrame(results_df['model.output.head_0'].tolist(), index=results_df.index)
+    if task_num == 1:
+        cols = ['pred_negative', 'pred_positive']
+    else:
+        cols = ['pred_classA', 'pred_classB', 'pred_classC','pred_classD','pred_classE']
+    results_df[cols] = pd.DataFrame(results_df['model.output.head_0'].tolist(), index=results_df.index)
     results_df.drop('model.output.head_0', axis=1, inplace=True)
     results_df.to_csv(csv_path)
 
@@ -328,8 +334,9 @@ if __name__ == "__main__":
     # 1) pretrain model using binary task
     # 2) Initialize weights and re-train on multi-class task
     ##########################################
-    root_path = '/projects/msieve_dev3/usr/Tal/my_research/baseline_knight/knight_for_virtual_biopsy/'
+    root_path = 'knight_for_virtual_biopsy'
     data_path = '/projects/msieve/MedicalSieve/PatientData/KNIGHT/'
+    #data_path = '~/Documents/VirtualBiopsy2/KNIGHT'
     parameters = train_example(root_path,data_path)
     #
     # # ##########################################
@@ -339,8 +346,15 @@ if __name__ == "__main__":
     train_file = os.path.join(infer_path,'infer_train.pickle.gz')
     infer_file = os.path.join(infer_path,'infer_validation.pickle.gz')
 
+    parameters = update_parameters_by_task(data_path,task_num=1)
+    infer_example(parameters,train_file,infer_file)
+
+    save_results_csv(train_file,1, os.path.join(infer_path,'infer_train_task1.csv'))
+    save_results_csv(infer_file,1, os.path.join(infer_path,'infer_validation_task1.csv'))
+
+
     parameters = update_parameters_by_task(data_path,task_num=2)
     infer_example(parameters,train_file,infer_file)
 
-    save_results_csv(train_file,os.path.join(infer_path,'infer_train.csv'))
-    save_results_csv(infer_file,os.path.join(infer_path,'infer_validation.csv'))
+    save_results_csv(train_file,2, os.path.join(infer_path,'infer_train_task2.csv'))
+    save_results_csv(infer_file,2, os.path.join(infer_path,'infer_validation_task2.csv'))
