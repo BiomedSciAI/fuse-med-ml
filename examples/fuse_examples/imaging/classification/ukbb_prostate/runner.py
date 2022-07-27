@@ -268,30 +268,30 @@ def run_infer(train : NDict, paths : NDict , infer: NDict):
     fuse_logger_start(output_path=paths["inference_dir"], console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Inference', {'attrs': ['bold', 'underline']})
+
+    pl_module, pl_trainer, infer_dataloader = load_model_and_test_data(train, paths, infer)
+
     infer_file = os.path.join(paths['inference_dir'], infer['infer_filename'])
-    checkpoint_file = os.path.join(paths["model_dir"], infer["checkpoint"])
-    lgr.info(f'infer_filename={checkpoint_file}', {'color': 'magenta'})
 
-    lgr.info('Model:', {'attrs': 'bold'})
+    pl_module.set_predictions_keys(['model.output.head_0', 'data.gt.classification']) # which keys to extract and dump into file
+    # create a trainer instance
+    predictions = pl_trainer.predict(pl_module, infer_dataloader, return_predictions=True)
 
-    model, pl_trainer, num_classes, gt_label , class_names = create_model(train, paths)
-    lgr.info('Model: Done', {'attrs': 'bold'})
-    ## Data
-    folds = load_pickle(os.path.join( paths["data_misc_dir"], paths["data_split_filename"])) # assume exists and created in train func
+    # convert list of batch outputs into a dataframe
+    infer_df = convert_predictions_to_dataframe(predictions)
+    save_dataframe(infer_df, infer_file)
 
-    infer_sample_ids = []                              
-    for fold in infer["infer_folds"]:
-        infer_sample_ids += folds[fold]
-    input_source_gt = pd.read_csv(paths["gt_file"])
-    test_dataset = UKBB.dataset(paths["data_dir"], infer['target'], input_source_gt, paths["cache_dir"], sample_ids=infer_sample_ids, train=False , is_female = train["is_female"])
+######################################
+# Explain Template
+######################################
+def run_explain(train : NDict, paths : NDict, infer: NDict):
+    fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
+    lgr = logging.getLogger('Fuse')
+    lgr.info('Fuse Explain', {'attrs': ['bold', 'underline']})
 
-    ## Create dataloader
-    infer_dataloader = DataLoader(dataset=test_dataset,
-                                  shuffle=False, drop_last=False,
-                                  collate_fn=CollateDefault(),
-                                  num_workers=infer["num_workers"])
-    # load python lightning module
-    pl_module = LightningModuleDefault.load_from_checkpoint(checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True)
+    pl_module, _, infer_dataloader = load_model_and_test_data(train, paths, infer)
+
+
     model = ModelWrapDictToSeq(pl_module._model)
     model = medcam.inject(model, output_dir="attention_maps", backend='gcam', save_maps=True, layer='auto',return_attention=True)
     for i, batch in enumerate(infer_dataloader):
@@ -305,16 +305,39 @@ def run_infer(train : NDict, paths : NDict , infer: NDict):
             nib.save(original, filename=os.path.join('attention_maps','original_'+str(i)+'_'+batch['data.input.img_path'][0]+'_label_='+str(batch['data.gt.classification'])+'.nii.gz'))
             nib.save(attention_map, filename=os.path.join('attention_maps','attention_'+str(i)+'_'+batch['data.input.img_path'][0]+'_label_='+str(batch['data.gt.classification'])+'.nii.gz'))
 
-    # lgr.info(f'Test Data: Done', {'attrs': 'bold'})
-    # #set the prediction keys to extract (the ones used be the evaluation function).
-    # pl_module.set_predictions_keys(['model.output.head_0', 'data.gt.classification']) # which keys to extract and dump into file
-    # # create a trainer instance
-    # predictions = pl_trainer.predict(pl_module, infer_dataloader, return_predictions=True)
 
-    # convert list of batch outputs into a dataframe
-    # infer_df = convert_predictions_to_dataframe(predictions)
-    # save_dataframe(infer_df, infer_file)
-    
+
+def load_model_and_test_data(train : NDict, paths : NDict, infer: NDict):
+    lgr = logging.getLogger('Fuse')
+
+    checkpoint_file = os.path.join(paths["model_dir"], infer["checkpoint"])
+    lgr.info(f'checkpoint_file={checkpoint_file}', {'color': 'magenta'})
+
+    # load model
+    lgr.info('Model:', {'attrs': 'bold'})
+    model, pl_trainer, num_classes, gt_label, class_names = create_model(train, paths)
+    lgr.info('Model: Done', {'attrs': 'bold'})
+
+    ## Data
+    folds = load_pickle(os.path.join(paths["data_misc_dir"], paths["data_split_filename"]))  # assume exists and created in train func
+
+    infer_sample_ids = []
+    for fold in infer["infer_folds"]:
+        infer_sample_ids += folds[fold]
+    input_source_gt = pd.read_csv(paths["gt_file"])
+    test_dataset = UKBB.dataset(paths["data_dir"], infer['target'], input_source_gt, paths["cache_dir"], sample_ids=infer_sample_ids, train=False,
+                                is_female=train["is_female"])
+
+    ## Create dataloader
+    infer_dataloader = DataLoader(dataset=test_dataset,
+                                  shuffle=False, drop_last=False,
+                                  collate_fn=CollateDefault(),
+                                  num_workers=infer["num_workers"])
+
+    pl_module = LightningModuleDefault.load_from_checkpoint(checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True)
+
+    return pl_module, pl_trainer, infer_dataloader
+
 def show_attention_on_image(img: np.ndarray,
                       mask: np.ndarray,
                       colormap: int = cv2.COLORMAP_JET) -> np.ndarray:
@@ -346,7 +369,7 @@ def show_attention_on_image(img: np.ndarray,
 ######################################
 # Analyze Template
 ######################################
-def run_eval(paths : NDict , infer: NDict):
+def run_eval(paths : NDict, infer: NDict):
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Eval', {'attrs': ['bold', 'underline']})
@@ -388,13 +411,19 @@ def main(cfg : DictConfig) -> None:
     else:
         assert "Expecting train mode to be set."
 
-    # infer
+
+    # infer (infer set)
     if 'infer' in cfg["run.running_modes"]:
         run_infer(cfg["train"], cfg["paths"] , cfg["infer"])
     #
-    # analyze
+    # evaluate (infer set)
     if 'eval' in cfg["run.running_modes"]:
         run_eval(cfg["paths"] ,cfg["infer"])
+
+    # explain (infer set)
+    if 'explain' in cfg["run.running_modes"]:
+        run_explain(cfg["train"], cfg["paths"], cfg["infer"])
+
 if __name__ == "__main__":
     sys.argv.append('hydra.run.dir=working_dir')
     main()
