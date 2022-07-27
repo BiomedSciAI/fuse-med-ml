@@ -126,8 +126,7 @@ def fuse_logger_start(
     if output_path is not None:
         log_output_path = os.path.join(output_path, "logs")
         # Create log dir
-        create_dir(log_output_path)
-
+        create_or_reset_dir(log_output_path, force_reset=force_reset)
         # file info
         file_handler = logging.FileHandler(os.path.join(log_output_path, f"fuse_{timestr}.log"))
         file_handler.setLevel(logging.INFO)

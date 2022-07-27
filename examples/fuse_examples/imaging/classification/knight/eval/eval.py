@@ -36,7 +36,7 @@ from fuse.eval.metrics.classification.metrics_classification_common import (
     MetricROCCurve,
 )
 from fuse.eval.metrics.metrics_common import CI
-
+from functools import partial
 
 ## Constants
 # Constants that defines the expected format of the prediction and target files and list the classes for task 1 and task @
@@ -200,9 +200,11 @@ def eval(
 
     dataframes_dict = {}
     metrics = {}
+    post_proc = partial(post_processing, task1=task1, task2=task2)
     # task 1
     if task1:
         # metrics to evaluate
+<<<<<<< HEAD:examples/fuse_examples/imaging/classification/knight/eval/eval.py
         metrics.update(
             {
                 "task1_auc": CI(
@@ -223,6 +225,12 @@ def eval(
                 ),
             }
         )
+=======
+        metrics.update({
+            "task1_auc": CI(MetricAUCROC(pred='task1_pred.array', target='target.Task1-target', class_names=TASK1_CLASS_NAMES, pre_collect_process_func=post_proc), stratum="target.Task1-target"),
+            "task1_roc_curve": MetricROCCurve(pred='task1_pred.array', target='target.Task1-target', class_names=[None, ""], pre_collect_process_func=post_proc, output_filename=os.path.join(output_dir, "task1_roc.png")),
+        })
+>>>>>>> my_fork/ml_pipeline:fuse_examples/classification/knight/eval/eval.py
         # read files
         task1_pred_df = pd.read_csv(task1_prediction_filename, dtype={PRED_CASE_ID_NAME: object})
         # verify input
@@ -235,6 +243,7 @@ def eval(
     # task 2
     if task2:
         # metrics to evaluate
+<<<<<<< HEAD:examples/fuse_examples/imaging/classification/knight/eval/eval.py
         metrics.update(
             {
                 "task2_auc": CI(
@@ -255,6 +264,12 @@ def eval(
                 ),
             }
         )
+=======
+        metrics.update({
+            "task2_auc": CI(MetricAUCROC(pred='task2_pred.array', target='target.Task2-target', class_names=TASK2_CLASS_NAMES, pre_collect_process_func=post_proc), stratum="target.Task2-target"),
+            "task2_roc_curve": MetricROCCurve(pred='task2_pred.array', target='target.Task2-target', class_names=TASK2_CLASS_NAMES, output_filename=os.path.join(output_dir, "task2_roc.png"), pre_collect_process_func=post_proc),
+        })
+>>>>>>> my_fork/ml_pipeline:fuse_examples/classification/knight/eval/eval.py
         # read files
         task2_pred_df = pd.read_csv(task2_prediction_filename, dtype={PRED_CASE_ID_NAME: object})
         # verify input
