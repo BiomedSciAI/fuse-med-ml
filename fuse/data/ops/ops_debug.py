@@ -5,8 +5,10 @@ from fuse.data import OpBase
 import numpy
 import torch
 
+
 class OpDebugBase(OpBase):
     """Base class for debug operations"""
+
     def __init__(self, sample_ids: Optional[List[Hashable]] = None, first_sample_only: bool = False):
         """
         :param sample_ids: apply for the specified sample ids. To apply for all set to None.
@@ -20,14 +22,15 @@ class OpDebugBase(OpBase):
     def should_debug_sample(self, sample_dict: NDict) -> bool:
         if self._first_sample_only and self._first_sample_done:
             return False
-        
+
         if self._sample_ids is not None:
             sid = get_sample_id(sample_dict)
             if sid not in self._sample_ids:
                 return False
-        
+
         self._first_sample_done = True
         return True
+
 
 class OpPrintKeys(OpDebugBase):
     """
@@ -44,6 +47,7 @@ class OpPrintKeys(OpDebugBase):
     (OpPrintKeys(first_sample_only), dict()),
     ```
     """
+
     def __call__(self, sample_dict: NDict) -> Any:
         if self.should_debug_sample(sample_dict):
             print(f"Sample {get_sample_id(sample_dict)} keys:")
@@ -51,9 +55,10 @@ class OpPrintKeys(OpDebugBase):
                 print(f"{key}")
         return sample_dict
 
+
 class OpPrintShapes(OpDebugBase):
     """
-    Print the shapes/length of every torch tensor / numpy array / sequence 
+    Print the shapes/length of every torch tensor / numpy array / sequence
     Add at the top your script to force single process:
     ```
     from fuse.utils.utils_debug import FuseDebug
@@ -64,6 +69,7 @@ class OpPrintShapes(OpDebugBase):
     (OpPrintShapes(first_sample_only), dict()),
     ```
     """
+
     def __call__(self, sample_dict: NDict) -> Any:
         if self.should_debug_sample(sample_dict):
             print(f"Sample {get_sample_id(sample_dict)} shapes:")
@@ -72,16 +78,17 @@ class OpPrintShapes(OpDebugBase):
                 if isinstance(value, torch.Tensor):
                     print(f"{key} is tensor with shape: {value.shape}")
                 elif isinstance(value, numpy.ndarray):
-                    print(f"{key} is numpy array with shape: {value.shape}")    
+                    print(f"{key} is numpy array with shape: {value.shape}")
                 elif not isinstance(value, str) and isinstance(value, Sequence):
                     print(f"{key} is sequence with length: {len(value)}")
-        
+
         return sample_dict
+
 
 class OpPrintTypes(OpDebugBase):
     """
-    Print the the type of each key 
-        
+    Print the the type of each key
+
     Add at the top your script to force single process:
     ```
     from fuse.utils.utils_debug import FuseDebug
@@ -92,6 +99,7 @@ class OpPrintTypes(OpDebugBase):
     (OpPrintTypes(first_sample_only), dict()),
     ```
     """
+
     def __call__(self, sample_dict: NDict) -> Any:
         if self.should_debug_sample(sample_dict):
             print(f"Sample {get_sample_id(sample_dict)} types:")

@@ -1,9 +1,8 @@
 import os
-from typing import Any, Callable, Hashable, List, Sequence, Optional, Tuple
+from typing import Callable, Optional, Tuple
 from fuse.data.ops.ops_cast import Cast
 from fuse.data.utils.sample import get_sample_id
 from fuse.utils import NDict
-from fuse.data import OpBase
 from fuse.data.ops.ops_debug import OpDebugBase
 import numpy
 import torch
@@ -26,7 +25,14 @@ class OpVis2DImage(OpDebugBase):
 
     """
 
-    def __init__(self, show: bool = True, path: str = ".", image_format: str = "channels_first", image_process_func: Optional[Callable] = None, **kwargs):
+    def __init__(
+        self,
+        show: bool = True,
+        path: str = ".",
+        image_format: str = "channels_first",
+        image_process_func: Optional[Callable] = None,
+        **kwargs,
+    ):
         """
         :param show: if set to true will display it, otherwise will save it in `path`
         :param path: location to save the images. Used when `show` set to False
@@ -40,7 +46,15 @@ class OpVis2DImage(OpDebugBase):
         self._image_process_func = image_process_func
         self._show = show
 
-    def __call__(self, sample_dict: NDict, key: str, clip: Optional[Tuple] = None, dtype: Optional[str] = None, figure_kwargs: dict = {}, **imshow_kwargs) -> None:
+    def __call__(
+        self,
+        sample_dict: NDict,
+        key: str,
+        clip: Optional[Tuple] = None,
+        dtype: Optional[str] = None,
+        figure_kwargs: dict = {},
+        **imshow_kwargs,
+    ) -> None:
         """
         :param key: sample_dict key to a 2D image. Either tensor or numpy array.
         :param clip: tuple of arguments to numpy.clip if the operation required
@@ -57,28 +71,30 @@ class OpVis2DImage(OpDebugBase):
 
             if clip is not None:
                 img = img.clip(*clip)
-            
+
             if dtype is not None:
                 img = Cast.to_numpy(img, dtype=dtype)
 
             if self._image_format == "channels_first":
-                img = numpy.moveaxis(img, 0, -1)            
+                img = numpy.moveaxis(img, 0, -1)
             elif self._image_format == "no_channels":
                 img = numpy.expand_dims(img, axis=-1)
-            
+
             if self._image_process_func is not None:
                 img = self._image_process_func(img)
-            
+
             if "cmap" not in imshow_kwargs:
-                if img.shape[-1] == 1: # assume and force gray scale
+                if img.shape[-1] == 1:  # assume and force gray scale
                     imshow_kwargs["cmap"] = "gray"
-                
+
             plt.figure(**figure_kwargs)
             plt.imshow(img)
             if self._show:
                 plt.show()
-            else: 
-                plt.savefig(os.path.join(self._path, get_sample_id(sample_dict).replace(".", "__")) + ".png")  # save fig
+            else:
+                plt.savefig(
+                    os.path.join(self._path, get_sample_id(sample_dict).replace(".", "__")) + ".png"
+                )  # save fig
         return sample_dict
 
 
@@ -119,15 +135,16 @@ class OpVisImageHist(OpDebugBase):
             assert isinstance(img, numpy.ndarray)
 
             if self._image_format == "channels_first":
-                img = numpy.moveaxis(img, 0, -1)            
+                img = numpy.moveaxis(img, 0, -1)
             if self._image_process_func is not None:
                 img = self._image_process_func(img)
-            
+
             plt.figure(**figure_kwargs)
             plt.hist(img.flatten(), bins=bins, **hist_kwargs)
             if self._show:
                 plt.show()
-            else: 
-                plt.savefig(os.path.join(self._path, f"hist_{get_sample_id(sample_dict).replace('.', '__')}.png"))  # save fig
+            else:
+                plt.savefig(
+                    os.path.join(self._path, f"hist_{get_sample_id(sample_dict).replace('.', '__')}.png")
+                )  # save fig
         return sample_dict
-
