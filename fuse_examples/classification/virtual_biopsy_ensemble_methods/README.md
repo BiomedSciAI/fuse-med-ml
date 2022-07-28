@@ -22,7 +22,6 @@ git clone git@github.com:IBM/fuse-med-ml.git
 
 ```
 git checkout virtual_biopsy_enselble_mehods
-
 ```
 
 - Create a conda environment using the following command (you can replace FUSEMEDML with your preferred environment name)
