@@ -64,24 +64,11 @@ train_params['opt.learning_rate'] = 1e-4
 train_params['opt.weight_decay'] = 0.001
 
 train_params["trainer.num_epochs"] = 5
-train_params["trainer.accelerator"] = ""
-train_params["trainer.strategy"] = ""
-
-
-train_params['manager.train_params'] = {
-    'device': 'cuda', 
-    'num_epochs': 5,
-    'virtual_batch_size': 1,  # number of batches in one virtual batch
-    'start_saving_epochs': 10,  # first epoch to start saving checkpoints from
-    'gap_between_saving_epochs': 5,  # number of epochs between saved checkpoint
-}
-train_params['manager.best_epoch_source'] = {
-    'source': 'metrics.accuracy',  # can be any key from 'epoch_results'
-    'optimization': 'max',  # can be either min/max
-    'on_equal_values': 'better',
-    # can be either better/worse - whether to consider best epoch when values are equal
-}
-train_params['manager.resume_checkpoint_filename'] = None  # if not None, will try to load the checkpoint
+train_params["trainer.accelerator"] = "gpu"
+# use "dp" strategy temp when working with multiple GPUS - workaround for pytorch lightning issue: https://github.com/Lightning-AI/lightning/issues/11807
+train_params["trainer.strategy"] = "dp" if num_gpus_per_split > 1 else None
+train_params["trainer.num_devices"] = num_gpus_per_split
+train_params["trainer.ckpt_path"] = None # checkpoint to continue from
 
 
 ######################################
@@ -91,8 +78,11 @@ infer_params = {}
 infer_params['paths'] = paths
 infer_params['infer_filename'] = 'validation_set_infer.gz'
 infer_params['test_infer_filename'] = 'test_set_infer.gz'
+infer_params['checkpoint_filename'] = "best_epoch.ckpt"
 infer_params['checkpoint'] = 'best'  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
-
+infer_params["trainer.num_devices"] = 1
+infer_params["trainer.accelerator"] = "gpu"
+infer_params["trainer.strategy"] = None
 # ===============
 # Run function
 # ===============

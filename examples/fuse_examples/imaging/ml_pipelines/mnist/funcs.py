@@ -2,8 +2,10 @@ import copy
 import torchvision
 from torchvision import transforms
 import pytorch_lightning as pl
+from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
 
 from fuse.utils.utils_logger import fuse_logger_start
+from fuse.utils.file_io.file_io import create_dir, save_dataframe
 import logging
 from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.collates import CollateDefault
@@ -35,18 +37,10 @@ from fuse.eval.evaluator import EvaluatorDefault
 from fuseimg.datasets.mnist import MNIST
 
 def create_dataset(cache_dir):
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
-    ])
+    train_dataset = MNIST.dataset(cache_dir, train=True)
+    test_dataset = MNIST.dataset(cache_dir, train=False)
 
-    # Train dataset:
-    torch_train_dataset = torchvision.datasets.MNIST(cache_dir, download=True, train=True, transform=transform)
-
-    # Validation dataset:
-    torch_test_dataset = torchvision.datasets.MNIST(cache_dir, download=True, train=False, transform=transform)
-
-    return torch_train_dataset, torch_test_dataset
+    return train_dataset, test_dataset
 
 def create_model() -> torch.nn.Module:
     torch_model = lenet.LeNet()
@@ -67,7 +61,6 @@ def run_train(dataset, sample_ids, cv_index, test=False, params=None, \
     validation_dataset = Subset(dataset, sample_ids[1])
 
     model_dir = os.path.join(params["paths"]["model_dir"], 'rep_' + str(rep_index), str(cv_index))
-    cache_dir = os.path.join(params["paths"]["cache_dir"], 'rep_' + str(rep_index), str(cv_index))
 
     # ==============================================================================
     # Logger
@@ -178,120 +171,18 @@ def run_train(dataset, sample_ids, cv_index, test=False, params=None, \
     )
 
     # train
-    pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=train_params["trainer.ckpt_path"])
+    pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=params["trainer.ckpt_path"])
     print("Train: Done")
-
-
-
-
-    ##### end fuse2 code
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # ==============================================================================
-    # Model
-    # ==============================================================================
-    lgr.info('Model:', {'attrs': 'bold'})
-
-    if params['model'] == 'resnet18':
-        torch_model = models.resnet18(num_classes=10)
-        # modify conv1 to support single channel image
-        torch_model.conv1 = torch.nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
-    elif params['model'] == 'lenet':
-        torch_model = lenet.LeNet()
-    
-    # use adaptive avg pooling to support mnist low resolution images
-    torch_model.avgpool = torch.nn.AdaptiveAvgPool2d(1)
-
-    model = FuseModelWrapper(model=torch_model,
-                             model_inputs=['data.image'],
-                             post_forward_processing_function=perform_softmax,
-                             model_outputs=['logits.classification', 'output.classification']
-                             )
-
-    lgr.info('Model: Done', {'attrs': 'bold'})
-
-    # ====================================================================================
-    #  Loss
-    # ====================================================================================
-    losses = {
-        'cls_loss': FuseLossDefault(pred_name='model.logits.classification', target_name='data.label', callable=F.cross_entropy, weight=1.0),
-    }
-
-    # ====================================================================================
-    # Metrics
-    # ====================================================================================
-    metrics = OrderedDict([
-        ('operation_point', MetricApplyThresholds(pred='model.output.classification')), # will apply argmax
-        ('accuracy', MetricAccuracy(pred='results:metrics.operation_point.cls_pred', target='data.label'))
-    ])
-
-    # =====================================================================================
-    #  Callbacks
-    # =====================================================================================
-    callbacks = [
-        # default callbacks
-        FuseTensorboardCallback(model_dir=model_dir),  # save statistics for tensorboard
-        FuseMetricStatisticsCallback(output_path=model_dir + "/metrics.csv"),  # save statistics a csv file
-        FuseTimeStatisticsCallback(num_epochs=params['manager.train_params']['num_epochs'], load_expected_part=0.1)  # time profiler
-    ]
-
-    # =====================================================================================
-    #  Manager - Train
-    # =====================================================================================
-    lgr.info('Train:', {'attrs': 'bold'})
-
-    # create optimizer
-    optimizer = optim.Adam(model.parameters(), lr=params['manager.learning_rate'], weight_decay=params['manager.weight_decay'])
-
-    # create learning scheduler
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
-
-    # train from scratch
-    manager = FuseManagerDefault(output_model_dir=model_dir, force_reset=params['paths']['force_reset_model_dir'])
-    # Providing the objects required for the training process.
-    manager.set_objects(net=model,
-                        optimizer=optimizer,
-                        losses=losses,
-                        metrics=metrics,
-                        best_epoch_source=params['manager.best_epoch_source'],
-                        lr_scheduler=scheduler,
-                        callbacks=callbacks,
-                        train_params=params['manager.train_params'])
-
-    ## Continue training
-    if params['manager.resume_checkpoint_filename'] is not None:
-        # Loading the checkpoint including model weights, learning rate, and epoch_index.
-        manager.load_checkpoint(checkpoint=params['manager.resume_checkpoint_filename'], mode='train')
-
-    # Start training
-    manager.train(train_dataloader=train_dataloader, validation_dataloader=validation_dataloader)
-
-    lgr.info('Train: Done', {'attrs': 'bold'})
 
 
 def run_infer(dataset, sample_ids, cv_index, test=False, params=None, \
               rep_index=0, rand_gen=None):
     # obtain train/val dataset subset:
     if sample_ids is None:
-        torch_validation_dataset = dataset
+        validation_dataset = dataset
     else:
-        torch_validation_dataset = Subset(dataset, sample_ids[1])
-    # wrap torch dataset:
-    validation_dataset = FuseDatasetWrapper(name='validation', dataset=torch_validation_dataset, mapping=('image', 'label'))
-    validation_dataset.create()
-    
+        validation_dataset = Subset(dataset, sample_ids[1])
+
     #### Logger
     model_dir = os.path.join(params['paths']['model_dir'], 'rep_' + str(rep_index), str(cv_index))
     if test:
@@ -300,22 +191,47 @@ def run_infer(dataset, sample_ids, cv_index, test=False, params=None, \
     else:
         inference_dir = os.path.join(params['paths']['inference_dir'], 'rep_' + str(rep_index), str(cv_index))
         infer_filename = params['infer_filename']
-    fuse_logger_start(output_path=inference_dir, console_verbose_level=logging.INFO, force_reset=True)
-    lgr = logging.getLogger('Fuse')
-    lgr.info('Fuse Inference', {'attrs': ['bold', 'underline']})
-    lgr.info(f'infer_filename={os.path.join(inference_dir, infer_filename)}', {'color': 'magenta'})
+    checkpoint_filename = params['checkpoint_filename']
 
+    create_dir(inference_dir)
+    infer_file = os.path.join(inference_dir, infer_filename)
+    checkpoint_file = os.path.join(model_dir, checkpoint_filename)
+    #### Logger
+    fuse_logger_start(output_path=model_dir, console_verbose_level=logging.INFO)
+
+    print("Fuse Inference")
+    print(f"infer_filename={infer_file}")
+
+    ## Data
     # dataloader
-    validation_dataloader = DataLoader(dataset=validation_dataset, collate_fn=validation_dataset.collate_fn, batch_size=2, num_workers=2, generator=rand_gen)
+    validation_dataloader = DataLoader(
+        dataset=validation_dataset, collate_fn=CollateDefault(), batch_size=2, num_workers=2
+    )
 
-    ## Manager for inference
-    manager = FuseManagerDefault()
-    output_columns = ['model.output.classification', 'data.label']
-    manager.infer(data_loader=validation_dataloader,
-                  input_model_dir=model_dir,
-                  checkpoint=params['checkpoint'],
-                  output_columns=output_columns,
-                  output_file_name=os.path.join(inference_dir, infer_filename))
+    # load pytorch lightning module
+    model = create_model()
+    pl_module = LightningModuleDefault.load_from_checkpoint(
+        checkpoint_file, model_dir=model_dir, model=model, map_location="cpu", strict=True
+    )
+    # set the prediction keys to extract (the ones used be the evaluation function).
+    pl_module.set_predictions_keys(
+        ["model.output.classification", "data.label"]
+    )  # which keys to extract and dump into file
+
+    print("Model: Done")
+    # create a trainer instance
+    pl_trainer = pl.Trainer(
+        default_root_dir=model_dir,
+        accelerator=params["trainer.accelerator"],
+        devices=params["trainer.num_devices"],
+        strategy=params["trainer.strategy"],
+        auto_select_gpus=True,
+    )
+    predictions = pl_trainer.predict(pl_module, validation_dataloader, return_predictions=True)
+
+    # convert list of batch outputs into a dataframe
+    infer_df = convert_predictions_to_dataframe(predictions)
+    save_dataframe(infer_df, infer_file)
 
 
 def run_eval(dataset, sample_ids, cv_index, test=False, params=None, \
