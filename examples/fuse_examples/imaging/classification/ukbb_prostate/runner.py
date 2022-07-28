@@ -301,16 +301,17 @@ def run_explain(train : NDict, paths : NDict, infer: NDict):
             original_attention_map =  nib.load(os.path.join('attention_maps','model.backbone.layer4','attention_map_'+str(i)+'_0_0.nii.gz')).get_fdata()
             original_transposed = np.transpose(batch['data.input.img'], axes=(1, 2, 0))
             scale_ratio = [ original_transposed.shape[i]/value for i,value in enumerate(original_attention_map.shape)]
-            max_volumes = largest_indices(original_attention_map, 3)
-            center = tuple([index/2 for index in original_attention_map.shape])
-            min_dist = 99999999999999999
-            max_volume = max_volumes[0]
-            for point in max_volumes :
-                dist = np.linalg.norm(point-center)
-                if dist < min_dist :
-                    min_dist = dist
-                    max_volume = point
-            bouding_box_indices =  [(int((max_volume[i]-1)*scale_ratio[i]),int((max_volume[i]+1)*scale_ratio[i])+1) for i in range(3)]
+            # max_volumes = largest_indices(original_attention_map, 3)
+            # center = tuple([index/2 for index in original_attention_map.shape])
+            # min_dist = 99999999999999999
+            # max_volume = max_volumes[0]
+            # for point in max_volumes :
+            #     dist = np.linalg.norm(point-center)
+            #     if dist < min_dist :
+            #         min_dist = dist
+            #         max_volume = point
+            max_volume = np.unravel_index(original_attention_map.argmax(), original_attention_map.shape)
+            bouding_box_indices =  [(int((max_volume[i]-1)*scale_ratio[i]),int((max_volume[i]+1)*scale_ratio[i])) for i in range(3)]
             print(scale_ratio)
             print(i,max_volume)
             print(bouding_box_indices)
