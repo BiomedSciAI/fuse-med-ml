@@ -18,6 +18,12 @@ Virtual Biopsy is based on [FuseMedML](https://github.com/IBM/fuse-med-ml) frame
 ```
 git clone git@github.com:IBM/fuse-med-ml.git
 ```
+- Change directories to fuse-med-ml:
+
+```
+cd fuse-med-ml
+```
+
 - Switch to a different branch:
 
 ```
