@@ -8,6 +8,9 @@ Since the DM datasets from the original paper are not publicly available, in thi
 
 ![workflow](Fig4.png)
 
+
+
+
 ## Installing Dependencies
 
 Virtual Biopsy is based on [FuseMedML](https://github.com/IBM/fuse-med-ml) framework and is tested on Python >= 3.7 (3.7 is recommended) and PyTorch >= 1.5.
@@ -61,10 +64,9 @@ In the KNIGHT data, the patients are classified into five risk categories in acc
 
 ```
 cd fuse_examples/classification/virtual_biopsy_ensemble_methods/
-python cnn_example.py 
+python cnn_example.py
 ```
 
 If you only want to evaluate Task 1, you may redefine ```task_loop = [1]``` in line 257 of ```CNN_example.py```. Running only Task 2 is not possible since the pre-trained weights from Task 1 are used in the second task.
 
 *Important Note:* Once you run ```CNN_example.py``` for the first time, it will perform caching of the data and store the cached data in the ```knight_cache``` folder. The next time you run ```CNN_example.py```, it will skip this process, and use the existing, already cached data. You need to be aware of this, because if you want to modify anything related to the data (for example, the ```resize_to``` parameter), then you will need to manually delete the contents of ```knight_cache``` folder, to allow the caching process to take place again with the new parameters.
-
