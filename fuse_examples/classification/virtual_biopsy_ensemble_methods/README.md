@@ -21,7 +21,7 @@ git clone git@github.com:IBM/fuse-med-ml.git
 - Switch to a different branch:
 
 ```
-git checkout virtual_biopsy_ensemble_mehods
+git checkout virtual_biopsy_ensemble_methods
 ```
 
 - Create a conda environment using the following command (you can replace FUSEMEDML with your preferred environment name)
