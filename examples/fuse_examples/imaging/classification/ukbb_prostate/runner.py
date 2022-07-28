@@ -292,7 +292,7 @@ def run_explain(train : NDict, paths : NDict, infer: NDict):
     pl_module, _, infer_dataloader = load_model_and_test_data(train, paths, infer)
 
 
-    model = ModelWrapDictToSeq(pl_module._model)
+    model = ModelWrapDictToSeq(pl_module._model, output_key = 'head_0')
     model = medcam.inject(model, output_dir="attention_maps", backend='gcam', save_maps=True, layer='auto',return_attention=True)
     for i, batch in enumerate(infer_dataloader):
             logit, attention_map = model(batch['data.input.img'],batch['data.gt.classification'])

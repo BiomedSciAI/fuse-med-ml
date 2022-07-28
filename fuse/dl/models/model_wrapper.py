@@ -95,12 +95,15 @@ class ModelWrapDictToSeq(torch.nn.Module):
     def __init__(self, fuse_model):
         super().__init__()
         self.model = fuse_model
-    def forward(self, input):
+    def forward(self, input, output_key):
         batch_dict = NDict()
+        #find input key
         fuse_input = self.model.conv_inputs[0][0]
         batch_dict[fuse_input] = input
+        #feed fuse model with dict as he excpect
         ans_ndict = self.model(batch_dict)
-        output =ans_ndict['output']['head_0']
+        #extract model output from dict
+        output =ans_ndict['output'][output_key]
         return output
 
        
