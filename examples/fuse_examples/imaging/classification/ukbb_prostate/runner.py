@@ -17,6 +17,11 @@ Created on June 30, 2021
 
 from collections import OrderedDict
 import os
+
+from fuse_examples.imaging.classification.ukbb_prostate import cohort_and_label_def, files_download_from_cos
+
+
+os.environ['UKBB_MRI_BODY_DATA_PATH']='/projects/msieve/Data/ukbb/body-mri-data'
 import sys
 import copy
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
@@ -35,8 +40,6 @@ from fuse.utils import NDict
 from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.split import dataset_balanced_division_to_folds
-from fuse.dl.models import ModelMultiHead
-from fuse.utils.file_io.file_io import load_pickle
 from fuse.dl.losses.loss_default import LossDefault
 
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy
@@ -48,7 +51,6 @@ from fuse.utils.file_io.file_io import create_dir, load_pickle, save_dataframe
 from fuse.eval.evaluator import EvaluatorDefault
 import torch
 import hydra
-from typing import Dict
 from omegaconf import DictConfig, OmegaConf
 
 from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
@@ -59,7 +61,6 @@ from fuse.dl.models.model_wrapper import ModelWrapDictToSeq
 from medcam import medcam
 import numpy as np
 from cv2 import cv2
-import skimage
 import nibabel as nib
 
 assert "UKBB_DATA_PATH" in os.environ, "Expecting environment variable UKBB_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
@@ -75,20 +76,9 @@ def create_model(train: NDict,paths: NDict) -> torch.nn.Module:
     See HeadGlobalPoolingClassifier for details 
     """
     #### Train Data
-    if train['target'] == "classification" :
-        num_classes = 3
-        gt_label = "data.gt.classification"
-        class_names = ["Male", "Female","Male-prostate-excision"] 
-    elif train['target'] == "preindex prostatectomy" :
-        num_classes = 2
-        gt_label = "data.gt.classification"
-        class_names = ["No-surgery","surgery"] 
-    elif train['target'] == "is female" :
-        num_classes = 2
-        gt_label = "data.gt.classification"
-        class_names = ["Male","Female"] 
-    else:
-        raise("unsuported target!!")
+    gt_label_key = "data.gt.classification"
+    class_names = cohort_and_label_def.get_class_names(train['target'])
+    num_classes = len(class_names)
     model = ModelMultiHead(
     conv_inputs=(('data.input.img', 1),),
     backbone=BackboneResnet3D(in_channels=1),
@@ -110,7 +100,7 @@ def create_model(train: NDict,paths: NDict) -> torch.nn.Module:
                             devices=train['trainer']['devices'],
                             num_sanity_val_steps = -1,
                             auto_select_gpus=True)
-    return model, pl_trainer, num_classes, gt_label , class_names
+    return model, pl_trainer, num_classes, gt_label_key , class_names
 
 #################################
 # Train Template
@@ -122,8 +112,13 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
     fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
 
+    sample_ids = cohort_and_label_def.get_samples_for_cohort(train['cohort'], paths['clinical_data_file'])
+
     # Download data
-    # TBD
+    # instructions how to get the ukbb data
+    # 1. apply for access in his website https://www.ukbiobank.ac.uk/enable-your-research/apply-for-access
+    # 2. download all data to the path configured in os env variable UKBB_DATA_PATH
+    files_download_from_cos.download_sample_files(sample_ids=sample_ids, mri_output_dir=paths["data_dir"], cos_cfg=train["cos"])
 
     lgr.info('\nFuse Train', {'attrs': ['bold', 'underline']})
 
@@ -138,14 +133,17 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
     
     # split to folds randomly - temp
     
-    samples_path = os.path.join(paths["data_misc_dir"],"samples.csv")
-    if os.path.isfile(samples_path) : 
-        sample_ids = pd.read_csv(samples_path)['file'].to_list()
-        print(sample_ids)
-    else:
-        sample_ids = None
-    input_source_gt = pd.read_csv(paths["gt_file"])
-    dataset_all = UKBB.dataset(paths["data_dir"],  train['target'], input_source_gt, paths["cache_dir"], reset_cache=False, num_workers=train["num_workers"], sample_ids=sample_ids,train=True , is_female = train["is_female"])
+    # samples_path = os.path.join(paths["data_misc_dir"],"samples.csv")
+    # if os.path.isfile(samples_path) :
+    #     sample_ids = pd.read_csv(samples_path)['file'].to_list()
+    #     print(sample_ids)
+    # else:
+    #     sample_ids = None
+    input_source_gt = pd.read_csv(paths["clinical_data_file"])
+    dataset_all = UKBB.dataset(paths["data_dir"],  train['target'], input_source_gt, paths["cache_dir"],
+                               reset_cache=False, num_workers=train["num_workers"], sample_ids=sample_ids,
+                               train=True
+                               )
     print("dataset size",len(dataset_all))
     
     folds = dataset_balanced_division_to_folds(dataset=dataset_all,
@@ -162,9 +160,9 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
     for fold in train["validation_folds"]:
         validation_sample_ids += folds[fold]
 
-    train_dataset = UKBB.dataset(paths["data_dir"], train['target'], input_source_gt, paths["cache_dir"], reset_cache=False, num_workers=train["num_workers"], sample_ids=train_sample_ids, train=True , is_female = train["is_female"])
+    train_dataset = UKBB.dataset(paths["data_dir"], train['target'], input_source_gt, paths["cache_dir"], reset_cache=False, num_workers=train["num_workers"], sample_ids=train_sample_ids, train=True)
     
-    validation_dataset = UKBB.dataset(paths["data_dir"], train['target'], input_source_gt, paths["cache_dir"],  reset_cache=False, num_workers=train["num_workers"], sample_ids=validation_sample_ids , is_female = train["is_female"])
+    validation_dataset = UKBB.dataset(paths["data_dir"], train['target'], input_source_gt, paths["cache_dir"],  reset_cache=False, num_workers=train["num_workers"], sample_ids=validation_sample_ids)
 
     ## Create sampler
     lgr.info(f'- Create sampler:')
@@ -324,9 +322,8 @@ def load_model_and_test_data(train : NDict, paths : NDict, infer: NDict):
     infer_sample_ids = []
     for fold in infer["infer_folds"]:
         infer_sample_ids += folds[fold]
-    input_source_gt = pd.read_csv(paths["gt_file"])
-    test_dataset = UKBB.dataset(paths["data_dir"], infer['target'], input_source_gt, paths["cache_dir"], sample_ids=infer_sample_ids, train=False,
-                                is_female=train["is_female"])
+    input_source_gt = pd.read_csv(paths["clinical_data_file"])
+    test_dataset = UKBB.dataset(paths["data_dir"], infer['target'], input_source_gt, paths["cache_dir"], sample_ids=infer_sample_ids, train=False)
 
     ## Create dataloader
     infer_dataloader = DataLoader(dataset=test_dataset,
@@ -392,6 +389,7 @@ def run_eval(paths : NDict, infer: NDict):
 
     return results
 
+
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg : DictConfig) -> None:
     cfg = NDict(OmegaConf.to_object(cfg))
@@ -399,11 +397,6 @@ def main(cfg : DictConfig) -> None:
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None  # [0]
     choose_and_enable_multiple_gpus(cfg["train.trainer.devices"], force_gpus=force_gpus)
-
-    # instructions how to get the ukbb data
-    # 1. apply for access in his website https://www.ukbiobank.ac.uk/enable-your-research/apply-for-access
-    # 2. download all data to the path configured in os env variable UKBB_DATA_PATH
-    
 
     # train
     if 'train' in cfg["run.running_modes"]:

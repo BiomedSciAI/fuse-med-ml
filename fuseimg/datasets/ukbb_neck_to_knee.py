@@ -121,8 +121,30 @@ class UKBB:
     # 2. folder named body-mri-data which is the downloaded data folder
     """
     # bump whenever the static pipeline modified
-    CMMD_DATASET_VER = 0
+    UKBB_DATASET_VER = 0
 
+    @staticmethod
+    def download(path: str) -> None:
+        '''
+        Automatic download is not supported, please follow instructions in STOIC21 class header to download
+        '''
+        assert len(UKBB.sample_ids(path)) > 0, "automatic download is not supported, please follow instructions in STOIC21 class header to download"
+
+
+    @staticmethod
+    def sample_ids(path: str):
+        return UKBB.get_existing_sample_ids(path)
+
+    @staticmethod
+    def get_existing_sample_ids(path: str):
+        """
+        get all the sample ids that have a zip file in the specified path
+        """
+        existing_files = glob(os.path.join(path, "*_*_*_0.zip"))
+        existing_sample_id_fields = [f.split("_") for f in existing_files]
+        existing_sample_ids = set([a[0] + "_*_" + a[2] + "_" + a[3] for a in existing_sample_id_fields])
+
+        return existing_sample_ids
     @staticmethod
     def static_pipeline(data_dir: str) -> PipelineDefault:
         """
@@ -133,11 +155,11 @@ class UKBB:
          # decoding sample ID
             (OpUKBBSampleIDDecode(), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path"    
             (OpLoadUKBBZip(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", unique_id_out="data.ID", series="Dixon_BH_17s_W", station = 4)),
-            (OpLambda(partial(skimage.transform.resize,
-                                                            output_shape=(32, 256, 256),
-                                                            mode='reflect',
-                                                            anti_aliasing=True,
-                                                            preserve_range=True)), dict(key="data.input.img")),
+            # (OpLambda(partial(skimage.transform.resize,
+            #                                                 output_shape=(32, 256, 256),
+            #                                                 mode='reflect',
+            #                                                 anti_aliasing=True,
+            #                                                 preserve_range=True)), dict(key="data.input.img")),
             (OpNormalizeAgainstSelf(), dict(key="data.input.img")),
             (OpToNumpy(), dict(key='data.input.img', dtype=np.float32)), 
             # (OpLambda(partial(dump, filename="first.png", slice = 25)), dict(key="data.input.img")),
@@ -197,8 +219,7 @@ class UKBB:
                 reset_cache : bool = True,
                 num_workers:int = 10,
                 sample_ids: Optional[Sequence[Hashable]] = None,
-                train: bool = False,
-                is_female: int = None) :
+                train: bool = False) :
         """
         Creates Fuse Dataset single object (either for training, validation and test or user defined set)
         
@@ -210,20 +231,13 @@ class UKBB:
         :param num_workers: number of processes used for caching 
         :param sample_ids: dataset including the specified sample_ids or None for all the samples. sample_id is case_{id:05d} (for example case_00001 or case_00100).
         :param train: True if used for training  - adds augmentation operations to the pipeline
-        :param is_female                    filter only male/females from database
         :return: DatasetDefault object
         """
 
-        existing_files = [file for file in os.listdir(data_dir) if '.zip' in file]
-        existing_sample_id_fields = [f.split("_") for f in existing_files]
-        existing_sample_ids = set([a[0] + "_*_" + a[2] + "_" + a[3] for a in existing_sample_id_fields])
-        a_filter = input_source_gt['file'].isin(existing_sample_ids)
-        if is_female is not None:
-            a_filter &= input_source_gt['is female'] == is_female
 
-        all_sample_ids = list(set(input_source_gt[a_filter]['file'].to_list()))
         if sample_ids is None:
-            sample_ids = all_sample_ids
+            sample_ids = UKBB.sample_ids(data_dir)
+
             
         static_pipeline = UKBB.static_pipeline(data_dir)
         dynamic_pipeline = UKBB.dynamic_pipeline(input_source_gt, target,train=train)
