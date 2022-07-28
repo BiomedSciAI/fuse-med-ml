@@ -27,7 +27,7 @@ git clone git@github.com:IBM/fuse-med-ml.git
 cd fuse-med-ml
 ```
 
-- Switch to a different branch:
+- Switch to a dedicated branch:
 
 ```
 git checkout virtual_biopsy_ensemble_methods
@@ -58,15 +58,22 @@ In the KNIGHT data, the patients are classified into five risk categories in acc
 
 ## Steps to run the DL model
 
-1. Once you cloned the KNIGHT database repository (which should now contain the imaging and clinical data under ```knight/data```), you need to update the ```data_path``` variable inside the ```CNN_example.py``` script (line 338) to be your local path where the images are stored (e.g. ```~/VirtualBiopsy/KNIGHT```)
+1. Once you cloned the KNIGHT database repository (which should now contain the imaging and clinical data under ```knight/data```), you need to update the ```data_path``` variable inside the ```cnn_example.py``` script (line 338) to be your local path where the images are stored (e.g. ```~/VirtualBiopsy/KNIGHT```)
 
-2. Now you can run the the ```CNN_example.py``` script which trains and evaluates the DL model on the images:
+2. Now you can run the the ```cnn_example.py``` script which trains and evaluates the DL model on the images:
 
 ```
 cd fuse_examples/classification/virtual_biopsy_ensemble_methods/
 python cnn_example.py
 ```
 
-If you only want to evaluate Task 1, you may redefine ```task_loop = [1]``` in line 257 of ```CNN_example.py```. Running only Task 2 is not possible since the pre-trained weights from Task 1 are used in the second task.
+The code is currently set to run tasks 1 and 2. If you only want to evaluate Task 1, you may redefine ```task_loop = [1]``` in line 257 of ```cnn_example.py```. Running only Task 2 is not possible since the pre-trained weights from Task 1 are used in the second task.
 
-*Important Note:* Once you run ```CNN_example.py``` for the first time, it will perform caching of the data and store the cached data in the ```knight_cache``` folder. The next time you run ```CNN_example.py```, it will skip this process, and use the existing, already cached data. You need to be aware of this, because if you want to modify anything related to the data (for example, the ```resize_to``` parameter), then you will need to manually delete the contents of ```knight_cache``` folder, to allow the caching process to take place again with the new parameters.
+*Important Note:* Once you run ```cnn_example.py``` for the first time, it will perform caching of the data and store the cached data in the ```knight_cache``` folder. The next time you run ```cnn_example.py```, it will skip this process, and use the existing, already cached data. You need to be aware of this, because if you want to modify anything related to the data (for example, the ```resize_to``` parameter), then you will need to manually delete the contents of ```knight_cache``` folder, to allow the caching process to take place again with the new parameters.
+
+The folder ```knight_for_virtual_biopsyinfer``` contains the output files generated after running ```cnn_example.py```. It consists of the predicted probabilities from the DL models in the train and validation sets for both tasks.
+
+
+## Steps to run the clinical model
+
+The script for training the AI models using clinical data is currently under ```utilities/model_training_utils.py```. The notebook ```virtual_biopsy_workflow.ipynb``` shows in detail each step of the Virtual Biopsy workflow and the performance of the models using imaging, clinical data and a combination of both.
