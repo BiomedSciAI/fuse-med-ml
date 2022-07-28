@@ -299,21 +299,36 @@ def run_explain(train : NDict, paths : NDict, infer: NDict):
             attention_map = attention_map[0][0].numpy()
             batch['data.input.img'] = batch['data.input.img'][0][0].numpy()
             original_attention_map =  nib.load(os.path.join('attention_maps','model.backbone.layer4','attention_map_'+str(i)+'_0_0.nii.gz')).get_fdata()
-            scale_ratio = [batch['data.input.img'].shape[i]/value for i,value in enumerate(original_attention_map.shape)]
-            max_volume = np.unravel_index(original_attention_map.argmax(), original_attention_map.shape)
+            original_transposed = np.transpose(batch['data.input.img'], axes=(1, 2, 0))
+            scale_ratio = [ original_transposed.shape[i]/value for i,value in enumerate(original_attention_map.shape)]
+            max_volumes = largest_indices(original_attention_map, 3)
+            center = tuple([index/2 for index in original_attention_map.shape])
+            min_dist = 99999999999999999
+            max_volume = max_volumes[0]
+            for point in max_volumes :
+                dist = np.linalg.norm(point-center)
+                if dist < min_dist :
+                    min_dist = dist
+                    max_volume = point
             bouding_box_indices =  [(int((max_volume[i]-1)*scale_ratio[i]),int((max_volume[i]+1)*scale_ratio[i])+1) for i in range(3)]
             print(scale_ratio)
             print(i,max_volume)
             print(bouding_box_indices)
-            volume_box = batch['data.input.img'][bouding_box_indices[0][0]:bouding_box_indices[0][1],bouding_box_indices[1][0]:bouding_box_indices[1][1],bouding_box_indices[2][0]:bouding_box_indices[2][1]]
             attention_map = show_attention_on_image(batch['data.input.img'],attention_map)
             batch['data.input.img'] = np.transpose(batch['data.input.img'], axes=(1, 2, 0))
             original =  nib.Nifti1Image(batch['data.input.img'], affine=np.eye(4))
+            volume_box = np.zeros(batch['data.input.img'].shape)
+            for slice in range(bouding_box_indices[2][0],bouding_box_indices[2][1] - 1):
+                for x in range(bouding_box_indices[0][0],bouding_box_indices[0][1] - 1) :
+                    volume_box[x,bouding_box_indices[1][0],slice] = 1
+                    volume_box[x,bouding_box_indices[1][1],slice] = 1
+                for y in range(bouding_box_indices[1][0],bouding_box_indices[1][1] - 1) :
+                    volume_box[bouding_box_indices[0][0],y,slice] = 1
+                    volume_box[bouding_box_indices[0][1],y,slice] = 1
             volume_box =  nib.Nifti1Image(volume_box, affine=np.eye(4))
             nib.save(original, filename=os.path.join('attention_maps','original_'+str(i)+'_'+batch['data.input.img_path'][0]+'_label_='+str(batch['data.gt.classification'])+'.nii.gz'))
             nib.save(volume_box, filename=os.path.join('attention_maps','maxvolume_'+str(i)+'_'+batch['data.input.img_path'][0]+'_label_='+str(batch['data.gt.classification'])+'.nii.gz'))
             nib.save(attention_map, filename=os.path.join('attention_maps','attention_'+str(i)+'_'+batch['data.input.img_path'][0]+'_label_='+str(batch['data.gt.classification'])+'.nii.gz'))
-
 
 
 def load_model_and_test_data(train : NDict, paths : NDict, infer: NDict):
@@ -374,6 +389,12 @@ def show_attention_on_image(img: np.ndarray,
     nifti = nib.Nifti1Image(np.concatenate( cams, axis=2 ), np.eye(4)) 
     return nifti
 
+def largest_indices(ary, n):
+    """Returns the n largest indices from a numpy array."""
+    flat = ary.flatten()
+    indices = np.argpartition(flat, -n)[-n:]
+    indices = indices[np.argsort(-flat[indices])]
+    return np.unravel_index(indices, ary.shape)
 
 ######################################
 # Analyze Template
