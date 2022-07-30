@@ -347,12 +347,9 @@ def load_model_and_test_data(train : NDict, paths : NDict, infer: NDict):
     infer_sample_ids = []
     for fold in infer["infer_folds"]:
         infer_sample_ids += folds[fold]
-    input_source_gt = pd.read_csv(paths["gt_file"])
-    test_dataset = UKBB.dataset(paths["data_dir"], infer['target'], input_source_gt, paths["cache_dir"], num_workers = infer['num_workers'],
-                                sample_ids=infer_sample_ids, train=False,)
     input_source_gt = pd.read_csv(paths["clinical_data_file"])
-    test_dataset = UKBB.dataset(paths["data_dir"], infer['target'], input_source_gt, paths["cache_dir"], sample_ids=infer_sample_ids, train=False)
-
+    test_dataset = UKBB.dataset(paths["data_dir"], infer['target'], input_source_gt, paths["cache_dir"], num_workers = infer['num_workers'],
+                                sample_ids=infer_sample_ids, train=False)
     ## Create dataloader
     infer_dataloader = DataLoader(dataset=test_dataset,
                                   shuffle=False, drop_last=False,

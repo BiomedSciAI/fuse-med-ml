@@ -9,7 +9,7 @@ from fuse.utils import NDict
 
 def get_samples_for_cohort(cohort_config: NDict, clinical_data_file:str, seed:Optional[int]=222):
     df = pd.read_csv(clinical_data_file)
-    sample_ids = df['file'].values
+    sample_ids = df['file_pattern'].values
     selected = np.zeros(df.shape[0], dtype=bool)
     group_ids = cohort_config['group_ids']
     max_group_size = cohort_config[ 'max_group_size']

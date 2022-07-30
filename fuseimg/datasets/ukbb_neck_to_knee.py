@@ -174,7 +174,7 @@ class UKBB:
         """
         dynamic_pipeline = PipelineDefault("cmmd_dynamic", [
             (OpReadDataframe(data_source,
-                    key_column="file", columns_to_extract=['file','patient_id', target],
+                    key_column="file_pattern", columns_to_extract=['file_pattern','patient_id', target],
                     rename_columns={'patient_id' :"data.patientID", target: "data.gt.classification" }), dict()),
             (OpToTensor(), dict(key="data.input.img",dtype=torch.float32)),
             (OpToTensor(), dict(key="data.gt.classification", dtype=torch.long)),
