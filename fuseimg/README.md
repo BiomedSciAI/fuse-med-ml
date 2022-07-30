@@ -43,6 +43,8 @@ Here you can find useful ops for imaging and public datasets implementations
 * OpAugSqueeze3Dto2D - squeeze selected axis of volume image into channel dimension, in order to fit the 2D augmentation functions
 * OpAugUnsqueeze3DFrom2D - unsqueeze back to 3D, after you apply the required 2D operations
 * OpResizeTo - resize an image into given dimensions
+* OpCrop3D - crop 3d image to certain size. can be used as random crop using OpSample.
+* OpRotation3D - rotate 3d image across the 3 planes xyz.
 
 ### Imaging datasets
 
