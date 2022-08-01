@@ -33,7 +33,7 @@ medpy
 pytorch_lightning
 hydra-core
 omegaconf
-# # for ukbb example:
-# medcam
-# ibm-cos-sdk
-# botocore
+# for ukbb example:
+medcam
+ibm-cos-sdk
+botocore
