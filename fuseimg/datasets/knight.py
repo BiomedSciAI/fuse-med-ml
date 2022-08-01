@@ -1,5 +1,6 @@
 import os
-from typing import Tuple
+from glob import glob
+from typing import Hashable, Optional, Sequence, Tuple
 
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
 from fuse.utils.ndict import NDict
@@ -159,8 +160,22 @@ class OpPrepareClinical(OpBase):
 
 
 class KNIGHT:
+    """
+    Dataset created for KNIGHT challenge - https://research.ibm.com/haifa/Workshops/KNIGHT/challenge.html
+    Aims to predict the risk level of patients based on CT scan and/or clinical data.
+    """
+
     @staticmethod
-    def static_pipeline(data_path: str, resize_to: Tuple, test: bool) -> PipelineDefault:
+    def sample_ids(path: str):
+        """
+        get all the sample ids in train-set
+        sample_id is directory file named case_xxxxx found in the specified path
+        """
+        files = [f for f in glob(os.path.join(path, "data/case_*"))]
+        return files
+
+    @staticmethod
+    def static_pipeline(data_path: str, resize_to: Tuple, test: bool = False) -> PipelineDefault:
         static_pipeline = PipelineDefault(
             "static",
             [
@@ -241,15 +256,43 @@ class KNIGHT:
         data_path: str = "data",
         cache_dir: str = "cache",
         split: dict = None,
+        sample_ids: Optional[Sequence[Hashable]] = None,
+        test: bool = False,
         reset_cache: bool = False,
         resize_to=(70, 256, 256),
     ) -> DatasetDefault:
-
-        static_pipeline = KNIGHT.static_pipeline(data_path, resize_to=resize_to, test=("test" in split))
+        """
+        Get cached dataset
+        :param data_path: path to store the original data
+        :param cache_dir: path to store the cache
+        :param split: dictionary including sample ids for (train and validation) or test.
+        :param sample_ids: dataset including the specified sample_ids. sample_id is case_{id:05d} (for example case_00001 or case_00100).
+        either split or sample_ids is not None. there is no need in both of them.
+        :param test: boolean indicating weather to use train dynamic pipeline or val. only necessary when using sample_ids param.
+        :param reset_cache: set to True tp reset the cache
+        :param train: True if used for training  - adds augmentation operations to the pipeline
+        """
         train_dynamic_pipeline = KNIGHT.train_dynamic_pipeline()
         val_dynamic_pipeline = KNIGHT.val_dynamic_pipeline()
 
         # Create dataset
+        if sample_ids is not None:
+            static_pipeline = KNIGHT.static_pipeline(data_path, resize_to=resize_to, test=test)
+            cacher = SamplesCacher(
+                "cache", static_pipeline, cache_dirs=[f"{cache_dir}/data"], restart_cache=reset_cache
+            )
+            dataset = DatasetDefault(
+                sample_ids=sample_ids,
+                static_pipeline=static_pipeline,
+                dynamic_pipeline=val_dynamic_pipeline if test else train_dynamic_pipeline,
+                cacher=cacher,
+            )
+            print("- Load and cache data:")
+            dataset.create()
+            print("- Load and cache data: Done")
+            return dataset
+
+        static_pipeline = KNIGHT.static_pipeline(data_path, resize_to=resize_to, test=("test" in split))
         if "train" in split:
             train_cacher = SamplesCacher(
                 "train_cache", static_pipeline, cache_dirs=[f"{cache_dir}/train"], restart_cache=reset_cache
@@ -267,7 +310,6 @@ class KNIGHT:
 
             print("- Load and cache data: Done")
 
-            
             print("Train Data: Done", {"attrs": "bold"})
 
             #### Validation data
@@ -288,7 +330,6 @@ class KNIGHT:
             validation_dataset.create()
             print("- Load and cache data: Done")
 
-            
             print("Validation Data: Done", {"attrs": "bold"})
 
             return train_dataset, validation_dataset
@@ -306,7 +347,7 @@ class KNIGHT:
             print("- Load and cache data:")
             test_dataset.create()
             print("- Load and cache data: Done")
-            
+
             print("Test Data: Done", {"attrs": "bold"})
             return test_dataset
 

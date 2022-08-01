@@ -26,10 +26,8 @@ import pandas as pd
 from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import save_dataframe
 from fuse.data.utils.export import ExportDataset
-from baseline.dataset import knight_dataset
+from fuseimg.datasets.knight import KNIGHT
 
-# add parent directory to path, so that 'knight' folder is treated as a module
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 
 def make_targets_file(data_path: str, cache_path: Optional[str], split: Union[str, dict], output_filename: str):
@@ -76,21 +74,16 @@ def make_targets_file(data_path: str, cache_path: Optional[str], split: Union[st
         labels.drop(["target"], axis=1, inplace=True)
         save_dataframe(labels, output_filename, index=False)
         return
-        split = {"test": list(labels.keys())}
 
-    _, validation_dl, test_dl, _, _, _ = knight_dataset(
-        data_path, cache_path, split, reset_cache=False, only_labels=True
+    _, val_ds = KNIGHT.dataset(
+        data_path, cache_path, split, reset_cache=False,
     )
 
     # Export targets
     if is_validation_set:
         targets_df = ExportDataset.export_to_dataframe(
-            validation_dl.dataset,
+            val_ds,
             ["data.descriptor", "data.gt.gt_global.task_1_label", "data.gt.gt_global.task_2_label"],
-        )
-    else:  # test set
-        targets_df = ExportDataset.export_to_dataframe(
-            test_dl.dataset, ["data.descriptor", "data.gt.gt_global.task_1_label", "data.gt.gt_global.task_2_label"]
         )
 
     # to int and rename keys
