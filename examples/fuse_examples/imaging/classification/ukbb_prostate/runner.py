@@ -62,7 +62,7 @@ import numpy as np
 from cv2 import cv2
 import nibabel as nib
 
-assert "UKBB_DATA_PATH" in os.environ, "Expecting environment variable UKBB_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
+assert "UKBB_MRI_BODY_DATA_PATH" in os.environ, "Expecting environment variable UKBB_MRI_BODY_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
 ##########################################
 # Debug modes
 ##########################################
