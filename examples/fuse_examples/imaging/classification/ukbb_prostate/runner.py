@@ -120,6 +120,7 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
     files_download_from_cos.download_sample_files(sample_ids=sample_ids, mri_output_dir=paths["data_dir"], cos_cfg=train["cos"])
 
     lgr.info('\nFuse Train', {'attrs': ['bold', 'underline']})
+    lgr.info('cohort def='+str(train['cohort']), {'color': 'magenta'})
 
     lgr.info(f'model_dir={paths["model_dir"]}', {'color': 'magenta'})
     lgr.info(f'cache_dir={paths["cache_dir"]}', {'color': 'magenta'})
