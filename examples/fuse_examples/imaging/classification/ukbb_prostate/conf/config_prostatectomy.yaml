@@ -21,6 +21,9 @@ train:
   cohort:
     group_ids: [ men_no_prostatectomy, men_prostatectomy ]
     max_group_size: 500
+  series_config:
+    series : Dixon_BH_17s_W
+    station: 4
   target: preindex prostatectomy
   reset_cache: False
   num_workers : 12
