@@ -60,25 +60,37 @@ def get_samples_for_cohort(cohort_config: NDict, clinical_data_file:str, seed:Op
 def get_group_filter(group_id, df):
     if group_id == 'all':
         return np.ones(df.shape[0], dtype=bool)
+    # sex
     if group_id == 'men':
         return df['is female'] == 0
     if group_id == 'women':
         return df['is female'] == 1
 
-    if group_id == 'no_cancer':
-        return df['preindex cancer'] == 0
+    # neoplasms (malignant, in situ, benign)
+    if group_id == 'neoplasms':
+        return df['preindex neoplasms'] >0
     if group_id == 'no_neoplasms':
         return df['preindex neoplasms'] == 0
 
-    if group_id == 'prostate_cancer':
+    # malignant
+    if group_id == 'cancer':
+        return df['preindex cancer'] >0
+    if group_id == 'no_cancer':
+        return df['preindex cancer'] == 0
+
+    # maligant - male genital
+    if group_id == 'cancer_male_genital':
+        return df['blocks preindex C60-C63 Malignant neoplasms of male genital organs'] > 0
+    # malignent - prostate
+    if group_id == 'cancer_prostate':
         return df['preindex prostate cancer'] > 0
 
+    # prostatectomy
     if group_id == 'prostatectomy':
         return df['preindex prostatectomy'] > 0
     if group_id == 'no_prostatectomy':
         return df['preindex prostatectomy'] == 0
-    if group_id == 'cancer_male_genital':
-        return df['blocks preindex C60-C63 Malignant neoplasms of male genital organs']>0
+
 
     raise NotImplementedError(group_id)
 def get_class_names(label_type:str):
