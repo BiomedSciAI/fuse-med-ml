@@ -13,7 +13,7 @@ class MetricVis2DImage(MetricWithCollectorBase):
         path: str = ".",
         image_format: str = "channels_first",
         image_process_func: Optional[Callable] = None,
-        **kwargs: dict
+        **kwargs: dict,
     ) -> None:
         """
         :param sample_ids: apply for the specified sample ids. To apply for all set to None.
