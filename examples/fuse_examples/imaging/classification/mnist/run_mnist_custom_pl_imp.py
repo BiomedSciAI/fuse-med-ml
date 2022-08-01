@@ -119,7 +119,7 @@ class LightningModuleMnist(pl.LightningModule):
     ## Step
     def training_step(self, batch_dict: NDict, batch_idx: int) -> dict:
         # run forward function and store the outputs in batch_dict["model"]
-        batch_dict["model"] = self.forward(batch_dict)
+        batch_dict = self.forward(batch_dict)
         # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss and save losses values in batch_dict["losses"]
         total_loss = fuse_pl.step_losses(self._losses, batch_dict)
         # given the batch_dict and FuseMedML style losses - collect the required values to compute the metrics on epoch_end
@@ -130,7 +130,7 @@ class LightningModuleMnist(pl.LightningModule):
 
     def validation_step(self, batch_dict: NDict, batch_idx: int) -> dict:
         # run forward function and store the outputs in batch_dict["model"]
-        batch_dict["model"] = self.forward(batch_dict)
+        batch_dict = self.forward(batch_dict)
         # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss (ignored) and save losses values in batch_dict["losses"]
         _ = fuse_pl.step_losses(self._losses, batch_dict)
         # given the batch_dict and FuseMedML style losses - collect the required values to compute the metrics on epoch_end
@@ -145,7 +145,7 @@ class LightningModuleMnist(pl.LightningModule):
                 "Error: predict_step expectes list of prediction keys to extract from batch_dict. Please specify it using set_predictions_keys() method "
             )
         # run forward function and store the outputs in batch_dict["model"]
-        batch_dict["model"] = self.forward(batch_dict)
+        batch_dict = self.forward(batch_dict)
         # extract the requried keys - defined in self.set_predictions_keys()
         return fuse_pl.step_extract_predictions(self._prediction_keys, batch_dict)
 

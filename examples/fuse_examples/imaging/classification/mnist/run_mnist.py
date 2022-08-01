@@ -17,7 +17,7 @@ Created on June 30, 2021
 
 ===============================
 
-MNIST classfier implementation that demonstrate end to end training, inference and evaluation using FuseMedML
+MNIST classifier implementation that demonstrate end to end training, inference and evaluation using FuseMedML
 """
 
 import copy

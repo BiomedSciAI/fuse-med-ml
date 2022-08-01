@@ -1,4 +1,5 @@
-from typing import Any, Hashable, List, Sequence, Optional
+from abc import abstractmethod
+from typing import Hashable, List, Sequence, Optional
 from fuse.data.utils.sample import get_sample_id
 from fuse.utils import NDict
 from fuse.data import OpBase
@@ -7,20 +8,33 @@ import torch
 
 
 class OpDebugBase(OpBase):
-    """Base class for debug operations"""
+    """
+    Base class for debug operations.
+    Provides the ability to limit the samples to the debug.
+    Inherit and implement self.call_debug instead of self.__call__.
+    """
 
-    def __init__(self, sample_ids: Optional[List[Hashable]] = None, first_sample_only: bool = False):
+    def __init__(
+        self, name: Optional[str] = None, sample_ids: Optional[List[Hashable]] = None, num_samples: bool = False
+    ):
         """
+        :param name: string identifier - might be useful when the debug op display or save information into a file
         :param sample_ids: apply for the specified sample ids. To apply for all set to None.
-        :param first_sample_only: apply for the first sample only
+        :param num_samples: apply for the first num_samples (per process). if None, will apply for all.
         """
         super().__init__()
+        self._name = name
         self._sample_ids = sample_ids
-        self._first_sample_only = first_sample_only
-        self._first_sample_done = False
+        self._num_samples = num_samples
+        self._num_samples_done = 0
+
+    def reset(self, name: Optional[str] = None):
+        """Reset operation state"""
+        self._num_samples_done = 0
+        self._name = name
 
     def should_debug_sample(self, sample_dict: NDict) -> bool:
-        if self._first_sample_only and self._first_sample_done:
+        if self._num_samples and self._num_samples_done >= self._num_samples:
             return False
 
         if self._sample_ids is not None:
@@ -28,15 +42,24 @@ class OpDebugBase(OpBase):
             if sid not in self._sample_ids:
                 return False
 
-        self._first_sample_done = True
+        self._num_samples_done += True
         return True
+
+    def __call__(self, sample_dict: NDict, **kwargs) -> NDict:
+        if self.should_debug_sample(sample_dict):
+            self.call_debug(sample_dict, **kwargs)
+        return sample_dict
+
+    @abstractmethod
+    def call_debug(self, sample_dict: NDict, **kwargs) -> None:
+        """The actual debug op implementation"""
+        raise NotImplementedError
 
 
 class OpPrintKeys(OpDebugBase):
     """
     Print list of available keys at a given point in the data pipeline
     It's recommended, but not a must, to run it in a single process.
-    Add at the top your script to force single process:
     ```
     from fuse.utils.utils_debug import FuseDebug
     FuseDebug("debug")
@@ -44,16 +67,14 @@ class OpPrintKeys(OpDebugBase):
 
     Example:
     ```
-    (OpPrintKeys(first_sample_only), dict()),
+    (OpPrintKeys(num_samples=1), dict()),
     ```
     """
 
-    def __call__(self, sample_dict: NDict) -> Any:
-        if self.should_debug_sample(sample_dict):
-            print(f"Sample {get_sample_id(sample_dict)} keys:")
-            for key in sample_dict.keypaths():
-                print(f"{key}")
-        return sample_dict
+    def call_debug(self, sample_dict: NDict) -> None:
+        print(f"Sample {get_sample_id(sample_dict)} keys:")
+        for key in sample_dict.keypaths():
+            print(f"{key}")
 
 
 class OpPrintShapes(OpDebugBase):
@@ -66,23 +87,20 @@ class OpPrintShapes(OpDebugBase):
     ```
     Example:
     ```
-    (OpPrintShapes(first_sample_only), dict()),
+    (OpPrintShapes(num_samples=1), dict()),
     ```
     """
 
-    def __call__(self, sample_dict: NDict) -> Any:
-        if self.should_debug_sample(sample_dict):
-            print(f"Sample {get_sample_id(sample_dict)} shapes:")
-            for key in sample_dict.keypaths():
-                value = sample_dict[key]
-                if isinstance(value, torch.Tensor):
-                    print(f"{key} is tensor with shape: {value.shape}")
-                elif isinstance(value, numpy.ndarray):
-                    print(f"{key} is numpy array with shape: {value.shape}")
-                elif not isinstance(value, str) and isinstance(value, Sequence):
-                    print(f"{key} is sequence with length: {len(value)}")
-
-        return sample_dict
+    def call_debug(self, sample_dict: NDict) -> None:
+        print(f"Sample {get_sample_id(sample_dict)} shapes:")
+        for key in sample_dict.keypaths():
+            value = sample_dict[key]
+            if isinstance(value, torch.Tensor):
+                print(f"{key} is tensor with shape: {value.shape}")
+            elif isinstance(value, numpy.ndarray):
+                print(f"{key} is numpy array with shape: {value.shape}")
+            elif not isinstance(value, str) and isinstance(value, Sequence):
+                print(f"{key} is sequence with length: {len(value)}")
 
 
 class OpPrintTypes(OpDebugBase):
@@ -96,15 +114,12 @@ class OpPrintTypes(OpDebugBase):
     ```
     Example:
     ```
-    (OpPrintTypes(first_sample_only), dict()),
+    (OpPrintTypes(num_samples=1), dict()),
     ```
     """
 
-    def __call__(self, sample_dict: NDict) -> Any:
-        if self.should_debug_sample(sample_dict):
-            print(f"Sample {get_sample_id(sample_dict)} types:")
-            for key in sample_dict.keypaths():
-                value = sample_dict[key]
-                print(f"{key} - {type(value).__name__}")
-
-        return sample_dict
+    def call_debug(self, sample_dict: NDict) -> None:
+        print(f"Sample {get_sample_id(sample_dict)} types:")
+        for key in sample_dict.keypaths():
+            value = sample_dict[key]
+            print(f"{key} - {type(value).__name__}")

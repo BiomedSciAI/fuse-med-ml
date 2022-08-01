@@ -3,6 +3,7 @@ from typing import Callable, Optional, Tuple
 from fuse.data.ops.ops_cast import Cast
 from fuse.data.utils.sample import get_sample_id
 from fuse.utils import NDict
+from fuse.utils.file_io.file_io import create_dir
 from fuse.data.ops.ops_debug import OpDebugBase
 import numpy
 import torch
@@ -46,7 +47,7 @@ class OpVis2DImage(OpDebugBase):
         self._image_process_func = image_process_func
         self._show = show
 
-    def __call__(
+    def call_debug(
         self,
         sample_dict: NDict,
         key: str,
@@ -62,40 +63,42 @@ class OpVis2DImage(OpDebugBase):
         :param figure_kwargs: parameters to pass to plt.figure
         :params imshow_kwargs: extra parameters to pass to plt.imshow
         """
-        if self.should_debug_sample(sample_dict):
-            img = sample_dict[key]
-            if isinstance(img, torch.Tensor):
-                img = img.detach().cpu().numpy()
 
-            assert isinstance(img, numpy.ndarray)
+        img = sample_dict[key]
+        if isinstance(img, torch.Tensor):
+            img = img.detach().cpu().numpy()
 
-            if clip is not None:
-                img = img.clip(*clip)
+        assert isinstance(img, numpy.ndarray)
 
-            if dtype is not None:
-                img = Cast.to_numpy(img, dtype=dtype)
+        if clip is not None:
+            img = img.clip(*clip)
 
-            if self._image_format == "channels_first":
-                img = numpy.moveaxis(img, 0, -1)
-            elif self._image_format == "no_channels":
-                img = numpy.expand_dims(img, axis=-1)
+        if dtype is not None:
+            img = Cast.to_numpy(img, dtype=dtype)
 
-            if self._image_process_func is not None:
-                img = self._image_process_func(img)
+        if self._image_format == "channels_first":
+            img = numpy.moveaxis(img, 0, -1)
+        elif self._image_format == "no_channels":
+            img = numpy.expand_dims(img, axis=-1)
 
-            if "cmap" not in imshow_kwargs:
-                if img.shape[-1] == 1:  # assume and force gray scale
-                    imshow_kwargs["cmap"] = "gray"
+        if self._image_process_func is not None:
+            img = self._image_process_func(img)
 
-            plt.figure(**figure_kwargs)
-            plt.imshow(img)
-            if self._show:
-                plt.show()
+        if "cmap" not in imshow_kwargs:
+            if img.shape[-1] == 1:  # assume and force gray scale
+                imshow_kwargs["cmap"] = "gray"
+
+        plt.figure(**figure_kwargs)
+        plt.imshow(img, **imshow_kwargs)
+        if self._show:
+            plt.show()
+        else:
+            if self._name is None:
+                filename = os.path.join(self._path, get_sample_id(sample_dict).replace(".", "__")) + ".png"
             else:
-                plt.savefig(
-                    os.path.join(self._path, get_sample_id(sample_dict).replace(".", "__")) + ".png"
-                )  # save fig
-        return sample_dict
+                filename = os.path.join(self._path, self._name, get_sample_id(sample_dict).replace(".", "__")) + ".png"
+            create_dir(os.path.dirname(filename))
+            plt.savefig(filename)  # save fig
 
 
 class OpVisImageHist(OpDebugBase):
@@ -121,30 +124,31 @@ class OpVisImageHist(OpDebugBase):
         self._path = path
         self._show = show
 
-    def __call__(self, sample_dict: NDict, key: str, bins: int = 10, figure_kwargs: dict = {}, **hist_kwargs) -> NDict:
+    def call_debug(
+        self, sample_dict: NDict, key: str, bins: int = 10, figure_kwargs: dict = {}, **hist_kwargs
+    ) -> NDict:
         """
         :param key: sample_dict key to a 2D image. Either tensor or numpy array.
         :param figure_kwargs: parameters to pass to plt.figure
         :params hist_kwargs: extra parameters to pass to plt.hist
         """
-        if self.should_debug_sample(sample_dict):
-            img = sample_dict[key]
-            if isinstance(img, torch.Tensor):
-                img = img.detach().cpu().numpy()
 
-            assert isinstance(img, numpy.ndarray)
+        img = sample_dict[key]
+        if isinstance(img, torch.Tensor):
+            img = img.detach().cpu().numpy()
 
-            if self._image_format == "channels_first":
-                img = numpy.moveaxis(img, 0, -1)
-            if self._image_process_func is not None:
-                img = self._image_process_func(img)
+        assert isinstance(img, numpy.ndarray)
 
-            plt.figure(**figure_kwargs)
-            plt.hist(img.flatten(), bins=bins, **hist_kwargs)
-            if self._show:
-                plt.show()
-            else:
-                plt.savefig(
-                    os.path.join(self._path, f"hist_{get_sample_id(sample_dict).replace('.', '__')}.png")
-                )  # save fig
-        return sample_dict
+        if self._image_format == "channels_first":
+            img = numpy.moveaxis(img, 0, -1)
+        if self._image_process_func is not None:
+            img = self._image_process_func(img)
+
+        plt.figure(**figure_kwargs)
+        plt.hist(img.flatten(), bins=bins, **hist_kwargs)
+        if self._show:
+            plt.show()
+        else:
+            plt.savefig(
+                os.path.join(self._path, f"hist_{get_sample_id(sample_dict).replace('.', '__')}.png")
+            )  # save fig

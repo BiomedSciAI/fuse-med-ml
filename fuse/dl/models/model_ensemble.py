@@ -90,5 +90,5 @@ class ModelEnsemble(torch.nn.Module):
             ensemble_pred.append(ensemble_model_dict["output"]["ensemble_output_" + str(ensemble_idx)])
         ensemble_model_dict["output"].update(self.calculate_ensemble_avg(ensemble_pred))
         ensemble_model_dict["output"].update(self.calculate_ensemble_majority_vote(ensemble_pred))
-
-        return ensemble_model_dict
+        batch_dict["model"] = ensemble_model_dict
+        return batch_dict

@@ -73,4 +73,4 @@ class ModelMultiHead(torch.nn.Module):
         for head in self.heads:
             batch_dict = head.forward(batch_dict)
 
-        return batch_dict["model"]
+        return batch_dict
