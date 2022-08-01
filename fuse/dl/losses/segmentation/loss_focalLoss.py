@@ -17,7 +17,7 @@ Created on June 30, 2021
 
 """
 
-from typing import Callable, Dict, Union, Optional
+from typing import Callable, Optional
 
 import torch
 import torch.nn as nn
@@ -27,7 +27,7 @@ from fuse.utils.ndict import NDict
 import numpy as np
 
 
-def make_one_hot(input, num_classes, device='cuda'):
+def make_one_hot(input, num_classes, device="cuda"):
     """Convert class index tensor to one hot encoding tensor.
     Args:
          input: A tensor of shape [N, 1, *]
@@ -46,14 +46,15 @@ def make_one_hot(input, num_classes, device='cuda'):
 
 class WeightedFocalLoss(nn.Module):
     "Non weighted version of Focal Loss"
-    def __init__(self, alpha: float =.25, gamma: float =2.):
-        '''
+
+    def __init__(self, alpha: float = 0.25, gamma: float = 2.0):
+        """
         FL = -alpha(1-pt)^gamma * log(pt)
         :param alpha: hyperparameter weighted term
         :param gamma: hyperparameter
-        '''
+        """
         super(WeightedFocalLoss, self).__init__()
-        self.alpha = torch.tensor([alpha, 1-alpha]).cuda()
+        self.alpha = torch.tensor([alpha, 1 - alpha]).cuda()
         self.gamma = gamma
 
     def forward(self, inputs, targets):
@@ -62,24 +63,25 @@ class WeightedFocalLoss(nn.Module):
             targets = targets.unsqueeze(1)
         targets = make_one_hot(targets, inputs.shape[1])
 
-        BCE_loss = F.binary_cross_entropy_with_logits(inputs, targets, reduction='none')
+        BCE_loss = F.binary_cross_entropy_with_logits(inputs, targets, reduction="none")
         targets = targets.type(torch.long)
         at = self.alpha.gather(0, targets.data.view(-1))
         pt = torch.exp(-BCE_loss).data.view(-1)
-        F_loss = at*(1-pt)**self.gamma * BCE_loss.data.view(-1)
+        F_loss = at * (1 - pt) ** self.gamma * BCE_loss.data.view(-1)
         return F_loss.mean()
 
 
 class FocalLoss(LossBase):
-
-    def __init__(self,
-                 pred_name: str = None,
-                 target_name: str = None,
-                 weight: float = 1.0,
-                 alpha: float=.25,
-                 gamma: float=2,
-                 filter_func: Optional[Callable] = None,
-                 resize_mode: str = 'interpolate') -> None:
+    def __init__(
+        self,
+        pred_name: str = None,
+        target_name: str = None,
+        weight: float = 1.0,
+        alpha: float = 0.25,
+        gamma: float = 2,
+        filter_func: Optional[Callable] = None,
+        resize_mode: str = "interpolate",
+    ) -> None:
         """
         :param pred_name:               batch_dict key for predicted logits (e.g., class probabilities BEFORE softmax).
                                         Expected Tensor shape = [batch, num_classes, height, width]
@@ -114,15 +116,17 @@ class FocalLoss(LossBase):
         if (targets_height > preds_height) or (targets_width > preds_width):
             if targets.dtype != torch.float32:
                 targets = targets.type(torch.float32).to(targets.device)
-            if self.resize_mode == 'maxpool':
+            if self.resize_mode == "maxpool":
                 block_height = int(targets_height / preds_height)
                 block_width = int(targets_width / preds_width)
                 residual_h = int((targets_height - (block_height * preds_height)) / 2)
                 residual_w = int((targets_width - (block_width * preds_width)) / 2)
 
-                targets = torch.nn.functional.max_pool2d(targets[:, :, residual_h:targets_height - residual_h, residual_w:targets_width - residual_w],
-                                                         kernel_size=(block_height, block_width))
-            elif self.resize_mode == 'interpolate':
+                targets = torch.nn.functional.max_pool2d(
+                    targets[:, :, residual_h : targets_height - residual_h, residual_w : targets_width - residual_w],
+                    kernel_size=(block_height, block_width),
+                )
+            elif self.resize_mode == "interpolate":
                 targets = torch.nn.functional.interpolate(targets, size=(preds_height, preds_width))
             else:
                 raise Exception

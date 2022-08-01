@@ -39,10 +39,12 @@ class BackboneResnet3D(VideoResNet):
         """
         # init parameters per required backbone
         init_parameters = {
-            'r3d_18': {'block': BasicBlock,
-                       'conv_makers': [Conv3DSimple] * 4,
-                       'layers': [2, 2, 2, 2],
-                       'stem': BasicStem},
+            "r3d_18": {
+                "block": BasicBlock,
+                "conv_makers": [Conv3DSimple] * 4,
+                "layers": [2, 2, 2, 2],
+                "stem": BasicStem,
+            },
         }[name]
         # init original model
         super().__init__(**init_parameters)
@@ -57,10 +59,9 @@ class BackboneResnet3D(VideoResNet):
         self.in_channels = in_channels
         # override the first convolution layer to support any number of input channels
         self.stem = nn.Sequential(
-            nn.Conv3d(self.in_channels, 64, kernel_size=(3, 7, 7), stride=(1, 2, 2),
-                      padding=(1, 3, 3), bias=False),
+            nn.Conv3d(self.in_channels, 64, kernel_size=(3, 7, 7), stride=(1, 2, 2), padding=(1, 3, 3), bias=False),
             nn.BatchNorm3d(64),
-            nn.ReLU(inplace=True)
+            nn.ReLU(inplace=True),
         )
 
     def features(self, x: Tensor) -> Any:

@@ -6,34 +6,28 @@ pandas>=1.2
 tqdm>=4.52.0
 scipy>=1.5.4
 matplotlib>=3.3.3
-scikit-image>=0.17.2
 scikit-learn>=0.23.2
 termcolor>=1.1.0
-torch>=1.5.0
-torchvision>=0.8.1
+torch>=1.5.0,<=1.11.0 # the higher limit is temporary - to avoid from error in unitests:  "Cannot re-initialize CUDA in forked subprocess. To use CUDA with multiprocessing, you must use the 'spawn' start method"
+torchvision>=0.8.1,<=0.12.0
 tensorboard
-SimpleITK>=1.2.0
 wget
-opencv-python<=4.3.0.36 
 ipython
-pydicom
 h5py
 hdf5plugin
 deepdiff
 statsmodels
-nibabel
-pycocotools>=2.0.1
 xmlrunner
 paramiko
 tables
 psutil
 testbook
 ipykernel
-medpy
 pytorch_lightning
 hydra-core
 omegaconf
-# # for ukbb example:
-# medcam
-# ibm-cos-sdk
-# botocore
+pycocotools>=2.0.1
+nibabel
+mypy
+flake8
+black
