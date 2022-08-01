@@ -22,14 +22,18 @@ def get_samples_for_cohort(cohort_config: NDict, clinical_data_file:str, seed:Op
             group_filter = df['is female']==0
         elif group_id == 'men_no_cancer':
             group_filter = (df['is female'] == 0) & (df['preindex cancer'] == 0)
+        elif group_id == 'men_no_neoplasms':
+            group_filter = (df['is female'] == 0) & (df['preindex neoplasms'] == 0)
         elif group_id == 'men_prostate_cancer':
-            group_filter = (df['is female'] == 0) & (df['preindex prostate cancer'] == 1)
+            group_filter = (df['is female'] == 0) & (df['preindex prostate cancer'] >0)
         elif group_id == 'men_prostate_cancer_no_prostatectomy':
-            group_filter = (df['is female'] == 0) & (df['preindex prostate cancer'] == 1) & (df['preindex prostatectomy'] == 0)
+            group_filter = (df['is female'] == 0) & (df['preindex prostate cancer'] >0) & (df['preindex prostatectomy'] == 0)
         elif group_id == 'men_prostatectomy':
-            group_filter = (df['is female'] == 0) & (df['preindex prostatectomy'] == 1)
+            group_filter = (df['is female'] == 0) & (df['preindex prostatectomy']>0)
         elif group_id == 'men_no_prostatectomy':
             group_filter = (df['is female'] == 0) & (df['preindex prostatectomy'] == 0)
+        elif group_id == 'men_cancer_genital':
+            group_filter = (df['is female'] == 0) & (df['blocks preindex C60-C63 Malignant neoplasms of male genital organs']>0)
         else:
             raise NotImplementedError(group_id)
 
@@ -60,6 +64,8 @@ def get_class_names(label_type:str):
         class_names = ["No-surgery", "surgery"]
     elif label_type == "preindex prostate cancer":
         class_names = ["no-cancer", "prostate-cancer"]
+    elif label_type == "preindex cancer":
+        class_names = ["no-cancer", "cancer"]
     else:
         raise NotImplementedError("unsuported target!!")
     return class_names
