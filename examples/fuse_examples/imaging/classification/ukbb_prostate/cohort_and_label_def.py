@@ -7,37 +7,39 @@ import pandas as pd
 from fuse.utils import NDict
 
 
-def get_samples_for_cohort(cohort_config: NDict, clinical_data_file:str, seed:Optional[int]=222):
+def get_samples_for_cohort(cohort_config: NDict, clinical_data_file:str, seed:Optional[int]=222, lgr=None):
+
+    def write_log_info(s):
+        if lgr is not None:
+            lgr.info(s)
+
     df = pd.read_csv(clinical_data_file)
-    sample_ids = df['file_pattern'].values
-    selected = np.zeros(df.shape[0], dtype=bool)
-    group_ids = cohort_config['group_ids']
+
+    filter_out_groups = cohort_config.get("filter_out")
+    if filter_out_groups is not None:
+        filter_out = np.zeros(df.shape[0], dtype=bool)
+        for group_id in filter_out_groups:
+            group_filter = get_group_filter(group_id, df)
+            filter_out |= group_filter
+    else:
+        filter_out = None
+
     max_group_size = cohort_config[ 'max_group_size']
     max_group_size = None if max_group_size <= 0 else max_group_size
     np.random.seed(seed)
-    for group_id in group_ids:
-        if group_id == 'all':
-            group_filter = np.ones(df.shape[0], dtype=bool)
-        elif group_id == 'men':
-            group_filter = df['is female']==0
-        elif group_id == 'men_no_cancer':
-            group_filter = (df['is female'] == 0) & (df['preindex cancer'] == 0)
-        elif group_id == 'men_no_neoplasms':
-            group_filter = (df['is female'] == 0) & (df['preindex neoplasms'] == 0)
-        elif group_id == 'men_prostate_cancer':
-            group_filter = (df['is female'] == 0) & (df['preindex prostate cancer'] >0)
-        elif group_id == 'men_prostate_cancer_no_prostatectomy':
-            group_filter = (df['is female'] == 0) & (df['preindex prostate cancer'] >0) & (df['preindex prostatectomy'] == 0)
-        elif group_id == 'men_prostatectomy':
-            group_filter = (df['is female'] == 0) & (df['preindex prostatectomy']>0)
-        elif group_id == 'men_no_prostatectomy':
-            group_filter = (df['is female'] == 0) & (df['preindex prostatectomy'] == 0)
-        elif group_id == 'men_cancer_genital':
-            group_filter = (df['is female'] == 0) & (df['blocks preindex C60-C63 Malignant neoplasms of male genital organs']>0)
-        else:
-            raise NotImplementedError(group_id)
 
+    selected = np.zeros(df.shape[0], dtype=bool)
+    group_ids = cohort_config['group_ids']
+
+    for group_id in group_ids:
+        group_filter = get_group_filter(group_id, df)
         group_size = group_filter.sum()
+
+        write_log_info(f'{group_id} size={group_size}')
+        if filter_out is not None:
+            group_filter &= ~filter_out
+            group_size = group_filter.sum()
+            write_log_info(f'{group_id} size={group_size} after filtering')
 
         if max_group_size is not None and group_size > max_group_size:
             all_indexes = np.where(group_filter)[0]
@@ -47,14 +49,38 @@ def get_samples_for_cohort(cohort_config: NDict, clinical_data_file:str, seed:Op
             assert np.all(group_filter[indexes_to_remove])
             group_filter[indexes_to_remove] = False
             assert np.sum(group_filter) == max_group_size
-            print( group_id, "size:", group_size, "=>", max_group_size, "First removed index=", indexes_to_remove[0])
-        else:
-            print(group_id, "size:", group_size)
+            write_log_info( f"{group_id} size: {group_size} => {max_group_size}, First removed index= {indexes_to_remove[0]}")
+
         selected |= group_filter
     print("cohort size=", np.sum(selected))
-    return sample_ids[selected].tolist()
+    return df['file_pattern'].values[selected].tolist()
 
 
+
+def get_group_filter(group_id, df):
+    if group_id == 'all':
+        return np.ones(df.shape[0], dtype=bool)
+    if group_id == 'men':
+        return df['is female'] == 0
+    if group_id == 'women':
+        return df['is female'] == 1
+
+    if group_id == 'no_cancer':
+        return df['preindex cancer'] == 0
+    if group_id == 'no_neoplasms':
+        return df['preindex neoplasms'] == 0
+
+    if group_id == 'prostate_cancer':
+        return df['preindex prostate cancer'] > 0
+
+    if group_id == 'prostatectomy':
+        return df['preindex prostatectomy'] > 0
+    if group_id == 'no_prostatectomy':
+        return df['preindex prostatectomy'] == 0
+    if group_id == 'cancer_male_genital':
+        return df['blocks preindex C60-C63 Malignant neoplasms of male genital organs']>0
+
+    raise NotImplementedError(group_id)
 def get_class_names(label_type:str):
     if label_type == "classification":
         class_names = ["Male", "Female","Male-prostate-excision"]
