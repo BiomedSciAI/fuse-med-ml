@@ -96,9 +96,17 @@ class OpLoadUKBBZip(OpBase):
                 for j in range(4) :
                         station_list.append(i+1)
             dicom_tags['station'] = station_list
-            dcm_unique = dicom_tags[dicom_tags['station'] == series_config['station']][dicom_tags['series'] == series_config['series']]['dcm_unique'].iloc[0]
+            try :
+                dcm_unique = dicom_tags[dicom_tags['station'] == series_config['station']][dicom_tags['series'] == series_config['series']]['dcm_unique'].iloc[0]
+            except:
+                print("requested file",zip_filename,"series description",series_config, "not found!!!")
+                return None
         else:
-            dcm_unique = dicom_tags[dicom_tags['series'] == series_config['series']]['dcm_unique'].iloc[0]
+            try:
+                dcm_unique = dicom_tags[dicom_tags['series'] == series_config['series']]['dcm_unique'].iloc[0]
+            except:
+                print("requested file",zip_filename,"series description",series_config, "not found!!!")
+                return None
         dirpath = tempfile.mkdtemp()
         # ... do stuff with dirpath
         for dicom_file in filenames_list:
