@@ -17,25 +17,32 @@ Created on June 30, 2021
 
 """
 import logging
-from typing import Any, Callable, Dict, List, Sequence, Tuple
+from typing import Callable, Dict, List, Sequence, Tuple
 
 from fuse.utils import NDict
 
 import torch
 import numpy as np
 
+
 class CollateToBatchList(Callable):
     """
     Collate list of dictionaries to a batch dictionary, each value in dict will be a list of values collected from all samples.
     """
-    def __init__(self, skip_keys: Sequence[str]=tuple(), raise_error_key_missing: bool = True, special_handlers_keys: Dict[str, Callable] = None):
+
+    def __init__(
+        self,
+        skip_keys: Sequence[str] = tuple(),
+        raise_error_key_missing: bool = True,
+        special_handlers_keys: Dict[str, Callable] = None,
+    ):
         """
         :param skip_keys: do not collect the listed keys
         :param raise_error_key_missing: if False, will not raise an error if there are keys that do not exist in some of the samples. Instead will set those values to None.
         """
         self._skip_keys = skip_keys
         self._raise_error_key_missing = raise_error_key_missing
-        
+
     def __call__(self, samples: List[Dict]) -> Dict:
         """
         collate list of samples into batch_dict
@@ -43,23 +50,23 @@ class CollateToBatchList(Callable):
         :return: batch_dict
         """
         batch_dict = NDict()
-        
+
         # collect all keys
         keys = self._collect_all_keys(samples)
-        
+
         # collect values
         for key in keys:
 
             # skip keys
             if key in self._skip_keys:
                 continue
-            
+
             try:
                 # collect values into a list
                 collected_values, has_error = self._collect_values_to_list(samples, key)
                 batch_dict[key] = collected_values
             except:
-                print(f'Error: Failed to collect key {key}')
+                print(f"Error: Failed to collect key {key}")
                 raise
 
         return batch_dict
@@ -79,7 +86,7 @@ class CollateToBatchList(Callable):
 
     def _collect_values_to_list(self, samples: List[str], key: str) -> Tuple[List, bool]:
         """
-        collect values of given key into a list 
+        collect values of given key into a list
         :param samples: list of samples
         :param key: key to collect
         :return: list of values
@@ -98,7 +105,8 @@ class CollateToBatchList(Callable):
                 value = sample[key]
             collected_values.append(value)
         return collected_values, has_error
-        
+
+
 def uncollate(batch: Dict) -> List[Dict]:
     """
     Reverse collate method
@@ -108,26 +116,26 @@ def uncollate(batch: Dict) -> List[Dict]:
     if not isinstance(batch, NDict):
         batch = NDict(batch)
     keys = batch.keypaths()
-    
+
     # empty batch
     if not keys:
         return samples
-    
+
     batch_size = None
     for key in keys:
         if isinstance(batch[key], torch.Tensor):
             batch_size = len(batch[key])
             break
-    
+
     if batch_size is None:
         for key in keys:
             if isinstance(batch[key], (np.ndarray, list, tuple)):
                 batch_size = len(batch[key])
                 break
-        
+
     if batch_size is None:
-        return batch # assuming batch dict with no samples
-          
+        return batch  # assuming batch dict with no samples
+
     for sample_index in range(batch_size):
         sample = NDict()
         for key in keys:
@@ -138,8 +146,8 @@ def uncollate(batch: Dict) -> List[Dict]:
                     logging.error(f"Error - IndexError - key={key}, batch_size={batch_size}, len={batch[key]}")
                     raise
             else:
-                sample[key] = batch[key] # broadcast single value for all batch
-        
+                sample[key] = batch[key]  # broadcast single value for all batch
+
         samples.append(sample)
 
     return samples

@@ -23,21 +23,28 @@ from fuse.data.datasets.dataset_base import DatasetBase
 
 from fuse.utils.file_io.file_io import save_dataframe
 
+
 class ExportDataset:
     """
     Export data
     """
 
     @staticmethod
-    def export_to_dataframe(dataset: DatasetBase, keys: Sequence[str], output_filename: Optional[str] = None, sample_id_key: str = "data.sample_id", **dataset_get_kwargs) -> pds.DataFrame:
+    def export_to_dataframe(
+        dataset: DatasetBase,
+        keys: Sequence[str],
+        output_filename: Optional[str] = None,
+        sample_id_key: str = "data.sample_id",
+        **dataset_get_kwargs
+    ) -> pds.DataFrame:
         """
-        extract from dataset the specified and keys and create a dataframe. 
-        If output_filename will be specified, the dataframe will also be saved in a file. 
+        extract from dataset the specified and keys and create a dataframe.
+        If output_filename will be specified, the dataframe will also be saved in a file.
         :param dataset: the dataset to extract the values from
         :param keys: keys to extract from sample_dict
-        :param output_filename: Optional, if set, will save the dataframe into a file. 
+        :param output_filename: Optional, if set, will save the dataframe into a file.
                                 The file type will be inferred from filename, see fuse.utils.file_io.file_io.save_dataframe for more details
-        :param dataset_get_kwargs: additional parameters to dataset.get(), might be used to optimize the running time 
+        :param dataset_get_kwargs: additional parameters to dataset.get(), might be used to optimize the running time
         """
         # add sample_id to keys list
         if keys is not None:
@@ -51,15 +58,14 @@ class ExportDataset:
         # read all the data
         data = dataset.get_multi(keys=all_keys, **dataset_get_kwargs)
 
-
         # store in dataframe
         df = pds.DataFrame()
-        
+
         for key in all_keys:
             values = [sample_dict[key] for sample_dict in data]
             df[key] = values
 
         if output_filename is not None:
             save_dataframe(df, output_filename)
-        
+
         return df

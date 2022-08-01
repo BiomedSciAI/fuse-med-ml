@@ -26,12 +26,12 @@ import cv2
 
 
 def match_img_to_input(im: np.ndarray, input: np.ndarray):
-    '''
+    """
     Resize an im to the input shape
     :param im: 2D image, can be numpy or Tensor
     :param input: input image, shape [channel, W, H]. numpy or Tensor
     :return: resized im
-    '''
+    """
     if isinstance(im, torch.Tensor):
         im = im.detach().cpu().numpy()
 
@@ -41,13 +41,15 @@ def match_img_to_input(im: np.ndarray, input: np.ndarray):
     if (input.shape[1], input.shape[2]) != (im.shape[1], im.shape[2]):
         resize_im = np.zeros((im.shape[0], input.shape[1], input.shape[2]))
         for c in range(im.shape[0]):
-            resize_im[c, :] = cv2.resize(im[c, :], (input.shape[2], input.shape[1]),
-                                            interpolation=cv2.INTER_NEAREST)
+            resize_im[c, :] = cv2.resize(im[c, :], (input.shape[2], input.shape[1]), interpolation=cv2.INTER_NEAREST)
         im = resize_im
 
     return im
 
-def pad_ndimage(ndimage: np.ndarray, outer_height: int, outer_width: int, pad_value: Union[float, int]) -> Tuple[np.ndarray, int, int]:
+
+def pad_ndimage(
+    ndimage: np.ndarray, outer_height: int, outer_width: int, pad_value: Union[float, int]
+) -> Tuple[np.ndarray, int, int]:
     """
     Pastes input ndimage in the middle of a larger one
     :param ndimage:         2-dim ndimage
@@ -60,8 +62,9 @@ def pad_ndimage(ndimage: np.ndarray, outer_height: int, outer_width: int, pad_va
     h_offset = int((outer_height - inner_height) / 2.0)
     w_offset = int((outer_width - inner_width) / 2.0)
     outer_image = np.ones((outer_height, outer_width), dtype=ndimage.dtype) * pad_value
-    outer_image[h_offset:h_offset + inner_height, w_offset:w_offset + inner_width] = ndimage
+    outer_image[h_offset : h_offset + inner_height, w_offset : w_offset + inner_width] = ndimage
     return outer_image, h_offset, w_offset
+
 
 def block_reduce_resize(img: np.ndarray, target_shape: Tuple[int, int] = (10, 5), func=np.max) -> np.ndarray:
     """
@@ -75,9 +78,17 @@ def block_reduce_resize(img: np.ndarray, target_shape: Tuple[int, int] = (10, 5)
     reduced_img = skimage.measure.block_reduce(img, block_size=block_size, func=func)
 
     # Block reduce produces a near final result, but its dimensions might not match target_shape exactly. So resize!
-    resized_reduced_img = skimage.transform.resize(reduced_img, target_shape, mode='edge', anti_aliasing=False,
-                                                    anti_aliasing_sigma=None, preserve_range=True, order=0)
+    resized_reduced_img = skimage.transform.resize(
+        reduced_img,
+        target_shape,
+        mode="edge",
+        anti_aliasing=False,
+        anti_aliasing_sigma=None,
+        preserve_range=True,
+        order=0,
+    )
     return resized_reduced_img
+
 
 def preserve_range_resize(img: np.ndarray, target_shape: Tuple[int, int] = (10, 5)) -> np.ndarray:
     """
@@ -86,12 +97,19 @@ def preserve_range_resize(img: np.ndarray, target_shape: Tuple[int, int] = (10, 
     :param target_shape:    target shape
     :return:
     """
-    resized_img = skimage.transform.resize(img, target_shape, mode='edge', anti_aliasing=False,
-                                            anti_aliasing_sigma=None, preserve_range=True, order=0)
+    resized_img = skimage.transform.resize(
+        img, target_shape, mode="edge", anti_aliasing=False, anti_aliasing_sigma=None, preserve_range=True, order=0
+    )
     return resized_img
 
-def align_ecc(img1: np.ndarray, img2: np.ndarray, num_iterations: int = 400, termination_eps: float = 1e-4,
-                transformation: int = None) -> np.ndarray:
+
+def align_ecc(
+    img1: np.ndarray,
+    img2: np.ndarray,
+    num_iterations: int = 400,
+    termination_eps: float = 1e-4,
+    transformation: int = None,
+) -> np.ndarray:
     """
     Aligns two images using ECC estimation.
     Returns transformed img2 to match img1.
@@ -112,17 +130,19 @@ def align_ecc(img1: np.ndarray, img2: np.ndarray, num_iterations: int = 400, ter
 
         transformation = transformation or cv2.MOTION_AFFINE
 
-        aligner = AlignMapECC(transformation_type=transformation,
-                                    num_iterations=num_iterations,
-                                    termination_eps=termination_eps)
+        aligner = AlignMapECC(
+            transformation_type=transformation, num_iterations=num_iterations, termination_eps=termination_eps
+        )
 
         aligner.align(img1, img2)
 
         return aligner.img2_aligned
     except Exception as e:
         import logging
-        logging.getLogger('Fuse').error("Cannot align images", e)
+
+        logging.getLogger("Fuse").error("Cannot align images", e)
         return img2
+
 
 def resize_image(image: np.ndarray, resize_to: Tuple[int, int]):
     """
@@ -133,6 +153,7 @@ def resize_image(image: np.ndarray, resize_to: Tuple[int, int]):
     """
 
     import cv2
+
     image_original_h = image.shape[0]
     image_original_w = image.shape[1]
 

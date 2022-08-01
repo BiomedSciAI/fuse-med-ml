@@ -25,45 +25,50 @@ from fuse.utils.misc.misc import get_pretty_dataframe
 
 
 class PrettyDataframeTestCase(unittest.TestCase):
-
     def setUp(self):
         pass
 
     def test_normal_strings(self):
-        df = pd.DataFrame({'A': ['abc', 'de', 'efg'],
-                           'B': ['a', 'abcde', 'abc'],
-                           'C': [1, 2.5, 1.5]})
+        df = pd.DataFrame({"A": ["abc", "de", "efg"], "B": ["a", "abcde", "abc"], "C": [1, 2.5, 1.5]})
 
         col_width = 25
         df_as_string = get_pretty_dataframe(df)
 
-        self.assertTrue('abcd' in df_as_string)
+        self.assertTrue("abcd" in df_as_string)
         self.assertTrue(f'|{" " * (col_width - 2)}1.0|\n' in df_as_string)
         self.assertTrue(f'| abcde{" " * (col_width - 5)}|' in df_as_string)
         self.assertTrue(f"|\n{'-' * (col_width + 2) * 3}\n" in df_as_string)
 
     def test_long_strings(self):
-        df = pd.DataFrame({'A': ['abc', 'de', 'very long column name should be longer than 25'],
-                           'B': ['a', 'abcde', 'abc'],
-                           'C': [1, 2.5, 1.5]})
+        df = pd.DataFrame(
+            {
+                "A": ["abc", "de", "very long column name should be longer than 25"],
+                "B": ["a", "abcde", "abc"],
+                "C": [1, 2.5, 1.5],
+            }
+        )
 
-        col_width = len('very long column name should be longer than 25')
+        col_width = len("very long column name should be longer than 25")
         df_as_string = get_pretty_dataframe(df)
 
-        self.assertTrue('abcd' in df_as_string)
+        self.assertTrue("abcd" in df_as_string)
         self.assertTrue(f'|{" " * (col_width - 2)}1.0|\n' in df_as_string)
         self.assertTrue(f'| abcde{" " * (col_width - 5)}|' in df_as_string)
         self.assertTrue(f"|\n{'-' * (col_width + 2) * 3}\n" in df_as_string)
 
     def test_long_headers(self):
-        df = pd.DataFrame({'very long column name should be longer than 25': ['abc', 'de', 'abcd'],
-                           'B': ['a', 'abcde', 'abc'],
-                           'C': [1, 2.5, 1.5]})
+        df = pd.DataFrame(
+            {
+                "very long column name should be longer than 25": ["abc", "de", "abcd"],
+                "B": ["a", "abcde", "abc"],
+                "C": [1, 2.5, 1.5],
+            }
+        )
 
-        col_width = len('very long column name should be longer than 25')
+        col_width = len("very long column name should be longer than 25")
         df_as_string = get_pretty_dataframe(df)
 
-        self.assertTrue('abcd' in df_as_string)
+        self.assertTrue("abcd" in df_as_string)
         self.assertTrue(f'|{" " * (col_width - 2)}1.0|\n' in df_as_string)
         self.assertTrue(f'| abcde{" " * (col_width - 5)}|' in df_as_string)
         self.assertTrue(f"|\n{'-' * (col_width + 2) * 3}\n" in df_as_string)
@@ -72,5 +77,5 @@ class PrettyDataframeTestCase(unittest.TestCase):
         pass
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

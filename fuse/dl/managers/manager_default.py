@@ -28,11 +28,10 @@ import torch
 import torch.nn as nn
 from torch.optim.optimizer import Optimizer
 from torch.utils.data.dataloader import DataLoader
-from typing import Dict, Any, List, Iterator, Optional, Union, Sequence, Hashable, Callable
+from typing import Dict, Any, List, Iterator, Optional, Union, Sequence
 
 from fuse.dl.losses.loss_base import LossBase
 from fuse.dl.managers.callbacks.callback_base import Callback
-from fuse.dl.managers.callbacks.callback_debug import CallbackDebug
 from fuse.dl.managers.manager_state import ManagerState
 from fuse.eval import MetricBase
 from fuse.dl.models.model_ensemble import ModelEnsemble
@@ -42,7 +41,7 @@ from fuse.utils.file_io.file_io import create_or_reset_dir
 import fuse.utils.gpu as gpu
 from fuse.utils.ndict import NDict
 from fuse.utils.utils_logger import log_object_input_state
-from fuse.utils.misc.misc import Misc, get_pretty_dataframe
+from fuse.utils.misc.misc import get_pretty_dataframe
 from tqdm import trange
 
 
@@ -77,7 +76,7 @@ class ManagerDefault:
             When True, the directory is automatically reset.
         """
         log_object_input_state(self, locals())
-        self.logger = logging.getLogger('Fuse')
+        self.logger = logging.getLogger("Fuse")
 
         self.state = ManagerState()
         self.state.output_model_dir = output_model_dir
@@ -85,22 +84,24 @@ class ManagerDefault:
 
         if output_model_dir is not None:
             # prepare model_dir
-            create_or_reset_dir(output_model_dir, ignore_files=['logs', 'source_files'], force_reset=force_reset)
+            create_or_reset_dir(output_model_dir, ignore_files=["logs", "source_files"], force_reset=force_reset)
 
         self.callbacks: List[Callback] = list()  # callback can be empty
         pass
 
-    def set_objects(self,
-                    net: nn.Module = None,
-                    # ensemble_nets: Sequence[nn.Module] = None,
-                    metrics: Dict[str, MetricBase] = None,
-                    losses: Dict[str, LossBase] = None,
-                    callbacks: List[Callback] = None,
-                    optimizer: Optimizer = None,
-                    lr_scheduler: Any = None,
-                    best_epoch_source: Union[List[Dict[str, str]], Dict[str, str]] = None,
-                    train_params: Dict = None,
-                    output_model_dir: str = None) -> None:
+    def set_objects(
+        self,
+        net: nn.Module = None,
+        # ensemble_nets: Sequence[nn.Module] = None,
+        metrics: Dict[str, MetricBase] = None,
+        losses: Dict[str, LossBase] = None,
+        callbacks: List[Callback] = None,
+        optimizer: Optimizer = None,
+        lr_scheduler: Any = None,
+        best_epoch_source: Union[List[Dict[str, str]], Dict[str, str]] = None,
+        train_params: Dict = None,
+        output_model_dir: str = None,
+    ) -> None:
         """
         Sets objects to the given values.
         :param net: the model definition
@@ -128,16 +129,25 @@ class ManagerDefault:
         """
         best_epoch_source = [best_epoch_source] if not isinstance(best_epoch_source, list) else best_epoch_source
 
-        if net is not None: self.state.net = net
+        if net is not None:
+            self.state.net = net
         # if ensemble_nets is not None: self.state.ensemble_nets = ensemble_nets
-        if metrics is not None: self.state.metrics = metrics
-        if losses is not None: self.state.losses = losses
-        if callbacks is not None: self.callbacks = callbacks
-        if optimizer is not None: self.state.optimizer = optimizer
-        if lr_scheduler is not None: self.state.lr_scheduler = lr_scheduler
-        if best_epoch_source is not None: self.state.best_epoch_source = best_epoch_source
-        if train_params is not None: self.state.train_params = train_params
-        if output_model_dir is not None: self.state.output_model_dir = output_model_dir
+        if metrics is not None:
+            self.state.metrics = metrics
+        if losses is not None:
+            self.state.losses = losses
+        if callbacks is not None:
+            self.callbacks = callbacks
+        if optimizer is not None:
+            self.state.optimizer = optimizer
+        if lr_scheduler is not None:
+            self.state.lr_scheduler = lr_scheduler
+        if best_epoch_source is not None:
+            self.state.best_epoch_source = best_epoch_source
+        if train_params is not None:
+            self.state.train_params = train_params
+        if output_model_dir is not None:
+            self.state.output_model_dir = output_model_dir
 
         pass
 
@@ -148,26 +158,27 @@ class ManagerDefault:
         """
 
         def _torch_save(parameter_to_save: Any, parameter_name: str) -> None:
-            file_path = os.path.join(self.state.output_model_dir, f'{parameter_name}.pth')
+            file_path = os.path.join(self.state.output_model_dir, f"{parameter_name}.pth")
             torch.save(parameter_to_save, file_path)
-            self.logger.debug(f"Saved object to file {file_path}", {'color': 'green'})
+            self.logger.debug(f"Saved object to file {file_path}", {"color": "green"})
             pass
 
-        if self.state.device != 'cpu':
-            _torch_save(self.state.net.module, 'net')
+        if self.state.device != "cpu":
+            _torch_save(self.state.net.module, "net")
         else:
-            _torch_save(self.state.net, 'net')
-        
-        _torch_save(self.state.metrics, 'metrics')
-        _torch_save(self.state.losses, 'losses')
-        _torch_save(self.callbacks, 'callbacks')
-        _torch_save(self.state.optimizer, 'optimizer')
-        _torch_save(self.state.lr_scheduler, 'lr_scheduler')
-        _torch_save(self.state.best_epoch_source, 'best_epoch_source')
-        _torch_save(self.state.train_params, 'train_params')
+            _torch_save(self.state.net, "net")
 
-        
-    def load_objects(self, input_model_dir: Union[str, Sequence[str]], list_of_object_names: List[str] = None, mode: str = 'infer') -> Dict[str, Any]:
+        _torch_save(self.state.metrics, "metrics")
+        _torch_save(self.state.losses, "losses")
+        _torch_save(self.callbacks, "callbacks")
+        _torch_save(self.state.optimizer, "optimizer")
+        _torch_save(self.state.lr_scheduler, "lr_scheduler")
+        _torch_save(self.state.best_epoch_source, "best_epoch_source")
+        _torch_save(self.state.train_params, "train_params")
+
+    def load_objects(
+        self, input_model_dir: Union[str, Sequence[str]], list_of_object_names: List[str] = None, mode: str = "infer"
+    ) -> Dict[str, Any]:
         """
         Loads objects from torch saved pth files under input_model_dir.
         Note: if mode is infer, only loads net.
@@ -182,9 +193,9 @@ class ManagerDefault:
             return list_of_object_names is None or object_name in list_of_object_names
 
         def load_if_exists(object_name, force=False):
-            file_path = os.path.join(input_model_dir, f'{object_name}.pth')
+            file_path = os.path.join(input_model_dir, f"{object_name}.pth")
             if os.path.exists(file_path):
-                object_to_set = torch.load(file_path, map_location='cpu')
+                object_to_set = torch.load(file_path, map_location="cpu")
                 loaded_objects.update({object_name: object_to_set})
                 return object_to_set
             if force:
@@ -194,13 +205,13 @@ class ManagerDefault:
         loaded_objects = {}
 
         if isinstance(input_model_dir, (tuple, list)):  # if multiple model dirs, load ensemble modules
-            if mode != 'infer':
+            if mode != "infer":
                 msg = "Error in load_objects: using multiple model dirs is only supported in 'infer' mode"
                 self.logger.error(msg)
                 raise Exception(msg)
 
             # log an ensemble of model dirs
-            self.logger.info('Loading ensemble of %d models.' % len(input_model_dir))
+            self.logger.info("Loading ensemble of %d models." % len(input_model_dir))
             for model_idx, model_dir in enumerate(input_model_dir):
                 self.logger.info("Loading ensemble model %d from: %s" % (model_idx, model_dir))
 
@@ -209,30 +220,39 @@ class ManagerDefault:
 
         else:  # load single module
             self.logger.info("Loading model from: %s" % input_model_dir)
-            self.state.net = load_if_exists('net', force=True) if should_load('net') else self.state.net
+            self.state.net = load_if_exists("net", force=True) if should_load("net") else self.state.net
 
         # if mode is infer, then we need only load the net
-        if mode == 'infer':
-            load_if_exists('inference_dataset') if should_load('inference_dataset') else self.state.metrics
+        if mode == "infer":
+            load_if_exists("inference_dataset") if should_load("inference_dataset") else self.state.metrics
             return loaded_objects
 
-        self.state.metrics = load_if_exists('metrics') if should_load('metrics') else self.state.metrics
-        self.state.losses = load_if_exists('losses') if should_load('losses') else self.state.losses
-        self.callbacks = load_if_exists('callbacks') if should_load('callbacks') else self.callbacks
-        self.state.optimizer = load_if_exists('optimizer') if should_load('optimizer') else self.state.optimizer
-        self.state.lr_scheduler = load_if_exists('lr_scheduler') if should_load('lr_scheduler') else self.state.lr_scheduler
-        self.state.best_epoch_source = load_if_exists('best_epoch_source') if should_load('best_epoch_source') else self.state.best_epoch_source
-        self.state.train_params = load_if_exists('train_params') if should_load('train_params') else self.state.train_params
+        self.state.metrics = load_if_exists("metrics") if should_load("metrics") else self.state.metrics
+        self.state.losses = load_if_exists("losses") if should_load("losses") else self.state.losses
+        self.callbacks = load_if_exists("callbacks") if should_load("callbacks") else self.callbacks
+        self.state.optimizer = load_if_exists("optimizer") if should_load("optimizer") else self.state.optimizer
+        self.state.lr_scheduler = (
+            load_if_exists("lr_scheduler") if should_load("lr_scheduler") else self.state.lr_scheduler
+        )
+        self.state.best_epoch_source = (
+            load_if_exists("best_epoch_source") if should_load("best_epoch_source") else self.state.best_epoch_source
+        )
+        self.state.train_params = (
+            load_if_exists("train_params") if should_load("train_params") else self.state.train_params
+        )
 
         # train
         return loaded_objects
 
-    def load_checkpoint(self,
-                        checkpoint: Union[str, int, Sequence[Union[str, int]]],
-                        model_dir: Optional[Union[str, Sequence[str]]] = None,
-                        values_to_resume: List[str] = None,
-                        mode: str = 'infer', strict: bool = True,
-                        index: int = 0) -> None:
+    def load_checkpoint(
+        self,
+        checkpoint: Union[str, int, Sequence[Union[str, int]]],
+        model_dir: Optional[Union[str, Sequence[str]]] = None,
+        values_to_resume: List[str] = None,
+        mode: str = "infer",
+        strict: bool = True,
+        index: int = 0,
+    ) -> None:
         """
         Loads values saved on checkpoint file.
         When mode = 'infer' loads only the model.
@@ -266,38 +286,44 @@ class ManagerDefault:
         for idx in range(len(checkpoints)):
             checkpoint_desc = checkpoints[idx]
             # if checkpoint_desc is [int, 'best', 'last'], convert it to full path
-            if isinstance(checkpoint_desc, int) or (isinstance(checkpoint_desc, str) and (checkpoint_desc in ['best', 'last'])):
-                if isinstance(checkpoint_desc, str) and (checkpoint_desc == 'best'):
-                    checkpoint_desc = checkpoint_desc + '_' + str(index)
+            if isinstance(checkpoint_desc, int) or (
+                isinstance(checkpoint_desc, str) and (checkpoint_desc in ["best", "last"])
+            ):
+                if isinstance(checkpoint_desc, str) and (checkpoint_desc == "best"):
+                    checkpoint_desc = checkpoint_desc + "_" + str(index)
                 checkpoint_file = os.path.join(model_dirs[idx], f"checkpoint_{checkpoint_desc}_epoch.pth")
             # otherwise, checkpoint_desc is already a full path to checkpoint
             elif isinstance(checkpoint, str):
                 checkpoint_file = checkpoint_desc
             else:
-                msg = "Wrong checkpoint definition in 'load_checkpoint'. Possible values: integer/'best'/'last'/full path, but got: %s" % str(
-                    checkpoint_desc)
+                msg = (
+                    "Wrong checkpoint definition in 'load_checkpoint'. Possible values: integer/'best'/'last'/full path, but got: %s"
+                    % str(checkpoint_desc)
+                )
                 self.logger.error(msg)
                 raise Exception(msg)
-            str_vals = 'all' if values_to_resume is None else str(values_to_resume)
-            self.logger.info(f'Loading checkpoint file: {checkpoint_file}. values_to_resume {str_vals}', {'color': 'yellow'})
+            str_vals = "all" if values_to_resume is None else str(values_to_resume)
+            self.logger.info(
+                f"Loading checkpoint file: {checkpoint_file}. values_to_resume {str_vals}", {"color": "yellow"}
+            )
             checkpoint_objs.append(Checkpoint.load_from_file(checkpoint_file))
 
-        if should_load('net'):
+        if should_load("net"):
             net_state_dict_list = [checkpoint.net_state_dict for checkpoint in checkpoint_objs]
             self.state.net.load_state_dict(*net_state_dict_list, strict=strict)
 
-        if mode == 'train':
+        if mode == "train":
             checkpoint_obj = checkpoint_objs[0]
             # on infer mode we don't need to load starting epoch or learning rate
-            if should_load('start_epoch'):
+            if should_load("start_epoch"):
                 self.state.current_epoch = checkpoint_obj.epoch_idx
-                self.logger.info(f'Loaded start epoch: {self.state.current_epoch}', {'color': 'yellow'})
+                self.logger.info(f"Loaded start epoch: {self.state.current_epoch}", {"color": "yellow"})
 
-            if should_load('learning_rate'):
+            if should_load("learning_rate"):
                 self.state.learning_rate = checkpoint_obj.learning_rate
                 for param_group in self.state.optimizer.param_groups:
-                    param_group['lr'] = self.state.learning_rate
-                self.logger.info(f'Loaded learning rate: {self.state.learning_rate}', {'color': 'yellow'})
+                    param_group["lr"] = self.state.learning_rate
+                self.logger.info(f"Loaded learning rate: {self.state.learning_rate}", {"color": "yellow"})
 
         pass
 
@@ -311,25 +337,29 @@ class ManagerDefault:
         """
         # check that all objects needed are there
 
-        self._verify_all_objects_initialized(mode='train')
+        self._verify_all_objects_initialized(mode="train")
 
         # debug - num workers
-        override_num_workers = FuseDebug().get_setting('manager_override_num_dataloader_workers')
-        if override_num_workers != 'default':
+        override_num_workers = FuseDebug().get_setting("manager_override_num_dataloader_workers")
+        if override_num_workers != "default":
             train_dataloader.num_workers = override_num_workers
             validation_dataloader.num_workers = override_num_workers
-            self.logger.info(f'Manager - debug mode - override dataloader num_workers to {override_num_workers}', {'color': 'red'})
+            self.logger.info(
+                f"Manager - debug mode - override dataloader num_workers to {override_num_workers}", {"color": "red"}
+            )
 
         # prepare to use on GPUs
         self.state.net = self.state.net.to(self.state.device)
-        if self.state.device != 'cpu':
+        if self.state.device != "cpu":
             self.state.net = nn.DataParallel(self.state.net)
-   
+
         # TODO move losses to device as well
         total_param = sum(p.numel() for p in self.state.net.parameters())
         trainable_param = sum(p.numel() for p in self.state.net.parameters() if p.requires_grad)
-        self.logger.info(f"Total number of parameters in model:{total_param:,}, trainable parameters:{trainable_param:,}",
-                         {'color': 'red', 'attrs': 'bold'})
+        self.logger.info(
+            f"Total number of parameters in model:{total_param:,}, trainable parameters:{trainable_param:,}",
+            {"color": "red", "attrs": "bold"},
+        )
 
         # save model and parameters for future use (e.g., infer or resume_from_weights)
         self._save_objects()
@@ -338,32 +368,34 @@ class ManagerDefault:
         self._handle_dataset_summaries(train_dataloader, validation_dataloader)
 
         # handle callbacks
-        for callback in self.callbacks: callback.on_train_begin(self.state)
+        for callback in self.callbacks:
+            callback.on_train_begin(self.state)
 
         # validation handle_epoch, to see initial state of net
         if validation_dataloader is not None:
-            initial_results = self.handle_epoch('validation', 0, validation_dataloader)
+            initial_results = self.handle_epoch("validation", 0, validation_dataloader)
         else:
-            initial_results = self.handle_epoch('validation', 0, train_dataloader)
+            initial_results = self.handle_epoch("validation", 0, train_dataloader)
         self.state.best_epoch_values = [initial_results for i in range(self.state.num_models_to_save)]
         self.state.current_epoch += 1
 
         # loop over num of epochs
         while self.state.current_epoch < self.state.end_epoch:
-            for callback in self.callbacks: callback.on_step_begin(self.state.current_epoch)
+            for callback in self.callbacks:
+                callback.on_step_begin(self.state.current_epoch)
 
             # train epoch
             self.logger.info(f"Start training on epoch {self.state.current_epoch}")
-            train_results = self.handle_epoch('train', self.state.current_epoch, train_dataloader)
+            train_results = self.handle_epoch("train", self.state.current_epoch, train_dataloader)
 
             # validation epoch - only if validation is needed
             if validation_dataloader is not None:
                 self.logger.info(f"Start validation on epoch {self.state.current_epoch}")
-                validation_results = self.handle_epoch('validation', self.state.current_epoch, validation_dataloader)
+                validation_results = self.handle_epoch("validation", self.state.current_epoch, validation_dataloader)
             else:
                 validation_results = None
 
-            if self.state.device != 'cpu':
+            if self.state.device != "cpu":
                 state_dict = self.state.net.module.state_dict()
             else:
                 state_dict = self.state.net.state_dict()
@@ -371,41 +403,57 @@ class ManagerDefault:
 
             # if this is the best epoch yet
             for i in range(self.state.num_models_to_save):
-                if self._is_best_epoch_so_far(train_results, validation_results, i) or self.state.current_epoch == 1: # consider the first epoch as the best one
+                if (
+                    self._is_best_epoch_so_far(train_results, validation_results, i) or self.state.current_epoch == 1
+                ):  # consider the first epoch as the best one
                     best_val = self.state.best_epoch_values[i][self.state.best_epoch_function[i]]
-                    self.logger.info(f"This is the best epoch ever ({self.state.best_epoch_function[i]} = {best_val})",
-                                     {'color': 'green', 'attrs': 'bold'})
+                    self.logger.info(
+                        f"This is the best epoch ever ({self.state.best_epoch_function[i]} = {best_val})",
+                        {"color": "green", "attrs": "bold"},
+                    )
                     self.state.best_epoch[i] = self.state.current_epoch
-                    best_epoch_checkpoint_filename = os.path.join(self.state.output_model_dir, 'checkpoint_best_' + str(i) + '_epoch.pth')
+                    best_epoch_checkpoint_filename = os.path.join(
+                        self.state.output_model_dir, "checkpoint_best_" + str(i) + "_epoch.pth"
+                    )
                     epoch_checkpoint.save_to_file(best_epoch_checkpoint_filename)
                 # output to screen
                 self._write_epoch_summary_table(train_results, validation_results, i)
             # save checkpoint to last epoch file
-            last_epoch_checkpoint_filename = os.path.join(self.state.output_model_dir, 'checkpoint_last_epoch.pth')
+            last_epoch_checkpoint_filename = os.path.join(self.state.output_model_dir, "checkpoint_last_epoch.pth")
             epoch_checkpoint.save_to_file(last_epoch_checkpoint_filename)
 
             if self.is_epoch_for_save(self.state.current_epoch):
-                this_epoch_checkpoint_filename = os.path.join(self.state.output_model_dir, f'checkpoint_{self.state.current_epoch}_epoch.pth')
+                this_epoch_checkpoint_filename = os.path.join(
+                    self.state.output_model_dir, f"checkpoint_{self.state.current_epoch}_epoch.pth"
+                )
                 epoch_checkpoint.save_to_file(this_epoch_checkpoint_filename)
 
             # LR scheduler update and log
             self.update_scheduler(train_results, validation_results)
 
             for callback in self.callbacks:
-                callback.on_step_end(self.state.current_epoch, train_results, validation_results, self.get_current_learning_rate())
+                callback.on_step_end(
+                    self.state.current_epoch, train_results, validation_results, self.get_current_learning_rate()
+                )
 
             self.state.current_epoch += 1
 
-        for callback in self.callbacks: callback.on_train_end()
+        for callback in self.callbacks:
+            callback.on_train_end()
 
         pass
 
-    def infer(self, input_model_dir: Optional[Union[str, Sequence]] = None,
-              checkpoint: Optional[Union[str, int, Sequence[Union[str, int]]]] = None,
-              data_loader: Optional[DataLoader] = None,
-              output_columns: List[str] = None, output_file_name: str = None, strict: bool = True,
-              append_default_inference_callback: bool = True,
-              checkpoint_index: int = 0) -> pd.DataFrame:
+    def infer(
+        self,
+        input_model_dir: Optional[Union[str, Sequence]] = None,
+        checkpoint: Optional[Union[str, int, Sequence[Union[str, int]]]] = None,
+        data_loader: Optional[DataLoader] = None,
+        output_columns: List[str] = None,
+        output_file_name: str = None,
+        strict: bool = True,
+        append_default_inference_callback: bool = True,
+        checkpoint_index: int = 0,
+    ) -> pd.DataFrame:
         """
         Inference of net on data.
         Returns the inference Results as dict:
@@ -453,35 +501,45 @@ class ManagerDefault:
 
         if input_model_dir is not None:
             # user provided model dir(s), and Manager has no 'net' attribute - need to load modules
-            if not hasattr(self.state, 'net'):
-                self.load_objects(input_model_dir, mode='infer', list_of_object_names=['net'])  # this method can load either a single model or an ensemble
+            if not hasattr(self.state, "net"):
+                self.load_objects(
+                    input_model_dir, mode="infer", list_of_object_names=["net"]
+                )  # this method can load either a single model or an ensemble
 
         if checkpoint is not None:
-            if hasattr(self.state, 'net'):
+            if hasattr(self.state, "net"):
                 if isinstance(self.state.net, torch.nn.DataParallel):
-                    raise Exception("Error in infer - Manager has a DataParallel net. Cannot load checkpoint into DataParallel module!")
+                    raise Exception(
+                        "Error in infer - Manager has a DataParallel net. Cannot load checkpoint into DataParallel module!"
+                    )
                 if input_model_dir is None:
                     msg = "Cannot load checkpoint file without a definition of input_model_dir"
                     self.logger.error(msg)
                     raise Exception(msg)
 
-                self.load_checkpoint(checkpoint=checkpoint, model_dir=input_model_dir, mode='infer', strict=strict, index=checkpoint_index)
+                self.load_checkpoint(
+                    checkpoint=checkpoint,
+                    model_dir=input_model_dir,
+                    mode="infer",
+                    strict=strict,
+                    index=checkpoint_index,
+                )
 
         # checklist check that all objects needed are there
-        self._verify_all_objects_initialized(mode='infer')
+        self._verify_all_objects_initialized(mode="infer")
 
-        #TODO I don't like this flag - maybe think about a way to get rid of it?
+        # TODO I don't like this flag - maybe think about a way to get rid of it?
         # append inference callback
         if append_default_inference_callback:
             self.callbacks.append(InferResultsCallback(output_file=output_file_name, output_columns=output_columns))
 
         # prepare net
         self.state.net = self.state.net.to(self.state.device)
-        if self.state.device != 'cpu':
+        if self.state.device != "cpu":
             self.state.net = nn.DataParallel(self.state.net)
 
         # we are ready to run inference
-        self.handle_epoch('infer', 0, data_loader)
+        self.handle_epoch("infer", 0, data_loader)
 
         # if infer CB is in the callback list, then return its result
         for callback in self.callbacks:
@@ -512,17 +570,18 @@ class ManagerDefault:
                }
         """
 
-        for callback in self.callbacks: callback.on_epoch_begin(mode=mode, epoch=epoch)
-        assert mode in ['train', 'validation', 'infer']
+        for callback in self.callbacks:
+            callback.on_epoch_begin(mode=mode, epoch=epoch)
+        assert mode in ["train", "validation", "infer"]
 
-        if mode == 'train':
+        if mode == "train":
             with torch.enable_grad():
                 self.state.net.train()
                 epoch_results = self.do_handle_epoch(mode, epoch, data_loader)
                 for callback in self.callbacks:
                     callback.on_epoch_end(mode, epoch, epoch_results)
                 return epoch_results
-        elif mode in ['validation', 'infer']:
+        elif mode in ["validation", "infer"]:
             with torch.no_grad():
                 self.state.net.eval()
                 epoch_results = self.do_handle_epoch(mode, epoch, data_loader)
@@ -555,8 +614,8 @@ class ManagerDefault:
 
         # loop over batches (can be virtual batch)
         epoch_results = NDict()
-        epoch_results['losses'] = NDict()
-        
+        epoch_results["losses"] = NDict()
+
         for virtual_batch in trange(num_batches):
             # handle_virtual batch
             virtual_batch_dict = self.handle_virtual_batch(mode, virtual_batch, data_iter)
@@ -567,9 +626,9 @@ class ManagerDefault:
             try:
                 metric_result = metric.eval(epoch_results)
             except:
-                lgr = logging.getLogger('Fuse')
+                lgr = logging.getLogger("Fuse")
                 track = traceback.format_exc()
-                lgr.error(f'Metric {metric_name} process() func failed. Setting results to None')
+                lgr.error(f"Metric {metric_name} process() func failed. Setting results to None")
                 lgr.error(track)
                 metric_result = None
 
@@ -577,9 +636,9 @@ class ManagerDefault:
             metric.reset()
 
         # average losses into mean_loss
-        if 'losses' in epoch_results:
-            for loss in epoch_results['losses'].keys():
-                batch_losses = epoch_results['losses.' + loss]
+        if "losses" in epoch_results:
+            for loss in epoch_results["losses"].keys():
+                batch_losses = epoch_results["losses." + loss]
                 loss_mean = np.nansum(batch_losses) / len(batch_losses)
                 epoch_results["losses." + loss] = loss_mean
 
@@ -607,10 +666,11 @@ class ManagerDefault:
                                         }
                }
         """
-        for callback in self.callbacks: callback.on_virtual_batch_begin(mode=mode, virtual_batch=virtual_batch)
+        for callback in self.callbacks:
+            callback.on_virtual_batch_begin(mode=mode, virtual_batch=virtual_batch)
 
         # mode is train/validation/infer
-        if mode == 'train':
+        if mode == "train":
             self.state.optimizer.zero_grad()
 
         virtual_batch_results = NDict()
@@ -619,11 +679,12 @@ class ManagerDefault:
             mini_batch_result_dict = self.handle_batch(mode, mini_batch, data_iter)
             virtual_batch_results = _extend_results_dict(mode, mini_batch_result_dict, virtual_batch_results)
 
-        if mode == 'train':
+        if mode == "train":
             # after all virtual mini batches all processed, we can run the optimizer
             self.state.optimizer.step(closure=self.state.opt_closure)
 
-        for callback in self.callbacks: callback.on_virtual_batch_end(mode, virtual_batch, virtual_batch_results)
+        for callback in self.callbacks:
+            callback.on_virtual_batch_end(mode, virtual_batch, virtual_batch_results)
 
         return virtual_batch_results
 
@@ -638,7 +699,8 @@ class ManagerDefault:
             losses: a dict with a key for each defined loss + a total_loss key
         """
         # callbacks handling
-        for callback in self.callbacks: callback.on_batch_begin(mode, batch)
+        for callback in self.callbacks:
+            callback.on_batch_begin(mode, batch)
 
         # get the input
         try:
@@ -646,39 +708,41 @@ class ManagerDefault:
         # in case this was called from the last virtual batch, and we don't have any more inputs
         except StopIteration:
             # callbacks handling
-            for callback in self.callbacks: callback.on_batch_end(mode, batch, {})
+            for callback in self.callbacks:
+                callback.on_batch_end(mode, batch, {})
             return NDict()
 
-        for callback in self.callbacks: callback.on_data_fetch_end(mode, batch, batch_dict)
+        for callback in self.callbacks:
+            callback.on_data_fetch_end(mode, batch, batch_dict)
 
         # move every tensor in input to device
         batch_dict.apply_on_all(gpu.move_tensor_to_device, self.state.device)
 
         # forward net
-        batch_dict['model'] = self.state.net(batch_dict)
+        batch_dict["model"] = self.state.net(batch_dict)
 
         # compute total loss and keep loss results
         total_loss: torch.Tensor = 0
         for loss_name, loss_function in self.state.losses.items():
             current_loss_result = loss_function(batch_dict)
-            batch_dict['losses.' + loss_name] = current_loss_result.data.item()
+            batch_dict["losses." + loss_name] = current_loss_result.data.item()
             # sum all losses for backward
             total_loss += current_loss_result
         # no need to add total_loss if there are no losses computed
         if isinstance(total_loss, torch.Tensor):
-            batch_dict['losses.total_loss'] = total_loss.data.item()
+            batch_dict["losses.total_loss"] = total_loss.data.item()
 
-        if mode == 'train':
+        if mode == "train":
             # backward
             total_loss.backward()
 
-        for callback in self.callbacks: callback.on_batch_end(mode, batch, batch_dict=batch_dict)
+        for callback in self.callbacks:
+            callback.on_batch_end(mode, batch, batch_dict=batch_dict)
 
         # compute metrics
         for metric_name, metric in self.state.metrics.items():
             # handle batch doesn't return a value, the actual value of the metric is per epoch
             metric.collect(batch_dict)
-
 
         return batch_dict
 
@@ -718,51 +782,55 @@ class ManagerDefault:
                 self.logger.error(f"Cannot {mode} without {parameter} definition")
                 raise Exception(f"Cannot {mode} without {parameter} definition")
 
-        verify_value(self.state.net, 'net')
-        verify_value(self.callbacks, 'callbacks')
+        verify_value(self.state.net, "net")
+        verify_value(self.callbacks, "callbacks")
 
-        if mode == 'train':
-            verify_value(self.state.metrics, 'metrics')
-            verify_value(self.state.losses, 'losses')
-            verify_value(self.state.optimizer, 'optimizer')
-            verify_value(self.state.lr_scheduler, 'lr_scheduler')
-            verify_value(self.state.train_params, 'train_params')
-            verify_value(self.state.best_epoch_source, 'best_epoch_source')
-            verify_value(self.state.output_model_dir, 'output_model_dir')
+        if mode == "train":
+            verify_value(self.state.metrics, "metrics")
+            verify_value(self.state.losses, "losses")
+            verify_value(self.state.optimizer, "optimizer")
+            verify_value(self.state.lr_scheduler, "lr_scheduler")
+            verify_value(self.state.train_params, "train_params")
+            verify_value(self.state.best_epoch_source, "best_epoch_source")
+            verify_value(self.state.output_model_dir, "output_model_dir")
 
         # make sure we have all the parameters we need
         full_config = self.set_config_defaults(self.state.train_params, mode)
 
-        self.state.virtual_batch_size: int = full_config['virtual_batch_size']
+        self.state.virtual_batch_size: int = full_config["virtual_batch_size"]
 
-        if mode == 'train':
-            self.state.num_epochs: int = full_config['num_epochs']
-            self.state.start_saving_epochs: int = full_config['start_saving_epochs']
-            self.state.gap_between_saving_epochs: int = full_config['gap_between_saving_epochs']
+        if mode == "train":
+            self.state.num_epochs: int = full_config["num_epochs"]
+            self.state.start_saving_epochs: int = full_config["start_saving_epochs"]
+            self.state.gap_between_saving_epochs: int = full_config["gap_between_saving_epochs"]
             self.state.end_epoch: int = self.state.num_epochs
-            self.state.lr_sch_target: str = full_config['lr_sch_target']
+            self.state.lr_sch_target: str = full_config["lr_sch_target"]
 
-            self.state.num_models_to_save = 1 if isinstance(self.state.best_epoch_source, dict) else len(self.state.best_epoch_source)
+            self.state.num_models_to_save = (
+                1 if isinstance(self.state.best_epoch_source, dict) else len(self.state.best_epoch_source)
+            )
             self.state.best_epoch = [0 for _ in range(self.state.num_models_to_save)]
             for i in range(self.state.num_models_to_save):
                 # update best epoch source members
                 if self.state.metrics:
                     self.state.best_epoch_function.append(
-                        self.state.best_epoch_source[i].get('source', f'metrics.{list(self.state.metrics.keys())[0]}'))
+                        self.state.best_epoch_source[i].get("source", f"metrics.{list(self.state.metrics.keys())[0]}")
+                    )
                 else:
                     self.state.best_epoch_function.append(
-                        self.state.best_epoch_source[i].get('source', f'losses.{list(self.state.losses.keys())[0]}'))
+                        self.state.best_epoch_source[i].get("source", f"losses.{list(self.state.losses.keys())[0]}")
+                    )
 
-                self.state.optimization_function.append(self.state.best_epoch_source[i].get('optimization', 'max'))
-                assert self.state.optimization_function[i] in ['max', 'min']
-                initial_value = -float('inf') if self.state.optimization_function[i] == 'max' else float('inf')
+                self.state.optimization_function.append(self.state.best_epoch_source[i].get("optimization", "max"))
+                assert self.state.optimization_function[i] in ["max", "min"]
+                initial_value = -float("inf") if self.state.optimization_function[i] == "max" else float("inf")
                 self.state.best_epoch_values.append({self.state.best_epoch_function[i]: initial_value})
 
-                on_equal_values = self.state.best_epoch_source[i].get('on_equal_values', 'better')
-                assert on_equal_values in ['better', 'worse']
+                on_equal_values = self.state.best_epoch_source[i].get("on_equal_values", "better")
+                assert on_equal_values in ["better", "worse"]
                 self.state.on_equal_values.append(on_equal_values)
 
-        self.state.device: str = full_config.get('device')
+        self.state.device: str = full_config.get("device")
         pass
 
     def is_epoch_for_save(self, epoch: int) -> bool:
@@ -773,7 +841,10 @@ class ManagerDefault:
         """
 
         # save every gap_between_saving_epochs epoch starting from the start_saving_epochs epoch
-        return epoch >= self.state.start_saving_epochs and (epoch - self.state.start_saving_epochs) % self.state.gap_between_saving_epochs == 0
+        return (
+            epoch >= self.state.start_saving_epochs
+            and (epoch - self.state.start_saving_epochs) % self.state.gap_between_saving_epochs == 0
+        )
 
     def _is_best_epoch_so_far(self, train_results: NDict, validation_results: NDict, epoch_source_index: int) -> bool:
         """
@@ -787,27 +858,29 @@ class ManagerDefault:
 
         def is_better_epoch_value(current_value: float) -> bool:
             try:
-                current_best = self.state.best_epoch_values[epoch_source_index][self.state.best_epoch_function[epoch_source_index]]
+                current_best = self.state.best_epoch_values[epoch_source_index][
+                    self.state.best_epoch_function[epoch_source_index]
+                ]
                 # check if we can compare values
                 if current_value is None:
-                    lgr = logging.getLogger('Fuse')
-                    lgr.error(f'Comparing epochs failed since value is None, assuming it is not the best epoch')
+                    lgr = logging.getLogger("Fuse")
+                    lgr.error("Comparing epochs failed since value is None, assuming it is not the best epoch")
                     lgr.error(traceback.format_exc())
                     return False
 
                 # first handle equal values
                 if current_value == current_best:
-                    return self.state.on_equal_values[epoch_source_index] == 'better'
+                    return self.state.on_equal_values[epoch_source_index] == "better"
 
                 # for different values: if max is better
-                if self.state.optimization_function[epoch_source_index] == 'max':
+                if self.state.optimization_function[epoch_source_index] == "max":
                     return current_value > current_best
                 # if min is better
                 return current_value < current_best
             except:
-                lgr = logging.getLogger('Fuse')
+                lgr = logging.getLogger("Fuse")
                 track = traceback.format_exc()
-                lgr.error(f'Comparing epochs failed, assuming it is not the best epoch')
+                lgr.error("Comparing epochs failed, assuming it is not the best epoch")
                 lgr.error(track)
                 return False
 
@@ -818,12 +891,16 @@ class ManagerDefault:
         function_key = self.state.best_epoch_function[epoch_source_index]
 
         if function_key not in values_to_check:
-            lgr = logging.getLogger('Fuse')
-            lgr.error(f"source function {function_key} does not exist in results_dict. " + \
-                      f"Possible values are {values_to_check.keypaths()}")
+            lgr = logging.getLogger("Fuse")
+            lgr.error(
+                f"source function {function_key} does not exist in results_dict. "
+                + f"Possible values are {values_to_check.keypaths()}"
+            )
             lgr.error(traceback.format_exc())
-            raise KeyError(f"source function {function_key} does not exist in results_dict." + \
-                           f"Possible values are {values_to_check.keypaths()}")
+            raise KeyError(
+                f"source function {function_key} does not exist in results_dict."
+                + f"Possible values are {values_to_check.keypaths()}"
+            )
 
         value_to_compare = values_to_check[function_key]
         if is_better_epoch_value(value_to_compare):
@@ -836,19 +913,19 @@ class ManagerDefault:
         Returns the current learning rate used by the optimizer
         :return: learning rate
         """
-        return self.state.optimizer.param_groups[0]['lr']
+        return self.state.optimizer.param_groups[0]["lr"]
 
     def _write_epoch_summary_table(self, train_dict: NDict, validation_dict: dict, epoch_source_index: int) -> None:
         def get_value_as_float_str(dict, key):
-            val_as_str = 'N/A'
+            val_as_str = "N/A"
             try:
                 value = dict[key]
-                val_as_str = '%.4f' % float(value)
+                val_as_str = "%.4f" % float(value)
             except:
                 pass
             return val_as_str
 
-        stats_table = pd.DataFrame(columns=['', 'Best Epoch Value', 'Current Epoch Validation', 'Current Epoch Train'])
+        stats_table = pd.DataFrame(columns=["", "Best Epoch Value", "Current Epoch Validation", "Current Epoch Train"])
         idx = 0
 
         eval_keys = sorted(train_dict.keypaths())
@@ -857,28 +934,34 @@ class ManagerDefault:
             validation_val_str = get_value_as_float_str(validation_dict, evaluator_name)
             best_so_far_str = get_value_as_float_str(self.state.best_epoch_values[epoch_source_index], evaluator_name)
 
-            stats_table.loc[idx] = [f'{evaluator_name}', best_so_far_str, validation_val_str, train_value_str]
+            stats_table.loc[idx] = [f"{evaluator_name}", best_so_far_str, validation_val_str, train_value_str]
             idx += 1
 
         best_source = self.state.best_epoch_function[epoch_source_index]
         if self.state.current_epoch == self.state.best_epoch[epoch_source_index]:
-            epoch_title = f'Stats for epoch: {self.state.current_epoch} (Currently the best epoch for source {best_source}!)'
-            self.logger.info(epoch_title, {'attrs': ['underline', 'bold']})
+            epoch_title = (
+                f"Stats for epoch: {self.state.current_epoch} (Currently the best epoch for source {best_source}!)"
+            )
+            self.logger.info(epoch_title, {"attrs": ["underline", "bold"]})
         else:
             best_so_far = self.state.best_epoch[epoch_source_index]
-            epoch_title = f'Stats for epoch: {self.state.current_epoch} (Best epoch is {best_so_far} for source {best_source})'
+            epoch_title = (
+                f"Stats for epoch: {self.state.current_epoch} (Best epoch is {best_so_far} for source {best_source})"
+            )
             self.logger.info(epoch_title)
         stats_as_str = get_pretty_dataframe(stats_table)
         self.logger.info(stats_as_str)
         self.logger.info(f"Model: {self.state.output_model_dir}")
 
         try:
-            op = 'w' if epoch_source_index == 0 else 'a'  # we want to have all stats in one file per epoch
+            op = "w" if epoch_source_index == 0 else "a"  # we want to have all stats in one file per epoch
             with open(os.path.join(self.state.output_model_dir, "last_epoch_summary.txt"), op) as sfile:
                 sfile.write(epoch_title)
                 sfile.write(stats_as_str)
         except Exception as error:
-            self.logger.error(f"Cannot write epoch summary to file {self.state.output_model_dir}/last_epoch_summary.txt")
+            self.logger.error(
+                f"Cannot write epoch summary to file {self.state.output_model_dir}/last_epoch_summary.txt"
+            )
             self.logger.error(error)
         pass
 
@@ -893,17 +976,19 @@ class ManagerDefault:
         def set_default(key, value):
             if key not in full_config:
                 full_config[key] = value
-                self.logger.info(f"Key {key} not found in config parameter, setting value to default ({value})", {'color': 'yellow'})
+                self.logger.info(
+                    f"Key {key} not found in config parameter, setting value to default ({value})", {"color": "yellow"}
+                )
 
         full_config = {} if config is None else config.copy()
-        set_default('device', 'cuda')
-        set_default('virtual_batch_size', 1)
+        set_default("device", "cuda")
+        set_default("virtual_batch_size", 1)
 
-        if mode == 'train':
-            set_default('num_epochs', 100)
-            set_default('gap_between_saving_epochs', 5)
-            set_default('start_saving_epochs', 80)
-            set_default('lr_sch_target', 'validation.losses.total_loss')
+        if mode == "train":
+            set_default("num_epochs", 100)
+            set_default("gap_between_saving_epochs", 5)
+            set_default("start_saving_epochs", 80)
+            set_default("lr_sch_target", "validation.losses.total_loss")
 
         return full_config
 
@@ -919,8 +1004,8 @@ class ManagerDefault:
         else:
             dataset_summary = ""
 
-        train_dataset_summary_file = os.path.join(self.state.output_model_dir, 'train_dataset_summary.txt')
-        with open(train_dataset_summary_file, 'w') as sum_file:
+        train_dataset_summary_file = os.path.join(self.state.output_model_dir, "train_dataset_summary.txt")
+        with open(train_dataset_summary_file, "w") as sum_file:
             sum_file.write(dataset_summary)
         self.logger.info("Train Dataset Summary:")
         self.logger.info(dataset_summary)
@@ -931,8 +1016,10 @@ class ManagerDefault:
                 dataset_summary = validation_dataloader.dataset.summary()
             else:
                 dataset_summary = ""
-            validation_dataset_summary_file = os.path.join(self.state.output_model_dir, 'validation_dataset_summary.txt')
-            with open(validation_dataset_summary_file, 'w') as sum_file:
+            validation_dataset_summary_file = os.path.join(
+                self.state.output_model_dir, "validation_dataset_summary.txt"
+            )
+            with open(validation_dataset_summary_file, "w") as sum_file:
                 sum_file.write(dataset_summary)
             self.logger.info("Validation Dataset Summary:")
             self.logger.info(dataset_summary)
@@ -945,10 +1032,10 @@ class ManagerDefault:
         """
         train_params = self.state.train_params
 
-        if train_params == None:
+        if train_params is None:
             train_params = {}
 
-        train_params.update({'device' : device})
+        train_params.update({"device": device})
         self.set_objects(train_params=train_params)
 
         pass
@@ -962,13 +1049,13 @@ def _extend_results_dict(mode: str, current_dict: NDict, aggregated_dict: NDict)
     :param aggregated_dict: the aggregated dict to add current_dict
     :return: aggregated dict
     """
-    if mode == 'infer':
+    if mode == "infer":
         return NDict()
     else:
         # for train and validation we need the loss values
         cur_keys = current_dict.keypaths()
         # aggregate just keys that start with losses
-        cur_keys = [key for key in cur_keys if key.startswith('losses.')]
+        cur_keys = [key for key in cur_keys if key.startswith("losses.")]
         agg_keys = aggregated_dict.keypaths()
         for key in cur_keys:
             if key not in agg_keys:

@@ -41,10 +41,7 @@ class BackboneResnet(ResNet):
         :param name: model name. Currently support 'resnet18' and 'resnet50'
         """
         # init parameters per required backbone
-        init_parameters = {
-            "resnet18": [BasicBlock, [2, 2, 2, 2]],
-            "resnet50": [Bottleneck, [3, 4, 6, 3]]
-        }[name]
+        init_parameters = {"resnet18": [BasicBlock, [2, 2, 2, 2]], "resnet50": [Bottleneck, [3, 4, 6, 3]]}[name]
         # init original model
         super().__init__(*init_parameters)
 
@@ -58,8 +55,7 @@ class BackboneResnet(ResNet):
         self.in_channels = in_channels
 
         # override the first convolution layer to support any number of input channels
-        self.conv1 = nn.Conv2d(self.in_channels, 64, kernel_size=7, stride=2, padding=3,
-                               bias=False)
+        self.conv1 = nn.Conv2d(self.in_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
 
     def forward(self, x: Tensor) -> Tensor:  # type: ignore
         """

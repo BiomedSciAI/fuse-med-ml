@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import random
 
+
 class Seed:
     """
     Random seed functionality - static methods
@@ -23,7 +24,7 @@ class Seed:
         torch.use_deterministic_algorithms(deterministic_mode)
         dataloader_rand_gen = torch.Generator()
         dataloader_rand_gen.manual_seed(seed)
-        
+
         # numpy
         np.random.seed(seed)
 
@@ -34,5 +35,5 @@ class Seed:
         """
         Function to provide to torch dataloader to set a seed per worker
         """
-        worker_seed = torch.initial_seed() % 2 ** 32
+        worker_seed = torch.initial_seed() % 2**32
         Seed.set_seed(worker_seed)
