@@ -298,37 +298,51 @@ def run_explain(train : NDict, paths : NDict, infer: NDict):
             original_attention_map =  nib.load(os.path.join('attention_maps','model.backbone.layer4','attention_map_'+str(i)+'_0_0.nii.gz')).get_fdata()
             original_transposed = np.transpose(batch['data.input.img'], axes=(1, 2, 0))
             scale_ratio = [ original_transposed.shape[i]/value for i,value in enumerate(original_attention_map.shape)]
-            # max_volumes = largest_indices(original_attention_map, 3)
-            # center = tuple([index/2 for index in original_attention_map.shape])
-            # min_dist = 99999999999999999
-            # max_volume = max_volumes[0]
-            # for point in max_volumes :
-            #     dist = np.linalg.norm(point-center)
-            #     if dist < min_dist :
-            #         min_dist = dist
-            #         max_volume = point
-            max_volume = np.unravel_index(original_attention_map.argmax(), original_attention_map.shape)
-            bouding_box_indices =  [(int((max_volume[i]-1)*scale_ratio[i]),int((max_volume[i]+1)*scale_ratio[i])) for i in range(3)]
-            print(scale_ratio)
-            print(i,max_volume)
-            print(bouding_box_indices)
+            points = []
+            max_value = original_attention_map.argmax()
+            current_max = max_value
+            while True:
+                current_max = original_attention_map.argmax()
+                max_volume = np.unravel_index(current_max, original_attention_map.shape)
+                if current_max < max_value :
+                    break
+                points.append(np.asarray(max_volume))
+                original_attention_map[max_volume] = 0.0
+            print("sample ",i)
+            print("points",points)
+            max_volume = points[0]
+            center = [int(index/2) for index in original_attention_map.shape]
+            min_dist = 99999999999999999
+            for point in points :
+                dist = np.linalg.norm(point-center)
+                if dist < min_dist :
+                    min_dist = dist
+                    max_volume = point
+            print("best",max_volume)
             attention_map = show_attention_on_image(batch['data.input.img'],attention_map)
             batch['data.input.img'] = np.transpose(batch['data.input.img'], axes=(1, 2, 0))
             original =  nib.Nifti1Image(batch['data.input.img'], affine=np.eye(4))
             volume_box = np.zeros(batch['data.input.img'].shape)
-            for slice in range(bouding_box_indices[2][0],bouding_box_indices[2][1] - 1):
-                for x in range(bouding_box_indices[0][0],bouding_box_indices[0][1] - 1) :
-                    volume_box[x,bouding_box_indices[1][0],slice] = 1
-                    volume_box[x,bouding_box_indices[1][1],slice] = 1
-                for y in range(bouding_box_indices[1][0],bouding_box_indices[1][1] - 1) :
-                    volume_box[bouding_box_indices[0][0],y,slice] = 1
-                    volume_box[bouding_box_indices[0][1],y,slice] = 1
+            for point in points:
+                bouding_box_indices =  [(int((point[i]-1)*scale_ratio[i]),int((point[i]+1)*scale_ratio[i])) for i in range(3)]
+                print(bouding_box_indices)
+                volume_box = draw_bbox_around_volume(volume_box,bouding_box_indices, 1)
+            #bouding_box_indices =  [(int((max_volume[i]-1)*scale_ratio[i]),int((max_volume[i]+1)*scale_ratio[i])) for i in range(3)]
+            # volume_box = draw_bbox_around_volume(volume_box,max_volume, 2)
             volume_box =  nib.Nifti1Image(volume_box, affine=np.eye(4))
             nib.save(original, filename=os.path.join('attention_maps','original_'+str(i)+'_'+batch['data.input.img_path'][0]+'_label_='+str(batch['data.gt.classification'])+'.nii.gz'))
             nib.save(volume_box, filename=os.path.join('attention_maps','maxvolume_'+str(i)+'_'+batch['data.input.img_path'][0]+'_label_='+str(batch['data.gt.classification'])+'.nii.gz'))
             nib.save(attention_map, filename=os.path.join('attention_maps','attention_'+str(i)+'_'+batch['data.input.img_path'][0]+'_label_='+str(batch['data.gt.classification'])+'.nii.gz'))
 
-
+def draw_bbox_around_volume(volume_box, bouding_box_indices, color):
+    for slice in range(bouding_box_indices[2][0],bouding_box_indices[2][1] - 1):
+        for x in range(bouding_box_indices[0][0],bouding_box_indices[0][1] - 1) :
+            volume_box[x,bouding_box_indices[1][0],slice] = color
+            volume_box[x,bouding_box_indices[1][1],slice] = color
+        for y in range(bouding_box_indices[1][0],bouding_box_indices[1][1] - 1) :
+            volume_box[bouding_box_indices[0][0],y,slice] = color
+            volume_box[bouding_box_indices[0][1],y,slice] = color
+    return volume_box
 
 def load_model_and_test_data(train : NDict, paths : NDict, infer: NDict):
     lgr = logging.getLogger('Fuse')
