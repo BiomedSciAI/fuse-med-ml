@@ -17,13 +17,9 @@ Created on June 30, 2021
 
 """
 
-from typing import Dict, List
-
-
-from typing import Dict, Any, List, Iterator, Optional, Union, Sequence, Hashable, Callable
+from typing import Dict, Any, List, Optional, Callable
 import torch.nn as nn
 from torch.optim.optimizer import Optimizer
-from torch.utils.data.dataloader import DataLoader
 
 from fuse.dl.losses.loss_base import LossBase
 from fuse.eval import MetricBase

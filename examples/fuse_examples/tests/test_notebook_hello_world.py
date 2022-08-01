@@ -1,13 +1,11 @@
-import os
 import unittest
 from testbook import testbook
-import fuse.utils.gpu as FuseUtilsGPU
+from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
+
 
 class NotebookHelloWorldTestCase(unittest.TestCase):
-
-    @unittest.skip("TEMP SKIP") # Test is ready-to-use. Waiting for GPU issue to be resolved.
+    @run_in_subprocess()
     def test_notebook(self):
-        NUM_OF_CELLS = 36
         notebook_path = "examples/fuse_examples/imaging/hello_world/hello_world.ipynb"
 
         # Execute the whole notebook and save it as an object
@@ -15,12 +13,8 @@ class NotebookHelloWorldTestCase(unittest.TestCase):
 
             # Sanity check
             test_result_acc = tb.ref("test_result_acc")
-            assert(test_result_acc > 0.95)
-
-            # Check that all the notebook's cell were executed
-            last_cell_output = tb.cell_output_text(NUM_OF_CELLS - 1)
-            assert(last_cell_output == 'Done!')
+            assert test_result_acc > 0.95
 
 
-if __name__ == '__main__':
-    unittest.main() 
+if __name__ == "__main__":
+    unittest.main()

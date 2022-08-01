@@ -1,16 +1,16 @@
 import paramiko
 import re
 
-class ShellHandler:
 
+class ShellHandler:
     def __init__(self, host, user, psw):
         self.ssh = paramiko.SSHClient()
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         self.ssh.connect(host, username=user, password=psw, port=22)
 
         channel = self.ssh.invoke_shell()
-        self.stdin = channel.makefile('wb')
-        self.stdout = channel.makefile('r')
+        self.stdin = channel.makefile("wb")
+        self.stdout = channel.makefile("r")
 
     def __del__(self):
         self.ssh.close()
@@ -23,11 +23,11 @@ class ShellHandler:
                     execute('finger')
                     execute('cd folder_name')
         """
-        cmd = cmd.strip('\n')
-        self.stdin.write(cmd + '\n')
-        finish = 'end of stdOUT buffer. finished with exit status'
-        echo_cmd = 'echo {} $?'.format(finish)
-        self.stdin.write(echo_cmd + '\n')
+        cmd = cmd.strip("\n")
+        self.stdin.write(cmd + "\n")
+        finish = "end of stdOUT buffer. finished with exit status"
+        echo_cmd = "echo {} $?".format(finish)
+        self.stdin.write(echo_cmd + "\n")
         shin = self.stdin
         self.stdin.flush()
 
@@ -49,8 +49,9 @@ class ShellHandler:
                 break
             else:
                 # get rid of 'coloring and formatting' special characters
-                shout.append(re.compile(r'(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]').sub('', line).
-                             replace('\b', '').replace('\r', ''))
+                shout.append(
+                    re.compile(r"(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]").sub("", line).replace("\b", "").replace("\r", "")
+                )
 
         # first and last lines of shout/sherr contain a prompt
         if shout and echo_cmd in shout[-1]:
