@@ -137,8 +137,8 @@ if __name__ == "__main__":
     # no arguments - set arguments inline - see details in function make_predictions_file
     model_dir = ""
     checkpoint = "best"
-    data_path = os.environ["KNIGHT_DATA"]#""
-    cache_path = os.environ["KNIGHT_CACHE"]#""
+    data_path = ""
+    cache_path = ""
     split = None
     output_filename = "validation_predictions.csv"
     predictions_key_name = "model.output.head_0"
