@@ -68,7 +68,7 @@ def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_d
 def main(cfg_path):
     # read config params
     cfg = yaml.safe_load(open(cfg_path))
-    task_num = cfg['task_num']
+    task_num = cfg["task_num"]
     num_classes = cfg[task_num]["num_classes"]
     target_name = cfg[task_num]["target_name"]
     # read train/val splits file. for convenience, we use the one
@@ -152,7 +152,7 @@ def main(cfg_path):
     # Loss definition:
     ##############################################################################
     losses = {
-        "cls_loss": LossDefault(pred="model.logits.head_0", target=target_name, callable=F.cross_entropy, weight=1.0)
+        "cls_loss": LossDefault(pred="model.logits.head_0", target=target_name, callable=F.cross_entropy, weight=1.0),
     }
 
     # Metrics definition:

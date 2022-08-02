@@ -11,7 +11,7 @@ from fuse.data import PipelineDefault, OpToTensor
 from fuse.data.ops.op_base import OpBase
 from fuse.data.ops.ops_aug_common import OpSample, OpRandApply
 from fuse.data.ops.ops_common import OpLambda, OpZScoreNorm
-from fuseimg.data.ops.aug.geometry import OpAugAffine2D, OpRotation3D, OpResizeTo, OpCrop3D
+from fuseimg.data.ops.aug.geometry import OpAugAffine2D, OpRotation3D, OpResizeTo
 from fuseimg.data.ops.aug.color import OpAugGaussian
 from fuseimg.data.ops.image_loader import OpLoadImage
 from fuseimg.data.ops.color import OpClip
@@ -103,7 +103,6 @@ class OpClinicalLoad(OpBase):
         )
 
         sample_dict["data.input.clinical"] = row
-
         return sample_dict
 
 
