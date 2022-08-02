@@ -10,8 +10,8 @@ import torch
 class OpDebugBase(OpBase):
     """
     Base class for debug operations.
-    Provides the ability to limit the samples to the debug.
-    Inherit and implement self.call_debug instead of self.__call__.
+    Provides the ability to limit samples to debug (will debug the first k samples).
+    Inherits and implements self.call_debug instead of self.__call__.
     """
 
     def __init__(

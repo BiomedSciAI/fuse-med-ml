@@ -5,6 +5,10 @@ from fuseimg.data.ops.ops_debug import OpVis2DImage
 
 
 class MetricVis2DImage(MetricWithCollectorBase):
+    """
+    Visualize a 2D image (either display it or save it as an image).
+    Supports both rgb and gray scale and supports few image formats "channels_first"/"no_channels"/"channels_last"
+    """
     def __init__(
         self,
         sample_ids: Optional[Sequence[Hashable]] = None,

@@ -92,7 +92,7 @@ class LightningModuleMnist(pl.LightningModule):
             model=torch_model,
             model_inputs=["data.image"],
             post_forward_processing_function=perform_softmax,
-            model_outputs=["logits.classification", "output.classification"],
+            model_outputs=["model.logits.classification", "model.output.classification"],
         )
 
         # losses
