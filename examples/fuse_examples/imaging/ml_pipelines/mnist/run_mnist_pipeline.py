@@ -63,7 +63,7 @@ train_params['data.validation_num_workers'] = 8
 train_params['opt.learning_rate'] = 1e-4
 train_params['opt.weight_decay'] = 0.001
 
-train_params["trainer.num_epochs"] = 5
+train_params["trainer.num_epochs"] = 2
 train_params["trainer.accelerator"] = "gpu"
 # use "dp" strategy temp when working with multiple GPUS - workaround for pytorch lightning issue: https://github.com/Lightning-AI/lightning/issues/11807
 train_params["trainer.strategy"] = "dp" if num_gpus_per_split > 1 else None

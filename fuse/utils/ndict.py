@@ -17,7 +17,7 @@ Created on June 30, 2021
 
 """
 from __future__ import annotations
-from _collections_abc import dict_items
+from _collections_abc import dict_items, dict_keys
 
 import copy
 import types
@@ -131,6 +131,12 @@ class NDict(dict):
         returns a list of keypaths (i.e. "a.b.c.d") to all values in the nested dict
         """
         return list(self.flatten().keys())
+    
+    def keys(self) -> dict_keys:
+        """
+        returns the top-level keys of the dictionary
+        """
+        return self._stored.keys()
 
     def merge(self, other: dict) -> NDict:
         """

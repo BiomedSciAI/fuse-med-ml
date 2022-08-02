@@ -17,24 +17,17 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.data import Subset
 import torch
 import torchvision.models as models
-from fuse_examples.classification.mnist import lenet
-from fuse.models.model_wrapper import FuseModelWrapper
-from fuse_examples.classification.mnist.runner import perform_softmax
-from fuse.losses.loss_default import FuseLossDefault
+from fuse_examples.imaging.classification.mnist import lenet
+from fuse_examples.imaging.classification.mnist.run_mnist import perform_softmax
 from typing import OrderedDict
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
-from fuse.managers.callbacks.callback_metric_statistics import FuseMetricStatisticsCallback
-from fuse.managers.callbacks.callback_tensorboard import FuseTensorboardCallback
-from fuse.managers.callbacks.callback_time_statistics import FuseTimeStatisticsCallback
 import torch.optim as optim
-from fuse.managers.manager_default import FuseManagerDefault
-import multiprocessing
-from fuse.utils import gpu as FuseUtilsGPU
 import os
 import torch.nn.functional as F
 from fuse.eval.evaluator import EvaluatorDefault 
 from fuseimg.datasets.mnist import MNIST
+from fuse.data.datasets.dataset_wrap_seq_to_dict import DatasetWrapSeqToDict
 
 def create_dataset(cache_dir):
     train_dataset = MNIST.dataset(cache_dir, train=True)
@@ -57,8 +50,8 @@ def run_train(dataset, sample_ids, cv_index, test=False, params=None, \
         rep_index=0, rand_gen=None):
     assert(test == False)
     # obtain train/val dataset subset:
-    train_dataset = Subset(dataset, sample_ids[0])
-    validation_dataset = Subset(dataset, sample_ids[1])
+    train_dataset = MNIST.dataset(params["paths"]["cache_dir"], train=True, sample_ids=sample_ids[0])
+    validation_dataset = MNIST.dataset(params["paths"]["cache_dir"], train=True, sample_ids=sample_ids[1])
 
     model_dir = os.path.join(params["paths"]["model_dir"], 'rep_' + str(rep_index), str(cv_index))
 
@@ -245,9 +238,8 @@ def run_eval(dataset, sample_ids, cv_index, test=False, params=None, \
         infer_filename = params["infer_filename"]
     if cv_index=='ensemble':
         infer_filename = 'ensemble_results.gz'
-    fuse_logger_start(output_path=inference_dir, console_verbose_level=logging.INFO, force_reset=True)
-    lgr = logging.getLogger('Fuse')
-    lgr.info('Fuse Analyze', {'attrs': ['bold', 'underline']})
+    fuse_logger_start(output_path=inference_dir, console_verbose_level=logging.INFO)
+    print("Fuse Eval")
 
     # metrics
     class_names = [str(i) for i in range(10)]
