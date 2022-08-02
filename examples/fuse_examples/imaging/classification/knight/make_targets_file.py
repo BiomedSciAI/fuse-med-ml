@@ -58,6 +58,11 @@ def make_targets_file(data_path: str, cache_path: Optional[str], split: Union[st
         if isinstance(split, list):
             # For this example, we use split 0 out of the the available cross validation splits
             split = split[0]
+
+            json_labels_filepath = (os.path.join(data_path, "knight.json"))
+            labels = pd.read_json(json_labels_filepath)
+            labels = pd.DataFrame({"target": labels["aua_risk_group"].values})
+
     else:  # test mode
         # if this function is ran in test mode, then presumably the user has the test labels
         # for test purposes, the test labels file isn't shared with participants:
@@ -66,42 +71,17 @@ def make_targets_file(data_path: str, cache_path: Optional[str], split: Union[st
             ValueError("No test labels file found")
         labels = pd.read_json(json_labels_filepath, typ="series")
         labels = pd.DataFrame({"target": labels.values})
-        levels = ["benign", "low_risk", "intermediate_risk", "high_risk", "very_high_risk"]
-        labels["Task2-target"] = labels["target"].apply(lambda x: levels.index(x))
-        labels.insert(1, "Task1-target", labels["Task2-target"].apply(lambda x: int(x > 3)))
-        labels.reset_index(inplace=True)
-        labels.rename({"index": "case_id"}, axis=1, inplace=True)
-        labels.drop(["target"], axis=1, inplace=True)
-        save_dataframe(labels, output_filename, index=False)
-        return
 
-    _, val_ds = KNIGHT.dataset(
-        data_path, cache_path, split, reset_cache=False,
-    )
+    levels = ["benign", "low_risk", "intermediate_risk", "high_risk", "very_high_risk"]
+    labels["Task2-target"] = labels["target"].apply(lambda x: levels.index(x))
+    labels.insert(1, "Task1-target", labels["Task2-target"].apply(lambda x: int(x > 3)))
+    labels.reset_index(inplace=True)
+    labels.rename({"index": "case_id"}, axis=1, inplace=True)
+    labels.drop(["target"], axis=1, inplace=True)
+    save_dataframe(labels, output_filename, index=False)
+    return
 
-    # Export targets
-    if is_validation_set:
-        targets_df = ExportDataset.export_to_dataframe(
-            val_ds,
-            ["data.descriptor", "data.gt.gt_global.task_1_label", "data.gt.gt_global.task_2_label"],
-        )
-
-    # to int and rename keys
-    targets_df["data.gt.gt_global.task_1_label"] = targets_df["data.gt.gt_global.task_1_label"].transform(int)
-    targets_df["data.gt.gt_global.task_2_label"] = targets_df["data.gt.gt_global.task_2_label"].transform(int)
-    targets_df.reset_index(inplace=True)
-    targets_df.rename(
-        {
-            "data.descriptor": "case_id",
-            "data.gt.gt_global.task_1_label": "Task1-target",
-            "data.gt.gt_global.task_2_label": "Task2-target",
-        },
-        axis=1,
-        inplace=True,
-    )
-
-    # save file
-    save_dataframe(targets_df, output_filename, index=False)
+    
 
 
 if __name__ == "__main__":

@@ -34,7 +34,6 @@ from fuseimg.datasets.kits21 import KITS21
 class KnightTestTestCase(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.mkdtemp()
-        # KITS21.download(self.root, cases=list(range(2)))
 
     def test_eval(self):
         dir_path = pathlib.Path(__file__).parent.resolve()
@@ -55,16 +54,21 @@ class KnightTestTestCase(unittest.TestCase):
     def test_make_targets(self):
         dir_path = pathlib.Path(__file__).parent.resolve()
         data_path = os.path.join(self.root, "data")
+        create_dir(data_path)
         cache_path = os.path.join(self.root, "cache")
         output_filename = os.path.join(self.root, "output/validation_targets.csv")
-
-        create_dir(data_path)
+        wget.download(
+            "https://raw.github.com/neheller/KNIGHT/main/knight/data/knight.json",
+            data_path,
+        )
+        split = os.path.join(dir_path, "../imaging/classification/knight/baseline/splits_final.pkl")
         create_dir(os.path.dirname(output_filename))
-        shutil.copy(os.path.join(dir_path,"../imaging/classification/knight/eval/knight_test_labels.json"), data_path)
-        make_targets_file(data_path=data_path, cache_path=cache_path, split=None, output_filename=output_filename)
-
+        make_targets_file(data_path=data_path, cache_path=cache_path, split=split, output_filename=output_filename)
+    
+    @unittest.skipIf(
+    "KNIGHT_DATA" not in os.environ, "define environment variable 'KNIGHT_DATA' to run this test"
+)
     def test_train(self):
-        os.environ["KNIGHT_DATA"] = "/projects/msieve/MedicalSieve/PatientData/KNIGHT/knight/data"
         os.environ["KNIGHT_CACHE"] = os.path.join(self.root, "train", "cache")
         os.environ["KNIGHT_RESULTS"] = os.path.join(self.root, "train", "results")
         config = """
