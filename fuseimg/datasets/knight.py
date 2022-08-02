@@ -165,7 +165,7 @@ class KNIGHT:
     """
 
     @staticmethod
-    def sample_ids(path: str):
+    def sample_ids(path: str) -> list:
         """
         get all the sample ids in train-set
         sample_id is directory file named case_xxxxx found in the specified path
@@ -202,7 +202,7 @@ class KNIGHT:
         return static_pipeline
 
     @staticmethod
-    def train_dynamic_pipeline():
+    def train_dynamic_pipeline() -> PipelineDefault:
         train_dynamic_pipeline = PipelineDefault(
             "dynamic",
             [
@@ -237,7 +237,7 @@ class KNIGHT:
         return train_dynamic_pipeline
 
     @staticmethod
-    def val_dynamic_pipeline():
+    def val_dynamic_pipeline() -> PipelineDefault:
         val_dynamic_pipeline = PipelineDefault(
             "dynamic",
             [
@@ -258,7 +258,7 @@ class KNIGHT:
         sample_ids: Optional[Sequence[Hashable]] = None,
         test: bool = False,
         reset_cache: bool = False,
-        resize_to=(70, 256, 256),
+        resize_to:Tuple = (70, 256, 256),
     ) -> DatasetDefault:
         """
         Get cached dataset
