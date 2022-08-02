@@ -258,7 +258,7 @@ class KNIGHT:
         sample_ids: Optional[Sequence[Hashable]] = None,
         test: bool = False,
         reset_cache: bool = False,
-        resize_to:Tuple = (70, 256, 256),
+        resize_to: Tuple = (70, 256, 256),
     ) -> DatasetDefault:
         """
         Get cached dataset
