@@ -29,7 +29,6 @@ from fuse.data.utils.export import ExportDataset
 from fuseimg.datasets.knight import KNIGHT
 
 
-
 def make_targets_file(data_path: str, cache_path: Optional[str], split: Union[str, dict], output_filename: str):
     """
     Automaitically make targets file in the requested format
@@ -59,7 +58,7 @@ def make_targets_file(data_path: str, cache_path: Optional[str], split: Union[st
             # For this example, we use split 0 out of the the available cross validation splits
             split = split[0]
 
-            json_labels_filepath = (os.path.join(data_path, "knight.json"))
+            json_labels_filepath = os.path.join(data_path, "knight.json")
             labels = pd.read_json(json_labels_filepath)
             labels = pd.DataFrame({"target": labels["aua_risk_group"].values})
 
@@ -80,8 +79,6 @@ def make_targets_file(data_path: str, cache_path: Optional[str], split: Union[st
     labels.drop(["target"], axis=1, inplace=True)
     save_dataframe(labels, output_filename, index=False)
     return
-
-    
 
 
 if __name__ == "__main__":

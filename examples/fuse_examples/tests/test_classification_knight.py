@@ -24,12 +24,13 @@ import os
 from fuse.utils.file_io.file_io import create_dir
 import sys
 import wget
+
 # add parent directory to path, so that 'knight' folder is treated as a module
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 from imaging.classification.knight.eval.eval import eval
 from imaging.classification.knight.make_targets_file import make_targets_file
 import imaging.classification.knight.baseline.fuse_baseline as baseline
-from fuseimg.datasets.kits21 import KITS21
+
 
 class KnightTestTestCase(unittest.TestCase):
     def setUp(self):
@@ -64,10 +65,8 @@ class KnightTestTestCase(unittest.TestCase):
         split = os.path.join(dir_path, "../imaging/classification/knight/baseline/splits_final.pkl")
         create_dir(os.path.dirname(output_filename))
         make_targets_file(data_path=data_path, cache_path=cache_path, split=split, output_filename=output_filename)
-    
-    @unittest.skipIf(
-    "KNIGHT_DATA" not in os.environ, "define environment variable 'KNIGHT_DATA' to run this test"
-)
+
+    @unittest.skipIf("KNIGHT_DATA" not in os.environ, "define environment variable 'KNIGHT_DATA' to run this test")
     def test_train(self):
         os.environ["KNIGHT_CACHE"] = os.path.join(self.root, "train", "cache")
         os.environ["KNIGHT_RESULTS"] = os.path.join(self.root, "train", "results")
@@ -88,10 +87,10 @@ class KnightTestTestCase(unittest.TestCase):
             target_name : "data.gt.gt_global.task_1_label"
             target_metric : "validation.metrics.auc"
         """
-        cfg_path = os.path.join(self.root,"test_cfg.yaml")
+        cfg_path = os.path.join(self.root, "test_cfg.yaml")
         with open(cfg_path, "w") as file:
             file.write(config)
-        
+
         wget.download(
             "https://raw.github.com/neheller/KNIGHT/main/knight/data/knight.json",
             os.environ["KNIGHT_DATA"],
