@@ -98,6 +98,7 @@ def create_model(train: NDict,paths: NDict) -> torch.nn.Module:
                             accelerator=train['trainer']['accelerator'],
                             devices=train['trainer']['devices'],
                             num_sanity_val_steps = -1,
+                            resume_from_checkpoint =  train.get('resume_from_checkpoint'),
                             auto_select_gpus=True)
     return model, pl_trainer, num_classes, gt_label_key , class_names
 
@@ -123,6 +124,9 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
     lgr.info('cohort def='+str(train['cohort']), {'color': 'magenta'})
 
     lgr.info(f'model_dir={paths["model_dir"]}', {'color': 'magenta'})
+    if train['resume_from_checkpoint'] is not None:
+        lgr.info(f"resume_from_checkpoint = {train['resume_from_checkpoint']}", {'color': 'magenta'})
+
     lgr.info(f'cache_dir={paths["cache_dir"]}', {'color': 'magenta'})
     # ==============================================================================
     # Model
