@@ -1,8 +1,8 @@
-label: prostate_cancer
+label: urinary_cancer_500
 paths:
   my_ukbb_dir: /projects/msieve_dev3/usr/ozery/fuse_examples/ukbb
   data_dir: ${oc.env:UKBB_MRI_BODY_DATA_PATH}
-  cache_dir: ${paths.my_ukbb_dir}/cache
+  cache_dir: ${paths.my_ukbb_dir}/cache2
   model_dir : ${paths.my_ukbb_dir}/model_${label}
   data_split_filename: ${paths.my_ukbb_dir}/ukbb_split_${label}.pkl  # what if the cohort changes??
   clinical_data_file: /projects/msieve/Data/ukbb/body-mri-data/prostate_clinical_data_v2.csv #label_prostatectomy_v5_331.csv
@@ -12,19 +12,20 @@ paths:
   sample_ids : ${paths.data_misc_dir}/sample_ids.csv
 run:
   running_modes : ['train','infer', 'eval'] #['train','infer', 'eval', 'explain']
-
 train:
   cos:
     bucket_name: body-mri-data
     credentials_file: ${paths.data_dir}/cos_body.json
     fields: [ 20201 ]
   cohort:
-    group_ids: [ men_no_cancer, men_prostate_cancer_no_prostatectomy ]
+    group_ids: [ no_neoplasms, cancer_urinary_tract] #cancer_male_genital]
+#    group_ids: [ no_prostatectomy, prostatectomy]
+#    filter_out: [women, prostatectomy]
     max_group_size: 500
   series_config:
-    series : Dixon_BH_17s_W
+    series: Dixon_BH_17s_W
     station: 4
-  target: preindex prostate cancer
+  target: preindex cancer
   reset_cache: False
   num_workers : 12
   num_folds : 5
@@ -37,7 +38,7 @@ train:
   trainer:
     accelerator : gpu
     devices : 1
-    num_epochs : 10
+    num_epochs : 20
     ckpt_path :
 infer:
   infer_filename : validation_set_infer.gz

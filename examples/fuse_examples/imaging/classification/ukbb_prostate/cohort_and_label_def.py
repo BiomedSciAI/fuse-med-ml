@@ -81,9 +81,15 @@ def get_group_filter(group_id, df):
     # maligant - male genital
     if group_id == 'cancer_male_genital':
         return df['blocks preindex C60-C63 Malignant neoplasms of male genital organs'] > 0
+    # malignent - urinary tract (covers kidney)
+    if group_id == 'cancer_urinary_tract':
+        return df[ 'blocks preindex C64-C68 Malignant neoplasms of urinary tract'] > 0
     # malignent - prostate
     if group_id == 'cancer_prostate':
-        return df['preindex prostate cancer'] > 0
+        return df['preindex C61 Malignant neoplasm of prostate'] > 0
+    # malignent - kidney
+    if group_id == 'cancer_kidney':
+        return df['preindex C64 Malignant neoplasm of kidney, except renal pelvis'] > 0
 
     # prostatectomy
     if group_id == 'prostatectomy':

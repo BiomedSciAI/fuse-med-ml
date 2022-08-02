@@ -112,8 +112,6 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
     fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
 
-    sample_ids = cohort_and_label_def.get_samples_for_cohort(train['cohort'], paths['clinical_data_file'])
-
     sample_ids = cohort_and_label_def.get_samples_for_cohort(train['cohort'], paths['clinical_data_file'], lgr=lgr)
 
     # Download data
