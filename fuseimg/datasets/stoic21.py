@@ -19,7 +19,7 @@ Created on June 30, 2021
 from functools import partial
 from glob import glob
 import os
-from typing import Hashable, Optional, Sequence
+from typing import Hashable, Optional, Sequence, Tuple
 
 
 import numpy as np
@@ -91,10 +91,11 @@ class STOIC21:
         return files
 
     @staticmethod
-    def static_pipeline(data_path: str) -> PipelineDefault:
+    def static_pipeline(data_path: str, output_shape: Tuple[int, int, int]) -> PipelineDefault:
         """
         Get suggested static pipeline (which will be cached), typically loading the data plus design choices that we won't experiment with.
         :param data_path: path to original STOIC21 data (See in STOIC21 header the instructions to download)
+        :param output_shape: fixed shape to resize the image to
         """
         static_pipeline = PipelineDefault(
             "stoic21_static",
@@ -119,7 +120,7 @@ class STOIC21:
                     OpLambda(
                         partial(
                             skimage.transform.resize,
-                            output_shape=(32, 256, 256),
+                            output_shape=output_shape,
                             mode="reflect",
                             anti_aliasing=True,
                             preserve_range=True,
@@ -147,9 +148,10 @@ class STOIC21:
         return static_pipeline
 
     @staticmethod
-    def dynamic_pipeline(train: bool = False):
+    def dynamic_pipeline(train: bool, clip_range: Tuple[float, float]):
         """
         Get suggested dynamic pipeline. including pre-processing that might be modified and augmentation operations.
+        :param clip_range: clip the original voxels values to fit this range
         """
         age_map = {"035Y": 0, "045Y": 1, "055Y": 2, "065Y": 3, "075Y": 4, "085Y": 5}
         gender_map = {"F": 0, "M": 1}
@@ -172,8 +174,8 @@ class STOIC21:
                 ),
                 # fixed image normalization
                 (OpToNumpy(), dict(key="data.input.img", dtype=np.float32)),  # cast to float
-                (OpClip(), dict(key="data.input.img", clip=(-800.0, 200.0))),
-                (OpToRange(), dict(key="data.input.img", from_range=(-800.0, 200.0), to_range=(0.0, 1.0))),
+                (OpClip(), dict(key="data.input.img", clip=clip_range)),
+                (OpToRange(), dict(key="data.input.img", from_range=clip_range, to_range=(0.0, 1.0))),
                 # Numpy to tensor
                 (OpToTensor(), dict(key="data.input.img", dtype=torch.float32)),
                 (OpToTensor(), dict(key="data.input.clinical", dtype=torch.float32)),
@@ -220,6 +222,8 @@ class STOIC21:
         num_workers: int = 10,
         sample_ids: Optional[Sequence[Hashable]] = None,
         train: bool = False,
+        output_shape: Tuple[int, int, int] = (32, 256, 256),
+        clip_range: Tuple[float, float] = (-200, 800),
     ) -> DatasetDefault:
         """
         Get cached dataset
@@ -229,13 +233,15 @@ class STOIC21:
         :param num_workers: number of processes used for caching
         :param sample_ids: dataset including the specified sample_ids or None for all the samples. sample_id is case_{id:05d} (for example case_00001 or case_00100).
         :param train: True if used for training  - adds augmentation operations to the pipeline
+        :param output_shape: fixed shape to resize the image to
+        :param clip_range: clip the original voxels values to fit this range
         """
 
         if sample_ids is None:
             sample_ids = STOIC21.sample_ids(data_path)
 
-        static_pipeline = STOIC21.static_pipeline(data_path)
-        dynamic_pipeline = STOIC21.dynamic_pipeline(train=train)
+        static_pipeline = STOIC21.static_pipeline(data_path, output_shape=output_shape)
+        dynamic_pipeline = STOIC21.dynamic_pipeline(train=train, clip_range=clip_range)
 
         cacher = SamplesCacher(
             f"stoic_cache_ver{STOIC21.STOIC21_DATASET_VER}",
