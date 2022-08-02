@@ -62,7 +62,7 @@ class OpLoadUKBBZip(OpBase):
         super().__init__(**kwargs)
         self._dir_path = dir_path
 
-    def __call__(self, sample_dict: NDict, series : str , station : int, key_in:str, key_out: str, unique_id_out: str) -> NDict:
+    def __call__(self, sample_dict: NDict, series_config : NDict, key_in:str, key_out: str, unique_id_out: str) -> NDict:
         '''
         
         '''
@@ -87,15 +87,26 @@ class OpLoadUKBBZip(OpBase):
         dicom_tags['n_slices'] = dicom_tags.groupby(dicom_tags.columns.to_list())['file'].transform('size')
         dicom_tags = dicom_tags.drop_duplicates()
         dicom_tags = dicom_tags.sort_values(by=['time'])
-        if len(dicom_tags) != 24:
-            print(zip_filename, "has missing/extra sequences ",len(dicom_tags),"instead of 24")
-            return None
-        station_list = []
-        for i in range(6) :
-            for j in range(4) :
-                    station_list.append(i+1)
-        dicom_tags['station'] = station_list
-        dcm_unique = dicom_tags[dicom_tags['station'] == station][dicom_tags['series'] == series]['dcm_unique'].iloc[0]
+        if series_config['series'] in ['Dixon_noBH_in', 'Dixon_noBH_opp', 'Dixon_noBH_F', 'Dixon_noBH_W', 'Dixon_BH_17s_in', 'Dixon_BH_17s_opp', 'Dixon_BH_17s_F', 'Dixon_BH_17s_W'] :
+            if len(dicom_tags) != 24:
+                print(zip_filename, "has missing/extra sequences ",len(dicom_tags),"instead of 24")
+                return None
+            station_list = []
+            for i in range(6) :
+                for j in range(4) :
+                        station_list.append(i+1)
+            dicom_tags['station'] = station_list
+            try :
+                dcm_unique = dicom_tags[dicom_tags['station'] == series_config['station']][dicom_tags['series'] == series_config['series']]['dcm_unique'].iloc[0]
+            except:
+                print("requested file",zip_filename,"series description",series_config, "not found!!!")
+                return None
+        else:
+            try:
+                dcm_unique = dicom_tags[dicom_tags['series'] == series_config['series']]['dcm_unique'].iloc[0]
+            except:
+                print("requested file",zip_filename,"series description",series_config, "not found!!!")
+                return None
         dirpath = tempfile.mkdtemp()
         # ... do stuff with dirpath
         for dicom_file in filenames_list:
@@ -146,7 +157,7 @@ class UKBB:
 
         return existing_sample_ids
     @staticmethod
-    def static_pipeline(data_dir: str) -> PipelineDefault:
+    def static_pipeline(data_dir: str, series_config: NDict) -> PipelineDefault:
         """
         Get suggested static pipeline (which will be cached), typically loading the data plus design choices that we won't experiment with.
         :param data_path: path to original kits21 data (can be downloaded by KITS21.download())
@@ -154,7 +165,7 @@ class UKBB:
         static_pipeline = PipelineDefault("cmmd_static", [
          # decoding sample ID
             (OpUKBBSampleIDDecode(), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path"    
-            (OpLoadUKBBZip(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", unique_id_out="data.ID", series="Dixon_BH_17s_W", station = 4)),
+            (OpLoadUKBBZip(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", unique_id_out="data.ID", series_config=series_config)),
             # (OpLambda(partial(skimage.transform.resize,
             #                                                 output_shape=(32, 256, 256),
             #                                                 mode='reflect',
@@ -214,6 +225,7 @@ class UKBB:
     def dataset(
                 data_dir: str,
                 target: str,
+                series_config: NDict,
                 input_source_gt: pd.DataFrame = None,
                 cache_dir : str = None,
                 reset_cache : bool = True,
@@ -225,6 +237,7 @@ class UKBB:
         
         :param data_dir:                    dataset root path
         :param target                       target name used from the ground truth dataframe
+        :param series_config                configuration of the selected series from the ukbb zip
         :param input_source_gt              dataframe with ground truth file
         :param cache_dir:                   Optional, name of the cache folder
         :param reset_cache:                 Optional,specifies if we want to clear the cache first
@@ -238,8 +251,8 @@ class UKBB:
         if sample_ids is None:
             sample_ids = UKBB.sample_ids(data_dir)
 
-            
-        static_pipeline = UKBB.static_pipeline(data_dir)
+
+        static_pipeline = UKBB.static_pipeline(data_dir, series_config)
         dynamic_pipeline = UKBB.dynamic_pipeline(input_source_gt, target,train=train)
                                 
         cacher = SamplesCacher(f'cmmd_cache_ver', 

@@ -112,6 +112,8 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
     fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
 
+    sample_ids = cohort_and_label_def.get_samples_for_cohort(train['cohort'], paths['clinical_data_file'])
+
     sample_ids = cohort_and_label_def.get_samples_for_cohort(train['cohort'], paths['clinical_data_file'], lgr=lgr)
 
     # Download data
@@ -144,6 +146,17 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
     # else:
     #     sample_ids = None
     input_source_gt = pd.read_csv(paths["clinical_data_file"])
+    dataset_all = UKBB.dataset(paths["data_dir"],  train['target'], train['series_config'], input_source_gt, paths["cache_dir"],
+                               reset_cache=False, num_workers=train["num_workers"], sample_ids=sample_ids,
+                               train=True
+                               )
+    # samples_path = os.path.join(paths["data_misc_dir"],"samples.csv")
+    # if os.path.isfile(samples_path) :
+    #     sample_ids = pd.read_csv(samples_path)['file'].to_list()
+    #     print(sample_ids)
+    # else:
+    #     sample_ids = None
+    input_source_gt = pd.read_csv(paths["clinical_data_file"])
     dataset_all = UKBB.dataset(paths["data_dir"],  train['target'], input_source_gt, paths["cache_dir"],
                                reset_cache=False, num_workers=train["num_workers"], sample_ids=sample_ids,
                                train=True
@@ -164,9 +177,9 @@ def run_train(paths : NDict , train: NDict ) -> torch.nn.Module:
     for fold in train["validation_folds"]:
         validation_sample_ids += folds[fold]
 
-    train_dataset = UKBB.dataset(paths["data_dir"], train['target'], input_source_gt, paths["cache_dir"], reset_cache=False, num_workers=train["num_workers"], sample_ids=train_sample_ids, train=True)
+    train_dataset = UKBB.dataset(paths["data_dir"], train['target'], train['series_config'], input_source_gt, paths["cache_dir"], reset_cache=False, num_workers=train["num_workers"], sample_ids=train_sample_ids, train=True)
     
-    validation_dataset = UKBB.dataset(paths["data_dir"], train['target'], input_source_gt, paths["cache_dir"],  reset_cache=False, num_workers=train["num_workers"], sample_ids=validation_sample_ids)
+    validation_dataset = UKBB.dataset(paths["data_dir"], train['target'], train['series_config'], input_source_gt, paths["cache_dir"],  reset_cache=False, num_workers=train["num_workers"], sample_ids=validation_sample_ids)
 
     ## Create sampler
     lgr.info(f'- Create sampler:')
@@ -367,7 +380,7 @@ def load_model_and_test_data(train : NDict, paths : NDict, infer: NDict):
     for fold in infer["infer_folds"]:
         infer_sample_ids += folds[fold]
     input_source_gt = pd.read_csv(paths["clinical_data_file"])
-    test_dataset = UKBB.dataset(paths["data_dir"], infer['target'], input_source_gt, paths["cache_dir"], num_workers = infer['num_workers'],
+    test_dataset = UKBB.dataset(paths["data_dir"], infer['target'], train['series_config'], input_source_gt, paths["cache_dir"], num_workers = infer['num_workers'],
                                 sample_ids=infer_sample_ids, train=False)
     ## Create dataloader
     infer_dataloader = DataLoader(dataset=test_dataset,
