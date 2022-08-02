@@ -30,11 +30,8 @@ import pickle
 def update_parameters_by_task(data_path,task_num):
     parameters = {}
     parameters['knight_data'] = data_path
-    #parameters['dir_path'] = os.path.join(pathlib.Path(__file__).parent.resolve(), 'splits_final.pkl')#'/user/vesnares/Documents/VirtualBiopsy/fuse-med-ml/fuse_examples/classification/knight/baseline/'
     parameters['dir_path'] = pathlib.Path(__file__).parent.resolve()
-    parameters['force_gpus'] = None #[0] # specify the GPU indices you want to use
-    parameters['use_data'] = {'imaging': True,
-                              'clinical': False}  # specify whether to use imaging, clinical data or both
+    parameters['force_gpus'] = None #specify the GPU indices you want to use
     parameters['batch_size'] = 2
     parameters['resize_to'] = (256, 256, 64)
     parameters['print_and_visualize'] = False
@@ -42,10 +39,8 @@ def update_parameters_by_task(data_path,task_num):
     if task_num == 1:
         parameters['num_epochs'] = 100
         parameters['num_classes'] = 2
-        parameters['learning_rate'] = 1e-4 if parameters['use_data']['clinical'] else 1e-5
+        parameters['learning_rate'] = 1e-5
         parameters['imaging_dropout'] = 0.5
-        parameters['clinical_dropout'] = 0.0
-        parameters['fused_dropout'] = 0.5
         parameters['target_name'] ='data.gt.gt_global.task_1_label'
         parameters['target_metric'] = 'metrics.auc'
 
@@ -61,8 +56,6 @@ def update_parameters_by_task(data_path,task_num):
         parameters['num_classes'] = 5
         parameters['learning_rate'] = 1e-4
         parameters['imaging_dropout'] = 0.7
-        parameters['clinical_dropout'] = 0.0
-        parameters['fused_dropout'] = 0.0
         parameters['target_name']='data.gt.gt_global.task_2_label'
         parameters['target_metric']='metrics.auc'
 
@@ -82,7 +75,6 @@ def run_train(parameters):
     splits = pd.read_pickle(os.path.join(parameters['dir_path'], 'splits_final.pkl'))
     # For this example, we use split 0 out of the 5 available cross validation splits
     split = splits[0]
-    #split = splits
 
     # read environment variables for data, cache and results locations
     data_path = parameters['knight_data']
@@ -143,16 +135,10 @@ def run_train(parameters):
     ## Model definition
     ##############################################################################
 
-    if parameters['use_data']['imaging']:
-        backbone = FuseBackboneResnet3D(in_channels=1)
-        conv_inputs = [('model.backbone_features', 512)]
-    else:
-        backbone = nn.Identity()
-        conv_inputs = None
-    if parameters['use_data']['clinical']:
-        append_features = [("data.input.clinical.all", 11)]
-    else:
-        append_features = None
+    backbone = FuseBackboneResnet3D(in_channels=1)
+    conv_inputs = [('model.backbone_features', 512)]
+    append_features = None # do not append clinical features in the DL model
+
 
     model = FuseModelDefault(
         conv_inputs=(('data.input.image', 1),),
@@ -164,8 +150,6 @@ def run_train(parameters):
                                  num_classes=parameters['num_classes'],
                                  append_features=append_features,
                                  append_layers_description=(256, 128),
-                                 append_dropout_rate=parameters['clinical_dropout'],
-                                 fused_dropout_rate=parameters['fused_dropout']
                                  ),
         ]
     )
@@ -336,13 +320,12 @@ if __name__ == "__main__":
     ##########################################
     root_path = 'knight_for_virtual_biopsy'
     data_path = '/projects/msieve/MedicalSieve/PatientData/KNIGHT/'
-    #data_path = '~/Documents/VirtualBiopsy2/KNIGHT'
     parameters = train_example(root_path,data_path)
     #
     # # ##########################################
     # # # Infer and create csv file of prediction per class
     # # ##########################################
-    infer_path =root_path+'infer/'
+    infer_path =root_path+'_infer/' # creates folder knight_for_virtual_biopsy_infer where all csv files will be saved
     train_file = os.path.join(infer_path,'infer_train.pickle.gz')
     infer_file = os.path.join(infer_path,'infer_validation.pickle.gz')
 
