@@ -159,12 +159,7 @@ def knight_dataset(
     cache_dir: str = "cache",
     split: dict = None,
     reset_cache: bool = False,
-    rand_gen=None,
-    batch_size=8,
     resize_to=(110, 256, 256),
-    task_num=1,
-    target_name="data.gt.gt_global.task_1_label",
-    num_classes=2,
     sample_ids=None,
 ):
 
@@ -234,7 +229,7 @@ def knight_dataset(
 
     # Create dataset
     train_cacher = SamplesCacher(
-        "train_cache", static_pipeline, cache_dirs=[cache_dir], restart_cache=reset_cache
+        "train_cache", static_pipeline, cache_dirs=[cache_dir], restart_cache=reset_cache, workers=16
     )
 
     if sample_ids is not None:
@@ -257,7 +252,7 @@ def knight_dataset(
         print("Validation Data:", {"attrs": "bold"})
 
         val_cacher = SamplesCacher(
-            "val_cache", static_pipeline, cache_dirs=[cache_dir], restart_cache=reset_cache
+            "val_cache", static_pipeline, cache_dirs=[cache_dir], restart_cache=reset_cache, workers=16
         )
         ## Create dataset
         validation_dataset = DatasetDefault(
@@ -275,7 +270,7 @@ def knight_dataset(
     print("Test Data:", {"attrs": "bold"})
 
     test_cacher = SamplesCacher(
-        "test_cache", static_pipeline, cache_dirs=[cache_dir], restart_cache=reset_cache
+        "test_cache", static_pipeline, cache_dirs=[cache_dir], restart_cache=reset_cache, workers=16
     )
     ## Create dataset
     test_dataset = DatasetDefault(

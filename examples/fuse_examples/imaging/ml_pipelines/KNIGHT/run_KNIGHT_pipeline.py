@@ -17,6 +17,10 @@ train_func = run_train
 infer_func = run_infer
 eval_func = run_eval
 
+##########################################
+# Custom Parameters
+##########################################
+
 # output paths:
 root_path = 'results' 
 paths = {'data_dir': os.environ['KNIGHT_DATA'], 
@@ -33,11 +37,10 @@ common_params = {}
 common_params['task_num'] = 1
 common_params['use_data'] = {'imaging': False, 'clinical': True} # specify whether to use imaging, clinical data or both
 common_params['target_name'] = 'data.gt.gt_global.task_1_label'
-common_params['target_metric'] = 'metrics.auc'
+common_params['target_metric'] = 'validation.metrics.auc'
 common_params['num_classes'] = 2
-##########################################
-# Custom Parameters
-##########################################
+common_params['num_gpus_per_split'] = num_gpus_per_split
+
 
 ##########################################
 # Dataset Params
@@ -60,6 +63,7 @@ dataset_params['split'] = split
 # Train Params
 ##########################################
 train_params = {}
+train_params['split'] = split
 train_params['paths'] = paths
 train_params['common'] = common_params
 train_params['imaging_dropout'] = 0.5
