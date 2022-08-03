@@ -68,6 +68,7 @@ class KnightTestTestCase(unittest.TestCase):
 
     @unittest.skipIf("KNIGHT_DATA" not in os.environ, "define environment variable 'KNIGHT_DATA' to run this test")
     def test_train(self):
+        os.environ["KNIGHT_DATA"] = "/dccstor/fuse_med_ml/cicd/data/knight"
         os.environ["KNIGHT_CACHE"] = os.path.join(self.root, "train", "cache")
         os.environ["KNIGHT_RESULTS"] = os.path.join(self.root, "train", "results")
         config = """

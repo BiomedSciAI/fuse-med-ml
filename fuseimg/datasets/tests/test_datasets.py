@@ -92,19 +92,6 @@ class TestDatasets(unittest.TestCase):
         self.assertEqual(ds[0]["data.input.clinical"].shape[0], 8)
         self.assertTrue(5 in dict(results["metrics.age"]))
 
-    def test_knight(self):
-        data_path = os.environ["KNIGHT_DATA"]
-        split = OrderedDict()
-        split["train"] = [f"case_{id:05d}" for id in range(2)]
-        split["val"] = [f"case_{id:05d}" for id in range(3, 4)]
-        _, _, _, train_ds, valid_ds, _ = KNIGHT.dataset(
-            data_path=data_path,
-            split=split,
-            reset_cache=False,
-            batch_size=1,
-        )
-        self.assertEqual(train_ds[0]["data.input.clinical"].shape[0], 11)
-
     def test_isic(self):
 
         create_dir(self.isic_cache_dir)
