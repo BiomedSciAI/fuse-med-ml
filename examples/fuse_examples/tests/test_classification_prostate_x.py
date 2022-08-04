@@ -33,6 +33,7 @@ from fuse_examples.imaging.classification.prostate_x.runner_prostate_x import (
     run_eval,
 )
 
+
 def run_prostate_x(root: str) -> None:
     PATHS, TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS = get_setting("default", num_devices=1)
 
@@ -63,7 +64,9 @@ def run_prostate_x(root: str) -> None:
     assert "metrics.auc" in results
 
 
-@unittest.skipIf("PROSTATEX_DATA_PATH" not in os.environ, "define environment variable 'PROSTATEX_DATA_PATH' to run this test")
+@unittest.skipIf(
+    "PROSTATEX_DATA_PATH" not in os.environ, "define environment variable 'PROSTATEX_DATA_PATH' to run this test"
+)
 @unittest.skip("NOT IMPLEMENTED")
 class ClassificationProstateXTestCase(unittest.TestCase):
     def setUp(self):
