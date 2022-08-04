@@ -22,6 +22,7 @@ import tempfile
 import unittest
 import os
 from fuse.utils.file_io.file_io import create_dir
+from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 import sys
 import wget
 
@@ -77,10 +78,11 @@ class KnightTestTestCase(unittest.TestCase):
         use_data : {"imaging": True, "clinical": True} 
         batch_size : 2
         resize_to : [70, 256, 256]
-        num_epochs : 0
+        num_epochs : 1
         learning_rate : 0.0001
         imaging_dropout : 0.5
         fused_dropout : 0.5
+        testing : True
 
         task_1:
             num_classes : 2
@@ -91,7 +93,7 @@ class KnightTestTestCase(unittest.TestCase):
         with open(cfg_path, "w") as file:
             file.write(config)
 
-        baseline.main(cfg_path)
+        run_in_subprocess(baseline.main, cfg_path, timeout=1800)
 
     def tearDown(self):
         # Delete temporary directories

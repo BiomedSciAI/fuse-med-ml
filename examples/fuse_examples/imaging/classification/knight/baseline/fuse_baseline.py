@@ -77,7 +77,9 @@ def main(cfg_path):
     splits = pd.read_pickle(os.path.join(dir_path, "splits_final.pkl"))
     # For this example, we use split 0 out of the 5 available cross validation splits
     split = splits[0]
-
+    if cfg["testing"]:
+        split["train"] = split["train"][:5]
+        split["val"] = split["val"][:5]
     # read environment variables for data, cache and results locations
     data_path = os.environ["KNIGHT_DATA"]
     cache_path = os.path.join(os.environ["KNIGHT_CACHE"], str(cfg["experiment_num"]))
