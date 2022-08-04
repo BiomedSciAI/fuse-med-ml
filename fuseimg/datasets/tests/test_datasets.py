@@ -18,7 +18,6 @@ from fuse.eval.evaluator import EvaluatorDefault
 import multiprocessing as mp
 
 from fuseimg.datasets.isic import ISIC
-from fuseimg.datasets.knight import KNIGHT
 from examples.fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS, TEN_GOLDEN_MEMBERS
 
 
@@ -149,5 +148,4 @@ class TestDatasets(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    # unittest.main()
-    TestDatasets.test_knight()
+    unittest.main()
