@@ -28,7 +28,7 @@ import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
 
 import fuse.utils.gpu as GPU
-from fuse_examples.fuse_examples_utils import ask_user, get_fuse_examples_user_dir
+from fuse_examples.fuse_examples_utils import ask_user  # , get_fuse_examples_user_dir
 from fuse_examples.imaging.utils.backbone_3d_multichannel import Fuse_model_3d_multichannel, ResNet
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.samplers import BatchSamplerDefault
@@ -128,7 +128,7 @@ def get_setting(
 
         num_workers = 16
         batch_size = 50
-        num_epoch = 2 # TODO: Sagi, return to 50
+        num_epoch = 2  # TODO: Sagi, return to 50
     PATHS = {
         "model_dir": model_dir,
         "cache_dir": cache_dir,
