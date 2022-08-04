@@ -33,7 +33,7 @@ def get_extension(filepath: str) -> str:
 def remove_extension(filepath: str) -> str:
     """
     Returns the filename without the extension
-    For example - remove_extension('/a/b/c/d/asdf.txt') with return '/a/b/c/d/asdf'
+    For example: remove_extension('/a/b/c/d/asdf.txt') with return '/a/b/c/d/asdf'
     """
 
     _dirname = os.path.dirname(filepath)
