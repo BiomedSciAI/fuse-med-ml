@@ -27,7 +27,7 @@ from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import save_dataframe
 
 
-def make_targets_file(data_path: str, cache_path: Optional[str], split: Union[str, dict], output_filename: str):
+def make_targets_file(data_path: str, split: Union[str, dict], output_filename: str):
     """
     Automaitically make targets file in the requested format
     :param data_path: path to the original data downloaded from https://github.com/neheller/KNIGHT
@@ -85,19 +85,8 @@ if __name__ == "__main__":
     Usage: python make_predictions_file <data_path> <cache_path> <split> <output_filename>
     See details in function make_predictions_file.
     """
-    if len(sys.argv) == 1:
-        # no arguments - set arguments inline - see details in function make_targets_file
-        data_path = ""
-        cache_path = ""
-        split = "baseline/splits_final.pkl"
-        output_filename = "validation_targets.csv"
-    else:
-        # get arguments from sys.argv
-        assert (
-            len(sys.argv) == 8
-        ), "Error: expecting 8 arguments. Usage: python make_predictions_file <model_dir> <checkpint> <data_path> <cache_path> <split_path> <output_filename> <predictions_key_name>. See details in function make_predictions_file."
-        data_path = sys.argv[1]
-        cache_path = sys.argv[2]
-        split = sys.argv[3]
-        output_filename = sys.argv[4]
-    make_targets_file(data_path=data_path, cache_path=cache_path, split=split, output_filename=output_filename)
+    # no arguments - set arguments inline - see details in function make_targets_file
+    data_path = ""
+    split = "baseline/splits_final.pkl"
+    output_filename = "validation_targets.csv"
+    make_targets_file(data_path=data_path, split=split, output_filename=output_filename)
