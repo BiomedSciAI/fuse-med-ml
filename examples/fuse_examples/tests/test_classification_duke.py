@@ -28,7 +28,7 @@ import fuse.utils.gpu as GPU
 from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 
 if "DUKE_DATA_PATH" in os.environ:
-    from fuse_examples.imaging.classification.duke.runner_duke_new import (
+    from fuse_examples.imaging.classification.duke.runner_duke import (
         run_train,
         run_infer,
         run_eval,

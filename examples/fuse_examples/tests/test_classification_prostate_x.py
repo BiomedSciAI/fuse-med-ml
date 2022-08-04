@@ -26,7 +26,7 @@ from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 from fuse.utils.rand.seed import Seed
 import fuse.utils.gpu as GPU
 
-from fuse_examples.imaging.classification.prostate_x.runner_prostate_x import (
+from fuse_examples.imaging.classification.prostate_x.runner_prostate_x_old import (
     get_setting,
     run_train,
     run_infer,
