@@ -22,62 +22,64 @@ import tempfile
 import unittest
 import os
 
-from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
-from fuse_examples.imaging.classification.duke.runner_duke_new import (
-    run_train,
-    run_infer,
-    run_eval,
-    PATHS,
-    TRAIN_COMMON_PARAMS,
-    INFER_COMMON_PARAMS,
-    EVAL_COMMON_PARAMS,
-)
-
 from fuse.utils.rand.seed import Seed
 import fuse.utils.gpu as GPU
 
-# if "DUKE_DATA_PATH" in os.environ:
-#     from fuse_examples.imaging.classification.duke_breast_cancer.runner_duke import get_setting, run_train, run_infer, run_eval - DELETE
+from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
+if "DUKE_DATA_PATH" in os.environ:
+    from fuse_examples.imaging.classification.duke.runner_duke_new import (
+        run_train,
+        run_infer,
+        run_eval,
+        PATHS,
+        TRAIN_COMMON_PARAMS,
+        INFER_COMMON_PARAMS,
+        EVAL_COMMON_PARAMS,
+    )
 
-# @unittest.skipIf("DUKE_DATA_PATH" not in os.environ, "define environment variable 'DUKE_DATA_PATH' to run this test")
-# @unittest.skip("Waiting for implementation")
-class ClassificationDukeTestCase(unittest.TestCase):
-    def setUp(self):
-        selected_positive = [1, 2, 3, 5, 6, 10, 12, 596, 900, 901]
-        selected_negative = [4, 6, 7, 8, 11, 13, 14, 120, 902, 903]
 
-        selected_sample_ids = [f"Breast_MRI_{ii:03d}" for ii in selected_positive + selected_negative]
+def run_duke(root: str) -> None:
+    # selected_positive = [1, 2, 3, 5, 6, 10, 12, 596, 900, 901]
+    # selected_negative = [4, 6, 7, 8, 11, 13, 14, 120, 902, 903]
 
-        self.root = tempfile.mkdtemp()
+    # selected_sample_ids = [f"Breast_MRI_{ii:03d}" for ii in selected_positive + selected_negative]
 
-        self.paths = {
-            "model_dir": os.path.join(self.root, "duke/model_dir"),
-            "force_reset_model_dir": True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
-            "data_dir": PATHS["data_dir"],
-            "cache_dir": os.path.join(self.root, "duke/cache_dir"),
-            "data_split_filename": os.path.join(self.root, "split.pkl"),
-            "inference_dir": os.path.join(self.root, "duke/infer_dir"),
-            "eval_dir": os.path.join(self.root, "duke/analyze_dir"),
+    model_dir = os.path.join(root, "model_dir")
+    paths = {
+        "model_dir": model_dir,
+        "force_reset_model_dir": True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
+        "data_dir": PATHS["data_dir"],
+        "cache_dir": os.path.join(root, "duke/cache_dir"),
+        "data_split_filename": os.path.join(root, "split.pkl"),
+        "inference_dir": os.path.join(model_dir, "duke/infer_dir"),
+        "eval_dir": os.path.join(model_dir, "duke/eval_dir"),
         }
 
-        self.train_common_params = TRAIN_COMMON_PARAMS
-        self.train_common_params["trainer.num_epochs"] = 2
-        self.infer_common_params = INFER_COMMON_PARAMS
+    train_common_params = TRAIN_COMMON_PARAMS
+    train_common_params["trainer.num_epochs"] = 2
+    infer_common_params = INFER_COMMON_PARAMS
 
-        self.eval_common_params = EVAL_COMMON_PARAMS
+    eval_common_params = EVAL_COMMON_PARAMS
 
-    @run_in_subprocess(1200)
+    GPU.choose_and_enable_multiple_gpus(1)
+
+    Seed.set_seed(0, False)  # previous test (in the pipeline) changed the deterministic behavior to True
+    run_train(paths, train_common_params)
+    run_infer(paths, infer_common_params)
+    results = run_eval(paths, eval_common_params)
+
+    assert "metrics.auc" in results
+
+
+@unittest.skipIf(
+    "DUKE_DATA_PATH" not in os.environ, "define environment variable 'DUKE_DATA_PATH' to run this test"
+)
+class ClassificationStoic21TestCase(unittest.TestCase):
+    def setUp(self):
+        self.root = tempfile.mkdtemp()
+
     def test_template(self):
-        GPU.choose_and_enable_multiple_gpus(1, use_cpu_if_fail=False)
-
-        Seed.set_seed(0, False)  # previous test (in the pipeline) changed the deterministic behavior to True
-        # run_train(self.paths, self.train_common_params, reset_cache=True, audit_cache=False)
-        run_train(self.paths, self.train_common_params)
-        # run_infer(self.paths, self.infer_common_params, audit_cache=False)
-        run_infer(self.paths, self.infer_common_params)
-        results = run_eval(self.paths, self.eval_common_params)
-
-        self.assertTrue("metrics.auc" in results)
+        run_in_subprocess(run_duke, self.root, timeout=1800)
 
     def tearDown(self):
         # Delete temporary directories

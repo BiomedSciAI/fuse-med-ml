@@ -53,14 +53,14 @@ def run_stoic21(root: str) -> None:
     train_common_params["trainer.num_epochs"] = 2
     infer_common_params = INFER_COMMON_PARAMS
 
-    analyze_common_params = EVAL_COMMON_PARAMS
+    eval_common_params = EVAL_COMMON_PARAMS
 
     GPU.choose_and_enable_multiple_gpus(1)
 
     Seed.set_seed(0, False)  # previous test (in the pipeline) changed the deterministic behavior to True
     run_train(paths, train_common_params)
     run_infer(paths, infer_common_params)
-    results = run_eval(paths, analyze_common_params)
+    results = run_eval(paths, eval_common_params)
 
     assert "metrics.auc" in results
 
