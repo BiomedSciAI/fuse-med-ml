@@ -42,7 +42,5 @@ def remove_extension(filepath: str) -> str:
         return filepath
 
     last_dot = _basename.rfind(".")
-    if last_dot < 0:
-        return ""
     ans = os.path.join(_dirname, _basename[:last_dot])
     return ans
