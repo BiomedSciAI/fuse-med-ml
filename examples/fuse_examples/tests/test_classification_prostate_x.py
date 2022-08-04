@@ -67,7 +67,7 @@ def run_prostate_x(root: str) -> None:
 @unittest.skipIf(
     "PROSTATEX_DATA_PATH" not in os.environ, "define environment variable 'PROSTATEX_DATA_PATH' to run this test"
 )
-@unittest.skip("NOT IMPLEMENTED")
+@unittest.skip("Takes too much time.")
 class ClassificationProstateXTestCase(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.mkdtemp()

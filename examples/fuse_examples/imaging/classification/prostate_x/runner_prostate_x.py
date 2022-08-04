@@ -311,7 +311,8 @@ def run_train(paths: dict, train_params: dict) -> None:
     # Train Data
     lgr.info("Train Data:", {"attrs": "bold"})
 
-    reset_cache = ask_user("Do you want to reset cache?")
+    # reset_cache = ask_user("Do you want to reset cache?")
+    reset_cache = True
     cache_kwargs = {"use_pipeline_hash": False}
     if not reset_cache:
         audit_cache = ask_user("Do you want to audit cache?")
