@@ -35,7 +35,7 @@ from baseline.dataset import knight_dataset  # noqa
 experiment_num = 0
 task_num = 1  # 1 or 2
 num_gpus = 1
-use_data = {"imaging": True, "clinical": False}  # specify whether to use imaging, clinical data or both
+use_data = {"imaging": True, "clinical": True}  # specify whether to use imaging, clinical data or both
 batch_size = 2
 resize_to = (80, 256, 256)
 
@@ -143,7 +143,7 @@ def main():
     ## Model definition
     ##############################################################################
 
-    model = make_model(use_data, imaging_dropout, num_classes, fused_dropout)
+    model = make_model(use_data, num_classes, imaging_dropout, fused_dropout)
 
     # Loss definition:
     ##############################################################################

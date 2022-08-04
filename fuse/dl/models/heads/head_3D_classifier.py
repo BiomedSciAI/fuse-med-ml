@@ -49,6 +49,8 @@ class Head3DClassifier(nn.Module):
         :param head_name: string representing the head name
         :param conv_inputs: Sequence of tuples, each indication features name in batch_dict and size of features (channels)
             for example: conv_inputs=(('model.backbone_features', 512),)
+            if set to None, the head will work only using the global features. 
+            can be useful i.e for exploring the contribution of imaging vs. clinical features only.
         :param dropout_rate: dropout fraction
         :param num_classes: number of output classes
         :param append_features: Sequence of tuples, each indication features name in batch_dict and size of features (channels).
@@ -60,7 +62,6 @@ class Head3DClassifier(nn.Module):
         super().__init__()
         # save input params
         self.head_name = head_name
-        assert conv_inputs is not None, "conv_inputs must be provided"
         self.conv_inputs = conv_inputs
         self.dropout_rate = dropout_rate
         self.num_classes = num_classes
