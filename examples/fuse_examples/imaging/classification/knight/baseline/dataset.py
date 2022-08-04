@@ -233,7 +233,7 @@ def knight_dataset(
     # Create dataset
     if "train" in split:
         train_cacher = SamplesCacher(
-            "train_cache", static_pipeline, cache_dirs=[f"{cache_dir}/train"], restart_cache=reset_cache
+            "train_cache", static_pipeline, cache_dirs=[f"{cache_dir}/train"], restart_cache=reset_cache, workers=8
         )
 
         train_dataset = DatasetDefault(
@@ -276,7 +276,7 @@ def knight_dataset(
         print("Validation Data:", {"attrs": "bold"})
 
         val_cacher = SamplesCacher(
-            "val_cache", static_pipeline, cache_dirs=[f"{cache_dir}/val"], restart_cache=reset_cache
+            "val_cache", static_pipeline, cache_dirs=[f"{cache_dir}/val"], restart_cache=reset_cache, workers=8
         )
         ## Create dataset
         validation_dataset = DatasetDefault(

@@ -229,7 +229,7 @@ def knight_dataset(
 
     # Create dataset
     train_cacher = SamplesCacher(
-        "train_cache", static_pipeline, cache_dirs=[cache_dir], restart_cache=reset_cache, workers=16
+        "train_cache", static_pipeline, cache_dirs=[cache_dir], restart_cache=reset_cache, workers=8
     )
 
     if sample_ids is not None:
@@ -252,7 +252,7 @@ def knight_dataset(
         print("Validation Data:", {"attrs": "bold"})
 
         val_cacher = SamplesCacher(
-            "val_cache", static_pipeline, cache_dirs=[cache_dir], restart_cache=reset_cache, workers=16
+            "val_cache", static_pipeline, cache_dirs=[cache_dir], restart_cache=reset_cache, workers=8
         )
         ## Create dataset
         validation_dataset = DatasetDefault(
@@ -270,7 +270,7 @@ def knight_dataset(
     print("Test Data:", {"attrs": "bold"})
 
     test_cacher = SamplesCacher(
-        "test_cache", static_pipeline, cache_dirs=[cache_dir], restart_cache=reset_cache, workers=16
+        "test_cache", static_pipeline, cache_dirs=[cache_dir], restart_cache=reset_cache, workers=8
     )
     ## Create dataset
     test_dataset = DatasetDefault(

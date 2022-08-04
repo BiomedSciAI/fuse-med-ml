@@ -93,7 +93,7 @@ def run_train(dataset, sample_ids, cv_index, test=False, params=None, \
     ## Model definition
     ##############################################################################
 
-    model = make_model(params["common"]["use_data"], params["imaging_dropout"], num_classes, params["fused_dropout"])
+    model = make_model(params["common"]["use_data"], num_classes, params["imaging_dropout"], params["fused_dropout"])
 
 
     # Loss definition:
