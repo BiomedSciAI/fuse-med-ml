@@ -26,6 +26,7 @@ from fuse.utils.rand.seed import Seed
 import fuse.utils.gpu as GPU
 
 from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
+
 if "DUKE_DATA_PATH" in os.environ:
     from fuse_examples.imaging.classification.duke.runner_duke_new import (
         run_train,
@@ -53,7 +54,7 @@ def run_duke(root: str) -> None:
         "data_split_filename": os.path.join(root, "split.pkl"),
         "inference_dir": os.path.join(model_dir, "duke/infer_dir"),
         "eval_dir": os.path.join(model_dir, "duke/eval_dir"),
-        }
+    }
 
     train_common_params = TRAIN_COMMON_PARAMS
     train_common_params["trainer.num_epochs"] = 2
@@ -71,9 +72,7 @@ def run_duke(root: str) -> None:
     assert "metrics.auc" in results
 
 
-@unittest.skipIf(
-    "DUKE_DATA_PATH" not in os.environ, "define environment variable 'DUKE_DATA_PATH' to run this test"
-)
+@unittest.skipIf("DUKE_DATA_PATH" not in os.environ, "define environment variable 'DUKE_DATA_PATH' to run this test")
 class ClassificationStoic21TestCase(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.mkdtemp()
