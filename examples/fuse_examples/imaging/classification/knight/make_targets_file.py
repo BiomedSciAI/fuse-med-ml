@@ -16,11 +16,10 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-import sys
 import logging
 import os
 
-from typing import Optional, Union
+from typing import Union
 import pandas as pd
 
 from fuse.utils.utils_logger import fuse_logger_start
