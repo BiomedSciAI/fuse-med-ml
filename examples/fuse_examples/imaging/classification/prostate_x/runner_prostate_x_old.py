@@ -256,6 +256,7 @@ def run_train(
     # Train Data
     lgr.info("Train Data:", {"attrs": "bold"})
 
+    reset_cache = True # SAGI
     if reset_cache is None:
         reset_cache = ask_user("Do you want to reset cache?")
     cache_kwargs = {"use_pipeline_hash": False}

@@ -40,10 +40,6 @@ if "DUKE_DATA_PATH" in os.environ:
 
 
 def run_duke(root: str) -> None:
-    # selected_positive = [1, 2, 3, 5, 6, 10, 12, 596, 900, 901]
-    # selected_negative = [4, 6, 7, 8, 11, 13, 14, 120, 902, 903]
-
-    # selected_sample_ids = [f"Breast_MRI_{ii:03d}" for ii in selected_positive + selected_negative]
 
     model_dir = os.path.join(root, "model_dir")
     paths = {
@@ -73,6 +69,7 @@ def run_duke(root: str) -> None:
 
 
 @unittest.skipIf("DUKE_DATA_PATH" not in os.environ, "define environment variable 'DUKE_DATA_PATH' to run this test")
+@unittest.skip("Takes too much time.")
 class ClassificationStoic21TestCase(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.mkdtemp()

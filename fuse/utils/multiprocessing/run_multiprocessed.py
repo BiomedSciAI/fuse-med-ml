@@ -300,7 +300,8 @@ class Process(ctx.Process):
 
 
 def run_in_subprocess(f: callable, *args, timeout: int = 600, **kwargs):
-    """A decorator that makes function run in a subprocess.
+    """
+    A decorator that makes function run in a subprocess.
     This can be useful when you want allocate GPU and memory and to release it when you're done.
     :param f: the function to run in a subprocess
     :param timeout: the maximum time to wait for the process to complete
