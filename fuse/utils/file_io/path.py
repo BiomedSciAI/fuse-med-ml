@@ -38,7 +38,7 @@ def remove_extension(filepath: str) -> str:
 
     _dirname = os.path.dirname(filepath)
     _basename = os.path.basename(filepath)
-    if '.' not in _basename:
+    if "." not in _basename:
         return filepath
 
     last_dot = _basename.rfind(".")
@@ -46,8 +46,3 @@ def remove_extension(filepath: str) -> str:
         return ""
     ans = os.path.join(_dirname, _basename[:last_dot])
     return ans
-
-
-if __name__ == '__main__':
-    import ipdb;ipdb.set_trace()
-    banana=123    
