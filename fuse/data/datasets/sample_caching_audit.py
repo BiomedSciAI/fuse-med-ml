@@ -35,11 +35,18 @@ class SampleCachingAudit:
         Will be ignored if no cacher is provided.
         :param audit_units: the units in which audit_rate will be used. Supported options are ['minutes', 'samples']
         Will be ignored if no cacher is provided.
-        :param **audit_diff_kwargs: optionally, pass custom kwargs to DeepDiff comparison.
+        :param **audit_diff_kwargs: optionally, pass custom kwargs to DeepDiff comparison. 
         This is useful if, for example, you want small epsilon differences to be ignored.
         In such case, you can provide math_epsilon=1e-9 to avoid throwing exception for small differences
+
+        See their documentation here to learn about additional possible flags: https://zepworks.com/deepdiff/current/
+        Important - as a default, we pass ignore_nan_inequality=True, as we think it's the most reasonable comparison strategy suitable for caches.
+        You can use ignore_nan_inequality=False if you prefer the original default behavior (which considers NaN to not be equal NaN)
+
         """
 
+        if 'ignore_nan_inequality' not in audit_diff_kwargs:
+            audit_diff_kwargs['ignore_nan_inequality'] = True
         _audit_unit_options = ["minutes", "samples", None]
         if audit_units not in _audit_unit_options:
             raise Exception(f"audit_units must be one of {_audit_unit_options}")

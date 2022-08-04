@@ -24,7 +24,7 @@ import types
 import numpy
 import torch
 from typing import Any, Callable, Iterator, Optional, Sequence, Union, List
-
+from collections.abc import Iterable
 
 class NDict(dict):
     """N(ested)Dict - wraps a python dict, and allows to access nested elements via '.' separated key desc
@@ -131,6 +131,15 @@ class NDict(dict):
         returns a list of keypaths (i.e. "a.b.c.d") to all values in the nested dict
         """
         return list(self.flatten().keys())
+
+    def keys(self) -> Iterable:
+        return self._stored.keys()
+
+    def values(self) -> Iterable:
+        return self._stored.values()
+
+    def items(self) -> Iterable:
+        return self._stored.items()
 
     def merge(self, other: dict) -> NDict:
         """

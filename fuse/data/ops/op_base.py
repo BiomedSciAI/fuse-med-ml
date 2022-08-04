@@ -101,7 +101,9 @@ def op_call(op: OpBase, sample_dict: NDict, op_id: str, **kwargs):
     except:
         # error messages are cryptic without this. For example, you can get "TypeError: __call__() got an unexpected keyword argument 'key_out_input'" , without any reference to the relevant op!
         print(
-            f"error in __call__ method of op={op}, op_id={op_id}, sample_id={get_sample_id(sample_dict)} - more details below"
+            '************************************************************************************************************************************\n'+
+            f"error in __call__ method of op={op}, op_id={op_id}, sample_id={get_sample_id(sample_dict)} - more details below"+
+            '*************************************************************************************************************************************\n'
         )
         raise
 
