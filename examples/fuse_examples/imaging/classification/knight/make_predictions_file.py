@@ -24,6 +24,9 @@ import os
 from typing import Optional, Union
 import pandas as pd
 import torch
+from torch.utils.data.dataloader import DataLoader
+from fuse.data.utils.collates import CollateDefault
+from fuseimg.datasets.knight import KNIGHT
 
 from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import save_dataframe
@@ -34,7 +37,6 @@ import pytorch_lightning as pl
 
 # add parent directory to path, so that 'knight' folder is treated as a module
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-from baseline.dataset import knight_dataset  # noqa
 from baseline.fuse_baseline import make_model  # noqa
 
 
@@ -78,12 +80,16 @@ def make_predictions_file(
         data = pd.read_json(json_filepath)
         split = {"test": list(data.case_id)}
 
-    _, validation_dl, test_dl, _, _, _ = knight_dataset(data_path, cache_path, split, reset_cache=False, batch_size=2)
-
-    if "test" in split:
-        dl = test_dl
-    else:
-        dl = validation_dl
+    dataset = KNIGHT.dataset(data_path, cache_path, split, reset_cache=False)
+    dl = DataLoader(
+        dataset=dataset,
+        shuffle=False,
+        drop_last=False,
+        batch_sampler=None,
+        batch_size=2,
+        num_workers=8,
+        collate_fn=CollateDefault(),
+    )
 
     pl_module = LightningModuleDefault(
         model_dir=model_dir,
