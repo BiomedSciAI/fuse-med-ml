@@ -21,8 +21,6 @@ import torch
 from typing import Sequence, Dict, Tuple, Callable, Optional
 
 from fuse.utils.ndict import NDict
-from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
-from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
 
 
 class ModelMultistream(torch.nn.Module):
@@ -100,60 +98,4 @@ class ModelMultistream(torch.nn.Module):
         for head in self.heads:
             batch_dict = head.forward(batch_dict)
 
-        return batch_dict["model"]
-
-
-if __name__ == "__main__":
-    from fuse.dl.models.heads.head_dense_segmentation import HeadDenseSegmentation
-
-    backbone_0 = BackboneInceptionResnetV2(logical_units_num=8)
-    backbone_1 = BackboneInceptionResnetV2(logical_units_num=8)
-
-    non_shared_model = ModelMultistream(
-        conv_inputs=("data.input.input_0.tensor", 2),
-        backbone_streams=[backbone_0, backbone_1],
-        heads=[
-            HeadGlobalPoolingClassifier(
-                head_name="head_0",
-                conv_inputs=[("model.backbone_features", 640)],
-                post_concat_inputs=None,
-                num_classes=2,
-            ),
-            HeadDenseSegmentation(head_name="head_1", conv_inputs=[("model.backbone_features", 640)], num_classes=2),
-        ],
-    )
-
-    shared_model = ModelMultistream(
-        conv_inputs=("data.input.input_0.tensor", 2),
-        backbone_streams=[backbone_0, backbone_0],
-        heads=[
-            HeadGlobalPoolingClassifier(
-                head_name="head_0",
-                conv_inputs=[("model.backbone_features", 640)],
-                post_concat_inputs=None,
-                num_classes=2,
-            ),
-            HeadDenseSegmentation(head_name="head_1", conv_inputs=[("model.backbone_features", 640)], num_classes=2),
-        ],
-    )
-
-    dummy_data = {
-        "data": {
-            "input": {"input_0": {"tensor": torch.zeros([20, 2, 200, 100]), "metadata": None}},
-            "gt": {"gt_0": torch.zeros([0])},
-        }
-    }
-
-    for model_name, model in [("Shared-model", shared_model), ("Non-shared-model", non_shared_model)]:
-        res = {}
-        res["model"] = shared_model.forward(dummy_data)
-        print(model_name + ", forward pass shape - head_0: ", end="")
-        print(str(res["model"]["logits"]["head_0"].shape))
-        print(model_name + ", forward pass shape - head_1: ", end="")
-        print(str(res["model"]["logits"]["head_1"].shape))
-        total_params = sum(p.numel() for p in model.parameters())
-        backbone_params = sum(p.numel() for p in model._modules["backbones"].parameters())
-        print(model_name + ", backbone params = %d" % backbone_params)
-        print(model_name + ", heads params = %d" % (total_params - backbone_params))
-        print(model_name + ", total params = %d" % total_params)
-        print()
+        return batch_dict

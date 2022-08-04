@@ -62,10 +62,10 @@ class LightningModuleDefault(pl.LightningModule):
         # store arguments
         self._model_dir = model_dir
         self._model = model
-        self._losses = losses
-        self._train_metrics = train_metrics
-        self._validation_metrics = validation_metrics
-        self._test_metrics = test_metrics
+        self._losses = losses if losses is not None else {}
+        self._train_metrics = train_metrics if train_metrics is not None else {}
+        self._validation_metrics = validation_metrics if validation_metrics is not None else {}
+        self._test_metrics = test_metrics if test_metrics is not None else {}
 
         self._optimizers_and_lr_schs = optimizers_and_lr_schs
         self._callbacks = callbacks if callbacks is not None else []
@@ -82,7 +82,7 @@ class LightningModuleDefault(pl.LightningModule):
     ## Step
     def training_step(self, batch_dict: NDict, batch_idx: int) -> dict:
         # run forward function and store the outputs in batch_dict["model"]
-        batch_dict["model"] = self.forward(batch_dict)
+        batch_dict = self.forward(batch_dict)
         # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss and save losses values in batch_dict["losses"]
         total_loss = step_losses(self._losses, batch_dict)
         # given the batch_dict and FuseMedML style losses - collect the required values to compute the metrics on epoch_end
@@ -93,7 +93,7 @@ class LightningModuleDefault(pl.LightningModule):
 
     def validation_step(self, batch_dict: NDict, batch_idx: int) -> dict:
         # run forward function and store the outputs in batch_dict["model"]
-        batch_dict["model"] = self.forward(batch_dict)
+        batch_dict = self.forward(batch_dict)
         # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss (ignored) and save losses values in batch_dict["losses"]
         _ = step_losses(self._losses, batch_dict)
         # given the batch_dict and FuseMedML style losses - collect the required values to compute the metrics on epoch_end
@@ -104,7 +104,7 @@ class LightningModuleDefault(pl.LightningModule):
 
     def test_step(self, batch_dict: NDict, batch_idx: int) -> dict:
         # run forward function and store the outputs in batch_dict["model"]
-        batch_dict["model"] = self.forward(batch_dict)
+        batch_dict = self.forward(batch_dict)
         # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss (ignored) and save losses values in batch_dict["losses"]
         _ = step_losses(self._losses, batch_dict)
         # given the batch_dict and FuseMedML style losses - collect the required values to compute the metrics on epoch_end
@@ -119,7 +119,7 @@ class LightningModuleDefault(pl.LightningModule):
                 "Error: predict_step expectes list of prediction keys to extract from batch_dict. Please specify it using set_predictions_keys() method "
             )
         # run forward function and store the outputs in batch_dict["model"]
-        batch_dict["model"] = self.forward(batch_dict)
+        batch_dict = self.forward(batch_dict)
         # extract the requried keys - defined in self.set_predictions_keys()
         return step_extract_predictions(self._prediction_keys, batch_dict)
 
