@@ -206,7 +206,7 @@ class Fuse_model_3d_multichannel(torch.nn.Module):
         for head in self.heads:
             batch_dict = head.forward(batch_dict)
 
-        return batch_dict["model"]
+        return batch_dict  # Sagi: I change it from 'return batch_dict["model"]
 
 
 if __name__ == "__main__":

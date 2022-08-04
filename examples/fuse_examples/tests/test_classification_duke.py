@@ -40,7 +40,7 @@ import fuse.utils.gpu as GPU
 #     from fuse_examples.imaging.classification.duke_breast_cancer.runner_duke import get_setting, run_train, run_infer, run_eval - DELETE
 
 # @unittest.skipIf("DUKE_DATA_PATH" not in os.environ, "define environment variable 'DUKE_DATA_PATH' to run this test")
-@unittest.skip("Waiting for implementation")
+# @unittest.skip("Waiting for implementation")
 class ClassificationDukeTestCase(unittest.TestCase):
     def setUp(self):
         selected_positive = [1, 2, 3, 5, 6, 10, 12, 596, 900, 901]
