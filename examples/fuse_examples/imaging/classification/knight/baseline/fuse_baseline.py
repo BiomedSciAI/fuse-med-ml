@@ -129,6 +129,7 @@ def main(cfg_path):
         num_balanced_classes=num_classes,
         batch_size=cfg["batch_size"],
         balanced_class_weights=[1.0 / num_classes] * num_classes if task_num == "task_2" else None,
+        mode="approx"
     )
 
     train_dl = DataLoader(

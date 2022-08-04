@@ -1,5 +1,5 @@
 experiment_num : 0
-task_num : task_1 # task_1 or task_2 
+task_num : task_2 # task_1 or task_2 
 num_gpus : 1
 use_data : {"imaging": True, "clinical": True} 
 batch_size : 2
@@ -8,8 +8,7 @@ num_epochs : 150
 learning_rate : 0.0001
 imaging_dropout : 0.5
 fused_dropout : 0.5
-pretrained : True
-testing : False # for testing runs
+testing : False # for testing\continous integration
 
 task_1:
   num_classes : 2

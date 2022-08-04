@@ -65,7 +65,7 @@ class KnightTestTestCase(unittest.TestCase):
         )
         split = os.path.join(dir_path, "../imaging/classification/knight/baseline/splits_final.pkl")
         create_dir(os.path.dirname(output_filename))
-        make_targets_file(data_path=data_path, cache_path=cache_path, split=split, output_filename=output_filename)
+        make_targets_file(data_path=data_path, split=split, output_filename=output_filename)
 
     @unittest.skipIf("KNIGHT_DATA" not in os.environ, "define environment variable 'KNIGHT_DATA' to run this test")
     def test_train(self):
@@ -78,7 +78,7 @@ class KnightTestTestCase(unittest.TestCase):
         use_data : {"imaging": True, "clinical": True} 
         batch_size : 2
         resize_to : [70, 256, 256]
-        num_epochs : 1
+        num_epochs : 0
         learning_rate : 0.0001
         imaging_dropout : 0.5
         fused_dropout : 0.5
@@ -93,7 +93,7 @@ class KnightTestTestCase(unittest.TestCase):
         with open(cfg_path, "w") as file:
             file.write(config)
 
-        run_in_subprocess(baseline.main, cfg_path, timeout=1800)
+        run_in_subprocess(baseline.main, cfg_path, timeout=4000)
 
     def tearDown(self):
         # Delete temporary directories
