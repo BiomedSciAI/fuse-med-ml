@@ -28,3 +28,19 @@ def get_extension(filepath: str) -> str:
         return ""
     ans = _basename[last_dot:]
     return ans
+
+
+def remove_extension(filepath: str) -> str:
+    """
+    Returns the filename without the extension
+    For example: remove_extension('/a/b/c/d/asdf.txt') with return '/a/b/c/d/asdf'
+    """
+
+    _dirname = os.path.dirname(filepath)
+    _basename = os.path.basename(filepath)
+    if "." not in _basename:
+        return filepath
+
+    last_dot = _basename.rfind(".")
+    ans = os.path.join(_dirname, _basename[:last_dot])
+    return ans

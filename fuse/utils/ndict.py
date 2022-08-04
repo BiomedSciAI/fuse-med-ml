@@ -78,9 +78,6 @@ class NDict(dict):
             for k, d in dict_like.items():
                 self[k] = d
 
-    def items(self) -> dict_items:
-        return self._stored.items()
-
     # NDict custom methods
     def to_dict(self) -> dict:
         """
@@ -131,6 +128,15 @@ class NDict(dict):
         returns a list of keypaths (i.e. "a.b.c.d") to all values in the nested dict
         """
         return list(self.flatten().keys())
+
+    def keys(self) -> dict_items:
+        return self._stored.keys()
+
+    def values(self) -> dict_items:
+        return self._stored.values()
+
+    def items(self) -> dict_items:
+        return self._stored.items()
 
     def merge(self, other: dict) -> NDict:
         """
