@@ -151,10 +151,12 @@ def fuse_logger_start(
             create_or_reset_dir(source_files_output_path)
 
             lgr.info(f"Copy source files to {source_files_output_path}")
+
             if list_of_source_files is None:
                 # copy just the caller function file name
-                caller_function_file_name = inspect.stack()[1][1]
-                list_of_source_files = [caller_function_file_name]
+                list_of_source_files = []
+            caller_function_file_name = inspect.stack()[1][1]
+            list_of_source_files.append(caller_function_file_name)
 
             for src_file in list_of_source_files:
                 copyfile(os.path.abspath(src_file), os.path.join(source_files_output_path, os.path.basename(src_file)))

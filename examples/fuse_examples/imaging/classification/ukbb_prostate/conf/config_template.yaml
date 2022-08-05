@@ -1,30 +1,36 @@
-label: prostate_cancer
+label: urinary_cancer_500
 paths:
   my_ukbb_dir: /projects/msieve_dev3/usr/ozery/fuse_examples/ukbb
   data_dir: ${oc.env:UKBB_MRI_BODY_DATA_PATH}
-  cache_dir: ${paths.my_ukbb_dir}/cache
+  cache_dir: ${paths.my_ukbb_dir}/cache2
   model_dir : ${paths.my_ukbb_dir}/model_${label}
   data_split_filename: ${paths.my_ukbb_dir}/ukbb_split_${label}.pkl  # what if the cohort changes??
-  clinical_data_file: /projects/msieve/Data/ukbb/body-mri-data/prostate_clinical_data_v2.csv #label_prostatectomy_v5_331.csv
+  clinical_data_file:  ${paths.data_dir}/body_clinical_data_v3.1.csv #label_prostatectomy_v5_331.csv
   data_misc_dir: ${paths.my_ukbb_dir}/data_misc
   inference_dir : ${paths.model_dir}/infer_dir
   eval_dir : ${paths.model_dir}/eval_dir
   sample_ids : ${paths.data_misc_dir}/sample_ids.csv
 run:
   running_modes : ['train','infer', 'eval'] #['train','infer', 'eval', 'explain']
-
+predefined_groups:
+  cancer_urinary_tract: [~preindex_neoplasms, preindex_cancer_urinary_tract]  # contains kidney cancer
+  cancer_male_genital: [men & ~(preindex_neoplasms | preindex_prostatectomy), men & preindex_cancer_male_genital & ~preindex_prostatectomy]
+  cancer_prostate: [ men & (~preindex_neoplasms) & (~preindex_prostatectomy), men & preindex_cancer_prostate & ~preindex_prostatectomy]
+  prostatectomy: [men & (~preindex_prostatectomy), men & preindex_prostatectomy]
 train:
   cos:
     bucket_name: body-mri-data
     credentials_file: ${paths.data_dir}/cos_body.json
     fields: [ 20201 ]
+
   cohort:
-    group_ids: [ men_no_cancer, men_prostate_cancer_no_prostatectomy ]
+    groups: ${predefined_groups.cancer_prostate}
+#    filter_out: women
     max_group_size: 500
   series_config:
-    series : Dixon_BH_17s_W
+    series: Dixon_BH_17s_W
     station: 4
-  target: preindex prostate cancer
+  target: preindex cancer
   reset_cache: False
   num_workers : 12
   num_folds : 5
@@ -37,7 +43,7 @@ train:
   trainer:
     accelerator : gpu
     devices : 1
-    num_epochs : 10
+    num_epochs : 20
     ckpt_path :
 infer:
   infer_filename : validation_set_infer.gz

@@ -14,13 +14,11 @@ def get_samples_for_cohort(cohort_config: NDict, clinical_data_file:str, seed:Op
             lgr.info(s)
 
     df = pd.read_csv(clinical_data_file)
+    var_namespace = get_clinical_vars_namespace(df)
 
-    filter_out_groups = cohort_config.get("filter_out")
-    if filter_out_groups is not None:
-        filter_out = np.zeros(df.shape[0], dtype=bool)
-        for group_id in filter_out_groups:
-            group_filter = get_group_filter(group_id, df)
-            filter_out |= group_filter
+    filter_out_group = cohort_config.get("filter_out")
+    if filter_out_group is not None:
+        filter_out = eval(filter_out_group, var_namespace)
     else:
         filter_out = None
 
@@ -29,17 +27,17 @@ def get_samples_for_cohort(cohort_config: NDict, clinical_data_file:str, seed:Op
     np.random.seed(seed)
 
     selected = np.zeros(df.shape[0], dtype=bool)
-    group_ids = cohort_config['group_ids']
+    included_groups = cohort_config['groups']
 
-    for group_id in group_ids:
-        group_filter = get_group_filter(group_id, df)
+    for included_group in included_groups:
+        group_filter = eval(included_group, var_namespace)
         group_size = group_filter.sum()
 
-        write_log_info(f'{group_id} size={group_size}')
+        write_log_info(f'{included_group} size={group_size}')
         if filter_out is not None:
             group_filter &= ~filter_out
             group_size = group_filter.sum()
-            write_log_info(f'{group_id} size={group_size} after filtering')
+            write_log_info(f'{included_group} size={group_size} after filtering')
 
         if max_group_size is not None and group_size > max_group_size:
             all_indexes = np.where(group_filter)[0]
@@ -49,7 +47,7 @@ def get_samples_for_cohort(cohort_config: NDict, clinical_data_file:str, seed:Op
             assert np.all(group_filter[indexes_to_remove])
             group_filter[indexes_to_remove] = False
             assert np.sum(group_filter) == max_group_size
-            write_log_info( f"{group_id} size: {group_size} => {max_group_size}, First removed index= {indexes_to_remove[0]}")
+            write_log_info( f"{included_group} size: {group_size} => {max_group_size}, First removed index= {indexes_to_remove[0]}")
 
         selected |= group_filter
     print("cohort size=", np.sum(selected))
@@ -57,48 +55,34 @@ def get_samples_for_cohort(cohort_config: NDict, clinical_data_file:str, seed:Op
 
 
 
-def get_group_filter(group_id, df):
-    if group_id == 'all':
-        return np.ones(df.shape[0], dtype=bool)
-    # sex
-    if group_id == 'men':
-        return df['is female'] == 0
-    if group_id == 'women':
-        return df['is female'] == 1
+def get_clinical_vars_namespace(df):
+    mapping = {col.replace(' ', '_'): df[col]>0 for i, col in enumerate(df.columns) if df.dtypes[i] != 'O'}
 
-    # neoplasms (malignant, in situ, benign)
-    if group_id == 'neoplasms':
-        return df['preindex neoplasms'] >0
-    if group_id == 'no_neoplasms':
-        return df['preindex neoplasms'] == 0
+    # vars in use: 'preindex_neoplasms', 'postindex_neoplasms', 'preindex_cancer', 'postindex_cancer'
+    # 'prostate_hyperplasia_preindex', 'prostate_hyperplasia_postindex',
+    # 'preindex_prostatectomy', 'postindex_prostatectomy',
+    # 'preindex_prostate_resection',  'postindex_prostate_resection'
 
-    # malignant
-    if group_id == 'cancer':
-        return df['preindex cancer'] >0
-    if group_id == 'no_cancer':
-        return df['preindex cancer'] == 0
+    mapping['women'] = mapping['is_female']
+    mapping['men'] = ~mapping['is_female']
 
-    # maligant - male genital
-    if group_id == 'cancer_male_genital':
-        return df['blocks preindex C60-C63 Malignant neoplasms of male genital organs'] > 0
-    # malignent - urinary tract (covers kidney)
-    if group_id == 'cancer_urinary_tract':
-        return df[ 'blocks preindex C64-C68 Malignant neoplasms of urinary tract'] > 0
-    # malignent - prostate
-    if group_id == 'cancer_prostate':
-        return df['preindex C61 Malignant neoplasm of prostate'] > 0
-    # malignent - kidney
-    if group_id == 'cancer_kidney':
-        return df['preindex C64 Malignant neoplasm of kidney, except renal pelvis'] > 0
+    acronyms = [('preindex_cancer_prostate', 'preindex_C61_Malignant_neoplasm_of_prostate'),
+                ('postindex_cancer_prostate', 'postindex_C61_Malignant_neoplasm_of_prostate'),
+                ('preindex_cancer_male_genital', 'preindex_C60-C63_Malignant_neoplasms_of_male_genital_organs'),
+                ('postindex_cancer_male_genital', 'postindex_C60-C63_Malignant_neoplasms_of_male_genital_organs'),
+                ('preindex_cancer_urinary_tract', 'preindex_C64-C68_Malignant_neoplasms_of_urinary_tract'),
+                ('postindex_cancer_urinary_tract', 'postindex_C64-C68_Malignant_neoplasms_of_urinary_tract'),
+                ('preindex_kidney_cancer','preindex_C64_Malignant_neoplasm_of_kidney,_except_renal_pelvis'),
+                ('postindex_kidney_cancer', 'postindex_C64_Malignant_neoplasm_of_kidney,_except_renal_pelvis'),
+                ]
+    for s_new, s_old in acronyms:
+        if s_old in mapping:
+            mapping[s_new] = mapping[s_old]
+        else:
+            print(f"*** {s_old} does not exist in the clinical data file")
 
-    # prostatectomy
-    if group_id == 'prostatectomy':
-        return df['preindex prostatectomy'] > 0
-    if group_id == 'no_prostatectomy':
-        return df['preindex prostatectomy'] == 0
+    return mapping
 
-
-    raise NotImplementedError(group_id)
 def get_class_names(label_type:str):
     if label_type == "classification":
         class_names = ["Male", "Female","Male-prostate-excision"]
@@ -111,5 +95,5 @@ def get_class_names(label_type:str):
     elif label_type == "preindex cancer":
         class_names = ["no-cancer", "cancer"]
     else:
-        raise NotImplementedError("unsuported target!!")
+        class_names = [f'no {label_type}', label_type]
     return class_names
