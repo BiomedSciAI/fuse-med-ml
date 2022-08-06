@@ -1,8 +1,42 @@
-label: urinary_cancer_500
+columns_to_add:
+  women: is_female > 0
+  men: is_female == 0
+  preindex_cancer_prostate : preindex_C61_Malignant_neoplasm_of_prostate > 0
+  postindex_cancer_prostate : postindex_C61_Malignant_neoplasm_of_prostate > 0
+  prepostindex_cancer_prostate: preindex_cancer_prostate | postindex_cancer_prostate
+  preindex_cancer_male_genital : preindex_C60_C63_Malignant_neoplasms_of_male_genital_organs > 0
+  postindex_cancer_male_genital : postindex_C60_C63_Malignant_neoplasms_of_male_genital_organs > 0
+  preindex_cancer_urinary_tract : preindex_C64_C68_Malignant_neoplasms_of_urinary_tract > 0
+  postindex_cancer_urinary_tract : postindex_C64_C68_Malignant_neoplasms_of_urinary_tract > 0
+  preindex_kidney_cancer : preindex_C64_Malignant_neoplasm_of_kidney__except_renal_pelvis > 0
+  postindex_kidney_cancer : postindex_C64_Malignant_neoplasm_of_kidney__except_renal_pelvis > 0
+  cancer_prostate_preindex_postindex: preindex_cancer_prostate | postindex_cancer_prostate
+  cohort_men_with_prostate: men & (preindex_prostatectomy==0)
+  cohort_cancer_urinary_tract_detection: (preindex_neoplasms==0) |  preindex_cancer_urinary_tract  # contains kidney cancer
+  cohort_cancer_male_genital_detection: men & (preindex_prostatectomy==0) & (preindex_cancer_male_genital | (preindex_neoplasms==0))
+  cohort_cancer_prostate_preindex: men & (preindex_prostatectomy==0) & (preindex_cancer_prostate | (preindex_neoplasms==0))
+  cohort_cancer_prostate_prepostindex: men & (preindex_prostatectomy==0) & (preindex_cancer_prostate | postindex_cancer_prostate | (preindex_neoplasms==0))
+  cohort_cancer_prostate_postindex:  men & (preindex_prostatectomy==0) & (preindex_neoplasms==0)
+
+max_group_size : 500
+
+#target: preindex_prostatectomy
+#cohort : men
+
+#target: prostate_hyperplasia_preindex
+#cohort: cohort_men_with_prostate
+
+#target: preindex_cancer_prostate
+#cohort: cohort_cancer_prostate_preindex
+
+target: prepostindex_cancer_prostate
+cohort : cohort_cancer_prostate_prepostindex
+
+label : ${cohort}_${max_group_size}_${target}
 paths:
   my_ukbb_dir: /projects/msieve_dev3/usr/ozery/fuse_examples/ukbb
   data_dir: ${oc.env:UKBB_MRI_BODY_DATA_PATH}
-  cache_dir: ${paths.my_ukbb_dir}/cache2
+  cache_dir: ${paths.my_ukbb_dir}/cache
   model_dir : ${paths.my_ukbb_dir}/model_${label}
   data_split_filename: ${paths.my_ukbb_dir}/ukbb_split_${label}.pkl  # what if the cohort changes??
   clinical_data_file:  ${paths.data_dir}/body_clinical_data_v3.1.csv #label_prostatectomy_v5_331.csv
@@ -12,25 +46,21 @@ paths:
   sample_ids : ${paths.data_misc_dir}/sample_ids.csv
 run:
   running_modes : ['train','infer', 'eval'] #['train','infer', 'eval', 'explain']
-predefined_groups:
-  cancer_urinary_tract: [~preindex_neoplasms, preindex_cancer_urinary_tract]  # contains kidney cancer
-  cancer_male_genital: [men & ~(preindex_neoplasms | preindex_prostatectomy), men & preindex_cancer_male_genital & ~preindex_prostatectomy]
-  cancer_prostate: [ men & (~preindex_neoplasms) & (~preindex_prostatectomy), men & preindex_cancer_prostate & ~preindex_prostatectomy]
-  prostatectomy: [men & (~preindex_prostatectomy), men & preindex_prostatectomy]
 train:
   cos:
     bucket_name: body-mri-data
     credentials_file: ${paths.data_dir}/cos_body.json
     fields: [ 20201 ]
-
+  columns_to_add: ${columns_to_add}
+  target: ${target}
   cohort:
-    groups: ${predefined_groups.cancer_prostate}
+    inclusion: ${cohort}
 #    filter_out: women
-    max_group_size: 500
+    group_id_vec: ${target}
+    max_group_size: ${max_group_size}
   series_config:
     series: Dixon_BH_17s_W
     station: 4
-  target: preindex cancer
   reset_cache: False
   num_workers : 12
   num_folds : 5
@@ -49,5 +79,6 @@ infer:
   infer_filename : validation_set_infer.gz
   checkpoint : best_epoch.ckpt
   infer_folds : [4]
-  target : preindex prostate cancer
+  target : ${target}
+  columns_to_add: ${columns_to_add}
   num_workers : 12
