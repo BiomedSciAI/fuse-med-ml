@@ -34,7 +34,7 @@ cohort : cohort_cancer_prostate_prepostindex
 
 label : ${cohort}_${max_group_size}_${target}
 paths:
-  my_ukbb_dir: /projects/msieve_dev3/usr/ozery/fuse_examples/ukbb
+  my_ukbb_dir: /projects/msieve_dev3/usr/${oc.env:USER}/fuse_examples/ukbb # /dccstor/mm_hcls/usr/${oc.env:USER}/fuse_example_runs/ukbb_mri_body/
   data_dir: ${oc.env:UKBB_MRI_BODY_DATA_PATH}
   cache_dir: ${paths.my_ukbb_dir}/cache
   model_dir : ${paths.my_ukbb_dir}/model_${label}

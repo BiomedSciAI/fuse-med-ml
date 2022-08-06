@@ -128,6 +128,8 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     lgr.info('cohort def=' + str(train['cohort']), {'color': 'magenta'})
 
     lgr.info(f'model_dir={paths["model_dir"]}', {'color': 'magenta'})
+    if train.get('trainer.ckpt_path') is not None:
+        lgr.info(f"trainer.ckpt_path = {train['trainer.ckpt_path']}", {'color': 'magenta'})
 
     lgr.info(f'cache_dir={paths["cache_dir"]}', {'color': 'magenta'})
     # ==============================================================================
@@ -469,22 +471,21 @@ def main(cfg: DictConfig) -> None:
 
     # train
     if 'train' in cfg["run.running_modes"]:
-        run_train(cfg["paths"], cfg["train"])
+        run_train(NDict(cfg["paths"]), NDict(cfg["train"]))
     else:
         assert "Expecting train mode to be set."
 
     # infer (infer set)
     if 'infer' in cfg["run.running_modes"]:
-        run_infer(cfg["train"], cfg["paths"], cfg["infer"])
+        run_infer(NDict(cfg["train"]), NDict(cfg["paths"]), NDict(cfg["infer"]))
     #
     # evaluate (infer set)
     if 'eval' in cfg["run.running_modes"]:
-        run_eval(cfg["paths"], cfg["infer"])
+        run_eval(NDict(cfg["paths"]), NDict(cfg["infer"]))
 
     # explain (infer set)
     if 'explain' in cfg["run.running_modes"]:
-        run_explain(cfg["train"], cfg["paths"], cfg["infer"])
-
+        run_explain(NDict(cfg["train"]), NDict(cfg["paths"]), NDict(cfg["infer"]))
 
 def read_clinical_data_file(filename, target, columns_to_add, return_var_namespace=False):
     df = pd.read_csv(filename)
@@ -496,8 +497,7 @@ def read_clinical_data_file(filename, target, columns_to_add, return_var_namespa
     if return_var_namespace:
         return df, var_namespace
     return df
-
-
+    
 if __name__ == "__main__":
     sys.argv.append('hydra.run.dir=working_dir')
     main()
