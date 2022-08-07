@@ -25,6 +25,7 @@ import torch.nn.functional as F
 from fuse.eval.evaluator import EvaluatorDefault
 from fuseimg.datasets.mnist import MNIST
 
+
 def create_dataset(cache_dir):
     train_dataset = MNIST.dataset(cache_dir, train=True)
     test_dataset = MNIST.dataset(cache_dir, train=False)

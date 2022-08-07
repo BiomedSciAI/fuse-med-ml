@@ -17,7 +17,6 @@ Created on June 30, 2021
 
 """
 
-import sys
 import logging
 import os
 
@@ -35,6 +34,7 @@ from examples.fuse_examples.imaging.classification.knight.eval.eval import TASK1
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 import pytorch_lightning as pl
 from examples.fuse_examples.imaging.classification.knight.baseline.fuse_baseline import make_model
+
 
 def make_predictions_file(
     model_dir: str,
