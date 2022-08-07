@@ -17,7 +17,7 @@ def get_samples_for_cohort(cohort_config: NDict, var_namespace:typing.Dict, seed
     max_group_size = None if max_group_size <= 0 else max_group_size
     np.random.seed(seed)
 
-    selected = eval(cohort_config['inclusion'], var_namespace)
+    selected = eval(cohort_config['inclusion'], {}, var_namespace)
 
     y = var_namespace[cohort_config['group_id_vec']]
     y_vals = np.unique(y)
@@ -43,17 +43,18 @@ def get_samples_for_cohort(cohort_config: NDict, var_namespace:typing.Dict, seed
         n += np.sum(group_filter)
     print("cohort size=", np.sum(selected))
     assert np.sum(selected) == n
-    return var_namespace['file_pattern'][selected].tolist()
+    return var_namespace[cohort_config['sample_id_col']][selected].tolist()
 
 
 
 def get_clinical_vars_namespace(df, columns_to_add):
     var_namespace = {col.replace(' ', '_').replace(',', '_').replace('-', '_'):
-                         df[col] for i, col in enumerate(df.columns) }
+                         df[col].values for col in df.columns }
 
     for col_name, col_expression in columns_to_add.items():
-        x = eval(col_expression, var_namespace)
+        x = eval(col_expression, {}, var_namespace)
         var_namespace[col_name] = x
+
     return var_namespace
 
 def get_class_names(label_type:str):

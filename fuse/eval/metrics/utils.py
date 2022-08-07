@@ -25,3 +25,8 @@ class PerSampleData:
             permutation = [original_ids.index(sample_id) for sample_id in required_ids]
 
             return [self._data[i] for i in permutation]
+
+    def __str__(self):
+        n = len(self._ids)
+        mean_vals = np.mean(self._data) if len(self._data) == n else [np.mean(x) for x in self._data]
+        return f'{type(self).__name__}: n={n}, mean={mean_vals}'

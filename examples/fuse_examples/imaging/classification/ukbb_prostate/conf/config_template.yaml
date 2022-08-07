@@ -18,23 +18,29 @@ columns_to_add:
   cohort_cancer_prostate_prepostindex: men & (preindex_prostatectomy==0) & (preindex_cancer_prostate | postindex_cancer_prostate | (preindex_neoplasms==0))
   cohort_cancer_prostate_postindex:  men & (preindex_prostatectomy==0) & (preindex_neoplasms==0)
 
-max_group_size : 500
+max_group_size : 1000
 
-#target: preindex_prostatectomy
-#cohort : men
+# target: preindex_prostatectomy
+# cohort : men
 
-#target: prostate_hyperplasia_preindex
-#cohort: cohort_men_with_prostate
+# target: prostate_hyperplasia_preindex
+# cohort: cohort_men_with_prostate
 
-#target: preindex_cancer_prostate
-#cohort: cohort_cancer_prostate_preindex
+# target: preindex_cancer_prostate
+# cohort: cohort_cancer_prostate_preindex
 
-target: prepostindex_cancer_prostate
-cohort : cohort_cancer_prostate_prepostindex
+target: postindex_cancer_prostate
+cohort : cohort_cancer_prostate_postindex
+
+# target: prepostindex_cancer_prostate
+# cohort : cohort_cancer_prostate_prepostindex
+
+
 
 label : ${cohort}_${max_group_size}_${target}
+sample_id_col : file_pattern
 paths:
-  my_ukbb_dir: /projects/msieve_dev3/usr/${oc.env:USER}/fuse_examples/ukbb # /dccstor/mm_hcls/usr/${oc.env:USER}/fuse_example_runs/ukbb_mri_body/
+  my_ukbb_dir: /dccstor/mm_hcls/usr/${oc.env:USER}/fuse_example_runs/ukbb_mri_body/ #/projects/msieve_dev3/usr/${oc.env:USER}/fuse_examples/ukbb # 
   data_dir: ${oc.env:UKBB_MRI_BODY_DATA_PATH}
   cache_dir: ${paths.my_ukbb_dir}/cache
   model_dir : ${paths.my_ukbb_dir}/model_${label}
@@ -58,6 +64,7 @@ train:
 #    filter_out: women
     group_id_vec: ${target}
     max_group_size: ${max_group_size}
+    sample_id_col: ${sample_id_col}
   series_config:
     series: Dixon_BH_17s_W
     station: 4
@@ -82,3 +89,7 @@ infer:
   target : ${target}
   columns_to_add: ${columns_to_add}
   num_workers : 12
+eval:
+  cohorts: #[cohort_cancer_prostate_preindex, cohort_cancer_prostate_postindex]
+  columns_to_add: ${columns_to_add}
+  sample_id_col: ${sample_id_col}

@@ -16,6 +16,7 @@ Created on June 30, 2021
 
 from collections import OrderedDict
 import os
+from typing import Union, Dict, Optional, List
 
 from fuse_examples.imaging.classification.ukbb_prostate import cohort_and_label_def, files_download_from_cos
 
@@ -112,7 +113,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO, list_of_source_files=['../conf/config.yaml'])
     lgr = logging.getLogger('Fuse')
 
-    clinical_data_df, var_namespace = read_clinical_data_file(filename=paths["clinical_data_file"], target=train['target'],
+    clinical_data_df, var_namespace = read_clinical_data_file(filename=paths["clinical_data_file"], targets=train['target'],
                                                               columns_to_add=train.get('columns_to_add'),
                                                               return_var_namespace=True)
 
@@ -381,7 +382,7 @@ def load_model_and_test_data(train: NDict, paths: NDict, infer: NDict):
     infer_sample_ids = []
     for fold in infer["infer_folds"]:
         infer_sample_ids += folds[fold]
-    input_source_gt = read_clinical_data_file(paths["clinical_data_file"], infer['target'], infer.get('columns_to_add'))
+    input_source_gt = read_clinical_data_file(filename=paths["clinical_data_file"], targets=infer['target'], columns_to_add=infer.get('columns_to_add'))
 
     test_dataset = UKBB.dataset(data_dir=paths["data_dir"], target=infer['target'], series_config=train['series_config'],
                                 input_source_gt=input_source_gt, cache_dir=paths["cache_dir"], num_workers=infer['num_workers'],
@@ -437,37 +438,70 @@ def largest_indices(ary, n):
 ######################################
 # Analyze Template
 ######################################
-def run_eval(paths: NDict, infer: NDict):
+def run_eval(paths: NDict, infer: NDict, eval: Optional[Dict]=None):
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Eval', {'attrs': ['bold', 'underline']})
 
-    # metrics
-    metrics = OrderedDict([
-        ('op', MetricApplyThresholds(pred='model.output.head_0')),  # will apply argmax
-        ('auc', MetricAUCROC(pred='model.output.head_0', target='data.gt.classification')),
-        ('accuracy', MetricAccuracy(pred='results:metrics.op.cls_pred', target='data.gt.classification')),
-    ])
+
+    sample_ids_groups_to_eval = [('all', None)]
+    if eval is not None and eval.get("cohorts") is not None:
+        df = read_clinical_data_file(filename=paths["clinical_data_file"], targets=None, columns_to_add=infer.get('columns_to_add'))
+        sample_ids_series = df[eval['sample_id_col']]
+        for cohort in eval['cohorts']:
+            cohort_sample_ids = sample_ids_series[df[cohort]].values
+            sample_ids_groups_to_eval.append( (cohort, cohort_sample_ids))
 
     # create evaluator
     evaluator = EvaluatorDefault()
 
-    # run
-    results = evaluator.eval(ids=None,
-                             data=os.path.join(paths["inference_dir"], infer["infer_filename"]),
-                             metrics=metrics,
-                             output_dir=paths["eval_dir"])
+    pred_key = 'model.output.head_0'
+    gt_key = 'data.gt.classification'
+    pred_cls_key = 'pred_cls'
+    results_all = NDict()
+    for group_name, group_sample_ids in sample_ids_groups_to_eval:
+        op_pred_cls_name = f'{group_name}-{pred_cls_key}'
+        # metrics
+        metrics = OrderedDict([
+            (f'{op_pred_cls_name}', MetricApplyThresholds(pred=pred_key, key_out=pred_cls_key)),  # will apply argmax
+            (f'{group_name}-auc', MetricAUCROC(pred=pred_key, target=gt_key)),
+            (f'{group_name}-accuracy', MetricAccuracy(pred=f'results:metrics.{op_pred_cls_name}.{pred_cls_key}', target=gt_key)),
+        ])
+    
+        # run
+        results = evaluator.eval(ids=group_sample_ids,
+                                data=os.path.join(paths["inference_dir"], infer["infer_filename"]),
+                                metrics=metrics,
+                                output_dir=paths["eval_dir"],
+                                outputfile_basename=f'results_{group_name}',
+                                error_missing_ids=False)
+        results_all.merge(results)
 
-    return results
+    return results_all
 
+def read_clinical_data_file(filename:str, targets: Optional[Union[str, List[str]]]=None, columns_to_add: Optional[List[str]]=None, 
+                return_var_namespace:Optional[bool]=False):
+    df_org = pd.read_csv(filename)
+    
+    var_namespace = cohort_and_label_def.get_clinical_vars_namespace(df_org, columns_to_add)
+    df = pd.DataFrame.from_dict(var_namespace)
+    if targets is not None:
+        if isinstance(targets, str):
+            targets = [targets]
+        for target in targets:
+            df[target] = df[target].astype(int)
+    if return_var_namespace:
+        return df, var_namespace
+    return df
 
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg: DictConfig) -> None:
     cfg = NDict(OmegaConf.to_object(cfg))
     print(cfg)
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
-    force_gpus = None  # [0]
-    choose_and_enable_multiple_gpus(cfg["train.trainer.devices"], force_gpus=force_gpus)
+    if 'train' in cfg["run.running_modes"] or 'infer' in cfg["run.running_modes"] or 'explain' in cfg["run.running_modes"] :
+        force_gpus = None  # [0]
+        choose_and_enable_multiple_gpus(cfg["train.trainer.devices"], force_gpus=force_gpus)
 
     # train
     if 'train' in cfg["run.running_modes"]:
@@ -481,22 +515,13 @@ def main(cfg: DictConfig) -> None:
     #
     # evaluate (infer set)
     if 'eval' in cfg["run.running_modes"]:
-        run_eval(NDict(cfg["paths"]), NDict(cfg["infer"]))
+        run_eval(NDict(cfg["paths"]), NDict(cfg["infer"]), cfg.get('eval'))
 
     # explain (infer set)
     if 'explain' in cfg["run.running_modes"]:
         run_explain(NDict(cfg["train"]), NDict(cfg["paths"]), NDict(cfg["infer"]))
 
-def read_clinical_data_file(filename, target, columns_to_add, return_var_namespace=False):
-    df = pd.read_csv(filename)
-    if (target not in df.columns) or return_var_namespace:
-        var_namespace = cohort_and_label_def.get_clinical_vars_namespace(df, columns_to_add)
-        assert target in var_namespace
-        df[target] = var_namespace[target]
-    df[target] = df[target].astype(int)
-    if return_var_namespace:
-        return df, var_namespace
-    return df
+
     
 if __name__ == "__main__":
     sys.argv.append('hydra.run.dir=working_dir')

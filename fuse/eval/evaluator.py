@@ -54,6 +54,8 @@ class EvaluatorDefault:
         id_key: str = "id",
         batch_size: Optional[int] = None,
         output_dir: Optional[str] = None,
+        outputfile_basename: Optional[str] = 'results',
+        error_missing_ids: Optional[bool] = True
     ) -> NDict:
         """
         evaluate, return, print and optionally dump results to a file
@@ -79,6 +81,8 @@ class EvaluatorDefault:
                                               data must be an iterator of samples.
                                               A batch will be automatically created from batch_size samples
         :param output_dir: Optional - dump results to directory
+        :param outputfile_basename: Optional - the basename of the files to which results will be dumped
+        :param error_missing_ids: Optional - whether to raise error if some of the provided ids are missing
         :return: dictionary that holds all the results.
         """
 
@@ -88,8 +92,11 @@ class EvaluatorDefault:
             ids_df = None  # use all samples
 
         if batch_size is None:
-            data_df = self.read_data(data, ids_df, id_key=id_key)
+            data_df = self.read_data(data, ids_df, id_key=id_key, error_missing_ids=error_missing_ids)
             data_df["id"] = data_df[id_key]
+            if not error_missing_ids and (ids_df is not None) and (len(ids_df) >len(data_df.index)):
+                ids_df = ids_df.loc[data_df["id"].index]
+                ids = [id for id in ids if id in set(ids_df.index)]
 
             # pass data
             for metric_name, metric in metrics.items():
@@ -139,7 +146,7 @@ class EvaluatorDefault:
                 raise
 
         # dump results
-        self.dump_metrics_results(results, output_dir)
+        self.dump_metrics_results(results, output_dir, outputfile_basename)
 
         return results
 
@@ -249,7 +256,7 @@ class EvaluatorDefault:
 
         return result_data
 
-    def dump_metrics_results(self, metrics_results: NDict, output_dir: str) -> None:
+    def dump_metrics_results(self, metrics_results: NDict, output_dir: str, filebasename:str) -> None:
         """
         Dump results to a file
         :param metrics_results: results return from metric.process()
@@ -283,9 +290,9 @@ class EvaluatorDefault:
             os.makedirs(output_dir, exist_ok=True)
 
             # save text results
-            with open(os.path.join(output_dir, "results.txt"), "w") as output_file:
+            with open(os.path.join(output_dir, f"{filebasename}.txt"), "w") as output_file:
                 output_file.write(results)
 
             # save pickled results
-            with open(os.path.join(output_dir, "results.pickle"), "wb") as output_file:
+            with open(os.path.join(output_dir, f"{filebasename}.pickle"), "wb") as output_file:
                 pickle.dump(metrics_results, output_file)

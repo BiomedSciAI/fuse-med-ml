@@ -13,6 +13,7 @@ class MetricApplyThresholds(MetricMultiClassDefault):
         pred: str,
         class_names: Optional[Sequence[str]] = None,
         operation_point: Union[float, Sequence[Tuple[int, float]], str, None] = None,
+        key_out: Optional[str] = 'cls_pred',
         **kwargs
     ):
         """
@@ -35,6 +36,7 @@ class MetricApplyThresholds(MetricMultiClassDefault):
             operation_point=operation_point,
             **kwargs
         )
+        self.key_out = key_out
 
     def _apply_thresholds(
         self,
@@ -47,4 +49,4 @@ class MetricApplyThresholds(MetricMultiClassDefault):
         # make sure to return the per-sample metric result for the relevant sample ids:
         per_sample_data = PerSampleData(data=pred_thresholded, ids=ids)
 
-        return {"cls_pred": per_sample_data}
+        return {self.key_out: per_sample_data}
