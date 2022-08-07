@@ -58,3 +58,4 @@ Here you can find useful ops for imaging and public datasets implementations
 * [cmmd](datasets/cmmd.py) - dataset that contains breast mammography biopsy info and metadata from chinese patients - https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508. Aims to predict breast cancer biopsy results from mammography
 * [mnist](datasets/mnist.py) - mnist dataset implementation
 * [isic19](datasets/isic.py) - 2019 International Skin Imaging Collaboration ([ISIC](https://challenge.isic-archive.com/landing/2019/)) Challenge dataset. The goal is to classify demoscropic images among nine different diagnostic categories
+* [knight](datasets/knight.py) - KNIGHT Challenge dataset. The goal is to classify cases into risk groups based on CT image and clinical data. See [link](https://research.ibm.com/haifa/Workshops/KNIGHT/index.html)

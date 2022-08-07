@@ -17,7 +17,6 @@ from testbook import testbook
 from fuse.eval.metrics.stat.metrics_stat_common import MetricUniqueValues
 from fuse.utils.multiprocessing.run_multiprocessed import get_from_global_storage, run_multiprocessed
 from fuse.eval.evaluator import EvaluatorDefault
-import multiprocessing as mp
 
 from examples.fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS, TEN_GOLDEN_MEMBERS
 
