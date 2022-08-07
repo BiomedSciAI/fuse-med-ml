@@ -128,7 +128,7 @@ class NDict(dict):
         returns a list of keypaths (i.e. "a.b.c.d") to all values in the nested dict
         """
         return list(self.flatten().keys())
-    
+
     def keys(self) -> dict_keys:
         """
         returns the top-level keys of the dictionary

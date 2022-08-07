@@ -709,42 +709,56 @@ def example_13() -> Dict:
 
     return results
 
+
 def example_14() -> Dict[str, Any]:
     """
     Model ensemble example
     """
     # path to prediction and target files
     dir_path = pathlib.Path(__file__).parent.resolve()
-    inference_file_name = 'test_set_infer.gz'
-    model_dirs = [os.path.join(dir_path, "inputs/ensemble/mnist/test_dir", str(i), inference_file_name) for i in range(5)]
-    output_file = 'ensemble_output.gz'
+    inference_file_name = "test_set_infer.gz"
+    model_dirs = [
+        os.path.join(dir_path, "inputs/ensemble/mnist/test_dir", str(i), inference_file_name) for i in range(5)
+    ]
+    output_file = "ensemble_output.gz"
     # define data
-    data = {str(k):model_dirs[k] for k in range(len(model_dirs))}
+    data = {str(k): model_dirs[k] for k in range(len(model_dirs))}
 
     # pre collect function to change the format
-    def pre_collect_process(sample_dict: dict) -> dict:    
+    def pre_collect_process(sample_dict: dict) -> dict:
         # convert predictions from all models to numpy array
-        num_classes = sample_dict['0']['model']['output']['classification'].shape[0]
+        num_classes = sample_dict["0"]["model"]["output"]["classification"].shape[0]
         model_names = list(sample_dict.to_dict().keys())
-        model_names.remove('id')
+        model_names.remove("id")
         pred_array = np.zeros((len(model_names), num_classes))
         for i, m in enumerate(model_names):
-            pred_array[i, :] = sample_dict[m]['model']['output']['classification']
-        sample_dict['preds'] = pred_array
-        sample_dict['target'] = sample_dict['0']['data']['label']
+            pred_array[i, :] = sample_dict[m]["model"]["output"]["classification"]
+        sample_dict["preds"] = pred_array
+        sample_dict["target"] = sample_dict["0"]["data"]["label"]
 
         return sample_dict
-    
-    # list of metrics
-    metrics = OrderedDict([
-            ("ensemble", MetricEnsemble(preds="preds", output_file=output_file,
-                    pre_collect_process_func=pre_collect_process)),
-            ("apply_thresh", MetricApplyThresholds(pred="results:metrics.ensemble.preds_ensembled", 
-                    operation_point=None)),
-            ("accuracy", MetricAccuracy(pred="results:metrics.apply_thresh.cls_pred", 
-                    target="target", pre_collect_process_func=pre_collect_process)), 
 
-    ])
+    # list of metrics
+    metrics = OrderedDict(
+        [
+            (
+                "ensemble",
+                MetricEnsemble(preds="preds", output_file=output_file, pre_collect_process_func=pre_collect_process),
+            ),
+            (
+                "apply_thresh",
+                MetricApplyThresholds(pred="results:metrics.ensemble.preds_ensembled", operation_point=None),
+            ),
+            (
+                "accuracy",
+                MetricAccuracy(
+                    pred="results:metrics.apply_thresh.cls_pred",
+                    target="target",
+                    pre_collect_process_func=pre_collect_process,
+                ),
+            ),
+        ]
+    )
 
     evaluator = EvaluatorDefault()
     results = evaluator.eval(ids=None, data=data, metrics=metrics)
