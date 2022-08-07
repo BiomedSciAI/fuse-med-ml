@@ -1,14 +1,12 @@
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, Hashable
+from typing import Optional, Sequence, Hashable
 from fuse.eval.metrics.libs.ensembling import Ensembling
 from fuse.eval.metrics.utils import PerSampleData
 
 import pandas as pd
-import traceback
 
 import numpy as np
 
 from fuse.eval.metrics.metrics_common import MetricDefault
-from .metrics_classification_common import MetricMultiClassDefault
 from functools import partial
 
 

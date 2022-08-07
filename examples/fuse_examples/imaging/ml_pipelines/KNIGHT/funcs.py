@@ -1,27 +1,18 @@
-import torchvision
-from torchvision import transforms
 from fuse.utils.utils_logger import fuse_logger_start
 import logging
 from fuse.data.utils.samplers import BatchSamplerDefault
 from torch.utils.data.dataloader import DataLoader
-from torch.utils.data import Subset
-import torch
-import torch.nn as nn
-import torchvision.models as models
 from typing import OrderedDict
 from fuse.eval.metrics.classification.metrics_classification_common import (
     MetricAccuracy,
     MetricAUCROC,
-    MetricROCCurve,
     MetricConfusion,
 )
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 
 import torch.optim as optim
-from fuse.utils import gpu as FuseUtilsGPU
 import os
 import torch.nn.functional as F
-from fuse.eval.evaluator import EvaluatorDefault
 import copy
 
 from examples.fuse_examples.imaging.classification.knight.make_predictions_file import make_predictions_file

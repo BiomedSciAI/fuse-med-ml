@@ -1,6 +1,4 @@
 import copy
-import torchvision
-from torchvision import transforms
 import pytorch_lightning as pl
 from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
 
@@ -16,7 +14,6 @@ from fuse.dl.lightning.pl_module import LightningModuleDefault
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data import Subset
 import torch
-import torchvision.models as models
 from fuse_examples.imaging.classification.mnist import lenet
 from fuse_examples.imaging.classification.mnist.run_mnist import perform_softmax
 from typing import OrderedDict
@@ -27,8 +24,6 @@ import os
 import torch.nn.functional as F
 from fuse.eval.evaluator import EvaluatorDefault
 from fuseimg.datasets.mnist import MNIST
-from fuse.data.datasets.dataset_wrap_seq_to_dict import DatasetWrapSeqToDict
-
 
 def create_dataset(cache_dir):
     train_dataset = MNIST.dataset(cache_dir, train=True)

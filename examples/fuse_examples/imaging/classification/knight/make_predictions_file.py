@@ -34,11 +34,7 @@ from fuse.utils.file_io.file_io import save_dataframe
 from examples.fuse_examples.imaging.classification.knight.eval.eval import TASK1_CLASS_NAMES, TASK2_CLASS_NAMES
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 import pytorch_lightning as pl
-
-# add parent directory to path, so that 'knight' folder is treated as a module
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 from examples.fuse_examples.imaging.classification.knight.baseline.fuse_baseline import make_model
-
 
 def make_predictions_file(
     model_dir: str,
@@ -150,7 +146,7 @@ if __name__ == "__main__":
     predictions_key_name = "model.output.head_0"
     task_num = 1  # 1 or 2
 
-    use_data = {"imaging": False, "clinical": True}  # specify whether to use imaging, clinical data or both
+    use_data = {"imaging": True, "clinical": True}  # specify whether to use imaging, clinical data or both
     num_classes = 2
     imaging_dropout = 0.5
     clinical_dropout = 0.0

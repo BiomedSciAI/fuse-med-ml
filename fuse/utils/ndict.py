@@ -135,9 +135,6 @@ class NDict(dict):
         """
         return self._stored.keys()
 
-    def keys(self) -> dict_items:
-        return self._stored.keys()
-
     def values(self) -> dict_items:
         return self._stored.values()
 

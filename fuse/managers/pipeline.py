@@ -7,7 +7,6 @@ from functools import partial
 from multiprocessing import Process, Queue
 from typing import Sequence
 import numpy as np
-import pandas as pd
 import os
 from fuse.eval.metrics.classification.metrics_ensembling_common import MetricEnsemble
 from collections import OrderedDict
@@ -133,7 +132,7 @@ def run(
 
     # set debug mode:
     mode = "default"  # Options: 'default', 'debug'. See details in FuseDebug
-    debug = FuseDebug(mode)
+    _ = FuseDebug(mode)
 
     available_gpu_ids = FuseUtilsGPU.get_available_gpu_ids()
     if num_gpus_total < len(available_gpu_ids):
