@@ -28,7 +28,6 @@ import pytorch_lightning as pl
 from fuse.dl.losses.loss_default import LossDefault
 import pandas as pd
 import numpy as np
-#from examples.fuse_examples.imaging.ml_pipelines.KNIGHT.dataset import knight_dataset
 from fuseimg.datasets.knight import KNIGHT
 from examples.fuse_examples.imaging.classification.knight.baseline.fuse_baseline import make_model
 
@@ -44,13 +43,7 @@ def run_train(dataset, sample_ids, cv_index, test=False, params=None, \
 
     # obtain train/val dataset subset:
     ## Create subset data sources
-    #train_dataset, validation_dataset = knight_dataset(data_dir=params["paths"]["data_dir"],
-    #                                                    cache_dir=cache_dir,
-    #                                                    split=params["split"],
-    #                                                    reset_cache=False,
-    #                                                    resize_to=params["dataset"]["resize_to"],
-    #                                                    sample_ids=sample_ids)
-    
+
     split = {}
     split["train"] = [params["dataset"]["split"]["train"][i] for i in sample_ids[0]]
     split["val"] = [params["dataset"]["split"]["train"][i] for i in sample_ids[1]]
@@ -60,7 +53,7 @@ def run_train(dataset, sample_ids, cv_index, test=False, params=None, \
                                                         split=split,
                                                         sample_ids=None,
                                                         test=False,
-                                                        reset_cache=False,
+                                                        reset_cache=True,
                                                         resize_to=params["dataset"]["resize_to"])
 
     num_classes = params["common"]["num_classes"]
@@ -177,7 +170,7 @@ def run_infer(dataset, sample_ids, cv_index, test=False, params=None, \
               rep_index=0, rand_gen=None):
 
     model_dir = os.path.join(params["paths"]["model_dir"], 'rep_' + str(rep_index), str(cv_index))
-    cache_dir = os.path.join(params["paths"]["cache_dir"])
+    cache_dir = os.path.join(params["paths"]["cache_dir"], 'infer_cache', 'rep_' + str(rep_index), str(cv_index))
     if test:
         infer_dir = os.path.join(params["paths"]["test_dir"], 'rep_' + str(rep_index), str(cv_index))
     else:
@@ -205,7 +198,9 @@ def run_infer(dataset, sample_ids, cv_index, test=False, params=None, \
 
     model = make_model(params["common"]["use_data"], params["common"]["num_classes"], params["train"]["imaging_dropout"], params["train"]["fused_dropout"])
 
-    make_predictions_file(model_dir=model_dir, model=model, checkpoint=checkpoint, data_path=data_path, cache_path=cache_dir, split=split, output_filename=predictions_filename, predictions_key_name=predictions_key_name, task_num=task_num, auto_select_gpus=False)
+    make_predictions_file(model_dir=model_dir, model=model, checkpoint=checkpoint, data_path=data_path, cache_path=cache_dir, \
+        split=split, output_filename=predictions_filename, predictions_key_name=predictions_key_name, \
+        task_num=task_num, auto_select_gpus=False, reset_cache=True)
     make_targets_file(data_path=data_path, split=split, output_filename=targets_filename)
 
 def run_eval(dataset, sample_ids, cv_index, test=False, params=None, \

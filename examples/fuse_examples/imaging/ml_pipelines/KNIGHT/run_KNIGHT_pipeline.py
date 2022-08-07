@@ -1,6 +1,6 @@
 from fuse.managers.pipeline import run
 from funcs import run_train, run_infer, run_eval
-from dataset import knight_dataset
+from fuseimg.datasets.knight import KNIGHT
 import os
 import pandas as pd
 
@@ -12,7 +12,7 @@ num_gpus_total = 3
 num_gpus_per_split = 1
 num_folds = 5
 num_folds_used = 5
-dataset_func = knight_dataset
+dataset_func = KNIGHT.dataset
 train_func = run_train
 infer_func = run_infer
 eval_func = run_eval
@@ -46,15 +46,19 @@ common_params['num_gpus_per_split'] = num_gpus_per_split
 # Dataset Params
 ##########################################
 
-dataset_params = {}
-dataset_params['data_dir'] = paths['data_dir']
-dataset_params['cache_dir'] = paths['cache_dir']
-dataset_params['resize_to'] = (256, 256, 110) 
-dataset_params['reset_cache'] = False
 # custom train/test split:
 splits_path = '../../classification/knight/baseline/splits_final.pkl'
 splits=pd.read_pickle(splits_path)
-split = splits[0] 
+split = splits[0]
+dataset_params = {}
+dataset_params['data_path'] = paths['data_dir']
+dataset_params['cache_dir'] = paths['cache_dir']
+dataset_params['split'] = split 
+dataset_params['sample_ids'] = None 
+dataset_params['test'] = False
+dataset_params['resize_to'] = (256, 256, 110) 
+dataset_params['reset_cache'] = False
+
 # note that the validation set of this split will be used as *test* for the ML pipeline example
 # the cross validation splits will be drawn randomly from split['train'] 
 dataset_params['split'] = split

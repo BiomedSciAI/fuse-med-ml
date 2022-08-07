@@ -37,7 +37,6 @@ import pytorch_lightning as pl
 
 # add parent directory to path, so that 'knight' folder is treated as a module
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-from fuse_examples.imaging.classification.knight.baseline.dataset_deprecated import knight_dataset
 from examples.fuse_examples.imaging.classification.knight.baseline.fuse_baseline import make_model
 
 def make_predictions_file(
@@ -51,6 +50,7 @@ def make_predictions_file(
     predictions_key_name: str,
     task_num: int,
     auto_select_gpus: Optional[bool]=True,
+    reset_cache: bool=False,
 ):
     """
     Automaitically make prediction files in the requested format - given path to model dir create by FuseMedML during training
@@ -83,7 +83,7 @@ def make_predictions_file(
         data = pd.read_json(json_filepath)
         split = {"test": list(data.case_id)}
 
-    dataset = KNIGHT.dataset(data_path, cache_path, split, reset_cache=False)
+    dataset = KNIGHT.dataset(data_path, cache_path, split, reset_cache=reset_cache)
     if type(dataset)==tuple and len(dataset)==2:
         dataset = dataset[1]
     dl = DataLoader(
