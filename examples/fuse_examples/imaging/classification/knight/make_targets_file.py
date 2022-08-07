@@ -44,7 +44,7 @@ def make_targets_file(data_path: str, split: Union[str, dict], output_filename: 
     # read train/val splits file.
     # use validation set if split specified, otherwise assume testset
     if isinstance(split, str) or isinstance(split, dict):
-        is_validation_set = True        
+        is_validation_set = True
     else:
         assert split is None, f"Error: unexpected split format {split}"
         is_validation_set = False
@@ -58,7 +58,7 @@ def make_targets_file(data_path: str, split: Union[str, dict], output_filename: 
 
         json_labels_filepath = os.path.join(data_path, "knight.json")
         labels = pd.read_json(json_labels_filepath)
-        labels = labels[labels['case_id'].isin(split['val'])]
+        labels = labels[labels["case_id"].isin(split["val"])]
         labels = pd.DataFrame({"target": labels["aua_risk_group"].values})
 
     else:  # test mode

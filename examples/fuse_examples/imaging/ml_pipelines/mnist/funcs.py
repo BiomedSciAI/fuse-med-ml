@@ -25,15 +25,17 @@ from fuse.eval.metrics.classification.metrics_thresholding_common import MetricA
 import torch.optim as optim
 import os
 import torch.nn.functional as F
-from fuse.eval.evaluator import EvaluatorDefault 
+from fuse.eval.evaluator import EvaluatorDefault
 from fuseimg.datasets.mnist import MNIST
 from fuse.data.datasets.dataset_wrap_seq_to_dict import DatasetWrapSeqToDict
+
 
 def create_dataset(cache_dir):
     train_dataset = MNIST.dataset(cache_dir, train=True)
     test_dataset = MNIST.dataset(cache_dir, train=False)
 
     return train_dataset, test_dataset
+
 
 def create_model() -> torch.nn.Module:
     torch_model = lenet.LeNet()
@@ -46,14 +48,14 @@ def create_model() -> torch.nn.Module:
     )
     return model
 
-def run_train(dataset, sample_ids, cv_index, test=False, params=None, \
-        rep_index=0, rand_gen=None):
-    assert(test == False)
+
+def run_train(dataset, sample_ids, cv_index, test=False, params=None, rep_index=0, rand_gen=None):
+    assert test == False
     # obtain train/val dataset subset:
     train_dataset = MNIST.dataset(params["paths"]["cache_dir"], train=True, sample_ids=sample_ids[0])
     validation_dataset = MNIST.dataset(params["paths"]["cache_dir"], train=True, sample_ids=sample_ids[1])
 
-    model_dir = os.path.join(params["paths"]["model_dir"], 'rep_' + str(rep_index), str(cv_index))
+    model_dir = os.path.join(params["paths"]["model_dir"], "rep_" + str(rep_index), str(cv_index))
 
     # ==============================================================================
     # Logger
@@ -70,7 +72,7 @@ def run_train(dataset, sample_ids, cv_index, test=False, params=None, \
         dataset=train_dataset,
         balanced_class_name="data.label",
         num_balanced_classes=10,
-        batch_size=params['data.batch_size'],
+        batch_size=params["data.batch_size"],
         balanced_class_weights=None,
     )
     print("- Create sampler: Done")
@@ -80,7 +82,7 @@ def run_train(dataset, sample_ids, cv_index, test=False, params=None, \
         dataset=train_dataset,
         batch_sampler=sampler,
         collate_fn=CollateDefault(),
-        num_workers=params['data.train_num_workers'],
+        num_workers=params["data.train_num_workers"],
     )
     print("Data - trainset: Done")
 
@@ -88,9 +90,9 @@ def run_train(dataset, sample_ids, cv_index, test=False, params=None, \
     # dataloader
     validation_dataloader = DataLoader(
         dataset=validation_dataset,
-        batch_size=params['data.batch_size'],
+        batch_size=params["data.batch_size"],
         collate_fn=CollateDefault(),
-        num_workers=params['data.validation_num_workers'],
+        num_workers=params["data.validation_num_workers"],
     )
     print("Data - validation set: Done")
 
@@ -130,7 +132,7 @@ def run_train(dataset, sample_ids, cv_index, test=False, params=None, \
     # Training components
     # ====================================================================================
     # create optimizer
-    optimizer = optim.Adam(model.parameters(), lr=params['opt.learning_rate'], weight_decay=params["opt.weight_decay"])
+    optimizer = optim.Adam(model.parameters(), lr=params["opt.learning_rate"], weight_decay=params["opt.weight_decay"])
 
     # create learning scheduler
     lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
@@ -168,8 +170,7 @@ def run_train(dataset, sample_ids, cv_index, test=False, params=None, \
     print("Train: Done")
 
 
-def run_infer(dataset, sample_ids, cv_index, test=False, params=None, \
-              rep_index=0, rand_gen=None):
+def run_infer(dataset, sample_ids, cv_index, test=False, params=None, rep_index=0, rand_gen=None):
     # obtain train/val dataset subset:
     if sample_ids is None:
         validation_dataset = dataset
@@ -177,14 +178,14 @@ def run_infer(dataset, sample_ids, cv_index, test=False, params=None, \
         validation_dataset = Subset(dataset, sample_ids[1])
 
     #### Logger
-    model_dir = os.path.join(params['paths']['model_dir'], 'rep_' + str(rep_index), str(cv_index))
+    model_dir = os.path.join(params["paths"]["model_dir"], "rep_" + str(rep_index), str(cv_index))
     if test:
-        inference_dir = os.path.join(params['paths']['test_dir'], 'rep_' + str(rep_index), str(cv_index))
-        infer_filename = params['test_infer_filename']
+        inference_dir = os.path.join(params["paths"]["test_dir"], "rep_" + str(rep_index), str(cv_index))
+        infer_filename = params["test_infer_filename"]
     else:
-        inference_dir = os.path.join(params['paths']['inference_dir'], 'rep_' + str(rep_index), str(cv_index))
-        infer_filename = params['infer_filename']
-    checkpoint_filename = params['checkpoint_filename']
+        inference_dir = os.path.join(params["paths"]["inference_dir"], "rep_" + str(rep_index), str(cv_index))
+        infer_filename = params["infer_filename"]
+    checkpoint_filename = params["checkpoint_filename"]
 
     create_dir(inference_dir)
     infer_file = os.path.join(inference_dir, infer_filename)
@@ -227,36 +228,52 @@ def run_infer(dataset, sample_ids, cv_index, test=False, params=None, \
     save_dataframe(infer_df, infer_file)
 
 
-def run_eval(dataset, sample_ids, cv_index, test=False, params=None, \
-             rep_index=0, rand_gen=None, pred_key='model.output.classification', \
-             label_key='data.label'):
+def run_eval(
+    dataset,
+    sample_ids,
+    cv_index,
+    test=False,
+    params=None,
+    rep_index=0,
+    rand_gen=None,
+    pred_key="model.output.classification",
+    label_key="data.label",
+):
     if test:
-        inference_dir = os.path.join(params['paths']['test_dir'], 'rep_' + str(rep_index), str(cv_index))
+        inference_dir = os.path.join(params["paths"]["test_dir"], "rep_" + str(rep_index), str(cv_index))
         infer_filename = params["test_infer_filename"]
     else:
-        inference_dir = os.path.join(params['paths']['inference_dir'], 'rep_' + str(rep_index), str(cv_index))
+        inference_dir = os.path.join(params["paths"]["inference_dir"], "rep_" + str(rep_index), str(cv_index))
         infer_filename = params["infer_filename"]
-    if cv_index=='ensemble':
-        infer_filename = 'ensemble_results.gz'
+    if cv_index == "ensemble":
+        infer_filename = "ensemble_results.gz"
     fuse_logger_start(output_path=inference_dir, console_verbose_level=logging.INFO)
     print("Fuse Eval")
 
     # metrics
     class_names = [str(i) for i in range(10)]
 
-    metrics = OrderedDict([
-        ('operation_point', MetricApplyThresholds(pred=pred_key)), # will apply argmax
-        ('accuracy', MetricAccuracy(pred='results:metrics.operation_point.cls_pred', target=label_key)),
-        ('roc', MetricROCCurve(pred=pred_key, target=label_key, class_names=class_names, output_filename=os.path.join(inference_dir, 'roc_curve.png'))),
-        ('auc', MetricAUCROC(pred=pred_key, target=label_key, class_names=class_names)),
-    ])
-   
+    metrics = OrderedDict(
+        [
+            ("operation_point", MetricApplyThresholds(pred=pred_key)),  # will apply argmax
+            ("accuracy", MetricAccuracy(pred="results:metrics.operation_point.cls_pred", target=label_key)),
+            (
+                "roc",
+                MetricROCCurve(
+                    pred=pred_key,
+                    target=label_key,
+                    class_names=class_names,
+                    output_filename=os.path.join(inference_dir, "roc_curve.png"),
+                ),
+            ),
+            ("auc", MetricAUCROC(pred=pred_key, target=label_key, class_names=class_names)),
+        ]
+    )
+
     # create evaluator
     evaluator = EvaluatorDefault()
 
     # run
-    _ = evaluator.eval(ids=None,
-                     data=os.path.join(inference_dir, infer_filename),
-                     metrics=metrics,
-                     output_dir=inference_dir)
-
+    _ = evaluator.eval(
+        ids=None, data=os.path.join(inference_dir, infer_filename), metrics=metrics, output_dir=inference_dir
+    )

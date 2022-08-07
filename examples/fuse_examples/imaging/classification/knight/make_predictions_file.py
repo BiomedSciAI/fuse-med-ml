@@ -39,6 +39,7 @@ import pytorch_lightning as pl
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 from examples.fuse_examples.imaging.classification.knight.baseline.fuse_baseline import make_model
 
+
 def make_predictions_file(
     model_dir: str,
     model: torch.nn.Module,
@@ -49,8 +50,8 @@ def make_predictions_file(
     output_filename: str,
     predictions_key_name: str,
     task_num: int,
-    auto_select_gpus: Optional[bool]=True,
-    reset_cache: bool=False,
+    auto_select_gpus: Optional[bool] = True,
+    reset_cache: bool = False,
 ):
     """
     Automaitically make prediction files in the requested format - given path to model dir create by FuseMedML during training
@@ -84,7 +85,7 @@ def make_predictions_file(
         split = {"test": list(data.case_id)}
 
     dataset = KNIGHT.dataset(data_path, cache_path, split, reset_cache=reset_cache)
-    if type(dataset)==tuple and len(dataset)==2:
+    if type(dataset) == tuple and len(dataset) == 2:
         dataset = dataset[1]
     dl = DataLoader(
         dataset=dataset,

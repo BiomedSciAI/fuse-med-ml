@@ -34,6 +34,7 @@ import pytorch_lightning as pl
 # allocate gpus
 # uncomment if you want to use specific gpus instead of automatically looking for free ones
 
+
 def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_dropout: float):
     if use_data["imaging"]:
         backbone = BackboneResnet3D(in_channels=1)
