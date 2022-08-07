@@ -46,7 +46,7 @@ def create_model() -> torch.nn.Module:
 
 
 def run_train(dataset, sample_ids, cv_index, test=False, params=None, rep_index=0, rand_gen=None):
-    assert test == False
+    assert test is False
     # obtain train/val dataset subset:
     train_dataset = MNIST.dataset(params["paths"]["cache_dir"], train=True, sample_ids=sample_ids[0])
     validation_dataset = MNIST.dataset(params["paths"]["cache_dir"], train=True, sample_ids=sample_ids[1])

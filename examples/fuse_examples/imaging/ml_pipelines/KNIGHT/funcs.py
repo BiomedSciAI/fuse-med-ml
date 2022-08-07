@@ -29,7 +29,7 @@ from examples.fuse_examples.imaging.classification.knight.baseline.fuse_baseline
 
 
 def run_train(dataset, sample_ids, cv_index, test=False, params=None, rep_index=0, rand_gen=None):
-    assert test == False
+    assert test is False
     model_dir = os.path.join(params["paths"]["model_dir"], "rep_" + str(rep_index), str(cv_index))
     cache_dir = os.path.join(params["paths"]["cache_dir"], "rep_" + str(rep_index), str(cv_index))
 
