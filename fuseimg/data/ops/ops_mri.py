@@ -18,6 +18,8 @@ import radiomics
 
 
 class OpExtractDicomsPerSeq(OpBase):
+    """ """
+
     def __init__(self, seq_ids, series_desc_2_sequence_map, use_order_indicator: bool = False, **kwargs):
         super().__init__(**kwargs)
         self._seq_ids = seq_ids
@@ -25,6 +27,9 @@ class OpExtractDicomsPerSeq(OpBase):
         self._use_order_indicator = use_order_indicator
 
     def __call__(self, sample_dict: NDict, key_in: str, key_out_seq_ids: str, key_out_sequence_prefix: str):
+        """
+        TODO
+        """
         sample_path = sample_dict[key_in]
         sample_dict[key_out_seq_ids] = []
         seq_2_info_map = extract_seq_2_info_map(sample_path, self._series_desc_2_sequence_map)
@@ -851,6 +856,9 @@ def apply_rescaling(img: np.array, thres: tuple = (1.0, 99.0), method: str = "no
 
 
 def extract_seq_2_info_map(sample_path, series_desc_2_sequence_map):
+    """
+    TODO:
+    """
     seq_info_dict = {}
     for seq_dir in os.listdir(sample_path):
         seq_path = os.path.join(sample_path, seq_dir)

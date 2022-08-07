@@ -8,7 +8,8 @@ from typing import Any, Callable, Hashable, Optional, Sequence, List, Dict
 from fuse.data.ops.ops_common import OpLambda, OpKeepKeypaths
 from functools import partial
 
-from fuseimg.data.ops.aug import geometry, geometry_3d
+from fuseimg.data.ops.aug.geometry_3d import OpRotation3D
+from fuseimg.data.ops.aug.geometry import OpAugSqueeze3Dto2D, OpAugAffine2D, OpAugUnsqueeze3DFrom2D
 from fuse.data.ops.ops_aug_common import OpSample, OpRandApply
 from fuse.utils.rand.param_sampler import RandBool, RandInt, Uniform
 
@@ -17,13 +18,26 @@ import pandas as pd
 from fuse.data import DatasetDefault
 from fuse.data import PipelineDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
-from fuse.data.ops.op_base import OpReversibleBase, OpBase
-from fuse.data.ops import ops_read
+from fuse.data.ops.op_base import OpBase
+from fuse.data.ops.ops_read import OpReadDataframe
 from fuse.data.ops.ops_cast import OpToTensor
 from fuse.data.utils.sample import get_sample_id, get_sample_id_key
 from fuse.utils import NDict
-from fuseimg.data.ops import ops_mri
-from fuseimg.data.ops.ops_mri import OpExtractRadiomics
+from fuseimg.data.ops.ops_mri import (
+    OpExtractDicomsPerSeq,
+    OpLoadDicomAsStkVol,
+    OpExtractRadiomics,
+    OpGroupDCESequences,
+    OpSelectVolumes,
+    OpResampleStkVolsBasedRef,
+    OpStackList4DStk,
+    OpRescale4DStk,
+    OpExtractPatchAnotations,
+    OpAddMaskFromBoundingBoxAsLastChannel,
+    OpCreatePatchVolumes,
+    OpStk2Dict,
+    OpDict2Stk,
+)
 
 import torch
 
@@ -101,6 +115,9 @@ class Duke:
 
     @staticmethod
     def sample_ids() -> List[str]:
+        """
+        Returns all the 922 sample IDs for the Duke Breast MRI dataset
+        """
         return [f"Breast_MRI_{i:03d}" for i in range(1, 923)]
 
     @staticmethod
@@ -124,11 +141,11 @@ class Duke:
         seq_ids = ["DCE_mix_ph1", "DCE_mix_ph2", "DCE_mix_ph3", "DCE_mix_ph4", "DCE_mix", "DCE_mix_ph"]
 
         static_pipeline_steps = [
-            # step 1: map sample_ids to
+            # step 1: map sample_id to path of MRI image
             (OpDukeSampleIDDecode(data_path=mri_dir2), dict(key_out="data.input.mri_path")),
             # step 2: read sequences
             (
-                ops_mri.OpExtractDicomsPerSeq(
+                OpExtractDicomsPerSeq(
                     seq_ids=seq_ids, series_desc_2_sequence_map=series_desc_2_sequence_map, use_order_indicator=False
                 ),
                 dict(
@@ -139,17 +156,17 @@ class Duke:
             ),
             # step 3: Load STK volumes of MRI sequences
             (
-                ops_mri.OpLoadDicomAsStkVol(),
+                OpLoadDicomAsStkVol(),
                 dict(key_in_seq_ids="data.input.seq_ids", key_sequence_prefix="data.input.sequence."),
             ),
             # step 4: group DCE sequences into DCE_mix
             (
-                ops_mri.OpGroupDCESequences(),
+                OpGroupDCESequences(),
                 dict(key_seq_ids="data.input.seq_ids", key_sequence_prefix="data.input.sequence."),
             ),
             # step 5: select single volume from DCE_mix sequence
             (
-                ops_mri.OpSelectVolumes(
+                OpSelectVolumes(
                     get_indexes_func=select_series_func, selected_seq_ids=["DCE_mix"], delete_input_volumes=True
                 ),
                 dict(
@@ -161,12 +178,12 @@ class Duke:
             ),
             # step 6: set first volume to be the reference volume and register other volumes with respect to it
             (
-                ops_mri.OpResampleStkVolsBasedRef(reference_inx=0, interpolation="bspline"),
+                OpResampleStkVolsBasedRef(reference_inx=0, interpolation="bspline"),
                 dict(key="data.input.selected_volumes"),
             ),
             # step 7: create a single 4D volume from all the sequences (4th channel is the sequence)
             (
-                ops_mri.OpStackList4DStk(delete_input_volumes=True),
+                OpStackList4DStk(delete_input_volumes=True),
                 dict(
                     key_in="data.input.selected_volumes",
                     key_out_volume4d="data.input.volume4D",
@@ -176,12 +193,12 @@ class Duke:
         ]
         if with_rescale:
             # step 8:
-            static_pipeline_steps += [(ops_mri.OpRescale4DStk(), dict(key="data.input.volume4D"))]
+            static_pipeline_steps += [(OpRescale4DStk(), dict(key="data.input.volume4D"))]
 
         # step 9: read raw annotations - will be used for labels, features, and also for creating lesion properties
         static_pipeline_steps += [
             (
-                ops_read.OpReadDataframe(data=get_duke_raw_annotations_df(data_dir), key_column="Patient ID"),
+                OpReadDataframe(data=get_duke_raw_annotations_df(data_dir), key_column="Patient ID"),
                 dict(key_out_group="data.input.annotations"),
             )
         ]
@@ -192,7 +209,7 @@ class Duke:
                 # read previousy computed patch annotations
                 static_pipeline_steps += [
                     (
-                        ops_read.OpReadDataframe(data=duke_patch_annotations_df, key_column="Patient ID"),
+                        OpReadDataframe(data=duke_patch_annotations_df, key_column="Patient ID"),
                         dict(key_out_group="data.input.patch_annotations"),
                     ),
                 ]
@@ -201,7 +218,7 @@ class Duke:
                 static_pipeline_steps += [
                     # add lesion features
                     (
-                        ops_mri.OpExtractPatchAnotations(),
+                        OpExtractPatchAnotations(),
                         dict(
                             key_in_ref_volume="data.input.ref_volume",
                             key_in_annotations="data.input.annotations",
@@ -213,7 +230,7 @@ class Duke:
             static_pipeline_steps += [
                 # step 11: generate a mask from the lesion BB and append as a new (last) channel
                 (
-                    ops_mri.OpAddMaskFromBoundingBoxAsLastChannel(name_suffix=name_suffix),
+                    OpAddMaskFromBoundingBoxAsLastChannel(name_suffix=name_suffix),
                     dict(
                         key_volume4D="data.input.volume4D",
                         key_in_ref_volume="data.input.ref_volume",
@@ -222,7 +239,7 @@ class Duke:
                 ),
                 # step 12: create patch volumes using the mask channel: (i) fixed size (original scale) around center of annotatins (orig), and (ii) entire annotations
                 (
-                    ops_mri.OpCreatePatchVolumes(
+                    OpCreatePatchVolumes(
                         lsn_shape=(9, 100, 100),
                         lsn_spacing=(1, 0.5, 0.5),
                         crop_based_annotation=True,
@@ -240,7 +257,7 @@ class Duke:
         if output_stk_volumes:
             static_pipeline_steps += [
                 # step 13: move STK volumes to ndarrays - to allow quick saving to disk
-                (ops_mri.OpStk2Dict(), dict(keys=["data.input.volume4D", "data.input.ref_volume"]))
+                (OpStk2Dict(), dict(keys=["data.input.volume4D", "data.input.ref_volume"]))
             ]
         static_pipeline = PipelineDefault("static", static_pipeline_steps, verbose=verbose)
 
@@ -290,7 +307,7 @@ class Duke:
                 #     {'apply': RandBool(0.5)}
                 # ],
                 (
-                    OpRandApply(OpSample(geometry_3d.OpRotation3D()), 0.5),
+                    OpRandApply(OpSample(OpRotation3D()), 0.5),
                     dict(
                         key="data.input.patch_volume",
                         ax1_rot=Uniform(-5.0, 5.0),
@@ -305,7 +322,7 @@ class Duke:
                 #     {'axis_squeeze': 'z'},
                 #     {}
                 # ],
-                (geometry.OpAugSqueeze3Dto2D(), dict(key="data.input.patch_volume", axis_squeeze=1)),
+                (OpAugSqueeze3Dto2D(), dict(key="data.input.patch_volume", axis_squeeze=1)),
                 # step 3.2.2 2D affine transformation
                 # [
                 #     ('data.input',),
@@ -318,7 +335,7 @@ class Duke:
                 #     {'apply': RandBool(0.5)}
                 # ],
                 (
-                    OpRandApply(OpSample(geometry.OpAugAffine2D()), 0.5),
+                    OpRandApply(OpSample(OpAugAffine2D()), 0.5),
                     dict(
                         key="data.input.patch_volume",
                         rotate=Uniform(0, 360.0),
@@ -335,7 +352,7 @@ class Duke:
                 #     {}
                 # ],
                 (
-                    geometry.OpAugUnsqueeze3DFrom2D(),
+                    OpAugUnsqueeze3DFrom2D(),
                     dict(
                         key="data.input.patch_volume",
                         axis_squeeze=1,
@@ -353,7 +370,7 @@ class Duke:
             # step 4 (optional): read clinical data
             dynamic_steps += [
                 (
-                    ops_read.OpReadDataframe(
+                    OpReadDataframe(
                         data=get_duke_clinical_data_df(data_dir), key_column="Patient Information:Patient ID"
                     ),
                     dict(key_out_group="data.input.clinical_data"),
@@ -412,23 +429,19 @@ class Duke:
         return os.environ["DUKE_DATA_PATH"]
 
 
-class OpDukeSampleIDDecode(OpReversibleBase):
+class OpDukeSampleIDDecode(OpBase):
     """
-    decodes sample id into path of MRI images
+    decodes sample id into path of the MRI image
     """
 
     def __init__(self, data_path: str, **kwargs: Any):
         super().__init__(**kwargs)
         self._data_path = data_path
 
-    def __call__(self, sample_dict: NDict, key_out: str, op_id: Optional[str]) -> NDict:
+    def __call__(self, sample_dict: NDict, key_out: str) -> NDict:
         sid = get_sample_id(sample_dict)
 
         sample_dict[key_out] = get_sample_path(self._data_path, sid)
-
-        return sample_dict
-
-    def reverse(self, sample_dict: dict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
         return sample_dict
 
 
@@ -517,7 +530,10 @@ def get_samples_for_debug(
 
 
 def get_series_desc_2_sequence_mapping(metadata_path: str) -> Dict[str, str]:
-    # read metadata file and match between series_desc in metadata file and sequence
+    """
+    read metadata file and match between series_desc in metadata file and sequence
+    """
+
     metadata_df = pd.read_csv(metadata_path)
     series_description_list = metadata_df["Series Description"].unique()
 
@@ -573,7 +589,7 @@ class DukeRadiomics(Duke):
             **radiomics_extractor_setting
         )  # todo: tal: move to OpExtractRadiomics
         dynamic_steps = [
-            (ops_mri.OpDict2Stk(), dict(keys=["data.input.volume4D", "data.input.ref_volume"])),
+            (OpDict2Stk(), dict(keys=["data.input.volume4D", "data.input.ref_volume"])),
             (
                 OpExtractRadiomics(radiomics_extractor, radiomics_extractor_setting),
                 dict(key_in_vol_4d="data.input.volume4D", key_out_radiomics_results="data.radiomics"),
