@@ -63,6 +63,7 @@ dataset_params['split'] = split
 # Train Params
 ##########################################
 train_params = {}
+train_params['dataset'] = dataset_params
 train_params['split'] = split
 train_params['paths'] = paths
 train_params['common'] = common_params
@@ -79,6 +80,8 @@ train_params['num_workers'] = 8
 # Inference Params
 ######################################
 infer_params = {}
+infer_params['dataset'] = dataset_params
+infer_params['train'] = train_params
 infer_params['paths'] = paths
 infer_params['common'] = common_params
 infer_params['test_infer_filename'] = 'test_results.gz'

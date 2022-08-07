@@ -47,7 +47,7 @@ def run_train(dataset, sample_ids, cv_index, test=False, params=None, \
                                                         cache_dir=cache_dir,
                                                         split=params["split"],
                                                         reset_cache=False,
-                                                        resize_to=(110, 256, 256),
+                                                        resize_to=params["dataset"]["resize_to"],
                                                         sample_ids=sample_ids)
 
 
@@ -153,13 +153,12 @@ def run_train(dataset, sample_ids, cv_index, test=False, params=None, \
         accelerator="gpu",
         devices=params["common"]["num_gpus_per_split"],
         strategy=None,
-        auto_select_gpus=True,
+        auto_select_gpus=False,
         num_sanity_val_steps=-1,
     )
 
     # train
     pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=None)
-
 
 
 def run_infer(dataset, sample_ids, cv_index, test=False, params=None, \
@@ -175,7 +174,7 @@ def run_infer(dataset, sample_ids, cv_index, test=False, params=None, \
     if not os.path.isdir(infer_dir):
         os.makedirs(infer_dir)
 
-    checkpoint = 'best'
+    checkpoint = os.path.join(model_dir, "best_epoch.ckpt")
     data_path = params['paths']['data_dir']
     predictions_filename = os.path.join(infer_dir, 'predictions.csv')
     targets_filename = os.path.join(infer_dir, 'targets.csv')
@@ -185,15 +184,17 @@ def run_infer(dataset, sample_ids, cv_index, test=False, params=None, \
 
     split = {}
     if sample_ids is not None:
-        split['train'] = [dataset.samples_description[i] for i in sample_ids[0]]
-        split['val'] = [dataset.samples_description[i] for i in sample_ids[1]]
+        split["train"] = [params["dataset"]["split"]["train"][i] for i in sample_ids[0]]
+        split["val"] = [params["dataset"]["split"]["train"][i] for i in sample_ids[1]]
     else:
         # test mode
-        split['train'] = []
-        split['val'] = dataset.samples_description
+        split["train"] = params["dataset"]["split"]["train"] # we will not use this
+        split["val"] = params["dataset"]["split"]["val"]
 
-    make_predictions_file(model_dir=model_dir, checkpoint=checkpoint, data_path=data_path, cache_path=cache_dir, split=split, output_filename=predictions_filename, predictions_key_name=predictions_key_name, task_num=task_num)
-    make_targets_file(data_path=data_path, cache_path=cache_dir, split=split, output_filename=targets_filename)
+    model = make_model(params["common"]["use_data"], params["common"]["num_classes"], params["train"]["imaging_dropout"], params["train"]["fused_dropout"])
+
+    make_predictions_file(model_dir=model_dir, model=model, checkpoint=checkpoint, data_path=data_path, cache_path=cache_dir, split=split, output_filename=predictions_filename, predictions_key_name=predictions_key_name, task_num=task_num, auto_select_gpus=False)
+    make_targets_file(data_path=data_path, split=split, output_filename=targets_filename)
 
 def run_eval(dataset, sample_ids, cv_index, test=False, params=None, \
              rep_index=0, rand_gen=None, pred_key='model.output.classification', \
@@ -215,7 +216,7 @@ def run_eval(dataset, sample_ids, cv_index, test=False, params=None, \
             preds = pd.read_csv(predictions_filename)
             targets = pd.read_csv(targets_filename)
             df = pd.DataFrame(columns = ['id','model.output.classification','data.label'])
-            df["id"] = preds['case_id']
+            df["id"] = preds['Case_id']
             df['model.output.classification']=list(np.stack((preds['NoAT-score'], preds['CanAT-score']),1))
             df['data.label'] = targets['Task1-target']        
             df.to_pickle(unified_filepath)
@@ -224,8 +225,8 @@ def run_eval(dataset, sample_ids, cv_index, test=False, params=None, \
             # save results in csv format expected by KNIGHT's evaluation function
             ensemble_res = pd.read_pickle(os.path.join(infer_dir,'ensemble_results.gz'))
 
-            pred_df = pd.DataFrame(columns = ['case_id','NoAT-score','CanAT-score'])
-            pred_df["case_id"] = ensemble_res['id']
+            pred_df = pd.DataFrame(columns = ['Case_id','NoAT-score','CanAT-score'])
+            pred_df["Case_id"] = ensemble_res['id']
             pred_df["NoAT-score"] = [item[0] for item in list(ensemble_res.preds)]
             pred_df["CanAT-score"] = [item[1] for item in list(ensemble_res.preds)]
             pred_df.to_csv(predictions_filename, index=False)

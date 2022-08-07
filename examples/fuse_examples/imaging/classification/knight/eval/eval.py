@@ -40,10 +40,10 @@ from functools import partial
 
 ## Constants
 # Constants that defines the expected format of the prediction and target files and list the classes for task 1 and task @
-EXPECTED_TASK1_PRED_KEYS = {"case_id", "NoAT-score", "CanAT-score"}
-EXPECTED_TASK2_PRED_KEYS = {"case_id", "B-score", "LR-score", "IR-score", "HR-score", "VHR-score"}
+EXPECTED_TASK1_PRED_KEYS = {"Case_id", "NoAT-score", "CanAT-score"}
+EXPECTED_TASK2_PRED_KEYS = {"Case_id", "B-score", "LR-score", "IR-score", "HR-score", "VHR-score"}
 EXPECTED_TARGET_KEYS = {"case_id", "Task1-target", "Task2-target"}
-PRED_CASE_ID_NAME = "case_id"
+PRED_CASE_ID_NAME = "Case_id"
 TARGET_CASE_ID_NAME = "case_id"
 TASK1_CLASS_NAMES = ("NoAT", "CanAT")  # must be aligned with task1 targets
 TASK2_CLASS_NAMES = ("B", "LR", "IR", "HR", "VHR")  # must be aligned with task2 targets
@@ -211,7 +211,7 @@ def eval(
                         pred="task1_pred.array",
                         target="target.Task1-target",
                         class_names=TASK1_CLASS_NAMES,
-                        pre_collect_process_func=post_processing,
+                        pre_collect_process_func=post_proc,
                     ),
                     stratum="target.Task1-target",
                 ),
@@ -219,7 +219,7 @@ def eval(
                     pred="task1_pred.array",
                     target="target.Task1-target",
                     class_names=[None, ""],
-                    pre_collect_process_func=post_processing,
+                    pre_collect_process_func=post_proc,
                     output_filename=os.path.join(output_dir, "task1_roc.png"),
                 ),
             }
@@ -243,7 +243,7 @@ def eval(
                         pred="task2_pred.array",
                         target="target.Task2-target",
                         class_names=TASK2_CLASS_NAMES,
-                        pre_collect_process_func=post_processing,
+                        pre_collect_process_func=post_proc,
                     ),
                     stratum="target.Task2-target",
                 ),
@@ -252,7 +252,7 @@ def eval(
                     target="target.Task2-target",
                     class_names=TASK2_CLASS_NAMES,
                     output_filename=os.path.join(output_dir, "task2_roc.png"),
-                    pre_collect_process_func=post_processing,
+                    pre_collect_process_func=post_proc,
                 ),
             }
         )
