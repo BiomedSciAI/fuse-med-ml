@@ -14,6 +14,7 @@ from fuse.eval.evaluator import EvaluatorDefault
 from fuse.utils.file_io.file_io import create_or_reset_dir
 from fuse.utils.rand.seed import Seed
 
+
 # pre collect function to change the format
 def ensemble_pre_collect(sample_dict: dict) -> dict:
     # convert predictions from all models to numpy array
