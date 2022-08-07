@@ -309,6 +309,13 @@ The following operators are useful when implementing a common pipeline:
 * OpToTensor - convert many different types to PyTorch tensor
 * OpOneHotToNumber - convert one-hot encoding vectors into numbers
 
+[**Debug operators**](ops/ops_debug.py)
+
+* OpPrintKeys - print the keys available at this point in the pipeline. Use OpDebugBase constructor arguments to limit the samples to debug.
+* OpPrintShapes - print the shapes of all tensors, numpy arrays and sequences. Use OpDebugBase constructor arguments to limit the samples to debug.
+* OpPrintTypes - print the types of all keys. Use OpDebugBase constructor arguments to limit the samples to debug.
+
+
 **Imaging operators**
 See [fuseimg package](../../fuseimg/data/README.md)
 

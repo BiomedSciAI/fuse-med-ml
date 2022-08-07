@@ -24,6 +24,9 @@ import os
 from typing import Optional, Union
 import pandas as pd
 import torch
+from torch.utils.data.dataloader import DataLoader
+from fuse.data.utils.collates import CollateDefault
+from fuseimg.datasets.knight import KNIGHT
 
 from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import save_dataframe
@@ -34,7 +37,7 @@ import pytorch_lightning as pl
 
 # add parent directory to path, so that 'knight' folder is treated as a module
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-from examples.fuse_examples.imaging.classification.knight.baseline.dataset import knight_dataset
+from fuse_examples.imaging.classification.knight.baseline.dataset_deprecated import knight_dataset
 from examples.fuse_examples.imaging.classification.knight.baseline.fuse_baseline import make_model
 
 def make_predictions_file(
@@ -80,12 +83,18 @@ def make_predictions_file(
         data = pd.read_json(json_filepath)
         split = {"test": list(data.case_id)}
 
-    _, validation_dl, test_dl, _, _, _ = knight_dataset(data_path, cache_path, split, reset_cache=False, batch_size=2)
-
-    if "test" in split:
-        dl = test_dl
-    else:
-        dl = validation_dl
+    dataset = KNIGHT.dataset(data_path, cache_path, split, reset_cache=False)
+    if type(dataset)==tuple and len(dataset)==2:
+        dataset = dataset[1]
+    dl = DataLoader(
+        dataset=dataset,
+        shuffle=False,
+        drop_last=False,
+        batch_sampler=None,
+        batch_size=2,
+        num_workers=8,
+        collate_fn=CollateDefault(),
+    )
 
     pl_module = LightningModuleDefault(
         model_dir=model_dir,
@@ -131,16 +140,16 @@ if __name__ == "__main__":
     Automaitically make prediction files in the requested format - given model definition and path to model dir create by FuseMedML during training
     """
     # no arguments - set arguments inline - see details in function make_predictions_file
-    model_dir = ""
-    checkpoint = "best"
-    data_path = ""
-    cache_path = ""
-    split = None
+    model_dir = "/data/usr/goalex/data/KNIGHT_results/model/rep_0/0"
+    checkpoint = "/data/usr/goalex/data/KNIGHT_results/model/rep_0/0/best_epoch.ckpt"
+    data_path = "/projects/msieve/MedicalSieve/PatientData/KNIGHT/knight/data"
+    cache_path = "/data/usr/goalex/data/KNIGHT_cache"
+    split = "baseline/splits_final.pkl"
     output_filename = "validation_predictions.csv"
     predictions_key_name = "model.output.head_0"
     task_num = 1  # 1 or 2
 
-    use_data = {"imaging": True, "clinical": True}  # specify whether to use imaging, clinical data or both
+    use_data = {"imaging": False, "clinical": True}  # specify whether to use imaging, clinical data or both
     num_classes = 2
     imaging_dropout = 0.5
     clinical_dropout = 0.0

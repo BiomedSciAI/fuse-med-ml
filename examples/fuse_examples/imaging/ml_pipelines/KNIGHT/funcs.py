@@ -28,7 +28,8 @@ import pytorch_lightning as pl
 from fuse.dl.losses.loss_default import LossDefault
 import pandas as pd
 import numpy as np
-from examples.fuse_examples.imaging.ml_pipelines.KNIGHT.dataset import knight_dataset
+#from examples.fuse_examples.imaging.ml_pipelines.KNIGHT.dataset import knight_dataset
+from fuseimg.datasets.knight import KNIGHT
 from examples.fuse_examples.imaging.classification.knight.baseline.fuse_baseline import make_model
 
 def run_train(dataset, sample_ids, cv_index, test=False, params=None, \
@@ -43,13 +44,24 @@ def run_train(dataset, sample_ids, cv_index, test=False, params=None, \
 
     # obtain train/val dataset subset:
     ## Create subset data sources
-    train_dataset, validation_dataset = knight_dataset(data_dir=params["paths"]["data_dir"],
-                                                        cache_dir=cache_dir,
-                                                        split=params["split"],
-                                                        reset_cache=False,
-                                                        resize_to=params["dataset"]["resize_to"],
-                                                        sample_ids=sample_ids)
+    #train_dataset, validation_dataset = knight_dataset(data_dir=params["paths"]["data_dir"],
+    #                                                    cache_dir=cache_dir,
+    #                                                    split=params["split"],
+    #                                                    reset_cache=False,
+    #                                                    resize_to=params["dataset"]["resize_to"],
+    #                                                    sample_ids=sample_ids)
+    
+    split = {}
+    split["train"] = [params["dataset"]["split"]["train"][i] for i in sample_ids[0]]
+    split["val"] = [params["dataset"]["split"]["train"][i] for i in sample_ids[1]]
 
+    train_dataset, validation_dataset = KNIGHT.dataset(data_path=params["paths"]["data_dir"],
+                                                        cache_dir=cache_dir,
+                                                        split=split,
+                                                        sample_ids=None,
+                                                        test=False,
+                                                        reset_cache=False,
+                                                        resize_to=params["dataset"]["resize_to"])
 
     num_classes = params["common"]["num_classes"]
     ## Create sampler

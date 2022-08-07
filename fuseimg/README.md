@@ -46,6 +46,11 @@ Here you can find useful ops for imaging and public datasets implementations
 * OpCrop3D - crop 3d image to certain size. can be used as random crop using OpSample.
 * OpRotation3D - rotate 3d image across the 3 planes xyz.
 
+[**debug**](data/ops/ops_debug.py)
+
+* OpVis2DImage - Visualize a 2D image (either display it or save it as an image).
+* OpVisImageHist - Visualize single image histogram (either display it or save it as an image).
+
 ### Imaging datasets
 
 * [kits21](datasets/kits21.py) - 2021 Kidney and Kidney Tumor Segmentation Challenge Dataset. See [link](https://github.com/neheller/kits21)
@@ -53,3 +58,4 @@ Here you can find useful ops for imaging and public datasets implementations
 * [cmmd](datasets/cmmd.py) - dataset that contains breast mammography biopsy info and metadata from chinese patients - https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508. Aims to predict breast cancer biopsy results from mammography
 * [mnist](datasets/mnist.py) - mnist dataset implementation
 * [isic19](datasets/isic.py) - 2019 International Skin Imaging Collaboration ([ISIC](https://challenge.isic-archive.com/landing/2019/)) Challenge dataset. The goal is to classify demoscropic images among nine different diagnostic categories
+* [knight](datasets/knight.py) - KNIGHT Challenge dataset. The goal is to classify cases into risk groups based on CT image and clinical data. See [link](https://research.ibm.com/haifa/Workshops/KNIGHT/index.html)
