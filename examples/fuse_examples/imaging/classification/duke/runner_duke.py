@@ -65,8 +65,8 @@ debug = FuseDebug(mode)
 ROOT = "/tmp/_duke_sagi"
 data_dir = os.environ["DUKE_DATA_PATH"]
 
-# if mode == "debug": # super temp :)
-if True:  # super temp :)
+if mode == "debug":  # super temp :)
+    # if True:  # super temp :)
     data_split_file = "DUKE_folds_debug.pkl"
 
     selected_positive = [1, 2, 3, 5, 6, 10, 12, 596, 900, 901]
@@ -83,9 +83,19 @@ if True:  # super temp :)
     num_devices = 1
 
 else:
+    print("Lets RUN")
     data_split_file = "DUKE_folds.pkl"
 
     selected_sample_ids = None
+    model_dir = os.path.join(ROOT, "model_dir_debug")
+    cache_dir = os.path.join(ROOT, "cache_dir_debug")
+    force_reset_model_dir = True
+
+    num_workers = 16
+    batch_size = 50
+    num_epochs = 25
+    num_devices = 2
+
 
 PATHS = {
     "model_dir": model_dir,
@@ -258,7 +268,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
         data_dir=paths["data_dir"],
         cache_dir=paths["cache_dir"],
         # reset_cache=train_common_params["data.reset_cache"],
-        reset_cache=False,
+        reset_cache=True,
         sample_ids=train_common_params["data.sample_ids"],
         num_workers=train_common_params["data.train_num_workers"],
         train=False,

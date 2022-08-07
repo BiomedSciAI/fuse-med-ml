@@ -1,6 +1,6 @@
 import glob
 import os
-from typing import Optional
+from typing import Optional, Union
 import logging
 
 import SimpleITK as sitk
@@ -33,14 +33,14 @@ class OpExtractDicomsPerSeq(OpBase):
         sample_path = sample_dict[key_in]
         sample_dict[key_out_seq_ids] = []
         seq_2_info_map = extract_seq_2_info_map(sample_path, self._series_desc_2_sequence_map)
+        print(f"DEBUG: seq_2_info_map = {seq_2_info_map}")
         for seq_id in self._seq_ids:
-
             seq_info_list = seq_2_info_map.get(seq_id, None)
             if seq_info_list is None:
                 # sequence does not exist for the patient
                 continue
             sample_dict[key_out_seq_ids].append(seq_id)
-            sample_dict[f"{key_out_sequence_prefix}{seq_id}"] = []
+            sample_dict[f"{key_out_sequence_prefix}.{seq_id}"] = []
             for seq_info in seq_info_list:  # could be several sequences/series (sequence/series=  path)
 
                 dicom_group_ids, sorted_dicom_groups = sort_dicoms_by_field(
@@ -54,7 +54,7 @@ class OpExtractDicomsPerSeq(OpBase):
                         dicoms=dicom_group,  # each sequence/series path may contain several (sub-)sequence/series
                         dicoms_id=dicom_group_id,
                     )
-                    sample_dict[f"{key_out_sequence_prefix}{seq_id}"].append(seq_info2)
+                    sample_dict[f"{key_out_sequence_prefix}.{seq_id}"].append(seq_info2)
 
         return sample_dict
 
@@ -67,6 +67,7 @@ class OpLoadDicomAsStkVol(OpBase):
 
     def __init__(self, seq_reverse_map=None, **kwargs):
         """
+        TODO: ask michal about missing args
         :param reverse_order: sometimes reverse dicoms orders is needed
         (for b series in which more than one sequence is provided inside the img_path)
         :param is_file: if True loads all dicoms from img_path
@@ -89,7 +90,7 @@ class OpLoadDicomAsStkVol(OpBase):
         for seq_id in seq_ids:
             should_reverse_order = self._seq_reverse_map.get(seq_id, False)
 
-            sequence_info_list = sample_dict[f"{key_sequence_prefix}{seq_id}"]
+            sequence_info_list = sample_dict[f"{key_sequence_prefix}.{seq_id}"]
 
             for sequence_info in sequence_info_list:
                 stk_vol = get_stk_volume(
@@ -103,7 +104,15 @@ class OpLoadDicomAsStkVol(OpBase):
         return sample_dict
 
 
-def get_stk_volume(img_path, is_file, dicom_files, reverse_order):
+def get_stk_volume(img_path: str, is_file: bool, dicom_files, reverse_order):
+    """
+    TODO
+
+    :param img_path:
+    :param is_file:
+    :param dicom_files:
+    :param reverse_order:
+    """
     # load from HDF5
     if img_path[-4::] in "hdf5":
         vol = _read_HDF5_file(img_path)
@@ -151,14 +160,12 @@ class OpGroupDCESequences(OpBase):
         super().__init__(**kwargs)
         self._verbose = verbose
 
-    def __call__(self, sample_dict: NDict, key_seq_ids: str, key_sequence_prefix: str):
-
+    def __call__(self, sample_dict: NDict, key_seq_ids: str, key_sequence_prefix: str) -> NDict:
         """
         extract_list_of_rel_vol extract the volume per seq based on SER_INX_TO_USE
         and put in one list
         :param vols_dict: dict of sitk vols per seq
         :param seq_info: dict of seq description per seq
-        :return:
         """
 
         seq_ids = sample_dict[key_seq_ids]
@@ -171,14 +178,14 @@ class OpGroupDCESequences(OpBase):
             new_seq_id = "DCE_mix"
             assert new_seq_id not in seq_ids
             seq_ids.append(new_seq_id)
-            sample_dict[f"{key_sequence_prefix}{new_seq_id}"] = []
+            sample_dict[f"{key_sequence_prefix}.{new_seq_id}"] = []
             for seq_id in existing_dce_mix_ph_sequences:
-                sequence_info_list = sample_dict[f"{key_sequence_prefix}{seq_id}"]
+                sequence_info_list = sample_dict[f"{key_sequence_prefix}.{seq_id}"]
                 if seq_id == "DCE_mix_ph":
                     series_num_arr = [a["series_num"] for a in sequence_info_list]
                     inx_sorted = np.argsort(series_num_arr)
                     sequence_info_list = [sequence_info_list[i] for i in inx_sorted]
-                sample_dict[f"{key_sequence_prefix}{new_seq_id}"] += sequence_info_list
+                sample_dict[f"{key_sequence_prefix}.{new_seq_id}"] += sequence_info_list
 
                 delete_seqeunce_from_dict(
                     seq_id=seq_id,
@@ -224,7 +231,7 @@ class OpSelectVolumes(OpBase):
         for selected_seq_id in self._selected_seq_ids:
 
             if selected_seq_id in seq_ids:
-                sequence_info_list = sample_dict[f"{key_in_sequence_prefix}{selected_seq_id}"]
+                sequence_info_list = sample_dict[f"{key_in_sequence_prefix}.{selected_seq_id}"]
             else:
                 sequence_info_list = []
 
@@ -265,7 +272,7 @@ class OpSelectVolumes(OpBase):
                 )
         if self._delete_input_volumes:
             for seq_id in seq_ids:  # to save space...also when caching sample_dict
-                for sequence_info in sample_dict[f"{key_in_sequence_prefix}{seq_id}"]:
+                for sequence_info in sample_dict[f"{key_in_sequence_prefix}.{seq_id}"]:
                     del sequence_info["stk_volume"]
         return sample_dict
 
@@ -567,7 +574,7 @@ class OpFixProstateBSequence(OpBase):
                 adc_volume = get_single_item(sample_dict[f"{key_in_volumes_prefix}ADC"])
 
                 for b_seq_id in ["b800", "b400"]:
-                    volume = get_single_item(sample_dict[f"{key_in_volumes_prefix}{b_seq_id}"])
+                    volume = get_single_item(sample_dict[f"{key_in_volumes_prefix}.{b_seq_id}"])
 
                     volume.CopyInformation(adc_volume)
         return sample_dict
@@ -590,15 +597,15 @@ def delete_seqeunce_from_dict(seq_id, sample_dict, key_sequence_ids, key_sequenc
     seq_ids = sample_dict[key_sequence_ids]
     if seq_id in seq_ids:
         seq_ids.remove(seq_id)
-        del sample_dict[f"{key_sequence_prefix}{seq_id}"]
+        del sample_dict[f"{key_sequence_prefix}.{seq_id}"]
 
 
 def rename_seqeunce_from_dict(sample_dict, seq_id_old, seq_id_new, key_sequence_prefix, key_seq_ids):
     seq_ids = sample_dict[key_seq_ids]
     if seq_id_old in seq_ids:
         assert seq_id_new not in seq_ids
-        sample_dict[f"{key_sequence_prefix}{seq_id_new}"] = sample_dict[f"{key_sequence_prefix}{seq_id_old}"]
-        del sample_dict[f"{key_sequence_prefix}{seq_id_old}"]
+        sample_dict[f"{key_sequence_prefix}.{seq_id_new}"] = sample_dict[f"{key_sequence_prefix}.{seq_id_old}"]
+        del sample_dict[f"{key_sequence_prefix}.{seq_id_old}"]
         seq_ids.remove(seq_id_old)
         seq_ids.append(seq_id_new)
 
@@ -857,9 +864,12 @@ def apply_rescaling(img: np.array, thres: tuple = (1.0, 99.0), method: str = "no
 
 def extract_seq_2_info_map(sample_path, series_desc_2_sequence_map):
     """
-    TODO:
+    TODO
     """
     seq_info_dict = {}
+    print(f"DEBUG sample_path = {sample_path}")
+    print(f"DEBUG seq_dirs = {os.listdir(sample_path)}")
+    print(f"DEBUG series_desc_2_sequence_map = {series_desc_2_sequence_map}")
     for seq_dir in os.listdir(sample_path):
         seq_path = os.path.join(sample_path, seq_dir)
         # read series description from dcm files
@@ -879,8 +889,12 @@ def extract_seq_2_info_map(sample_path, series_desc_2_sequence_map):
     return seq_info_dict
 
 
-def extract_ser_num(dcm_ds):
-    # series number
+def extract_ser_num(dcm_ds: Union[pydicom.FileDataset, pydicom.dicomdir.DicomDir]) -> int:
+    """
+    Returns dicom's series number
+
+    :param dcm_ds: dicom's dataset
+    """
     if hasattr(dcm_ds, "AcquisitionNumber"):
         return int(dcm_ds.AcquisitionNumber)
     return int(dcm_ds.SeriesNumber)
@@ -908,7 +922,7 @@ def extract_dicom_field(dcm_ds, seq_desc):
     return dicom_field
 
 
-def sort_dicoms_by_field(seq_path, dicom_field, use_order_indicator):
+def sort_dicoms_by_field(seq_path: str, dicom_field, use_order_indicator):
     """
     Return location dir of requested sequence
     """
@@ -1098,7 +1112,7 @@ class OpReadSTKImage(OpBase):
         img_file = self._get_image_file(sample_id)
         vol = sitk.ReadImage(img_file)
         sample_dict[key_seq_ids].append(self._seq_id)
-        sample_dict[f"{key_sequence_prefix}{self._seq_id}"] = [dict(path=img_file, stk_volume=vol)]
+        sample_dict[f"{key_sequence_prefix}.{self._seq_id}"] = [dict(path=img_file, stk_volume=vol)]
         return sample_dict
 
 

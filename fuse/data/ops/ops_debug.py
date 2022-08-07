@@ -77,6 +77,28 @@ class OpPrintKeys(OpDebugBase):
             print(f"{key}")
 
 
+class OpPrintKeysContent(OpDebugBase):
+    """
+    TODO
+    It's recommended, but not a must, to run it in a single process.
+    ```
+    from fuse.utils.utils_debug import FuseDebug
+    FuseDebug("debug")
+    ```
+
+    Example:
+    ```
+    (OpPrintKeysContent(num_samples=1), dict(keys=["data.input.mri_path", "data.label"])),
+    ```
+    """
+
+    def call_debug(self, sample_dict: NDict, keys: List[str]) -> None:
+        print(f"Sample {get_sample_id(sample_dict)}, <key> = <content>:")
+        for key in sample_dict.keypaths():
+            if key in keys:
+                print(f"\t{key} = {sample_dict[key]}")
+
+
 class OpPrintShapes(OpDebugBase):
     """
     Print the shapes/length of every torch tensor / numpy array / sequence

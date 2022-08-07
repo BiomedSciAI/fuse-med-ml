@@ -42,6 +42,7 @@ from fuseimg.data.ops.ops_mri import (
 import torch
 
 from fuseimg.datasets.duke.duke_label_type import DukeLabelType
+from fuse.data.ops.ops_debug import OpPrintTypes, OpPrintKeysContent
 
 
 def get_selected_series_index(sample_id: List[str], seq_id: str) -> List[int]:  # Not so sure about types
@@ -66,7 +67,7 @@ class Duke:
         reset_cache: bool = False,
         num_workers: int = 10,
         sample_ids: Optional[Sequence[Hashable]] = None,
-        verbose: Optional[bool] = True,
+        verbose: Optional[bool] = False,
         cache_kwargs: Optional[dict] = None,
     ) -> DatasetDefault:
 
@@ -151,18 +152,22 @@ class Duke:
                 dict(
                     key_in="data.input.mri_path",
                     key_out_seq_ids="data.input.seq_ids",
-                    key_out_sequence_prefix="data.input.sequence.",
+                    key_out_sequence_prefix="data.input.sequence",
                 ),
             ),
+            (OpPrintTypes(num_samples=1), dict()),  # DEBUG
+            (OpPrintKeysContent(num_samples=1), dict(keys=["data.input.seq_ids"])),  # DEBUG
             # step 3: Load STK volumes of MRI sequences
             (
                 OpLoadDicomAsStkVol(),
-                dict(key_in_seq_ids="data.input.seq_ids", key_sequence_prefix="data.input.sequence."),
+                dict(key_in_seq_ids="data.input.seq_ids", key_sequence_prefix="data.input.sequence"),
             ),
+            (OpPrintTypes(num_samples=1), dict()),  # DEBUG
+            (OpPrintKeysContent(num_samples=1), dict(keys=["data.input.sequence.DCE_mix_ph1"])),  # DEBUG
             # step 4: group DCE sequences into DCE_mix
             (
                 OpGroupDCESequences(),
-                dict(key_seq_ids="data.input.seq_ids", key_sequence_prefix="data.input.sequence."),
+                dict(key_seq_ids="data.input.seq_ids", key_sequence_prefix="data.input.sequence"),
             ),
             # step 5: select single volume from DCE_mix sequence
             (
@@ -171,7 +176,7 @@ class Duke:
                 ),
                 dict(
                     key_in_seq_ids="data.input.seq_ids",
-                    key_in_sequence_prefix="data.input.sequence.",
+                    key_in_sequence_prefix="data.input.sequence",
                     key_out_volumes="data.input.selected_volumes",
                     key_out_volumes_info="data.input.selected_volumes_info",
                 ),
@@ -421,7 +426,7 @@ class Duke:
         # dynamic_steps += [(OpLambda(func=debug_print_keys), dict(key=None))] # TODO delete when finish PR
 
         dynamic_pipeline = PipelineDefault("dynamic", dynamic_steps, verbose=verbose)
-        print("DEBUG - Dynamic pipeline: Done")
+        print("DEBUG - Init Dynamic pipeline: Done")
         return dynamic_pipeline
 
     @staticmethod
@@ -557,9 +562,18 @@ def get_series_desc_2_sequence_mapping(metadata_path: str) -> Dict[str, str]:
 
 
 def get_sample_path(data_path: str, sample_id: str) -> str:
+    """
+    Returns sample's path.
+    Note that each sample's folder contains another folder which contains the data itself.
+
+    :param data_path: path to the data directory
+    :param sample_id: sample's id
+    """
     sample_path_pattern = os.path.join(data_path, sample_id, "*")
     sample_path = glob.glob(sample_path_pattern)
     assert len(sample_path) == 1
+    print(f"DEBUG sample_path_pattern = {sample_path_pattern}")
+    print(f"DEBUG sample_path ={sample_path}")
     return sample_path[0]
 
 

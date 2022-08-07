@@ -11,7 +11,6 @@ from fuseimg.datasets.stoic21 import STOIC21
 from fuseimg.datasets.isic import ISIC
 from fuseimg.datasets.duke.duke import Duke
 from fuseimg.datasets.prostate_x import ProstateX
-import numpy as np
 from tqdm import trange
 from testbook import testbook
 from fuse.eval.metrics.stat.metrics_stat_common import MetricUniqueValues
@@ -94,9 +93,9 @@ class TestDatasets(unittest.TestCase):
     @unittest.skipIf("DUKE_DATA_PATH" not in os.environ, "Expecting environment variable DUKE_DATA_PATH to be defined")
     def test_duke(self):
         data_path = os.environ["DUKE_DATA_PATH"]
-        num_samples = 3  # The number of samples to test the dataset's pipeline on them
+        num_samples = 1  # The number of samples to test the dataset's pipeline on them.
         sample_ids = Duke.sample_ids()[:num_samples]
-        dataset = Duke.dataset(data_dir=data_path, train=True, sample_ids=sample_ids, reset_cache=True, num_workers=0)
+        dataset = Duke.dataset(data_dir=data_path, train=True, sample_ids=sample_ids, reset_cache=True, num_workers=10)
 
         # Check that the dataset contains the correct number of samples
         self.assertEqual(len(dataset), num_samples)
