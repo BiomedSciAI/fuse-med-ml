@@ -34,6 +34,10 @@ def get_samples_for_cohort(cohort_config: NDict, clinical_data_file:str, seed:Op
             group_filter = (df['is female'] == 0) & (df['preindex prostatectomy'] == 0)
         elif group_id == 'men_cancer_genital':
             group_filter = (df['is female'] == 0) & (df['blocks preindex C60-C63 Malignant neoplasms of male genital organs']>0)
+        elif group_id == 'men_enlarged':
+            group_filter = (df['is female'] == 0) & (df['enlarged prostate preindex']>0)
+        elif group_id == 'men_no_enlarged':
+            group_filter = (df['is female'] == 0) & (df['enlarged prostate preindex'] == 0)
         else:
             raise NotImplementedError(group_id)
 
@@ -66,6 +70,8 @@ def get_class_names(label_type:str):
         class_names = ["no-cancer", "prostate-cancer"]
     elif label_type == "preindex cancer":
         class_names = ["no-cancer", "cancer"]
+    elif label_type == "enlarged prostate preindex":
+        class_names = ["no-enlarged", "enlarged"]
     else:
         raise NotImplementedError("unsuported target!!")
     return class_names

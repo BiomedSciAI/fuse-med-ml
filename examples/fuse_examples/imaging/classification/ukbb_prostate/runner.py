@@ -1,4 +1,3 @@
-
 """
 
 (C) Copyright 2021 IBM Corp.
@@ -59,7 +58,7 @@ from fuse.dl.models.heads.head_3D_classifier import Head3DClassifier
 from fuse.dl.models.model_wrapper import ModelWrapDictToSeq
 from medcam import medcam
 import numpy as np
-from cv2 import cv2
+from cv2 import cv2, mean
 import nibabel as nib
 
 assert "UKBB_DATA_PATH" in os.environ, "Expecting environment variable UKBB_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
@@ -323,16 +322,32 @@ def run_explain(train : NDict, paths : NDict, infer: NDict):
             batch['data.input.img'] = np.transpose(batch['data.input.img'], axes=(1, 2, 0))
             original =  nib.Nifti1Image(batch['data.input.img'], affine=np.eye(4))
             volume_box = np.zeros(batch['data.input.img'].shape)
-            for point in points:
-                bouding_box_indices =  [(int((point[i]-1)*scale_ratio[i]),int((point[i]+1)*scale_ratio[i])) for i in range(3)]
-                print(bouding_box_indices)
-                volume_box = draw_bbox_around_volume(volume_box,bouding_box_indices, 1)
-            #bouding_box_indices =  [(int((max_volume[i]-1)*scale_ratio[i]),int((max_volume[i]+1)*scale_ratio[i])) for i in range(3)]
-            # volume_box = draw_bbox_around_volume(volume_box,max_volume, 2)
+            radiuses = np.array([30.0,30.0,5.0])
+            points = np.array(points)
+            big_point = [float(mean(points[:,i])[0])*scale_ratio[i] for i in range(3)]
+            bouding_box_indices =  [(max(int((big_point[i]-radiuses[i])),0),min(int((big_point[i]+radiuses[i])),volume_box.shape[i]-1)) for i in range(3)]
+            print(bouding_box_indices)
+            volume_box = draw_bbox_around_volume(volume_box,bouding_box_indices, 1)
+            # for point in points:
+            #     bouding_box_indices =  [(max(int((point[i]-1)*scale_ratio[i]),0),min(int((point[i]+1)*scale_ratio[i]),volume_box.shape[i]-1)) for i in range(3)]
+            #     print(bouding_box_indices)
+            #     volume_box = draw_bbox_around_volume(volume_box,bouding_box_indices, 1)
+            # if len(points) > 1 :
+            #     points = np.array(points)
+            #     big_point = [[ min(points[:,i]), max(points[:,i])] for i in range(3)]
+            #     for axis in big_point :
+            #         if abs(axis[0] - axis[1] ) < 2 :
+            #             axis[0] = axis[0] - 1
+            #             axis[1] = axis[1] + 1
+            #     print("big_point",big_point)
+            #     bouding_box_indices =  [(int((big_point[i][0])*scale_ratio[i]),int((big_point[i][1])*scale_ratio[i])) for i in range(3)]
+            #     print("bouding_box_indices",bouding_box_indices)
+            #     volume_box = draw_bbox_around_volume(volume_box,bouding_box_indices, 2)
             volume_box =  nib.Nifti1Image(volume_box, affine=np.eye(4))
-            nib.save(original, filename=os.path.join('attention_maps','original_'+str(i)+'_'+batch['data.input.img_path'][0]+'_label_='+str(batch['data.gt.classification'])+'.nii.gz'))
-            nib.save(volume_box, filename=os.path.join('attention_maps','maxvolume_'+str(i)+'_'+batch['data.input.img_path'][0]+'_label_='+str(batch['data.gt.classification'])+'.nii.gz'))
-            nib.save(attention_map, filename=os.path.join('attention_maps','attention_'+str(i)+'_'+batch['data.input.img_path'][0]+'_label_='+str(batch['data.gt.classification'])+'.nii.gz'))
+            identifier = batch['data.input.img_path'][0].replace('*','')
+            nib.save(original, filename=os.path.join('attention_maps','original_'+str(i)+'_'+identifier+'_label_='+str(batch['data.gt.classification'])+'.nii.gz'))
+            nib.save(volume_box, filename=os.path.join('attention_maps','maxvolume_'+str(i)+'_'+identifier+'_label_='+str(batch['data.gt.classification'])+'.nii.gz'))
+            nib.save(attention_map, filename=os.path.join('attention_maps','attention_'+str(i)+'_'+identifier+'_label_='+str(batch['data.gt.classification'])+'.nii.gz'))
 
 def draw_bbox_around_volume(volume_box, bouding_box_indices, color):
     for slice in range(bouding_box_indices[2][0],bouding_box_indices[2][1] - 1):
@@ -463,5 +478,5 @@ def main(cfg : DictConfig) -> None:
         run_explain(cfg["train"], cfg["paths"], cfg["infer"])
 
 if __name__ == "__main__":
-    sys.argv.append('hydra.run.dir=working_dir')
+    sys.argv.append('hydra.run.dir=working_dir2')
     main()
