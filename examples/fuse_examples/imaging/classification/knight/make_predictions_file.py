@@ -126,7 +126,7 @@ def make_predictions_file(
 
     predictions_df = pd.DataFrame(data, columns=list(predictions_score_names))
     predictions_df.reset_index(inplace=True)
-    predictions_df.rename({"index": "Case_id"}, axis=1, inplace=True)
+    predictions_df.rename({"index": "case_id"}, axis=1, inplace=True)
 
     # save file
     save_dataframe(predictions_df, output_filename, index=False)

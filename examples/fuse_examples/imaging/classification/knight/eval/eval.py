@@ -40,10 +40,10 @@ from functools import partial
 
 ## Constants
 # Constants that defines the expected format of the prediction and target files and list the classes for task 1 and task @
-EXPECTED_TASK1_PRED_KEYS = {"Case_id", "NoAT-score", "CanAT-score"}
-EXPECTED_TASK2_PRED_KEYS = {"Case_id", "B-score", "LR-score", "IR-score", "HR-score", "VHR-score"}
+EXPECTED_TASK1_PRED_KEYS = {"case_id", "NoAT-score", "CanAT-score"}
+EXPECTED_TASK2_PRED_KEYS = {"case_id", "B-score", "LR-score", "IR-score", "HR-score", "VHR-score"}
 EXPECTED_TARGET_KEYS = {"case_id", "Task1-target", "Task2-target"}
-PRED_CASE_ID_NAME = "Case_id"
+PRED_CASE_ID_NAME = "case_id"
 TARGET_CASE_ID_NAME = "case_id"
 TASK1_CLASS_NAMES = ("NoAT", "CanAT")  # must be aligned with task1 targets
 TASK2_CLASS_NAMES = ("B", "LR", "IR", "HR", "VHR")  # must be aligned with task2 targets

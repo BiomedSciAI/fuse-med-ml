@@ -263,7 +263,7 @@ def run_eval(
             preds = pd.read_csv(predictions_filename)
             targets = pd.read_csv(targets_filename)
             df = pd.DataFrame(columns=["id", "model.output.classification", "data.label"])
-            df["id"] = preds["Case_id"]
+            df["id"] = preds["case_id"]
             df["model.output.classification"] = list(np.stack((preds["NoAT-score"], preds["CanAT-score"]), 1))
             df["data.label"] = targets["Task1-target"]
             df.to_pickle(unified_filepath)
@@ -272,8 +272,8 @@ def run_eval(
             # save results in csv format expected by KNIGHT's evaluation function
             ensemble_res = pd.read_pickle(os.path.join(infer_dir, "ensemble_results.gz"))
 
-            pred_df = pd.DataFrame(columns=["Case_id", "NoAT-score", "CanAT-score"])
-            pred_df["Case_id"] = ensemble_res["id"]
+            pred_df = pd.DataFrame(columns=["case_id", "NoAT-score", "CanAT-score"])
+            pred_df["case_id"] = ensemble_res["id"]
             pred_df["NoAT-score"] = [item[0] for item in list(ensemble_res.preds)]
             pred_df["CanAT-score"] = [item[1] for item in list(ensemble_res.preds)]
             pred_df.to_csv(predictions_filename, index=False)
