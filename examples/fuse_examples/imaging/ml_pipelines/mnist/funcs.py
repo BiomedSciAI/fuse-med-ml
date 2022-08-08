@@ -47,7 +47,15 @@ def create_model() -> torch.nn.Module:
     return model
 
 
-def run_train(dataset: DatasetDefault, sample_ids: Sequence, cv_index: int, test: bool=False, params:Optional[dict]=None, rep_index:int=0, rand_gen:Optional[torch.Generator]=None) -> None:
+def run_train(
+    dataset: DatasetDefault,
+    sample_ids: Sequence,
+    cv_index: int,
+    test: bool = False,
+    params: Optional[dict] = None,
+    rep_index: int = 0,
+    rand_gen: Optional[torch.Generator] = None,
+) -> None:
     assert test is False
     # obtain train/val dataset subset:
     train_dataset = MNIST.dataset(params["paths"]["cache_dir"], train=True, sample_ids=sample_ids[0])
@@ -168,7 +176,15 @@ def run_train(dataset: DatasetDefault, sample_ids: Sequence, cv_index: int, test
     print("Train: Done")
 
 
-def run_infer(dataset: DatasetDefault, sample_ids: Sequence, cv_index: int, test:bool=False, params:Optional[dict]=None, rep_index:int=0, rand_gen:Optional[torch.Generator]=None) -> None:
+def run_infer(
+    dataset: DatasetDefault,
+    sample_ids: Sequence,
+    cv_index: int,
+    test: bool = False,
+    params: Optional[dict] = None,
+    rep_index: int = 0,
+    rand_gen: Optional[torch.Generator] = None,
+) -> None:
     # obtain train/val dataset subset:
     if sample_ids is None:
         validation_dataset = dataset
@@ -230,12 +246,12 @@ def run_eval(
     dataset: DatasetDefault,
     sample_ids: Sequence,
     cv_index: int,
-    test:bool=False,
-    params:Optional[dict]=None,
-    rep_index:int=0,
-    rand_gen:Optional[torch.Generator]=None,
-    pred_key:str="model.output.classification",
-    label_key:str="data.label",
+    test: bool = False,
+    params: Optional[dict] = None,
+    rep_index: int = 0,
+    rand_gen: Optional[torch.Generator] = None,
+    pred_key: str = "model.output.classification",
+    label_key: str = "data.label",
 ) -> None:
     if test:
         inference_dir = os.path.join(params["paths"]["test_dir"], "rep_" + str(rep_index), str(cv_index))

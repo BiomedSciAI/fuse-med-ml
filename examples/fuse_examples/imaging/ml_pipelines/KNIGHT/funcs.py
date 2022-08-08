@@ -30,7 +30,15 @@ from examples.fuse_examples.imaging.classification.knight.baseline.fuse_baseline
 from fuse.data import DatasetDefault
 
 
-def run_train(dataset: DatasetDefault, sample_ids:Sequence, cv_index:int, test:bool=False, params:Optional[dict]=None, rep_index:int=0, rand_gen:Optional[torch.Generator]=None) -> None:
+def run_train(
+    dataset: DatasetDefault,
+    sample_ids: Sequence,
+    cv_index: int,
+    test: bool = False,
+    params: Optional[dict] = None,
+    rep_index: int = 0,
+    rand_gen: Optional[torch.Generator] = None,
+) -> None:
     assert test is False
     model_dir = os.path.join(params["paths"]["model_dir"], "rep_" + str(rep_index), str(cv_index))
     cache_dir = os.path.join(params["paths"]["cache_dir"], "rep_" + str(rep_index), str(cv_index))
@@ -167,7 +175,15 @@ def run_train(dataset: DatasetDefault, sample_ids:Sequence, cv_index:int, test:b
     pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=None)
 
 
-def run_infer(dataset: DatasetDefault, sample_ids:Sequence, cv_index:int, test:bool=False, params:Optional[dict]=None, rep_index:int=0, rand_gen:Optional[torch.Generator]=None) -> None:
+def run_infer(
+    dataset: DatasetDefault,
+    sample_ids: Sequence,
+    cv_index: int,
+    test: bool = False,
+    params: Optional[dict] = None,
+    rep_index: int = 0,
+    rand_gen: Optional[torch.Generator] = None,
+) -> None:
 
     model_dir = os.path.join(params["paths"]["model_dir"], "rep_" + str(rep_index), str(cv_index))
     cache_dir = os.path.join(params["paths"]["cache_dir"], "infer_cache", "rep_" + str(rep_index), str(cv_index))
@@ -220,15 +236,15 @@ def run_infer(dataset: DatasetDefault, sample_ids:Sequence, cv_index:int, test:b
 
 
 def run_eval(
-    dataset:DatasetDefault,
-    sample_ids:Sequence,
-    cv_index:int,
-    test:bool=False,
-    params:Optional[dict]=None,
-    rep_index:int=0,
-    rand_gen:Optional[torch.Generator]=None,
-    pred_key:str="model.output.classification",
-    label_key:str="data.label",
+    dataset: DatasetDefault,
+    sample_ids: Sequence,
+    cv_index: int,
+    test: bool = False,
+    params: Optional[dict] = None,
+    rep_index: int = 0,
+    rand_gen: Optional[torch.Generator] = None,
+    pred_key: str = "model.output.classification",
+    label_key: str = "data.label",
 ) -> None:
 
     if test:
