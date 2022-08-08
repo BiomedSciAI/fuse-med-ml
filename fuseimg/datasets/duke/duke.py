@@ -132,7 +132,16 @@ class Duke:
         duke_patch_annotations_df: Optional[pd.DataFrame] = None,
         name_suffix: str = "",
     ) -> PipelineDefault:
-
+        """
+        :param select_series_func:
+        :param data_dir:
+        :param with_rescale:
+        :param output_stk_volumes:
+        :param output_patch_volumes:
+        :param verbose:
+        :param duke_patch_annotations_df:
+        :param name_suffix:
+        """
         data_dir = Duke.get_data_dir_from_environment_variable() if data_dir is None else data_dir
         mri_dir = os.path.join(data_dir, "manifest-1607053360376")
         mri_dir2 = os.path.join(mri_dir, "Duke-Breast-Cancer-MRI")
@@ -155,8 +164,8 @@ class Duke:
                     key_out_sequence_prefix="data.input.sequence",
                 ),
             ),
-            (OpPrintTypes(num_samples=1), dict()),  # DEBUG
-            (OpPrintKeysContent(num_samples=1), dict(keys=["data.input.seq_ids"])),  # DEBUG
+            # (OpPrintTypes(num_samples=1), dict()),  # DEBUG
+            # (OpPrintKeysContent(num_samples=1), dict(keys=None)),  # DEBUG
             # step 3: Load STK volumes of MRI sequences
             (
                 OpLoadDicomAsStkVol(),
@@ -169,6 +178,7 @@ class Duke:
                 OpGroupDCESequences(),
                 dict(key_seq_ids="data.input.seq_ids", key_sequence_prefix="data.input.sequence"),
             ),
+            (OpPrintTypes(num_samples=1), dict()),  # DEBUG
             # step 5: select single volume from DCE_mix sequence
             (
                 OpSelectVolumes(
@@ -285,14 +295,6 @@ class Duke:
             vol = sample_dict[volume_key]
             vol = vol[:-1]  # remove last channel
             sample_dict[volume_key] = vol
-            return sample_dict
-
-        def debug_print_keys(sample_dict: NDict) -> NDict:
-            print(f"!!! keys: {sample_dict.keypaths()}")
-            return sample_dict
-
-        def debug_print(sample_dict: NDict) -> NDict:
-            print("debug lambda op - im here")
             return sample_dict
 
         dynamic_steps = [
@@ -414,7 +416,7 @@ class Duke:
                 )
                 keys_2_keep.append(key_clinical_features)
 
-            print(f"key_2_keep = {keys_2_keep}")
+            # print(f"key_2_keep = {keys_2_keep}")  # DEBUG
             for key in keys_2_keep:
                 if key == volume_key or key == "data.sample_id":
                     continue
@@ -572,8 +574,8 @@ def get_sample_path(data_path: str, sample_id: str) -> str:
     sample_path_pattern = os.path.join(data_path, sample_id, "*")
     sample_path = glob.glob(sample_path_pattern)
     assert len(sample_path) == 1
-    print(f"DEBUG sample_path_pattern = {sample_path_pattern}")
-    print(f"DEBUG sample_path ={sample_path}")
+    # print(f"DEBUG sample_path_pattern = {sample_path_pattern}")
+    # print(f"DEBUG sample_path ={sample_path}")
     return sample_path[0]
 
 

@@ -65,36 +65,37 @@ debug = FuseDebug(mode)
 ROOT = "/tmp/_duke_sagi"
 data_dir = os.environ["DUKE_DATA_PATH"]
 
-if mode == "debug":  # super temp :)
-    # if True:  # super temp :)
-    data_split_file = "DUKE_folds_debug.pkl"
+if mode == "debug":
+    print("Lets DEBUG !")
 
     selected_positive = [1, 2, 3, 5, 6, 10, 12, 596, 900, 901]
     selected_negative = [4, 6, 7, 8, 11, 13, 14, 120, 902, 903]
     selected_sample_ids = [f"Breast_MRI_{ii:03d}" for ii in selected_positive + selected_negative]
 
+    data_split_file = "DUKE_folds_debug.pkl"
     model_dir = os.path.join(ROOT, "model_dir_debug")
     cache_dir = os.path.join(ROOT, "cache_dir_debug")
     force_reset_model_dir = True
 
-    num_workers = 10
+    num_workers = 0
     batch_size = 2
     num_epochs = 2
     num_devices = 1
 
 else:
-    print("Lets RUN")
-    data_split_file = "DUKE_folds.pkl"
+    print("Lets RUN !")
 
     selected_sample_ids = None
-    model_dir = os.path.join(ROOT, "model_dir_debug")
-    cache_dir = os.path.join(ROOT, "cache_dir_debug")
+
+    data_split_file = "DUKE_folds.pkl"
+    model_dir = os.path.join(ROOT, "model_dir")
+    cache_dir = os.path.join(ROOT, "cache_dir")
     force_reset_model_dir = True
 
     num_workers = 16
     batch_size = 50
     num_epochs = 25
-    num_devices = 2
+    num_devices = 1
 
 
 PATHS = {
@@ -268,7 +269,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
         data_dir=paths["data_dir"],
         cache_dir=paths["cache_dir"],
         # reset_cache=train_common_params["data.reset_cache"],
-        reset_cache=True,
+        reset_cache=False,
         sample_ids=train_common_params["data.sample_ids"],
         num_workers=train_common_params["data.train_num_workers"],
         train=False,
@@ -301,7 +302,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
         data_dir=paths["data_dir"],
         cache_dir=paths["cache_dir"],
         # reset_cache=train_common_params["data.reset_cache"],
-        reset_cache=False,
+        reset_cache=True,
         sample_ids=train_sample_ids,
         num_workers=train_common_params["data.train_num_workers"],
         train=True,
@@ -471,7 +472,7 @@ def run_infer(paths: dict, infer_common_params: dict) -> None:
         data_dir=paths["data_dir"],
         cache_dir=paths["cache_dir"],
         # reset_cache=train_common_params["data.reset_cache"],
-        reset_cache=False,
+        reset_cache=True,
         sample_ids=infer_sample_ids,
         num_workers=infer_common_params["data.num_workers"],
         train=False,

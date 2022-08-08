@@ -89,13 +89,17 @@ class OpPrintKeysContent(OpDebugBase):
     Example:
     ```
     (OpPrintKeysContent(num_samples=1), dict(keys=["data.input.mri_path", "data.label"])),
+    (OpPrintKeysContent(num_samples=1), dict(keys=None))
     ```
     """
 
     def call_debug(self, sample_dict: NDict, keys: List[str]) -> None:
+        """
+        :param keys:
+        """
         print(f"Sample {get_sample_id(sample_dict)}, <key> = <content>:")
         for key in sample_dict.keypaths():
-            if key in keys:
+            if keys is None or key in keys:
                 print(f"\t{key} = {sample_dict[key]}")
 
 

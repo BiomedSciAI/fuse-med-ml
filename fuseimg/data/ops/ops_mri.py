@@ -4,6 +4,7 @@ from typing import Optional, Union
 import logging
 
 import SimpleITK as sitk
+from SimpleITK.SimpleITK import Image
 import h5py
 
 import numpy as np
@@ -18,9 +19,17 @@ import radiomics
 
 
 class OpExtractDicomsPerSeq(OpBase):
-    """ """
+    """
+    Extracts dicoms per sequence.
+    """
 
     def __init__(self, seq_ids, series_desc_2_sequence_map, use_order_indicator: bool = False, **kwargs):
+        """
+        :param seq_ids:
+        :param series_desc_2_sequence_map:
+        :param use_order_indicator:
+        :param kwargs:
+        """
         super().__init__(**kwargs)
         self._seq_ids = seq_ids
         self._series_desc_2_sequence_map = series_desc_2_sequence_map
@@ -29,6 +38,10 @@ class OpExtractDicomsPerSeq(OpBase):
     def __call__(self, sample_dict: NDict, key_in: str, key_out_seq_ids: str, key_out_sequence_prefix: str):
         """
         TODO
+        :param sample_dict:
+        :param key_in: key for the sample's path the stored in the sample_dict
+        :param key_out_seq_ids: the ids will be used as a suffix in storing the series in the sample_dict
+        :param key_out_sequence_prefix: the prefix used to store the series in the sample_dict
         """
         sample_path = sample_dict[key_in]
         sample_dict[key_out_seq_ids] = []
@@ -81,8 +94,8 @@ class OpLoadDicomAsStkVol(OpBase):
     def __call__(self, sample_dict: NDict, key_in_seq_ids: str, key_sequence_prefix: str):
         """
         extract_stk_vol loads dicoms into sitk vol
-        :param img_path: path to dicoms - load all dicoms from this path
-        :param img_list: list of dicoms to load
+        :param key_in_seq_ids: TODO
+        :param key_sequence_prefix: TODO
         :return: list of stk vols
         """
         seq_ids = sample_dict[key_in_seq_ids]
@@ -104,7 +117,7 @@ class OpLoadDicomAsStkVol(OpBase):
         return sample_dict
 
 
-def get_stk_volume(img_path: str, is_file: bool, dicom_files, reverse_order):
+def get_stk_volume(img_path: str, is_file: bool, dicom_files, reverse_order) -> Image:  # Not sure if Image
     """
     TODO
 
@@ -156,6 +169,10 @@ def _read_HDF5_file(img_path):
 
 #############################
 class OpGroupDCESequences(OpBase):
+    """
+    Groups all 'DCE_mix_ph' sequences into one 'DCE_mix' sequence
+    """
+
     def __init__(self, verbose: bool = True, **kwargs):
         super().__init__(**kwargs)
         self._verbose = verbose
@@ -164,8 +181,9 @@ class OpGroupDCESequences(OpBase):
         """
         extract_list_of_rel_vol extract the volume per seq based on SER_INX_TO_USE
         and put in one list
-        :param vols_dict: dict of sitk vols per seq
-        :param seq_info: dict of seq description per seq
+        :param sample_dict:
+        :param key_seq_ids:
+        :param key_sequence_prefix:
         """
 
         seq_ids = sample_dict[key_seq_ids]
@@ -199,6 +217,10 @@ class OpGroupDCESequences(OpBase):
 
 #############################
 class OpSelectVolumes(OpBase):
+    """
+    TODO
+    """
+
     def __init__(
         self,
         get_indexes_func,
@@ -207,6 +229,12 @@ class OpSelectVolumes(OpBase):
         verbose: bool = True,
         **kwargs,
     ):
+        """
+        :param get_indexes_func:
+        :param selected_seq_ids:
+        :param delete_input_volumes:
+        :param verbose:
+        """
         super().__init__(**kwargs)
         self._get_indexes_func = get_indexes_func
         self._selected_seq_ids = selected_seq_ids
@@ -220,7 +248,15 @@ class OpSelectVolumes(OpBase):
         key_in_sequence_prefix: str,
         key_out_volumes: str,
         key_out_volumes_info: Optional[str] = None,
-    ):
+    ) -> NDict:
+        """
+        TODO
+        :param sample_dict:
+        :param key_in_seq_ids:
+        :param key_in_sequence_prefix:
+        :param key_out_volumes:
+        :param key_out_volumes_info:
+        """
 
         sample_id = get_sample_id(sample_dict)
         seq_ids = sample_dict[key_in_seq_ids]
@@ -593,7 +629,14 @@ class OpDeleteSequences(OpBase):
             delete_seqeunce_from_dict(seq_id=seq_id, sample_dict=sample_dict, key_sequence_ids=key_sequence_ids)
 
 
-def delete_seqeunce_from_dict(seq_id, sample_dict, key_sequence_ids, key_sequence_prefix):
+def delete_seqeunce_from_dict(seq_id: str, sample_dict: NDict, key_sequence_ids, key_sequence_prefix) -> None:
+    """
+    Deletes sequence from the sample dict
+    :param seq_id:
+    :param sample_dict:
+    :param key_sequence_ids:
+    :param key_sequence_prefix:
+    """
     seq_ids = sample_dict[key_sequence_ids]
     if seq_id in seq_ids:
         seq_ids.remove(seq_id)
@@ -616,6 +659,10 @@ def rename_seqeunce_from_dict(sample_dict, seq_id_old, seq_id_new, key_sequence_
 
 
 def get_zeros_vol(vol):
+    """
+    TODO
+    :param vol:
+    """
     if vol.GetNumberOfComponentsPerPixel() > 1:
         ref_zeros_vol = sitk.VectorIndexSelectionCast(vol, 0)
     else:
@@ -865,11 +912,13 @@ def apply_rescaling(img: np.array, thres: tuple = (1.0, 99.0), method: str = "no
 def extract_seq_2_info_map(sample_path, series_desc_2_sequence_map):
     """
     TODO
+    :param sample_path:
+    :param series_desc_2_sequence_map:
     """
     seq_info_dict = {}
-    print(f"DEBUG sample_path = {sample_path}")
-    print(f"DEBUG seq_dirs = {os.listdir(sample_path)}")
-    print(f"DEBUG series_desc_2_sequence_map = {series_desc_2_sequence_map}")
+    # print(f"DEBUG sample_path = {sample_path}")
+    # print(f"DEBUG seq_dirs = {os.listdir(sample_path)}")
+    # print(f"DEBUG series_desc_2_sequence_map = {series_desc_2_sequence_map}")
     for seq_dir in os.listdir(sample_path):
         seq_path = os.path.join(sample_path, seq_dir)
         # read series description from dcm files
