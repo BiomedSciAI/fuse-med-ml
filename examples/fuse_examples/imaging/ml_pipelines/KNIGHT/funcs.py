@@ -1,8 +1,9 @@
 from fuse.utils.utils_logger import fuse_logger_start
 import logging
+import torch
 from fuse.data.utils.samplers import BatchSamplerDefault
 from torch.utils.data.dataloader import DataLoader
-from typing import OrderedDict
+from typing import OrderedDict, Sequence, Optional
 from fuse.eval.metrics.classification.metrics_classification_common import (
     MetricAccuracy,
     MetricAUCROC,
@@ -26,9 +27,10 @@ import pandas as pd
 import numpy as np
 from fuseimg.datasets.knight import KNIGHT
 from examples.fuse_examples.imaging.classification.knight.baseline.fuse_baseline import make_model
+from fuse.data import DatasetDefault
 
 
-def run_train(dataset, sample_ids, cv_index, test=False, params=None, rep_index=0, rand_gen=None):
+def run_train(dataset: DatasetDefault, sample_ids:Sequence, cv_index:int, test:bool=False, params:Optional[dict]=None, rep_index:int=0, rand_gen:Optional[torch.Generator]=None) -> None:
     assert test is False
     model_dir = os.path.join(params["paths"]["model_dir"], "rep_" + str(rep_index), str(cv_index))
     cache_dir = os.path.join(params["paths"]["cache_dir"], "rep_" + str(rep_index), str(cv_index))
@@ -165,7 +167,7 @@ def run_train(dataset, sample_ids, cv_index, test=False, params=None, rep_index=
     pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=None)
 
 
-def run_infer(dataset, sample_ids, cv_index, test=False, params=None, rep_index=0, rand_gen=None):
+def run_infer(dataset: DatasetDefault, sample_ids:Sequence, cv_index:int, test:bool=False, params:Optional[dict]=None, rep_index:int=0, rand_gen:Optional[torch.Generator]=None) -> None:
 
     model_dir = os.path.join(params["paths"]["model_dir"], "rep_" + str(rep_index), str(cv_index))
     cache_dir = os.path.join(params["paths"]["cache_dir"], "infer_cache", "rep_" + str(rep_index), str(cv_index))
@@ -218,16 +220,16 @@ def run_infer(dataset, sample_ids, cv_index, test=False, params=None, rep_index=
 
 
 def run_eval(
-    dataset,
-    sample_ids,
-    cv_index,
-    test=False,
-    params=None,
-    rep_index=0,
-    rand_gen=None,
-    pred_key="model.output.classification",
-    label_key="data.label",
-):
+    dataset:DatasetDefault,
+    sample_ids:Sequence,
+    cv_index:int,
+    test:bool=False,
+    params:Optional[dict]=None,
+    rep_index:int=0,
+    rand_gen:Optional[torch.Generator]=None,
+    pred_key:str="model.output.classification",
+    label_key:str="data.label",
+) -> None:
 
     if test:
         infer_dir = os.path.join(params["paths"]["test_dir"], "rep_" + str(rep_index), str(cv_index))

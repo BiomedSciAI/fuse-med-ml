@@ -24,9 +24,11 @@ import os
 import torch.nn.functional as F
 from fuse.eval.evaluator import EvaluatorDefault
 from fuseimg.datasets.mnist import MNIST
+from typing import Sequence, Optional
+from fuse.data import DatasetDefault
 
 
-def create_dataset(cache_dir):
+def create_dataset(cache_dir: str) -> Sequence[DatasetDefault]:
     train_dataset = MNIST.dataset(cache_dir, train=True)
     test_dataset = MNIST.dataset(cache_dir, train=False)
 
@@ -40,12 +42,12 @@ def create_model() -> torch.nn.Module:
         model=torch_model,
         model_inputs=["data.image"],
         post_forward_processing_function=perform_softmax,
-        model_outputs=["logits.classification", "output.classification"],
+        model_outputs=["model.logits.classification", "model.output.classification"],
     )
     return model
 
 
-def run_train(dataset, sample_ids, cv_index, test=False, params=None, rep_index=0, rand_gen=None):
+def run_train(dataset: DatasetDefault, sample_ids: Sequence, cv_index: int, test: bool=False, params:Optional[dict]=None, rep_index:int=0, rand_gen:Optional[torch.Generator]=None) -> None:
     assert test is False
     # obtain train/val dataset subset:
     train_dataset = MNIST.dataset(params["paths"]["cache_dir"], train=True, sample_ids=sample_ids[0])
@@ -166,7 +168,7 @@ def run_train(dataset, sample_ids, cv_index, test=False, params=None, rep_index=
     print("Train: Done")
 
 
-def run_infer(dataset, sample_ids, cv_index, test=False, params=None, rep_index=0, rand_gen=None):
+def run_infer(dataset: DatasetDefault, sample_ids: Sequence, cv_index: int, test:bool=False, params:Optional[dict]=None, rep_index:int=0, rand_gen:Optional[torch.Generator]=None) -> None:
     # obtain train/val dataset subset:
     if sample_ids is None:
         validation_dataset = dataset
@@ -225,16 +227,16 @@ def run_infer(dataset, sample_ids, cv_index, test=False, params=None, rep_index=
 
 
 def run_eval(
-    dataset,
-    sample_ids,
-    cv_index,
-    test=False,
-    params=None,
-    rep_index=0,
-    rand_gen=None,
-    pred_key="model.output.classification",
-    label_key="data.label",
-):
+    dataset: DatasetDefault,
+    sample_ids: Sequence,
+    cv_index: int,
+    test:bool=False,
+    params:Optional[dict]=None,
+    rep_index:int=0,
+    rand_gen:Optional[torch.Generator]=None,
+    pred_key:str="model.output.classification",
+    label_key:str="data.label",
+) -> None:
     if test:
         inference_dir = os.path.join(params["paths"]["test_dir"], "rep_" + str(rep_index), str(cv_index))
         infer_filename = params["test_infer_filename"]
