@@ -101,6 +101,7 @@ def run(
     :param num_folds_used: Number of folds/splits to use.
         For example, for training a single model with 80% of the samples used
         for training and 20% for validation, set `num_folds=5` and `num_folds_used=1`.
+        For running a 5-fold cross-validation scenario, set `num_folds=5` and `num_folds_used=5`.
     :param num_gpus_total: Number of GPUs to use in total for executing the pipeline.
     :param num_gpus_per_split: Number of GPUs to use for a single model training/inference.
     :param num_repetitions: Number of repetitions of the procedure with different random

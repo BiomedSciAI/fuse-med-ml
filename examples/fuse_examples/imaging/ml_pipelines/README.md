@@ -11,7 +11,7 @@ Another optional parameter is `sample_ids`, which may contain a sequence of arra
 
 The required parameters are as follows:  
 1. `num_folds` - Number of cross validation splits/folds.
-2. `num_folds_used` - Number of folds/splits to use. For example, for training a single model with 80% of the samples used for training and 20% for validation, set `num_folds=5` and `num_folds_used=1`.
+2. `num_folds_used` - Number of folds/splits to use. For example, for training a single model with 80% of the samples used for training and 20% for validation, set `num_folds=5` and `num_folds_used=1`. For running a 5-fold cross-validation scenario, set `num_folds=5` and `num_folds_used=5`.
 3. `num_gpus_total` - Number of GPUs to use in total for executing the pipeline.  
 4. `num_gpus_per_split` - Number of GPUs to use for a single model training/inference.
 5. `num_repetitions` - Number of repetitions of the procedu re with different random seeds. Note that this does not change the random decision on cross validation fold sample ids.
