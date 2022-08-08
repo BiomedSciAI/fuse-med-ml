@@ -137,11 +137,11 @@ if __name__ == "__main__":
     Automaitically make prediction files in the requested format - given model definition and path to model dir create by FuseMedML during training
     """
     # no arguments - set arguments inline - see details in function make_predictions_file
-    model_dir = "/data/usr/goalex/data/KNIGHT_results/model/rep_0/0"
-    checkpoint = "/data/usr/goalex/data/KNIGHT_results/model/rep_0/0/best_epoch.ckpt"
-    data_path = "/projects/msieve/MedicalSieve/PatientData/KNIGHT/knight/data"
-    cache_path = "/data/usr/goalex/data/KNIGHT_cache"
-    split = "baseline/splits_final.pkl"
+    model_dir = ""
+    checkpoint = "best"
+    data_path = ""
+    cache_path = ""
+    split = None
     output_filename = "validation_predictions.csv"
     predictions_key_name = "model.output.head_0"
     task_num = 1  # 1 or 2
