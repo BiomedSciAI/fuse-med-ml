@@ -19,7 +19,7 @@ import os
 from typing import Union, Dict, Optional, List
 
 from fuse_examples.imaging.classification.ukbb_prostate import cohort_and_label_def, files_download_from_cos
-
+import pathlib
 import sys
 import copy
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
@@ -110,7 +110,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     # ==============================================================================
     # Logger
     # ==============================================================================
-    fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO, list_of_source_files=['../conf/config.yaml'])
+    fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO, list_of_source_files=[os.path.join(pathlib.Path(__file__).parent.resolve(),'conf/config.yaml')])
     lgr = logging.getLogger('Fuse')
 
     clinical_data_df, var_namespace = read_clinical_data_file(filename=paths["clinical_data_file"], targets=train['target'],
@@ -524,5 +524,5 @@ def main(cfg: DictConfig) -> None:
 
     
 if __name__ == "__main__":
-    sys.argv.append('hydra.run.dir=working_dir')
+    sys.argv.append('hydra.run.dir=working_dir3')
     main()
