@@ -28,5 +28,4 @@ class PerSampleData:
 
     def __str__(self):
         n = len(self._ids)
-        mean_vals = np.mean(self._data) if len(self._data) == n else [np.mean(x) for x in self._data]
-        return f'{type(self).__name__}: n={n}, mean={mean_vals}'
+        return f'{type(self).__name__}: size={n}'

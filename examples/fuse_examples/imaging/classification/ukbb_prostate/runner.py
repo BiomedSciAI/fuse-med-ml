@@ -23,6 +23,7 @@ import pathlib
 import sys
 import copy
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
+from fuse.eval.metrics.stat.metrics_stat_common import MetricUniqueValues
 import pandas as pd
 from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.gpu import choose_and_enable_multiple_gpus
@@ -110,7 +111,9 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     # ==============================================================================
     # Logger
     # ==============================================================================
-    fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO, list_of_source_files=[os.path.join(pathlib.Path(__file__).parent.resolve(),'conf/config.yaml')])
+
+    config_file =os.path.join(os.path.dirname(os.path.realpath(__file__)), 'conf/config.yaml')
+    fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO, list_of_source_files=[config_file])
     lgr = logging.getLogger('Fuse')
 
     clinical_data_df, var_namespace = read_clinical_data_file(filename=paths["clinical_data_file"], targets=train['target'],
@@ -464,6 +467,7 @@ def run_eval(paths: NDict, infer: NDict, eval: Optional[Dict]=None):
         # metrics
         metrics = OrderedDict([
             (f'{op_pred_cls_name}', MetricApplyThresholds(pred=pred_key, key_out=pred_cls_key)),  # will apply argmax
+            (f'{group_name}-gt-vals', MetricUniqueValues(key=gt_key)),
             (f'{group_name}-auc', MetricAUCROC(pred=pred_key, target=gt_key)),
             (f'{group_name}-accuracy', MetricAccuracy(pred=f'results:metrics.{op_pred_cls_name}.{pred_cls_key}', target=gt_key)),
         ])

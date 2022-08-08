@@ -51,7 +51,7 @@ paths:
   eval_dir : ${paths.model_dir}/eval_dir
   sample_ids : ${paths.data_misc_dir}/sample_ids.csv
 run:
-  running_modes : ['train','infer', 'eval'] #['train','infer', 'eval', 'explain']
+  running_modes : [train, infer,eval] #[train, infer, eval, explain]
 train:
   cos:
     bucket_name: body-mri-data
