@@ -46,7 +46,7 @@ class OpExtractDicomsPerSeq(OpBase):
         sample_path = sample_dict[key_in]
         sample_dict[key_out_seq_ids] = []
         seq_2_info_map = extract_seq_2_info_map(sample_path, self._series_desc_2_sequence_map)
-        print(f"DEBUG: seq_2_info_map = {seq_2_info_map}")
+        # print(f"DEBUG: seq_2_info_map = {seq_2_info_map}")
         for seq_id in self._seq_ids:
             seq_info_list = seq_2_info_map.get(seq_id, None)
             if seq_info_list is None:
@@ -323,32 +323,44 @@ class OpSelectVolumes(OpBase):
 
 
 class OpResampleStkVolsBasedRef(OpBase):
+    """
+    TODO: write more clearly (?)
+    Resample selected volumes based on a given reference one.
+    """
+
     def __init__(self, reference_inx: int, interpolation: str, **kwargs):
+        """
+        :param reference_inx: index for the volume that will be used as a reference
+        :param interpolation: interpolation mode from - ['linear','nn' (nearest neighbor),'bspline']
+        :param kwargs:
+        """
         super().__init__(**kwargs)
         assert reference_inx is not None  # todo: redundant??
-        self.reference_inx = reference_inx
-        self.interpolation = interpolation
+        self._reference_inx = reference_inx
+        self._interpolation = interpolation
 
-    def __call__(self, sample_dict: NDict, key: str):
-
-        # ------------------------
-        # create resampling operator based on ref vol
+    def __call__(self, sample_dict: NDict, key: str) -> NDict:
+        """
+        :param sample_dict: sample's dict
+        :param key: a key to the volumes inside the sample_dict
+        """
+        # create resampling operator based on the reference volume
         volumes = sample_dict[key]
         assert len(volumes) > 0
         # if self.reference_inx > 0:
         #     volumes = [volumes[self.reference_inx]]+ volumes[:self.reference_inx]+ volumes[volumes+1:]
 
+        # cast volumes to match
         seq_volumes_resampled = [sitk.Cast(v, sitk.sitkFloat32) for v in volumes]
-        ref_volume = volumes[self.reference_inx]
+        ref_volume = volumes[self._reference_inx]
 
-        resample = self.create_resample(
-            ref_volume, self.interpolation, size=ref_volume.GetSize(), spacing=ref_volume.GetSpacing()
-        )
+        # create the resample operator that will excute the resampling
+        resample = self.create_resample(ref_volume, size=ref_volume.GetSize(), spacing=ref_volume.GetSpacing())
 
         for i in range(len(seq_volumes_resampled)):
-            if i == self.reference_inx:
+            # skip on the referenced volume
+            if i == self._reference_inx:  # TODO: change to something more readable (?)
                 continue
-
             seq_volumes_resampled[i] = resample.Execute(seq_volumes_resampled[i])
 
         sample_dict[key] = seq_volumes_resampled
@@ -357,25 +369,30 @@ class OpResampleStkVolsBasedRef(OpBase):
     def create_resample(
         self,
         vol_ref: sitk.sitkFloat32,
-        interpolation: str,
         size: Tuple[int, int, int],
         spacing: Tuple[float, float, float],
-    ):
+    ) -> sitk.ResampleImageFilter:
         """
-        create_resample create resample operator
+        Creates resample operator
+
+        TODO: this function exists twice in this file! solve it.
+
         :param vol_ref: sitk vol to use as a ref
-        :param interpolation:['linear','nn','bspline']
         :param size: in pixels ()
         :param spacing: in mm ()
         :return: resample sitk operator
         """
 
-        if interpolation == "linear":
+        if self._interpolation == "linear":
             interpolator = sitk.sitkLinear
-        elif interpolation == "nn":
+        elif self._interpolation == "nn":
             interpolator = sitk.sitkNearestNeighbor
-        elif interpolation == "bspline":
+        elif self._interpolation == "bspline":
             interpolator = sitk.sitkBSpline
+        else:
+            raise Exception(
+                f"Error: unexpected interpolation mode: {self._interpolation}"
+            )  # TODO check this in the constructor??
 
         resample = sitk.ResampleImageFilter()
         resample.SetReferenceImage(vol_ref)

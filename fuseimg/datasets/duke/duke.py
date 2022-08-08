@@ -46,6 +46,12 @@ from fuse.data.ops.ops_debug import OpPrintTypes, OpPrintKeysContent
 
 
 def get_selected_series_index(sample_id: List[str], seq_id: str) -> List[int]:  # Not so sure about types
+    """
+    TODO
+
+    :param sample_id:
+    :param seq_id:
+    """
     patient_id = sample_id[0]
     if patient_id in ["Breast_MRI_120", "Breast_MRI_596"]:
         map = {"DCE_mix": [2], "MASK": [0]}
@@ -171,14 +177,14 @@ class Duke:
                 OpLoadDicomAsStkVol(),
                 dict(key_in_seq_ids="data.input.seq_ids", key_sequence_prefix="data.input.sequence"),
             ),
-            (OpPrintTypes(num_samples=1), dict()),  # DEBUG
-            (OpPrintKeysContent(num_samples=1), dict(keys=["data.input.sequence.DCE_mix_ph1"])),  # DEBUG
+            # (OpPrintTypes(num_samples=1), dict()),  # DEBUG
+            # (OpPrintKeysContent(num_samples=1), dict(keys=["data.input.sequence.DCE_mix_ph1"])),  # DEBUG
             # step 4: group DCE sequences into DCE_mix
             (
                 OpGroupDCESequences(),
                 dict(key_seq_ids="data.input.seq_ids", key_sequence_prefix="data.input.sequence"),
             ),
-            (OpPrintTypes(num_samples=1), dict()),  # DEBUG
+            # (OpPrintTypes(num_samples=1), dict()),  # DEBUG
             # step 5: select single volume from DCE_mix sequence
             (
                 OpSelectVolumes(
@@ -191,6 +197,11 @@ class Duke:
                     key_out_volumes_info="data.input.selected_volumes_info",
                 ),
             ),
+            (OpPrintTypes(num_samples=1), dict()),  # DEBUG
+            (
+                OpPrintKeysContent(num_samples=1),
+                dict(keys=["data.input.selected_volumes", "data.input.selected_volumes_info"]),
+            ),  # DEBUG
             # step 6: set first volume to be the reference volume and register other volumes with respect to it
             (
                 OpResampleStkVolsBasedRef(reference_inx=0, interpolation="bspline"),
