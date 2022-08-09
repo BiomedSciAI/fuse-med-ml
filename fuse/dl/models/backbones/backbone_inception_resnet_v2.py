@@ -240,7 +240,7 @@ class BackboneInceptionResnetV2(nn.Module):
         self,
         logical_units_num: int = 14,
         intra_block_cut_level: int = 384,
-        input_channels_num: int = 1,
+        input_channels_num: int = 3,
         pretrained_weights_url: Optional[
             str
         ] = "http://data.lip6.fr/cadene/pretrainedmodels/inceptionresnetv2-520b38e4.pth",
