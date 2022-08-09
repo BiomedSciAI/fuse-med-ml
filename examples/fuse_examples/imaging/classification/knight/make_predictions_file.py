@@ -61,6 +61,7 @@ def make_predictions_file(
     :param predictions_key_name: the key in batch_dict of the model predictions
     :param task_num: either 1 or 2 (task 1 or task 2)
     :param auto_select_gpus: whether to allow lightning to select gpus automatically
+    :param reset_cache: whether to reset the cache
     """
     # Logger
     fuse_logger_start(console_verbose_level=logging.INFO)
