@@ -49,7 +49,7 @@ from fuse.utils.file_io.file_io import create_dir, save_dataframe
 import fuse.utils.gpu as GPU
 
 from fuseimg.datasets.mnist import MNIST
-
+from fuse.data.datasets.dataset_default import DatasetDefault
 from examples.fuse_examples.imaging.classification.mnist import lenet
 
 ###########################################################################################################
@@ -124,7 +124,8 @@ def create_model() -> torch.nn.Module:
 #################################
 # Train Template
 #################################
-def run_train(paths: dict, train_params: dict):
+def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault, \
+                paths: dict, train_params: dict):
     # ==============================================================================
     # Logger
     # ==============================================================================
@@ -134,9 +135,6 @@ def run_train(paths: dict, train_params: dict):
     # ==============================================================================
     # Data
     # ==============================================================================
-    # Train Data
-    print("Data - trainset:")
-    train_dataset = MNIST.dataset(paths["cache_dir"], train=True)
     print("- Create sampler:")
     sampler = BatchSamplerDefault(
         dataset=train_dataset,
@@ -158,8 +156,6 @@ def run_train(paths: dict, train_params: dict):
 
     ## Validation data
     print("Data - validation set:")
-    # wrapping torch dataset
-    validation_dataset = MNIST.dataset(paths["cache_dir"], train=False)
 
     # dataloader
     validation_dataloader = DataLoader(
@@ -259,10 +255,10 @@ INFER_COMMON_PARAMS["trainer.strategy"] = None
 ######################################
 
 
-def run_infer(paths: dict, infer_common_params: dict):
+def run_infer(dataset: DatasetDefault, paths: dict, infer_params: dict):
     create_dir(paths["inference_dir"])
-    infer_file = os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])
-    checkpoint_file = os.path.join(paths["model_dir"], infer_common_params["checkpoint"])
+    infer_file = os.path.join(paths["inference_dir"], infer_params["infer_filename"])
+    checkpoint_file = os.path.join(paths["model_dir"], infer_params["checkpoint"])
     #### Logger
     fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
 
@@ -270,11 +266,9 @@ def run_infer(paths: dict, infer_common_params: dict):
     print(f"infer_filename={infer_file}")
 
     ## Data
-    # Create dataset
-    validation_dataset = MNIST.dataset(paths["cache_dir"], train=False)
     # dataloader
-    validation_dataloader = DataLoader(
-        dataset=validation_dataset, collate_fn=CollateDefault(), batch_size=2, num_workers=2
+    dataloader = DataLoader(
+        dataset=dataset, collate_fn=CollateDefault(), batch_size=2, num_workers=2
     )
 
     # load pytorch lightning module
@@ -291,12 +285,12 @@ def run_infer(paths: dict, infer_common_params: dict):
     # create a trainer instance
     pl_trainer = pl.Trainer(
         default_root_dir=paths["model_dir"],
-        accelerator=infer_common_params["trainer.accelerator"],
-        devices=infer_common_params["trainer.num_devices"],
-        strategy=infer_common_params["trainer.strategy"],
+        accelerator=infer_params["trainer.accelerator"],
+        devices=infer_params["trainer.num_devices"],
+        strategy=infer_params["trainer.strategy"],
         auto_select_gpus=True,
     )
-    predictions = pl_trainer.predict(pl_module, validation_dataloader, return_predictions=True)
+    predictions = pl_trainer.predict(pl_module, dataloader, return_predictions=True)
 
     # convert list of batch outputs into a dataframe
     infer_df = convert_predictions_to_dataframe(predictions)
@@ -313,9 +307,9 @@ EVAL_COMMON_PARAMS["infer_filename"] = INFER_COMMON_PARAMS["infer_filename"]
 ######################################
 # Eval Template
 ######################################
-def run_eval(paths: dict, eval_common_params: dict):
+def run_eval(paths: dict, eval_params: dict):
     create_dir(paths["eval_dir"])
-    infer_file = os.path.join(paths["inference_dir"], eval_common_params["infer_filename"])
+    infer_file = os.path.join(paths["inference_dir"], eval_params["infer_filename"])
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
 
     print("Fuse Eval")
@@ -358,14 +352,17 @@ if __name__ == "__main__":
     GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
     RUNNING_MODES = ["train", "infer", "eval"]  # Options: 'train', 'infer', 'eval'
+    train_dataset = MNIST.dataset(PATHS["cache_dir"], train=True)
+    validation_dataset = MNIST.dataset(PATHS["cache_dir"], train=False)
     # train
     if "train" in RUNNING_MODES:
-        run_train(paths=PATHS, train_params=TRAIN_COMMON_PARAMS)
+        run_train(train_dataset=train_dataset, validation_dataset=validation_dataset, \
+            paths=PATHS, train_params=TRAIN_COMMON_PARAMS)
 
     # infer
     if "infer" in RUNNING_MODES:
-        run_infer(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS)
+        run_infer(dataset=validation_dataset, paths=PATHS, infer_params=INFER_COMMON_PARAMS)
 
     # eval
     if "eval" in RUNNING_MODES:
-        run_eval(paths=PATHS, eval_common_params=EVAL_COMMON_PARAMS)
+        run_eval(paths=PATHS, eval_params=EVAL_COMMON_PARAMS)
