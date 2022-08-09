@@ -33,7 +33,7 @@ class BackboneResnet(ResNet):
     2D ResNet backbone
     """
 
-    def __init__(self, pretrained: bool = False, in_channels: int = 2, name: str = "resnet18") -> None:
+    def __init__(self, pretrained: bool = False, in_channels: int = 3, name: str = "resnet18") -> None:
         """
         Create 2D Resnet
         :param pretrained: reload imagenet weights
