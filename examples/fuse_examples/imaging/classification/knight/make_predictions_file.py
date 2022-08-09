@@ -142,7 +142,7 @@ if __name__ == "__main__":
     checkpoint = "best"
     data_path = ""
     cache_path = ""
-    split = None
+    split = "baseline/splits_final.pkl"
     output_filename = "validation_predictions.csv"
     predictions_key_name = "model.output.head_0"
     task_num = 1  # 1 or 2
