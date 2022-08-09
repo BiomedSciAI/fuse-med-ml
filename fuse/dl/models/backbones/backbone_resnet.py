@@ -54,8 +54,9 @@ class BackboneResnet(ResNet):
         self.pretrained = pretrained
         self.in_channels = in_channels
 
-        # override the first convolution layer to support any number of input channels
-        self.conv1 = nn.Conv2d(self.in_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        if self.in_channels != 3:
+            # override the first convolution layer to support any number of input channels
+            self.conv1 = nn.Conv2d(self.in_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
 
     def forward(self, x: Tensor) -> Tensor:  # type: ignore
         """

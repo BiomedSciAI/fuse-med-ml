@@ -30,7 +30,7 @@ class BackboneResnet3D(VideoResNet):
     3D model classifier (ResNet architecture"
     """
 
-    def __init__(self, pretrained: bool = False, in_channels: int = 2, name: str = "r3d_18") -> None:
+    def __init__(self, pretrained: bool = False, in_channels: int = 3, name: str = "r3d_18") -> None:
         """
         Create 3D ResNet model
         :param pretrained: Use pretrained weights
@@ -57,12 +57,14 @@ class BackboneResnet3D(VideoResNet):
         # save input parameters
         self.pretrained = pretrained
         self.in_channels = in_channels
-        # override the first convolution layer to support any number of input channels
-        self.stem = nn.Sequential(
-            nn.Conv3d(self.in_channels, 64, kernel_size=(3, 7, 7), stride=(1, 2, 2), padding=(1, 3, 3), bias=False),
-            nn.BatchNorm3d(64),
-            nn.ReLU(inplace=True),
-        )
+
+        if self.in_channels != 3:
+            # override the first convolution layer to support any number of input channels
+            self.stem = nn.Sequential(
+                nn.Conv3d(self.in_channels, 64, kernel_size=(3, 7, 7), stride=(1, 2, 2), padding=(1, 3, 3), bias=False),
+                nn.BatchNorm3d(64),
+                nn.ReLU(inplace=True),
+            )
 
     def features(self, x: Tensor) -> Any:
         """
