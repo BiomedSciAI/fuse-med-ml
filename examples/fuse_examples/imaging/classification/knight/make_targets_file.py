@@ -43,7 +43,7 @@ def make_targets_file(data_path: str, split: Union[str, dict], output_filename: 
     # Data
     # read train/val splits file.
     # use validation set if split specified, otherwise assume testset
-    if isinstance(split, str) or isinstance(split, dict):
+    if split is not None:
         is_validation_set = True
     else:
         assert split is None, f"Error: unexpected split format {split}"
