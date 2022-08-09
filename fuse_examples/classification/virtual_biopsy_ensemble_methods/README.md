@@ -71,7 +71,7 @@ The code is currently set to run tasks 1 and 2. If you only want to evaluate Tas
 
 *Important Note:* Once you run ```cnn_example.py``` for the first time, it will perform caching of the data and store the cached data in the ```knight_cache``` folder. The next time you run ```cnn_example.py```, it will skip this process, and use the existing, already cached data. You need to be aware of this, because if you want to modify anything related to the data (for example, the ```resize_to``` parameter), then you will need to manually delete the contents of ```knight_cache``` folder, to allow the caching process to take place again with the new parameters.
 
-The folder ```knight_for_virtual_biopsyinfer``` contains the output files generated after running ```cnn_example.py```. It consists of the predicted probabilities from the DL models in the train and validation sets for both tasks.
+The folder ```knight_for_virtual_biopsy_infer``` contains the output files generated after running ```cnn_example.py```. It consists of the predicted probabilities from the DL models in the train and validation sets for both tasks. By default, these files are named ```infer_train_task1.csv```, ```infer_validation_task1.csv```, ```infer_train_task2.csv``` and ```infer_validation_task2.csv```.
 
 
 ## Steps to run the clinical model
