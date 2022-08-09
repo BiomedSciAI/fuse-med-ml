@@ -14,7 +14,7 @@ from fuse.dl.lightning.pl_module import LightningModuleDefault
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data import Subset
 import torch
-from typing import OrderedDict
+from typing import OrderedDict, Union
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 import torch.optim as optim
@@ -26,7 +26,7 @@ from typing import Sequence, Optional
 from fuse.data import DatasetDefault
 from examples.fuse_examples.imaging.classification.mnist.run_mnist import create_model
 
-def create_dataset(test: bool, train_val_sample_ids: Sequence, cache_dir: str) -> Sequence[DatasetDefault]:
+def create_dataset(cache_dir: str, test: bool=True, train_val_sample_ids: Union[Sequence, None]=None) -> Sequence[DatasetDefault]:
     train_val_dataset = MNIST.dataset(cache_dir, train=True)
     if test or train_val_sample_ids is None:
         test_dataset = MNIST.dataset(cache_dir, train=False)

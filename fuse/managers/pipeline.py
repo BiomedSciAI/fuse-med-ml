@@ -65,25 +65,35 @@ def runner_wrapper(q_resources, rep_index, fs, *f_args, **f_kwargs):
     print(f"Using GPUs: {resource}")
     FuseUtilsGPU.choose_and_enable_multiple_gpus(len(resource), force_gpus=list(resource))
     if isinstance(fs, Sequence):
-        for f, last_arg in zip(fs, f_args[-1]):
-            f(*(f_args[:-1] + (last_arg,)), **f_kwargs)
+        for f, prev_arg, last_arg in zip(fs, f_args[-2], f_args[-1]):
+            f(*(f_args[:-2] + (prev_arg,) + (last_arg)), **f_kwargs)
     else:
         f(*f_args, **f_kwargs)
     print(f"Done with GPUs: {resource} - adding them back to the queue")
     q_resources.put(resource)
 
 
-def train_wrapper(dataset_func: Callable,
-    sample_ids: Sequence,
+def train_wrapper(sample_ids_per_fold: Sequence,
     cv_index: int,
-    test: bool = False,
-    rep_index: int = 0,
-    rand_gen: Optional[torch.Generator] = None,
+    rep_index: int,
+    func: Callable,
+    dataset_func: Callable,
     params: Optional[dict] = None,
+    dataset_params: Optional[dict] = None,
     paths: Optional[dict] = None) -> None:
     
-    train_dataset, validation_dataset = 
-    pass
+    paths_train = paths.copy()
+    
+    # set parameters specific to this fold:
+    paths_train["model_dir"] = os.path.join(paths["model_dir"], "rep_" + str(rep_index), str(cv_index))
+    paths_train["cache_dir"] = os.path.join(paths["cache_dir"], "rep_" + str(rep_index), str(cv_index))
+
+    # generate data for this fold:
+    train_dataset, validation_dataset = dataset_func(cache_dir=paths_train["cache_dir"], test=False, train_val_sample_ids=sample_ids_per_fold, **dataset_params)
+
+    # call project specific train_func:
+    func(train_dataset=train_dataset, validation_dataset=validation_dataset, \
+            paths=paths_train, train_params=params)
 
 def run(
     num_folds: int,
@@ -100,7 +110,7 @@ def run(
     infer_params: Dict = None,
     eval_params: Dict = None,
     paths: Dict = None,
-    sample_ids: Sequence = None,
+    sample_ids_per_fold: Sequence = None,
 ):
     """
     ML pipeline - run a full ML experiment pipeline which consists of training on multiple
@@ -178,7 +188,7 @@ def run(
 
         # create process per fold
         processes = [
-            Process(target=runner, args=(dataset_func, ids, cv_index, False, [train_params, infer_params, eval_params]))
+            Process(target=runner, args=(ids, cv_index, rep_index, dataset_func, dataset_params, paths, [train_func, infer_func, eval_func], [train_params, infer_params, eval_params]))
             for (ids, cv_index) in zip(sample_ids_per_fold, range(num_folds))
         ][0:num_folds_used]
         for p in processes:
