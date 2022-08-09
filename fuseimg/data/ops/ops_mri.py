@@ -1,6 +1,6 @@
 import glob
 import os
-from typing import Optional, Union
+from typing import Optional, Union, List
 import logging
 
 import SimpleITK as sitk
@@ -324,14 +324,14 @@ class OpSelectVolumes(OpBase):
 
 class OpResampleStkVolsBasedRef(OpBase):
     """
-    TODO: write more clearly (?)
     Resample selected volumes based on a given reference one.
+    TODO: write more clearly (?)
     """
 
     def __init__(self, reference_inx: int, interpolation: str, **kwargs):
         """
         :param reference_inx: index for the volume that will be used as a reference
-        :param interpolation: interpolation mode from - ['linear','nn' (nearest neighbor),'bspline']
+        :param interpolation: interpolation mode from - ["linear","nn" (nearest neighbor),"bspline"]
         :param kwargs:
         """
         super().__init__(**kwargs)
@@ -347,6 +347,7 @@ class OpResampleStkVolsBasedRef(OpBase):
         # create resampling operator based on the reference volume
         volumes = sample_dict[key]
         assert len(volumes) > 0
+        # OBSOLETE CODE TODO delete (?)
         # if self.reference_inx > 0:
         #     volumes = [volumes[self.reference_inx]]+ volumes[:self.reference_inx]+ volumes[volumes+1:]
 
@@ -406,20 +407,40 @@ class OpResampleStkVolsBasedRef(OpBase):
 
 
 class OpStackList4DStk(OpBase):
+    """
+    Stack list of 3d images into a single 4d image while keeping the common meta-data from a referenced image in the list.
+    """
+
     def __init__(self, delete_input_volumes: Optional[bool] = False, reference_inx: Optional[int] = 0, **kwargs):
+        """
+        :param delete_input_volumes:
+        :param reference_inx:
+        :param kwargs:
+        """
         super().__init__(**kwargs)
         self._reference_inx = reference_inx
         self._delete_input_volumes = delete_input_volumes
 
     def __call__(self, sample_dict: NDict, key_in: str, key_out_volume4d: str, key_out_ref_volume: str):
+        """
+        TODO
+
+        :param sample_dict:
+        :param key_in:
+        :param key_out_volume4d:
+        :param key_out_ref_volume:
+        """
         vols_stk_list = sample_dict[key_in]
         if self._delete_input_volumes:
             del sample_dict[key_in]
 
+        # Convert 3d images into ndarray and stack them
         vol_arr = [sitk.GetArrayFromImage(vol) for vol in vols_stk_list]
         vol_final = np.stack(vol_arr, axis=-1)
+
+        # Convert the 4d array into an image and retrive the info from the referenced image
         vol_final_sitk = sitk.GetImageFromArray(vol_final, isVector=True)
-        vol_final_sitk.CopyInformation(vols_stk_list[self._reference_inx])
+        vol_final_sitk.CopyInformation(vols_stk_list[self._reference_inx])  # info = common meta-data
 
         sample_dict[key_out_volume4d] = vol_final_sitk
         sample_dict[key_out_ref_volume] = vols_stk_list[self._reference_inx]
@@ -427,50 +448,87 @@ class OpStackList4DStk(OpBase):
 
 
 class OpRescale4DStk(OpBase):
-    def __init__(self, thres: Optional[tuple] = (1.0, 99.0), method: Optional[str] = "noclip", **kwargs):
+    """
+    TODO
+    """
+
+    def __init__(self, thres: Optional[tuple] = (1.0, 99.0), method: Optional[str] = "noclip", **kwargs) -> None:
+        """
+        :param thres:
+        :param method:
+        :param kwargs:
+        """
         super().__init__(**kwargs)
-        # self._mask_ch_inx = mask_ch_inx
+        # self._mask_ch_inx = mask_ch_inx  # TODO delete (?)
         self._thres = thres
         self._method = method
 
-    def __call__(self, sample_dict: NDict, key: str):
+    def __call__(self, sample_dict: NDict, key: str) -> NDict:
+        """
+        :param sample_dict:
+        :param key:
+        """
         stk_vol_4D = sample_dict[key]
 
         vol_backup = sitk.Image(stk_vol_4D)
         vol_array = sitk.GetArrayFromImage(stk_vol_4D)
         if len(vol_array.shape) < 4:
+            # increase the dimension
             vol_array = vol_array[:, :, :, np.newaxis]
-        # vol_array_pre_rescale = vol_array.copy()
+        # vol_array_pre_rescale = vol_array.copy()  # TODO delete (?) - michal's
         vol_array = apply_rescaling(vol_array, thres=self._thres, method=self._method)
 
+        # TODO delete (?) - michal's
         # if self._mask_ch_inx:
         #     bool_mask = np.zeros(vol_array_pre_rescale[:, :, :, self._mask_ch_inx].shape)
         #     bool_mask[vol_array_pre_rescale[:, :, :, self._mask_ch_inx] > 0.3] = 1
         #     vol_array[:, :, :, self._mask_ch_inx] = bool_mask
 
+        # Convert back to image and retrieve information
         vol_final = sitk.GetImageFromArray(vol_array)  # , isVector=True)
         vol_final.CopyInformation(vol_backup)
-        vol_final = sitk.Image(vol_final)
+        vol_final = sitk.Image(
+            vol_final
+        )  # TODO delete or keep? not sure if necessary because it is already Image object
         sample_dict[key] = vol_final
         return sample_dict
 
 
 class OpAddMaskFromBoundingBoxAsLastChannel(OpBase):
+    """
+    Generate a mask from the lesion BB and append it as a new (last) channel
+    """
+
     def __init__(self, name_suffix: Optional[str] = "", **kwargs):
+        """
+        TODO
+
+        :param name_suffix:
+        :param kwargs:
+        """
         super().__init__(**kwargs)
         self._name_suffix = name_suffix
 
     def __call__(self, sample_dict: NDict, key_in_patch_annotations: str, key_in_ref_volume: str, key_volume4D: str):
+        """
+        TODO
 
+        :param sample_dict:
+        :param key_in_patch_annotations:
+        :param key_in_ref_volume:
+        :param key_volume4D:
+        """
         vol_ref = sample_dict[key_in_ref_volume]
         patch_annotations = sample_dict[key_in_patch_annotations]
         vol_4D_stk = sample_dict[key_volume4D]
 
+        # Get the volume as a 4D array
         vol_4D_arr = sitk.GetArrayFromImage(vol_4D_stk)
         if len(vol_4D_arr.shape) == 3:
             vol_4D_arr = np.expand_dims(vol_4D_arr, axis=3)
         assert len(vol_4D_arr.shape) == 4
 
+        # Get a mask for the 4D volume
         bbox_coords = patch_annotations[f"bbox{self._name_suffix}"]
         if isinstance(bbox_coords, str):
             bbox_coords = np.fromstring(bbox_coords[1:-1], dtype=np.int32, sep=",")
@@ -478,27 +536,37 @@ class OpAddMaskFromBoundingBoxAsLastChannel(OpBase):
             bbox_coords = np.asarray(bbox_coords)
         mask_3D_arr = extract_mask_from_annotation(vol_ref, bbox_coords)
         mask_4D_arr = np.expand_dims(mask_3D_arr, axis=3)
-        vol_4D_arr_new = np.concatenate((vol_4D_arr, mask_4D_arr), axis=3)
-        vol_4D_new_stk = sitk.GetImageFromArray(vol_4D_arr_new)
-        sample_dict[key_volume4D] = vol_4D_new_stk
 
+        # Concat the original 4D volume with the 4D array
+        vol_4D_arr_new = np.concatenate((vol_4D_arr, mask_4D_arr), axis=3)  # TODO should be axis=4 / -1? 3 isn't new
+        vol_4D_new_stk = sitk.GetImageFromArray(vol_4D_arr_new)
+        # TODO what about the Information of the image? seems like 'vol_4D_new_stk' doesn't have the info of 'vol_4D_stk', but still runs it.
+
+        sample_dict[key_volume4D] = vol_4D_new_stk
         return sample_dict
 
 
 class OpCreatePatchVolumes(OpBase):
+    """
+    TODO
+    """
+
     def __init__(
         self,
-        lsn_shape,
-        lsn_spacing,
+        lesion_shape,
+        lesion_spacing,
         pos_key: str = None,
         name_suffix: Optional[str] = "",
         delete_input_volumes=False,
         crop_based_annotation=True,
         **kwargs,
     ):
+        """
+        TODO
+        """
         super().__init__(**kwargs)
-        self._lsn_shape = lsn_shape
-        self._lsn_spacing = lsn_spacing
+        self._lesion_shape = lesion_shape
+        self._lesion_spacing = lesion_spacing
         self._name_suffix = name_suffix
         self._delete_input_volumes = delete_input_volumes
         self._crop_based_annotation = crop_based_annotation
@@ -514,15 +582,17 @@ class OpCreatePatchVolumes(OpBase):
         key_in_ref_volume: str,
         key_in_patch_annotations: str,
         key_out: str,
-    ):
-
+    ) -> NDict:
+        """
+        TODO
+        """
         vol_ref = sample_dict[key_in_ref_volume]
         vol_4D = sample_dict[key_in_volume4D]
         patch_annotations = sample_dict[key_in_patch_annotations]
 
         # read original position
         pos_orig = patch_annotations[self._pos_key]
-        if isinstance(pos_orig, str):
+        if isinstance(pos_orig, str):  # TODO take care in this case before storing it
             if pos_orig[0] == "(":
                 pos_orig = pos_orig[1:-1]
             if "," in pos_orig:
@@ -536,8 +606,8 @@ class OpCreatePatchVolumes(OpBase):
         # transform to pixel coordinate in ref coords
         pos_vol = np.array(vol_ref.TransformPhysicalPointToContinuousIndex(pos_orig.astype(np.float64)))
 
-        cropped_vol_size = (self._lsn_shape[2], self._lsn_shape[1], self._lsn_shape[0])
-        spacing = (self._lsn_spacing[2], self._lsn_spacing[1], self._lsn_spacing[0])
+        cropped_vol_size = (self._lesion_shape[2], self._lesion_shape[1], self._lesion_shape[0])  # TODO can use perm?
+        spacing = (self._lesion_spacing[2], self._lesion_spacing[1], self._lesion_spacing[0])  # TODO can use perm?
         if self._crop_based_annotation:
             vol_cropped = crop_lesion_vol_mask_based(
                 vol_4D, pos_vol, vol_ref, size=cropped_vol_size, spacing=spacing, mask_inx=-1, is_use_mask=True
@@ -570,14 +640,30 @@ class OpCreatePatchVolumes(OpBase):
 
 
 class OpStk2Dict(OpBase):
-    def __call__(self, sample_dict: NDict, keys: list):
+    """
+    Cast SimpleITK Image (volume) into a dictionary with the following items:
+        "arr": ndarray of the image
+        "origin": volume's origin
+        "spacing": volume's spacing
+        "direction": volume's direction
+
+
+    Example of use:
+        (OpStk2Dict(), dict(keys=["data.input.volume4D", "data.input.ref_volume"]))
+    """
+
+    def __call__(self, sample_dict: NDict, keys: List[str]):
+        """
+        :param sample_dict:
+        :param keys: list of volumes' keys that will be converted to dictionaries.
+        """
         for key in keys:
-            vol_stk2 = sample_dict[key]
+            vol_stk = sample_dict[key]
             d = dict(
-                arr=sitk.GetArrayFromImage(vol_stk2),
-                origin=vol_stk2.GetOrigin(),
-                spacing=vol_stk2.GetSpacing(),
-                direction=vol_stk2.GetDirection(),
+                arr=sitk.GetArrayFromImage(vol_stk),
+                origin=vol_stk.GetOrigin(),
+                spacing=vol_stk.GetSpacing(),
+                direction=vol_stk.GetDirection(),
             )
             sample_dict[key] = d
 
@@ -585,7 +671,25 @@ class OpStk2Dict(OpBase):
 
 
 class OpDict2Stk(OpBase):
-    def __call__(self, sample_dict: NDict, keys: list):
+    """
+    Cast a dictonary into a SimpleITK Image (volume).
+    The dictonary should have the following items:
+        "arr": ndarray of the image
+        "origin": volume's origin
+        "spacing": volume's spacing
+        "direction": volume's direction
+
+    Example of use:
+        (OpDict2Stk(), dict(keys=["data.input.volume4D", "data.input.ref_volume"]))
+    """
+
+    def __call__(self, sample_dict: NDict, keys: list) -> NDict:
+        """
+        TODO
+
+        :param sample_dict:
+        :param keys:
+        """
         for key in keys:
             d = sample_dict[key]
             vol_stk = sitk.GetImageFromArray(d["arr"])
@@ -675,11 +779,14 @@ def rename_seqeunce_from_dict(sample_dict, seq_id_old, seq_id_new, key_sequence_
 ############################
 
 
-def get_zeros_vol(vol):
+def get_zeros_vol(vol: Image) -> Image:
     """
-    TODO
-    :param vol:
+    Returns an Image volume full of zeros with the same shape as the refernced one
+
+    :param vol: reference volume that will determine the shape of the output Image.
     """
+
+    # TODO why we need the cast?
     if vol.GetNumberOfComponentsPerPixel() > 1:
         ref_zeros_vol = sitk.VectorIndexSelectionCast(vol, 0)
     else:
@@ -866,6 +973,10 @@ def crop_lesion_vol(
 
 
 def extract_mask_from_annotation(vol_ref, bbox_coords):
+    """
+    TODO: there is a double work in 'OpExtractPatchAnotations' (we also calculate there the mask)
+          - fix it
+    """
     xstart = bbox_coords[0]
     ystart = bbox_coords[1]
     zstart = bbox_coords[2]
@@ -879,38 +990,52 @@ def extract_mask_from_annotation(vol_ref, bbox_coords):
     return mask_np
 
 
-def apply_rescaling(img: np.array, thres: tuple = (1.0, 99.0), method: str = "noclip"):
+def apply_rescaling(img: np.ndarray, thres: tuple = (1.0, 99.0), method: str = "noclip") -> np.ndarray:
     """
-    apply_rescaling rescale each channal using method
+    Rescale each channal using method
+
     :param img:
     :param thres:
-    :param method:
+    :param method: method of rescaling,
+            "clip" -
+            "noclip" -
+            "mean" -
+            "median" -
     :return:
     """
     eps = 0.000001
 
-    def rescale_single_channel_image(img):
+    def rescale_single_channel_image(img: np.ndarray) -> np.ndarray:
+        """
+        Rescale a single channel image (2 or 3 dimensions)
+        """
         # Deal with negative values first
+        print(f"DEBUG - shape = {img.shape}")
         min_value = np.min(img)
         if min_value < 0:
             img -= min_value
+
         if method == "clip":
             val_l, val_h = np.percentile(img, thres)
             img2 = img
             img2[img < val_l] = val_l
             img2[img > val_h] = val_h
             img2 = (img2.astype(np.float32) - val_l) / (val_h - val_l + eps)
+
         elif method == "mean":
             img2 = img / max(np.mean(img), 1)
+
         elif method == "median":
             img2 = img / max(np.median(img), 1)
-            # write as op
+            # write as op TODO (???)
             ######################
+
         elif method == "noclip":
             val_l, val_h = np.percentile(img, thres)
             img2 = img
             img2 = (img2.astype(np.float32) - val_l) / (val_h - val_l + eps)
         else:
+            # TODO raise exception (?)
             img2 = img
         return img2
 
@@ -1081,7 +1206,7 @@ class OpExtractLesionPropFromBBoxAnotation(OpBase):
 
         start_slice = annotations_df[annotations_df["Patient ID"] == sample_id]["Start Slice"].values[0]
         end_slice = annotations_df[annotations_df["Patient ID"] == sample_id]["End Slice"].values[0]
-        lesion_prop, cols = extarct_lesion_prop_from_annotation(vol_ref, bbox_coords, start_slice, end_slice)
+        lesion_prop, cols = extract_lesion_prop_from_annotation(vol_ref, bbox_coords, start_slice, end_slice)
 
         sample_dict[key_out_lesion_prop] = lesion_prop
         sample_dict[key_out_cols] = cols
@@ -1090,25 +1215,45 @@ class OpExtractLesionPropFromBBoxAnotation(OpBase):
 
 
 class OpExtractPatchAnotations(OpBase):
+    """
+    TODO Make the Op more generic or maybe move it to duke.py (?)
+    """
+
     def __call__(self, sample_dict: NDict, key_in_ref_volume: str, key_in_annotations, key_out: str):
+        """
+        TODO
+
+        :param sample_dict:
+        :param key_in_ref_volume:
+        :param key_in_annotations:
+        :key_out:
+        """
         vol_ref = sample_dict[key_in_ref_volume]
         annotations = sample_dict[key_in_annotations]
 
-        bbox_coords = (
-            (annotations["Start Column"], annotations["Start Row"]),
-            (annotations["End Column"], annotations["End Row"]),
+        lesion_prop, cols = extract_lesion_prop_from_annotation(
+            vol_ref=vol_ref,
+            start_slice=annotations["Start Slice"],
+            end_slice=annotations["End Slice"],
+            start_row=annotations["Start Row"],
+            end_row=annotations["End Row"],
+            start_column=annotations["Start Column"],
+            end_column=annotations["End Column"],
         )
-
-        start_slice = annotations["Start Slice"]
-        end_slice = annotations["End Slice"]
-        lesion_prop, cols = extarct_lesion_prop_from_annotation(vol_ref, bbox_coords, start_slice, end_slice)
 
         sample_dict[key_out] = dict(zip(cols, lesion_prop[0]))
 
         return sample_dict
 
 
-def extarct_lesion_prop_from_mask(mask, T_connecetd_component_dist=40, minimumObjectSize=3):
+def extract_lesion_prop_from_mask(mask, T_connecetd_component_dist=40, minimumObjectSize=3):
+    """
+    Extract lesion properties from the lesion mask
+
+    :param mask:
+    :param T_connecetd_component_dist:
+    :param minimumObjectSize:
+    """
     mask_bool = mask > 0
 
     dist_img = sitk.SignedMaurerDistanceMap(
@@ -1153,14 +1298,27 @@ def extarct_lesion_prop_from_mask(mask, T_connecetd_component_dist=40, minimumOb
     return stats_list, cols
 
 
-def extarct_lesion_prop_from_annotation(vol_ref, bbox_coords, start_slice, end_slice):
-    mask = get_zeros_vol(vol_ref)
+def extract_lesion_prop_from_annotation(vol_ref, start_slice, end_slice, start_row, end_row, start_column, end_column):
+    """
+    Extract lesion properties from annotations
+
+    :param vol_ref:
+    TODO
+    :param start_slice:
+    :param end_slice:
+    """
+    # Retrive an ndarray mask that matches the annotations
+    mask = get_zeros_vol(vol_ref)  # TODO there is a double work here. maybe can be optimized.
     mask_np = sitk.GetArrayFromImage(mask)
-    mask_np[start_slice:end_slice, bbox_coords[0][1] : bbox_coords[1][1], bbox_coords[0][0] : bbox_coords[1][0]] = 1.0
+    # mask_np[start_slice:end_slice, bbox_coords[0][1] : bbox_coords[1][1], bbox_coords[0][0] : bbox_coords[1][0]] = 1.0
+    mask_np[start_slice:end_slice, start_row:end_row, start_column:end_column] = 1.0
+
+    # Convert the ndarray into an Image
     mask_final = sitk.GetImageFromArray(mask_np)
     mask_final.CopyInformation(vol_ref)
     mask_final = sitk.Image(mask_final)
-    return extarct_lesion_prop_from_mask(mask_final)
+
+    return extract_lesion_prop_from_mask(mask_final)
 
 
 ############################

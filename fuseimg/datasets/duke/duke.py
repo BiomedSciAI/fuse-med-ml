@@ -218,20 +218,23 @@ class Duke:
             ),
         ]
         if with_rescale:
-            # step 8:
+            # step 8: rescale the 4d volume
             static_pipeline_steps += [(OpRescale4DStk(), dict(key="data.input.volume4D"))]
 
         # step 9: read raw annotations - will be used for labels, features, and also for creating lesion properties
+        annotations_path = os.path.join(data_dir, "Annotation_Boxes.csv")
+        print(f"DEBUG: annotations_path = {annotations_path}")
         static_pipeline_steps += [
             (
-                OpReadDataframe(data=get_duke_raw_annotations_df(data_dir), key_column="Patient ID"),
+                # OpReadDataframe(data=get_duke_raw_annotations_df(data_dir), key_column="Patient ID"),
+                OpReadDataframe(data_filename=annotations_path, key_column="Patient ID"),
                 dict(key_out_group="data.input.annotations"),
             )
         ]
 
         # step 10: add lesion properties for each sample id
         if output_patch_volumes:
-            if duke_patch_annotations_df is not None:
+            if duke_patch_annotations_df is not None:  # TODO figure if it is relevant or not! seems not to be in use
                 # read previousy computed patch annotations
                 static_pipeline_steps += [
                     (
@@ -254,7 +257,7 @@ class Duke:
                 ]
 
             static_pipeline_steps += [
-                # step 11: generate a mask from the lesion BB and append as a new (last) channel
+                # step 11: generate a mask from the lesion BB and append it as a new (last) channel
                 (
                     OpAddMaskFromBoundingBoxAsLastChannel(name_suffix=name_suffix),
                     dict(
@@ -263,11 +266,13 @@ class Duke:
                         key_in_patch_annotations="data.input.patch_annotations",
                     ),
                 ),
-                # step 12: create patch volumes using the mask channel: (i) fixed size (original scale) around center of annotatins (orig), and (ii) entire annotations
+                # step 12: create patch volumes using the mask channel:
+                #    (i) fixed size (original scale) around center of annotatins (orig),
+                #    and (ii) entire annotations
                 (
                     OpCreatePatchVolumes(
-                        lsn_shape=(9, 100, 100),
-                        lsn_spacing=(1, 0.5, 0.5),
+                        lesion_shape=(9, 100, 100),
+                        lesion_spacing=(1, 0.5, 0.5),
                         crop_based_annotation=True,
                         name_suffix=name_suffix,
                         delete_input_volumes=not output_stk_volumes,
@@ -299,7 +304,17 @@ class Duke:
         use_entire_lesion_volume: Optional[bool] = True,
         add_clinical_features: Optional[bool] = False,
     ) -> PipelineDefault:
-        assert use_entire_lesion_volume
+        """
+        TODO fill
+        :param data_dir:
+        :param label_type:
+        :param train:
+        :param num_channels:
+        :param verbose:
+        :param use_entire_lesion_volume:
+        :param add_clinical_features:
+        """
+        assert use_entire_lesion_volume  # TODO what is that (?) :O
         volume_key = "data.input.patch_volume" if use_entire_lesion_volume else "data.input.patch_volume_orig"
 
         def delete_last_channel_in_volume(sample_dict: NDict) -> NDict:
@@ -503,10 +518,16 @@ class OpAddDukeLabelAndClinicalFeatures(OpBase):
         return sample_dict
 
 
-def get_duke_raw_annotations_df(duke_data_dir: str) -> pd.DataFrame:
-    annotations_path = os.path.join(duke_data_dir, "Annotation_Boxes.csv")
-    annotations_df = pd.read_csv(annotations_path)
-    return annotations_df
+# TODO delete. michal's code
+# def get_duke_raw_annotations_df(duke_data_dir: str) -> pd.DataFrame:
+#     """
+#     TODO
+
+#     :param duke_data_dir:
+#     """
+#     annotations_path = os.path.join(duke_data_dir, "Annotation_Boxes.csv")
+#     annotations_df = pd.read_csv(annotations_path)
+#     return annotations_df
 
 
 def get_duke_clinical_data_df(duke_data_dir: str) -> pd.DataFrame:

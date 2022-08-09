@@ -488,3 +488,43 @@ class OpZScoreNorm(OpBase):
     def __call__(self, sample_dict: NDict, key: str, mean: float, std: float):
         sample_dict[key] = (sample_dict[key] - mean) / std
         return sample_dict
+
+
+class OpIfElse(OpBase):
+    """
+    Meta-op for applying Op by a certain condition.
+
+    There are two types of conditions:
+        static_cond - condition for all samples.
+        sample_cond_key - condition that can differ between samples.
+
+    TODO TODO TODO - Unfinished!
+    """
+
+    def __init__(
+        self, op_true: Optional[OpBase] = None, op_false: Optional[OpBase] = None, static_cond: Optional[bool] = None
+    ):
+        """
+        :param op_true:
+        :param op_false:
+        """
+        self._op_true = op_true
+        self._op_false = op_false
+
+    def __call__(self, sample_dict: NDict, sample_cond_key: Optional[bool], op_true_args, op_false_args) -> None:
+        """
+        TODO
+        :param condition:
+        """
+
+        # Apply Op True
+        if sample_cond_key and self._op_true is not None:
+            return self._op_true(sample_dict, op_true_args)
+
+        # Apply Op False
+        elif not sample_cond_key and self._op_false is not None:
+            return self._op_false(sample_dict, op_false_args)
+
+        # Do nothing
+        else:
+            return sample_dict
