@@ -14,8 +14,6 @@ from fuse.dl.lightning.pl_module import LightningModuleDefault
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data import Subset
 import torch
-from fuse_examples.imaging.classification.mnist import lenet
-from fuse_examples.imaging.classification.mnist.run_mnist import perform_softmax
 from typing import OrderedDict
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
@@ -26,25 +24,13 @@ from fuse.eval.evaluator import EvaluatorDefault
 from fuseimg.datasets.mnist import MNIST
 from typing import Sequence, Optional
 from fuse.data import DatasetDefault
-
+from examples.fuse_examples.imaging.classification.mnist.run_mnist import create_model
 
 def create_dataset(cache_dir: str) -> Sequence[DatasetDefault]:
     train_dataset = MNIST.dataset(cache_dir, train=True)
     test_dataset = MNIST.dataset(cache_dir, train=False)
 
     return train_dataset, test_dataset
-
-
-def create_model() -> torch.nn.Module:
-    torch_model = lenet.LeNet()
-    # wrap basic torch model to automatically read inputs from batch_dict and save its outputs to batch_dict
-    model = ModelWrapSeqToDict(
-        model=torch_model,
-        model_inputs=["data.image"],
-        post_forward_processing_function=perform_softmax,
-        model_outputs=["model.logits.classification", "model.output.classification"],
-    )
-    return model
 
 
 def run_train(

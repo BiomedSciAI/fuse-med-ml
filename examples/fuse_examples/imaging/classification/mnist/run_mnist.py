@@ -50,7 +50,7 @@ import fuse.utils.gpu as GPU
 
 from fuseimg.datasets.mnist import MNIST
 
-from fuse_examples.imaging.classification.mnist import lenet
+from examples.fuse_examples.imaging.classification.mnist import lenet
 
 ###########################################################################################################
 # Fuse
