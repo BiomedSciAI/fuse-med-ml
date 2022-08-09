@@ -76,10 +76,8 @@ train_params["trainer.ckpt_path"] = None  # checkpoint to continue from
 # Inference Params
 ######################################
 infer_params = {}
-infer_params["infer_filename"] = "validation_set_infer.gz"
-infer_params["test_infer_filename"] = "test_set_infer.gz"
-infer_params["checkpoint_filename"] = "best_epoch.ckpt"
-infer_params["checkpoint"] = "best"  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
+infer_params["infer_filename"] = "infer.gz"
+infer_params["checkpoint"] = "best_epoch.ckpt"
 infer_params["trainer.num_devices"] = 1
 infer_params["trainer.accelerator"] = "gpu"
 infer_params["trainer.strategy"] = None

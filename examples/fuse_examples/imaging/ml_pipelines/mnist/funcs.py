@@ -36,6 +36,7 @@ def create_dataset(cache_dir: str, test: bool=True, train_val_sample_ids: Union[
         validation_dataset = MNIST.dataset(cache_dir, train=True, sample_ids=train_val_sample_ids[1])
         return train_dataset, validation_dataset
 
+"""
 def run_train(
     dataset: DatasetDefault,
     sample_ids: Sequence,
@@ -163,7 +164,8 @@ def run_train(
     # train
     pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=params["trainer.ckpt_path"])
     print("Train: Done")
-
+    
+"""
 
 def run_infer(
     dataset: DatasetDefault,

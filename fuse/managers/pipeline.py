@@ -95,6 +95,29 @@ def train_wrapper(sample_ids_per_fold: Sequence,
     func(train_dataset=train_dataset, validation_dataset=validation_dataset, \
             paths=paths_train, train_params=params)
 
+def infer_wrapper(sample_ids_per_fold: Sequence,
+    cv_index: int,
+    rep_index: int,
+    func: Callable,
+    dataset_func: Callable,
+    params: Optional[dict] = None,
+    dataset_params: Optional[dict] = None,
+    paths: Optional[dict] = None) -> None:
+    
+    paths_infer = paths.copy()
+
+    # set parameters specific to this fold, and generate data:
+    paths_infer["model_dir"] = os.path.join(paths["model_dir"], "rep_" + str(rep_index), str(cv_index))
+    if sample_ids_per_fold is None: # test mode
+        paths_infer["inference_dir"] = os.path.join(paths["test_dir"], "rep_" + str(rep_index), str(cv_index))
+        _, dataset = dataset_func(cache_dir=paths_infer["cache_dir"], test=True, train_val_sample_ids=None, **dataset_params)
+    else:
+        paths_infer["inference_dir"] = os.path.join(paths["inference_dir"], "rep_" + str(rep_index), str(cv_index))
+        _, dataset = dataset_func(cache_dir=paths_infer["cache_dir"], test=False, train_val_sample_ids=sample_ids_per_fold, **dataset_params)
+    
+    # call project specific infer_func:
+    func(dataset=dataset, paths=paths_infer, infer_params=params)
+
 def run(
     num_folds: int,
     num_folds_used: int,
