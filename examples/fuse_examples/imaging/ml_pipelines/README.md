@@ -6,7 +6,7 @@ The examples in this folder demonstrates automation of an ML pipeline which cons
 * Test evaluation using the ensembled model
 * Multiple repetitions to check performance variability for multiple random seeds
 
-An ML pipeline is ran by calling the `run` function in `fuse.managers.pipeline`. This function expects a number of required parameters, as well as optional dictionaries `dataset_params`, `train_params`, `infer_params` and `eval_params` that can contain any number of additional custom parameters.  
+An ML pipeline is ran by calling the `run` function in `fuse.managers.pipeline`. This function expects a number of required parameters, as well as optional dictionaries `dataset_params`, `train_params`, `infer_params`, `eval_params`  and `paths` that can contain any number of additional custom parameters and path specifications.  
 Another optional parameter is `sample_ids`, which may contain a sequence of array pairs denoting sample ids for pre-defined train/validation splits. If this parameter is kept at `None`, the splits are decided at random.
 
 The required parameters are as follows:  

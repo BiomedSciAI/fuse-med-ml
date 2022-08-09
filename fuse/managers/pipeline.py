@@ -5,7 +5,7 @@ from sklearn.model_selection import KFold
 import multiprocessing
 from functools import partial
 from multiprocessing import Process, Queue
-from typing import Sequence
+from typing import Sequence, Optional
 import numpy as np
 import os
 from fuse.eval.metrics.classification.metrics_ensembling_common import MetricEnsemble
@@ -13,7 +13,8 @@ from collections import OrderedDict
 from fuse.eval.evaluator import EvaluatorDefault
 from fuse.utils.file_io.file_io import create_or_reset_dir
 from fuse.utils.rand.seed import Seed
-
+from fuse.data import DatasetDefault
+import torch
 
 # pre collect function to change the format
 def ensemble_pre_collect(sample_dict: dict) -> dict:
@@ -72,6 +73,18 @@ def runner_wrapper(q_resources, rep_index, fs, *f_args, **f_kwargs):
     q_resources.put(resource)
 
 
+def train_wrapper(dataset_func: Callable,
+    sample_ids: Sequence,
+    cv_index: int,
+    test: bool = False,
+    rep_index: int = 0,
+    rand_gen: Optional[torch.Generator] = None,
+    params: Optional[dict] = None,
+    paths: Optional[dict] = None) -> None:
+    
+    train_dataset, validation_dataset = 
+    pass
+
 def run(
     num_folds: int,
     num_folds_used: int,
@@ -86,6 +99,7 @@ def run(
     train_params: Dict = None,
     infer_params: Dict = None,
     eval_params: Dict = None,
+    paths: Dict = None,
     sample_ids: Sequence = None,
 ):
     """
@@ -121,7 +135,7 @@ def run(
         custom parameters for infer_func.
     :param eval_params: Dictionary that can contain any number of additional
         custom parameters for eval_func.
-    :param sample_ids: May contain a sequence of array pairs denoting sample ids
+    :param sample_ids_per_fold: May contain a sequence of array pairs denoting sample ids
         for pre-defined train/validation splits. If this parameter is set to `None`,
         the splits are decided at random.
     """
@@ -149,23 +163,23 @@ def run(
     for r in gpu_resources:
         q_resources.put(r)
 
-    dataset, test_dataset = dataset_func(**dataset_params)
-    if sample_ids is None:
+    if sample_ids_per_fold is None:
+        dataset, test_dataset = dataset_func(**dataset_params)
         # the split decision should be the same regardless of repetition index
         kfold = KFold(n_splits=num_folds, shuffle=True, random_state=1234)
-        sample_ids = [item for item in kfold.split(dataset)]
+        sample_ids_per_fold = [item for item in kfold.split(dataset)]
     else:
-        assert num_folds == len(sample_ids)
+        assert num_folds == len(sample_ids_per_fold)
 
     for rep_index in range(num_repetitions):
         # run training, inference and evaluation on all cross validation folds in parallel
         # using the available gpu resources:
-        runner = partial(runner_wrapper, q_resources, rep_index, [train_func, infer_func, eval_func])
+        runner = partial(runner_wrapper, q_resources, rep_index, [train_wrapper, infer_wrapper, eval_wrapper])
 
         # create process per fold
         processes = [
-            Process(target=runner, args=(dataset, ids, cv_index, False, [train_params, infer_params, eval_params]))
-            for (ids, cv_index) in zip(sample_ids, range(num_folds))
+            Process(target=runner, args=(dataset_func, ids, cv_index, False, [train_params, infer_params, eval_params]))
+            for (ids, cv_index) in zip(sample_ids_per_fold, range(num_folds))
         ][0:num_folds_used]
         for p in processes:
             p.start()

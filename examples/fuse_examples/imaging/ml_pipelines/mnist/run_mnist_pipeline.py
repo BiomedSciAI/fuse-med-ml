@@ -1,5 +1,6 @@
 from fuse.managers.pipeline import run
-from funcs import run_train, run_infer, run_eval, create_dataset
+from examples.fuse_examples.imaging.classification.mnist.run_mnist import run_train, run_infer, run_eval
+from funcs import create_dataset
 import os
 
 ##########################################
@@ -41,7 +42,6 @@ dataset_params["cache_dir"] = paths["cache_dir"]
 # Train Params
 ##########################################
 train_params = {}
-train_params["paths"] = paths
 
 # ============
 # Model
@@ -76,7 +76,6 @@ train_params["trainer.ckpt_path"] = None  # checkpoint to continue from
 # Inference Params
 ######################################
 infer_params = {}
-infer_params["paths"] = paths
 infer_params["infer_filename"] = "validation_set_infer.gz"
 infer_params["test_infer_filename"] = "test_set_infer.gz"
 infer_params["checkpoint_filename"] = "best_epoch.ckpt"
@@ -93,7 +92,6 @@ infer_params["run_func"] = run_infer
 # Eval Params
 ######################################
 eval_params = {}
-eval_params["paths"] = paths
 eval_params["infer_filename"] = infer_params["infer_filename"]
 eval_params["test_infer_filename"] = infer_params["test_infer_filename"]
 eval_params["run_func"] = run_eval
@@ -114,4 +112,5 @@ if __name__ == "__main__":
         train_params,
         infer_params,
         eval_params,
+        paths,
     )

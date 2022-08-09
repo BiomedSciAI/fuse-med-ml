@@ -26,12 +26,15 @@ from typing import Sequence, Optional
 from fuse.data import DatasetDefault
 from examples.fuse_examples.imaging.classification.mnist.run_mnist import create_model
 
-def create_dataset(cache_dir: str) -> Sequence[DatasetDefault]:
-    train_dataset = MNIST.dataset(cache_dir, train=True)
-    test_dataset = MNIST.dataset(cache_dir, train=False)
-
-    return train_dataset, test_dataset
-
+def create_dataset(test: bool, train_val_sample_ids: Sequence, cache_dir: str) -> Sequence[DatasetDefault]:
+    train_val_dataset = MNIST.dataset(cache_dir, train=True)
+    if test or train_val_sample_ids is None:
+        test_dataset = MNIST.dataset(cache_dir, train=False)
+        return train_val_dataset, test_dataset
+    else:
+        train_dataset = MNIST.dataset(cache_dir, train=True, sample_ids=train_val_sample_ids[0])
+        validation_dataset = MNIST.dataset(cache_dir, train=True, sample_ids=train_val_sample_ids[1])
+        return train_dataset, validation_dataset
 
 def run_train(
     dataset: DatasetDefault,
