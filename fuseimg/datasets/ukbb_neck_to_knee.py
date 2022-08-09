@@ -12,7 +12,7 @@ from fuse.data.ops.ops_cast import OpToNumpy
 from fuse.data.ops.op_base import OpBase
 from fuse.utils import NDict
 from functools import partial
-from typing import Hashable, Optional, Sequence
+from typing import Hashable, List, Optional, Sequence
 import torch
 import pandas as pd
 import numpy as np
@@ -122,7 +122,24 @@ class OpLoadUKBBZip(OpBase):
         sample_dict[unique_id_out] = dcm_unique
         shutil.rmtree(dirpath)
         return sample_dict
+class OpLoadVolumeAroundCenterPoint(OpBase):
+    '''
+    loads a volume (defined by radiuses) from given image around the given center point 
+    '''
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
+    def __call__(self, sample_dict: NDict , key_in:str, key_out: str, center_point :  np.array= None, radiuses : np.array= np.array([5.0,30.0,30.0])) -> NDict:
+        '''
+        
+        '''
+        img = sample_dict[key_in]
+        if center_point == None :
+            center_point = [i/2 for i in img.shape]
+        bouding_box_indices =  [(max(int((center_point[i]-radiuses[i])),0),min(int((center_point[i]+radiuses[i])),img.shape[i]-1)) for i in range(3)]
+        img = img[bouding_box_indices[0][0]:bouding_box_indices[0][1],bouding_box_indices[1][0]:bouding_box_indices[1][1],bouding_box_indices[2][0]:bouding_box_indices[2][1]]
+        sample_dict[key_out] = img
+        return sample_dict
 class UKBB:
     """
     # dataset that contains MRI nech-to-knee  and metadata from UK patients
@@ -166,6 +183,7 @@ class UKBB:
          # decoding sample ID
             (OpUKBBSampleIDDecode(), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path"    
             (OpLoadUKBBZip(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", unique_id_out="data.ID", series_config=series_config)),
+            (OpLoadVolumeAroundCenterPoint(), dict(key_in="data.input.img", key_out="data.input.img")),
             # (OpLambda(partial(skimage.transform.resize,
             #                                                 output_shape=(32, 256, 256),
             #                                                 mode='reflect',

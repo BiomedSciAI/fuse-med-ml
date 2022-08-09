@@ -307,13 +307,13 @@ def run_explain(train: NDict, paths: NDict, infer: NDict):
     pl_module, _, infer_dataloader = load_model_and_test_data(train, paths, infer)
 
     model = ModelWrapDictToSeq(pl_module._model, output_key='head_0')
-    model = medcam.inject(model, output_dir="attention_maps", backend='gcam', save_maps=True, layer='auto', return_attention=True)
+    model = medcam.inject(model, output_dir=os.path.join('working_dir','attention_maps'), backend='gcam', save_maps=True, layer='auto', return_attention=True)
     for i, batch in enumerate(infer_dataloader):
         logit, attention_map = model(batch['data.input.img'], batch['data.gt.classification'])
         attention_map = attention_map[0][0].numpy()
         batch['data.input.img'] = batch['data.input.img'][0][0].numpy()
         original_attention_map = nib.load(
-            os.path.join('attention_maps', 'model.backbone.layer4', 'attention_map_' + str(i) + '_0_0.nii.gz')).get_fdata()
+            os.path.join('working_dir','attention_maps',os.listdir(os.path.join('working_dir','attention_maps'))[0], 'attention_map_' + str(i) + '_0_0.nii.gz')).get_fdata()
         original_transposed = np.transpose(batch['data.input.img'], axes=(1, 2, 0))
         scale_ratio = [original_transposed.shape[i] / value for i, value in enumerate(original_attention_map.shape)]
         points = []
@@ -340,21 +340,32 @@ def run_explain(train: NDict, paths: NDict, infer: NDict):
         attention_map = show_attention_on_image(batch['data.input.img'], attention_map)
         batch['data.input.img'] = np.transpose(batch['data.input.img'], axes=(1, 2, 0))
         original = nib.Nifti1Image(batch['data.input.img'], affine=np.eye(4))
-        volume_box = np.zeros(batch['data.input.img'].shape)
-        for point in points:
-            bouding_box_indices = [(int((point[i] - 1) * scale_ratio[i]), int((point[i] + 1) * scale_ratio[i])) for i in range(3)]
-            print(bouding_box_indices)
-            volume_box = draw_bbox_around_volume(volume_box, bouding_box_indices, 1)
-        # bouding_box_indices =  [(int((max_volume[i]-1)*scale_ratio[i]),int((max_volume[i]+1)*scale_ratio[i])) for i in range(3)]
-        # volume_box = draw_bbox_around_volume(volume_box,max_volume, 2)
-        volume_box = nib.Nifti1Image(volume_box, affine=np.eye(4))
-        nib.save(original, filename=os.path.join('attention_maps', 'original_' + str(i) + '_' + batch['data.input.img_path'][0] + '_label_=' + str(
-            batch['data.gt.classification']) + '.nii.gz'))
-        nib.save(volume_box, filename=os.path.join('attention_maps', 'maxvolume_' + str(i) + '_' + batch['data.input.img_path'][0] + '_label_=' + str(
-            batch['data.gt.classification']) + '.nii.gz'))
-        nib.save(attention_map, filename=os.path.join('attention_maps',
-                                                      'attention_' + str(i) + '_' + batch['data.input.img_path'][0] + '_label_=' + str(
-                                                          batch['data.gt.classification']) + '.nii.gz'))
+        # volume_box = np.zeros(batch['data.input.img'].shape)
+        # radiuses = np.array([30.0,30.0,5.0])
+        points = np.array(points)
+        big_point = [float(np.mean(points[:,i])[0])*scale_ratio[i] for i in range(3)]
+        print(big_point)
+        # bouding_box_indices =  [(max(int((big_point[i]-radiuses[i])),0),min(int((big_point[i]+radiuses[i])),volume_box.shape[i]-1)) for i in range(3)]
+        # print(bouding_box_indices)
+        # volume_box = draw_bbox_around_volume(volume_box,bouding_box_indices, 1)
+        # for point in points:
+        #     bouding_box_indices =  [(max(int((point[i]-1)*scale_ratio[i]),0),min(int((point[i]+1)*scale_ratio[i]),volume_box.shape[i]-1)) for i in range(3)]
+        #     print(bouding_box_indices)
+        #     volume_box = draw_bbox_around_volume(volume_box,bouding_box_indices, 1)
+        # if len(points) > 1 :
+        #     points = np.array(points)
+        #     big_point = [[ min(points[:,i]), max(points[:,i])] for i in range(3)]
+        #     for axis in big_point :
+        #         if abs(axis[0] - axis[1] ) < 2 :
+        #             axis[0] = axis[0] - 1
+        #             axis[1] = axis[1] + 1
+        #     print("big_point",big_point)
+        #     bouding_box_indices =  [(int((big_point[i][0])*scale_ratio[i]),int((big_point[i][1])*scale_ratio[i])) for i in range(3)]
+        #     print("bouding_box_indices",bouding_box_indices)
+        #     volume_box = draw_bbox_around_volume(volume_box,bouding_box_indices, 2)
+        identifier = batch['data.input.img_path'][0].replace('*','')
+        nib.save(original, filename=os.path.join('attention_maps','original_'+str(i)+'_'+identifier+'_label_='+str(batch['data.gt.classification'])+'.nii.gz'))
+        nib.save(attention_map, filename=os.path.join('attention_maps','attention_'+str(i)+'_'+identifier+'_label_='+str(batch['data.gt.classification'])+'.nii.gz'))
 
 
 def draw_bbox_around_volume(volume_box, bouding_box_indices, color):
@@ -528,5 +539,5 @@ def main(cfg: DictConfig) -> None:
 
     
 if __name__ == "__main__":
-    sys.argv.append('hydra.run.dir=working_dir3')
+    sys.argv.append('hydra.run.dir=working_dir')
     main()
