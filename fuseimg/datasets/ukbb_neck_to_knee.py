@@ -97,7 +97,7 @@ class OpLoadUKBBZip(OpBase):
                         station_list.append(i+1)
             dicom_tags['station'] = station_list
             try :
-                dcm_unique = dicom_tags[dicom_tags['station'] == series_config['station']][dicom_tags['series'] == series_config['series']]['dcm_unique'].iloc[0]
+                dcm_unique = dicom_tags[(dicom_tags['station'] == series_config['station']) & (dicom_tags['series'] == series_config['series'])]['dcm_unique'].iloc[0]
             except:
                 print("requested file",zip_filename,"series description",series_config, "not found!!!")
                 return None
@@ -122,6 +122,23 @@ class OpLoadUKBBZip(OpBase):
         sample_dict[unique_id_out] = dcm_unique
         shutil.rmtree(dirpath)
         return sample_dict
+    
+class OpLoadCenterPoint(OpBase):
+    '''
+    loads a zip and select a sequence and a station from it
+    '''
+    def __init__(self, dir_path: str, **kwargs):
+        super().__init__(**kwargs)
+        self._dir_path = dir_path
+
+    def __call__(self, sample_dict: NDict, key_in:str, key_out: str) -> NDict:
+        '''
+        
+        '''
+        filename = os.path.join(self._dir_path,sample_dict[key_in])
+        f = open(filename, 'r').read()
+        sample_dict[key_out]= np.loadtxt(f, delimiter=',', usecols=(0, 2))
+        return sample_dict
 class OpLoadVolumeAroundCenterPoint(OpBase):
     '''
     loads a volume (defined by radiuses) from given image around the given center point 
@@ -129,14 +146,16 @@ class OpLoadVolumeAroundCenterPoint(OpBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def __call__(self, sample_dict: NDict , key_in:str, key_out: str, center_point :  np.array= None, radiuses : np.array= np.array([5.0,30.0,30.0])) -> NDict:
+    def __call__(self, sample_dict: NDict , key_in:str, key_out: str, centerpoint : str = None, radiuses : np.array= np.array([5.0,30.0,30.0])) -> NDict:
         '''
         
         '''
         img = sample_dict[key_in]
-        if center_point == None :
-            center_point = [i/2 for i in img.shape]
-        bouding_box_indices =  [(max(int((center_point[i]-radiuses[i])),0),min(int((center_point[i]+radiuses[i])),img.shape[i]-1)) for i in range(3)]
+        if centerpoint == None :
+            center_point_cord = [i/2 for i in img.shape]
+        else:
+            center_point_cord = sample_dict[centerpoint]
+        bouding_box_indices =  [(max(int((center_point_cord[i]-radiuses[i])),0),min(int((center_point_cord[i]+radiuses[i])),img.shape[i]-1)) for i in range(3)]
         img = img[bouding_box_indices[0][0]:bouding_box_indices[0][1],bouding_box_indices[1][0]:bouding_box_indices[1][1],bouding_box_indices[2][0]:bouding_box_indices[2][1]]
         sample_dict[key_out] = img
         return sample_dict
@@ -174,7 +193,7 @@ class UKBB:
 
         return existing_sample_ids
     @staticmethod
-    def static_pipeline(data_dir: str, series_config: NDict) -> PipelineDefault:
+    def static_pipeline(data_dir: str, series_config: NDict, centerpoint_dir: str = None) -> PipelineDefault:
         """
         Get suggested static pipeline (which will be cached), typically loading the data plus design choices that we won't experiment with.
         :param data_path: path to original kits21 data (can be downloaded by KITS21.download())
@@ -183,12 +202,13 @@ class UKBB:
          # decoding sample ID
             (OpUKBBSampleIDDecode(), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path"    
             (OpLoadUKBBZip(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", unique_id_out="data.ID", series_config=series_config)),
-            (OpLoadVolumeAroundCenterPoint(), dict(key_in="data.input.img", key_out="data.input.img")),
-            # (OpLambda(partial(skimage.transform.resize,
-            #                                                 output_shape=(32, 256, 256),
-            #                                                 mode='reflect',
-            #                                                 anti_aliasing=True,
-            #                                                 preserve_range=True)), dict(key="data.input.img")),
+            # (OpLoadCenterPoint(centerpoint_dir), dict(key_in="data.input.img_path", key_out="data.input.centerpoint")),
+            # (OpLoadVolumeAroundCenterPoint(), dict(key_in="data.input.img", key_out="data.input.img" , centerpoint = "data.input.centerpoint")),
+            (OpLambda(partial(skimage.transform.resize,
+                                                            output_shape=(44, 174, 224),
+                                                            mode='reflect',
+                                                            anti_aliasing=True,
+                                                            preserve_range=True)), dict(key="data.input.img")),
             (OpNormalizeAgainstSelf(), dict(key="data.input.img")),
             (OpToNumpy(), dict(key='data.input.img', dtype=np.float32)), 
             # (OpLambda(partial(dump, filename="first.png", slice = 25)), dict(key="data.input.img")),

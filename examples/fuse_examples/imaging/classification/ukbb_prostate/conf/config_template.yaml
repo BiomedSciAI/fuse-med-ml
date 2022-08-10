@@ -3,6 +3,7 @@ columns_to_add:
   men: is_female == 0
   preindex_cancer_prostate : preindex_C61_Malignant_neoplasm_of_prostate > 0
   postindex_cancer_prostate : postindex_C61_Malignant_neoplasm_of_prostate > 0
+  prostate_hyperplasia_preindex : preindex_prostate_hyperplasia > 0
   prepostindex_cancer_prostate: preindex_cancer_prostate | postindex_cancer_prostate
   preindex_cancer_male_genital : preindex_C60_C63_Malignant_neoplasms_of_male_genital_organs > 0
   postindex_cancer_male_genital : postindex_C60_C63_Malignant_neoplasms_of_male_genital_organs > 0
@@ -23,14 +24,14 @@ max_group_size : 1000
 # target: preindex_prostatectomy
 # cohort : men
 
-# target: prostate_hyperplasia_preindex
-# cohort: cohort_men_with_prostate
+target: prostate_hyperplasia_preindex
+cohort: cohort_men_with_prostate
 
 # target: preindex_cancer_prostate
 # cohort: cohort_cancer_prostate_preindex
 
-target: postindex_cancer_prostate
-cohort : cohort_cancer_prostate_postindex
+# target: postindex_cancer_prostate
+# cohort : cohort_cancer_prostate_postindex
 
 # target: prepostindex_cancer_prostate
 # cohort : cohort_cancer_prostate_prepostindex
@@ -93,3 +94,13 @@ eval:
   cohorts: #[cohort_cancer_prostate_preindex, cohort_cancer_prostate_postindex]
   columns_to_add: ${columns_to_add}
   sample_id_col: ${sample_id_col}
+explain:
+  sample_ids : ${paths.data_misc_dir}/sample_ids.csv
+  attention_dir : attention
+  centerpoints_dir_name : centerpoints
+  infer_filename : validation_set_infer.gz
+  checkpoint : best_epoch.ckpt
+  target : ${target}
+  columns_to_add: ${columns_to_add}
+  num_workers : 12
+  debug: False
