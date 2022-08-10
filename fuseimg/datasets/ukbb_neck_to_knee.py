@@ -292,19 +292,24 @@ class UKBB:
 
         static_pipeline = UKBB.static_pipeline(data_dir, series_config)
         dynamic_pipeline = UKBB.dynamic_pipeline(input_source_gt, target,train=train)
-                                
-        cacher = SamplesCacher(f'cmmd_cache_ver', 
-            static_pipeline,
-            cache_dirs=[cache_dir],
-            restart_cache=reset_cache,
-            audit_first_sample=False, audit_rate=None,
-            workers=num_workers)   
-        
-        my_dataset = DatasetDefault(sample_ids=sample_ids,
-            static_pipeline=static_pipeline,
-            dynamic_pipeline=dynamic_pipeline,
-            cacher=cacher,            
-        )
+        if cache_dir != None :                        
+            cacher = SamplesCacher(f'cmmd_cache_ver', 
+                static_pipeline,
+                cache_dirs=[cache_dir],
+                restart_cache=reset_cache,
+                audit_first_sample=False, audit_rate=None,
+                workers=num_workers)   
+            
+            my_dataset = DatasetDefault(sample_ids=sample_ids,
+                static_pipeline=static_pipeline,
+                dynamic_pipeline=dynamic_pipeline,
+                cacher=cacher,            
+            )
+        else:
+            my_dataset = DatasetDefault(sample_ids=sample_ids,
+                static_pipeline=static_pipeline,
+                dynamic_pipeline=dynamic_pipeline,           
+            )           
 
         my_dataset.create(num_workers = num_workers)
         return my_dataset

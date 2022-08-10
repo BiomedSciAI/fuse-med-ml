@@ -312,10 +312,10 @@ def run_explain(train: NDict, paths: NDict, explain: NDict):
 
     infer_sample_ids = pd.read_csv(paths["sample_ids"])['sample_id'].to_list()
     test_dataset = UKBB.dataset(data_dir=paths["data_dir"], target=explain['target'], series_config=train['series_config'],
-                                input_source_gt=input_source_gt, cache_dir=paths["cache_dir"], num_workers=explain['num_workers'],
+                                input_source_gt=input_source_gt, cache_dir=paths['cache_dir'], num_workers=explain['num_workers'],
                                 sample_ids=infer_sample_ids, train=False)
     ## Create dataloader
-    infer_dataloader = DataLoader(dataset=test_dataset,
+    infer_dataloader = DataLoader(dataset=test_dataset, batch_size=explain['batch_size'],
                                   shuffle=False, drop_last=False,
                                   collate_fn=CollateDefault(),
                                   num_workers=explain["num_workers"])
