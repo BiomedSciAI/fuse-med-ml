@@ -58,15 +58,13 @@ def ensemble(test_dirs, test_infer_filename, ensembled_output_file):
 
 
 def runner_wrapper(q_resources, rep_index, fs, *f_args, **f_kwargs):
-    rand_gen = Seed.set_seed(rep_index, deterministic_mode=True)
-    f_kwargs["rep_index"] = rep_index
-    f_kwargs["rand_gen"] = rand_gen
+    _ = Seed.set_seed(rep_index, deterministic_mode=True)
     resource = q_resources.get()
     print(f"Using GPUs: {resource}")
     FuseUtilsGPU.choose_and_enable_multiple_gpus(len(resource), force_gpus=list(resource))
     if isinstance(fs, Sequence):
         for f, prev_arg, last_arg in zip(fs, f_args[-2], f_args[-1]):
-            f(*(f_args[:-2] + (prev_arg,) + (last_arg)), **f_kwargs)
+            f(*(f_args[:-2] + (prev_arg,) + (last_arg,)), **f_kwargs)
     else:
         f(*f_args, **f_kwargs)
     print(f"Done with GPUs: {resource} - adding them back to the queue")
@@ -76,11 +74,12 @@ def runner_wrapper(q_resources, rep_index, fs, *f_args, **f_kwargs):
 def train_wrapper(sample_ids_per_fold: Sequence,
     cv_index: int,
     rep_index: int,
-    func: Callable,
     dataset_func: Callable,
-    params: Optional[dict] = None,
-    dataset_params: Optional[dict] = None,
-    paths: Optional[dict] = None) -> None:
+    dataset_params: dict,
+    paths: dict,
+    func: Callable,
+    params: dict,
+    ) -> None:
     
     paths_train = paths.copy()
     
@@ -98,21 +97,22 @@ def train_wrapper(sample_ids_per_fold: Sequence,
 def infer_wrapper(sample_ids_per_fold: Sequence,
     cv_index: int,
     rep_index: int,
-    func: Callable,
     dataset_func: Callable,
-    params: Optional[dict] = None,
-    dataset_params: Optional[dict] = None,
-    paths: Optional[dict] = None) -> None:
+    dataset_params: dict,
+    paths: dict,
+    func: Callable,
+    params: dict,
+    ) -> None:
     
     paths_infer = paths.copy()
 
     # set parameters specific to this fold, and generate data:
     paths_infer["model_dir"] = os.path.join(paths["model_dir"], "rep_" + str(rep_index), str(cv_index))
     if sample_ids_per_fold is None: # test mode
-        paths_infer["inference_dir"] = os.path.join(paths["test_dir"], "rep_" + str(rep_index), str(cv_index))
+        paths_infer["inference_dir"] = os.path.join(paths["inference_dir"], "test", "rep_" + str(rep_index), str(cv_index))
         _, dataset = dataset_func(cache_dir=paths_infer["cache_dir"], test=True, train_val_sample_ids=None, **dataset_params)
     else:
-        paths_infer["inference_dir"] = os.path.join(paths["inference_dir"], "rep_" + str(rep_index), str(cv_index))
+        paths_infer["inference_dir"] = os.path.join(paths["inference_dir"], "validation", "rep_" + str(rep_index), str(cv_index))
         _, dataset = dataset_func(cache_dir=paths_infer["cache_dir"], test=False, train_val_sample_ids=sample_ids_per_fold, **dataset_params)
     
     # call project specific infer_func:
@@ -121,18 +121,21 @@ def infer_wrapper(sample_ids_per_fold: Sequence,
 def eval_wrapper(sample_ids_per_fold: Sequence,
     cv_index: int,
     rep_index: int,
-    func: Callable,
     dataset_func: Callable,
-    params: Optional[dict] = None,
-    dataset_params: Optional[dict] = None,
-    paths: Optional[dict] = None) -> None:
+    dataset_params: dict,
+    paths: dict,
+    func: Callable,
+    params: dict,
+    ) -> None:
 
     paths_eval = paths.copy()
 
-    if sample_ids_per_fold is not None: # test mode
-        paths_eval["inference_dir"] = os.path.join(paths["test_dir"], "rep_" + str(rep_index), str(cv_index))
+    if sample_ids_per_fold is None: # test mode
+        paths_eval["inference_dir"] = os.path.join(paths["inference_dir"], "test", "rep_" + str(rep_index), str(cv_index))
+        paths_eval["eval_dir"] = os.path.join(paths["eval_dir"], "test", "rep_" + str(rep_index), str(cv_index))
     else:
-        paths_eval["inference_dir"] = os.path.join(paths["inference_dir"], "rep_" + str(rep_index), str(cv_index))
+        paths_eval["inference_dir"] = os.path.join(paths["inference_dir"], "validation", "rep_" + str(rep_index), str(cv_index))
+        paths_eval["eval_dir"] = os.path.join(paths["eval_dir"], "validation", "rep_" + str(rep_index), str(cv_index))
 
     # call project specific eval_func:
     func(paths=paths_eval, eval_params=params)
@@ -216,7 +219,7 @@ def run(
         q_resources.put(r)
 
     if sample_ids_per_fold is None:
-        dataset, test_dataset = dataset_func(**dataset_params)
+        dataset, test_dataset = dataset_func(cache_dir=paths["cache_dir"], **dataset_params)
         # the split decision should be the same regardless of repetition index
         kfold = KFold(n_splits=num_folds, shuffle=True, random_state=1234)
         sample_ids_per_fold = [item for item in kfold.split(dataset)]
@@ -241,10 +244,10 @@ def run(
             p.close()
 
         # infer and eval each split's model on test set:
-        runner = partial(runner_wrapper, q_resources, rep_index, [infer_func, eval_func])
+        runner = partial(runner_wrapper, q_resources, rep_index, [infer_wrapper, eval_wrapper])
         # create process per fold
         processes = [
-            Process(target=runner, args=(test_dataset, None, cv_index, True, [infer_params, eval_params]))
+            Process(target=runner, args=(None, cv_index, rep_index, dataset_func, dataset_params, paths, [infer_func, eval_func], [infer_params, eval_params]))
             for cv_index in range(num_folds)
         ][0:num_folds_used]
         for p in processes:
@@ -256,25 +259,19 @@ def run(
 
         # generate ensembled predictions:
         test_dirs = [
-            os.path.join(infer_params["paths"]["test_dir"], "rep_" + str(rep_index), str(cv_index))
+            os.path.join(paths["inference_dir"], "test", "rep_" + str(rep_index), str(cv_index))
             for cv_index in range(num_folds)
         ][0:num_folds_used]
-        test_infer_filename = infer_params["test_infer_filename"]
+        test_infer_filename = "infer.gz"
         ensembled_output_file = os.path.join(
-            infer_params["paths"]["test_dir"], "rep_" + str(rep_index), "ensemble", "ensemble_results.gz"
+            paths["inference_dir"], "test", "rep_" + str(rep_index), "ensemble", "infer.gz"
         )
         ensemble(test_dirs, test_infer_filename, ensembled_output_file)
 
         # evaluate ensemble:
-        rand_gen = Seed.set_seed(rep_index, deterministic_mode=True)
-        eval_func(
-            dataset=None,
-            sample_ids=None,
-            cv_index="ensemble",
-            test=True,
-            params=infer_params,
-            rep_index=rep_index,
-            rand_gen=rand_gen,
-            pred_key="preds",
-            label_key="target",
-        )
+        paths_eval = paths.copy()
+        paths_eval["inference_dir"] = os.path.join(paths["inference_dir"], "test", "rep_" + str(rep_index), "ensemble")
+        paths_eval["eval_dir"] = os.path.join(paths["eval_dir"], "test", "rep_" + str(rep_index), "ensemble")
+
+        _ = Seed.set_seed(rep_index, deterministic_mode=True)
+        eval_func(paths=paths_eval, eval_params=eval_params)

@@ -19,12 +19,10 @@ eval_func = run_eval
 # output paths:
 root_path = "results"
 paths = {
-    "model_dir": os.path.join(root_path, "mnist/model_dir"),
-    "force_reset_model_dir": True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
     "cache_dir": os.path.join(root_path, "mnist/cache_dir"),
+    "model_dir": os.path.join(root_path, "mnist/model_dir"),
     "inference_dir": os.path.join(root_path, "mnist/infer_dir"),
     "eval_dir": os.path.join(root_path, "mnist/eval_dir"),
-    "test_dir": os.path.join(root_path, "mnist/test_dir"),
 }
 
 ##########################################
@@ -36,7 +34,6 @@ paths = {
 ##########################################
 
 dataset_params = {}
-dataset_params["cache_dir"] = paths["cache_dir"]
 
 ##########################################
 # Train Params
@@ -61,7 +58,7 @@ train_params["data.validation_num_workers"] = 8
 # ===============
 # Train
 # ===============
-train_params["opt.learning_rate"] = 1e-4
+train_params["opt.lr"] = 1e-4
 train_params["opt.weight_decay"] = 0.001
 
 train_params["trainer.num_epochs"] = 2
@@ -91,7 +88,6 @@ infer_params["run_func"] = run_infer
 ######################################
 eval_params = {}
 eval_params["infer_filename"] = infer_params["infer_filename"]
-eval_params["test_infer_filename"] = infer_params["test_infer_filename"]
 eval_params["run_func"] = run_eval
 
 
