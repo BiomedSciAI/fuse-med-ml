@@ -118,6 +118,25 @@ def infer_wrapper(sample_ids_per_fold: Sequence,
     # call project specific infer_func:
     func(dataset=dataset, paths=paths_infer, infer_params=params)
 
+def eval_wrapper(sample_ids_per_fold: Sequence,
+    cv_index: int,
+    rep_index: int,
+    func: Callable,
+    dataset_func: Callable,
+    params: Optional[dict] = None,
+    dataset_params: Optional[dict] = None,
+    paths: Optional[dict] = None) -> None:
+
+    paths_eval = paths.copy()
+
+    if sample_ids_per_fold is not None: # test mode
+        paths_eval["inference_dir"] = os.path.join(paths["test_dir"], "rep_" + str(rep_index), str(cv_index))
+    else:
+        paths_eval["inference_dir"] = os.path.join(paths["inference_dir"], "rep_" + str(rep_index), str(cv_index))
+
+    # call project specific eval_func:
+    func(paths=paths_eval, eval_params=params)
+
 def run(
     num_folds: int,
     num_folds_used: int,
