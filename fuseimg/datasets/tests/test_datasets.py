@@ -95,7 +95,14 @@ class TestDatasets(unittest.TestCase):
         data_path = os.environ["DUKE_DATA_PATH"]
         num_samples = 1  # The number of samples to test the dataset's pipeline on them.
         sample_ids = Duke.sample_ids()[:num_samples]
-        dataset = Duke.dataset(data_dir=data_path, train=True, sample_ids=sample_ids, reset_cache=True, num_workers=10)
+        dataset = Duke.dataset(
+            data_dir=data_path,
+            train=True,
+            sample_ids=sample_ids,
+            reset_cache=True,
+            num_workers=10,
+            add_clinical_features=True,
+        )
 
         # Check that the dataset contains the correct number of samples
         self.assertEqual(len(dataset), num_samples)

@@ -73,6 +73,7 @@ class Duke:
         reset_cache: bool = False,
         num_workers: int = 10,
         sample_ids: Optional[Sequence[Hashable]] = None,
+        add_clinical_features: Optional[bool] = False,
         verbose: Optional[bool] = False,
         cache_kwargs: Optional[dict] = None,
     ) -> DatasetDefault:
@@ -86,6 +87,7 @@ class Duke:
         :param reset_cache:
         :param num_workers:  number of processes used for caching
         :param sample_ids: list of selected patient_ids for the dataset
+        :param add_clinical_features:
         :param verbose: TODO
         :param cache_kwargs: TODO
         :return:
@@ -97,7 +99,13 @@ class Duke:
         static_pipeline = Duke.static_pipeline(
             data_dir=data_dir, select_series_func=select_series_func, verbose=verbose
         )
-        dynamic_pipeline = Duke.dynamic_pipeline(data_dir=data_dir, train=train, label_type=label_type, verbose=verbose)
+        dynamic_pipeline = Duke.dynamic_pipeline(
+            data_dir=data_dir,
+            train=train,
+            label_type=label_type,
+            verbose=verbose,
+            add_clinical_features=add_clinical_features,
+        )
 
         if cache_dir is None:
             cacher = None
@@ -148,7 +156,7 @@ class Duke:
         :param duke_patch_annotations_df:
         :param name_suffix:
         """
-        data_dir = Duke.get_data_dir_from_environment_variable() if data_dir is None else data_dir
+        data_dir = os.environ["DUKE_DATA_PATH"] if data_dir is None else data_dir
         mri_dir = os.path.join(data_dir, "manifest-1607053360376")
         mri_dir2 = os.path.join(mri_dir, "Duke-Breast-Cancer-MRI")
         metadata_path = os.path.join(mri_dir, "metadata.csv")
@@ -301,8 +309,7 @@ class Duke:
         train: Optional[bool] = False,
         num_channels: Optional[int] = 1,
         verbose: Optional[bool] = True,
-        use_entire_lesion_volume: Optional[bool] = True,
-        add_clinical_features: Optional[bool] = False,
+        add_clinical_features: Optional[bool] = False,  # TODO this one
     ) -> PipelineDefault:
         """
         TODO fill
@@ -311,11 +318,10 @@ class Duke:
         :param train:
         :param num_channels:
         :param verbose:
-        :param use_entire_lesion_volume:
         :param add_clinical_features:
         """
-        assert use_entire_lesion_volume  # TODO what is that (?) :O
-        volume_key = "data.input.patch_volume" if use_entire_lesion_volume else "data.input.patch_volume_orig"
+        data_dir = os.environ["DUKE_DATA_PATH"] if data_dir is None else data_dir
+        volume_key = "data.input.patch_volume"
 
         def delete_last_channel_in_volume(sample_dict: NDict) -> NDict:
             vol = sample_dict[volume_key]
@@ -327,18 +333,12 @@ class Duke:
             # step 1: delete the mask channel
             (OpLambda(func=delete_last_channel_in_volume), dict(key=None)),
             # step 2: turn volume to tensor
-            (OpToTensor(), dict(key=volume_key, dtype=torch.float32)),
+            (OpToTensor(), dict(key="data.input.patch_volume", dtype=torch.float32)),
         ]
         if train:
             # step 3: augmentations
             dynamic_steps += [
                 # step 3.1. 3D rotation
-                # [
-                #     ('data.input',),
-                #     rotation_in_3d,
-                #     {'z_rot': Uniform(-5.0, 5.0), 'y_rot': Uniform(-5.0, 5.0), 'x_rot': Uniform(-5.0, 5.0)},
-                #     {'apply': RandBool(0.5)}
-                # ],
                 (
                     OpRandApply(OpSample(OpRotation3D()), 0.5),
                     dict(
@@ -349,24 +349,9 @@ class Duke:
                     ),
                 ),
                 # step 3.2.1 3D => 2D
-                # [
-                #     ('data.input',),
-                #     squeeze_3d_to_2d,
-                #     {'axis_squeeze': 'z'},
-                #     {}
-                # ],
+                # TODO: revisit this is the right axis (tal used 'z'). same for 3.2.3
                 (OpAugSqueeze3Dto2D(), dict(key="data.input.patch_volume", axis_squeeze=1)),
                 # step 3.2.2 2D affine transformation
-                # [
-                #     ('data.input',),
-                #     aug_op_affine,
-                #     {'rotate': Uniform(0, 360.0),
-                #      'translate': (RandInt(-4, 4), RandInt(-4, 4)),
-                #      'flip': (RandBool(0.5), RandBool(0.5)),
-                #      'scale': Uniform(0.9, 1.1),
-                #      },
-                #     {'apply': RandBool(0.5)}
-                # ],
                 (
                     OpRandApply(OpSample(OpAugAffine2D()), 0.5),
                     dict(
@@ -378,12 +363,6 @@ class Duke:
                     ),
                 ),
                 # step 3.2.3 2D => 3D
-                # [
-                #     ('data.input',),
-                #     unsqueeze_2d_to_3d,
-                #     {'channels': num_channels, 'axis_squeeze': 'z'},
-                #     {}
-                # ],
                 (
                     OpAugUnsqueeze3DFrom2D(),
                     dict(
@@ -394,11 +373,10 @@ class Duke:
                 ),
             ]
 
-        sid_key = get_sample_id_key()
+        sid_key = get_sample_id_key()  # TODO added for the test dataset
         keys_2_keep = [volume_key, sid_key]
         key_ground_truth = "data.ground_truth"
         if add_clinical_features or (label_type is not None):
-            data_dir = Duke.get_data_dir_from_environment_variable() if data_dir is None else data_dir
 
             # step 4 (optional): read clinical data
             dynamic_steps += [
@@ -407,7 +385,8 @@ class Duke:
                         data=get_duke_clinical_data_df(data_dir), key_column="Patient Information:Patient ID"
                     ),
                     dict(key_out_group="data.input.clinical_data"),
-                )
+                ),
+                # (OpPrintKeysContent(num_samples=1), dict(keys=None)),  # DEBUG
             ]
             if label_type is not None:
                 # dynamic_steps.append((OpAddDukeLabelAndClinicalFeatures(label_type=label_type),
@@ -426,13 +405,13 @@ class Duke:
                 # step 6: remove entries with Nan labels
                 dynamic_steps.append(
                     (
-                        OpLambda(func=partial(remove_entries_with_nan_label, key=key_ground_truth)),
+                        OpLambda(func=partial(remove_entries_with_nan_label, key=key_ground_truth)),  # TODO double check with moshiko (return None)
                         dict(key=None),
                     )
                 )
                 keys_2_keep.append(key_ground_truth)
 
-            if add_clinical_features:
+            if add_clinical_features and label_type is not None:
                 key_clinical_features = "data.clinical_features"
                 dynamic_steps.append(
                     (
@@ -442,24 +421,17 @@ class Duke:
                 )
                 keys_2_keep.append(key_clinical_features)
 
-            # print(f"key_2_keep = {keys_2_keep}")  # DEBUG
+            # print(f"DEBUG key_2_keep = {keys_2_keep}")  # DEBUG
             for key in keys_2_keep:
                 if key == volume_key or key == "data.sample_id":
                     continue
                 dtype = torch.int64 if key == key_ground_truth else torch.float32
-                # dynamic_steps += [(OpLambda(func=debug_print), dict(key=None))]  # TODO delete when finish PR
                 dynamic_steps += [(OpToTensor(), dict(key=key, dtype=dtype))]
-                # dynamic_steps += [(OpLambda(func=debug_print), dict(key=None))]  # TODO delete when finish PR
         dynamic_steps.append((OpKeepKeypaths(), dict(keep_keypaths=keys_2_keep)))
-        # dynamic_steps += [(OpLambda(func=debug_print_keys), dict(key=None))] # TODO delete when finish PR
 
         dynamic_pipeline = PipelineDefault("dynamic", dynamic_steps, verbose=verbose)
         print("DEBUG - Init Dynamic pipeline: Done")
         return dynamic_pipeline
-
-    @staticmethod
-    def get_data_dir_from_environment_variable() -> str:
-        return os.environ["DUKE_DATA_PATH"]
 
 
 class OpDukeSampleIDDecode(OpBase):
@@ -518,22 +490,13 @@ class OpAddDukeLabelAndClinicalFeatures(OpBase):
         return sample_dict
 
 
-# TODO delete. michal's code
-# def get_duke_raw_annotations_df(duke_data_dir: str) -> pd.DataFrame:
-#     """
-#     TODO
-
-#     :param duke_data_dir:
-#     """
-#     annotations_path = os.path.join(duke_data_dir, "Annotation_Boxes.csv")
-#     annotations_df = pd.read_csv(annotations_path)
-#     return annotations_df
-
-
 def get_duke_clinical_data_df(duke_data_dir: str) -> pd.DataFrame:
-    annotations_path = os.path.join(duke_data_dir, "Clinical_and_Other_Features.xlsx")
-
-    df = pd.read_excel(annotations_path, sheet_name="Data", nrows=10)
+    """
+    TODO
+    :param duke_data_dir:
+    """
+    clinical_path = os.path.join(duke_data_dir, "Clinical_and_Other_Features.xlsx")
+    df = pd.read_excel(clinical_path, sheet_name="Data", nrows=10)
 
     columns = []
     col_header = ""
@@ -550,13 +513,24 @@ def get_duke_clinical_data_df(duke_data_dir: str) -> pd.DataFrame:
                 break
         columns.append(col_name)
 
-    annotations_df = pd.read_excel(annotations_path, sheet_name="Data", skiprows=3, header=None, names=columns)
-    return annotations_df
+    clinical_df = pd.read_excel(clinical_path, sheet_name="Data", skiprows=3, header=None, names=columns)
+    print("DEBUG: 'get_duke_clinical_data_df' Done!")
+    return clinical_df
 
 
+# TODO delete (?)
 def get_samples_for_debug(
-    data_dir: str, n_pos: int, n_neg: int, label_type: Any, sample_ids: List[str] = None
-) -> List[str]:  # fix type Any
+    data_dir: str, n_pos: int, n_neg: int, label_type: DukeLabelType, sample_ids: List[str] = None
+) -> List[str]:
+    """
+    TODO
+
+    :param data_dir:
+    :param n_pos:
+    :param n_neg:
+    :param label_type:
+    :param sample_ids:
+    """
     annotations_df = get_duke_clinical_data_df(data_dir).set_index("Patient Information:Patient ID")
     if sample_ids is not None:
         annotations_df = annotations_df.loc[sample_ids]
@@ -571,6 +545,8 @@ def get_samples_for_debug(
 def get_series_desc_2_sequence_mapping(metadata_path: str) -> Dict[str, str]:
     """
     read metadata file and match between series_desc in metadata file and sequence
+
+    :param metadata_path:
     """
 
     metadata_df = pd.read_csv(metadata_path)
@@ -722,12 +698,19 @@ class DukeRadiomics(Duke):
 
 
 def remove_entries_with_nan_label(sample_dict: NDict, key: str) -> NDict:
+    """
+    TODO
+
+    :param sample_dict:
+    :param key:
+    """
     if np.isnan(sample_dict[key]):
         print(f"====== {get_sample_id(sample_dict)} has nan label ==> excluded")
         return None
     return sample_dict
 
 
+# TODO delete (?) seems not to be in use
 def get_selected_sample_ids() -> List[str]:
     all_sample_ids = Duke.sample_ids()
     excluded_indexes = [
