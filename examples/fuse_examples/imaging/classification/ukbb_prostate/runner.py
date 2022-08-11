@@ -94,6 +94,7 @@ def create_model(train: NDict, paths: NDict) -> torch.nn.Module:
                          max_epochs=train['trainer']['num_epochs'],
                          accelerator=train['trainer']['accelerator'],
                          devices=train['trainer']['devices'],
+                         strategy = train['trainer']['strategy'],
                          num_sanity_val_steps=-1,
                          resume_from_checkpoint=train.get('resume_from_checkpoint'),
                          auto_select_gpus=True)
@@ -312,7 +313,7 @@ def run_explain(train: NDict, paths: NDict, explain: NDict):
 
     infer_sample_ids = pd.read_csv(paths["sample_ids"])['sample_id'].to_list()
     test_dataset = UKBB.dataset(data_dir=paths["data_dir"], target=explain['target'], series_config=train['series_config'],
-                                input_source_gt=input_source_gt, cache_dir=paths['cache_dir'], num_workers=explain['num_workers'],
+                                input_source_gt=input_source_gt, cache_dir=None, reset_cache = False, num_workers=explain['num_workers'],
                                 sample_ids=infer_sample_ids, train=False)
     ## Create dataloader
     infer_dataloader = DataLoader(dataset=test_dataset, batch_size=explain['batch_size'],
@@ -323,7 +324,7 @@ def run_explain(train: NDict, paths: NDict, explain: NDict):
     pl_module = LightningModuleDefault.load_from_checkpoint(checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu",
                                                             strict=True)
     
-    explain_with_gradcam.save_attention_centerpoint(pl_module , infer_dataloader , explain)
+    explain_with_gradcam.save_attention_centerpoint(pl_module ,pl_trainer, infer_dataloader , explain)
 
 
 def load_model_and_test_data(train: NDict, paths: NDict, infer: NDict):

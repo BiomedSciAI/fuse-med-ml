@@ -9,30 +9,53 @@ import nibabel as nib
 from multiprocessing import Pool
 from tqdm import tqdm
 from pqdm.processes import pqdm
-from functools import partial
+import pandas as pd
+import torch.nn as nn
 
-def save_attention_centerpoint(pl_module,infer_dataloader , explain: NDict) :
+def save_attention_centerpoint(pl_module, pl_trainer ,  infer_dataloader , explain: NDict) :
     if not os.path.isdir(explain['centerpoints_dir_name']):
         os.mkdir(explain['centerpoints_dir_name'])
     if not os.path.isdir(explain['attention_dir']):
         os.mkdir(explain['attention_dir'])
-    model = ModelWrapDictToSeq(pl_module._model, output_key='head_0')
-    model = medcam.inject(model, output_dir=os.path.join(explain['attention_dir']),label=explain['label'], backend='gcam', save_maps=True, layer='auto', return_attention=True)
-    for i, batch in tqdm(enumerate(infer_dataloader)):
-        logit, attention_map = model(batch['data.input.img'], batch['data.gt.classification'])
+    device="cuda:0"
+    # os.environ["CUDA_VISIBLE_DEVICES"] = "0, 1, 2 ,3,4,5,6,7"
+    model = ModelWrapDictToSeq(pl_module._model, output_key='head_0').to(device)
+    model = medcam.inject(model, output_dir=os.path.join(explain['attention_dir']),label=explain['label'], backend='gcam', save_maps=True, layer='auto', return_attention=explain['debug']).to(device)
+    # model = nn.DataParallel(model, device_ids=[0, 1, 2 ,3,4,5,6,7])
+    # pl_trainer.test(model=model, datamodule=infer_dataloader, verbose=True)
+    results = []
+    for i, batch in tqdm(enumerate(infer_dataloader), total=len(infer_dataloader)):
+        batch['data.input.img'] = batch['data.input.img'].to(device)
+        batch['data.gt.classification'] = batch['data.gt.classification'].to(device)
+        if explain['debug'] == True:
+            logit, attention = model(batch['data.input.img'], batch['data.gt.classification'])
+        else:
+            logit, _ = model(batch['data.input.img'], batch['data.gt.classification'])
+        logit_vector = logit.detach().cpu().numpy()
         params = []
         for j in range(0,batch['data.input.img'].shape[0]) :
-            params.append({"i": i ,"logit":logit, "attention_map":attention_map ,"j": j ,"batch" : batch , "explain":explain })
-        pqdm(params , run_gradcam_on_sample, n_jobs = explain["num_workers"])
+            sample =  batch['data.input.img'][j][0].cpu()
+            logit = logit_vector[j][explain['label']]
+            label = str(batch['data.gt.classification'][j])
+            if explain['debug'] == True:
+                attention_map = attention[j][0].cpu()
+            else:
+                attention_map = None
+            identifier = batch['data.input.img_path'][j].replace('*','')
+            param = {"i": i ,"logit":logit, "attention_map":attention_map ,"j": j ,"sample" : sample , "explain":explain , "identifier" : identifier, "label":label}
+            res = run_gradcam_on_sample(param)
+            results.append(res)
+            params.append(param)
+         #pqdm(params , run_gradcam_on_sample, n_jobs = explain["num_workers"])
+    df = pd.DataFrame(results, columns=["identifier","logit","dist", "big_point"])
+    df.to_csv("prostate_output.csv")   
 def run_gradcam_on_sample(params):
     i = params["i"]
     logit = params["logit"]
-    attention_map = params["attention_map"]
     j = params["j"]
     batch = params["j"]
     explain = params["explain"]
-    sample = batch['data.input.img'][j][0]
-    attention_map = attention_map[j][0].numpy()
+    sample = params["sample"]
     sample = sample.numpy()
     layer_folder = [name for name in os.listdir(explain['attention_dir']) if os.path.isdir(os.path.join(explain['attention_dir'], name))][0]
     original_attention_name =  os.path.join(explain['attention_dir'],layer_folder, 'attention_map_' + str(i) + '_'+str(j)+'_0.nii.gz')
@@ -51,21 +74,24 @@ def run_gradcam_on_sample(params):
         original_attention_map[max_volume] = 0.0
     points = np.array(points)
     big_point = np.array([int(np.mean(points[:,i])*scale_ratio[i]) for i in range(3)])
-    identifier = batch['data.input.img_path'][j]
+    identifier = params["identifier"]
     with open(os.path.join(explain['centerpoints_dir_name'],identifier+'.npy'), 'wb') as f:
         np.save(f, big_point)
     center = np.array([int(index / 2) for index in original_transposed.shape])
     dist = np.linalg.norm(big_point - center)
-    if logit.detach().numpy()[j][0] < 0.9 and dist > 40 : 
-        print(batch['data.input.img_path'][0],"suspected as wrong")
+    if logit < 0.9 and dist > 40 : 
+        print(identifier,"suspected as wrong")
         print("logit",logit,"distate from center",dist,"center=",center)
     if explain['debug'] == True:
-        identifier = batch['data.input.img_path'][0].replace('*','')
+        attention_map = params["attention_map"]
+        attention_map = attention_map.numpy()
+        identifier = identifier.replace('*','')
         attention_map = show_attention_on_image(sample, attention_map)
         sample = np.transpose(sample, axes=(1, 2, 0))
         original = nib.Nifti1Image(sample, affine=np.eye(4))
-        nib.save(original, filename=os.path.join(explain['attention_dir'],'original_'+identifier+'_label_='+str(batch['data.gt.classification'][j])+str(big_point)+'.nii.gz'))
-        nib.save(attention_map, filename=os.path.join(explain['attention_dir'],'attention_'+identifier+'_label_='+str(batch['data.gt.classification'][j])+'.nii.gz'))
+        nib.save(original, filename=os.path.join(explain['attention_dir'],'original_'+identifier+'_'+str(big_point)+'.nii.gz'))
+        nib.save(attention_map, filename=os.path.join(explain['attention_dir'],'attention_'+identifier+'_'+'.nii.gz'))
+    return [identifier,logit,dist, big_point]
 
 
 

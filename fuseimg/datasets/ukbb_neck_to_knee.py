@@ -308,7 +308,9 @@ class UKBB:
         else:
             my_dataset = DatasetDefault(sample_ids=sample_ids,
                 static_pipeline=static_pipeline,
-                dynamic_pipeline=dynamic_pipeline,           
+                dynamic_pipeline=dynamic_pipeline,   
+                cacher=None,
+                allow_uncached_sample_morphing=False,        
             )           
 
         my_dataset.create(num_workers = num_workers)
