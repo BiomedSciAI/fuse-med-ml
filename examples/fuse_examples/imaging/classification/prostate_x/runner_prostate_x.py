@@ -29,11 +29,13 @@ from torch.utils.data.dataloader import DataLoader
 
 import fuse.utils.gpu as GPU
 from fuse_examples.fuse_examples_utils import ask_user  # , get_fuse_examples_user_dir
+
 # from fuse_examples.imaging.utils.backbone_3d_multichannel import Fuse_model_3d_multichannel, ResNet
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.split import dataset_balanced_division_to_folds
 from fuse.dl.losses.loss_default import LossDefault
+
 # from fuse.dl.models.heads import Head1DClassifier
 from fuse.eval.evaluator import EvaluatorDefault
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
