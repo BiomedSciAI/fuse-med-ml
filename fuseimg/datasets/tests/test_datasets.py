@@ -134,7 +134,6 @@ class TestDatasets(unittest.TestCase):
             sample = dataset[sample_index]
             self.assertEqual(get_sample_id(sample), sample_ids[sample_index])
 
-        # TODO delete when done
         print("test_prostate_x: Done!")
 
     def test_isic(self):

@@ -1,6 +1,7 @@
+from ast import Str
 import glob
 import os
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Dict
 import logging
 
 import SimpleITK as sitk
@@ -21,11 +22,19 @@ import radiomics
 class OpExtractDicomsPerSeq(OpBase):
     """
     Extracts dicoms per sequence.
+
+
     """
 
-    def __init__(self, seq_ids, series_desc_2_sequence_map, use_order_indicator: bool = False, **kwargs):
+    def __init__(
+        self,
+        seq_ids: List[str],
+        series_desc_2_sequence_map: Dict[str, Str],
+        use_order_indicator: bool = False,
+        **kwargs,
+    ):
         """
-        :param seq_ids:
+        :param seq_ids: the sequences for which the dicoms will be extract
         :param series_desc_2_sequence_map:
         :param use_order_indicator:
         :param kwargs:
@@ -46,7 +55,7 @@ class OpExtractDicomsPerSeq(OpBase):
         sample_path = sample_dict[key_in]
         sample_dict[key_out_seq_ids] = []
         seq_2_info_map = extract_seq_2_info_map(sample_path, self._series_desc_2_sequence_map)
-        # print(f"DEBUG: seq_2_info_map = {seq_2_info_map}")
+        print(f"DEBUG: seq_2_info_map = {seq_2_info_map}")
         for seq_id in self._seq_ids:
             seq_info_list = seq_2_info_map.get(seq_id, None)
             if seq_info_list is None:
@@ -1010,7 +1019,7 @@ def apply_rescaling(img: np.ndarray, thres: tuple = (1.0, 99.0), method: str = "
         Rescale a single channel image (2 or 3 dimensions)
         """
         # Deal with negative values first
-        print(f"DEBUG - shape = {img.shape}")
+        # print(f"DEBUG - shape = {img.shape}")
         min_value = np.min(img)
         if min_value < 0:
             img -= min_value
@@ -1326,6 +1335,10 @@ def extract_lesion_prop_from_annotation(vol_ref, start_slice, end_slice, start_r
 
 
 class OpReadSTKImage(OpBase):
+    """
+    TODO
+    """
+
     def __init__(self, seq_id, get_image_file, **kwargs):
         super().__init__(**kwargs)
         self._seq_id = seq_id
@@ -1341,6 +1354,10 @@ class OpReadSTKImage(OpBase):
 
 
 class OpExtractRadiomics(OpBase):
+    """
+    TODO
+    """
+
     def __init__(self, extractor, setting, **kwargs):
         super().__init__(**kwargs)
         self.seq_inx_list = setting["seq_inx_list"]
@@ -1349,6 +1366,9 @@ class OpExtractRadiomics(OpBase):
         self.extractor = extractor
 
     def __call__(self, sample_dict: NDict, key_in_vol_4d: str, key_out_radiomics_results: str):
+        """
+        TODO
+        """
 
         vol = sitk.GetArrayFromImage(sample_dict[key_in_vol_4d])
         # fix vol to shape of tensor volume
@@ -1448,6 +1468,9 @@ def norm_volume(vol_np, seq_inx, imagePath, maskPath, setting, normMethod="defau
 
 
 def get_maskpath(vol_np, mask_inx=-1, mask_type="full"):
+    """
+    TODO
+    """
     maskPath = sitk.GetImageFromArray(vol_np[mask_inx, :, :, :])
     if mask_type == "edge":
         maskPath_binary = sitk.Cast(maskPath, sitk.sitkInt8)
@@ -1457,6 +1480,9 @@ def get_maskpath(vol_np, mask_inx=-1, mask_type="full"):
     return maskPath
 
 
-def get_imagepath(vol_np, seq_inx):
+def get_imagepath(vol_np: np.ndarray, seq_inx: int):
+    """
+    TODO
+    """
     imagePath = sitk.GetImageFromArray(vol_np[seq_inx, :, :, :])
     return imagePath

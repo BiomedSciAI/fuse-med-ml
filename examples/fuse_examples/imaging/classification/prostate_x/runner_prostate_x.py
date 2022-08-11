@@ -21,7 +21,7 @@ import torch
 import logging
 import os
 import copy
-from typing import OrderedDict, Optional, List, Dict, Any
+from typing import OrderedDict, Optional, List, Tuple
 
 import torch.nn.functional as F
 import torch.optim as optim
@@ -29,12 +29,12 @@ from torch.utils.data.dataloader import DataLoader
 
 import fuse.utils.gpu as GPU
 from fuse_examples.fuse_examples_utils import ask_user  # , get_fuse_examples_user_dir
-from fuse_examples.imaging.utils.backbone_3d_multichannel import Fuse_model_3d_multichannel, ResNet
+# from fuse_examples.imaging.utils.backbone_3d_multichannel import Fuse_model_3d_multichannel, ResNet
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.split import dataset_balanced_division_to_folds
 from fuse.dl.losses.loss_default import LossDefault
-from fuse.dl.models.heads import Head1DClassifier
+# from fuse.dl.models.heads import Head1DClassifier
 from fuse.eval.evaluator import EvaluatorDefault
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
@@ -44,215 +44,227 @@ from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import create_dir, load_pickle, save_dataframe
 
 from fuseimg.datasets import prostate_x
+from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
+from fuse.dl.models import ModelMultiHead
+from fuse.dl.models.heads.head_3D_classifier import Head3DClassifier
 
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
 import pytorch_lightning as pl
 
 
-def main() -> None:
-    mode = "default"  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
+def get_folds(n_folds: int) -> Tuple[List[int], List[int], List[int]]:
+    """
+    Return the indexes split for folds (train, validation, heldout) such that the validation and the heldout folds' indexes are the two last ones
 
-    # allocate gpus
-    # To use cpu - set NUM_GPUS to 0
-    if mode == "debug":
-        NUM_GPUS = 1
+    Example:
+        n_folds = 5 -> train_folds = [0, 1, 2]
+                       validation_fold = [4]
+                       heldout_folds = [5]
+
+    :param n_folds: the amount of folds
+    """
+
+    use_new = False
+    if use_new:
+        folds = [_ for _ in range(n_folds)]
+        train_folds = folds[:-2]
+        validation_fold = [folds[-2]]
+        heldout_fold = [folds[-1]]
+
+    # prev logic. for debugging. delete (?)
     else:
-        NUM_GPUS = 1
-    # uncomment if you want to use specific gpus instead of automatically looking for free ones
-    force_gpus = None  # [0]
-    GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
+        heldout_fold = 4
+        train_folds = [i % n_folds for i in range(heldout_fold + 1, heldout_fold + n_folds - 1)]
+        validation_fold = [(heldout_fold - 1) % n_folds]
+        heldout_fold = [heldout_fold]
 
-    PATHS, TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS = get_setting(
-        mode, num_devices=NUM_GPUS, n_folds=8, heldout_fold=4
-    )
-    print(PATHS)
-
-    RUNNING_MODES = ["train", "infer", "eval"]  # Options: 'train', 'infer', 'eval'
-    # train
-    if "train" in RUNNING_MODES:
-        print(TRAIN_COMMON_PARAMS)
-        run_train(paths=PATHS, train_params=TRAIN_COMMON_PARAMS)
-
-    # infer
-    if "infer" in RUNNING_MODES:
-        print(INFER_COMMON_PARAMS)
-        run_infer(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS, audit_cache="train" not in RUNNING_MODES)
-
-    # eval
-    if "eval" in RUNNING_MODES:
-        print(EVAL_COMMON_PARAMS)
-        run_eval(paths=PATHS, eval_common_params=EVAL_COMMON_PARAMS)
-
-    print(f"Done running with heldout={INFER_COMMON_PARAMS['data.infer_folds']}")
+    return train_folds, validation_fold, heldout_fold
 
 
-def get_setting(
-    mode: str,
-    num_devices: int,
-    label_type: str = prostate_x.ProstateXLabelType.ClinSig,
-    n_folds: int = 8,
-    heldout_fold: int = 7,
-) -> List[Dict[str, Any]]:
-    ###########################################################################################################
-    # Fuse
-    ###########################################################################################################
-    ##########################################
-    # Debug modes
-    ##########################################
+mode = "default"  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
 
-    input_channels_num = 5
-    ##########################################
-    # Output Paths
-    ##########################################
-    assert (
-        "PROSTATEX_DATA_PATH" in os.environ
-    ), "Expecting environment variable PROSTATEX_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
-    data_dir = os.environ["PROSTATEX_DATA_PATH"]
-    ROOT = "/tmp/_prostate_x_sagi"
+# allocate gpus
+# To use cpu - set NUM_GPUS to 0
+if mode == "debug":
+    NUM_GPUS = 1
+else:
+    NUM_GPUS = 1
 
-    if mode == "debug":
-        data_split_file = os.path.join(ROOT, f"prostate_x_{n_folds}folds_debug.pkl")
-        selected_sample_ids = prostate_x.get_samples_for_debug(n_pos=10, n_neg=10, label_type=label_type)
-        print(selected_sample_ids)
-        cache_dir = os.path.join(ROOT, "cache_dir_debug")
-        model_dir = os.path.join(ROOT, "model_dir_debug")
-        num_workers = 0
-        batch_size = 2
-        num_epoch = 5
-    else:
-        data_split_file = os.path.join(ROOT, f"prostatex_{n_folds}folds.pkl")
-        cache_dir = os.path.join(ROOT, "cache_dir_pl")
-        model_dir = os.path.join(ROOT, f"model_dir_pl_{heldout_fold}")
-        selected_sample_ids = None
+n_folds = 8
+train_folds, validation_fold, heldout_fold = get_folds(n_folds)
+label_type = prostate_x.ProstateXLabelType.ClinSig
 
-        num_workers = 16
-        batch_size = 50
-        num_epoch = 2  # TODO: Sagi, return to 50
-    PATHS = {
-        "model_dir": model_dir,
-        "cache_dir": cache_dir,
-        "data_split_filename": os.path.join(ROOT, data_split_file),
-        "data_dir": data_dir,
-        "inference_dir": os.path.join(model_dir, "infer_dir"),
-        "eval_dir": os.path.join(model_dir, "eval_dir"),
-    }
+###########################################################################################################
+# Fuse
+###########################################################################################################
+##########################################
+# Debug modes
+##########################################
 
-    ##########################################
-    # Train Common Params
-    ##########################################
-    TRAIN_COMMON_PARAMS = {}
+input_channels_num = 5
+assert (
+    "PROSTATEX_DATA_PATH" in os.environ
+), "Expecting environment variable PROSTATEX_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
+data_dir = os.environ["PROSTATEX_DATA_PATH"]
+ROOT = "/tmp/_prostate_x_sagi_2"
 
-    # ============
-    # Data
-    # ============
+if mode == "debug":
+    data_split_file = os.path.join(ROOT, f"prostate_x_{n_folds}folds_debug.pkl")
+    selected_sample_ids = prostate_x.get_samples_for_debug(data_dir=data_dir, n_pos=20, n_neg=20, label_type=label_type)
+    print(selected_sample_ids)
+    cache_dir = os.path.join(ROOT, "cache_dir_debug")
+    model_dir = os.path.join(ROOT, "model_dir_debug")
+    num_workers = 16
+    batch_size = 2
+    num_epoch = 2
+else:
+    data_split_file = os.path.join(ROOT, f"prostatex_{n_folds}folds.pkl")
+    cache_dir = os.path.join(ROOT, "cache_dir_pl")
+    model_dir = os.path.join(ROOT, f"model_dir_pl_{heldout_fold[0]}")
+    selected_sample_ids = None
 
-    train_folds = [i % n_folds for i in range(heldout_fold + 1, heldout_fold + n_folds - 1)]
-    validation_fold = (heldout_fold - 1) % n_folds
-    TRAIN_COMMON_PARAMS["data.selected_sample_ids"] = selected_sample_ids
-    TRAIN_COMMON_PARAMS["data.batch_size"] = batch_size
-    TRAIN_COMMON_PARAMS["data.train_num_workers"] = num_workers
-    TRAIN_COMMON_PARAMS["data.validation_num_workers"] = num_workers
-    TRAIN_COMMON_PARAMS["data.num_folds"] = n_folds
-    TRAIN_COMMON_PARAMS["data.train_folds"] = train_folds
-    TRAIN_COMMON_PARAMS["data.validation_folds"] = [validation_fold]
+    num_workers = 16
+    batch_size = 50
+    num_epoch = 5
 
-    # ===============
-    # PL Trainer
-    # ===============
-    TRAIN_COMMON_PARAMS["trainer.num_epochs"] = num_epoch
-    TRAIN_COMMON_PARAMS["trainer.num_devices"] = num_devices
-    TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
-    TRAIN_COMMON_PARAMS["trainer.ckpt_path"] = None  # path to the checkpoint you wish continue the training from
+##########################################
+# Output Paths
+##########################################
+PATHS = {
+    "model_dir": model_dir,
+    "cache_dir": cache_dir,
+    "data_split_filename": os.path.join(ROOT, data_split_file),
+    "data_dir": data_dir,
+    "inference_dir": os.path.join(model_dir, "infer_dir"),
+    "eval_dir": os.path.join(model_dir, "eval_dir"),
+}
 
-    # ===============
-    # Optimizer
-    # ===============
-    TRAIN_COMMON_PARAMS["opt.lr"] = 1e-3
-    TRAIN_COMMON_PARAMS["opt.weight_decay"] = 0.005
+##########################################
+# Train Common Params
+##########################################
+TRAIN_COMMON_PARAMS = {}
 
-    # ===============
-    # Manager - Train
-    # ===============
-    TRAIN_COMMON_PARAMS["manager.train_params"] = {
-        "num_epochs": num_epoch,
-        "virtual_batch_size": 1,  # number of batches in one virtual batch
-        "start_saving_epochs": 10,  # first epoch to start saving checkpoints from
-        "gap_between_saving_epochs": 5,  # number of epochs between saved checkpoint
-    }
-    TRAIN_COMMON_PARAMS["manager.best_epoch_source"] = {
-        "source": "metrics.auc",  # can be any key from 'epoch_results'
-        "optimization": "max",  # can be either min/max
-        "on_equal_values": "better",
-        # can be either better/worse - whether to consider best epoch when values are equal
-    }
-    TRAIN_COMMON_PARAMS["manager.learning_rate"] = 1e-5
-    TRAIN_COMMON_PARAMS["manager.weight_decay"] = 1e-4
-    TRAIN_COMMON_PARAMS["manager.dropout"] = 0.5
-    TRAIN_COMMON_PARAMS["manager.momentum"] = 0.9
-    TRAIN_COMMON_PARAMS["manager.resume_checkpoint_filename"] = None  # if not None, will try to load the checkpoint
-    # TRAIN_COMMON_PARAMS['imaging_dropout'] = 0.25
-    # # TRAIN_COMMON_PARAMS['fused_dropout'] = 0.0
-    # # TRAIN_COMMON_PARAMS['clinical_dropout'] = 0.0
+# ============
+# Data
+# ============
 
-    TRAIN_COMMON_PARAMS["num_backbone_features_imaging"] = 512
+# TODO delete
+# train_folds = [i % n_folds for i in range(heldout_fold + 1, heldout_fold + n_folds - 1)]  # TODO double check that
+# validation_fold = (heldout_fold - 1) % n_folds
+TRAIN_COMMON_PARAMS["data.selected_sample_ids"] = selected_sample_ids
+TRAIN_COMMON_PARAMS["data.batch_size"] = batch_size
+TRAIN_COMMON_PARAMS["data.train_num_workers"] = num_workers
+TRAIN_COMMON_PARAMS["data.validation_num_workers"] = num_workers
+TRAIN_COMMON_PARAMS["data.num_folds"] = n_folds
+TRAIN_COMMON_PARAMS["data.train_folds"] = train_folds
+TRAIN_COMMON_PARAMS["data.validation_folds"] = validation_fold
 
-    # in order to add relevant tabular feature uncomment:
-    # num_backbone_features_clinical, post_concat_inputs,post_concat_model
-    TRAIN_COMMON_PARAMS["num_backbone_features_clinical"] = None  # 256
-    TRAIN_COMMON_PARAMS["post_concat_inputs"] = None  # [('data.clinical_features',9),]
-    TRAIN_COMMON_PARAMS["post_concat_model"] = None  # (256,256)
+# ===============
+# PL Trainer
+# ===============
+TRAIN_COMMON_PARAMS["trainer.num_epochs"] = num_epoch
+TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
+TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
+TRAIN_COMMON_PARAMS["trainer.ckpt_path"] = None  # path to the checkpoint you wish continue the training from
 
-    if TRAIN_COMMON_PARAMS["num_backbone_features_clinical"] is None:
-        TRAIN_COMMON_PARAMS["num_backbone_features"] = TRAIN_COMMON_PARAMS["num_backbone_features_imaging"]
-    else:
-        TRAIN_COMMON_PARAMS["num_backbone_features"] = (
-            TRAIN_COMMON_PARAMS["num_backbone_features_imaging"] + TRAIN_COMMON_PARAMS["num_backbone_features_clinical"]
-        )
+# ===============
+# Optimizer
+# ===============
+TRAIN_COMMON_PARAMS["opt.lr"] = 1e-3
+TRAIN_COMMON_PARAMS["opt.weight_decay"] = 0.005
 
-    # classification task:
-    # supported tasks are: 'ClinSig'
-    TRAIN_COMMON_PARAMS["label_type"] = label_type
-    TRAIN_COMMON_PARAMS["class_num"] = label_type.get_num_classes()
+# ===============
+# Manager - Train
+# ===============
+TRAIN_COMMON_PARAMS["num_backbone_features_imaging"] = 512
 
-    # backbone parameters
-    TRAIN_COMMON_PARAMS["backbone_model_dict"] = {
-        "input_channels_num": input_channels_num,
-    }
+# in order to add relevant tabular feature uncomment:
+# num_backbone_features_clinical, post_concat_inputs,post_concat_model
+TRAIN_COMMON_PARAMS["num_backbone_features_clinical"] = None  # 256
+TRAIN_COMMON_PARAMS["post_concat_inputs"] = None  # [('data.clinical_features',9),]
+TRAIN_COMMON_PARAMS["post_concat_model"] = None  # (256,256)
 
-    # ============
-    # Model
-    # ============
-
-    TRAIN_COMMON_PARAMS["model"] = dict(
-        imaging_dropout=0.25,
-        # fused_dropout=0.0,
-        # clinical_dropout=0.0,
-        num_backbone_features=TRAIN_COMMON_PARAMS["num_backbone_features"],
-        input_channels_num=5,
+if TRAIN_COMMON_PARAMS["num_backbone_features_clinical"] is None:
+    TRAIN_COMMON_PARAMS["num_backbone_features"] = TRAIN_COMMON_PARAMS["num_backbone_features_imaging"]
+else:
+    TRAIN_COMMON_PARAMS["num_backbone_features"] = (
+        TRAIN_COMMON_PARAMS["num_backbone_features_imaging"] + TRAIN_COMMON_PARAMS["num_backbone_features_clinical"]
     )
 
-    ######################################
-    # Inference Common Params
-    ######################################
-    INFER_COMMON_PARAMS = {}
-    INFER_COMMON_PARAMS["infer_filename"] = "infer_file.gz"
-    INFER_COMMON_PARAMS["checkpoint"] = "best_epoch.ckpt"
-    INFER_COMMON_PARAMS["data.infer_folds"] = [heldout_fold]  # infer validation set
-    INFER_COMMON_PARAMS["data.batch_size"] = 4
-    INFER_COMMON_PARAMS["data.num_workers"] = num_workers
-    INFER_COMMON_PARAMS["label_type"] = TRAIN_COMMON_PARAMS["label_type"]
-    INFER_COMMON_PARAMS["model"] = TRAIN_COMMON_PARAMS["model"]
-    INFER_COMMON_PARAMS["trainer.num_devices"] = num_devices
-    INFER_COMMON_PARAMS["trainer.accelerator"] = "gpu"
+# classification task:
+# supported tasks are: 'ClinSig'
+TRAIN_COMMON_PARAMS["label_type"] = label_type
+TRAIN_COMMON_PARAMS["class_num"] = label_type.get_num_classes()
 
-    ######################################
-    # Eval Common Params
-    ######################################
-    EVAL_COMMON_PARAMS = {}
-    EVAL_COMMON_PARAMS["infer_filename"] = INFER_COMMON_PARAMS["infer_filename"]
+# backbone parameters
+TRAIN_COMMON_PARAMS["backbone_model_dict"] = {
+    "input_channels_num": input_channels_num,
+}
 
-    return PATHS, TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS
+# ============
+# Model
+# ============
+
+TRAIN_COMMON_PARAMS["model"] = dict(
+    imaging_dropout=0.25,
+    # fused_dropout=0.0,
+    # clinical_dropout=0.0,
+    num_backbone_features=TRAIN_COMMON_PARAMS["num_backbone_features"],
+    input_channels_num=5,
+)
+
+######################################
+# Inference Common Params
+######################################
+INFER_COMMON_PARAMS = {}
+INFER_COMMON_PARAMS["infer_filename"] = "infer_file.gz"
+INFER_COMMON_PARAMS["checkpoint"] = "best_epoch.ckpt"
+INFER_COMMON_PARAMS["data.infer_folds"] = heldout_fold  # infer validation set
+INFER_COMMON_PARAMS["data.batch_size"] = 4
+INFER_COMMON_PARAMS["data.num_workers"] = num_workers
+INFER_COMMON_PARAMS["label_type"] = TRAIN_COMMON_PARAMS["label_type"]
+INFER_COMMON_PARAMS["model"] = TRAIN_COMMON_PARAMS["model"]
+INFER_COMMON_PARAMS["trainer.num_devices"] = TRAIN_COMMON_PARAMS["trainer.num_devices"]
+INFER_COMMON_PARAMS["trainer.accelerator"] = "gpu"
+
+######################################
+# Eval Common Params
+######################################
+EVAL_COMMON_PARAMS = {}
+EVAL_COMMON_PARAMS["infer_filename"] = INFER_COMMON_PARAMS["infer_filename"]
+
+
+# def create_model(imaging_dropout: float, num_backbone_features: int, input_channels_num: int) -> torch.nn.Module:
+#     """
+#     Creates the model
+#     See Head3DClassifier for details about imaging_dropout, clinical_dropout, fused_dropout
+#     """
+#     conv_inputs = (("data.input.patch_volume", 1),)
+
+#     model = Fuse_model_3d_multichannel(  # TODO use a different model (?)
+#         conv_inputs=conv_inputs,  # previously 'data.input'. could be either 'data.input.patch_volume' or  'data.input.patch_volume_orig'
+#         backbone=ResNet(conv_inputs=conv_inputs, ch_num=input_channels_num),  # TODO Use BackboneResnet (?)
+#         # since backbone resnet contains pooling and fc, the feature output is 1D,
+#         # hence we use Head1dClassifier as classification head
+#         heads=[
+#             Head1DClassifier(
+#                 head_name="classification",
+#                 conv_inputs=[("model.backbone_features", num_backbone_features)],
+#                 post_concat_inputs=None,  # [('data.clinical_features',9),]
+#                 post_concat_model=None,  # (256,256)
+#                 dropout_rate=imaging_dropout,
+#                 # append_dropout_rate=train_params['clinical_dropout'],
+#                 # fused_dropout_rate=train_params['fused_dropout'],
+#                 shared_classifier_head=None,
+#                 layers_description=None,
+#                 num_classes=2,
+#                 # append_features=[("data.input.clinical", 8)],
+#                 # append_layers_description=(256,128),
+#             ),
+#         ],
+#     )
+#     return model
 
 
 def create_model(imaging_dropout: float, num_backbone_features: int, input_channels_num: int) -> torch.nn.Module:
@@ -260,27 +272,20 @@ def create_model(imaging_dropout: float, num_backbone_features: int, input_chann
     creates the model
     See Head3DClassifier for details about imaging_dropout, clinical_dropout, fused_dropout
     """
-    conv_inputs = (("data.input.patch_volume", 1),)
 
-    model = Fuse_model_3d_multichannel(
-        conv_inputs=conv_inputs,  # previously 'data.input'. could be either 'data.input.patch_volume' or  'data.input.patch_volume_orig'
-        backbone=ResNet(conv_inputs=conv_inputs, ch_num=input_channels_num),
-        # since backbone resnet contains pooling and fc, the feature output is 1D,
-        # hence we use Head1dClassifier as classification head
+    model = ModelMultiHead(
+        conv_inputs=(("data.input.patch_volume", 1),),
+        backbone=BackboneResnet3D(in_channels=input_channels_num, pretrained=True),
         heads=[
-            Head1DClassifier(
+            Head3DClassifier(
                 head_name="classification",
                 conv_inputs=[("model.backbone_features", num_backbone_features)],
-                post_concat_inputs=None,  # [('data.clinical_features',9),]
-                post_concat_model=None,  # (256,256)
                 dropout_rate=imaging_dropout,
-                # append_dropout_rate=train_params['clinical_dropout'],
-                # fused_dropout_rate=train_params['fused_dropout'],
-                shared_classifier_head=None,
-                layers_description=None,
+                # append_dropout_rate=clinical_dropout,
+                # fused_dropout_rate=fused_dropout,
                 num_classes=2,
                 # append_features=[("data.input.clinical", 8)],
-                # append_layers_description=(256,128),
+                # append_layers_description=(256, 128),
             ),
         ],
     )
@@ -291,7 +296,7 @@ def create_model(imaging_dropout: float, num_backbone_features: int, input_chann
 # Train Template
 #################################
 def run_train(paths: dict, train_params: dict) -> None:
-    Seed.set_seed(222, False)
+    Seed.set_seed(42, False)
 
     # ==============================================================================
     # Logger
@@ -358,8 +363,6 @@ def run_train(paths: dict, train_params: dict) -> None:
     params["train"] = True
     params["cache_kwargs"] = dict(use_pipeline_hash=False, audit_first_sample=False, audit_rate=None)
     train_dataset = prostate_x.ProstateX.dataset(**params)
-    # for _ in train_dataset:
-    #     pass
     params["sample_ids"] = validation_sample_ids
     params["train"] = False
     validation_dataset = prostate_x.ProstateX.dataset(**params)
@@ -578,4 +581,27 @@ def run_eval(paths: dict, eval_common_params: dict) -> NDict:
 # Run
 ######################################
 if __name__ == "__main__":
-    main()
+
+    ## allocate gpus
+    # uncomment if you want to use specific gpus instead of automatically looking for free ones
+    force_gpus = None  # [0]
+    GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
+
+    RUNNING_MODES = ["train", "infer", "eval"]  # Options: 'train', 'infer', 'eval'
+
+    # train
+    if "train" in RUNNING_MODES:
+        print(TRAIN_COMMON_PARAMS)
+        run_train(paths=PATHS, train_params=TRAIN_COMMON_PARAMS)
+
+    # infer
+    if "infer" in RUNNING_MODES:
+        print(INFER_COMMON_PARAMS)
+        run_infer(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS, audit_cache="train" not in RUNNING_MODES)
+
+    # eval
+    if "eval" in RUNNING_MODES:
+        print(EVAL_COMMON_PARAMS)
+        run_eval(paths=PATHS, eval_common_params=EVAL_COMMON_PARAMS)
+
+    print(f"Done running with heldout={INFER_COMMON_PARAMS['data.infer_folds'][0]}")

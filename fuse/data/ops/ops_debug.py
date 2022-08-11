@@ -102,9 +102,9 @@ class OpPrintKeysContent(OpDebugBase):
 
         if keys is None:
             keys = dict_keys  # print all keys
-        
+
         for key in keys:
-            if key not in dict_keys: 
+            if key not in dict_keys:
                 print(f"\tWARNING! {key} not in sample_dict")
             else:
                 print(f"\t{key} = {sample_dict[key]}")

@@ -80,7 +80,7 @@ class Duke:
 
         """
         :param label_type: type of label to use
-        :param train: TODO
+        :param train: set 'True' to apply augmentations
         :param cache_dir: path to store the cache of the static pipeline
         :param data_dir: path to the original data
         :param select_series_func: which series to select for DCE_mix sequences
@@ -162,6 +162,7 @@ class Duke:
         metadata_path = os.path.join(mri_dir, "metadata.csv")
 
         series_desc_2_sequence_map = get_series_desc_2_sequence_mapping(metadata_path)
+        print(f"DEBUG: series_desc_2_sequence_map = {series_desc_2_sequence_map}")
         seq_ids = ["DCE_mix_ph1", "DCE_mix_ph2", "DCE_mix_ph3", "DCE_mix_ph4", "DCE_mix", "DCE_mix_ph"]
 
         static_pipeline_steps = [
@@ -405,7 +406,9 @@ class Duke:
                 # step 6: remove entries with Nan labels
                 dynamic_steps.append(
                     (
-                        OpLambda(func=partial(remove_entries_with_nan_label, key=key_ground_truth)),  # TODO double check with moshiko (return None)
+                        OpLambda(
+                            func=partial(remove_entries_with_nan_label, key=key_ground_truth)
+                        ),  # TODO double check with moshiko (return None)
                         dict(key=None),
                     )
                 )
@@ -544,9 +547,9 @@ def get_samples_for_debug(
 
 def get_series_desc_2_sequence_mapping(metadata_path: str) -> Dict[str, str]:
     """
-    read metadata file and match between series_desc in metadata file and sequence
+    Read metadata file and match between series_desc in metadata file and sequence
 
-    :param metadata_path:
+    :param metadata_path: path to metadata
     """
 
     metadata_df = pd.read_csv(metadata_path)

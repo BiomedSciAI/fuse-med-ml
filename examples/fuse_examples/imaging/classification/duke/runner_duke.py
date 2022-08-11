@@ -35,8 +35,8 @@ from fuse.utils.file_io.file_io import create_dir, save_dataframe, load_pickle
 from fuse.data.utils.split import dataset_balanced_division_to_folds
 
 # import fuse_examples.imaging.classification.duke.duke_utils as duke_utils
-from fuse_examples.imaging.utils.backbone_3d_multichannel import Fuse_model_3d_multichannel, ResNet
-from fuse.dl.models.heads import Head1DClassifier
+# from fuse_examples.imaging.utils.backbone_3d_multichannel import Fuse_model_3d_multichannel, ResNet
+# from fuse.dl.models.heads import Head1DClassifier
 from fuse.dl.losses.loss_default import LossDefault
 
 from fuse.data.utils.collates import CollateDefault
@@ -51,12 +51,19 @@ from fuse.eval.evaluator import EvaluatorDefault
 from fuseimg.datasets.duke.duke import Duke
 from fuseimg.datasets.duke.duke_label_type import DukeLabelType
 
+from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
+from fuse.dl.models import ModelMultiHead
+from fuse.dl.models.heads.head_3D_classifier import Head3DClassifier
+
 
 ##########################################
 # Debug modes
 ##########################################
-mode = "default"  # Options: 'default', 'debug'. See details in FuseDebug
-debug = FuseDebug(mode)
+mode = "fast_debug"  # Options: 'default', 'debug'. See details in FuseDebug
+if mode == "fast_debug":
+    debug = FuseDebug("default")
+else:
+    debug = FuseDebug(mode)
 
 ##########################################
 # Output Paths
@@ -65,8 +72,11 @@ debug = FuseDebug(mode)
 ROOT = "/tmp/_duke_sagi"
 data_dir = os.environ["DUKE_DATA_PATH"]
 
-if mode == "debug":
-    print("Lets DEBUG !")
+if mode == "debug" or mode == "fast_debug":
+    if mode == "debug":
+        print("Lets DEBUG !")
+    else:
+        print("Lets DEBUG FAST!")
 
     selected_positive = [1, 2, 3, 5, 6, 10, 12, 596, 900, 901]
     selected_negative = [4, 6, 7, 8, 11, 13, 14, 120, 902, 903]
@@ -77,7 +87,7 @@ if mode == "debug":
     cache_dir = os.path.join(ROOT, "cache_dir_debug")
     force_reset_model_dir = True
 
-    num_workers = 0
+    num_workers = 16
     batch_size = 2
     num_epochs = 2
     num_devices = 1
@@ -94,7 +104,7 @@ else:
 
     num_workers = 16
     batch_size = 50
-    num_epochs = 25
+    num_epochs = 7
     num_devices = 1
 
 
@@ -154,9 +164,9 @@ TRAIN_COMMON_PARAMS["model.dropout_rate"] = 0.5
 TRAIN_COMMON_PARAMS["model.imaging_dropout"] = 0.25
 TRAIN_COMMON_PARAMS["model.post_concat_inputs"] = None  # [('data.clinical_features',9),]
 TRAIN_COMMON_PARAMS["model.post_concat_model"] = None  # (256,256)
-
 TRAIN_COMMON_PARAMS["model.classification_task"] = label_type
 TRAIN_COMMON_PARAMS["model.class_num"] = label_type.get_num_classes()
+
 ## Backbone parameters
 TRAIN_COMMON_PARAMS["model.bb.input_channels_num"] = 1
 TRAIN_COMMON_PARAMS["model.bb.num_features_imaging"] = 512
@@ -199,35 +209,26 @@ EVAL_COMMON_PARAMS["infer_filename"] = INFER_COMMON_PARAMS["infer_filename"]
 
 
 def create_model(
-    conv_inputs: Any,
     backbone_ch_num: Any,
     num_backbone_features: Any,
-    post_concat_inputs: Any,
-    post_concat_model: Any,
     dropout_rate: float,
 ) -> torch.nn.Module:
     """
     TODO: docu, fix type Any
     """
-    model = Fuse_model_3d_multichannel(
-        conv_inputs=conv_inputs,  # previously 'data.input'. could be either 'data.input.patch_volume' or  'data.input.patch_volume_orig'
-        backbone=ResNet(conv_inputs=conv_inputs, ch_num=backbone_ch_num),
-        # since backbone resnet contains pooling and fc, the feature output is 1D,
-        # hence we use Head1dClassifier as classification head
+    model = ModelMultiHead(
+        conv_inputs=(("data.input.patch_volume", 1),),
+        backbone=BackboneResnet3D(in_channels=backbone_ch_num, pretrained=True),
         heads=[
-            Head1DClassifier(
+            Head3DClassifier(
                 head_name="classification",
                 conv_inputs=[("model.backbone_features", num_backbone_features)],
-                post_concat_inputs=post_concat_inputs,
-                post_concat_model=post_concat_model,
                 dropout_rate=dropout_rate,
-                # append_dropout_rate=train_params['clinical_dropout'],
-                # fused_dropout_rate=train_params['fused_dropout'],
-                shared_classifier_head=None,
-                layers_description=None,
+                # append_dropout_rate=clinical_dropout,
+                # fused_dropout_rate=fused_dropout,
                 num_classes=2,
                 # append_features=[("data.input.clinical", 8)],
-                # append_layers_description=(256,128),
+                # append_layers_description=(256, 128),
             ),
         ],
     )
@@ -317,7 +318,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
         num_balanced_classes=train_common_params["model.class_num"],
         batch_size=train_common_params["data.batch_size"],
         balanced_class_weights=None,
-        # workers = 0 # from michal, not sure if applicable / why
+        # workers = 0 # from michal
     )
 
     print("- Create sampler: Done")
@@ -363,11 +364,8 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     ## Create model
     print("Model:")
     model = create_model(
-        conv_inputs=(("data.input.patch_volume", 1),),
         backbone_ch_num=train_common_params["model.bb.input_channels_num"],
         num_backbone_features=train_common_params["model.bb.num_features"],
-        post_concat_inputs=train_common_params["model.post_concat_inputs"],
-        post_concat_model=train_common_params["model.post_concat_model"],
         dropout_rate=train_common_params["model.dropout_rate"],
     )
     print("Model: Done")
@@ -492,11 +490,8 @@ def run_infer(paths: dict, infer_common_params: dict) -> None:
 
     print("- Create Model:")
     model = create_model(
-        conv_inputs=(("data.input.patch_volume", 1),),
         backbone_ch_num=infer_common_params["model.bb.input_channels_num"],
         num_backbone_features=infer_common_params["model.bb.num_features"],
-        post_concat_inputs=infer_common_params["model.post_concat_inputs"],
-        post_concat_model=infer_common_params["model.post_concat_model"],
         dropout_rate=infer_common_params["model.dropout_rate"],
     )
 
