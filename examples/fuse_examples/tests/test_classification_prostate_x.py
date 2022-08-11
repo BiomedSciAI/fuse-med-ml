@@ -38,7 +38,6 @@ from fuse_examples.imaging.classification.prostate_x.runner_prostate_x import (
 
 
 def run_prostate_x(root: str) -> None:
-    PATHS, TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS = get_setting("default", num_devices=1)
 
     model_dir = os.path.join(root, "model_dir")
     paths = {

@@ -22,7 +22,7 @@ import radiomics
 class OpExtractDicomsPerSeq(OpBase):
     """
     Extracts dicoms per sequence.
- 
+
 
     """
 
