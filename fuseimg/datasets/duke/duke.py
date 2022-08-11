@@ -216,7 +216,7 @@ class Duke:
                 OpResampleStkVolsBasedRef(reference_inx=0, interpolation="bspline"),
                 dict(key="data.input.selected_volumes"),
             ),
-            # step 7: create a single 4D volume from all the sequences (4th channel is the sequence)
+            # step 7: create a single 4D volume from all the sequences (4th channel is the sequences channel)
             (
                 OpStackList4DStk(delete_input_volumes=True),
                 dict(

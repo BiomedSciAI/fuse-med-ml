@@ -1,7 +1,7 @@
 from ast import Str
 import glob
 import os
-from typing import Optional, Union, List, Dict
+from typing import Optional, Union, List, Dict, Any
 import logging
 
 import SimpleITK as sitk
@@ -22,7 +22,7 @@ import radiomics
 class OpExtractDicomsPerSeq(OpBase):
     """
     Extracts dicoms per sequence.
-
+ 
 
     """
 
@@ -84,7 +84,7 @@ class OpExtractDicomsPerSeq(OpBase):
 ######################################################################
 class OpLoadDicomAsStkVol(OpBase):
     """
-    Return location dir of requested sequence
+    TODO
     """
 
     def __init__(self, seq_reverse_map=None, **kwargs):
@@ -417,42 +417,40 @@ class OpResampleStkVolsBasedRef(OpBase):
 
 class OpStackList4DStk(OpBase):
     """
-    Stack list of 3d images into a single 4d image while keeping the common meta-data from a referenced image in the list.
+    Stack list of 3D STK Images into a single 4D STK Image while keeping the common meta-data from the referenced Image.
     """
 
-    def __init__(self, delete_input_volumes: Optional[bool] = False, reference_inx: Optional[int] = 0, **kwargs):
+    def __init__(self, delete_input_volumes: bool = False, metadata_ref_idx: int = 0, **kwargs: Any):
         """
-        :param delete_input_volumes:
-        :param reference_inx:
-        :param kwargs:
+        :param delete_input_volumes: set 'True' to deleted the input volumes
+        :param metadata_ref_idx: an index for an STK Image in the list to be used as a reference for the metadata
+        :param kwargs: see super class
         """
         super().__init__(**kwargs)
-        self._reference_inx = reference_inx
+        self._metadata_ref_idx = metadata_ref_idx
         self._delete_input_volumes = delete_input_volumes
 
     def __call__(self, sample_dict: NDict, key_in: str, key_out_volume4d: str, key_out_ref_volume: str):
         """
-        TODO
-
         :param sample_dict:
-        :param key_in:
-        :param key_out_volume4d:
-        :param key_out_ref_volume:
+        :param key_in: a key for the sample's 3D volumes
+        :param key_out_volume4d: a key to output the 4D volume
+        :param key_out_ref_volume: a key to output the 3D volume
         """
         vols_stk_list = sample_dict[key_in]
         if self._delete_input_volumes:
             del sample_dict[key_in]
 
-        # Convert 3d images into ndarray and stack them
+        # Convert 3D images into ndarray and stack them in the last axis
         vol_arr = [sitk.GetArrayFromImage(vol) for vol in vols_stk_list]
         vol_final = np.stack(vol_arr, axis=-1)
 
-        # Convert the 4d array into an image and retrive the info from the referenced image
+        # Convert the 4D array into an image and retrive the info from the referenced image
         vol_final_sitk = sitk.GetImageFromArray(vol_final, isVector=True)
-        vol_final_sitk.CopyInformation(vols_stk_list[self._reference_inx])  # info = common meta-data
+        vol_final_sitk.CopyInformation(vols_stk_list[self._metadata_ref_idx])  # info = common meta-data
 
         sample_dict[key_out_volume4d] = vol_final_sitk
-        sample_dict[key_out_ref_volume] = vols_stk_list[self._reference_inx]
+        sample_dict[key_out_ref_volume] = vols_stk_list[self._metadata_ref_idx]
         return sample_dict
 
 
@@ -486,12 +484,6 @@ class OpRescale4DStk(OpBase):
             vol_array = vol_array[:, :, :, np.newaxis]
         # vol_array_pre_rescale = vol_array.copy()  # TODO delete (?) - michal's
         vol_array = apply_rescaling(vol_array, thres=self._thres, method=self._method)
-
-        # TODO delete (?) - michal's
-        # if self._mask_ch_inx:
-        #     bool_mask = np.zeros(vol_array_pre_rescale[:, :, :, self._mask_ch_inx].shape)
-        #     bool_mask[vol_array_pre_rescale[:, :, :, self._mask_ch_inx] > 0.3] = 1
-        #     vol_array[:, :, :, self._mask_ch_inx] = bool_mask
 
         # Convert back to image and retrieve information
         vol_final = sitk.GetImageFromArray(vol_array)  # , isVector=True)

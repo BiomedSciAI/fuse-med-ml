@@ -27,7 +27,10 @@ from fuse.utils.rand.seed import Seed
 import fuse.utils.gpu as GPU
 
 from fuse_examples.imaging.classification.prostate_x.runner_prostate_x import (
-    get_setting,
+    TRAIN_COMMON_PARAMS,
+    INFER_COMMON_PARAMS,
+    EVAL_COMMON_PARAMS,
+    PATHS,
     run_train,
     run_infer,
     run_eval,
