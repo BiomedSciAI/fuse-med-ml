@@ -83,7 +83,7 @@ class OpReadDataframe(OpBase):
             df = df.set_index(self._key_column)
         self._data = df.to_dict(orient="index")
 
-    def __call__(self, sample_dict: NDict, **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, prefix: Optional[str] = None, **kwargs) -> Union[None, dict, List[dict]]:
         """
         See base class
         """
@@ -94,7 +94,11 @@ class OpReadDataframe(OpBase):
 
         # add values tp sample_dict
         for name, value in sample_data.items():
-            sample_dict[name] = value
+            if prefix == None:
+                sample_dict[name] = value
+            else:
+                sample_dict[f"{prefix}.{name}"] = value
+
 
         return sample_dict
 

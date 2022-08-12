@@ -74,7 +74,7 @@ class OpPrintKeys(OpDebugBase):
     def call_debug(self, sample_dict: NDict) -> None:
         print(f"Sample {get_sample_id(sample_dict)} keys:")
         for key in sample_dict.keypaths():
-            print(f"{key}")
+            print(f"\t{key}")
 
 
 class OpPrintShapes(OpDebugBase):
@@ -123,3 +123,36 @@ class OpPrintTypes(OpDebugBase):
         for key in sample_dict.keypaths():
             value = sample_dict[key]
             print(f"{key} - {type(value).__name__}")
+
+
+class OpPrintKeysContent(OpDebugBase):
+    """
+    Print
+    It's recommended, but not a must, to run it in a single process.
+    ```
+    from fuse.utils.utils_debug import FuseDebug
+    FuseDebug("debug")
+    ```
+    Example:
+    ```
+    (OpPrintKeysContent(num_samples=1), dict(keys=["data.input.mri_path", "data.label"])),
+    (OpPrintKeysContent(num_samples=1), dict(keys=None)),
+    ```
+    """
+
+    def call_debug(self, sample_dict: NDict, keys: List[str]) -> None:
+        """
+        :param keys: List of keys to print there contents. Set to None to print all keys.
+        """
+        print(f"OpPrintKeysContent, sample '{get_sample_id(sample_dict)}', <key> = <content>:")
+        dict_keys = sample_dict.keypaths()
+
+        if keys is None:
+            keys = dict_keys  # print all keys
+
+        for key in keys:
+            if key not in dict_keys:
+                print(f"\tWARNING! {key} not in sample_dict")
+            else:
+                print(f"\t{key} = {sample_dict[key]}")
+
