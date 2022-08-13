@@ -22,7 +22,7 @@ class OpVis2DImage(OpDebugBase):
     ```
     Example:
     # Display RGB image [3, H, W] already in range [0-256]
-    (OpVis2DImage(first_sample_only=True), dict(key="data.input.img", dtype="int"))
+    (OpVis2DImage(), dict(key="data.input.img", dtype="int"))
 
     """
 
