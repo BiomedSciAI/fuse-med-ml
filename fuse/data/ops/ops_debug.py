@@ -127,7 +127,7 @@ class OpPrintTypes(OpDebugBase):
 
 class OpPrintKeysContent(OpDebugBase):
     """
-    Print
+    Print sample's keys and contents.
     It's recommended, but not a must, to run it in a single process.
     ```
     from fuse.utils.utils_debug import FuseDebug
@@ -142,7 +142,7 @@ class OpPrintKeysContent(OpDebugBase):
 
     def call_debug(self, sample_dict: NDict, keys: List[str]) -> None:
         """
-        :param keys: List of keys to print there contents. Set to None to print all keys.
+        :param keys: List of keys to print. Set to 'None' to print all keys.
         """
         print(f"OpPrintKeysContent, sample '{get_sample_id(sample_dict)}', <key> = <content>:")
         dict_keys = sample_dict.keypaths()
