@@ -312,7 +312,7 @@ class BackboneInceptionResnetV2(nn.Module):
             except URLError as e:
                 WARNING = "\033[93m"
                 ENDC = "\033[0m"
-                warnings.warn(WARNING + f"Couldn't load pretraind weights. due to the URLError: {e}" + ENDC)
+                warnings.warn(WARNING + f"Couldn't load pretraind weights from the url: '{pretrained_weights_url}' due to the following URLError: '{e}'" + ENDC)
 
         # recreate the first conv with the required number of input parameters
         if input_channels_num != 3:
