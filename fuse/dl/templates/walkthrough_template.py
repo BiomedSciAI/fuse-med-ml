@@ -386,7 +386,7 @@ INFER_COMMON_PARAMS = {}
 INFER_COMMON_PARAMS["data.num_workers"] = TRAIN_COMMON_PARAMS["data.train_num_workers"]
 INFER_COMMON_PARAMS["data.batch_size"] = 4
 INFER_COMMON_PARAMS["infer_filename"] = os.path.join(PATHS["inference_dir"], "validation_set_infer.pickle")
-INFER_COMMON_PARAMS["checkpoint"] = "best"  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
+INFER_COMMON_PARAMS["checkpoint"] = "best_epoch.ckpt"  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
 
 ######################################
 # Inference Template

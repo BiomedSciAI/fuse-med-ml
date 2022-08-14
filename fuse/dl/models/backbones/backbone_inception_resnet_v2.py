@@ -24,6 +24,9 @@ import torch
 from torch.hub import load_state_dict_from_url
 import torch.nn as nn
 
+from urllib.error import URLError
+import warnings
+
 
 def make_seq(foo: Callable, num: int, *args, **kwargs):
     """
@@ -306,8 +309,12 @@ class BackboneInceptionResnetV2(nn.Module):
                 state_dict = load_state_dict_from_url(pretrained_weights_url)
                 self.load_state_dict(state_dict, strict=False)
             except AttributeError:
-                logger = logging.getLogger("Fuse")
-                logger.info("Invalid URL for InceptionResnetV2 pretrained weights")
+                raise Exception("Invalid URL for InceptionResnetV2 pretrained weights")
+            except URLError as e:
+                WARNING = '\033[93m'
+                ENDC = '\033[0m'
+                warnings.warn(WARNING + f"Couldn't load pretraind weights. due to the URLError: {e}" + ENDC)
+
 
         # recreate the first conv with the required number of input parameters
         if input_channels_num != 3:
