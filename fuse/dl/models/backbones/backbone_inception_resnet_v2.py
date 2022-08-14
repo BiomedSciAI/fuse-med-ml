@@ -17,7 +17,6 @@ Created on June 30, 2021
 
 """
 
-import logging
 from typing import Callable, Optional
 
 import torch
@@ -311,10 +310,9 @@ class BackboneInceptionResnetV2(nn.Module):
             except AttributeError:
                 raise Exception("Invalid URL for InceptionResnetV2 pretrained weights")
             except URLError as e:
-                WARNING = '\033[93m'
-                ENDC = '\033[0m'
+                WARNING = "\033[93m"
+                ENDC = "\033[0m"
                 warnings.warn(WARNING + f"Couldn't load pretraind weights. due to the URLError: {e}" + ENDC)
-
 
         # recreate the first conv with the required number of input parameters
         if input_channels_num != 3:

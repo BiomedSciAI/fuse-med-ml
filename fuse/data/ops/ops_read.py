@@ -94,11 +94,10 @@ class OpReadDataframe(OpBase):
 
         # add values tp sample_dict
         for name, value in sample_data.items():
-            if prefix == None:
+            if prefix is None:
                 sample_dict[name] = value
             else:
                 sample_dict[f"{prefix}.{name}"] = value
-
 
         return sample_dict
 

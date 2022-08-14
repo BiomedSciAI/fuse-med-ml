@@ -232,7 +232,6 @@ class OpAugUnsqueeze3DFrom2D(OpBase):
         super().__init__()
         self._verify_arguments = verify_arguments
 
-
     def __call__(self, sample_dict: NDict, key: str, axis_squeeze: int, channels: int) -> NDict:
         """
         :param key: key to a tensor stored in sample_dict and squeezed by OpAugSqueeze3Dto2D

@@ -87,7 +87,7 @@ debug = FuseDebug(mode)
 # Output Paths
 ##########################################
 ROOT = None  # TODO: fill in a path to model dir
-model_dir = os.path.join(ROOT, "model_dir")  
+model_dir = os.path.join(ROOT, "model_dir")
 PATHS = {
     "model_dir": model_dir,
     "force_reset_model_dir": False,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
