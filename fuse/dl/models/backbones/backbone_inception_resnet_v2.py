@@ -17,12 +17,14 @@ Created on June 30, 2021
 
 """
 
-import logging
 from typing import Callable, Optional
 
 import torch
 from torch.hub import load_state_dict_from_url
 import torch.nn as nn
+
+from urllib.error import URLError
+import logging
 
 
 def make_seq(foo: Callable, num: int, *args, **kwargs):
@@ -306,8 +308,11 @@ class BackboneInceptionResnetV2(nn.Module):
                 state_dict = load_state_dict_from_url(pretrained_weights_url)
                 self.load_state_dict(state_dict, strict=False)
             except AttributeError:
-                logger = logging.getLogger("Fuse")
-                logger.info("Invalid URL for InceptionResnetV2 pretrained weights")
+                raise Exception("Invalid URL for InceptionResnetV2 pretrained weights")
+            except URLError as e:
+                logging.getLogger("Fuse").warning(
+                    f"Couldn't load pretraind weights from the url: '{pretrained_weights_url}' due to the following URLError: '{e}'."
+                )
 
         # recreate the first conv with the required number of input parameters
         if input_channels_num != 3:

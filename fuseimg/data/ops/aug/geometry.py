@@ -221,16 +221,16 @@ class OpAugSqueeze3Dto2D(OpBase):
 
 
 class OpAugUnsqueeze3DFrom2D(OpBase):
+    """
+    Unsqueeze selected axis of volume image from channel dimension, restore the original shape squeezed by OpAugSqueeze3Dto2D
+    """
+
     def __init__(self, verify_arguments: bool = True):
         """
         :param verify_arguments: this ops expects torch tensor with 2 dimensions. Set to False to disable verification
         """
         super().__init__()
         self._verify_arguments = verify_arguments
-
-    """
-    Unsqueeze selected axis of volume image from channel dimension, restore the original shape squeezed by OpAugSqueeze3Dto2D
-    """
 
     def __call__(self, sample_dict: NDict, key: str, axis_squeeze: int, channels: int) -> NDict:
         """

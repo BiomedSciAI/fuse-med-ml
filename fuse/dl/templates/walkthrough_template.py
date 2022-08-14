@@ -86,13 +86,15 @@ debug = FuseDebug(mode)
 ##########################################
 # Output Paths
 ##########################################
-model_dir = None  # TODO: fill in a path to model dir
+ROOT = None  # TODO: fill in a path to model dir
+model_dir = os.path.join(ROOT, "model_dir")
 PATHS = {
     "model_dir": model_dir,
     "force_reset_model_dir": False,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
-    "cache_dir": "TODO",
+    "cache_dir": os.path.join(ROOT, "cache_dir"),
     "inference_dir": os.path.join(model_dir, "infer"),
     "eval_dir": os.path.join(model_dir, "eval"),
+    "data_split_filename": os.path.join(ROOT, "split.pkl"),
 }
 
 ##########################################
@@ -384,7 +386,7 @@ INFER_COMMON_PARAMS = {}
 INFER_COMMON_PARAMS["data.num_workers"] = TRAIN_COMMON_PARAMS["data.train_num_workers"]
 INFER_COMMON_PARAMS["data.batch_size"] = 4
 INFER_COMMON_PARAMS["infer_filename"] = os.path.join(PATHS["inference_dir"], "validation_set_infer.pickle")
-INFER_COMMON_PARAMS["checkpoint"] = "best"  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
+INFER_COMMON_PARAMS["checkpoint"] = "best_epoch.ckpt"  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
 
 ######################################
 # Inference Template

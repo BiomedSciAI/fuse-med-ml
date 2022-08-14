@@ -13,6 +13,7 @@ import pandas as pd
 import shutil
 import h5py
 import hdf5plugin
+from scipy.io import arff
 
 from fuse.utils.misc.misc import Misc
 
@@ -331,6 +332,9 @@ def read_dataframe(filename: str) -> pd.DataFrame:
         df = pd.read_hdf(filename)
     elif file_type == "xslx":
         df = pd.read_excel(filename)
+    elif file_type == "arff":
+        data = arff.loadarff(filename)
+        df = pd.DataFrame(data[0])
 
     return df
 
