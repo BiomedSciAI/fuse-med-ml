@@ -14,13 +14,11 @@ class OpDebugBase(OpBase):
     Inherits and implements self.call_debug instead of self.__call__.
     """
 
-    def __init__(
-        self, name: Optional[str] = None, sample_ids: Optional[List[Hashable]] = None, num_samples: int = 0
-    ):
+    def __init__(self, name: Optional[str] = None, sample_ids: Optional[List[Hashable]] = None, num_samples: int = 0):
         """
         :param name: string identifier - might be useful when the debug op display or save information into a file
         :param sample_ids: apply for the specified sample ids. To apply for all set to None.
-        :param num_samples: apply for the first num_samples (per process). if None, will apply for all.
+        :param num_samples: apply for the first num_samples (per process). if 0, will apply for all.
         """
         super().__init__()
         self._name = name
