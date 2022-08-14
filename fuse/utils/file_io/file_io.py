@@ -334,7 +334,7 @@ def read_dataframe(filename: str) -> pd.DataFrame:
         df = pd.read_excel(filename)
     elif file_type == "arff":
         data = arff.loadarff(filename)
-        df = data[0]
+        df = pd.DataFrame(data[0])
 
     return df
 

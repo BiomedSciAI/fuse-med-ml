@@ -15,7 +15,7 @@ class OpDebugBase(OpBase):
     """
 
     def __init__(
-        self, name: Optional[str] = None, sample_ids: Optional[List[Hashable]] = None, num_samples: bool = False
+        self, name: Optional[str] = None, sample_ids: Optional[List[Hashable]] = None, num_samples: int = 0
     ):
         """
         :param name: string identifier - might be useful when the debug op display or save information into a file
@@ -42,7 +42,7 @@ class OpDebugBase(OpBase):
             if sid not in self._sample_ids:
                 return False
 
-        self._num_samples_done += True
+        self._num_samples_done += 1
         return True
 
     def __call__(self, sample_dict: NDict, **kwargs) -> NDict:
