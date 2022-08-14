@@ -96,11 +96,11 @@ class OpPrintShapes(OpDebugBase):
         for key in sample_dict.keypaths():
             value = sample_dict[key]
             if isinstance(value, torch.Tensor):
-                print(f"{key} is tensor with shape: {value.shape}")
+                print(f"\t{key} is tensor with shape: {value.shape}")
             elif isinstance(value, numpy.ndarray):
-                print(f"{key} is numpy array with shape: {value.shape}")
+                print(f"\t{key} is numpy array with shape: {value.shape}")
             elif not isinstance(value, str) and isinstance(value, Sequence):
-                print(f"{key} is sequence with length: {len(value)}")
+                print(f"\t{key} is sequence with length: {len(value)}")
 
 
 class OpPrintTypes(OpDebugBase):
@@ -122,7 +122,7 @@ class OpPrintTypes(OpDebugBase):
         print(f"Sample {get_sample_id(sample_dict)} types:")
         for key in sample_dict.keypaths():
             value = sample_dict[key]
-            print(f"{key} - {type(value).__name__}")
+            print(f"\t{key} - {type(value).__name__}")
 
 
 class OpPrintKeysContent(OpDebugBase):
@@ -151,7 +151,7 @@ class OpPrintKeysContent(OpDebugBase):
             keys = dict_keys  # print all keys
 
         for key in keys:
-            if key not in dict_keys:
-                print(f"\tWARNING! {key} not in sample_dict")
-            else:
+            if key in dict_keys:
                 print(f"\t{key} = {sample_dict[key]}")
+            else:
+                print(f"\tWARNING! {key} not in sample_dict")
