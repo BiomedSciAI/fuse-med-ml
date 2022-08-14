@@ -313,9 +313,7 @@ class BackboneInceptionResnetV2(nn.Module):
                 WARNING = "\033[93m"
                 ENDC = "\033[0m"
                 warnings.warn(
-                    WARNING
-                    + f"Couldn't load pretraind weights from the url: '{pretrained_weights_url}' due to the following URLError: '{e}'"
-                    + ENDC
+                    f"{WARNING}Couldn't load pretraind weights from the url: '{pretrained_weights_url}' due to the following URLError: '{e}'{ENDC}"
                 )
 
         # recreate the first conv with the required number of input parameters
