@@ -100,7 +100,7 @@ class CollateToBatchList(Callable):
                 if self._raise_error_key_missing:
                     raise Exception(f"Error: key {key} does not exist in sample {index}: {sample}")
                 else:
-                    value = None
+                    continue
             else:
                 value = sample[key]
             collected_values.append(value)

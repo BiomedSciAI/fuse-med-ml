@@ -318,7 +318,7 @@ def run_explain(train: NDict, paths: NDict, explain: NDict):
     ## Create dataloader
     infer_dataloader = DataLoader(dataset=test_dataset, batch_size=explain['batch_size'],
                                   shuffle=False, drop_last=False,
-                                  collate_fn=CollateDefault(),
+                                  collate_fn=CollateDefault(raise_error_key_missing = False),
                                   num_workers=explain["num_workers"])
 
     pl_module = LightningModuleDefault.load_from_checkpoint(checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu",

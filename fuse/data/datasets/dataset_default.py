@@ -40,6 +40,7 @@ class DatasetDefault(DatasetBase):
         dynamic_pipeline: Optional[PipelineDefault] = None,
         cacher: Optional[SamplesCacher] = None,
         allow_uncached_sample_morphing: bool = False,
+        always_return_dict = True,
     ):
         """
         :param sample_ids:      list of sample_ids included in dataset.
@@ -58,6 +59,7 @@ class DatasetDefault(DatasetBase):
         self._cacher = cacher
         self._orig_sample_ids = sample_ids
         self._allow_uncached_sample_morphing = allow_uncached_sample_morphing
+        self._always_return_dict = always_return_dict
 
         # verify unique names for dynamic pipelines
         if self._dynamic_pipeline is not None and self._static_pipeline is not None:
@@ -178,9 +180,12 @@ class DatasetDefault(DatasetBase):
                 sample = create_initial_sample(sample_id)
                 sample = self._static_pipeline(sample)
                 if not isinstance(sample, dict):
-                    raise Exception(
-                        f'By default when caching is disabled sample morphing is not allowed, and the output of the static pipeline is expected to be a dict. Instead got {type(sample)}. You can use "allow_uncached_sample_morphing=True" to allow this, but be aware it is slow and should be used only for debugging'
-                    )
+                    if self._always_return_dict :
+                        raise Exception(
+                            f'By default when caching is disabled sample morphing is not allowed, and the output of the static pipeline is expected to be a dict. Instead got {type(sample)}. You can use "allow_uncached_sample_morphing=True" to allow this, but be aware it is slow and should be used only for debugging'
+                        )
+                    else:
+                        return None
             else:
                 orig_sid = self._final_sid_to_orig_sid[sample_id]
                 sample = create_initial_sample(orig_sid)

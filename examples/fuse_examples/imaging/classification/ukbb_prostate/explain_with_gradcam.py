@@ -24,29 +24,40 @@ def save_attention_centerpoint(pl_module, pl_trainer ,  infer_dataloader , expla
     # model = nn.DataParallel(model, device_ids=[0, 1, 2 ,3,4,5,6,7])
     # pl_trainer.test(model=model, datamodule=infer_dataloader, verbose=True)
     results = []
-    for i, batch in tqdm(enumerate(infer_dataloader), total=len(infer_dataloader)):
-        batch['data.input.img'] = batch['data.input.img'].to(device)
-        batch['data.gt.classification'] = batch['data.gt.classification'].to(device)
-        if explain['debug'] == True:
-            logit, attention = model(batch['data.input.img'], batch['data.gt.classification'])
-        else:
-            logit, _ = model(batch['data.input.img'], batch['data.gt.classification'])
-        logit_vector = logit.detach().cpu().numpy()
-        params = []
-        for j in range(0,batch['data.input.img'].shape[0]) :
-            sample =  batch['data.input.img'][j][0].cpu()
-            logit = logit_vector[j][explain['label']]
-            label = str(batch['data.gt.classification'][j])
-            if explain['debug'] == True:
-                attention_map = attention[j][0].cpu()
-            else:
-                attention_map = None
-            identifier = batch['data.input.img_path'][j].replace('*','')
-            param = {"i": i ,"logit":logit, "attention_map":attention_map ,"j": j ,"sample" : sample , "explain":explain , "identifier" : identifier, "label":label}
-            res = run_gradcam_on_sample(param)
-            results.append(res)
-            params.append(param)
-         #pqdm(params , run_gradcam_on_sample, n_jobs = explain["num_workers"])
+    i = 0
+    try: 
+        for batch in tqdm(infer_dataloader, total=len(infer_dataloader)):
+            try: 
+                batch['data.input.img'] = batch['data.input.img'].to(device)
+                batch['data.gt.classification'] = batch['data.gt.classification'].to(device)
+                if explain['debug'] == True:
+                    logit, attention = model(batch['data.input.img'], batch['data.gt.classification'])
+                else:
+                    logit = model(batch['data.input.img'], batch['data.gt.classification'])
+                logit_vector = logit.detach().cpu().numpy()
+                # params = []
+                for j in range(0,batch['data.input.img'].shape[0]) :
+                    sample =  batch['data.input.img'][j][0].cpu()
+                    logit = logit_vector[j][explain['label']]
+                    label = str(batch['data.gt.classification'][j])
+                    if explain['debug'] == True:
+                        attention_map = attention[j][0].cpu()
+                    else:
+                        attention_map = None
+                    identifier = batch['data.input.img_path'][j].replace('*','')
+                    param = {"i": i ,"logit":logit, "attention_map":attention_map ,"j": j ,"sample" : sample , "explain":explain , "identifier" : identifier, "label":label}
+                    res = run_gradcam_on_sample(param)
+                    results.append(res)
+                i += 1
+                # params.append(param)
+            except Exception as e:
+                print("got problem in batch containing the following examples",batch['data.input.img_path'])
+                print(e)
+                continue     
+            #pqdm(params , run_gradcam_on_sample, n_jobs = explain["num_workers"])
+    except Exception as e:
+        print(e)
+        pass
     df = pd.DataFrame(results, columns=["identifier","logit","dist", "big_point"])
     df.to_csv("prostate_output.csv")   
 def run_gradcam_on_sample(params):
@@ -65,13 +76,15 @@ def run_gradcam_on_sample(params):
     points = []
     max_value = original_attention_map.argmax()
     current_max = max_value
-    while True:
+    index = 0
+    while index < 5:
         current_max = original_attention_map.argmax()
         max_volume = np.unravel_index(current_max, original_attention_map.shape)
         if current_max < max_value:
             break
         points.append(np.asarray(max_volume))
         original_attention_map[max_volume] = 0.0
+        index += 1
     points = np.array(points)
     big_point = np.array([int(np.mean(points[:,i])*scale_ratio[i]) for i in range(3)])
     identifier = params["identifier"]
