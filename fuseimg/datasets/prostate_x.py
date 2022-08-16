@@ -20,7 +20,7 @@ from fuse.data.ops.ops_read import OpReadDataframe
 from fuse.data.utils.sample import get_sample_id
 from fuse.utils import NDict
 from fuseimg.data.ops import ops_mri
-from fuse.data.ops.ops_common import OpLambda, OpKeepKeypaths
+from fuse.data.ops.ops_common import OpFunc, OpLambda, OpKeepKeypaths
 from fuse.data.ops.ops_aug_common import OpSample, OpRandApply
 from fuse.utils.rand.param_sampler import RandBool, RandInt, Uniform, Choice
 
@@ -30,6 +30,7 @@ from fuseimg.data.ops.ops_mri import (
     OpExtractDicomsPerSeq,
     OpLoadDicomAsStkVol,
     OpReadSTKImage,
+    # OpReadSTKImageV2,
     OpSelectVolumes,
     OpResampleStkVolsBasedRef,
     OpStackList4DStk,
@@ -127,8 +128,8 @@ class ProstateX:
         static_pipeline_steps = [
             # step 1: map sample_ids to
             (
-                OpProstateXSampleIDDecode(data_path=data_path),
-                dict(key_path_out="data.input.mri_path", key_patient_id_out="data.input.patient_id"),
+                OpProstateXSampleIDDecode(root_path=root_path),
+                dict(key_out_path_mri="data.input.mri_path", key_out_path_ktrans="data.input.ktrans_path", key_out_patient_id="data.input.patient_id"),
             ),
 
             # step 2: read files info for the sequences
@@ -175,12 +176,22 @@ class ProstateX:
             (OpPrintKeysContent(num_samples=1), dict(keys=None)),  # DEBUG TODO delete
 
             # step 5: read ktrans
+            # (
+            #     OpFunc(func=get_ktrans_image_file_from_sample_id_v2),
+            #     dict(
+            #         inputs={
+
+            #         },
+            #         outputs=
+            #     )
+            # ),
             (
                 OpReadSTKImage(
-                    seq_id="ktrans", get_image_file=partial(get_ktrans_image_file_from_sample_id, data_dir=root_path)
+                    seq_id="ktrans", data_path=root_path,
                 ),
-                dict(key_sequence_prefix="data.input.sequence", key_seq_ids="data.input.seq_ids"),
+                dict(key_in="data.input.ktrans_path", key_sequence_prefix="data.input.sequence"),
             ),
+
             # step 6: select single volume from b_mix/T2 sequence
             (
                 OpSelectVolumes(
@@ -195,7 +206,8 @@ class ProstateX:
                     key_out_volumes_info="data.input.selected_volumes_info",
                 ),
             ),
-            # step 7
+
+            # step 7: fix sequences
             (
                 OpLambda(
                     func=partial(
@@ -206,6 +218,7 @@ class ProstateX:
                 ),
                 dict(key=None),
             ),
+
             # step 8: set reference volume to be first and register other volumes with respect to it
             (
                 OpResampleStkVolsBasedRef(reference_inx=0, interpolation="bspline"),
@@ -459,24 +472,40 @@ def get_ktrans_image_file_from_sample_id(sample_id: str, data_dir: str) -> str: 
     assert len(ktrans_mhd_files) == 1
     return ktrans_mhd_files[0]
 
+def get_ktrans_image_file_from_sample_id_v2(sample_id: str, data_dir: str) -> str:  # fix type
+    patient_id = sample_id.split("_")[0]
+    ktrans_patient_dir = os.path.join(data_dir, "ProstateXKtrains-train-fixed", patient_id)
+    ktrans_mhd_files = glob.glob(os.path.join(ktrans_patient_dir, "*.mhd"))
+    assert len(ktrans_mhd_files) == 1
+    return ktrans_mhd_files[0]
+
+
 
 class OpProstateXSampleIDDecode(OpBase):
     """
     Decodes sample id into path of MRI images
     """
 
-    def __init__(self, data_path: str, **kwargs: Any):
+    def __init__(self, root_path: str, **kwargs: Any):
         super().__init__(**kwargs)
-        self._data_path = data_path
+        self._root_path = root_path
+        self._data_path = os.path.join(root_path, "PROSTATEx")
 
-    def __call__(self, sample_dict: NDict, key_path_out: str, key_patient_id_out: str) -> NDict:
+    def __call__(self, sample_dict: NDict, key_out_path_mri: str, key_out_path_ktrans: str, key_out_patient_id: str) -> NDict:
         sid = get_sample_id(sample_dict)
 
         patient_id = sid[:-2]
-        sample_dict[key_patient_id_out] = get_sample_path(
+        sample_dict[key_out_patient_id] = get_sample_path(
             self._data_path, patient_id
         )  # TODO why those two lines are the same?
-        sample_dict[key_path_out] = get_sample_path(self._data_path, patient_id)
+        sample_dict[key_out_path_mri] = get_sample_path(self._data_path, patient_id)
+
+        # ktrans
+        ktrans_patient_dir = os.path.join(self._root_path, "ProstateXKtrains-train-fixed", patient_id)
+        ktrans_mhd_files = glob.glob(os.path.join(ktrans_patient_dir, "*.mhd"))
+        assert len(ktrans_mhd_files) == 1
+        ktrans_path = ktrans_mhd_files[0]
+        sample_dict[key_out_path_ktrans] = ktrans_path
 
         return sample_dict
 

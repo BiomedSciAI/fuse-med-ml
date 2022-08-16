@@ -1410,23 +1410,46 @@ def extract_lesion_prop_from_annotation(vol_ref, start_slice, end_slice, start_r
 ############################
 # radiomics operator
 
+# michal's
+# class OpReadSTKImage(OpBase):
+#     """
+#     TODO
+#     """
+
+#     def __init__(self, seq_id: str, get_image_file: Callable, **kwargs):
+#         super().__init__(**kwargs)
+#         self._seq_id = seq_id
+#         self._get_image_file = get_image_file
+
+#     def __call__(self, sample_dict: NDict, key_sequence_prefix: str, key_seq_ids: str):
+#         sample_id = get_sample_id(sample_dict)
+#         img_file = self._get_image_file(sample_id)
+#         vol = sitk.ReadImage(img_file)
+#         sample_dict[key_seq_ids].append(self._seq_id)
+#         sample_dict[f"{key_sequence_prefix}.{self._seq_id}"] = [dict(path=img_file, stk_volume=vol)]
+#         return sample_dict
 
 class OpReadSTKImage(OpBase):
     """
-    TODO
+    Read STK Image  TODO maybe just use LoadImage and provide their a prefix option (?)
     """
 
-    def __init__(self, seq_id: str, get_image_file: Callable, **kwargs):
+    def __init__(self, seq_id: str, data_path: str, **kwargs):
+        """
+        :param dir_path: path to data
+        """
         super().__init__(**kwargs)
         self._seq_id = seq_id
-        self._get_image_file = get_image_file
+        self._dir_path = data_path # not in use see comment below
 
-    def __call__(self, sample_dict: NDict, key_sequence_prefix: str, key_seq_ids: str):
-        sample_id = get_sample_id(sample_dict)
-        img_file = self._get_image_file(sample_id)
-        vol = sitk.ReadImage(img_file)
-        sample_dict[key_seq_ids].append(self._seq_id)
-        sample_dict[f"{key_sequence_prefix}.{self._seq_id}"] = [dict(path=img_file, stk_volume=vol)]
+    def __call__(self, sample_dict: NDict, key_in: str, key_sequence_prefix: str):
+        """
+        :param key_in:
+        """
+        # img_filename = os.path.join(self._dir_path, sample_dict[key_in])
+        img_filename = sample_dict[key_in]
+        vol = sitk.ReadImage(img_filename)
+        sample_dict[f"{key_sequence_prefix}.{self._seq_id}"] = [dict(path=img_filename, stk_volume=vol)]
         return sample_dict
 
 
