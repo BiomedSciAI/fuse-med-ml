@@ -122,6 +122,7 @@ class Head3DClassifier(nn.Module):
 
         return batch_dict
 
+
 class Head3DRegression(nn.Module):
     """
     Model that capture slice feature including the 3D context given the local feature about a slice for regression.
