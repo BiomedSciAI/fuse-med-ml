@@ -29,7 +29,7 @@ from fuse.dl.models.heads.common import ClassifierFCN3D, ClassifierMLP
 
 class Head3DClassifier(nn.Module):
     """
-    Model that capture slice feature including the 3D context given the local feature about a slice.
+    Model that capture slice feature including the 3D context given the local feature about a slice for classification.
     """
 
     def __init__(
@@ -96,10 +96,6 @@ class Head3DClassifier(nn.Module):
         if self.conv_inputs is not None:
             conv_input = torch.cat([batch_dict[conv_input[0]] for conv_input in self.conv_inputs], dim=1)
             global_features = self.gmp(conv_input)
-            # save global max pooling features in case needed (mostly to analyze)
-            batch_dict["model." + self.head_name + ".gmp_features"] = (
-                global_features.squeeze(dim=4).squeeze(dim=3).squeeze(dim=2)
-            )
             # backward compatibility
             if hasattr(self, "do"):
                 global_features = self.do(global_features)
@@ -128,7 +124,7 @@ class Head3DClassifier(nn.Module):
 
 class Head3DRegression(nn.Module):
     """
-    Model that capture slice feature including the 3D context given the local feature about a slice.
+    Model that capture slice feature including the 3D context given the local feature about a slice for regression.
     """
 
     def __init__(
@@ -190,10 +186,6 @@ class Head3DRegression(nn.Module):
         if self.conv_inputs is not None:
             conv_input = torch.cat([batch_dict[conv_input[0]] for conv_input in self.conv_inputs], dim=1)
             global_features = self.gmp(conv_input)
-            # save global max pooling features in case needed (mostly to analyze)
-            batch_dict["model." + self.head_name + ".gmp_features"] = (
-                global_features.squeeze(dim=4).squeeze(dim=3).squeeze(dim=2)
-            )
             # backward compatibility
             if hasattr(self, "do"):
                 global_features = self.do(global_features)
