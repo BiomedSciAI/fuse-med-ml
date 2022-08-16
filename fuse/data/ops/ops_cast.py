@@ -69,7 +69,7 @@ class Cast:
         """
         if isinstance(value, int):
             pass  # do nothing
-        elif isinstance(value, (torch.Tensor, np.ndarray, float, str)):
+        elif isinstance(value, (torch.Tensor, np.ndarray, float, str, bytes)):
             value = int(value)
         else:
             raise Exception(f"Unsupported type {type(value)} - add here support for this type")

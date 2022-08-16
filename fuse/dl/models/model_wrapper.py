@@ -78,9 +78,9 @@ class ModelWrapSeqToDict(torch.nn.Module):
             model_output = self.post_forward_processing_function(model_output)
 
         if len(self.model_outputs) == 1:
-            batch_dict["model." + self.model_outputs[0]] = model_output
+            batch_dict[self.model_outputs[0]] = model_output
         else:
             for i, output_name in enumerate(self.model_outputs):
-                batch_dict["model." + output_name] = model_output[i]
+                batch_dict[output_name] = model_output[i]
 
-        return batch_dict["model"]
+        return batch_dict

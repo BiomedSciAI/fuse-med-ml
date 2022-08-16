@@ -26,6 +26,12 @@ Once you have submitted your PR:
 
 We use **black**, **flake8** and **mypy** external tools to analyse and enforce uniform python code style.
 
+Note - if you installed fuse using the recommended way
+```bash
+$ pip install -e .[all]
+```
+you should have the libraries already installed, however, if you want to manually install those libs see [requirements_dev.txt](./fuse/utils/requirements_dev.txt) 
+
 ### Formatter `black`
 
 When writing code, you should not have to worry about how to format it best. When committing code to a pull request, it should be formatted in one specific way that reduces meaningless diff changes. Here we use `black`. You can [set up your IDE](https://black.readthedocs.io/en/stable/integrations/editors.html) to format your code on save.

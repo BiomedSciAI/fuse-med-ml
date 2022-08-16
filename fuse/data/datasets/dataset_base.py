@@ -20,10 +20,10 @@ Created on June 30, 2021
 from abc import abstractmethod
 from typing import Dict, Hashable, List, Optional, Sequence, Union
 
-import torch
+from torch.utils.data.dataset import Dataset
 
 
-class DatasetBase(torch.nn.Module):
+class DatasetBase(Dataset):
     @abstractmethod
     def create(self, **kwargs) -> None:
         """

@@ -46,6 +46,11 @@ Here you can find useful ops for imaging and public datasets implementations
 * OpCrop3D - crop 3d image to certain size. can be used as random crop using OpSample.
 * OpRotation3D - rotate 3d image across the 3 planes xyz.
 
+[**debug**](data/ops/ops_debug.py)
+
+* OpVis2DImage - Visualize a 2D image (either display it or save it as an image).
+* OpVisImageHist - Visualize single image histogram (either display it or save it as an image).
+
 ### Imaging datasets
 
 * [kits21](datasets/kits21.py) - 2021 Kidney and Kidney Tumor Segmentation Challenge Dataset. See [link](https://github.com/neheller/kits21)

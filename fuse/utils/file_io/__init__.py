@@ -17,4 +17,4 @@ from .file_io import (
 
 from .compressed import extract_zip_file
 
-from .path import change_extension, get_extension
+from .path import change_extension, get_extension, remove_extension

@@ -28,7 +28,7 @@ from fuse.utils.ndict import NDict
 class OpReadDataframe(OpBase):
     """
     Op reading data from pickle file / dataframe object.
-    Each row will be added as a value to sample dict
+    Each row will be added as a value to sample dict.
     """
 
     def __init__(
@@ -83,9 +83,13 @@ class OpReadDataframe(OpBase):
             df = df.set_index(self._key_column)
         self._data = df.to_dict(orient="index")
 
-    def __call__(self, sample_dict: NDict, **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, prefix: Optional[str] = None, **kwargs) -> Union[None, dict, List[dict]]:
         """
         See base class
+
+        :param prefix: specify a prefix for the sample dict keys.
+                       For example, with prefix 'data.features' and a df with the columns ['height', 'weight', 'sex'],
+                       the matching keys will be: 'data.features.height', 'data.features.weight', 'data.features.sex'.
         """
         key = sample_dict[self._key_name]
 
@@ -94,7 +98,10 @@ class OpReadDataframe(OpBase):
 
         # add values tp sample_dict
         for name, value in sample_data.items():
-            sample_dict[name] = value
+            if prefix is None:
+                sample_dict[name] = value
+            else:
+                sample_dict[f"{prefix}.{name}"] = value
 
         return sample_dict
 
