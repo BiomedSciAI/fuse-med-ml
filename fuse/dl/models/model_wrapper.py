@@ -85,21 +85,23 @@ class ModelWrapSeqToDict(torch.nn.Module):
 
         return batch_dict
 
+
 class ModelWrapDictToSeq(torch.nn.Module):
     """
     Fuse model wrapper for wrapping torch modules and passing through Fuse
     """
 
-    def __init__(self, fuse_model : torch.nn.Module, output_key : str):
+    def __init__(self, fuse_model: torch.nn.Module, output_key: str):
         super().__init__()
         self.model = fuse_model
         self.output_key = output_key
-    def forward(self, input : torch.tensor, fuse_input : str):
+
+    def forward(self, input: torch.tensor, fuse_input: str):
         batch_dict = NDict()
-        #find input key
+        # find input key
         batch_dict[fuse_input] = input
-        #feed fuse model with dict as he excpect
+        # feed fuse model with dict as he excpect
         ans_ndict = self.model(batch_dict)
-        #extract model output from dict
-        output =ans_ndict[self.output_key]
+        # extract model output from dict
+        output = ans_ndict[self.output_key]
         return output
