@@ -36,6 +36,7 @@ from fuseimg.data.ops.ops_mri import (
     OpRescale4DStk,
     OpCreatePatchVolumes,
     OpStk2Dict,
+    OpRenameSequence
 )
 
 from fuse.data.ops.ops_debug import OpPrintKeysContent
@@ -143,25 +144,35 @@ class ProstateX:
                     key_out_sequence_prefix="data.input.sequence",
                 ),
             ),
+
             # step 3: Load STK volumes of MRI sequences
             (
-                OpLoadDicomAsStkVol(seq_reverse_map=seq_reverse_map),
-                dict(key_in_seq_ids="data.input.seq_ids", key_sequence_prefix="data.input.sequence"),
+                OpLoadDicomAsStkVol(seq_ids=seq_ids, seq_reverse_map=seq_reverse_map),
+                dict(key_sequence_prefix="data.input.sequence"),
             ),
-            (OpPrintKeysContent(num_samples=1), dict(keys=None)),  # DEBUG
+
+            # (OpPrintKeysContent(num_samples=1), dict(keys=None)),  # DEBUG TODO delete
+
             # step 4: rename sequence b_mix (if exists) to b; fix certain b sequences
-            (
-                OpLambda(
-                    func=partial(
-                        ops_mri.rename_seqeunce_from_dict,
+            # (
+            #     OpLambda(
+            #         func=partial(
+            #             ops_mri.rename_seqeunce_from_dict,
+            #             seq_id_old="b_mix",
+            #             seq_id_new="b",
+            #             key_sequence_prefix="data.input.sequence",
+            #             key_seq_ids="data.input.seq_ids",
+            #         )
+            #     ),
+            #     dict(key=None),
+            # ),
+            (OpRenameSequence(seq_ids=seq_ids), dict(
                         seq_id_old="b_mix",
                         seq_id_new="b",
                         key_sequence_prefix="data.input.sequence",
-                        key_seq_ids="data.input.seq_ids",
-                    )
-                ),
-                dict(key=None),
-            ),
+                        )),
+
+            (OpPrintKeysContent(num_samples=1), dict(keys=None)),  # DEBUG TODO delete
 
             # step 5: read ktrans
             (
@@ -170,7 +181,6 @@ class ProstateX:
                 ),
                 dict(key_sequence_prefix="data.input.sequence", key_seq_ids="data.input.seq_ids"),
             ),
-
             # step 6: select single volume from b_mix/T2 sequence
             (
                 OpSelectVolumes(
@@ -185,7 +195,6 @@ class ProstateX:
                     key_out_volumes_info="data.input.selected_volumes_info",
                 ),
             ),
-
             # step 7
             (
                 OpLambda(
@@ -197,7 +206,6 @@ class ProstateX:
                 ),
                 dict(key=None),
             ),
-
             # step 8: set reference volume to be first and register other volumes with respect to it
             (
                 OpResampleStkVolsBasedRef(reference_inx=0, interpolation="bspline"),
@@ -444,7 +452,7 @@ def fix_certain_b_sequences(sample_dict: NDict, key_in_volumes_info: str, key_vo
     return sample_dict
 
 
-def get_ktrans_image_file_from_sample_id(sample_id: str, data_dir: str) -> Any:  # fix type
+def get_ktrans_image_file_from_sample_id(sample_id: str, data_dir: str) -> str:  # fix type
     patient_id = sample_id.split("_")[0]
     ktrans_patient_dir = os.path.join(data_dir, "ProstateXKtrains-train-fixed", patient_id)
     ktrans_mhd_files = glob.glob(os.path.join(ktrans_patient_dir, "*.mhd"))
@@ -662,7 +670,7 @@ def get_sequence_2_series_desc_mapping() -> Dict[str, str]:
             "ep2d_diff_tra_DYNDIST_ADC",
         ],
     }
-    
+
     return seq_2_ser_desc_map
 
 

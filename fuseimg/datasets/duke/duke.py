@@ -168,6 +168,7 @@ class Duke:
         static_pipeline_steps = [
             # step 1: map sample_id to path of MRI image
             (OpDukeSampleIDDecode(data_path=mri_dir2), dict(key_out="data.input.mri_path")),
+
             # step 2: read sequences
             (
                 OpExtractDicomsPerSeq(
@@ -179,11 +180,13 @@ class Duke:
                     key_out_sequence_prefix="data.input.sequence",
                 ),
             ),
+
             # step 3: Load STK volumes of MRI sequences
             (
-                OpLoadDicomAsStkVol(),
-                dict(key_in_seq_ids="data.input.seq_ids", key_sequence_prefix="data.input.sequence"),
+                OpLoadDicomAsStkVol(seq_ids=seq_ids),
+                dict(key_sequence_prefix="data.input.sequence"),
             ),
+
             # step 4: group DCE sequences into DCE_mix
             (
                 OpGroupDCESequences(),
