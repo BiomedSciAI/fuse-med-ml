@@ -179,21 +179,16 @@ class Duke:
                     key_out_sequence_prefix="data.input.sequence",
                 ),
             ),
-            # (OpPrintTypes(num_samples=1), dict()),  # DEBUG
-            # (OpPrintKeysContent(num_samples=1), dict(keys=None)),  # DEBUG
             # step 3: Load STK volumes of MRI sequences
             (
                 OpLoadDicomAsStkVol(),
                 dict(key_in_seq_ids="data.input.seq_ids", key_sequence_prefix="data.input.sequence"),
             ),
-            # (OpPrintTypes(num_samples=1), dict()),  # DEBUG
-            # (OpPrintKeysContent(num_samples=1), dict(keys=["data.input.sequence.DCE_mix_ph1"])),  # DEBUG
             # step 4: group DCE sequences into DCE_mix
             (
                 OpGroupDCESequences(),
                 dict(key_seq_ids="data.input.seq_ids", key_sequence_prefix="data.input.sequence"),
             ),
-            # (OpPrintTypes(num_samples=1), dict()),  # DEBUG
             # step 5: select single volume from DCE_mix sequence
             (
                 OpSelectVolumes(
@@ -206,11 +201,6 @@ class Duke:
                     key_out_volumes_info="data.input.selected_volumes_info",
                 ),
             ),
-            (OpPrintTypes(num_samples=1), dict()),  # DEBUG
-            (
-                OpPrintKeysContent(num_samples=1),
-                dict(keys=["data.input.selected_volumes", "data.input.selected_volumes_info"]),
-            ),  # DEBUG
             # step 6: set first volume to be the reference volume and register other volumes with respect to it
             (
                 OpResampleStkVolsBasedRef(reference_inx=0, interpolation="bspline"),
@@ -226,6 +216,7 @@ class Duke:
                 ),
             ),
         ]
+
         if with_rescale:
             # step 8: rescale the 4d volume
             static_pipeline_steps += [(OpRescale4DStk(), dict(key="data.input.volume4D"))]

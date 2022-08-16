@@ -89,7 +89,7 @@ class OpPrintKeysContent(OpDebugBase):
     Example:
     ```
     (OpPrintKeysContent(num_samples=1), dict(keys=["data.input.mri_path", "data.label"])),
-    (OpPrintKeysContent(num_samples=1), dict(keys=None))
+    (OpPrintKeysContent(num_samples=1), dict(keys=None)),
     ```
     """
 

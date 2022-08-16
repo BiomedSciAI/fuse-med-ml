@@ -38,6 +38,8 @@ from fuseimg.data.ops.ops_mri import (
     OpStk2Dict,
 )
 
+from fuse.data.ops.ops_debug import OpPrintKeysContent
+
 
 def get_selected_series_index(sample_id: List[str], seq_id: str) -> int:
     """
@@ -118,8 +120,8 @@ class ProstateX:
             annotations_df = get_prostate_x_annotations_df(root_path)
 
         series_desc_2_sequence_map = get_series_desc_2_sequence_mapping()
-        dicom_seq_ids = ["T2", "b", "b_mix", "ADC"]
-        seq_reverse_map = {s: True for s in dicom_seq_ids}
+        seq_ids = ["T2", "b", "b_mix", "ADC"]
+        seq_reverse_map = {s: True for s in seq_ids}
 
         static_pipeline_steps = [
             # step 1: map sample_ids to
@@ -127,24 +129,26 @@ class ProstateX:
                 OpProstateXSampleIDDecode(data_path=data_path),
                 dict(key_path_out="data.input.mri_path", key_patient_id_out="data.input.patient_id"),
             ),
+
             # step 2: read files info for the sequences
             (
                 OpExtractDicomsPerSeq(
-                    seq_ids=dicom_seq_ids,
+                    seq_ids=seq_ids,
                     series_desc_2_sequence_map=series_desc_2_sequence_map,
                     use_order_indicator=False,
                 ),
                 dict(
                     key_in="data.input.mri_path",
                     key_out_seq_ids="data.input.seq_ids",
-                    key_out_sequence_prefix="data.input.sequence.",
+                    key_out_sequence_prefix="data.input.sequence",
                 ),
             ),
             # step 3: Load STK volumes of MRI sequences
             (
                 OpLoadDicomAsStkVol(seq_reverse_map=seq_reverse_map),
-                dict(key_in_seq_ids="data.input.seq_ids", key_sequence_prefix="data.input.sequence."),
+                dict(key_in_seq_ids="data.input.seq_ids", key_sequence_prefix="data.input.sequence"),
             ),
+            (OpPrintKeysContent(num_samples=1), dict(keys=None)),  # DEBUG
             # step 4: rename sequence b_mix (if exists) to b; fix certain b sequences
             (
                 OpLambda(
@@ -152,19 +156,21 @@ class ProstateX:
                         ops_mri.rename_seqeunce_from_dict,
                         seq_id_old="b_mix",
                         seq_id_new="b",
-                        key_sequence_prefix="data.input.sequence.",
+                        key_sequence_prefix="data.input.sequence",
                         key_seq_ids="data.input.seq_ids",
                     )
                 ),
                 dict(key=None),
             ),
+
             # step 5: read ktrans
             (
                 OpReadSTKImage(
                     seq_id="ktrans", get_image_file=partial(get_ktrans_image_file_from_sample_id, data_dir=root_path)
                 ),
-                dict(key_sequence_prefix="data.input.sequence.", key_seq_ids="data.input.seq_ids"),
+                dict(key_sequence_prefix="data.input.sequence", key_seq_ids="data.input.seq_ids"),
             ),
+
             # step 6: select single volume from b_mix/T2 sequence
             (
                 OpSelectVolumes(
@@ -174,11 +180,12 @@ class ProstateX:
                 ),
                 dict(
                     key_in_seq_ids="data.input.seq_ids",
-                    key_in_sequence_prefix="data.input.sequence.",
+                    key_in_sequence_prefix="data.input.sequence",
                     key_out_volumes="data.input.selected_volumes",
                     key_out_volumes_info="data.input.selected_volumes_info",
                 ),
             ),
+
             # step 7
             (
                 OpLambda(
@@ -190,6 +197,7 @@ class ProstateX:
                 ),
                 dict(key=None),
             ),
+
             # step 8: set reference volume to be first and register other volumes with respect to it
             (
                 OpResampleStkVolsBasedRef(reference_inx=0, interpolation="bspline"),
@@ -622,6 +630,40 @@ def get_series_desc_2_sequence_mapping() -> Dict[str, str]:
     }
 
     return series_desc_2_sequence_mapping
+
+
+def get_sequence_2_series_desc_mapping() -> Dict[str, str]:
+    """
+    TODO
+    """
+    seq_2_ser_desc_map = {
+        "T2": ["t2_tse_tra", "t2_tse_tra_Grappa3", "t2_tse_tra_320_p2"],
+        "b": [
+            "ep2d-advdiff-3Scan-high bvalue 100",
+            "ep2d-advdiff-3Scan-high bvalue 500",
+            "ep2d-advdiff-3Scan-high bvalue 1400",
+            "ep2d_diff_tra2x2_Noise0_FS_DYNDISTCALC_BVAL",
+        ],
+        "b_mix": [
+            "ep2d_diff_tra_DYNDIST",
+            "ep2d_diff_tra_DYNDIST_MIX",
+            "diffusie-3Scan-4bval_fs",
+            "ep2d_DIFF_tra_b50_500_800_1400_alle_spoelen",
+            "diff tra b 50 500 800 WIP511b alle spoelen",
+        ],
+        "ADC": [
+            "ep2d_diff_tra_DYNDIST_MIX_ADC",
+            "diffusie-3Scan-4bval_fs_ADC",
+            "ep2d-advdiff-MDDW-12dir_spair_511b_ADC",
+            "ep2d-advdiff-3Scan-4bval_spair_511b_ADC",
+            "ep2d_DIFF_tra_b50_500_800_1400_alle_spoelen_ADC",
+            "diff tra b 50 500 800 WIP511b alle spoelen_ADC",
+            "ADC_S3_1",
+            "ep2d_diff_tra_DYNDIST_ADC",
+        ],
+    }
+    
+    return seq_2_ser_desc_map
 
 
 def get_sample_path(data_path: str, patient_id: List[str]) -> Any:  # fix type Any

@@ -120,7 +120,7 @@ class TestDatasets(unittest.TestCase):
     )
     def test_prostate_x(self):
         data_path = os.environ["PROSTATEX_DATA_PATH"]
-        num_samples = 3  # The number of samples to test the dataset's pipeline on them
+        num_samples = 1  # The number of samples to test the dataset's pipeline on them
         sample_ids = ProstateX.sample_ids(data_path)[:num_samples]
         dataset = ProstateX.dataset(
             data_dir=data_path, train=True, sample_ids=sample_ids, reset_cache=True, num_workers=0

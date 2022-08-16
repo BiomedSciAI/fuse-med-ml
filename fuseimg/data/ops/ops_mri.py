@@ -21,9 +21,7 @@ import radiomics
 
 class OpExtractDicomsPerSeq(OpBase):
     """
-    Extracts dicoms per sequence.
-
-
+    Extracts dicoms per sequence and stores them in the sample dict with a given prefix
     """
 
     def __init__(
@@ -35,8 +33,8 @@ class OpExtractDicomsPerSeq(OpBase):
     ):
         """
         :param seq_ids: the sequences for which the dicoms will be extract
-        :param series_desc_2_sequence_map:
-        :param use_order_indicator:
+        :param series_desc_2_sequence_map: TODO
+        :param use_order_indicator: TODO
         :param kwargs:
         """
         super().__init__(**kwargs)
@@ -55,18 +53,20 @@ class OpExtractDicomsPerSeq(OpBase):
         sample_path = sample_dict[key_in]
         sample_dict[key_out_seq_ids] = []
         seq_2_info_map = extract_seq_2_info_map(sample_path, self._series_desc_2_sequence_map)
-        print(f"DEBUG: seq_2_info_map = {seq_2_info_map}")
+        # print(f"DEBUG: seq_2_info_map = {seq_2_info_map}")
         for seq_id in self._seq_ids:
-            seq_info_list = seq_2_info_map.get(seq_id, None)
-            if seq_info_list is None:
-                # sequence does not exist for the patient
-                continue
+            seq_info_list = seq_2_info_map.get(seq_id, [])
+            # if seq_info_list is None:  # uncomment 3 rows to use michal's
+            #     # sequence does not exist for the patient
+            #     continue
             sample_dict[key_out_seq_ids].append(seq_id)
             sample_dict[f"{key_out_sequence_prefix}.{seq_id}"] = []
             for seq_info in seq_info_list:  # could be several sequences/series (sequence/series=  path)
 
                 dicom_group_ids, sorted_dicom_groups = sort_dicoms_by_field(
-                    seq_info["path"], seq_info["dicom_field"], self._use_order_indicator
+                    seq_path=seq_info["path"],
+                    dicom_field=seq_info["dicom_field"],
+                    use_order_indicator=self._use_order_indicator,
                 )
                 for dicom_group_id, dicom_group in zip(dicom_group_ids, sorted_dicom_groups):
                     seq_info2 = dict(
@@ -84,13 +84,12 @@ class OpExtractDicomsPerSeq(OpBase):
 ######################################################################
 class OpLoadDicomAsStkVol(OpBase):
     """
-    TODO
+    Loads dicoms per sequence, and store it in sequence_info as STK Image
     """
 
     def __init__(self, seq_reverse_map=None, **kwargs):
         """
-        TODO: ask michal about missing args
-        :param reverse_order: sometimes reverse dicoms orders is needed
+        :param seq_reverse_map: sometimes reverse dicoms orders is needed. the map w
         (for b series in which more than one sequence is provided inside the img_path)
         :param is_file: if True loads all dicoms from img_path
         :param kwargs:
@@ -103,9 +102,8 @@ class OpLoadDicomAsStkVol(OpBase):
     def __call__(self, sample_dict: NDict, key_in_seq_ids: str, key_sequence_prefix: str):
         """
         extract_stk_vol loads dicoms into sitk vol
-        :param key_in_seq_ids: TODO
-        :param key_sequence_prefix: TODO
-        :return: list of stk vols
+        :param key_in_seq_ids: key to sample's sequence ids
+        :param key_sequence_prefix: prefix for the sequences' infos
         """
         seq_ids = sample_dict[key_in_seq_ids]
 
@@ -180,6 +178,8 @@ def _read_HDF5_file(img_path):
 class OpGroupDCESequences(OpBase):
     """
     Groups all 'DCE_mix_ph' sequences into one 'DCE_mix' sequence
+
+    TODO: Generalize to GroupeSequences
     """
 
     def __init__(self, verbose: bool = True, **kwargs):
@@ -227,7 +227,7 @@ class OpGroupDCESequences(OpBase):
 #############################
 class OpSelectVolumes(OpBase):
     """
-    TODO
+    Collect volumes according to a selected mri sequences
     """
 
     def __init__(
@@ -280,8 +280,7 @@ class OpSelectVolumes(OpBase):
             else:
                 sequence_info_list = []
 
-            vol_inx_to_use = _get_as_list(self._get_indexes_func(sample_id, selected_seq_id))
-
+            vol_inx_to_use = _get_as_list(self._get_indexes_func(sample_id, selected_seq_id)) # TODO, suplly the indices outside 
             for inx in vol_inx_to_use:
 
                 if len(sequence_info_list) == 0:
@@ -293,19 +292,23 @@ class OpSelectVolumes(OpBase):
                     seq_volume_template = sample_dict[key_out_volumes][0]
                     stk_volume = get_zeros_vol(seq_volume_template)
                     selected_sequence_info = {}
+
                 else:
                     if inx >= len(sequence_info_list):
                         inx = -1  # take the last
+                    
+                    # Get sequence's info and volume
                     selected_sequence_info = sequence_info_list[inx]
-
                     stk_volume = selected_sequence_info["stk_volume"]
 
+                    # Handle problem reading the volume
                     if len(stk_volume) == 0:
                         seq_volume_template = sample_dict[key_out_volumes][0]
                         stk_volume = get_zeros_vol(seq_volume_template)
                         if self._verbose:
                             print(f"\n - problem with reading {selected_seq_id} volume!")
 
+                # Add info and volume to the result with matching index
                 sample_dict[key_out_volumes].append(stk_volume)
                 sample_dict[key_out_volumes_info].append(
                     dict(
@@ -315,10 +318,13 @@ class OpSelectVolumes(OpBase):
                         dicoms_id=selected_sequence_info.get("dicoms_id", "NAN"),
                     )
                 )
+
         if self._delete_input_volumes:
-            for seq_id in seq_ids:  # to save space...also when caching sample_dict
+            # To save space and also when caching sample_dict
+            for seq_id in seq_ids:
                 for sequence_info in sample_dict[f"{key_in_sequence_prefix}.{seq_id}"]:
                     del sequence_info["stk_volume"]
+
         return sample_dict
 
 
@@ -768,11 +774,14 @@ def delete_seqeunce_from_dict(seq_id: str, sample_dict: NDict, key_sequence_ids,
 def rename_seqeunce_from_dict(sample_dict, seq_id_old, seq_id_new, key_sequence_prefix, key_seq_ids):
     seq_ids = sample_dict[key_seq_ids]
     if seq_id_old in seq_ids:
-        assert seq_id_new not in seq_ids
+        # assert seq_id_new not in seq_ids   # michal's before I chang
+        assert sample_dict[f"{key_sequence_prefix}.{seq_id_new}"] == []
         sample_dict[f"{key_sequence_prefix}.{seq_id_new}"] = sample_dict[f"{key_sequence_prefix}.{seq_id_old}"]
-        del sample_dict[f"{key_sequence_prefix}.{seq_id_old}"]
-        seq_ids.remove(seq_id_old)
-        seq_ids.append(seq_id_new)
+        sample_dict[f"{key_sequence_prefix}.{seq_id_old}"] = []
+        # del sample_dict[f"{key_sequence_prefix}.{seq_id_old}"]
+        # seq_ids.remove(seq_id_old)   # michal's before I changed
+        if seq_id_new not in seq_ids:
+            seq_ids.append(seq_id_new)
 
     return sample_dict
 
@@ -894,7 +903,7 @@ def crop_lesion_vol(
     def get_lesion_mask(position, ref):
         mask = np.zeros_like(sitk.GetArrayViewFromImage(ref), dtype=np.uint8)
 
-        coords = np.round(position[::-1]).astype(np.int)
+        coords = np.round(position[::-1]).astype(int)
         mask[coords[0], coords[1], coords[2]] = 1
         mask = binary_dilation(mask, np.ones((3, 5, 5))) + 0
         mask_sitk = sitk.GetImageFromArray(mask)
@@ -1052,26 +1061,33 @@ def apply_rescaling(img: np.ndarray, thres: tuple = (1.0, 99.0), method: str = "
     return img
 
 
-def extract_seq_2_info_map(sample_path, series_desc_2_sequence_map):
+def extract_seq_2_info_map(sample_path: str, series_desc_2_sequence_map: Dict[str, str]):
     """
-    TODO
     :param sample_path:
     :param series_desc_2_sequence_map:
     """
     seq_info_dict = {}
+
+    # TODO delete when finish
     # print(f"DEBUG sample_path = {sample_path}")
     # print(f"DEBUG seq_dirs = {os.listdir(sample_path)}")
     # print(f"DEBUG series_desc_2_sequence_map = {series_desc_2_sequence_map}")
+
+    print(f"DEBUG: listing dir: {os.listdir(sample_path)}")
+    # Iterate on each sequence in patient mri folder
     for seq_dir in os.listdir(sample_path):
         seq_path = os.path.join(sample_path, seq_dir)
-        # read series description from dcm files
-        dcm_files = glob.glob(os.path.join(seq_path, "*.dcm"))
-        dcm_ds = pydicom.dcmread(dcm_files[0])
 
-        series_desc = pydicom.dcmread(dcm_files[0]).SeriesDescription
-        seq_id = series_desc_2_sequence_map.get(series_desc, "UNKNOWN")
+        # Read series description from dcm files
+        dcm_files = glob.glob(os.path.join(seq_path, "*.dcm"))  # get all dcm files paths
+        # TODO throw an error if there are no dicoms
+        dcm_ds = pydicom.dcmread(dcm_files[0])  # Read one of the dicoms dataset
+        # print(f"DEBUG: dcm_files = {dcm_files}")  # TODO delete
 
-        series_num = extract_ser_num(dcm_ds)
+        series_desc = dcm_ds.SeriesDescription
+        seq_id = series_desc_2_sequence_map.get(series_desc, "UNKNOWN")  # derive the sequence from the series desc
+
+        series_num = extract_series_num(dcm_ds)
         dicom_field = extract_dicom_field(dcm_ds, seq_id)
 
         seq_info_dict.setdefault(seq_id, []).append(
@@ -1081,7 +1097,7 @@ def extract_seq_2_info_map(sample_path, series_desc_2_sequence_map):
     return seq_info_dict
 
 
-def extract_ser_num(dcm_ds: Union[pydicom.FileDataset, pydicom.dicomdir.DicomDir]) -> int:
+def extract_series_num(dcm_ds: Union[pydicom.FileDataset, pydicom.dicomdir.DicomDir]) -> int:
     """
     Returns dicom's series number
 
@@ -1092,21 +1108,29 @@ def extract_ser_num(dcm_ds: Union[pydicom.FileDataset, pydicom.dicomdir.DicomDir
     return int(dcm_ds.SeriesNumber)
 
 
-def extract_dicom_field(dcm_ds, seq_desc):
+def extract_dicom_field(
+    dcm_ds: Union[pydicom.FileDataset, pydicom.dicomdir.DicomDir], seq_id: str
+) -> Union[Tuple[int, int], None]:
+    """
+    Returns DICOM's field
+
+    :param dcm_ds: dicom's dataset
+    :param seq_id: sequence id
+    """
     # dicom key
-    if seq_desc in ("b_mix", "b"):
+    if seq_id in ("b_mix", "b"):
         if "DiffusionBValue" in dcm_ds:
             dicom_field = (0x0018, 0x9087)  # 'DiffusionBValue'
         else:
             dicom_field = (0x19, 0x100C)  # simens bval tag 0x19 0x100c
-    elif "DCE" in seq_desc:
+    elif "DCE" in seq_id:
         if "TemporalPositionIdentifier" in dcm_ds:
             dicom_field = (0x0020, 0x0100)  # Temporal Position Identifier
         elif "TemporalPositionIndex" in dcm_ds:
             dicom_field = (0x0020, 0x9128)  # Temporal Position Index
         else:
             dicom_field = (0x0020, 0x0012)  # Acqusition Number
-    elif seq_desc == "MASK":
+    elif seq_id == "MASK":
         dicom_field = (0x0020, 0x0011)  # series number
     else:
         dicom_field = None
@@ -1117,17 +1141,16 @@ def extract_dicom_field(dcm_ds, seq_desc):
 def sort_dicoms_by_field(seq_path: str, dicom_field, use_order_indicator):
     """
     Return location dir of requested sequence
-    """
 
+    sort_dicom_by_dicom_field sorts the dcm_files based on dicom_field
+    For some MRI sequences different kinds of MRI series are mixed together (as in bWI) case
+    This function creates a dict={dicom_field_type:list of relevant dicoms},
+    than concats all to a list of the different series types
+
+    :param dcm_files: list of all dicoms , mixed
+    :param dicom_field: dicom field to sort based on
+    :return: sorted_names_list, list of sorted dicom series
     """
-     sort_dicom_by_dicom_field sorts the dcm_files based on dicom_field
-     For some MRI sequences different kinds of MRI series are mixed together (as in bWI) case
-     This function creates a dict={dicom_field_type:list of relevant dicoms},
-     than concats all to a list of the different series types
-     :param dcm_files: list of all dicoms , mixed
-     :param dicom_field: dicom field to sort based on
-     :return: sorted_names_list, list of sorted dicom series
-     """
     dcm_files = glob.glob(os.path.join(seq_path, "*.dcm"))
     dcm_values = {}
     dcm_patient_z = {}
@@ -1478,3 +1501,112 @@ def get_imagepath(vol_np: np.ndarray, seq_inx: int):
     """
     imagePath = sitk.GetImageFromArray(vol_np[seq_inx, :, :, :])
     return imagePath
+
+
+##### Sagi's Versions #####
+
+"""
+Version of 'OpExtractDicomsPerSeq' aims to make the extraction more explicitly PER SEQUENCE,
+"""
+
+
+class OpExtractDicoms(OpBase):
+    """
+    Extracts dicoms for a given sequence and stores them in the sample dict with a given prefix
+    """
+
+    def __init__(
+        self,
+        seq_ids: str,
+        matching_series_descriptions: Dict[str, Str],
+        use_order_indicator: bool = False,
+        **kwargs,
+    ):
+        """
+        :param seq_id: the sequence for which the dicoms will be extract
+        :param matching_series_descriptions: series descriptions that match to the given sequence
+        :param use_order_indicator: TODO
+        :param kwargs:
+        """
+        super().__init__(**kwargs)
+        self._seq_ids = seq_ids
+        self._matching_series_descriptions = matching_series_descriptions
+        self._use_order_indicator = use_order_indicator
+
+    def __call__(self, sample_dict: NDict, key_in: str, key_out_seq_ids: str, key_out_sequence_prefix: str):
+        """
+        # TODO I need to make another Op to retriev thos key_out_seq_ids for each sample!
+        :param sample_dict:
+        :param key_in: key for the mri path
+        :param key_out_seq_ids: the ids will be used as a suffix in storing the series in the sample_dict
+        :param key_out_sequence_prefix: the prefix used to store the series in the sample_dict
+        """
+        sample_path = sample_dict[key_in]
+        sample_dict[key_out_seq_ids] = []
+        seq_2_info_map = extract_seq_2_info_map(sample_path, self._series_desc_2_sequence_map)
+        # print(f"DEBUG: seq_2_info_map = {seq_2_info_map}")
+        for seq_id in self._seq_ids:
+            seq_info_list = seq_2_info_map.get(seq_id, None)
+            if seq_info_list is None:
+                # sequence does not exist for the patient
+                continue
+            sample_dict[key_out_seq_ids].append(seq_id)
+            sample_dict[f"{key_out_sequence_prefix}.{seq_id}"] = []
+            for seq_info in seq_info_list:  # could be several sequences/series (sequence/series=  path)
+
+                dicom_group_ids, sorted_dicom_groups = sort_dicoms_by_field(
+                    seq_path=seq_info["path"],
+                    dicom_field=seq_info["dicom_field"],
+                    use_order_indicator=self._use_order_indicator,
+                )
+                for dicom_group_id, dicom_group in zip(dicom_group_ids, sorted_dicom_groups):
+                    seq_info2 = dict(
+                        path=seq_info["path"],
+                        series_num=seq_info["series_num"],
+                        series_desc=seq_info["series_desc"],
+                        dicoms=dicom_group,  # each sequence/series path may contain several (sub-)sequence/series
+                        dicoms_id=dicom_group_id,
+                    )
+                    sample_dict[f"{key_out_sequence_prefix}.{seq_id}"].append(seq_info2)
+
+        return sample_dict
+
+    class OpGetSeqIds(OpBase):
+        """
+        Get the relevant sequence ids per sample
+        """
+
+        def __init__(self, seq_2_series_desc_map: Dict[str, str]):
+            """
+            TODO
+            """
+            super().__init__()
+            self._seq_2_series_desc_map = seq_2_series_desc_map
+
+        def __call__(self, sample_dict: NDict, key_in_path: str, key_out:str) -> NDict:
+            """
+            TODO
+            """
+            sample_path = sample_dict[key_in_path]
+
+            res = []
+            # Iterate on each sequence in patient mri folder
+            for seq_dir in os.listdir(sample_path):
+                seq_path = os.path.join(sample_path, seq_dir)
+
+                # Read series description from dcm files
+                dcm_files = glob.glob(os.path.join(seq_path, "*.dcm"))  # get all dcm files paths
+                # TODO throw an error or a warning if there are no dicoms
+                dcm_ds = pydicom.dcmread(dcm_files[0])  # Read one of the dicoms dataset
+                # print(f"DEBUG: dcm_files = {dcm_files}")  # TODO delete
+                series_desc = dcm_ds.SeriesDescription
+
+
+                seq_ids = self._seq_2_series_desc_map.keys()
+                for seq_id in seq_ids:
+                    if series_desc in self._seq_2_series_desc_map[seq_id]:
+                        pass # TODO FINISH
+
+            sample_dict[key_out] = res
+            return sample_dict
+
