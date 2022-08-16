@@ -24,7 +24,7 @@ import torch
 from fuse.models.backbones.backbone_inception_resnet_v2 import FuseBackboneInceptionResnetV2
 from fuse.models.heads.head_global_pooling_classifier import FuseHeadGlobalPoolingClassifier
 from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
-
+from fuse.utils import NDict
 
 class FuseModelWrapper(torch.nn.Module):
     """
@@ -137,3 +137,22 @@ if __name__ == '__main__':
     print('Forward pass shape: ', end='')
     print('logits', str(res['model']['google']['output']['logits'].shape))
 
+class ModelWrapDictToSeq(torch.nn.Module):
+    """
+    Fuse model wrapper for wrapping torch modules and passing through Fuse
+    """
+
+    def __init__(self, fuse_model : torch.nn.Module, output_key : str):
+        super().__init__()
+        self.model = fuse_model
+        self.output_key = output_key
+    def forward(self, input : torch.tensor):
+        batch_dict = NDict()
+        #find input key
+        fuse_input = self.model.conv_inputs[0][0]
+        batch_dict[fuse_input] = input
+        #feed fuse model with dict as he excpect
+        ans_ndict = self.model(batch_dict)
+        #extract model output from dict
+        output =ans_ndict['output'][self.output_key]
+        return output
