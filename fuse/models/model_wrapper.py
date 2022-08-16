@@ -156,3 +156,4 @@ class ModelWrapDictToSeq(torch.nn.Module):
         #extract model output from dict
         output =ans_ndict['output'][self.output_key]
         return output
+        
