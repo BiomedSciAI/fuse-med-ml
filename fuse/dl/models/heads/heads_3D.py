@@ -148,7 +148,7 @@ class Head3DRegression(nn.Module):
         :param layers_description:          Layers description for the classifier module - sequence of hidden layers sizes (Not used currently)
         :param append_layers_description: Layers description for the tabular data, before the concatenation with the features extracted from the image - sequence of hidden layers sizes
         :param append_dropout_rate: Dropout rate for tabular layers
-        :param num_outputs: number of output values 
+        :param num_outputs: number of output values
         """
         super().__init__()
         # save input params

@@ -154,7 +154,7 @@ class OpPrepareClinical(OpBase):
             axis=0,
             dtype=np.float32,
         )
-        sample_dict["data.input.clinical.all"] = clinical_encoding   
+        sample_dict["data.input.clinical.all"] = clinical_encoding
         return sample_dict
 
 
