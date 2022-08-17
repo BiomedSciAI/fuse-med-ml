@@ -126,7 +126,7 @@ class ProstateX:
         seq_reverse_map = {s: True for s in seq_ids}
 
         static_pipeline_steps = [
-            # step 1: map sample_ids to
+            # step 1: map sample_ids to - Done..
             (
                 OpProstateXSampleIDDecode(root_path=root_path),
                 dict(key_out_path_mri="data.input.mri_path", key_out_path_ktrans="data.input.ktrans_path", key_out_patient_id="data.input.patient_id"),
@@ -495,9 +495,7 @@ class OpProstateXSampleIDDecode(OpBase):
         sid = get_sample_id(sample_dict)
 
         patient_id = sid[:-2]
-        sample_dict[key_out_patient_id] = get_sample_path(
-            self._data_path, patient_id
-        )  # TODO why those two lines are the same?
+        sample_dict[key_out_patient_id] = patient_id
         sample_dict[key_out_path_mri] = get_sample_path(self._data_path, patient_id)
 
         # ktrans

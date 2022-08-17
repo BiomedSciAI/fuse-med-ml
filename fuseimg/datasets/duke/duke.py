@@ -189,7 +189,7 @@ class Duke:
 
             # step 4: group DCE sequences into DCE_mix
             (
-                OpGroupDCESequences(),
+                OpGroupDCESequences(seq_ids=seq_ids),
                 dict(key_seq_ids="data.input.seq_ids", key_sequence_prefix="data.input.sequence"),
             ),
             # step 5: select single volume from DCE_mix sequence

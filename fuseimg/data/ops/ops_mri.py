@@ -196,9 +196,10 @@ class OpGroupDCESequences(OpBase):
     TODO: Generalize to GroupeSequences
     """
 
-    def __init__(self, verbose: bool = True, **kwargs):
+    def __init__(self, seq_ids: List[str], verbose: bool = True, **kwargs):
         super().__init__(**kwargs)
         self._verbose = verbose
+        self._seq_ids = seq_ids
 
     def __call__(self, sample_dict: NDict, key_seq_ids: str, key_sequence_prefix: str) -> NDict:
         """
@@ -209,16 +210,17 @@ class OpGroupDCESequences(OpBase):
         :param key_sequence_prefix:
         """
 
-        seq_ids = sample_dict[key_seq_ids]
+        # seq_ids = sample_dict[key_seq_ids]
 
         all_dce_mix_ph_sequences = [f"DCE_mix_ph{i}" for i in range(1, 5)] + ["DCE_mix_ph"]
 
-        existing_dce_mix_ph_sequences = [seq_id for seq_id in all_dce_mix_ph_sequences if seq_id in seq_ids]
+        existing_dce_mix_ph_sequences = [seq_id for seq_id in all_dce_mix_ph_sequences if seq_id in self._seq_ids]
         # handle multiphase DCE in different series
         if existing_dce_mix_ph_sequences:
             new_seq_id = "DCE_mix"
-            assert new_seq_id not in seq_ids
-            seq_ids.append(new_seq_id)
+            # assert new_seq_id not in seq_ids
+            assert sample_dict[f"{key_sequence_prefix}.{new_seq_id}"] == [] # check empty
+            # seq_ids.append(new_seq_id)
             sample_dict[f"{key_sequence_prefix}.{new_seq_id}"] = []
             for seq_id in existing_dce_mix_ph_sequences:
                 sequence_info_list = sample_dict[f"{key_sequence_prefix}.{seq_id}"]
@@ -233,6 +235,7 @@ class OpGroupDCESequences(OpBase):
                     sample_dict=sample_dict,
                     key_sequence_ids=key_seq_ids,
                     key_sequence_prefix=key_sequence_prefix,
+                    seq_ids=None
                 )
 
         return sample_dict
@@ -339,7 +342,8 @@ class OpSelectVolumes(OpBase):
             # To save space and also when caching sample_dict
             for seq_id in seq_ids:
                 for sequence_info in sample_dict[f"{key_in_sequence_prefix}.{seq_id}"]:
-                    del sequence_info["stk_volume"]
+                    if "stk_volume" in sequence_info:
+                        del sequence_info["stk_volume"]
 
         return sample_dict
 
@@ -382,11 +386,11 @@ class OpResampleStkVolsBasedRef(OpBase):
         # if self.reference_inx > 0:
         #     volumes = [volumes[self.reference_inx]]+ volumes[:self.reference_inx]+ volumes[volumes+1:]
 
-        # cast volumes to match
+        # cast volumes to match types
         seq_volumes_resampled = [sitk.Cast(v, sitk.sitkFloat32) for v in volumes]
         ref_volume = volumes[self._reference_inx]
 
-        # create the resample operator that will excute the resampling
+        # create the STK resample operator that will excute the resampling
         resample = self.create_resample(ref_volume, size=ref_volume.GetSize(), spacing=ref_volume.GetSpacing())
 
         for i in range(len(seq_volumes_resampled)):
@@ -770,12 +774,13 @@ class OpDeleteSequences(OpBase):
 
     def __call__(self, sample_dict: NDict, op_id: Optional[str], key_sequence_ids):
         for seq_id in self._sequences_to_delete:
-            delete_seqeunce_from_dict(seq_id=seq_id, sample_dict=sample_dict, key_sequence_ids=key_sequence_ids)
+            delete_seqeunce_from_dict(seq_id=seq_id, sample_dict=sample_dict, key_sequence_ids=key_sequence_ids, seq_ids=None)
 
 
-def delete_seqeunce_from_dict(seq_id: str, sample_dict: NDict, key_sequence_ids, key_sequence_prefix) -> None:
+def delete_seqeunce_from_dict(seq_id: str, sample_dict: NDict, key_sequence_ids, key_sequence_prefix: str, seq_ids: List[str]) -> None:
     """
     Deletes sequence from the sample dict
+
     :param seq_id:
     :param sample_dict:
     :param key_sequence_ids:
@@ -783,8 +788,9 @@ def delete_seqeunce_from_dict(seq_id: str, sample_dict: NDict, key_sequence_ids,
     """
     seq_ids = sample_dict[key_sequence_ids]
     if seq_id in seq_ids:
-        seq_ids.remove(seq_id)
-        del sample_dict[f"{key_sequence_prefix}.{seq_id}"]
+        # seq_ids.remove(seq_id)
+        sample_dict[f"{key_sequence_prefix}.{seq_id}"] = []
+        # del sample_dict[f"{key_sequence_prefix}.{seq_id}"]
 
 
 class OpRenameSequence(OpBase):
