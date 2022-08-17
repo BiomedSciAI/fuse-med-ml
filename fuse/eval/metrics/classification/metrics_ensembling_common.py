@@ -11,21 +11,29 @@ from functools import partial
 
 
 class MetricEnsemble(MetricDefault):
-    def __init__(self, preds: str, target: Optional[str] = None, output_file: Optional[str] = None, **kwargs):
+    def __init__(self, pred_keys: Sequence[str], target: Optional[str] = None, output_file: Optional[str] = None, **kwargs):
         """
-        :param preds: key name for the multiple model prediction scores
+        Model ensembling metric. 
+        It obtains as input predictions from multiple models on the same set of samples
+        and outputs a refined prediction using average, median or voting.
+        :param pred_keys: List of key names (strings) for the multiple model prediction scores
+        :param target: Optional key for target values. Only needed for optional saving the targets in an output file.
+        :param output_file: Optional output filename
         """
         ensemble = partial(self._ensemble, output_file=output_file)
-        super().__init__(metric_func=ensemble, target=target, preds=preds, extract_ids=True, **kwargs)
+        for i,key in enumerate(pred_keys):
+            kwargs['pred' + str(i)] = key
+        super().__init__(metric_func=ensemble, target=target, extract_ids=True, **kwargs)
 
     def _ensemble(
         self,
-        preds: Sequence[np.ndarray],
         ids: Sequence[Hashable],
         target: Optional[Sequence[np.ndarray]] = None,
         output_file: Optional[str] = None,
+        **kwargs,
     ):
-
+        preds = [kwargs[k] for k in kwargs if k.startswith('pred')]
+        preds = list(np.stack(preds,axis=1))
         ensemble_preds = Ensembling.ensemble(preds=preds)
         # make sure to return the per-sample metric result for the relevant sample ids:
         per_sample_data = PerSampleData(data=ensemble_preds, ids=ids)

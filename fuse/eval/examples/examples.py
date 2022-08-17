@@ -722,28 +722,15 @@ def example_14() -> Dict[str, Any]:
     ]
     output_file = "ensemble_output.gz"
     # define data
-    data = {str(k): model_dirs[k] for k in range(len(model_dirs))}
-
-    # pre collect function to change the format
-    def pre_collect_process(sample_dict: dict) -> dict:
-        # convert predictions from all models to numpy array
-        num_classes = sample_dict["0"]["model"]["output"]["classification"].shape[0]
-        model_names = list(sample_dict.to_dict().keys())
-        model_names.remove("id")
-        pred_array = np.zeros((len(model_names), num_classes))
-        for i, m in enumerate(model_names):
-            pred_array[i, :] = sample_dict[m]["model"]["output"]["classification"]
-        sample_dict["preds"] = pred_array
-        sample_dict["target"] = sample_dict["0"]["data"]["label"]
-
-        return sample_dict
+    data = {str(k): model_dirs[k] for k in range(len(model_dirs))}    
 
     # list of metrics
     metrics = OrderedDict(
         [
             (
                 "ensemble",
-                MetricEnsemble(preds="preds", output_file=output_file, pre_collect_process_func=pre_collect_process),
+                MetricEnsemble(pred_keys=['0.model.output.classification', '1.model.output.classification', '2.model.output.classification', \
+                                        '3.model.output.classification', '4.model.output.classification'], target='0.data.label', output_file=output_file),
             ),
             (
                 "apply_thresh",
@@ -753,8 +740,7 @@ def example_14() -> Dict[str, Any]:
                 "accuracy",
                 MetricAccuracy(
                     pred="results:metrics.apply_thresh.cls_pred",
-                    target="target",
-                    pre_collect_process_func=pre_collect_process,
+                    target="0.data.label",
                 ),
             ),
         ]
