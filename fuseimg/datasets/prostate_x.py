@@ -19,8 +19,7 @@ from fuse.data.ops.ops_cast import OpToTensor
 from fuse.data.ops.ops_read import OpReadDataframe
 from fuse.data.utils.sample import get_sample_id
 from fuse.utils import NDict
-from fuseimg.data.ops import ops_mri
-from fuse.data.ops.ops_common import OpFunc, OpLambda, OpKeepKeypaths
+from fuse.data.ops.ops_common import OpLambda, OpKeepKeypaths
 from fuse.data.ops.ops_aug_common import OpSample, OpRandApply
 from fuse.utils.rand.param_sampler import RandBool, RandInt, Uniform, Choice
 
@@ -37,7 +36,7 @@ from fuseimg.data.ops.ops_mri import (
     OpRescale4DStk,
     OpCreatePatchVolumes,
     OpStk2Dict,
-    OpRenameSequence
+    OpRenameSequence,
 )
 
 from fuse.data.ops.ops_debug import OpPrintKeysContent
@@ -117,7 +116,7 @@ class ProstateX:
         annotations_df: Optional[pd.DataFrame] = None,
     ) -> PipelineDefault:
 
-        data_path = os.path.join(root_path, "PROSTATEx")
+        # data_path = os.path.join(root_path, "PROSTATEx")
         if annotations_df is None:
             annotations_df = get_prostate_x_annotations_df(root_path)
 
@@ -129,9 +128,12 @@ class ProstateX:
             # step 1: map sample_ids to - Done..
             (
                 OpProstateXSampleIDDecode(root_path=root_path),
-                dict(key_out_path_mri="data.input.mri_path", key_out_path_ktrans="data.input.ktrans_path", key_out_patient_id="data.input.patient_id"),
+                dict(
+                    key_out_path_mri="data.input.mri_path",
+                    key_out_path_ktrans="data.input.ktrans_path",
+                    key_out_patient_id="data.input.patient_id",
+                ),
             ),
-
             # step 2: read files info for the sequences
             (
                 OpExtractDicomsPerSeq(
@@ -145,15 +147,12 @@ class ProstateX:
                     key_out_sequence_prefix="data.input.sequence",
                 ),
             ),
-
             # step 3: Load STK volumes of MRI sequences
             (
                 OpLoadDicomAsStkVol(seq_ids=seq_ids, seq_reverse_map=seq_reverse_map),
                 dict(key_sequence_prefix="data.input.sequence"),
             ),
-
             # (OpPrintKeysContent(num_samples=1), dict(keys=None)),  # DEBUG TODO delete
-
             # step 4: rename sequence b_mix (if exists) to b; fix certain b sequences
             # (
             #     OpLambda(
@@ -167,31 +166,31 @@ class ProstateX:
             #     ),
             #     dict(key=None),
             # ),
-            (OpRenameSequence(seq_ids=seq_ids), dict(
-                        seq_id_old="b_mix",
-                        seq_id_new="b",
-                        key_sequence_prefix="data.input.sequence",
-                        )),
-
+            (
+                OpRenameSequence(seq_ids=seq_ids),
+                dict(
+                    seq_id_old="b_mix",
+                    seq_id_new="b",
+                    key_sequence_prefix="data.input.sequence",
+                ),
+            ),
             (OpPrintKeysContent(num_samples=1), dict(keys=None)),  # DEBUG TODO delete
-
             # step 5: read ktrans
             # (
             #     OpFunc(func=get_ktrans_image_file_from_sample_id_v2),
             #     dict(
             #         inputs={
-
             #         },
             #         outputs=
             #     )
             # ),
             (
                 OpReadSTKImage(
-                    seq_id="ktrans", data_path=root_path,
+                    seq_id="ktrans",
+                    data_path=root_path,
                 ),
                 dict(key_in="data.input.ktrans_path", key_sequence_prefix="data.input.sequence"),
             ),
-
             # step 6: select single volume from b_mix/T2 sequence
             (
                 OpSelectVolumes(
@@ -206,7 +205,6 @@ class ProstateX:
                     key_out_volumes_info="data.input.selected_volumes_info",
                 ),
             ),
-
             # step 7: fix sequences
             (
                 OpLambda(
@@ -218,7 +216,6 @@ class ProstateX:
                 ),
                 dict(key=None),
             ),
-
             # step 8: set reference volume to be first and register other volumes with respect to it
             (
                 OpResampleStkVolsBasedRef(reference_inx=0, interpolation="bspline"),
@@ -472,13 +469,13 @@ def get_ktrans_image_file_from_sample_id(sample_id: str, data_dir: str) -> str: 
     assert len(ktrans_mhd_files) == 1
     return ktrans_mhd_files[0]
 
+
 def get_ktrans_image_file_from_sample_id_v2(sample_id: str, data_dir: str) -> str:  # fix type
     patient_id = sample_id.split("_")[0]
     ktrans_patient_dir = os.path.join(data_dir, "ProstateXKtrains-train-fixed", patient_id)
     ktrans_mhd_files = glob.glob(os.path.join(ktrans_patient_dir, "*.mhd"))
     assert len(ktrans_mhd_files) == 1
     return ktrans_mhd_files[0]
-
 
 
 class OpProstateXSampleIDDecode(OpBase):
@@ -491,7 +488,9 @@ class OpProstateXSampleIDDecode(OpBase):
         self._root_path = root_path
         self._data_path = os.path.join(root_path, "PROSTATEx")
 
-    def __call__(self, sample_dict: NDict, key_out_path_mri: str, key_out_path_ktrans: str, key_out_patient_id: str) -> NDict:
+    def __call__(
+        self, sample_dict: NDict, key_out_path_mri: str, key_out_path_ktrans: str, key_out_patient_id: str
+    ) -> NDict:
         sid = get_sample_id(sample_dict)
 
         patient_id = sid[:-2]

@@ -1,8 +1,7 @@
 from ast import Str
 import glob
 import os
-from shutil import ExecError
-from typing import Callable, Optional, Union, List, Dict, Any
+from typing import Optional, Union, List, Dict, Any
 import logging
 
 import SimpleITK as sitk
@@ -71,7 +70,9 @@ class OpExtractDicomsPerSeq(OpBase):
             # if seq_info_list is None:  # uncomment 3 rows to use michal's
             #     # sequence does not exist for the patient
             #     continue
-            sample_dict[key_out_seq_ids].append(seq_id)  # OBSOLETE, TODO delete when finish! it will contain all the seq_ids
+            sample_dict[key_out_seq_ids].append(
+                seq_id
+            )  # OBSOLETE, TODO delete when finish! it will contain all the seq_ids
             sample_dict[f"{key_out_sequence_prefix}.{seq_id}"] = []
 
             for seq_info in seq_info_list:  # could be several sequences/series (sequence/series=  path)
@@ -219,7 +220,7 @@ class OpGroupDCESequences(OpBase):
         if existing_dce_mix_ph_sequences:
             new_seq_id = "DCE_mix"
             # assert new_seq_id not in seq_ids
-            assert sample_dict[f"{key_sequence_prefix}.{new_seq_id}"] == [] # check empty
+            assert sample_dict[f"{key_sequence_prefix}.{new_seq_id}"] == []  # check empty
             # seq_ids.append(new_seq_id)
             sample_dict[f"{key_sequence_prefix}.{new_seq_id}"] = []
             for seq_id in existing_dce_mix_ph_sequences:
@@ -235,7 +236,7 @@ class OpGroupDCESequences(OpBase):
                     sample_dict=sample_dict,
                     key_sequence_ids=key_seq_ids,
                     key_sequence_prefix=key_sequence_prefix,
-                    seq_ids=None
+                    seq_ids=None,
                 )
 
         return sample_dict
@@ -774,10 +775,14 @@ class OpDeleteSequences(OpBase):
 
     def __call__(self, sample_dict: NDict, op_id: Optional[str], key_sequence_ids):
         for seq_id in self._sequences_to_delete:
-            delete_seqeunce_from_dict(seq_id=seq_id, sample_dict=sample_dict, key_sequence_ids=key_sequence_ids, seq_ids=None)
+            delete_seqeunce_from_dict(
+                seq_id=seq_id, sample_dict=sample_dict, key_sequence_ids=key_sequence_ids, seq_ids=None
+            )
 
 
-def delete_seqeunce_from_dict(seq_id: str, sample_dict: NDict, key_sequence_ids, key_sequence_prefix: str, seq_ids: List[str]) -> None:
+def delete_seqeunce_from_dict(
+    seq_id: str, sample_dict: NDict, key_sequence_ids, key_sequence_prefix: str, seq_ids: List[str]
+) -> None:
     """
     Deletes sequence from the sample dict
 
@@ -797,6 +802,7 @@ class OpRenameSequence(OpBase):
     """
     TODO
     """
+
     def __init__(self, seq_ids: List[str]):
         """
         :paran seq_ids:
@@ -806,7 +812,7 @@ class OpRenameSequence(OpBase):
 
     def __call__(self, sample_dict: NDict, seq_id_old: str, seq_id_new: str, key_sequence_prefix: str) -> NDict:
         """
-        
+
         :param seq_id_old:
         :param seq_id_new:
         :param key_sequence_prefix:
@@ -823,7 +829,7 @@ class OpRenameSequence(OpBase):
 
         sample_dict[f"{key_sequence_prefix}.{seq_id_new}"] = sample_dict[f"{key_sequence_prefix}.{seq_id_old}"]
         sample_dict[f"{key_sequence_prefix}.{seq_id_old}"] = []
-        
+
         return sample_dict
 
 
@@ -834,7 +840,7 @@ def rename_seqeunce_from_dict(sample_dict, seq_id_old, seq_id_new, key_sequence_
     seq_ids = sample_dict[key_seq_ids]
     if seq_id_old in seq_ids:
         # assert seq_id_new not in seq_ids   # michal's before I chang
-        assert sample_dict[f"{key_sequence_prefix}.{seq_id_new}"] == [] # New must be empty
+        assert sample_dict[f"{key_sequence_prefix}.{seq_id_new}"] == []  # New must be empty
 
         sample_dict[f"{key_sequence_prefix}.{seq_id_new}"] = sample_dict[f"{key_sequence_prefix}.{seq_id_old}"]
         sample_dict[f"{key_sequence_prefix}.{seq_id_old}"] = []
@@ -1146,7 +1152,7 @@ def extract_seq_2_info_map(sample_path: str, series_desc_2_sequence_map: Dict[st
             raise Exception(f"Could not find any dicoms in the sequence directory: {seq_path} .")
 
         # Read one of the dicoms dataset
-        dcm_ds = pydicom.dcmread(dcm_files[0])  
+        dcm_ds = pydicom.dcmread(dcm_files[0])
 
         # Read series description from one of the dicoms
         series_desc = dcm_ds.SeriesDescription
@@ -1435,6 +1441,7 @@ def extract_lesion_prop_from_annotation(vol_ref, start_slice, end_slice, start_r
 #         sample_dict[f"{key_sequence_prefix}.{self._seq_id}"] = [dict(path=img_file, stk_volume=vol)]
 #         return sample_dict
 
+
 class OpReadSTKImage(OpBase):
     """
     Read STK Image  TODO maybe just use LoadImage and provide their a prefix option (?)
@@ -1446,7 +1453,7 @@ class OpReadSTKImage(OpBase):
         """
         super().__init__(**kwargs)
         self._seq_id = seq_id
-        self._dir_path = data_path # not in use see comment below
+        self._dir_path = data_path  # not in use see comment below
 
     def __call__(self, sample_dict: NDict, key_in: str, key_sequence_prefix: str):
         """

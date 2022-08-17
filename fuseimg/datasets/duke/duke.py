@@ -42,7 +42,8 @@ from fuseimg.data.ops.ops_mri import (
 import torch
 
 from fuseimg.datasets.duke.duke_label_type import DukeLabelType
-from fuse.data.ops.ops_debug import OpPrintTypes, OpPrintKeysContent
+
+# from fuse.data.ops.ops_debug import OpPrintTypes, OpPrintKeysContent
 
 
 def get_selected_series_index(sample_id: List[str], seq_id: str) -> List[int]:  # Not so sure about types
@@ -168,7 +169,6 @@ class Duke:
         static_pipeline_steps = [
             # step 1: map sample_id to path of MRI image
             (OpDukeSampleIDDecode(data_path=mri_dir2), dict(key_out="data.input.mri_path")),
-
             # step 2: read sequences
             (
                 OpExtractDicomsPerSeq(
@@ -180,13 +180,11 @@ class Duke:
                     key_out_sequence_prefix="data.input.sequence",
                 ),
             ),
-
             # step 3: Load STK volumes of MRI sequences
             (
                 OpLoadDicomAsStkVol(seq_ids=seq_ids),
                 dict(key_sequence_prefix="data.input.sequence"),
             ),
-
             # step 4: group DCE sequences into DCE_mix
             (
                 OpGroupDCESequences(seq_ids=seq_ids),
