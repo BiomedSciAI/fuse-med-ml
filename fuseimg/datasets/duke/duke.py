@@ -27,7 +27,6 @@ from fuseimg.data.ops.ops_mri import (
     OpExtractDicomsPerSeq,
     OpLoadDicomAsStkVol,
     OpExtractRadiomics,
-    OpGroupDCESequences,
     OpSelectVolumes,
     OpResampleStkVolsBasedRef,
     OpStackList4DStk,
@@ -37,6 +36,9 @@ from fuseimg.data.ops.ops_mri import (
     OpCreatePatchVolumes,
     OpStk2Dict,
     OpDict2Stk,
+    OpSortSequence,
+    OpGroupSequences,
+    OpDeleteSequenceAttr,
 )
 
 import torch
@@ -166,8 +168,12 @@ class Duke:
         print(f"DEBUG: series_desc_2_sequence_map = {series_desc_2_sequence_map}")
         seq_ids = ["DCE_mix_ph1", "DCE_mix_ph2", "DCE_mix_ph3", "DCE_mix_ph4", "DCE_mix", "DCE_mix_ph"]
 
+        # Function for sorting 'OpSortSequence'
+        def sort_DCE_mix_ph_func(e: Dict[str, Any]) -> Any:
+            return e["series_num"]
+
         static_pipeline_steps = [
-            # step 1: map sample_id to path of MRI image
+            # step 1: map sample_id to paths of MRI image
             (OpDukeSampleIDDecode(data_path=mri_dir2), dict(key_out="data.input.mri_path")),
             # step 2: read sequences
             (
@@ -176,31 +182,54 @@ class Duke:
                 ),
                 dict(
                     key_in="data.input.mri_path",
-                    key_out_seq_ids="data.input.seq_ids",
                     key_out_sequence_prefix="data.input.sequence",
                 ),
             ),
             # step 3: Load STK volumes of MRI sequences
             (
                 OpLoadDicomAsStkVol(seq_ids=seq_ids),
-                dict(key_sequence_prefix="data.input.sequence"),
+                dict(key_sequence_prefix="data.input.sequence", key_volume="stk_volume"),
             ),
+            # DEBUG
+            # (OpPrintKeysContent(num_samples=1), dict(keys=None)),
             # step 4: group DCE sequences into DCE_mix
             (
-                OpGroupDCESequences(seq_ids=seq_ids),
-                dict(key_seq_ids="data.input.seq_ids", key_sequence_prefix="data.input.sequence"),
+                OpSortSequence(key_sort=sort_DCE_mix_ph_func),
+                dict(key_in_seq_prefix="data.input.sequence", key_in_seq_id="DCE_mix_ph"),
             ),
+            # DEBUG
+            # (OpPrintKeysContent(num_samples=1), dict(keys=None)),
+            (
+                OpGroupSequences(delete_source_seq=True),
+                dict(
+                    ids_source=["DCE_mix_ph1", "DCE_mix_ph2", "DCE_mix_ph3", "DCE_mix_ph4", "DCE_mix_ph"],
+                    id_target="DCE_mix",
+                    key_sequence_prefix="data.input.sequence",
+                ),
+            ),
+            # 'OpGroupDCESequences' was replace by 'OpSortSequence' + 'OpGroupSequences' :)
+            # (
+            #     OpGroupDCESequences(seq_ids=seq_ids),
+            #     dict(key_sequence_prefix="data.input.sequence"),
+            # ),
+            # DEBUG
+            # (OpPrintKeysContent(num_samples=1), dict(keys=None)),
             # step 5: select single volume from DCE_mix sequence
             (
                 OpSelectVolumes(
-                    get_indexes_func=select_series_func, selected_seq_ids=["DCE_mix"], delete_input_volumes=True
+                    get_indexes_func=select_series_func,
+                    selected_seq_ids=["DCE_mix"],
+                    seq_ids=seq_ids,
                 ),
                 dict(
-                    key_in_seq_ids="data.input.seq_ids",
                     key_in_sequence_prefix="data.input.sequence",
                     key_out_volumes="data.input.selected_volumes",
                     key_out_volumes_info="data.input.selected_volumes_info",
                 ),
+            ),
+            (
+                OpDeleteSequenceAttr(seq_ids=seq_ids),
+                dict(key_in_seq_prefix="data.input.sequence", attribute="stk_volume"),
             ),
             # step 6: set first volume to be the reference volume and register other volumes with respect to it
             (

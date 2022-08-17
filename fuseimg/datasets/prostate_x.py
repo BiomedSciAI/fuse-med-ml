@@ -37,6 +37,7 @@ from fuseimg.data.ops.ops_mri import (
     OpCreatePatchVolumes,
     OpStk2Dict,
     OpRenameSequence,
+    OpDeleteSequenceAttr,
 )
 
 from fuse.data.ops.ops_debug import OpPrintKeysContent
@@ -121,11 +122,11 @@ class ProstateX:
             annotations_df = get_prostate_x_annotations_df(root_path)
 
         series_desc_2_sequence_map = get_series_desc_2_sequence_mapping()
-        seq_ids = ["T2", "b", "b_mix", "ADC"]
+        seq_ids = ["T2", "b", "b_mix", "ADC", "ktrans"]
         seq_reverse_map = {s: True for s in seq_ids}
 
         static_pipeline_steps = [
-            # step 1: map sample_ids to - Done..
+            # step 1: map sample_ids to - Done
             (
                 OpProstateXSampleIDDecode(root_path=root_path),
                 dict(
@@ -143,14 +144,13 @@ class ProstateX:
                 ),
                 dict(
                     key_in="data.input.mri_path",
-                    key_out_seq_ids="data.input.seq_ids",
                     key_out_sequence_prefix="data.input.sequence",
                 ),
             ),
             # step 3: Load STK volumes of MRI sequences
             (
                 OpLoadDicomAsStkVol(seq_ids=seq_ids, seq_reverse_map=seq_reverse_map),
-                dict(key_sequence_prefix="data.input.sequence"),
+                dict(key_sequence_prefix="data.input.sequence", key_volume="stk_volume"),
             ),
             # (OpPrintKeysContent(num_samples=1), dict(keys=None)),  # DEBUG TODO delete
             # step 4: rename sequence b_mix (if exists) to b; fix certain b sequences
@@ -186,24 +186,26 @@ class ProstateX:
             # ),
             (
                 OpReadSTKImage(
-                    seq_id="ktrans",
                     data_path=root_path,
                 ),
-                dict(key_in="data.input.ktrans_path", key_sequence_prefix="data.input.sequence"),
+                dict(key_in="data.input.ktrans_path", key_sequence_prefix="data.input.sequence", seq_id="ktrans"),
             ),
             # step 6: select single volume from b_mix/T2 sequence
             (
                 OpSelectVolumes(
                     get_indexes_func=select_series_func,
-                    delete_input_volumes=True,
                     selected_seq_ids=["T2", "b", "ADC", "ktrans"],
+                    seq_ids=seq_ids,
                 ),
                 dict(
-                    key_in_seq_ids="data.input.seq_ids",
                     key_in_sequence_prefix="data.input.sequence",
                     key_out_volumes="data.input.selected_volumes",
                     key_out_volumes_info="data.input.selected_volumes_info",
                 ),
+            ),
+            (
+                OpDeleteSequenceAttr(seq_ids=seq_ids),
+                dict(key_in_seq_prefix="data.input.sequence", attribute="stk_volume"),
             ),
             # step 7: fix sequences
             (

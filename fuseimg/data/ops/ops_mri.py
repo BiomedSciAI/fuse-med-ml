@@ -1,12 +1,11 @@
 from ast import Str
 import glob
 import os
-from typing import Optional, Union, List, Dict, Any
+from typing import Callable, Optional, Union, List, Dict, Any
 import logging
 
 import SimpleITK as sitk
 from SimpleITK.SimpleITK import Image
-import h5py
 
 import numpy as np
 import pydicom
@@ -28,8 +27,8 @@ class OpExtractDicomsPerSeq(OpBase):
     Sagi's thoughts,
     1. It should be called "OpExtractDicomsPerSeqID".
     2. In general the naming "sequence ID" doens't suit well. because each sequence ID can have several sequences...
-        Is it a convention? if not, it might be better to call it sequence TYPE !
-    3. If we call it TYPE, we should change the naming acordingly.
+        Is it a convention? if not, it might be better to call it sequence TYPE (T2, ..)!
+    3. If we call it TYPE, we should change the namings acordingly.
     4. maybe extract the dicoms per sequence, and in another Op gauther per TYPE!
     """
 
@@ -51,7 +50,7 @@ class OpExtractDicomsPerSeq(OpBase):
         self._series_desc_2_sequence_map = series_desc_2_sequence_map
         self._use_order_indicator = use_order_indicator
 
-    def __call__(self, sample_dict: NDict, key_in: str, key_out_seq_ids: str, key_out_sequence_prefix: str):
+    def __call__(self, sample_dict: NDict, key_in: str, key_out_sequence_prefix: str):
         """
         TODO
         :param sample_dict:
@@ -60,19 +59,14 @@ class OpExtractDicomsPerSeq(OpBase):
         :param key_out_sequence_prefix: the prefix used to store the series in the sample_dict
         """
         sample_path = sample_dict[key_in]
-        sample_dict[key_out_seq_ids] = []
+        # sample_dict[key_out_seq_ids] = []
         seq_2_info_map = extract_seq_2_info_map(sample_path, self._series_desc_2_sequence_map)
 
         for seq_id in self._seq_ids:
             # If sequence ID doesn't have info list, treat as an empty list
             seq_info_list = seq_2_info_map.get(seq_id, [])
-            # OBSOLETE, TODO delete when finish
-            # if seq_info_list is None:  # uncomment 3 rows to use michal's
-            #     # sequence does not exist for the patient
-            #     continue
-            sample_dict[key_out_seq_ids].append(
-                seq_id
-            )  # OBSOLETE, TODO delete when finish! it will contain all the seq_ids
+
+            # Set all to an empty list and fill it if there is information
             sample_dict[f"{key_out_sequence_prefix}.{seq_id}"] = []
 
             for seq_info in seq_info_list:  # could be several sequences/series (sequence/series=  path)
@@ -114,11 +108,12 @@ class OpLoadDicomAsStkVol(OpBase):
         self._seq_reverse_map = seq_reverse_map
         self._seq_ids = seq_ids
 
-    def __call__(self, sample_dict: NDict, key_sequence_prefix: str):
+    def __call__(self, sample_dict: NDict, key_sequence_prefix: str, key_volume: str):
         """
         extract_stk_vol loads dicoms into sitk vol
         :param key_in_seq_ids: key to sample's sequence ids
         :param key_sequence_prefix: prefix for the sequences' infos
+        :param key_volume: the volume will be saved in seq_info[key_volume]
         """
 
         for seq_id in self._seq_ids:
@@ -130,16 +125,15 @@ class OpLoadDicomAsStkVol(OpBase):
                 # Get STK Image volume for each sequnce instance and add it to the info list
                 stk_vol = get_stk_volume(
                     img_path=sequence_info["path"],
-                    is_file=False,
                     dicom_files=sequence_info["dicoms"],
                     reverse_order=should_reverse_order,
                 )
-                sequence_info["stk_volume"] = stk_vol
+                sequence_info[key_volume] = stk_vol
 
         return sample_dict
 
 
-def get_stk_volume(img_path: str, is_file: bool, dicom_files, reverse_order) -> Image:  # Not sure if Image
+def get_stk_volume(img_path: str, dicom_files, reverse_order) -> Image:  # Not sure if Image
     """
     TODO
 
@@ -148,53 +142,49 @@ def get_stk_volume(img_path: str, is_file: bool, dicom_files, reverse_order) -> 
     :param dicom_files:
     :param reverse_order:
     """
-    # load from HDF5
-    if img_path[-4::] in "hdf5":
-        vol = _read_HDF5_file(img_path)
-        return vol
-
-    if is_file:
-        vol = sitk.ReadImage(img_path)
-        return vol
-
+    # Init Image reader
     series_reader = sitk.ImageSeriesReader()
 
     if dicom_files is None:
-        dicom_files = series_reader.GetGDCMSeriesFileNames(img_path)
+        # dicom_files = series_reader.GetGDCMSeriesFileNames(img_path)
+        raise Exception("dicom_file is None")
 
     if isinstance(dicom_files, str):
-        dicom_files = [dicom_files]
+        # dicom_files = [dicom_files]
+        raise Exception("dicom file is a string")
+
     if img_path not in dicom_files[0]:
         dicom_files = [os.path.join(img_path, dicom_file) for dicom_file in dicom_files]
+
     dicom_files = dicom_files[::-1] if reverse_order else dicom_files
     series_reader.SetFileNames(dicom_files)
     vol = series_reader.Execute()
     return vol
 
 
-def _read_HDF5_file(img_path):
-    with h5py.File(img_path, "r") as hf:
-        _array = np.array(hf["array"])
-        _spacing = hf.attrs["spacing"]
-        _origin = hf.attrs["origin"]
-        _world_matrix = np.array(hf.attrs["world_matrix"])[:3, :3]
-        _world_matrix_unit = _world_matrix / np.linalg.norm(_world_matrix, axis=0)
-        _world_matrix_unit_flat = _world_matrix_unit.flatten()
-
-    # volume 2 sitk
-    vol = sitk.GetImageFromArray(_array)
-    vol.SetOrigin([_origin[i] for i in [1, 2, 0]])
-    vol.SetDirection(_world_matrix_unit_flat)
-    vol.SetSpacing([_spacing[i] for i in [1, 2, 0]])
-    return vol
+# TODO delete? was in 'get_stk_volume()' but seems not to be in use
+# def _read_HDF5_file(img_path):
+#     with h5py.File(img_path, "r") as hf:
+#         _array = np.array(hf["array"])
+#         _spacing = hf.attrs["spacing"]
+#         _origin = hf.attrs["origin"]
+#         _world_matrix = np.array(hf.attrs["world_matrix"])[:3, :3]
+#         _world_matrix_unit = _world_matrix / np.linalg.norm(_world_matrix, axis=0)
+#         _world_matrix_unit_flat = _world_matrix_unit.flatten()
+#
+#     # volume 2 sitk
+#     vol = sitk.GetImageFromArray(_array)
+#     vol.SetOrigin([_origin[i] for i in [1, 2, 0]])
+#     vol.SetDirection(_world_matrix_unit_flat)
+#     vol.SetSpacing([_spacing[i] for i in [1, 2, 0]])
+#     return vol
 
 
 #############################
 class OpGroupDCESequences(OpBase):
     """
-    Groups all 'DCE_mix_ph' sequences into one 'DCE_mix' sequence
-
-    TODO: Generalize to GroupeSequences
+    TODO delte after checking that 'OpSortSequence' + 'OpGroupSequences' is OK
+    - OBSOLETE -
     """
 
     def __init__(self, seq_ids: List[str], verbose: bool = True, **kwargs):
@@ -202,7 +192,7 @@ class OpGroupDCESequences(OpBase):
         self._verbose = verbose
         self._seq_ids = seq_ids
 
-    def __call__(self, sample_dict: NDict, key_seq_ids: str, key_sequence_prefix: str) -> NDict:
+    def __call__(self, sample_dict: NDict, key_sequence_prefix: str) -> NDict:
         """
         extract_list_of_rel_vol extract the volume per seq based on SER_INX_TO_USE
         and put in one list
@@ -225,20 +215,134 @@ class OpGroupDCESequences(OpBase):
             sample_dict[f"{key_sequence_prefix}.{new_seq_id}"] = []
             for seq_id in existing_dce_mix_ph_sequences:
                 sequence_info_list = sample_dict[f"{key_sequence_prefix}.{seq_id}"]
-                if seq_id == "DCE_mix_ph":
-                    series_num_arr = [a["series_num"] for a in sequence_info_list]
-                    inx_sorted = np.argsort(series_num_arr)
-                    sequence_info_list = [sequence_info_list[i] for i in inx_sorted]
+                # Now supports sorting in another Op
+                # if seq_id == "DCE_mix_ph":
+                #     # Sort info list by series number
+                #     series_num_arr = [a["series_num"] for a in sequence_info_list]
+                #     inx_sorted = np.argsort(series_num_arr)
+                #     sequence_info_list = [sequence_info_list[i] for i in inx_sorted]
                 sample_dict[f"{key_sequence_prefix}.{new_seq_id}"] += sequence_info_list
 
                 delete_seqeunce_from_dict(
                     seq_id=seq_id,
                     sample_dict=sample_dict,
-                    key_sequence_ids=key_seq_ids,
                     key_sequence_prefix=key_sequence_prefix,
-                    seq_ids=None,
                 )
 
+        return sample_dict
+
+
+#############################
+
+
+class OpSortSequence(OpBase):
+    """
+    Sort a sequence (or a group of them).
+
+    Example of use:
+        - Will sort sequence 'DCE_mix_ph' by it's 'series_num' value.
+
+        1. Define the key for sorting, like python api:
+
+            def sort_DCE_mix_ph_func(e):
+                return e["series_num"]
+
+        2. Use the Op in the pipeline
+
+        (
+            OpSortSequence(key_sort=sort_DCE_mix_ph_func),
+            dict(key_in_seq_prefix="data.input.sequence", key_in_seq_id="DCE_mix_ph"),
+        ),
+
+
+        TODO: support in sorting multiple sequence ids at once
+    """
+
+    def __init__(self, key_sort: Callable):
+        """
+        :param key_sort: see Op's description
+        """
+        super().__init__()
+        self._key_sort = key_sort
+
+    def __call__(self, sample_dict: NDict, key_in_seq_prefix: str, key_in_seq_id) -> NDict:
+        """
+        :param key_in_seq_prefix: the prefix for the sequences in the sample_dict
+        :param key_in_seq_id: sequence id to sort
+        """
+        sample_dict[f"{key_in_seq_prefix}.{key_in_seq_id}"].sort(key=self._key_sort)
+        return sample_dict
+
+
+#############################
+class OpGroupSequences(OpBase):
+    """
+    Group multiple sequences into one
+    """
+
+    def __init__(self, delete_source_seq: bool = True, **kwargs):
+        """
+        :param delete_source_seq: set to 'True' to delete source sequences after grouped to target
+        """
+        super().__init__(**kwargs)
+        self._delete_source_seq = delete_source_seq
+
+    def __call__(
+        self,
+        sample_dict: NDict,
+        ids_source: List[str],
+        id_target: str,
+        key_sequence_prefix: str,
+    ) -> NDict:
+        """
+        :param ids_source: sequence ids to group into id_target
+        :param id_target: see above
+        :param key_sequence_prefix: the prefix for the sequences in the sample_dict
+        """
+
+        if sample_dict[f"{key_sequence_prefix}.{id_target}"] != []:
+            raise Exception(f"New sequence id ({id_target}) should not have existing data.")
+
+        if id_target in ids_source:
+            # TODO support that (?)
+            raise Exception(f"id_target ({id_target}) should not be in the ids_source ({ids_source}).")
+
+        for seq_id in ids_source:
+            # Group to target
+            seq_info_list = sample_dict[f"{key_sequence_prefix}.{seq_id}"]
+            sample_dict[f"{key_sequence_prefix}.{id_target}"] += seq_info_list
+
+            # Delete if necessary
+            if self._delete_source_seq:
+                sample_dict[f"{key_sequence_prefix}.{seq_id}"] = []
+
+        return sample_dict
+
+
+#############################
+class OpGetPresentSequences(OpBase):
+    """
+    Get the sequences that have certain value
+
+    TODO make sure it works. currently not in use - a future feature
+    """
+
+    def __init__(self, key_sequence_prefix: str):
+        """
+        :param key_sequence_prefix: the prefix for the sequences in the sample_dict
+        """
+        super().__init__()
+        self._key_sequence_prefix = key_sequence_prefix
+
+    def __call__(self, sample_dict: NDict, key_out: str) -> NDict:
+        """
+        :param key_out: op will store the present seqs out in sample_dict[key_out]
+        """
+        # Get the non-empty sequence names
+        seqs_dict = sample_dict[self._key_sequence_prefix]
+        present_seqs = [seq for seq, val in seqs_dict.items() if val != []]
+
+        sample_dict[key_out] = present_seqs
         return sample_dict
 
 
@@ -252,7 +356,7 @@ class OpSelectVolumes(OpBase):
         self,
         get_indexes_func,
         selected_seq_ids: list,
-        delete_input_volumes: Optional[bool] = False,
+        seq_ids: List[str],
         verbose: bool = True,
         **kwargs,
     ):
@@ -265,13 +369,12 @@ class OpSelectVolumes(OpBase):
         super().__init__(**kwargs)
         self._get_indexes_func = get_indexes_func
         self._selected_seq_ids = selected_seq_ids
-        self._delete_input_volumes = delete_input_volumes
+        self._seq_ids = seq_ids
         self._verbose = verbose
 
     def __call__(
         self,
         sample_dict: NDict,
-        key_in_seq_ids: str,
         key_in_sequence_prefix: str,
         key_out_volumes: str,
         key_out_volumes_info: Optional[str] = None,
@@ -286,17 +389,19 @@ class OpSelectVolumes(OpBase):
         """
 
         sample_id = get_sample_id(sample_dict)
-        seq_ids = sample_dict[key_in_seq_ids]
+        # seq_ids = sample_dict[key_in_seq_ids]
 
         sample_dict[f"{key_out_volumes}"] = []
         sample_dict[f"{key_out_volumes_info}"] = []
 
         for selected_seq_id in self._selected_seq_ids:
 
-            if selected_seq_id in seq_ids:
-                sequence_info_list = sample_dict[f"{key_in_sequence_prefix}.{selected_seq_id}"]
-            else:
-                sequence_info_list = []
+            # if selected_seq_id in seq_ids:
+            #     sequence_info_list = sample_dict[f"{key_in_sequence_prefix}.{selected_seq_id}"]
+            # else:
+            #     sequence_info_list = []
+
+            sequence_info_list = sample_dict[f"{key_in_sequence_prefix}.{selected_seq_id}"]
 
             vol_inx_to_use = _get_as_list(
                 self._get_indexes_func(sample_id, selected_seq_id)
@@ -339,13 +444,6 @@ class OpSelectVolumes(OpBase):
                     )
                 )
 
-        if self._delete_input_volumes:
-            # To save space and also when caching sample_dict
-            for seq_id in seq_ids:
-                for sequence_info in sample_dict[f"{key_in_sequence_prefix}.{seq_id}"]:
-                    if "stk_volume" in sequence_info:
-                        del sequence_info["stk_volume"]
-
         return sample_dict
 
 
@@ -358,49 +456,90 @@ class OpSelectVolumes(OpBase):
 ############################
 
 
+class OpDeleteSequenceAttr(OpBase):
+    """
+    Delete sequence's attribute.
+    Useful to save memory and caching time.
+
+    Example of use:
+        - Will delete the "stk_volume" attribute for "T2" and "b" sequences
+
+        (
+            OpDeleteSequenceAttr(seq_ids=["T2", "b"]),
+            dict(key_in_seq_prefix="data.input.sequence", attribute="stk_volume"),
+        ),
+
+    """
+
+    def __init__(self, seq_ids: List[str]):
+        """
+        :param seq_ids: which seq_ids' attributes will be deleted
+        """
+        super().__init__()
+        self._seq_ids = seq_ids
+
+    def __call__(self, sample_dict: NDict, attribute: str, key_in_seq_prefix: str) -> NDict:
+        """
+        :param attribute: sequence's attribute to delete
+        :param key_in_seq_prefix: the prefix for the sequences in the sample_dict
+        """
+        for seq_id in self._seq_ids:
+            for seq_info in sample_dict[f"{key_in_seq_prefix}.{seq_id}"]:
+                if attribute in seq_info:
+                    del seq_info[attribute]
+                else:
+                    # warning / error (?)
+                    pass
+
+        return sample_dict
+
+
+############################
+
+
 class OpResampleStkVolsBasedRef(OpBase):
     """
     Resample selected volumes based on a given reference one.
     TODO: write more clearly (?)
     """
 
-    def __init__(self, reference_inx: int, interpolation: str, **kwargs):
+    def __init__(self, reference_inx: int, interpolation: str, verify_args: bool = True, **kwargs):
         """
         :param reference_inx: index for the volume that will be used as a reference
         :param interpolation: interpolation mode from - ["linear","nn" (nearest neighbor),"bspline"]
         :param kwargs:
         """
         super().__init__(**kwargs)
-        assert reference_inx is not None  # todo: redundant??
         self._reference_inx = reference_inx
         self._interpolation = interpolation
+        self._verify_args = verify_args
 
     def __call__(self, sample_dict: NDict, key: str) -> NDict:
         """
         :param sample_dict: sample's dict
         :param key: a key to the volumes inside the sample_dict
         """
-        # create resampling operator based on the reference volume
         volumes = sample_dict[key]
-        assert len(volumes) > 0
-        # OBSOLETE CODE TODO delete (?)
-        # if self.reference_inx > 0:
-        #     volumes = [volumes[self.reference_inx]]+ volumes[:self.reference_inx]+ volumes[volumes+1:]
+
+        # Verify arguments
+        if self._verify_args:
+            if len(volumes) == 0:
+                raise Exception("Expecting non-empty list.")
 
         # cast volumes to match types
-        seq_volumes_resampled = [sitk.Cast(v, sitk.sitkFloat32) for v in volumes]
+        volumes_res = [sitk.Cast(v, sitk.sitkFloat32) for v in volumes]
         ref_volume = volumes[self._reference_inx]
 
         # create the STK resample operator that will excute the resampling
         resample = self.create_resample(ref_volume, size=ref_volume.GetSize(), spacing=ref_volume.GetSpacing())
 
-        for i in range(len(seq_volumes_resampled)):
-            # skip on the referenced volume
-            if i == self._reference_inx:  # TODO: change to something more readable (?)
+        for i, vol in enumerate(volumes_res):
+            if i == self._reference_inx:
                 continue
-            seq_volumes_resampled[i] = resample.Execute(seq_volumes_resampled[i])
+            else:
+                volumes_res[i] = resample.Execute(vol)
 
-        sample_dict[key] = seq_volumes_resampled
+        sample_dict[key] = volumes_res
         return sample_dict
 
     def create_resample(
@@ -410,7 +549,7 @@ class OpResampleStkVolsBasedRef(OpBase):
         spacing: Tuple[float, float, float],
     ) -> sitk.ResampleImageFilter:
         """
-        Creates resample operator
+        Create resampling operator based on the reference volume
 
         TODO: this function exists twice in this file! solve it.
 
@@ -445,13 +584,24 @@ class OpResampleStkVolsBasedRef(OpBase):
 class OpStackList4DStk(OpBase):
     """
     Stack list of 3D STK Images into a single 4D STK Image while keeping the common meta-data from the referenced Image.
+
+    Example of use:
+        - Will stack "selected_volumes" into "volume4D" and delete "selected_volumes" afterwards
+        (
+            OpStackList4DStk(delete_input_volumes=True),
+            dict(
+                key_in="data.input.selected_volumes",
+                key_out_volume4d="data.input.volume4D",
+                key_out_ref_volume="data.input.ref_volume",
+            ),
+        ),
+
     """
 
     def __init__(self, delete_input_volumes: bool = False, metadata_ref_idx: int = 0, **kwargs: Any):
         """
         :param delete_input_volumes: set 'True' to deleted the input volumes
         :param metadata_ref_idx: an index for an STK Image in the list to be used as a reference for the metadata
-        :param kwargs: see super class
         """
         super().__init__(**kwargs)
         self._metadata_ref_idx = metadata_ref_idx
@@ -465,14 +615,16 @@ class OpStackList4DStk(OpBase):
         :param key_out_ref_volume: a key to output the 3D volume
         """
         vols_stk_list = sample_dict[key_in]
+
+        # Delete from dict if necessary
         if self._delete_input_volumes:
             del sample_dict[key_in]
 
-        # Convert 3D images into ndarray and stack them in the last axis
+        # Convert 3D Images into ndarrays and stack them in the last axis
         vol_arr = [sitk.GetArrayFromImage(vol) for vol in vols_stk_list]
         vol_final = np.stack(vol_arr, axis=-1)
 
-        # Convert the 4D array into an image and retrive the info from the referenced image
+        # Convert the 4D ndarray into an Image and retrive the info from the referenced image
         vol_final_sitk = sitk.GetImageFromArray(vol_final, isVector=True)
         vol_final_sitk.CopyInformation(vols_stk_list[self._metadata_ref_idx])  # info = common meta-data
 
@@ -506,10 +658,12 @@ class OpRescale4DStk(OpBase):
 
         vol_backup = sitk.Image(stk_vol_4D)
         vol_array = sitk.GetArrayFromImage(stk_vol_4D)
+
         if len(vol_array.shape) < 4:
-            # increase the dimension
+            # increase the dimension with dummy dimension
             vol_array = vol_array[:, :, :, np.newaxis]
-        # vol_array_pre_rescale = vol_array.copy()  # TODO delete (?) - michal's
+
+        # Rescale
         vol_array = apply_rescaling(vol_array, thres=self._thres, method=self._method)
 
         # Convert back to image and retrieve information
@@ -518,6 +672,7 @@ class OpRescale4DStk(OpBase):
         vol_final = sitk.Image(
             vol_final
         )  # TODO delete or keep? not sure if necessary because it is already Image object
+
         sample_dict[key] = vol_final
         return sample_dict
 
@@ -598,10 +753,7 @@ class OpCreatePatchVolumes(OpBase):
         self._name_suffix = name_suffix
         self._delete_input_volumes = delete_input_volumes
         self._crop_based_annotation = crop_based_annotation
-        if pos_key is None:
-            self._pos_key = f"centroid{name_suffix}"
-        else:
-            self._pos_key = pos_key
+        self._pos_key = f"centroid{name_suffix}" if pos_key is None else pos_key
 
     def __call__(
         self,
@@ -618,9 +770,9 @@ class OpCreatePatchVolumes(OpBase):
         vol_4D = sample_dict[key_in_volume4D]
         patch_annotations = sample_dict[key_in_patch_annotations]
 
-        # read original position
+        # Read original position
         pos_orig = patch_annotations[self._pos_key]
-        if isinstance(pos_orig, str):  # TODO take care in this case before storing it
+        if isinstance(pos_orig, str):  # TODO take care in this case before storing it (?)
             if pos_orig[0] == "(":
                 pos_orig = pos_orig[1:-1]
             if "," in pos_orig:
@@ -631,7 +783,7 @@ class OpCreatePatchVolumes(OpBase):
         else:
             pos_orig = np.asarray(pos_orig)
 
-        # transform to pixel coordinate in ref coords
+        # Transform to pixel coordinate in ref coords
         pos_vol = np.array(vol_ref.TransformPhysicalPointToContinuousIndex(pos_orig.astype(np.float64)))
 
         cropped_vol_size = (self._lesion_shape[2], self._lesion_shape[1], self._lesion_shape[0])  # TODO can use perm?
@@ -670,20 +822,24 @@ class OpCreatePatchVolumes(OpBase):
 class OpStk2Dict(OpBase):
     """
     Cast SimpleITK Image (volume) into a dictionary with the following items:
+        data:
         "arr": ndarray of the image
+        meta-data:
         "origin": volume's origin
         "spacing": volume's spacing
         "direction": volume's direction
 
+    Note that the input keys are also the output ones meaning the conversion is inplace.
 
     Example of use:
+        - Will con
         (OpStk2Dict(), dict(keys=["data.input.volume4D", "data.input.ref_volume"]))
     """
 
     def __call__(self, sample_dict: NDict, keys: List[str]):
         """
         :param sample_dict:
-        :param keys: list of volumes' keys that will be converted to dictionaries.
+        :param keys: list of the Images' keys that will be converted into dictionaries.
         """
         for key in keys:
             vol_stk = sample_dict[key]
@@ -702,7 +858,9 @@ class OpDict2Stk(OpBase):
     """
     Cast a dictonary into a SimpleITK Image (volume).
     The dictonary should have the following items:
+        data:
         "arr": ndarray of the image
+        meta-data:
         "origin": volume's origin
         "spacing": volume's spacing
         "direction": volume's direction
@@ -716,7 +874,7 @@ class OpDict2Stk(OpBase):
         TODO
 
         :param sample_dict:
-        :param keys:
+        :param keys: list of the dictionaries' keys that will be converted to Images.
         """
         for key in keys:
             d = sample_dict[key]
@@ -769,33 +927,26 @@ class OpFixProstateBSequence(OpBase):
 
 
 class OpDeleteSequences(OpBase):
-    def __init__(self, sequences_to_delete, **kwargs):
-        super().__init__(**kwargs)
-        self._sequences_to_delete = sequences_to_delete
+    """
+    Delete sequences from sample_dict by set theire info list to '[]'
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key_sequence_ids):
-        for seq_id in self._sequences_to_delete:
-            delete_seqeunce_from_dict(
-                seq_id=seq_id, sample_dict=sample_dict, key_sequence_ids=key_sequence_ids, seq_ids=None
-            )
+    TODO make sure it works. currently not in use - a future feature from michal
+    """
+
+    def __call__(self, sample_dict: NDict, sequences_to_delete):
+        for seq_id in sequences_to_delete:
+            delete_seqeunce_from_dict(seq_id=seq_id, sample_dict=sample_dict)
 
 
-def delete_seqeunce_from_dict(
-    seq_id: str, sample_dict: NDict, key_sequence_ids, key_sequence_prefix: str, seq_ids: List[str]
-) -> None:
+def delete_seqeunce_from_dict(seq_id: str, sample_dict: NDict, key_sequence_prefix: str) -> None:
     """
     Deletes sequence from the sample dict
 
-    :param seq_id:
-    :param sample_dict:
-    :param key_sequence_ids:
-    :param key_sequence_prefix:
+    :param seq_id: sequence id to delete
+    :param sample_dict: sample's dict
+    :param key_sequence_prefix: the prefix for the sequences in the sample_dict
     """
-    seq_ids = sample_dict[key_sequence_ids]
-    if seq_id in seq_ids:
-        # seq_ids.remove(seq_id)
-        sample_dict[f"{key_sequence_prefix}.{seq_id}"] = []
-        # del sample_dict[f"{key_sequence_prefix}.{seq_id}"]
+    sample_dict[f"{key_sequence_prefix}.{seq_id}"] = []
 
 
 class OpRenameSequence(OpBase):
@@ -833,21 +984,19 @@ class OpRenameSequence(OpBase):
         return sample_dict
 
 
-def rename_seqeunce_from_dict(sample_dict, seq_id_old, seq_id_new, key_sequence_prefix, key_seq_ids):
-    """
-    TODO func not in use. delete (?). replaced by: OpRenameSequence
-    """
-    seq_ids = sample_dict[key_seq_ids]
-    if seq_id_old in seq_ids:
-        # assert seq_id_new not in seq_ids   # michal's before I chang
-        assert sample_dict[f"{key_sequence_prefix}.{seq_id_new}"] == []  # New must be empty
+# TODO delete - replaced by: OpRenameSequence
+# def rename_seqeunce_from_dict(sample_dict, seq_id_old, seq_id_new, key_sequence_prefix, key_seq_ids):
+#     seq_ids = sample_dict[key_seq_ids]
+#     if seq_id_old in seq_ids:
+#         # assert seq_id_new not in seq_ids   # michal's before I chang
+#         assert sample_dict[f"{key_sequence_prefix}.{seq_id_new}"] == []  # New must be empty
 
-        sample_dict[f"{key_sequence_prefix}.{seq_id_new}"] = sample_dict[f"{key_sequence_prefix}.{seq_id_old}"]
-        sample_dict[f"{key_sequence_prefix}.{seq_id_old}"] = []
-        # del sample_dict[f"{key_sequence_prefix}.{seq_id_old}"]
-        # seq_ids.remove(seq_id_old)   # michal's before I changed
+#         sample_dict[f"{key_sequence_prefix}.{seq_id_new}"] = sample_dict[f"{key_sequence_prefix}.{seq_id_old}"]
+#         sample_dict[f"{key_sequence_prefix}.{seq_id_old}"] = []
+#         # del sample_dict[f"{key_sequence_prefix}.{seq_id_old}"]
+#         # seq_ids.remove(seq_id_old)   # michal's before I changed
 
-    return sample_dict
+#     return sample_dict
 
 
 ############################
@@ -1127,7 +1276,7 @@ def apply_rescaling(img: np.ndarray, thres: tuple = (1.0, 99.0), method: str = "
 
 def extract_seq_2_info_map(sample_path: str, series_desc_2_sequence_map: Dict[str, str]):
     """
-    Given patient mri path, returns a dictonary that maps 'sequence ID -> sequence's info list'.
+    Given patient mri path, returns a dictonary that maps 'sequence ID -> sequence's info *list*'.
     That's because each patient can have several different sequences (scans) with the same sequence ID.
 
     sequence's info list contains dictonaries with the following values:
@@ -1216,7 +1365,7 @@ def sort_dicoms_by_field(seq_path: str, dicom_field, use_order_indicator):
     """
     Return location dir of requested sequence
 
-    sort_dicom_by_dicom_field sorts the dcm_files based on dicom_field
+    sort_dicom_by_field sorts the dcm_files based on dicom_field
     For some MRI sequences different kinds of MRI series are mixed together (as in bWI) case
     This function creates a dict={dicom_field_type:list of relevant dicoms},
     than concats all to a list of the different series types
@@ -1444,25 +1593,26 @@ def extract_lesion_prop_from_annotation(vol_ref, start_slice, end_slice, start_r
 
 class OpReadSTKImage(OpBase):
     """
-    Read STK Image  TODO maybe just use LoadImage and provide their a prefix option (?)
+    Read STK Image
     """
 
-    def __init__(self, seq_id: str, data_path: str, **kwargs):
+    def __init__(self, data_path: str, **kwargs):
         """
-        :param dir_path: path to data
+        :param data_path: path to data
         """
         super().__init__(**kwargs)
-        self._seq_id = seq_id
         self._dir_path = data_path  # not in use see comment below
 
-    def __call__(self, sample_dict: NDict, key_in: str, key_sequence_prefix: str):
+    def __call__(self, sample_dict: NDict, key_in: str, key_sequence_prefix: str, seq_id: str):
         """
-        :param key_in:
+        :param key_in: key to the file's path
+        :param key_sequence_prefix: the prefix for the sequences in the sample_dict
+        :parm seq_id: target sequence id
         """
-        # img_filename = os.path.join(self._dir_path, sample_dict[key_in])
         img_filename = sample_dict[key_in]
         vol = sitk.ReadImage(img_filename)
-        sample_dict[f"{key_sequence_prefix}.{self._seq_id}"] = [dict(path=img_filename, stk_volume=vol)]
+
+        sample_dict[f"{key_sequence_prefix}.{seq_id}"] = [dict(path=img_filename, stk_volume=vol)]
         return sample_dict
 
 
@@ -1602,6 +1752,7 @@ def get_imagepath(vol_np: np.ndarray, seq_inx: int):
 
 
 ##### Sagi's Versions #####
+## Probably delete all of them ##
 
 """
 Version of 'OpExtractDicomsPerSeq' aims to make the extraction more explicitly PER SEQUENCE,
@@ -1610,6 +1761,7 @@ Version of 'OpExtractDicomsPerSeq' aims to make the extraction more explicitly P
 
 class OpExtractDicoms(OpBase):
     """
+    TODO delte
     Extracts dicoms for a given sequence and stores them in the sample dict with a given prefix
     """
 
@@ -1671,6 +1823,7 @@ class OpExtractDicoms(OpBase):
 
     class OpGetSeqIds(OpBase):
         """
+        TODO delete (?)
         Get the relevant sequence ids per sample
         """
 
