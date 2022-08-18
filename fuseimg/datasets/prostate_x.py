@@ -167,19 +167,20 @@ class ProstateX:
                 ),
                 dict(key_in="data.input.ktrans_path", key_sequence_prefix="data.input.sequence", seq_id="ktrans"),
             ),
-            # step 6: select single volume from b_mix/T2 sequence
+            # step 6.0: select single volume from b_mix/T2 sequence
             (
                 OpSelectVolumes(
                     get_indexes_func=select_series_func,
                     selected_seq_ids=["T2", "b", "ADC", "ktrans"],
-                    seq_ids=seq_ids,
                 ),
                 dict(
                     key_in_sequence_prefix="data.input.sequence",
+                    key_in_volume="stk_volume",
                     key_out_volumes="data.input.selected_volumes",
                     key_out_volumes_info="data.input.selected_volumes_info",
                 ),
             ),
+            # step 6.1: delete the volumes to save space
             (
                 OpDeleteSequenceAttr(seq_ids=seq_ids),
                 dict(key_in_seq_prefix="data.input.sequence", attribute="stk_volume"),

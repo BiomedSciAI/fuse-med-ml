@@ -37,7 +37,6 @@ class OpExtractDicomsPerSeq(OpBase):
         seq_ids: List[str],
         series_desc_2_sequence_map: Dict[str, Str],
         use_order_indicator: bool = False,
-        **kwargs,
     ):
         """
         :param seq_ids: the sequences for which the dicoms will be extract
@@ -45,12 +44,12 @@ class OpExtractDicomsPerSeq(OpBase):
         :param use_order_indicator: TODO
         :param kwargs:
         """
-        super().__init__(**kwargs)
+        super().__init__()
         self._seq_ids = seq_ids
         self._series_desc_2_sequence_map = series_desc_2_sequence_map
         self._use_order_indicator = use_order_indicator
 
-    def __call__(self, sample_dict: NDict, key_in: str, key_out_sequence_prefix: str):
+    def __call__(self, sample_dict: NDict, key_in: str, key_out_sequence_prefix: str) -> NDict:
         """
         TODO
         :param sample_dict:
@@ -95,20 +94,20 @@ class OpLoadDicomAsStkVol(OpBase):
     Loads dicoms per sequence, and store it in sequence_info as STK Image
     """
 
-    def __init__(self, seq_ids: List[str], seq_reverse_map=None, **kwargs):
+    def __init__(self, seq_ids: List[str], seq_reverse_map: Optional[Dict[str, bool]] = None):
         """
         :param seq_reverse_map: sometimes reverse dicoms orders is needed. the map w
         (for b series in which more than one sequence is provided inside the img_path)
         :param is_file: if True loads all dicoms from img_path
         :param kwargs:
         """
-        super().__init__(**kwargs)
+        super().__init__()
         if seq_reverse_map is None:
             seq_reverse_map = {}
         self._seq_reverse_map = seq_reverse_map
         self._seq_ids = seq_ids
 
-    def __call__(self, sample_dict: NDict, key_sequence_prefix: str, key_volume: str):
+    def __call__(self, sample_dict: NDict, key_sequence_prefix: str, key_volume: str) -> NDict:
         """
         extract_stk_vol loads dicoms into sitk vol
         :param key_in_seq_ids: key to sample's sequence ids
@@ -286,7 +285,6 @@ class OpSelectVolumes(OpBase):
         self,
         get_indexes_func,
         selected_seq_ids: list,
-        seq_ids: List[str],
         verbose: bool = True,
         **kwargs,
     ):
@@ -299,74 +297,69 @@ class OpSelectVolumes(OpBase):
         super().__init__(**kwargs)
         self._get_indexes_func = get_indexes_func
         self._selected_seq_ids = selected_seq_ids
-        self._seq_ids = seq_ids
         self._verbose = verbose
 
     def __call__(
         self,
         sample_dict: NDict,
         key_in_sequence_prefix: str,
+        key_in_volume: str,
         key_out_volumes: str,
         key_out_volumes_info: Optional[str] = None,
     ) -> NDict:
         """
-        TODO
-        :param sample_dict:
-        :param key_in_seq_ids:
-        :param key_in_sequence_prefix:
+        :param key_in_sequence_prefix: the prefix for the sequences in the sample_dict
+        :param key_in_volume: key to stk volume in sequence info dict
         :param key_out_volumes:
         :param key_out_volumes_info:
         """
 
         sample_id = get_sample_id(sample_dict)
-        # seq_ids = sample_dict[key_in_seq_ids]
 
         sample_dict[f"{key_out_volumes}"] = []
         sample_dict[f"{key_out_volumes_info}"] = []
 
         for selected_seq_id in self._selected_seq_ids:
 
-            # if selected_seq_id in seq_ids:
-            #     sequence_info_list = sample_dict[f"{key_in_sequence_prefix}.{selected_seq_id}"]
-            # else:
-            #     sequence_info_list = []
-
             sequence_info_list = sample_dict[f"{key_in_sequence_prefix}.{selected_seq_id}"]
+
+            # Handle sequence doesn't have data
+            if sequence_info_list == []:  # No info for sequence
+                if len(sample_dict[key_out_volumes]) == 0:  #
+                    lgr = logging.getLogger("Fuse")
+                    lgr.info(f"OpSelectVolumes: no data for{sample_id} is excluded", {"attrs": ["bold"]})
+                    return None
+                seq_volume_template = sample_dict[key_out_volumes][0]
+                stk_volume = get_zeros_vol(seq_volume_template)
+                selected_sequence_info = {}
 
             vol_inx_to_use = _get_as_list(
                 self._get_indexes_func(sample_id, selected_seq_id)
-            )  # TODO, suplly the indices outside
+            )  # TODO, supply the indices via a key in sample dict, and the user will need to take care of it (easy OpFunc)
+
             for inx in vol_inx_to_use:
 
-                if len(sequence_info_list) == 0:
-                    if len(sample_dict[key_out_volumes]) == 0:
-                        print("============XXXXXXX", sample_id)  # todo: write into log file
-                        lgr = logging.getLogger("Fuse")
-                        lgr.info(f"OpSelectVolumes: {sample_id} is excluded", {"attrs": ["bold"]})
-                        return None
-                    seq_volume_template = sample_dict[key_out_volumes][0]
+                if inx >= len(sequence_info_list):
+                    inx = -1  # take the last
+
+                # Get sequence's info and volume
+                # (For each sequence we several DICOM which are the slices.
+                #  The inx is the slice index we will use from the entire slices for that sequence)
+                selected_sequence_info = sequence_info_list[inx]
+                stk_volume = selected_sequence_info[key_in_volume]  # Slice's volume
+
+                # Handle problem reading the volume
+                if len(stk_volume) == 0:  # if the volume is empty
+                    seq_volume_template = sample_dict[key_out_volumes][0]  # what if 'key_out_vols' lead to empty list?
                     stk_volume = get_zeros_vol(seq_volume_template)
-                    selected_sequence_info = {}
-
-                else:
-                    if inx >= len(sequence_info_list):
-                        inx = -1  # take the last
-
-                    # Get sequence's info and volume
-                    selected_sequence_info = sequence_info_list[inx]
-                    stk_volume = selected_sequence_info["stk_volume"]
-
-                    # Handle problem reading the volume
-                    if len(stk_volume) == 0:
-                        seq_volume_template = sample_dict[key_out_volumes][0]
-                        stk_volume = get_zeros_vol(seq_volume_template)
-                        if self._verbose:
-                            print(f"\n - problem with reading {selected_seq_id} volume!")
+                    if self._verbose:
+                        print(f"\n - problem with reading {selected_seq_id} volume!")
 
                 # Add info and volume to the result with matching index
                 sample_dict[key_out_volumes].append(stk_volume)
                 sample_dict[key_out_volumes_info].append(
                     dict(
+                        # why not: stk_volume=stk_volume (??)
                         seq_id=selected_seq_id,
                         series_desc=selected_sequence_info.get("series_desc", "NAN"),
                         path=selected_sequence_info.get("path", "NAN"),
@@ -377,12 +370,6 @@ class OpSelectVolumes(OpBase):
         return sample_dict
 
 
-# def store(sample_dict):
-#     vv = [sitk.GetArrayFromImage(v) for v in sample_dict['data.input.selected_volumes']]
-#     vv2 = file_io.load_pickle('/tmp/fuse_temp.pkl')
-#     for i in range(len(vv)):
-#         # print(vv[i].shape == vv2[i].shape)
-#         print(vv[i].max(), vv2[i].max(), np.abs(vv[i]-vv2[i]).max())
 ############################
 
 
@@ -1008,7 +995,7 @@ def crop_lesion_vol(
 
         coords = np.round(position[::-1]).astype(int)
         mask[coords[0], coords[1], coords[2]] = 1
-        mask = binary_dilation(mask, np.ones((3, 5, 5))) + 0
+        mask = binary_dilation(mask, np.ones((3, 5, 5))) + 0  # delete?
         mask_sitk = sitk.GetImageFromArray(mask)
         mask_sitk.CopyInformation(ref)
 
@@ -1326,7 +1313,9 @@ class OpExtractLesionPropFromBBoxAnotation(OpBase):
         super().__init__(**kwargs)
         self._get_annotations_func = get_annotations_func
 
-    def __call__(self, sample_dict: NDict, key_in_ref_volume: str, key_out_lesion_prop: str, key_out_cols: str):
+    def __call__(
+        self, sample_dict: NDict, key_in_ref_volume: str, key_out_lesion_prop: str, key_out_cols: str
+    ) -> NDict:
         sample_id = get_sample_id(sample_dict)
         annotations_df = self._get_annotations_func(sample_id)
 
@@ -1356,10 +1345,17 @@ class OpExtractLesionPropFromBBoxAnotation(OpBase):
 
 class OpExtractPatchAnotations(OpBase):
     """
+
+
     TODO Make the Op more generic or maybe move it to duke.py (?)
+    IDEA the op will get 6 keys as input:
+        key_start_slice, key_end_slice,
+        key_start_row, key_end_row,
+        key_start_col, key_end_col
+        and the sample dict will have those value in it. then the op will extract patch annotation according to it
     """
 
-    def __call__(self, sample_dict: NDict, key_in_ref_volume: str, key_in_annotations, key_out: str):
+    def __call__(self, sample_dict: NDict, key_in_ref_volume: str, key_in_annotations: str, key_out: str) -> NDict:
         """
         TODO
 
@@ -1447,7 +1443,7 @@ def extract_lesion_prop_from_annotation(vol_ref, start_slice, end_slice, start_r
     :param start_slice:
     :param end_slice:
     """
-    # Retrive an ndarray mask that matches the annotations
+    # Retrive ndarray mask that matches the annotations
     mask = get_zeros_vol(vol_ref)  # TODO there is a double work here. maybe can be optimized.
     mask_np = sitk.GetArrayFromImage(mask)
     # mask_np[start_slice:end_slice, bbox_coords[0][1] : bbox_coords[1][1], bbox_coords[0][0] : bbox_coords[1][0]] = 1.0
@@ -1475,14 +1471,14 @@ class OpReadSTKImage(OpBase):
         ),
     """
 
-    def __init__(self, data_path: str, **kwargs):
+    def __init__(self, data_path: str):
         """
         :param data_path: path to data
         """
-        super().__init__(**kwargs)
+        super().__init__()
         self._dir_path = data_path  # not in use see comment below
 
-    def __call__(self, sample_dict: NDict, key_in: str, key_sequence_prefix: str, seq_id: str):
+    def __call__(self, sample_dict: NDict, key_in: str, key_sequence_prefix: str, seq_id: str) -> NDict:
         """
         :param key_in: key to the file's path
         :param key_sequence_prefix: the prefix for the sequences in the sample_dict
@@ -1626,7 +1622,7 @@ def norm_volume(vol_np, seq_inx, imagePath, maskPath, setting, normMethod="defau
     return imagePath
 
 
-def get_maskpath(vol_np, mask_inx=-1, mask_type="full"):
+def get_maskpath(vol_np: np.ndarray, mask_inx: int = -1, mask_type="full") -> Image:
     """
     TODO
     """
@@ -1639,7 +1635,7 @@ def get_maskpath(vol_np, mask_inx=-1, mask_type="full"):
     return maskPath
 
 
-def get_imagepath(vol_np: np.ndarray, seq_inx: int):
+def get_imagepath(vol_np: np.ndarray, seq_inx: int) -> Image:
     """
     TODO
     """

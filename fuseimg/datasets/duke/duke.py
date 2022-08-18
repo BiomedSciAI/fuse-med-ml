@@ -206,10 +206,10 @@ class Duke:
                 OpSelectVolumes(
                     get_indexes_func=select_series_func,
                     selected_seq_ids=["DCE_mix"],
-                    seq_ids=seq_ids,
                 ),
                 dict(
                     key_in_sequence_prefix="data.input.sequence",
+                    key_in_volume="stk_volume",
                     key_out_volumes="data.input.selected_volumes",
                     key_out_volumes_info="data.input.selected_volumes_info",
                 ),
