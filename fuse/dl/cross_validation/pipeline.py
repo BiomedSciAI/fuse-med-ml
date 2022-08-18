@@ -16,21 +16,6 @@ from fuse.utils.rand.seed import Seed
 from fuse.data import DatasetDefault
 import torch
 
-# pre collect function to change the format
-def ensemble_pre_collect(sample_dict: dict) -> dict:
-    # convert predictions from all models to numpy array
-    num_classes = sample_dict["0"]["model"]["output"]["classification"].shape[0]
-    model_names = list(sample_dict.keys())
-    model_names.remove("id")
-    pred_array = np.zeros((len(model_names), num_classes))
-    for i, m in enumerate(model_names):
-        pred_array[i, :] = sample_dict[m]["model"]["output"]["classification"]
-    sample_dict["preds"] = pred_array
-    sample_dict["target"] = sample_dict["0"]["data"]["label"]
-
-    return sample_dict
-
-
 def ensemble(test_dirs, test_infer_filename, ensembled_output_file):
     ensembled_output_dir = os.path.dirname(ensembled_output_file)
     create_or_reset_dir(ensembled_output_dir, force_reset=True)
@@ -44,10 +29,11 @@ def ensemble(test_dirs, test_infer_filename, ensembled_output_file):
             (
                 "ensemble",
                 MetricEnsemble(
-                    preds="preds",
-                    target="target",
+                    pred_keys=[str(i)+".model.output.classification" for i in range(len(test_dirs))],
+                    target="0.data.label",
                     output_file=ensembled_output_file,
-                    pre_collect_process_func=ensemble_pre_collect,
+                    output_pred_key="model.output.classification",
+                    output_target_key="data.label",
                 ),
             ),
         ]
@@ -266,6 +252,7 @@ def run(
         ensembled_output_file = os.path.join(
             paths["inference_dir"], "test", "rep_" + str(rep_index), "ensemble", "infer.gz"
         )
+
         ensemble(test_dirs, test_infer_filename, ensembled_output_file)
 
         # evaluate ensemble:

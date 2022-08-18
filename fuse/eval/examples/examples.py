@@ -734,7 +734,7 @@ def example_14() -> Dict[str, Any]:
             ),
             (
                 "apply_thresh",
-                MetricApplyThresholds(pred="results:metrics.ensemble.preds_ensembled", operation_point=None),
+                MetricApplyThresholds(pred="results:metrics.ensemble.preds", operation_point=None),
             ),
             (
                 "accuracy",

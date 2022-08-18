@@ -11,12 +11,18 @@ class Ensembling:
     """
 
     @staticmethod
-    def ensemble(preds: Sequence[np.ndarray]) -> Dict:
+    def ensemble(preds: Sequence[np.ndarray], method: Optional[str] = 'average') -> Dict:
         """
         :param preds: sequence of numpy arrays / floats of shape [NUM_CLASSES]
+        :params method: Ensembling method. 'average', 'median' or 'voting'
         """
         if isinstance(preds, Sequence):
             preds = np.stack(preds)
-        preds_ensembled = np.mean(preds, 1)  # ensemble
+
+        # ensemble
+        if method.lower() in ('average', 'mean'):
+            preds_ensembled = np.mean(preds, 1)  
+        else:
+            raise ValueError("Currently only 'average' method is supported for ensembling")
 
         return preds_ensembled
