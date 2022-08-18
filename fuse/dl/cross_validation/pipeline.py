@@ -190,10 +190,6 @@ def run(
         if train_params is not None and "manager.train_params" in train_params:
             train_params["manager.train_params"]["device"] = "cpu"
 
-    # set debug mode:
-    mode = "default"  # Options: 'default', 'debug'. See details in FuseDebug
-    _ = FuseDebug(mode)
-
     available_gpu_ids = FuseUtilsGPU.get_available_gpu_ids()
     if num_gpus_total < len(available_gpu_ids):
         available_gpu_ids = available_gpu_ids[0:num_gpus_total]
