@@ -41,7 +41,7 @@ from fuse.data.utils.split import dataset_balanced_division_to_folds
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
 from fuse.dl.models import ModelMultiHead
-from fuse.dl.models.heads.head_3D_classifier import Head3DClassifier
+from fuse.dl.models.heads.heads_3D import Head3DClassifier
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 
 from fuse.utils.utils_debug import FuseDebug

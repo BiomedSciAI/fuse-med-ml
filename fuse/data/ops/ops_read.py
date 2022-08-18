@@ -28,7 +28,7 @@ from fuse.utils.ndict import NDict
 class OpReadDataframe(OpBase):
     """
     Op reading data from pickle file / dataframe object.
-    Each row will be added as a value to sample dict
+    Each row will be added as a value to sample dict.
     """
 
     def __init__(
@@ -83,24 +83,36 @@ class OpReadDataframe(OpBase):
             df = df.set_index(self._key_column)
         self._data = df.to_dict(orient="index")
 
+
     def __call__(
-        self, sample_dict: NDict, key_out_group: Optional[str] = None, **kwargs
+        self, sample_dict: NDict, prefix: Optional[str] = None, key_out_group: Optional[str] = None, **kwargs
     ) -> Union[None, dict, List[dict]]:
         """
         See base class
         :param key_out_group: TODO
+        :param prefix: specify a prefix for the sample dict keys.
+                For example, with prefix 'data.features' and a df with the columns ['height', 'weight', 'sex'],
+                the matching keys will be: 'data.features.height', 'data.features.weight', 'data.features.sex'.
+
         """
         key = sample_dict[self._key_name]
 
-        # locate the required item
+        # locate the required item  
         sample_data = self._data[key].copy()
 
-        # add values tp sample_dict
+        if prefix and key_out_group:
+            raise Exception(f"Should not specify prefix ({prefix}) and key_out_group ({key_out_group}).")
+
+        # add values to sample_dict
         if key_out_group is None:
             for name, value in sample_data.items():
-                sample_dict[name] = value
+                if prefix is None:
+                    sample_dict[name] = value
+                else:
+                    sample_dict[f"{prefix}.{name}"] = value
         else:
             sample_dict[key_out_group] = sample_data
+
 
         return sample_dict
 

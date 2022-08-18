@@ -311,7 +311,7 @@ INFER_COMMON_PARAMS["data.batch_size"] = 4
 
 INFER_COMMON_PARAMS["model"] = TRAIN_COMMON_PARAMS["model"]
 INFER_COMMON_PARAMS["trainer.num_devices"] = TRAIN_COMMON_PARAMS["trainer.num_devices"]
-INFER_COMMON_PARAMS["trainer.accelerator"] = "gpu"
+INFER_COMMON_PARAMS["trainer.accelerator"] = TRAIN_COMMON_PARAMS["trainer.accelerator"]
 
 ######################################
 # Inference Template

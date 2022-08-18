@@ -117,11 +117,11 @@ class BatchSamplerDefault(Sampler):
                 raise Exception(
                     f"Expecting balance_class_weights ({balanced_class_weights}) to have a weight per balanced class ({num_balanced_classes})"
                 )
-
-        if self._batch_size < self._num_balanced_classes:
-            raise Exception(
-                f"Error: batch_size ({self._batch_size}) should be greater than or equal to num_balanced_class ({self._num_balanced_classes})."
-            )
+        if self._mode == "exact":
+            if self._batch_size < self._num_balanced_classes:
+                raise Exception(
+                    f"Error: batch_size ({self._batch_size}) should be greater than or equal to num_balanced_class ({self._num_balanced_classes})."
+                )
 
         # if weights not specified, set weights to equally balance per batch
         if self._balanced_class_weights is None:
