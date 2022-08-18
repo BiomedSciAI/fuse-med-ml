@@ -53,13 +53,14 @@ from fuseimg.datasets.duke.duke_label_type import DukeLabelType
 
 from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
 from fuse.dl.models import ModelMultiHead
-from fuse.dl.models.heads.head_3D_classifier import Head3DClassifier
+from fuse.dl.models.heads.heads_3D import Head3DClassifier
 
 
 ##########################################
 # Debug modes
 ##########################################
-mode = "fast_debug"  # Options: 'default', 'debug'. See details in FuseDebug
+# temp, 'fast_debug' used for running small amount of sample but not in a debug mode (because it is slow)
+mode = "default"  # Options: 'default', 'debug'. See details in FuseDebug
 if mode == "fast_debug":
     debug = FuseDebug("default")
 else:

@@ -48,7 +48,7 @@ from fuse.utils.file_io.file_io import create_dir, load_pickle, save_dataframe
 from fuseimg.datasets import prostate_x
 from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
 from fuse.dl.models import ModelMultiHead
-from fuse.dl.models.heads.head_3D_classifier import Head3DClassifier
+from fuse.dl.models.heads.heads_3D import Head3DClassifier
 
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
