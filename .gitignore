@@ -44,3 +44,4 @@ fuse/eval/tests/*.png
 fuse/eval/examples/tmp_outputs/
 **/ensemble_output.gz
 examples/fuse_examples/imaging/classification/mnist/_examples/
+examples/fuse_examples/imaging/classification/stoic21/_examples/

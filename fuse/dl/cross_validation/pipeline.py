@@ -74,7 +74,7 @@ def train_wrapper(sample_ids_per_fold: Sequence,
     paths_train["cache_dir"] = os.path.join(paths["cache_dir"], "rep_" + str(rep_index), str(cv_index))
 
     # generate data for this fold:
-    train_dataset, validation_dataset = dataset_func(cache_dir=paths_train["cache_dir"], test=False, train_val_sample_ids=sample_ids_per_fold, **dataset_params)
+    train_dataset, validation_dataset = dataset_func(train_val_sample_ids=sample_ids_per_fold, paths=paths_train, params=dataset_params)
 
     # call project specific train_func:
     func(train_dataset=train_dataset, validation_dataset=validation_dataset, \
@@ -204,7 +204,7 @@ def run(
         q_resources.put(r)
 
     if sample_ids_per_fold is None:
-        dataset, test_dataset = dataset_func(cache_dir=paths["cache_dir"], **dataset_params)
+        dataset, test_dataset = dataset_func(paths=paths, params=dataset_params)
         # the split decision should be the same regardless of repetition index
         kfold = KFold(n_splits=num_folds, shuffle=True, random_state=1234)
         sample_ids_per_fold = [item for item in kfold.split(dataset)]
