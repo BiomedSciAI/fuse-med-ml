@@ -15,6 +15,7 @@ dataset_func = create_dataset
 train_func = run_train
 infer_func = run_infer
 eval_func = run_eval
+deterministic_mode = True
 
 # output paths:
 root_path = "results"
@@ -107,4 +108,5 @@ if __name__ == "__main__":
         infer_params,
         eval_params,
         paths,
+        deterministic_mode,
     )

@@ -43,8 +43,8 @@ def ensemble(test_dirs, test_infer_filename, ensembled_output_file):
     _ = evaluator.eval(ids=None, data=data, metrics=metrics)
 
 
-def runner_wrapper(q_resources, rep_index, fs, *f_args, **f_kwargs):
-    _ = Seed.set_seed(rep_index, deterministic_mode=True)
+def runner_wrapper(q_resources, rep_index, deterministic_mode, fs, *f_args, **f_kwargs):
+    _ = Seed.set_seed(rep_index, deterministic_mode=deterministic_mode)
     resource = q_resources.get()
     print(f"Using GPUs: {resource}")
     FuseUtilsGPU.choose_and_enable_multiple_gpus(len(resource), force_gpus=list(resource))
@@ -141,6 +141,7 @@ def run(
     infer_params: Dict = None,
     eval_params: Dict = None,
     paths: Dict = None,
+    deterministic_mode: bool = True,
     sample_ids_per_fold: Sequence = None,
 ):
     """
@@ -176,12 +177,14 @@ def run(
         custom parameters for infer_func.
     :param eval_params: Dictionary that can contain any number of additional
         custom parameters for eval_func.
+    :param deterministic_mode: Whether to use PyTotch deterministic mode. 
     :param sample_ids_per_fold: May contain a sequence of array pairs denoting sample ids
         for pre-defined train/validation splits. If this parameter is set to `None`,
         the splits are decided at random.
     """
 
-    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"  # required for pytorch deterministic mode
+    if deterministic_mode:
+        os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"  # required for pytorch deterministic mode
     multiprocessing.set_start_method("spawn")
     if num_gpus_total == 0 or num_gpus_per_split == 0:
         if train_params is not None and "manager.train_params" in train_params:
@@ -215,7 +218,7 @@ def run(
     for rep_index in range(num_repetitions):
         # run training, inference and evaluation on all cross validation folds in parallel
         # using the available gpu resources:
-        runner = partial(runner_wrapper, q_resources, rep_index, [train_wrapper, infer_wrapper, eval_wrapper])
+        runner = partial(runner_wrapper, q_resources, rep_index, deterministic_mode, [train_wrapper, infer_wrapper, eval_wrapper])
 
         # create process per fold
         processes = [
@@ -230,7 +233,7 @@ def run(
             p.close()
 
         # infer and eval each split's model on test set:
-        runner = partial(runner_wrapper, q_resources, rep_index, [infer_wrapper, eval_wrapper])
+        runner = partial(runner_wrapper, q_resources, rep_index, deterministic_mode, [infer_wrapper, eval_wrapper])
         # create process per fold
         processes = [
             Process(target=runner, args=(None, cv_index, rep_index, dataset_func, dataset_params, paths, [infer_func, eval_func], [infer_params, eval_params]))
@@ -260,5 +263,5 @@ def run(
         paths_eval["inference_dir"] = os.path.join(paths["inference_dir"], "test", "rep_" + str(rep_index), "ensemble")
         paths_eval["eval_dir"] = os.path.join(paths["eval_dir"], "test", "rep_" + str(rep_index), "ensemble")
 
-        _ = Seed.set_seed(rep_index, deterministic_mode=True)
+        _ = Seed.set_seed(rep_index, deterministic_mode=deterministic_mode)
         eval_func(paths=paths_eval, eval_params=eval_params)
