@@ -1,6 +1,6 @@
 from fuse.dl.cross_validation.pipeline import run
 from examples.fuse_examples.imaging.classification.stoic21.runner_stoic21 import run_train, run_infer, run_eval
-from funcs import create_dataset
+from examples.fuse_examples.imaging.classification.stoic21.dataset import create_dataset
 import os
 
 ##########################################

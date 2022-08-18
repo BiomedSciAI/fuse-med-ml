@@ -102,7 +102,7 @@ TRAIN_COMMON_PARAMS["data.validation_folds"] = [4]
 # ===============
 # PL Trainer
 # ===============
-TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 50 
+TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 50
 TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
 # use "dp" strategy temp when working with multiple GPUS - workaround for pytorch lightning issue: https://github.com/Lightning-AI/lightning/issues/11807
@@ -144,7 +144,7 @@ def create_model(imaging_dropout: float, clinical_dropout: float, fused_dropout:
 # Train Template
 #################################
 def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault, \
-                paths: dict, train_common_params: dict):
+                paths: dict, train_params: dict):
     # ==============================================================================
     # Logger
     # ==============================================================================
@@ -166,7 +166,7 @@ def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault,
         dataset=train_dataset,
         balanced_class_name="data.gt.probSevere",
         num_balanced_classes=2,
-        batch_size=train_common_params["data.batch_size"],
+        batch_size=train_params["data.batch_size"],
         balanced_class_weights=None,
     )
     lgr.info("- Create sampler: Done")
@@ -176,23 +176,23 @@ def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault,
         dataset=train_dataset,
         batch_sampler=sampler,
         collate_fn=CollateDefault(),
-        num_workers=train_common_params["data.train_num_workers"],
+        num_workers=train_params["data.train_num_workers"],
     )
     lgr.info("Train Data: Done", {"attrs": "bold"})
 
     # dataloader
     validation_dataloader = DataLoader(
         dataset=validation_dataset,
-        batch_size=train_common_params["data.batch_size"],
+        batch_size=train_params["data.batch_size"],
         collate_fn=CollateDefault(),
-        num_workers=train_common_params["data.validation_num_workers"],
+        num_workers=train_params["data.validation_num_workers"],
     )
     lgr.info("Validation Data: Done", {"attrs": "bold"})
 
     # ==============================================================================
     # Model
     # ==============================================================================
-    model = create_model(**train_common_params["model"])
+    model = create_model(**train_params["model"])
 
     # ====================================================================================
     #  Loss
@@ -226,8 +226,8 @@ def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault,
     # create optimizer
     optimizer = optim.SGD(
         model.parameters(),
-        lr=train_common_params["opt.lr"],
-        weight_decay=train_common_params["opt.weight_decay"],
+        lr=train_params["opt.lr"],
+        weight_decay=train_params["opt.weight_decay"],
         momentum=0.9,
         nesterov=True,
     )
@@ -258,16 +258,16 @@ def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault,
     # create lightining trainer.
     pl_trainer = pl.Trainer(
         default_root_dir=paths["model_dir"],
-        max_epochs=train_common_params["trainer.num_epochs"],
-        accelerator=train_common_params["trainer.accelerator"],
-        devices=train_common_params["trainer.num_devices"],
-        strategy=train_common_params["trainer.strategy"],
+        max_epochs=train_params["trainer.num_epochs"],
+        accelerator=train_params["trainer.accelerator"],
+        devices=train_params["trainer.num_devices"],
+        strategy=train_params["trainer.strategy"],
         auto_select_gpus=True,
     )
 
     # train
     pl_trainer.fit(
-        pl_module, train_dataloader, validation_dataloader, ckpt_path=train_common_params["trainer.ckpt_path"]
+        pl_module, train_dataloader, validation_dataloader, ckpt_path=train_params["trainer.ckpt_path"]
     )
 
     lgr.info("Train: Done", {"attrs": "bold"})
@@ -292,10 +292,10 @@ INFER_COMMON_PARAMS["trainer.strategy"] = None
 ######################################
 
 
-def run_infer(dataset: DatasetDefault, paths: dict, infer_common_params: dict):
+def run_infer(dataset: DatasetDefault, paths: dict, infer_params: dict):
     create_dir(paths["inference_dir"])
-    infer_file = os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])
-    checkpoint_file = os.path.join(paths["model_dir"], infer_common_params["checkpoint"])
+    infer_file = os.path.join(paths["inference_dir"], infer_params["infer_filename"])
+    checkpoint_file = os.path.join(paths["model_dir"], infer_params["checkpoint"])
     #### Logger
     fuse_logger_start(output_path=paths["inference_dir"], console_verbose_level=logging.INFO)
     lgr = logging.getLogger("Fuse")
@@ -305,7 +305,7 @@ def run_infer(dataset: DatasetDefault, paths: dict, infer_common_params: dict):
     infer_dataloader = DataLoader(dataset=dataset, collate_fn=CollateDefault(), batch_size=2, num_workers=2)
 
     # load python lightning module
-    model = create_model(**infer_common_params["model"])
+    model = create_model(**infer_params["model"])
     pl_module = LightningModuleDefault.load_from_checkpoint(
         checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True
     )
@@ -317,9 +317,9 @@ def run_infer(dataset: DatasetDefault, paths: dict, infer_common_params: dict):
     # create a trainer instance
     pl_trainer = pl.Trainer(
         default_root_dir=paths["model_dir"],
-        accelerator=infer_common_params["trainer.accelerator"],
-        devices=infer_common_params["trainer.num_devices"],
-        strategy=infer_common_params["trainer.strategy"],
+        accelerator=infer_params["trainer.accelerator"],
+        devices=infer_params["trainer.num_devices"],
+        strategy=infer_params["trainer.strategy"],
         auto_select_gpus=True,
     )
     predictions = pl_trainer.predict(pl_module, infer_dataloader, return_predictions=True)
@@ -345,8 +345,8 @@ DATASET_COMMON_PARAMS['infer'] = INFER_COMMON_PARAMS
 ######################################
 # Eval Template
 ######################################
-def run_eval(paths: dict, eval_common_params: dict):
-    infer_file = os.path.join(paths["inference_dir"], eval_common_params["infer_filename"])
+def run_eval(paths: dict, eval_params: dict):
+    infer_file = os.path.join(paths["inference_dir"], eval_params["infer_filename"])
 
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger("Fuse")
@@ -393,12 +393,12 @@ if __name__ == "__main__":
     # train
     if "train" in RUNNING_MODES:
         run_train(train_dataset=train_dataset, validation_dataset=infer_dataset, \
-                    paths=PATHS, train_common_params=TRAIN_COMMON_PARAMS)
+                    paths=PATHS, train_params=TRAIN_COMMON_PARAMS)
 
     # infer
     if "infer" in RUNNING_MODES:
-        run_infer(dataset=infer_dataset, paths=PATHS, infer_common_params=INFER_COMMON_PARAMS)
+        run_infer(dataset=infer_dataset, paths=PATHS, infer_params=INFER_COMMON_PARAMS)
 
     # eval
     if "eval" in RUNNING_MODES:
-        run_eval(paths=PATHS, eval_common_params=EVAL_COMMON_PARAMS)
+        run_eval(paths=PATHS, eval_params=EVAL_COMMON_PARAMS)
