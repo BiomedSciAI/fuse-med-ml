@@ -83,7 +83,6 @@ class OpReadDataframe(OpBase):
             df = df.set_index(self._key_column)
         self._data = df.to_dict(orient="index")
 
-
     def __call__(
         self, sample_dict: NDict, prefix: Optional[str] = None, key_out_group: Optional[str] = None, **kwargs
     ) -> Union[None, dict, List[dict]]:
@@ -97,7 +96,7 @@ class OpReadDataframe(OpBase):
         """
         key = sample_dict[self._key_name]
 
-        # locate the required item  
+        # locate the required item
         sample_data = self._data[key].copy()
 
         if prefix and key_out_group:
@@ -112,7 +111,6 @@ class OpReadDataframe(OpBase):
                     sample_dict[f"{prefix}.{name}"] = value
         else:
             sample_dict[key_out_group] = sample_data
-
 
         return sample_dict
 
