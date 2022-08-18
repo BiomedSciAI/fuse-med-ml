@@ -193,7 +193,7 @@ def run(
     available_gpu_ids = FuseUtilsGPU.get_available_gpu_ids()
     if num_gpus_total < len(available_gpu_ids):
         available_gpu_ids = available_gpu_ids[0:num_gpus_total]
-    # group gpus into chunks of size params['common']['num_gpus_per_split']
+    # group gpus into chunks of size num_gpus_per_split
     gpu_resources = [
         available_gpu_ids[i : i + num_gpus_per_split] for i in range(0, len(available_gpu_ids), num_gpus_per_split)
     ]
