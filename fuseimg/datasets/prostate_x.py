@@ -39,7 +39,7 @@ from fuseimg.data.ops.ops_mri import (
     OpDeleteSequenceAttr,
 )
 
-from fuse.data.ops.ops_debug import OpPrintKeysContent
+# from fuse.data.ops.ops_debug import OpPrintKeysContent
 
 
 def get_selected_series_index(sample_id: List[str], seq_id: str) -> int:
@@ -151,21 +151,7 @@ class ProstateX:
                 OpLoadDicomAsStkVol(seq_ids=seq_ids, seq_reverse_map=seq_reverse_map),
                 dict(key_sequence_prefix="data.input.sequence", key_volume="stk_volume"),
             ),
-            # (OpPrintKeysContent(num_samples=1), dict(keys=None)),  # DEBUG TODO delete
             # step 4: rename sequence b_mix (if exists) to b; fix certain b sequences
-            # (
-            #     OpLambda(
-            #         func=partial(
-            #             ops_mri.rename_seqeunce_from_dict,
-            #             seq_id_old="b_mix",
-            #             seq_id_new="b",
-            #             key_sequence_prefix="data.input.sequence",
-            #             key_seq_ids="data.input.seq_ids",
-            #         )
-            #     ),
-            #     dict(key=None),
-            # ),
-            (OpPrintKeysContent(sample_ids=["ProstateX-0191_1"]), dict(keys=None)),  # DEBUG TODO delete
             (
                 OpRenameSequence(),
                 dict(
@@ -174,16 +160,7 @@ class ProstateX:
                     key_sequence_prefix="data.input.sequence",
                 ),
             ),
-            # (OpPrintKeysContent(num_samples=1), dict(keys=None)),  # DEBUG TODO delete
             # step 5: read ktrans
-            # (
-            #     OpFunc(func=get_ktrans_image_file_from_sample_id_v2),
-            #     dict(
-            #         inputs={
-            #         },
-            #         outputs=
-            #     )
-            # ),
             (
                 OpReadSTKImage(
                     data_path=root_path,

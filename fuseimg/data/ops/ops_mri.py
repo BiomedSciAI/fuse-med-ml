@@ -162,23 +162,6 @@ def get_stk_volume(img_path: str, dicom_files, reverse_order) -> Image:  # Not s
     return vol
 
 
-# TODO delete? was in 'get_stk_volume()' but seems not to be in use
-# def _read_HDF5_file(img_path):
-#     with h5py.File(img_path, "r") as hf:
-#         _array = np.array(hf["array"])
-#         _spacing = hf.attrs["spacing"]
-#         _origin = hf.attrs["origin"]
-#         _world_matrix = np.array(hf.attrs["world_matrix"])[:3, :3]
-#         _world_matrix_unit = _world_matrix / np.linalg.norm(_world_matrix, axis=0)
-#         _world_matrix_unit_flat = _world_matrix_unit.flatten()
-#
-#     # volume 2 sitk
-#     vol = sitk.GetImageFromArray(_array)
-#     vol.SetOrigin([_origin[i] for i in [1, 2, 0]])
-#     vol.SetDirection(_world_matrix_unit_flat)
-#     vol.SetSpacing([_spacing[i] for i in [1, 2, 0]])
-#     return vol
-
 #############################
 
 
@@ -1478,32 +1461,18 @@ def extract_lesion_prop_from_annotation(vol_ref, start_slice, end_slice, start_r
     return extract_lesion_prop_from_mask(mask_final)
 
 
-############################
-# radiomics operator
-
-# michal's
-# class OpReadSTKImage(OpBase):
-#     """
-#     TODO
-#     """
-
-#     def __init__(self, seq_id: str, get_image_file: Callable, **kwargs):
-#         super().__init__(**kwargs)
-#         self._seq_id = seq_id
-#         self._get_image_file = get_image_file
-
-#     def __call__(self, sample_dict: NDict, key_sequence_prefix: str, key_seq_ids: str):
-#         sample_id = get_sample_id(sample_dict)
-#         img_file = self._get_image_file(sample_id)
-#         vol = sitk.ReadImage(img_file)
-#         sample_dict[key_seq_ids].append(self._seq_id)
-#         sample_dict[f"{key_sequence_prefix}.{self._seq_id}"] = [dict(path=img_file, stk_volume=vol)]
-#         return sample_dict
-
-
 class OpReadSTKImage(OpBase):
     """
     Read STK Image
+
+    Example of use:
+        - Will read the image from the supplied path and store it
+        (
+            OpReadSTKImage(
+                data_path=root_path,
+            ),
+            dict(key_in="data.input.T2_path", key_sequence_prefix="data.input.sequence", seq_id="T2"),
+        ),
     """
 
     def __init__(self, data_path: str, **kwargs):
@@ -1519,10 +1488,18 @@ class OpReadSTKImage(OpBase):
         :param key_sequence_prefix: the prefix for the sequences in the sample_dict
         :parm seq_id: target sequence id
         """
+        # Read Image
         img_filename = sample_dict[key_in]
         vol = sitk.ReadImage(img_filename)
 
-        sample_dict[f"{key_sequence_prefix}.{seq_id}"] = [dict(path=img_filename, stk_volume=vol)]
+        # Store it in sample dict
+        if seq_id not in sample_dict[key_sequence_prefix].keys():
+            # Create info list for sequence
+            sample_dict[f"{key_sequence_prefix}.{seq_id}"] = [dict(path=img_filename, stk_volume=vol)]
+        else:
+            # Append to sequence's info list
+            sample_dict[f"{key_sequence_prefix}.{seq_id}"].append(dict(path=img_filename, stk_volume=vol))
+
         return sample_dict
 
 

@@ -1,5 +1,5 @@
 import os
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional, Tuple, Any
 from fuse.data.ops.ops_cast import Cast
 from fuse.data.utils.sample import get_sample_id
 from fuse.utils import NDict
@@ -32,7 +32,7 @@ class OpVis2DImage(OpDebugBase):
         path: str = ".",
         image_format: str = "channels_first",
         image_process_func: Optional[Callable] = None,
-        **kwargs,
+        **kwargs: Any,
     ):
         """
         :param show: if set to true will display it, otherwise will save it in `path`
@@ -54,7 +54,7 @@ class OpVis2DImage(OpDebugBase):
         clip: Optional[Tuple] = None,
         dtype: Optional[str] = None,
         figure_kwargs: dict = {},
-        **imshow_kwargs,
+        **imshow_kwargs: Any,
     ) -> None:
         """
         :param key: sample_dict key to a 2D image. Either tensor or numpy array.
@@ -114,7 +114,7 @@ class OpVisImageHist(OpDebugBase):
     ```
     """
 
-    def __init__(self, show: bool = True, path: str = ".", **kwargs):
+    def __init__(self, show: bool = True, path: str = ".", **kwargs: Any):
         """
         :param show: if set to true will display it, otherwise will save it in `path`
         :param path: location to save the images. Used when `show` set to False
@@ -125,7 +125,7 @@ class OpVisImageHist(OpDebugBase):
         self._show = show
 
     def call_debug(
-        self, sample_dict: NDict, key: str, bins: int = 10, figure_kwargs: dict = {}, **hist_kwargs
+        self, sample_dict: NDict, key: str, bins: int = 10, figure_kwargs: dict = {}, **hist_kwargs: Any
     ) -> NDict:
         """
         :param key: sample_dict key to a 2D image. Either tensor or numpy array.
