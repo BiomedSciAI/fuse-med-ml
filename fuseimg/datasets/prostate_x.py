@@ -29,7 +29,6 @@ from fuseimg.data.ops.ops_mri import (
     OpExtractDicomsPerSeq,
     OpLoadDicomAsStkVol,
     OpReadSTKImage,
-    # OpReadSTKImageV2,
     OpSelectVolumes,
     OpResampleStkVolsBasedRef,
     OpStackList4DStk,
@@ -166,15 +165,16 @@ class ProstateX:
             #     ),
             #     dict(key=None),
             # ),
+            (OpPrintKeysContent(sample_ids=["ProstateX-0191_1"]), dict(keys=None)),  # DEBUG TODO delete
             (
-                OpRenameSequence(seq_ids=seq_ids),
+                OpRenameSequence(),
                 dict(
                     seq_id_old="b_mix",
                     seq_id_new="b",
                     key_sequence_prefix="data.input.sequence",
                 ),
             ),
-            (OpPrintKeysContent(num_samples=1), dict(keys=None)),  # DEBUG TODO delete
+            # (OpPrintKeysContent(num_samples=1), dict(keys=None)),  # DEBUG TODO delete
             # step 5: read ktrans
             # (
             #     OpFunc(func=get_ktrans_image_file_from_sample_id_v2),
@@ -406,7 +406,7 @@ class ProstateX:
             sample_ids = ProstateX.sample_ids(data_dir)
 
         static_pipeline = ProstateX.static_pipeline(
-            root_path=data_dir, select_series_func=select_series_func, annotations_df=annotations_df, verbose=verbose
+            root_path=data_dir, select_series_func=select_series_func, annotations_df=annotations_df, verbose=False
         )
         dynamic_pipeline = ProstateX.dynamic_pipeline(
             train=train, label_type=label_type, num_channels=num_channels, verbose=verbose
@@ -712,3 +712,38 @@ def get_sample_path(data_path: str, patient_id: List[str]) -> Any:  # fix type A
 
 
 ##################################
+# Michal's custom Op for prostate
+# TODO delete (?) currently not in use
+class OpFixProstateBSequence(OpBase):
+    def __call__(
+        self,
+        sample_dict: NDict,
+        key_sequence_ids: str,
+        key_path_prefix: str,
+        key_in_volumes_prefix: str,
+    ) -> NDict:
+        seq_ids = sample_dict[key_sequence_ids]
+        if "b_mix" in seq_ids:
+
+            B_SER_FIX = [
+                "diffusie-3Scan-4bval_fs",
+                "ep2d_DIFF_tra_b50_500_800_1400_alle_spoelen",
+                "diff tra b 50 500 800 WIP511b alle spoelen",
+            ]
+
+            def get_single_item(a: Any) -> Any:
+                if isinstance(a, list):
+                    assert len(a) == 1
+                    return a[0]
+                return a
+
+            b_path = get_single_item(sample_dict[f"{key_path_prefix}b"])
+
+            if os.path.basename(b_path) in B_SER_FIX:
+                adc_volume = get_single_item(sample_dict[f"{key_in_volumes_prefix}ADC"])
+
+                for b_seq_id in ["b800", "b400"]:
+                    volume = get_single_item(sample_dict[f"{key_in_volumes_prefix}.{b_seq_id}"])
+
+                    volume.CopyInformation(adc_volume)
+        return sample_dict

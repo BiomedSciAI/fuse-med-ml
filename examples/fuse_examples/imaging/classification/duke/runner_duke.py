@@ -104,8 +104,8 @@ else:
     force_reset_model_dir = True
 
     num_workers = 16
-    batch_size = 50
-    num_epochs = 7
+    batch_size = 62
+    num_epochs = 15
     num_devices = 1
 
 

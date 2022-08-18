@@ -179,59 +179,6 @@ def get_stk_volume(img_path: str, dicom_files, reverse_order) -> Image:  # Not s
 #     vol.SetSpacing([_spacing[i] for i in [1, 2, 0]])
 #     return vol
 
-
-#############################
-class OpGroupDCESequences(OpBase):
-    """
-    TODO delte after checking that 'OpSortSequence' + 'OpGroupSequences' is OK
-    - OBSOLETE -
-    """
-
-    def __init__(self, seq_ids: List[str], verbose: bool = True, **kwargs):
-        super().__init__(**kwargs)
-        self._verbose = verbose
-        self._seq_ids = seq_ids
-
-    def __call__(self, sample_dict: NDict, key_sequence_prefix: str) -> NDict:
-        """
-        extract_list_of_rel_vol extract the volume per seq based on SER_INX_TO_USE
-        and put in one list
-        :param sample_dict:
-        :param key_seq_ids:
-        :param key_sequence_prefix:
-        """
-
-        # seq_ids = sample_dict[key_seq_ids]
-
-        all_dce_mix_ph_sequences = [f"DCE_mix_ph{i}" for i in range(1, 5)] + ["DCE_mix_ph"]
-
-        existing_dce_mix_ph_sequences = [seq_id for seq_id in all_dce_mix_ph_sequences if seq_id in self._seq_ids]
-        # handle multiphase DCE in different series
-        if existing_dce_mix_ph_sequences:
-            new_seq_id = "DCE_mix"
-            # assert new_seq_id not in seq_ids
-            assert sample_dict[f"{key_sequence_prefix}.{new_seq_id}"] == []  # check empty
-            # seq_ids.append(new_seq_id)
-            sample_dict[f"{key_sequence_prefix}.{new_seq_id}"] = []
-            for seq_id in existing_dce_mix_ph_sequences:
-                sequence_info_list = sample_dict[f"{key_sequence_prefix}.{seq_id}"]
-                # Now supports sorting in another Op
-                # if seq_id == "DCE_mix_ph":
-                #     # Sort info list by series number
-                #     series_num_arr = [a["series_num"] for a in sequence_info_list]
-                #     inx_sorted = np.argsort(series_num_arr)
-                #     sequence_info_list = [sequence_info_list[i] for i in inx_sorted]
-                sample_dict[f"{key_sequence_prefix}.{new_seq_id}"] += sequence_info_list
-
-                delete_seqeunce_from_dict(
-                    seq_id=seq_id,
-                    sample_dict=sample_dict,
-                    key_sequence_prefix=key_sequence_prefix,
-                )
-
-        return sample_dict
-
-
 #############################
 
 
@@ -635,24 +582,29 @@ class OpStackList4DStk(OpBase):
 
 class OpRescale4DStk(OpBase):
     """
-    TODO
+    Rescale 4D STK Image pixels values using one of the following methods:
+            "clip" - clip according a threshold and then rescale pixels with it
+            "noclip" - rescale pixels according threshold without clipping first
+            "mean" -  rescale pixels with mean
+            "median" - rescale pixels with median
+
+    Example of use:
+        -
+        (OpRescale4DStk(), dict(key="data.input.volume4D")),
     """
 
-    def __init__(self, thres: Optional[tuple] = (1.0, 99.0), method: Optional[str] = "noclip", **kwargs) -> None:
+    def __init__(self, thres: Optional[tuple] = (1.0, 99.0), method: Optional[str] = "noclip") -> None:
         """
-        :param thres:
-        :param method:
-        :param kwargs:
+        :param thres: give lower and upper values for clipping and normalizing (see numpy.percentile() doc for more details)
+        :param method: rescaling method (see Op description)
         """
-        super().__init__(**kwargs)
-        # self._mask_ch_inx = mask_ch_inx  # TODO delete (?)
+        super().__init__()
         self._thres = thres
         self._method = method
 
     def __call__(self, sample_dict: NDict, key: str) -> NDict:
         """
-        :param sample_dict:
-        :param key:
+        :param key: key for the 4D Image volume inside sample's dict
         """
         stk_vol_4D = sample_dict[key]
 
@@ -663,11 +615,11 @@ class OpRescale4DStk(OpBase):
             # increase the dimension with dummy dimension
             vol_array = vol_array[:, :, :, np.newaxis]
 
-        # Rescale
+        # Rescale using method
         vol_array = apply_rescaling(vol_array, thres=self._thres, method=self._method)
 
         # Convert back to image and retrieve information
-        vol_final = sitk.GetImageFromArray(vol_array)  # , isVector=True)
+        vol_final = sitk.GetImageFromArray(vol_array)
         vol_final.CopyInformation(vol_backup)
         vol_final = sitk.Image(
             vol_final
@@ -887,42 +839,6 @@ class OpDict2Stk(OpBase):
         return sample_dict
 
 
-class OpFixProstateBSequence(OpBase):
-    def __call__(
-        self,
-        sample_dict: NDict,
-        op_id: Optional[str],
-        key_sequence_ids: str,
-        key_path_prefix: str,
-        key_in_volumes_prefix: str,
-    ):
-        seq_ids = sample_dict[key_sequence_ids]
-        if "b_mix" in seq_ids:
-
-            B_SER_FIX = [
-                "diffusie-3Scan-4bval_fs",
-                "ep2d_DIFF_tra_b50_500_800_1400_alle_spoelen",
-                "diff tra b 50 500 800 WIP511b alle spoelen",
-            ]
-
-            def get_single_item(a):
-                if isinstance(a, list):
-                    assert len(a) == 1
-                    return a[0]
-                return a
-
-            b_path = get_single_item(sample_dict[f"{key_path_prefix}b"])
-
-            if os.path.basename(b_path) in B_SER_FIX:
-                adc_volume = get_single_item(sample_dict[f"{key_in_volumes_prefix}ADC"])
-
-                for b_seq_id in ["b800", "b400"]:
-                    volume = get_single_item(sample_dict[f"{key_in_volumes_prefix}.{b_seq_id}"])
-
-                    volume.CopyInformation(adc_volume)
-        return sample_dict
-
-
 ######################################3
 
 
@@ -951,52 +867,43 @@ def delete_seqeunce_from_dict(seq_id: str, sample_dict: NDict, key_sequence_pref
 
 class OpRenameSequence(OpBase):
     """
-    TODO
-    """
+    Rename sequence.
 
-    def __init__(self, seq_ids: List[str]):
-        """
-        :paran seq_ids:
-        """
-        super().__init__()
-        self._seq_ids = seq_ids
+    Example of use:
+        - Will rename "T2" sequence to "b" sequence.
+        (
+            OpRenameSequence(),
+            dict(
+                seq_id_old="T2",
+                seq_id_new="b",
+                key_sequence_prefix="data.input.sequence",
+            ),
+        ),
+    """
 
     def __call__(self, sample_dict: NDict, seq_id_old: str, seq_id_new: str, key_sequence_prefix: str) -> NDict:
         """
-
-        :param seq_id_old:
-        :param seq_id_new:
-        :param key_sequence_prefix:
+        :param seq_id_old: the prev name of the sequence
+        :param seq_id_new: the new name of the sequence
+        :param key_sequence_prefix: the prefix for the sequences in the sample_dict
         """
 
-        if seq_id_old not in self._seq_ids:
-            raise Exception(f"old sequence id ({seq_id_old}) must be in sequence ids ({self._seq_ids}).")
+        new_value = sample_dict[f"{key_sequence_prefix}.{seq_id_new}"]
+        old_value = sample_dict[f"{key_sequence_prefix}.{seq_id_old}"]
 
-        if seq_id_new not in self._seq_ids:
-            raise Exception(f"new sequence id ({seq_id_new}) must be in sequence ids ({self._seq_ids}).")
+        if old_value != []:
+            # if there is data for the sequence
+            if new_value != []:
+                # if there the new sequence name is not empty
+                raise Exception(
+                    f"Can't rename {seq_id_old} to {seq_id_new} because {seq_id_new} already has data. sample_id ({sample_dict['data.sample_id']})"
+                )
 
-        if sample_dict[f"{key_sequence_prefix}.{seq_id_new}"] != []:
-            raise Exception(f"Cant rename {seq_id_old} to {seq_id_new} because {seq_id_new} already has data.")
-
-        sample_dict[f"{key_sequence_prefix}.{seq_id_new}"] = sample_dict[f"{key_sequence_prefix}.{seq_id_old}"]
-        sample_dict[f"{key_sequence_prefix}.{seq_id_old}"] = []
+            # Move data and delete it from the prev sequence name
+            sample_dict[f"{key_sequence_prefix}.{seq_id_new}"] = old_value
+            sample_dict[f"{key_sequence_prefix}.{seq_id_old}"] = []
 
         return sample_dict
-
-
-# TODO delete - replaced by: OpRenameSequence
-# def rename_seqeunce_from_dict(sample_dict, seq_id_old, seq_id_new, key_sequence_prefix, key_seq_ids):
-#     seq_ids = sample_dict[key_seq_ids]
-#     if seq_id_old in seq_ids:
-#         # assert seq_id_new not in seq_ids   # michal's before I chang
-#         assert sample_dict[f"{key_sequence_prefix}.{seq_id_new}"] == []  # New must be empty
-
-#         sample_dict[f"{key_sequence_prefix}.{seq_id_new}"] = sample_dict[f"{key_sequence_prefix}.{seq_id_old}"]
-#         sample_dict[f"{key_sequence_prefix}.{seq_id_old}"] = []
-#         # del sample_dict[f"{key_sequence_prefix}.{seq_id_old}"]
-#         # seq_ids.remove(seq_id_old)   # michal's before I changed
-
-#     return sample_dict
 
 
 ############################
@@ -1213,7 +1120,7 @@ def extract_mask_from_annotation(vol_ref, bbox_coords):
     return mask_np
 
 
-def apply_rescaling(img: np.ndarray, thres: tuple = (1.0, 99.0), method: str = "noclip") -> np.ndarray:
+def apply_rescaling(img: np.ndarray, thres: Tuple[int, int], method: str) -> np.ndarray:
     """
     Rescale each channal using method
 
@@ -1224,54 +1131,57 @@ def apply_rescaling(img: np.ndarray, thres: tuple = (1.0, 99.0), method: str = "
             "noclip" -
             "mean" -
             "median" -
-    :return:
     """
-    eps = 0.000001
-
-    def rescale_single_channel_image(img: np.ndarray) -> np.ndarray:
-        """
-        Rescale a single channel image (2 or 3 dimensions)
-        """
-        # Deal with negative values first
-        # print(f"DEBUG - shape = {img.shape}")
-        min_value = np.min(img)
-        if min_value < 0:
-            img -= min_value
-
-        if method == "clip":
-            val_l, val_h = np.percentile(img, thres)
-            img2 = img
-            img2[img < val_l] = val_l
-            img2[img > val_h] = val_h
-            img2 = (img2.astype(np.float32) - val_l) / (val_h - val_l + eps)
-
-        elif method == "mean":
-            img2 = img / max(np.mean(img), 1)
-
-        elif method == "median":
-            img2 = img / max(np.median(img), 1)
-            # write as op TODO (???)
-            ######################
-
-        elif method == "noclip":
-            val_l, val_h = np.percentile(img, thres)
-            img2 = img
-            img2 = (img2.astype(np.float32) - val_l) / (val_h - val_l + eps)
-        else:
-            # TODO raise exception (?)
-            img2 = img
-        return img2
+    EPS = 0.000001
 
     # fix outlier image values
     img[np.isnan(img)] = 0
+
     # Process each channel independently
     if len(img.shape) == 4:
         for i in range(img.shape[-1]):
-            img[..., i] = rescale_single_channel_image(img[..., i])
+            img[..., i] = rescale_single_channel_image(img[..., i], thres, method, eps=EPS)
     else:
         img = rescale_single_channel_image(img)
 
     return img
+
+
+def rescale_single_channel_image(img: np.ndarray, thres: Tuple[int, int], method: str, eps: float) -> np.ndarray:
+    """
+    Rescale a single channel image (2 or 3 dimensions)
+
+    :param img:
+    :param thres:
+    :param method:
+    """
+    # Deal with negative values first
+    min_value = np.min(img)
+    if min_value < 0:
+        img -= min_value
+
+    # clip image according to low,high values that depends on 'thres' and then normalize
+    if method == "clip":
+        val_l, val_h = np.percentile(img, thres)
+        img2 = img
+        img2[img < val_l] = val_l
+        img2[img > val_h] = val_h
+        img2 = (img2.astype(np.float32) - val_l) / (val_h - val_l + eps)
+
+    elif method == "mean":
+        img2 = img / max(np.mean(img), 1)
+
+    elif method == "median":
+        img2 = img / max(np.median(img), 1)
+
+    # using 'thres' but without clipping first
+    elif method == "noclip":
+        val_l, val_h = np.percentile(img, thres)
+        img2 = img
+        img2 = (img2.astype(np.float32) - val_l) / (val_h - val_l + eps)
+    else:
+        raise Exception(f"got an unsupported rescaling method ({method}).")
+    return img2
 
 
 def extract_seq_2_info_map(sample_path: str, series_desc_2_sequence_map: Dict[str, str]):
@@ -1621,16 +1531,20 @@ class OpExtractRadiomics(OpBase):
     TODO
     """
 
-    def __init__(self, extractor, setting, **kwargs):
-        super().__init__(**kwargs)
-        self.seq_inx_list = setting["seq_inx_list"]
-        self.seq_list = setting["seq_list"]
-        self.setting = setting
-        self.extractor = extractor
+    def __init__(self, extractor_settings):
+        """
+        :param extractor_settings:
+        """
+        super().__init__()
+        self.seq_inx_list = extractor_settings["seq_inx_list"]
+        self.seq_list = extractor_settings["seq_list"]
+        self.extractor_settings = extractor_settings
+        self.extractor = radiomics.featureextractor.RadiomicsFeatureExtractor(**extractor_settings)
 
     def __call__(self, sample_dict: NDict, key_in_vol_4d: str, key_out_radiomics_results: str):
         """
-        TODO
+        :param key_in_vol_4d:
+        :param key_out_radiomics_results:
         """
 
         vol = sitk.GetArrayFromImage(sample_dict[key_in_vol_4d])
@@ -1639,23 +1553,28 @@ class OpExtractRadiomics(OpBase):
 
         sample_dict[key_out_radiomics_results] = []
 
-        maskPath = get_maskpath(vol_np, mask_inx=-1, mask_type=self.setting["maskType"])
+        maskPath = get_maskpath(vol_np, mask_inx=-1, mask_type=self.extractor_settings["maskType"])
         result_all = {}
         for seq_inx, seq in zip(self.seq_inx_list, self.seq_list):
             imagePath = get_imagepath(vol_np, seq_inx)
-            if self.setting["norm_method"] != "default":
+            if self.extractor_settings["norm_method"] != "default":
                 imagePath = norm_volume(
-                    vol_np, seq_inx, imagePath, maskPath, self.setting, normMethod=self.setting["norm_method"]
+                    vol_np,
+                    seq_inx,
+                    imagePath,
+                    maskPath,
+                    self.extractor_settings,
+                    normMethod=self.extractor_settings["norm_method"],
                 )
 
             result = self.extractor.execute(imagePath, maskPath)
             keys_ = list(result.keys())
             for key in keys_:
-                new_key = key + "_seq=" + seq + "_" + self.setting["maskType"]
+                new_key = key + "_seq=" + seq + "_" + self.extractor_settings["maskType"]
                 result[new_key] = result.pop(key)
             result_all.update(result)
 
-            if self.setting["applyLog"]:
+            if self.extractor_settings["applyLog"]:
                 sigmaValues = np.arange(5.0, 0.0, -0.5)[::1]
                 for logImage, imageTypeName, inputKwargs in radiomics.imageoperations.getLoGImage(
                     imagePath, maskPath, sigma=sigmaValues
@@ -1665,14 +1584,14 @@ class OpExtractRadiomics(OpBase):
                     result = logFirstorderFeatures.execute()
                     keys_ = list(result.keys())
                     for key in keys_:
-                        new_key = key + "_seq=" + seq + "_" + self.setting["maskType"]
+                        new_key = key + "_seq=" + seq + "_" + self.extractor_settings["maskType"]
                         result[new_key] = result.pop(key)
                     result_all.update(result)
 
             #
             # Show FirstOrder features, calculated on a wavelet filtered image
             #
-            if self.setting["applyWavelet"]:
+            if self.extractor_settings["applyWavelet"]:
                 for decompositionImage, decompositionName, inputKwargs in radiomics.imageoperations.getWaveletImage(
                     imagePath, maskPath
                 ):
@@ -1683,7 +1602,7 @@ class OpExtractRadiomics(OpBase):
                     result = waveletFirstOrderFeaturs.execute()
                     keys_ = list(result.keys())
                     for key in keys_:
-                        new_key = key + "_seq=" + seq + "_" + self.setting["maskType"]
+                        new_key = key + "_seq=" + seq + "_" + self.extractor_settings["maskType"]
                         result[new_key] = result.pop(key)
                     result_all.update(result)
 
@@ -1749,113 +1668,3 @@ def get_imagepath(vol_np: np.ndarray, seq_inx: int):
     """
     imagePath = sitk.GetImageFromArray(vol_np[seq_inx, :, :, :])
     return imagePath
-
-
-##### Sagi's Versions #####
-## Probably delete all of them ##
-
-"""
-Version of 'OpExtractDicomsPerSeq' aims to make the extraction more explicitly PER SEQUENCE,
-"""
-
-
-class OpExtractDicoms(OpBase):
-    """
-    TODO delte
-    Extracts dicoms for a given sequence and stores them in the sample dict with a given prefix
-    """
-
-    def __init__(
-        self,
-        seq_ids: str,
-        matching_series_descriptions: Dict[str, Str],
-        use_order_indicator: bool = False,
-        **kwargs,
-    ):
-        """
-        :param seq_id: the sequence for which the dicoms will be extract
-        :param matching_series_descriptions: series descriptions that match to the given sequence
-        :param use_order_indicator: TODO
-        :param kwargs:
-        """
-        super().__init__(**kwargs)
-        self._seq_ids = seq_ids
-        self._matching_series_descriptions = matching_series_descriptions
-        self._use_order_indicator = use_order_indicator
-
-    def __call__(self, sample_dict: NDict, key_in: str, key_out_seq_ids: str, key_out_sequence_prefix: str):
-        """
-        # TODO I need to make another Op to retriev thos key_out_seq_ids for each sample!
-        :param sample_dict:
-        :param key_in: key for the mri path
-        :param key_out_seq_ids: the ids will be used as a suffix in storing the series in the sample_dict
-        :param key_out_sequence_prefix: the prefix used to store the series in the sample_dict
-        """
-        sample_path = sample_dict[key_in]
-        sample_dict[key_out_seq_ids] = []
-        seq_2_info_map = extract_seq_2_info_map(sample_path, self._series_desc_2_sequence_map)
-        # print(f"DEBUG: seq_2_info_map = {seq_2_info_map}")
-        for seq_id in self._seq_ids:
-            seq_info_list = seq_2_info_map.get(seq_id, None)
-            if seq_info_list is None:
-                # sequence does not exist for the patient
-                continue
-            sample_dict[key_out_seq_ids].append(seq_id)
-            sample_dict[f"{key_out_sequence_prefix}.{seq_id}"] = []
-            for seq_info in seq_info_list:  # could be several sequences/series (sequence/series=  path)
-
-                dicom_group_ids, sorted_dicom_groups = sort_dicoms_by_field(
-                    seq_path=seq_info["path"],
-                    dicom_field=seq_info["dicom_field"],
-                    use_order_indicator=self._use_order_indicator,
-                )
-                for dicom_group_id, dicom_group in zip(dicom_group_ids, sorted_dicom_groups):
-                    seq_info2 = dict(
-                        path=seq_info["path"],
-                        series_num=seq_info["series_num"],
-                        series_desc=seq_info["series_desc"],
-                        dicoms=dicom_group,  # each sequence/series path may contain several (sub-)sequence/series
-                        dicoms_id=dicom_group_id,
-                    )
-                    sample_dict[f"{key_out_sequence_prefix}.{seq_id}"].append(seq_info2)
-
-        return sample_dict
-
-    class OpGetSeqIds(OpBase):
-        """
-        TODO delete (?)
-        Get the relevant sequence ids per sample
-        """
-
-        def __init__(self, seq_2_series_desc_map: Dict[str, str]):
-            """
-            TODO
-            """
-            super().__init__()
-            self._seq_2_series_desc_map = seq_2_series_desc_map
-
-        def __call__(self, sample_dict: NDict, key_in_path: str, key_out: str) -> NDict:
-            """
-            TODO
-            """
-            sample_path = sample_dict[key_in_path]
-
-            res = []
-            # Iterate on each sequence in patient mri folder
-            for seq_dir in os.listdir(sample_path):
-                seq_path = os.path.join(sample_path, seq_dir)
-
-                # Read series description from dcm files
-                dcm_files = glob.glob(os.path.join(seq_path, "*.dcm"))  # get all dcm files paths
-                # TODO throw an error or a warning if there are no dicoms
-                dcm_ds = pydicom.dcmread(dcm_files[0])  # Read one of the dicoms dataset
-                # print(f"DEBUG: dcm_files = {dcm_files}")  # TODO delete
-                series_desc = dcm_ds.SeriesDescription
-
-                seq_ids = self._seq_2_series_desc_map.keys()
-                for seq_id in seq_ids:
-                    if series_desc in self._seq_2_series_desc_map[seq_id]:
-                        pass  # TODO FINISH
-
-            sample_dict[key_out] = res
-            return sample_dict

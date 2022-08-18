@@ -76,7 +76,7 @@ def get_folds(n_folds: int) -> Tuple[List[int], List[int], List[int]]:
 
     # prev logic. for debugging. delete (?)
     else:
-        heldout_fold = 4
+        heldout_fold = 6
         train_folds = [i % n_folds for i in range(heldout_fold + 1, heldout_fold + n_folds - 1)]
         validation_fold = [(heldout_fold - 1) % n_folds]
         heldout_fold = [heldout_fold]
@@ -127,8 +127,8 @@ else:
     selected_sample_ids = None
 
     num_workers = 16
-    batch_size = 50
-    num_epoch = 5
+    batch_size = 18
+    num_epoch = 15
 
 ##########################################
 # Output Paths

@@ -5,6 +5,7 @@ from tempfile import mkdtemp
 import unittest
 from fuse.data.utils.sample import get_sample_id
 from fuse.utils.file_io.file_io import create_dir
+import numpy as np
 
 from fuseimg.datasets.kits21 import KITS21
 from fuseimg.datasets.stoic21 import STOIC21
@@ -122,6 +123,8 @@ class TestDatasets(unittest.TestCase):
         data_path = os.environ["PROSTATEX_DATA_PATH"]
         num_samples = 1  # The number of samples to test the dataset's pipeline on them
         sample_ids = ProstateX.sample_ids(data_path)[:num_samples]
+        sample_ids = np.append(sample_ids, "ProstateX-0191_1")  # Add problematic data
+        num_samples = len(sample_ids)
         dataset = ProstateX.dataset(
             data_dir=data_path, train=True, sample_ids=sample_ids, reset_cache=True, num_workers=0
         )

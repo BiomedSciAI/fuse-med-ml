@@ -1,7 +1,6 @@
 import numpy as np
 import glob
 import os
-import radiomics
 from typing import Any, Callable, Hashable, Optional, Sequence, List, Dict
 
 # import fuseimg.data.ops.ops_common_imaging
@@ -165,7 +164,6 @@ class Duke:
         metadata_path = os.path.join(mri_dir, "metadata.csv")
 
         series_desc_2_sequence_map = get_series_desc_2_sequence_mapping(metadata_path)
-        print(f"DEBUG: series_desc_2_sequence_map = {series_desc_2_sequence_map}")
         seq_ids = ["DCE_mix_ph1", "DCE_mix_ph2", "DCE_mix_ph3", "DCE_mix_ph4", "DCE_mix", "DCE_mix_ph"]
 
         # Function for sorting 'OpSortSequence'
@@ -190,15 +188,11 @@ class Duke:
                 OpLoadDicomAsStkVol(seq_ids=seq_ids),
                 dict(key_sequence_prefix="data.input.sequence", key_volume="stk_volume"),
             ),
-            # DEBUG
-            # (OpPrintKeysContent(num_samples=1), dict(keys=None)),
             # step 4: group DCE sequences into DCE_mix
             (
                 OpSortSequence(key_sort=sort_DCE_mix_ph_func),
                 dict(key_in_seq_prefix="data.input.sequence", key_in_seq_id="DCE_mix_ph"),
             ),
-            # DEBUG
-            # (OpPrintKeysContent(num_samples=1), dict(keys=None)),
             (
                 OpGroupSequences(delete_source_seq=True),
                 dict(
@@ -207,13 +201,6 @@ class Duke:
                     key_sequence_prefix="data.input.sequence",
                 ),
             ),
-            # 'OpGroupDCESequences' was replace by 'OpSortSequence' + 'OpGroupSequences' :)
-            # (
-            #     OpGroupDCESequences(seq_ids=seq_ids),
-            #     dict(key_sequence_prefix="data.input.sequence"),
-            # ),
-            # DEBUG
-            # (OpPrintKeysContent(num_samples=1), dict(keys=None)),
             # step 5: select single volume from DCE_mix sequence
             (
                 OpSelectVolumes(
@@ -253,7 +240,6 @@ class Duke:
 
         # step 9: read raw annotations - will be used for labels, features, and also for creating lesion properties
         annotations_path = os.path.join(data_dir, "Annotation_Boxes.csv")
-        print(f"DEBUG: annotations_path = {annotations_path}")
         static_pipeline_steps += [
             (
                 # OpReadDataframe(data=get_duke_raw_annotations_df(data_dir), key_column="Patient ID"),
@@ -445,7 +431,6 @@ class Duke:
                 )
                 keys_2_keep.append(key_clinical_features)
 
-            # print(f"DEBUG key_2_keep = {keys_2_keep}")  # DEBUG
             for key in keys_2_keep:
                 if key == volume_key or key == "data.sample_id":
                     continue
@@ -454,7 +439,7 @@ class Duke:
         dynamic_steps.append((OpKeepKeypaths(), dict(keep_keypaths=keys_2_keep)))
 
         dynamic_pipeline = PipelineDefault("dynamic", dynamic_steps, verbose=verbose)
-        print("DEBUG - Init Dynamic pipeline: Done")
+        print("Init Dynamic pipeline: Done")
         return dynamic_pipeline
 
 
@@ -538,7 +523,6 @@ def get_duke_clinical_data_df(duke_data_dir: str) -> pd.DataFrame:
         columns.append(col_name)
 
     clinical_df = pd.read_excel(clinical_path, sheet_name="Data", skiprows=3, header=None, names=columns)
-    print("DEBUG: 'get_duke_clinical_data_df' Done!")
     return clinical_df
 
 
@@ -606,8 +590,7 @@ def get_sample_path(data_path: str, sample_id: str) -> str:
     sample_path_pattern = os.path.join(data_path, sample_id, "*")
     sample_path = glob.glob(sample_path_pattern)
     assert len(sample_path) == 1
-    # print(f"DEBUG sample_path_pattern = {sample_path_pattern}")
-    # print(f"DEBUG sample_path ={sample_path}")
+
     return sample_path[0]
 
 
@@ -633,13 +616,10 @@ class DukeRadiomics(Duke):
         radiomics_extractor_setting: dict, label_type: Optional[DukeLabelType] = None, verbose: Optional[bool] = False
     ) -> PipelineDefault:
 
-        radiomics_extractor = radiomics.featureextractor.RadiomicsFeatureExtractor(
-            **radiomics_extractor_setting
-        )  # todo: tal: move to OpExtractRadiomics
         dynamic_steps = [
             (OpDict2Stk(), dict(keys=["data.input.volume4D", "data.input.ref_volume"])),
             (
-                OpExtractRadiomics(radiomics_extractor, radiomics_extractor_setting),
+                OpExtractRadiomics(extractor_settings=radiomics_extractor_setting),
                 dict(key_in_vol_4d="data.input.volume4D", key_out_radiomics_results="data.radiomics"),
             ),
         ]
