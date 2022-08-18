@@ -186,9 +186,6 @@ def run(
     if deterministic_mode:
         os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"  # required for pytorch deterministic mode
     multiprocessing.set_start_method("spawn")
-    if num_gpus_total == 0 or num_gpus_per_split == 0:
-        if train_params is not None and "manager.train_params" in train_params:
-            train_params["manager.train_params"]["device"] = "cpu"
 
     available_gpu_ids = FuseUtilsGPU.get_available_gpu_ids()
     if num_gpus_total < len(available_gpu_ids):

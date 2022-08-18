@@ -51,7 +51,7 @@ from fuse.utils.file_io.file_io import create_dir, load_pickle, save_dataframe
 import fuse.utils.gpu as GPU
 
 from fuseimg.datasets.stoic21 import STOIC21
-import dataset
+import examples.fuse_examples.imaging.classification.stoic21.dataset as dataset
 
 ###########################################################################################################
 # Fuse
@@ -102,13 +102,13 @@ TRAIN_COMMON_PARAMS["data.validation_folds"] = [4]
 # ===============
 # PL Trainer
 # ===============
-TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 50
+TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 3 # 50
 TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
 # use "dp" strategy temp when working with multiple GPUS - workaround for pytorch lightning issue: https://github.com/Lightning-AI/lightning/issues/11807
 TRAIN_COMMON_PARAMS["trainer.strategy"] = "dp" if TRAIN_COMMON_PARAMS["trainer.num_devices"] > 1 else None
 TRAIN_COMMON_PARAMS["trainer.ckpt_path"] = None  # path to the checkpoint you wish continue the training from
-
+TRAIN_COMMON_PARAMS["trainer.auto_select_gpus"] = True
 # ===============
 # Optimizer
 # ===============
@@ -262,7 +262,7 @@ def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault,
         accelerator=train_params["trainer.accelerator"],
         devices=train_params["trainer.num_devices"],
         strategy=train_params["trainer.strategy"],
-        auto_select_gpus=True,
+        auto_select_gpus=train_params["trainer.auto_select_gpus"],
     )
 
     # train
@@ -286,7 +286,7 @@ INFER_COMMON_PARAMS["model"] = TRAIN_COMMON_PARAMS["model"]
 INFER_COMMON_PARAMS["trainer.num_devices"] = 1  # infer must use single device
 INFER_COMMON_PARAMS["trainer.accelerator"] = "gpu"
 INFER_COMMON_PARAMS["trainer.strategy"] = None
-
+INFER_COMMON_PARAMS["trainer.auto_select_gpus"] = True
 ######################################
 # Inference Template
 ######################################
@@ -320,7 +320,7 @@ def run_infer(dataset: DatasetDefault, paths: dict, infer_params: dict):
         accelerator=infer_params["trainer.accelerator"],
         devices=infer_params["trainer.num_devices"],
         strategy=infer_params["trainer.strategy"],
-        auto_select_gpus=True,
+        auto_select_gpus=infer_params["trainer.auto_select_gpus"],
     )
     predictions = pl_trainer.predict(pl_module, infer_dataloader, return_predictions=True)
 
