@@ -96,10 +96,10 @@ def infer_wrapper(sample_ids_per_fold: Sequence,
     paths_infer["model_dir"] = os.path.join(paths["model_dir"], "rep_" + str(rep_index), str(cv_index))
     if sample_ids_per_fold is None: # test mode
         paths_infer["inference_dir"] = os.path.join(paths["inference_dir"], "test", "rep_" + str(rep_index), str(cv_index))
-        _, dataset = dataset_func(cache_dir=paths_infer["cache_dir"], test=True, train_val_sample_ids=None, **dataset_params)
+        _, dataset = dataset_func(train_val_sample_ids=None, paths=paths_infer, params=dataset_params)
     else:
         paths_infer["inference_dir"] = os.path.join(paths["inference_dir"], "validation", "rep_" + str(rep_index), str(cv_index))
-        _, dataset = dataset_func(cache_dir=paths_infer["cache_dir"], test=False, train_val_sample_ids=sample_ids_per_fold, **dataset_params)
+        _, dataset = dataset_func(train_val_sample_ids=sample_ids_per_fold, paths=paths_infer, params=dataset_params)
     
     # call project specific infer_func:
     func(dataset=dataset, paths=paths_infer, infer_params=params)
