@@ -196,7 +196,6 @@ class KNIGHT:
                 ),  # convert image from shape [H, W, D] to shape [D, H, W]
                 (OpPrepareClinical(), dict()),  # process clinical data
                 (OpResizeTo(channels_first=False), dict(key="data.input.img", output_shape=resize_to)),
-                # (OpResample_patient(), dict())
             ],
         )
         return static_pipeline

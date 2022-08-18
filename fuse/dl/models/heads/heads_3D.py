@@ -29,7 +29,7 @@ from fuse.dl.models.heads.common import ClassifierFCN3D, ClassifierMLP
 
 class Head3DClassifier(nn.Module):
     """
-    Model that capture slice feature including the 3D context given the local feature about a slice.
+    Model that capture slice feature including the 3D context given the local feature about a slice for classification.
     """
 
     def __init__(
@@ -98,10 +98,6 @@ class Head3DClassifier(nn.Module):
         if self.conv_inputs is not None:
             conv_input = torch.cat([batch_dict[conv_input[0]] for conv_input in self.conv_inputs], dim=1)
             global_features = self.gmp(conv_input)
-            # save global max pooling features in case needed (mostly to analyze)
-            batch_dict["model." + self.head_name + ".gmp_features"] = (
-                global_features.squeeze(dim=4).squeeze(dim=3).squeeze(dim=2)
-            )
             # backward compatibility
             if hasattr(self, "do"):
                 global_features = self.do(global_features)
@@ -125,5 +121,92 @@ class Head3DClassifier(nn.Module):
         cls_preds = F.softmax(logits, dim=1)
         batch_dict["model.logits." + self.head_name] = logits
         batch_dict["model.output." + self.head_name] = cls_preds
+
+        return batch_dict
+
+
+class Head3DRegression(nn.Module):
+    """
+    Model that capture slice feature including the 3D context given the local feature about a slice for regression.
+    """
+
+    def __init__(
+        self,
+        head_name: str = "head_0",
+        conv_inputs: Sequence[Tuple[str, int]] = None,
+        dropout_rate: float = 0.1,
+        append_features: Optional[Tuple[str, int]] = None,
+        append_layers_description: Sequence[int] = tuple(),
+        append_dropout_rate: float = 0.0,
+        num_outputs: int = 1,
+    ) -> None:
+        """
+        Create simple 3D context model
+        :param head_name: string representing the head name
+        :param conv_inputs: Sequence of tuples, each indication features name in batch_dict and size of features (channels)
+            for example: conv_inputs=(('model.backbone_features', 512),)
+        :param dropout_rate: dropout fraction
+        :param append_features: Sequence of tuples, each indication features name in batch_dict and size of features (channels).
+                                Those are global features that appended after the global max pooling operation
+        :param layers_description:          Layers description for the classifier module - sequence of hidden layers sizes (Not used currently)
+        :param append_layers_description: Layers description for the tabular data, before the concatenation with the features extracted from the image - sequence of hidden layers sizes
+        :param append_dropout_rate: Dropout rate for tabular layers
+        :param num_outputs: number of output values
+        """
+        super().__init__()
+        # save input params
+        self.head_name = head_name
+        self.conv_inputs = conv_inputs
+        self.dropout_rate = dropout_rate
+        self.append_features = append_features
+        self.gmp = nn.AdaptiveMaxPool3d(output_size=1)
+        self.features_size = sum([features[1] for features in self.conv_inputs]) if self.conv_inputs is not None else 0
+
+        # calc appended feature size if used
+        if self.append_features is not None:
+            if len(append_layers_description) == 0:
+                self.features_size += sum([post_concat_input[1] for post_concat_input in append_features])
+                self.append_features_module = nn.Identity()
+            else:
+                self.features_size += append_layers_description[-1]
+                self.append_features_module = ClassifierMLP(
+                    in_ch=sum([post_concat_input[1] for post_concat_input in append_features]),
+                    num_classes=None,
+                    layers_description=append_layers_description,
+                    dropout_rate=append_dropout_rate,
+                )
+
+        self.linear = nn.Linear(self.features_size, num_outputs)
+
+        self.do = nn.Dropout3d(p=self.dropout_rate)
+
+    def forward(self, batch_dict: NDict) -> Dict:
+        """
+        Forward pass
+        :param batch_dict: dictionary containing an input tensor representing spatial features with 3D context. shape: [batch_size, in_features, z, y, x]
+        :return: batch dict with fields model.outputs and model.logits
+        """
+        if self.conv_inputs is not None:
+            conv_input = torch.cat([batch_dict[conv_input[0]] for conv_input in self.conv_inputs], dim=1)
+            global_features = self.gmp(conv_input)
+            # backward compatibility
+            if hasattr(self, "do"):
+                global_features = self.do(global_features)
+        # append global features if are used
+        if self.append_features is not None:
+            features = torch.cat(
+                [batch_dict[features[0]].reshape(-1, features[1]) for features in self.append_features], dim=1
+            )
+            features = self.append_features_module(features)
+            features = features.reshape(features.shape + (1, 1, 1))
+            if self.conv_inputs is not None:
+                global_features = torch.cat((global_features, features), dim=1)
+            else:
+                global_features = features
+        global_features = global_features.squeeze(dim=4)
+        global_features = global_features.squeeze(dim=3)
+        global_features = global_features.squeeze(dim=2)
+        prediction = self.linear(global_features).squeeze(dim=1)
+        batch_dict["model.output." + self.head_name] = prediction
 
         return batch_dict
