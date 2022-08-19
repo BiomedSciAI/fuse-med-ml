@@ -147,7 +147,6 @@ class OpFunc(OpReversibleBase):
         (OpAddSeperator, dict(inputs={'data.text_input':'text'}, outputs='data.text_input'), #
     ]
 
-
     """
 
     def __init__(self, func: Callable, **kwargs):
