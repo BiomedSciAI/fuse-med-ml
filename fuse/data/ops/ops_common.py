@@ -459,6 +459,28 @@ class OpConcat(OpBase):
         return sample_dict
 
 
+class OpStack(OpBase):
+    """
+    Concatenate list of numpy arrays along a given axis.
+    To create clinical vector that includes all the clinical information about a patient and save into "data.input.clinical" do:
+    (OpStack(), dict(keys_int=["data.input.age", "data.input.gender_one_hot", "data.input.smoking_history"], key_out="data.input_clinical", axis=0)
+    """
+
+    def __call__(
+        self, sample_dict: NDict, keys_in: Sequence[str], key_out: str, axis: int = 0
+    ) -> Union[None, dict, List[dict]]:
+        """
+        :param keys_in: sequence of keys to numpy arrays we want to stack
+        :param key_out: the key to store the stacked vector
+        :param axis: stack along the specified axis
+        """
+        values = [np.asarray(sample_dict[key_in]) for key_in in keys_in]
+        values = [v if len(v.shape) > 0 else np.expand_dims(v, axis=0) for v in values]
+        sample_dict[key_out] = np.stack(values, axis=axis)
+
+        return sample_dict
+
+
 class OpOverrideNaN(OpBase):
     """
     Override missing values (value equals to nan)
