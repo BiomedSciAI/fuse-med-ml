@@ -459,7 +459,6 @@ class OpConcat(OpBase):
         return sample_dict
 
 
-
 class OpOverrideNaN(OpBase):
     """
     Override missing values (value equals to nan)
