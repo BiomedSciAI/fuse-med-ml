@@ -78,31 +78,32 @@ class ModelWrapSeqToDict(torch.nn.Module):
             model_output = self.post_forward_processing_function(model_output)
 
         if len(self.model_outputs) == 1:
-            batch_dict["model." + self.model_outputs[0]] = model_output
+            batch_dict[self.model_outputs[0]] = model_output
         else:
             for i, output_name in enumerate(self.model_outputs):
-                batch_dict["model." + output_name] = model_output[i]
+                batch_dict[output_name] = model_output[i]
 
-        return batch_dict['model']
+        return batch_dict
 
 
 class ModelWrapDictToSeq(torch.nn.Module):
     """
-    Fuse model wrapper for wrapping torch modules and passing through Fuse
+    Fuse model wrapper for wrapping fuse pytorch model and make him be in basic format- input is tensor and output is tensor
+    The user need to provide the input and output keys of the fuse model
     """
 
-    def __init__(self, fuse_model : torch.nn.Module, output_key : str):
+    def __init__(self, fuse_model: torch.nn.Module, output_key: str, input_key: str):
         super().__init__()
         self.model = fuse_model
         self.output_key = output_key
-    def forward(self, input : torch.tensor):
-        batch_dict = NDict()
-        #find input key
-        fuse_input = self.model.conv_inputs[0][0]
-        batch_dict[fuse_input] = input
-        #feed fuse model with dict as he excpect
-        ans_ndict = self.model(batch_dict)
-        #extract model output from dict
-        output =ans_ndict['output'][self.output_key]
-        return output
+        self.input_key = input_key
 
+    def forward(self, input: torch.tensor):
+        batch_dict = NDict()
+        # find input key
+        batch_dict[self.input_key] = input
+        # feed fuse model with dict as he excpect
+        ans_ndict = self.model(batch_dict)
+        # extract model output from dict
+        output = ans_ndict[self.output_key]
+        return output
