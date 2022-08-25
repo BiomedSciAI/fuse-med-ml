@@ -1,0 +1,30 @@
+paths:
+  model_dir : vb/model_dir   
+  inference_dir : vb/model_dir/infer_dir
+  eval_dir : vb/model_dir/eval_dir
+  cache_dir : vb/cmmd_cache_dir
+  data_misc_dir : /projects/msieve_dev3/usr/Tal/my_research/baseline_cmmd/cmmd_for_virtual_biopsy/data_misc
+  data_split_filename:  cmmd_split.pkl
+train:
+  force_reset_model_dir: True
+  target : classification
+  reset_cache: False
+  num_workers : 0
+  num_folds : 5
+  train_folds : [0,1,2]
+  validation_folds : [3]
+  batch_size: 2
+  learning_rate : 1e-4
+  weight_decay :  0
+  resume_checkpoint_filename : 
+  trainer:
+    accelerator : gpu
+    devices : 1
+    num_epochs : 100
+    ckpt_path : 
+infer:
+  infer_filename : validation_set_infer.gz
+  checkpoint : best_epoch.ckpt
+  infer_folds : [4]
+  target : classification
+  num_workers : 12
