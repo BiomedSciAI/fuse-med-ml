@@ -5,7 +5,7 @@
 **Keywords: Radiology, KiTS, CT, Renal Cancer, Accelerated Discovery**
 
 ## Setup
-See https://github.com/IBM/fuse-med-ml#installation
+See https://github.com/BiomedSciAI/fuse-med-ml#installation
 
 
 ## Abstract
@@ -64,8 +64,8 @@ This example demonstrates a basic classification pipeline for the KNIGHT challen
 In this example, we extract features from the CT volumes using a 3D ResNet-18 backbone, concatenate them with available clinical features processed by a smaller fully connected network, and classify the combined features into two risk groups as defined in the 1st task of the KNIGHT challenge. 
 
 ### Steps to run the code
-0. As a preliminary step, make sure you install [FuseMedML](https://github.com/IBM/fuse-med-ml) according to the [installation instructions](https://github.com/IBM/fuse-med-ml#installation). In order to understand the basics of the library in high level, please read as a minimum this [user guide](https://github.com/IBM/fuse-med-ml/blob/master/fuse/doc/user_guide.md).  
-You can also access more documentation including code examples and tutorials from the [FuseMedML Github page](https://github.com/IBM/fuse-med-ml).
+0. As a preliminary step, make sure you install [FuseMedML](https://github.com/BiomedSciAI/fuse-med-ml) according to the [installation instructions](https://github.com/BiomedSciAI/fuse-med-ml#installation). In order to understand the basics of the library in high level, please read as a minimum this [user guide](https://github.com/BiomedSciAI/fuse-med-ml/blob/master/fuse/doc/user_guide.md).  
+You can also access more documentation including code examples and tutorials from the [FuseMedML Github page](https://github.com/BiomedSciAI/fuse-med-ml).
 1. Download the KNIGHT database from the official [KNIGHT database repository](https://github.com/neheller/KNIGHT). The KNIGHT database is strongly based on the [KiTS21 database](https://github.com/neheller/kits21). In KiTS21 the task was semantic segmentation, and there are segmentation annotations for it. You might want to benefit from them in your approach to the KNIGHT challenge and you may access them by cloning the official [KiTS21 database repository](https://github.com/neheller/kits21). But you won't need them for this example.  
 2. ```cd``` into ```KNIGHT``` and run ```python knight/scripts/get_imaging.py``` to download the imaging.
 3. Set the environment variable ```KNIGHT_DATA``` to your local path to the cloned KNIGHT database repository (which should now contain the imaging and clinical data under ```knight/data```).  
