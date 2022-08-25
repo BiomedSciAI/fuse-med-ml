@@ -69,15 +69,21 @@ debug = FuseDebug(mode)
 ##########################################
 
 NUM_GPUS = 1
-ROOT = "_examples/isic/"
-model_dir = os.path.join(ROOT, "model_dir")
+ROOT = "./_examples/isic/"
+# TEMP, the data in the env ver contains only 400 samples
+# DATA = os.environ["ISIC19_DATA_PATH"] if "ISIC19_DATA_PATH" in os.environ else os.path.join(ROOT, "data_dir")
+DATA = os.path.join("_examples/isic/", "data_dir")
+# DATA = os.environ["ISIC19_DATA_PATH"]  # use 400 samples, comment line to use all
+suffix = "_withouttabular"
+model_dir = os.path.join(ROOT, f"model_dir{suffix}")  # TODO return to "model_dir"
 PATHS = {
     "model_dir": model_dir,
     "inference_dir": os.path.join(model_dir, "infer_dir"),
     "eval_dir": os.path.join(model_dir, "eval_dir"),
-    "data_dir": os.path.join(ROOT, "data_dir"),
-    "cache_dir": os.path.join(ROOT, "cache_dir"),
-    "data_split_filename": os.path.join(ROOT, "isic_split.pkl"),
+    "data_dir": DATA,
+    # "cache_dir": os.path.join(ROOT, f"cache_dir"),
+    "cache_dir": "/tmp/sagi/_examples/isic/cache_dir_withtabular/",  # loaded cache
+    "data_split_filename": os.path.join(ROOT, f"isic_split{suffix}.pkl"),
 }
 
 ##########################################
@@ -93,12 +99,12 @@ TRAIN_COMMON_PARAMS["data.validation_num_workers"] = 8
 TRAIN_COMMON_PARAMS["data.num_folds"] = 5
 TRAIN_COMMON_PARAMS["data.train_folds"] = [0, 1, 2]
 TRAIN_COMMON_PARAMS["data.validation_folds"] = [3]
-TRAIN_COMMON_PARAMS["data.samples_ids"] = FULL_GOLDEN_MEMBERS  # Change to None to use all members
+TRAIN_COMMON_PARAMS["data.samples_ids"] = None  # Change to None to use all members
 
 # ===============
 # PL Trainer
 # ===============
-TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 20
+TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 50
 TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
 TRAIN_COMMON_PARAMS["trainer.ckpt_path"] = None
@@ -130,6 +136,9 @@ def create_model(dropout_rate: float) -> torch.nn.Module:
                 head_name="head_0",
                 dropout_rate=dropout_rate,
                 conv_inputs=[("model.backbone_features", 1536)],
+                tabular_data_inputs=[("data.input.clinical.all", 13)],
+                layers_description=(256,),
+                tabular_layers_description=(128,),
                 num_classes=8,
                 pooling="avg",
             ),
@@ -181,7 +190,13 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     for fold in train_common_params["data.validation_folds"]:
         validation_sample_ids += folds[fold]
 
-    train_dataset = ISIC.dataset(paths["data_dir"], paths["cache_dir"], samples_ids=train_sample_ids, train=True)
+    train_dataset = ISIC.dataset(
+        paths["data_dir"],
+        paths["cache_dir"],
+        samples_ids=train_sample_ids,
+        train=True,
+        num_workers=train_common_params["data.train_num_workers"],
+    )
 
     lgr.info("- Create sampler:")
     sampler = BatchSamplerDefault(

@@ -4,6 +4,7 @@ from fuse.utils.file_io.file_io import create_dir
 import wget
 from typing import Hashable, Optional, Sequence, List, Tuple
 import torch
+import numpy as np
 
 from fuse.data import DatasetDefault
 from fuse.data.ops.ops_cast import OpToTensor
@@ -13,7 +14,7 @@ from fuse.data.ops.op_base import OpBase
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuse.data.ops.ops_aug_common import OpSample
 from fuse.data.ops.ops_read import OpReadDataframe
-from fuse.data.ops.ops_common import OpLambda, OpOverrideNaN
+from fuse.data.ops.ops_common import OpLambda, OpOverrideNaN, OpConcat
 from fuseimg.data.ops.color import OpToRange
 
 from fuse.utils import NDict
@@ -22,6 +23,7 @@ from fuseimg.data.ops.image_loader import OpLoadImage
 from fuseimg.data.ops.aug.color import OpAugColor, OpAugGaussian
 from fuseimg.data.ops.aug.geometry import OpResizeTo, OpAugAffine2D
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
+from fuse.data.ops.ops_debug import OpPrintKeysContent, OpPrintTypes
 
 
 class OpISICSampleIDDecode(OpBase):
@@ -47,7 +49,7 @@ def derive_label(sample_dict: NDict) -> NDict:
         will assign, sample_dict['data.label'] = 1 ('NV's index).
         Afterwards the sample_dict won't contain the class' names & values.
     """
-    classes_names = ["MEL", "NV", "BCC", "AK", "BKL", "DF", "VASC", "SCC"]
+    classes_names = ISIC.CLASS_NAMES
 
     label = 0
     for idx, cls_name in enumerate(classes_names):
@@ -67,6 +69,18 @@ class ISIC:
     DATASET_VER = 0
 
     CLASS_NAMES = ["MEL", "NV", "BCC", "AK", "BKL", "DF", "VASC", "SCC"]
+    SEX_INDEX = {"male": 0, "female": 1, "N/A": 2}
+    ANATOM_SITE_INDEX = {
+        "anterior torso": 0,
+        "upper extremity": 1,
+        "posterior torso": 2,
+        "lower extremity": 3,
+        "lateral torso": 4,
+        "head/neck": 5,
+        "palms/soles": 6,
+        "oral/genital": 7,
+        "N/A": 8,
+    }
 
     @staticmethod
     def download(data_path: str, sample_ids_to_download: Optional[Sequence[str]] = None) -> None:
@@ -177,6 +191,23 @@ class ISIC:
                 (OpOverrideNaN(), dict(key="data.input.clinical.age_approx", value_to_fill=-1.0)),
                 # Squeeze labels into sample_dict['data.label']
                 (OpLambda(func=derive_label), dict()),
+                # Encode meta-data
+                (
+                    OpEncodeMetaData(),
+                    dict(
+                        key_site="data.input.clinical.anatom_site_general",
+                        key_sex="data.input.clinical.sex",
+                        key_age="data.input.clinical.age_approx",
+                        out_prefix="data.input.clinical.encoding",
+                    ),
+                ),
+                (
+                    OpConcat(),
+                    dict(
+                        keys_in=[f"data.input.clinical.encoding.{c}" for c in ["site", "sex", "age"]],
+                        key_out="data.input.clinical.all",
+                    ),
+                ),
             ],
         )
         return static_pipeline
@@ -229,8 +260,16 @@ class ISIC:
                 (OpAugGaussian(), dict(key="data.input.img", std=0.03)),
             ]
 
+        final = [
+            # convert to tensor for model
+            (OpToTensor(), dict(key="data.input.clinical.all", dtype=torch.float)),
+            # (OpPrintKeysContent(num_samples=1), dict(keys=None)),
+            # (OpPrintTypes(num_samples=1), dict()),
+        ]
         if append is not None:
             dynamic_pipeline += append
+
+        dynamic_pipeline += final
 
         return PipelineDefault("dynamic", dynamic_pipeline)
 
@@ -275,3 +314,42 @@ class ISIC:
 
         my_dataset.create()
         return my_dataset
+
+
+class OpEncodeMetaData(OpBase):
+    def __init__(self, items_to_encode: Optional[List[str]] = None):
+        super().__init__()
+
+        self._items_to_encode = ["site", "sex", "age"] if items_to_encode is None else items_to_encode
+
+    def __call__(self, sample_dict: NDict, key_site: str, key_sex: str, key_age: str, out_prefix: str) -> NDict:
+
+        # Encode anatom site into a one-hot vector of length 9
+        if "site" in self._items_to_encode:
+            site = sample_dict[key_site]
+            site_one_hot = np.zeros(len(ISIC.ANATOM_SITE_INDEX))
+            if site in ISIC.ANATOM_SITE_INDEX:
+                site_one_hot[ISIC.ANATOM_SITE_INDEX[site]] = 1
+
+            sample_dict[f"{out_prefix}.site"] = site_one_hot
+
+        # Encode sex into a one-hot vector of length 3
+        if "sex" in self._items_to_encode:
+            sex = sample_dict[key_sex]
+            sex_one_hot = np.zeros(len(ISIC.SEX_INDEX))
+            if sex in ISIC.SEX_INDEX:
+                sex_one_hot[ISIC.SEX_INDEX[sex]] = 1
+
+            sample_dict[f"{out_prefix}.sex"] = sex_one_hot
+
+        # Encode age into a value in (0, 1) or -1 if missing
+        if "age" in self._items_to_encode:
+            age = sample_dict[key_age]
+            if age > 0 and age < 120:
+                age_encode = np.array([age / 120.0])
+            else:
+                age_encode = np.array([-1.0])
+
+            sample_dict[f"{out_prefix}.age"] = age_encode
+
+        return sample_dict
