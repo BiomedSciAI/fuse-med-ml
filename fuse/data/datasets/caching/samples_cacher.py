@@ -186,7 +186,6 @@ class SamplesCacher:
             workers=self._workers,
             copy_to_global_storage=for_global_storage,
             verbose=1,
-            desc='caching'
         )
 
         for initial_sample_id, output_sample_ids in zip(orig_sample_ids, all_ans):
@@ -324,7 +323,7 @@ class SamplesCacher:
 
                 requiring_hdf5_keys = _object_requires_hdf5_recurse(curr_sample)
                 if len(requiring_hdf5_keys) > 0:
-                    requiring_hdf5_dict = curr_sample.get_multi(requiring_hdf5_keys, desc='samples_cacher._cache')
+                    requiring_hdf5_dict = curr_sample.get_multi(requiring_hdf5_keys)
                     requiring_hdf5_dict = requiring_hdf5_dict.flatten()
 
                     hdf5_filename = os.path.join(write_dir, output_sample_hash + ".hdf5")

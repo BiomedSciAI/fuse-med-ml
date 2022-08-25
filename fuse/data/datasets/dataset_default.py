@@ -107,7 +107,6 @@ class DatasetDefault(DatasetBase):
                 [(sid, self._static_pipeline, False) for sid in self._orig_sample_ids],
                 workers=num_workers,
                 mp_context=mp_context,
-                desc='dataset_default.sample_morphing'
             )
 
             self._output_sample_ids_info = OrderedDict()
@@ -222,7 +221,6 @@ class DatasetDefault(DatasetBase):
         workers: int = 10,
         verbose: int = 1,
         mp_context: Optional[str] = None,
-        desc: str = 'dataset_default.get_multi',
         **kwargs,
     ) -> List[Dict]:
         """
@@ -244,7 +242,6 @@ class DatasetDefault(DatasetBase):
             workers=workers,
             verbose=verbose,
             mp_context=mp_context,
-            desc=desc
         )
         return list_sample_dict
 

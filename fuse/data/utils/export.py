@@ -56,7 +56,7 @@ class ExportDataset:
             all_keys = None
 
         # read all the data
-        data = dataset.get_multi(keys=all_keys, desc='export', **dataset_get_kwargs)
+        data = dataset.get_multi(keys=all_keys, **dataset_get_kwargs)
 
         # store in dataframe
         df = pds.DataFrame()
