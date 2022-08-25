@@ -324,7 +324,7 @@ class SamplesCacher:
 
                 requiring_hdf5_keys = _object_requires_hdf5_recurse(curr_sample)
                 if len(requiring_hdf5_keys) > 0:
-                    requiring_hdf5_dict = curr_sample.get_multi(requiring_hdf5_keys, desc='samples_cacher._cache')
+                    requiring_hdf5_dict = curr_sample.get_multi(requiring_hdf5_keys)
                     requiring_hdf5_dict = requiring_hdf5_dict.flatten()
 
                     hdf5_filename = os.path.join(write_dir, output_sample_hash + ".hdf5")
