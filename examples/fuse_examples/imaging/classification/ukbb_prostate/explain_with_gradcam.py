@@ -11,6 +11,7 @@ from tqdm import tqdm
 from pqdm.processes import pqdm
 import pandas as pd
 import torch.nn as nn
+import torch
 
 def save_attention_centerpoint(pl_module, pl_trainer ,  infer_dataloader , explain: NDict) :
     if not os.path.isdir(explain['centerpoints_dir_name']):
@@ -28,6 +29,9 @@ def save_attention_centerpoint(pl_module, pl_trainer ,  infer_dataloader , expla
     try: 
         for batch in tqdm(infer_dataloader, total=len(infer_dataloader)):
             try: 
+                # if isinstance(batch['data.input.img'], list) :
+                #     batch['data.input.img'] = torch.stack(batch['data.input.img'])
+                #     batch['data.gt.classification'] = torch.stack(batch['data.gt.classification'] )
                 batch['data.input.img'] = batch['data.input.img'].to(device)
                 batch['data.gt.classification'] = batch['data.gt.classification'].to(device)
                 if explain['debug'] == True:
@@ -57,6 +61,8 @@ def save_attention_centerpoint(pl_module, pl_trainer ,  infer_dataloader , expla
             #pqdm(params , run_gradcam_on_sample, n_jobs = explain["num_workers"])
     except Exception as e:
         print(e)
+        df = pd.DataFrame(results, columns=["identifier","logit","dist", "big_point"])
+        df.to_csv("prostate_output.csv")  
         pass
     df = pd.DataFrame(results, columns=["identifier","logit","dist", "big_point"])
     df.to_csv("prostate_output.csv")   
