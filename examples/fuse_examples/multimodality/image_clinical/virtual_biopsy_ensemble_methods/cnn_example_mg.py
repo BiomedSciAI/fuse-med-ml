@@ -180,7 +180,7 @@ def run_train(paths: NDict, train: NDict):
                                   balanced_class_name=gt_label,
                                   num_balanced_classes=num_classes,
                                   batch_size=train["batch_size"],
-                                  mode=mode,
+                                  mode='exact',
                                   balanced_class_weights=[1.0 / num_classes] * num_classes if train['target'] == "subtype" else None, )
 
 
