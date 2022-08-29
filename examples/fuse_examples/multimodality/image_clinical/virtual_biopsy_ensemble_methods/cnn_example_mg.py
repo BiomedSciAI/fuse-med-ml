@@ -49,14 +49,13 @@ from fuse.eval.evaluator import EvaluatorDefault
 import torch
 import hydra
 from omegaconf import DictConfig, OmegaConf
-# assert "CMMD_DATA_PATH" in os.environ, "Expecting environment variable CMMD_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
+assert "CMMD_DATA_PATH" in os.environ, "Expecting environment variable CMMD_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
 ##########################################
 # Debug modes
 ##########################################
 mode = 'default'  # Options: 'default', 'debug'. See details in FuseDebug
 debug = FuseDebug(mode)
 ROOT_PATH = 'vb'
-CMMD_DATA_PATH = '/projects/msieve3/CMMD' # TODO: remove and provide instructions how to download the data 
 
 def update_parameters_by_task(parameters=None,task_num=1):
     if parameters is None:
@@ -295,7 +294,6 @@ def run_train(paths: NDict, train: NDict):
 @hydra.main(config_path="conf", config_name="config")
 def train_example(cfg: DictConfig) -> None:
     cfg = NDict(OmegaConf.to_container(cfg))
-    cfg["paths"]["data_dir"] = CMMD_DATA_PATH
 
     task_loop = [1,2]
     for task_num in task_loop:
@@ -396,6 +394,7 @@ def save_results_csv(infer_file,csv_path=None,files_combined_path=None):
 
 
 if __name__ == "__main__":
+    sys.argv.append("hydra.run.dir=vb")
     ##########################################
     # CNN training
     # 1) pretrain model using binary task
@@ -415,4 +414,4 @@ if __name__ == "__main__":
     for infer_inx,infer_mode in enumerate(['train','validation','test']):
         save_results_csv(os.path.join(infer_path,infer_mode+'_set_infer.gz'),
                          os.path.join(infer_path,infer_mode+'_set_infer.csv'),
-                         os.path.join('/projects/msieve_dev3/usr/Tal/my_research/baseline_cmmd/cmmd_for_virtual_biopsy/data_misc','files_combined.csv'))
+                         os.path.join(parameters['paths']['data_misc_dir'],'files_combined.csv'))

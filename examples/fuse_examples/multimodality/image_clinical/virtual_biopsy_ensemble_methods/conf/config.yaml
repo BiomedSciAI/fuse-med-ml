@@ -5,11 +5,12 @@ paths:
   cache_dir : vb/cmmd_cache_dir
   data_misc_dir : /projects/msieve_dev3/usr/Tal/my_research/baseline_cmmd/cmmd_for_virtual_biopsy/data_misc
   data_split_filename:  cmmd_split.pkl
+  data_dir : ${oc.env:CMMD_DATA_PATH}
 train:
   force_reset_model_dir: True
   target : classification
   reset_cache: False
-  num_workers : 0
+  num_workers : 24
   num_folds : 5
   train_folds : [0,1,2]
   validation_folds : [3]
