@@ -186,6 +186,7 @@ class SamplesCacher:
             workers=self._workers,
             copy_to_global_storage=for_global_storage,
             verbose=1,
+            desc='caching'
         )
 
         for initial_sample_id, output_sample_ids in zip(orig_sample_ids, all_ans):
