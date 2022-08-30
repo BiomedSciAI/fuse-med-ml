@@ -80,7 +80,7 @@ ROOT = "./_examples/isic/"
 # DATA = os.environ["ISIC19_DATA_PATH"] if "ISIC19_DATA_PATH" in os.environ else os.path.join(ROOT, "data_dir")
 DATA = os.path.join("_examples/isic/", "data_dir")
 # DATA = os.environ["ISIC19_DATA_PATH"]  # use 400 samples, comment line to use all
-experiment = "_debug"
+experiment = "onehot_aug"
 modality = "multimodality" if multimodality else "imaging"
 experiment_id = f"_{experiment}_{modality}"
 model_dir = os.path.join(ROOT, f"model_dir{experiment_id}")  # TODO return to "model_dir"
@@ -109,7 +109,7 @@ TRAIN_COMMON_PARAMS["data.validation_num_workers"] = 8
 TRAIN_COMMON_PARAMS["data.num_folds"] = 5
 TRAIN_COMMON_PARAMS["data.train_folds"] = [0, 1, 2]
 TRAIN_COMMON_PARAMS["data.validation_folds"] = [3]
-TRAIN_COMMON_PARAMS["data.samples_ids"] = {"full": None, "golden": FULL_GOLDEN_MEMBERS}["golden"]
+TRAIN_COMMON_PARAMS["data.samples_ids"] = {"full": None, "golden": FULL_GOLDEN_MEMBERS}["full"]
 
 # ===============
 # PL Trainer
