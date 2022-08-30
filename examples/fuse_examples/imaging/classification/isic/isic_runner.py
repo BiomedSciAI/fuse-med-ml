@@ -68,7 +68,7 @@ debug = FuseDebug(mode)
 # Modality
 ##########################################
 
-multimodality = False  # Set: 'False' to use only imaging, 'True' to use imaging + meta-data
+multimodality = True  # Set: 'False' to use only imaging, 'True' to use imaging + meta-data
 
 ##########################################
 # Output Paths
@@ -129,7 +129,7 @@ TRAIN_COMMON_PARAMS["opt.weight_decay"] = 1e-3
 # Model
 # ===============
 TRAIN_COMMON_PARAMS["model"] = dict(dropout_rate=0.5, 
-                            tabular_data_inputs= [("data.input.clinical.all", 13)] if multimodality else None,
+                            tabular_data_inputs= [("data.input.clinical.all", 19)] if multimodality else None,
                             tabular_layers_description = (128,) if multimodality else tuple()
                             )
 

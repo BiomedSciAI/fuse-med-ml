@@ -257,8 +257,8 @@ class ISIC:
                 # Meta-data Augmentation
                 # Drop age with prob
                 (OpAugOneHotWithProb(), dict(key="data.input.clinical.encoding.sex", prob=0.05, idx=2)),
-                # switch age class with prob
-                (OpAugOneHotWithProb(), dict(key="data.input.clinical.encoding.age", prob=0.05, mode="ranking")),
+                # switch age class with prob, except from unknowns
+                (OpAugOneHotWithProb(), dict(key="data.input.clinical.encoding.age", prob=0.05, mode="ranking", freeze_indices=[6])),
             ]
 
         final = [
@@ -387,10 +387,13 @@ class OpAugReplaceWithProb(OpBase):
 
 class OpAugOneHotWithProb(OpBase):
     """
-    Apply an augmentati
+    Apply an augmentation for an one-hot encoding vector with the following modes:
+
+    mode == "default":
+        Switch
     """
 
-    def __call__(self, sample_dict: NDict, key: str, prob: float, idx: Optional[int] = None, mode: str="default") -> NDict:
+    def __call__(self, sample_dict: NDict, key: str, prob: float, idx: Optional[int] = None, freeze_indices: List[int]=[], mode: str="default") -> NDict:
         """
         :param key: key for the one-hot vector
         :param idx: idx to be change to 1
@@ -415,14 +418,18 @@ class OpAugOneHotWithProb(OpBase):
             one_hot = sample_dict[key]
 
             if mode == "default":
+                # TODO add freeze 
                 one_hot = np.zeros_like(one_hot)
                 one_hot[idx] = 1
                 sample_dict[key] = one_hot
 
             if mode == "ranking":
                 idx = np.argmax(one_hot)  # Get the current one-hot value
+
+                if idx in freeze_indices:  # do not augment
+                    return sample_dict
                 
-                # with prob 0.5, do:
+                # with prob 0.5, do: TODO make it more beautiful :) 
                 if random.random() < 0.5:  
                     # raise rank
                     idx += 1
