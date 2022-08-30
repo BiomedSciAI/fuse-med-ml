@@ -20,7 +20,7 @@ Created on June 30, 2021
 import os
 import copy
 import logging
-from typing import OrderedDict
+from typing import OrderedDict, Any
 
 import torch
 import torch.optim as optim
@@ -65,6 +65,12 @@ mode = "default"  # Options: 'default', 'debug'. See details in FuseDebug
 debug = FuseDebug(mode)
 
 ##########################################
+# Modality
+##########################################
+
+multimodality = False  # Set: 'False' to use only imaging, 'True' to use imaging + meta-data
+
+##########################################
 # Output Paths
 ##########################################
 
@@ -74,17 +80,21 @@ ROOT = "./_examples/isic/"
 # DATA = os.environ["ISIC19_DATA_PATH"] if "ISIC19_DATA_PATH" in os.environ else os.path.join(ROOT, "data_dir")
 DATA = os.path.join("_examples/isic/", "data_dir")
 # DATA = os.environ["ISIC19_DATA_PATH"]  # use 400 samples, comment line to use all
-suffix = "_withouttabular"
-model_dir = os.path.join(ROOT, f"model_dir{suffix}")  # TODO return to "model_dir"
+experiment = "_debug"
+modality = "multimodality" if multimodality else "imaging"
+experiment_id = f"_{experiment}_{modality}"
+model_dir = os.path.join(ROOT, f"model_dir{experiment_id}")  # TODO return to "model_dir"
 PATHS = {
     "model_dir": model_dir,
     "inference_dir": os.path.join(model_dir, "infer_dir"),
     "eval_dir": os.path.join(model_dir, "eval_dir"),
     "data_dir": DATA,
     # "cache_dir": os.path.join(ROOT, f"cache_dir"),
-    "cache_dir": "/tmp/sagi/_examples/isic/cache_dir_withtabular/",  # loaded cache
-    "data_split_filename": os.path.join(ROOT, f"isic_split{suffix}.pkl"),
+    "cache_dir": "/tmp/sagi/_examples/isic/cache_dir/",  # loaded cache
+    "data_split_filename": os.path.join(ROOT, f"isic_split{experiment_id}.pkl"),
 }
+
+
 
 ##########################################
 # Train Common Params
@@ -99,12 +109,12 @@ TRAIN_COMMON_PARAMS["data.validation_num_workers"] = 8
 TRAIN_COMMON_PARAMS["data.num_folds"] = 5
 TRAIN_COMMON_PARAMS["data.train_folds"] = [0, 1, 2]
 TRAIN_COMMON_PARAMS["data.validation_folds"] = [3]
-TRAIN_COMMON_PARAMS["data.samples_ids"] = None  # Change to None to use all members
+TRAIN_COMMON_PARAMS["data.samples_ids"] = {"full": None, "golden": FULL_GOLDEN_MEMBERS}["golden"]
 
 # ===============
 # PL Trainer
 # ===============
-TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 50
+TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 2
 TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
 TRAIN_COMMON_PARAMS["trainer.ckpt_path"] = None
@@ -118,10 +128,13 @@ TRAIN_COMMON_PARAMS["opt.weight_decay"] = 1e-3
 # ===============
 # Model
 # ===============
-TRAIN_COMMON_PARAMS["model"] = dict(dropout_rate=0.5)
+TRAIN_COMMON_PARAMS["model"] = dict(dropout_rate=0.5, 
+                            tabular_data_inputs= [("data.input.clinical.all", 13)] if multimodality else None,
+                            tabular_layers_description = (128,) if multimodality else tuple()
+                            )
 
 
-def create_model(dropout_rate: float) -> torch.nn.Module:
+def create_model(dropout_rate: float, tabular_data_inputs: Any, tabular_layers_description: Any) -> torch.nn.Module:
     """
     creates the model
     """
@@ -136,9 +149,9 @@ def create_model(dropout_rate: float) -> torch.nn.Module:
                 head_name="head_0",
                 dropout_rate=dropout_rate,
                 conv_inputs=[("model.backbone_features", 1536)],
-                tabular_data_inputs=[("data.input.clinical.all", 13)],
+                tabular_data_inputs=tabular_data_inputs,
                 layers_description=(256,),
-                tabular_layers_description=(128,),
+                tabular_layers_description=tabular_layers_description,
                 num_classes=8,
                 pooling="avg",
             ),
@@ -181,6 +194,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
         output_split_filename=paths["data_split_filename"],
         keys_to_balance=["data.label"],
         nfolds=train_common_params["data.num_folds"],
+        reset_split=True,
     )
 
     train_sample_ids = []

@@ -2,9 +2,10 @@ import os
 from zipfile import ZipFile
 from fuse.utils.file_io.file_io import create_dir
 import wget
-from typing import Hashable, Optional, Sequence, List, Tuple
+from typing import Any, Hashable, Optional, Sequence, List, Tuple
 import torch
 import numpy as np
+import random
 
 from fuse.data import DatasetDefault
 from fuse.data.ops.ops_cast import OpToTensor
@@ -201,13 +202,6 @@ class ISIC:
                         out_prefix="data.input.clinical.encoding",
                     ),
                 ),
-                (
-                    OpConcat(),
-                    dict(
-                        keys_in=[f"data.input.clinical.encoding.{c}" for c in ["site", "sex", "age"]],
-                        key_out="data.input.clinical.all",
-                    ),
-                ),
             ],
         )
         return static_pipeline
@@ -234,6 +228,7 @@ class ISIC:
 
         if train:
             dynamic_pipeline += [
+                # Image Augmentation
                 # Augmentation
                 (
                     OpSample(OpAugAffine2D()),
@@ -258,12 +253,28 @@ class ISIC:
                 ),
                 # Add Gaussian noise
                 (OpAugGaussian(), dict(key="data.input.img", std=0.03)),
+
+                # Meta-data Augmentation
+                # Drop age with prob
+                (OpAugOneHotWithProb(), dict(key="data.input.clinical.encoding.sex", prob=0.05, idx=2)),
+                # switch age class with prob
+                (OpAugOneHotWithProb(), dict(key="data.input.clinical.encoding.age", prob=0.05, mode="ranking")),
             ]
 
         final = [
-            # convert to tensor for model
+
+            # concat tabular data to one vector and cast it to tensor
+            (
+                OpConcat(),
+                dict(
+                    keys_in=[f"data.input.clinical.encoding.{c}" for c in ["site", "sex", "age"]],
+                    key_out="data.input.clinical.all",
+                ),
+            ),
             (OpToTensor(), dict(key="data.input.clinical.all", dtype=torch.float)),
-            # (OpPrintKeysContent(num_samples=1), dict(keys=None)),
+
+            # DEBUG - TODO delete
+            (OpPrintKeysContent(num_samples=1), dict(keys=None)),
             # (OpPrintTypes(num_samples=1), dict()),
         ]
         if append is not None:
@@ -342,14 +353,85 @@ class OpEncodeMetaData(OpBase):
 
             sample_dict[f"{out_prefix}.sex"] = sex_one_hot
 
-        # Encode age into a value in (0, 1) or -1 if missing
+        # Encode age into one-hot vector 'u' with length 7 such that:
+        # for i in (0, ..., 5), u[i] == 1 iff age in range (20*i, 20(i+1)),
+        # and u[6] == 1 iff age has missing value (0> or 120<)
+        # for examples:
+        #   age 50 -> [0,0,1,0,0,0,0]
+        #   age 90 -> [0,0,0,0,1,0,0]
+        #   missing age -> [0,0,0,0,0,0,1]
         if "age" in self._items_to_encode:
-            age = sample_dict[key_age]
-            if age > 0 and age < 120:
-                age_encode = np.array([age / 120.0])
-            else:
-                age_encode = np.array([-1.0])
+            age = int(sample_dict[key_age])
+            age_one_hot = np.zeros(7)
 
-            sample_dict[f"{out_prefix}.age"] = age_encode
+            encode_idx = age // 20 if (age>0 and age<120) else 6
+            age_one_hot[encode_idx] = 1
+
+            sample_dict[f"{out_prefix}.age"] = age_one_hot
 
         return sample_dict
+
+
+class OpAugReplaceWithProb(OpBase):
+
+    def __call__(self, sample_dict: NDict, key: str, value: Any, prob: float) -> NDict:
+
+        if prob < 0 or prob > 1:
+            raise Exception("prob should be between 0 and 1")
+        
+        if random.random() < prob: # can also use 'pyprob' library
+            sample_dict[key] = value
+
+        return sample_dict
+
+
+class OpAugOneHotWithProb(OpBase):
+    """
+    Apply an augmentati
+    """
+
+    def __call__(self, sample_dict: NDict, key: str, prob: float, idx: Optional[int] = None, mode: str="default") -> NDict:
+        """
+        :param key: key for the one-hot vector
+        :param idx: idx to be change to 1
+        :param prob: the probability the the functionality will happen
+        :param mode: see class desc
+        """
+
+        if prob < 0 or prob > 1:
+            raise Exception("prob should be between 0 and 1")
+        
+        supported_modes = ["default", "ranking"]
+        if mode not in supported_modes:
+            raise Exception(f"mode ({mode}) should be in supported modes ({supported_modes}).")
+
+        if mode != "default" and idx is not None:
+            raise Exception("specify idx only in default mode")
+
+        if mode == "default" and idx is None:
+            raise Exception("in 'default' mode, idx must be provided.")
+        
+        if random.random() < prob: # can also use 'pyprob' library
+            one_hot = sample_dict[key]
+
+            if mode == "default":
+                one_hot = np.zeros_like(one_hot)
+                one_hot[idx] = 1
+                sample_dict[key] = one_hot
+
+            if mode == "ranking":
+                idx = np.argmax(one_hot)  # Get the current one-hot value
+                
+                # with prob 0.5, do:
+                if random.random() < 0.5:  
+                    # raise rank
+                    idx += 1
+                    idx = min(idx, len(one_hot)-1)
+                else:
+                    # decrease rank
+                    idx -= 1
+                    idx = max(idx, 0)
+
+        return sample_dict
+
+
