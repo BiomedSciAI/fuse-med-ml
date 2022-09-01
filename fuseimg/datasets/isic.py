@@ -255,7 +255,7 @@ class ISIC:
                 (OpAugGaussian(), dict(key="data.input.img", std=0.03)),
                 # Meta-data Augmentation
                 # Drop age with prob
-                (OpAugOneHotWithProb(), dict(key="data.input.clinical.encoding.sex", prob=0.05, idx=2)),
+                (OpAugOneHotWithProb(), dict(key="data.input.clinical.encoding.sex", prob=0.05, idx=2, mode="default")),
                 # switch age class with prob, except from unknowns
                 (
                     OpAugOneHotWithProb(),
