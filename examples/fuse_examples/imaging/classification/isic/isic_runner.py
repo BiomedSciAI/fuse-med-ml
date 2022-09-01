@@ -89,7 +89,7 @@ PATHS = {
     "inference_dir": os.path.join(model_dir, "infer_dir"),
     "eval_dir": os.path.join(model_dir, "eval_dir"),
     "data_dir": DATA,
-    "cache_dir": os.path.join(ROOT, f"cache_dir"),
+    "cache_dir": os.path.join(ROOT, "cache_dir"),
     "data_split_filename": os.path.join(ROOT, f"isic_split_{experiment_id}.pkl"),
 }
 

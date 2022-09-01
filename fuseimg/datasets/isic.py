@@ -328,13 +328,14 @@ class OpEncodeMetaData(OpBase):
     """
     Encode ISIC 2019 meta-data
     """
+
     def __init__(self, items_to_encode: List[str] = ["site", "sex", "age"]):
         """
         :param  items_to_encode: which items will be encoded. by default takes all the options.
         """
         super().__init__()
 
-        self._items_to_encode =  items_to_encode
+        self._items_to_encode = items_to_encode
 
     def __call__(self, sample_dict: NDict, key_site: str, key_sex: str, key_age: str, out_prefix: str) -> NDict:
         """
