@@ -82,16 +82,15 @@ DATA = os.path.join("_examples/isic/", "data_dir")
 # DATA = os.environ["ISIC19_DATA_PATH"]  # use 400 samples, comment line to use all
 experiment = "regular"
 modality = "multimodality" if multimodality else "imaging"
-experiment_id = f"_{experiment}_{modality}"
-model_dir = os.path.join(ROOT, f"model_dir{experiment_id}")  # TODO return to "model_dir"
+experiment_id = f"{experiment}_{modality}"
+model_dir = os.path.join(ROOT, f"model_dir_{experiment_id}")  # TODO return to "model_dir"
 PATHS = {
     "model_dir": model_dir,
     "inference_dir": os.path.join(model_dir, "infer_dir"),
     "eval_dir": os.path.join(model_dir, "eval_dir"),
     "data_dir": DATA,
-    # "cache_dir": os.path.join(ROOT, f"cache_dir"),
-    "cache_dir": "/tmp/sagi/_examples/isic/cache_dir/",  # loaded cache
-    "data_split_filename": os.path.join(ROOT, f"isic_split{experiment_id}.pkl"),
+    "cache_dir": os.path.join(ROOT, f"cache_dir"),
+    "data_split_filename": os.path.join(ROOT, f"isic_split_{experiment_id}.pkl"),
 }
 
 

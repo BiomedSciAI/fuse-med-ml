@@ -325,14 +325,27 @@ class ISIC:
 
 
 class OpEncodeMetaData(OpBase):
-    def __init__(self, items_to_encode: Optional[List[str]] = None):
+    """
+    Encode ISIC 2019 meta-data
+    """
+    def __init__(self, items_to_encode: List[str] = ["site", "sex", "age"]):
+        """
+        :param  items_to_encode: which items will be encoded. by default takes all the options.
+        """
         super().__init__()
 
-        self._items_to_encode = ["site", "sex", "age"] if items_to_encode is None else items_to_encode
+        self._items_to_encode =  items_to_encode
 
     def __call__(self, sample_dict: NDict, key_site: str, key_sex: str, key_age: str, out_prefix: str) -> NDict:
+        """
+        :param key_site: sample_dict's key for patient's anatom site data
+        :param key_sex: sample_dict's key for patient's sex data
+        :param key_age: sample_dict's key for patient's age data
+        :param out_prefix: the encoded data will be located in sample_dict[f"{out_prefix}.{data_type}"]
+        """
 
         # Encode anatom site into a one-hot vector of length 9
+        # 8 anatom sites and 1 for N/A
         if "site" in self._items_to_encode:
             site = sample_dict[key_site]
             site_one_hot = np.zeros(len(ISIC.ANATOM_SITE_INDEX))
@@ -342,6 +355,7 @@ class OpEncodeMetaData(OpBase):
             sample_dict[f"{out_prefix}.site"] = site_one_hot
 
         # Encode sex into a one-hot vector of length 3
+        # male, famale, N/A
         if "sex" in self._items_to_encode:
             sex = sample_dict[key_sex]
             sex_one_hot = np.zeros(len(ISIC.SEX_INDEX))
