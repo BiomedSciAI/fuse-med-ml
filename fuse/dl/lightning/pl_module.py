@@ -126,7 +126,7 @@ class LightningModuleDefault(pl.LightningModule):
     ## Epoch end
     def training_epoch_end(self, step_outputs) -> None:
         # for the logs to be at each epoch, not each step
-        self.log("step", self.current_epoch, on_epoch=True)
+        self.log("step", self.current_epoch, on_epoch=True, sync_dist=True)
         # calc average epoch loss and log it
         epoch_end_compute_and_log_losses(self, "train", [e["losses"] for e in step_outputs])
         # evaluate  and log it
@@ -134,7 +134,7 @@ class LightningModuleDefault(pl.LightningModule):
 
     def validation_epoch_end(self, step_outputs) -> None:
         # for the logs to be at each epoch, not each step
-        self.log("step", self.current_epoch, on_epoch=True)
+        self.log("step", self.current_epoch, on_epoch=True, sync_dist=True)
         # calc average epoch loss and log it
         epoch_end_compute_and_log_losses(self, "validation", [e["losses"] for e in step_outputs])
         # evaluate  and log it
@@ -142,7 +142,7 @@ class LightningModuleDefault(pl.LightningModule):
 
     def test_epoch_end(self, step_outputs) -> None:
         # for the logs to be at each epoch, not each step
-        self.log("step", self.current_epoch, on_epoch=True)
+        self.log("step", self.current_epoch, on_epoch=True, sync_dist=True)
         # calc average epoch loss and log it
         epoch_end_compute_and_log_losses(self, "test", [e["losses"] for e in step_outputs])
         # evaluate  and log it

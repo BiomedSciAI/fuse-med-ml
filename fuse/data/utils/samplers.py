@@ -21,7 +21,8 @@ import math
 from typing import Any, List, Optional, Union
 
 import numpy as np
-from torch.utils.data.sampler import Sampler
+from torch.utils.data.sampler import Sampler, BatchSampler
+# from torchnlp.samplers.distributed_sampler import DistributedSampler
 
 from fuse.data.datasets.dataset_base import DatasetBase
 
@@ -68,6 +69,8 @@ class BatchSamplerDefault(Sampler):
         self._balanced_class_name = balanced_class_name
         self._num_balanced_classes = num_balanced_classes
         self._batch_size = batch_size
+        self.batch_size = batch_size  # temp sagi
+        self.drop_last = False  # temp sagi
         self._balanced_class_weights = balanced_class_weights
         self._num_batches = num_batches
         self._dataset_get_multi_kwargs = dataset_get_multi_kwargs
@@ -238,3 +241,26 @@ class BatchSamplerDefault(Sampler):
         assert len(collected_data) > 0, "Error: sampling failed, dataset size is 0"
         balanced_classes = [sample[self._balanced_class_name] for sample in collected_data]
         return np.array(balanced_classes)
+
+
+class FuseBatchSampler(BatchSampler):
+    
+    def __init__(self, sampler: BatchSamplerDefault, batch_size: int, drop_last: bool):
+        """
+        
+        """
+        self.sampler = sampler
+        self.batch_size = batch_size
+        self.drop_last = drop_last
+
+
+    def __iter__(self):
+        return iter(self.sampler)
+
+    def __len__(self):
+        return len(self.sampler)
+
+
+
+class FuseSampler(Sampler):
+    pass
