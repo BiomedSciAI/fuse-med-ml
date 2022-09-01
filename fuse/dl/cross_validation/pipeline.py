@@ -15,6 +15,7 @@ from fuse.utils.file_io.file_io import create_or_reset_dir
 from fuse.utils.rand.seed import Seed
 from fuse.data import DatasetDefault
 import torch
+import time
 
 def ensemble(test_dirs, test_infer_filename, ensembled_output_file):
     ensembled_output_dir = os.path.dirname(ensembled_output_file)
@@ -44,10 +45,10 @@ def ensemble(test_dirs, test_infer_filename, ensembled_output_file):
 
 
 def runner_wrapper(q_resources, rep_index, deterministic_mode, fs, *f_args, **f_kwargs):
-    _ = Seed.set_seed(rep_index, deterministic_mode=deterministic_mode)
     resource = q_resources.get()
     print(f"Using GPUs: {resource}")
     FuseUtilsGPU.choose_and_enable_multiple_gpus(len(resource), force_gpus=list(resource))
+    _ = Seed.set_seed(rep_index, deterministic_mode=deterministic_mode)
     if isinstance(fs, Sequence):
         for f, prev_arg, last_arg in zip(fs, f_args[-2], f_args[-1]):
             f(*(f_args[:-2] + (prev_arg,) + (last_arg,)), **f_kwargs)
