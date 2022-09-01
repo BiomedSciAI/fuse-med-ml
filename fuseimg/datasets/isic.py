@@ -24,7 +24,6 @@ from fuseimg.data.ops.image_loader import OpLoadImage
 from fuseimg.data.ops.aug.color import OpAugColor, OpAugGaussian
 from fuseimg.data.ops.aug.geometry import OpResizeTo, OpAugAffine2D
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
-from fuse.data.ops.ops_debug import OpPrintKeysContent, OpPrintTypes
 
 
 class OpISICSampleIDDecode(OpBase):
@@ -253,16 +252,17 @@ class ISIC:
                 ),
                 # Add Gaussian noise
                 (OpAugGaussian(), dict(key="data.input.img", std=0.03)),
-
                 # Meta-data Augmentation
                 # Drop age with prob
                 (OpAugOneHotWithProb(), dict(key="data.input.clinical.encoding.sex", prob=0.05, idx=2)),
                 # switch age class with prob, except from unknowns
-                (OpAugOneHotWithProb(), dict(key="data.input.clinical.encoding.age", prob=0.05, mode="ranking", freeze_indices=[6])),
+                (
+                    OpAugOneHotWithProb(),
+                    dict(key="data.input.clinical.encoding.age", prob=0.05, mode="ranking", freeze_indices=[6]),
+                ),
             ]
 
         final = [
-
             # concat tabular data to one vector and cast it to tensor
             (
                 OpConcat(),
@@ -272,11 +272,8 @@ class ISIC:
                 ),
             ),
             (OpToTensor(), dict(key="data.input.clinical.all", dtype=torch.float)),
-
-            # DEBUG - TODO delete
-            (OpPrintKeysContent(num_samples=1), dict(keys=None)),
-            # (OpPrintTypes(num_samples=1), dict()),
         ]
+
         if append is not None:
             dynamic_pipeline += append
 
@@ -364,7 +361,7 @@ class OpEncodeMetaData(OpBase):
             age = int(sample_dict[key_age])
             age_one_hot = np.zeros(7)
 
-            encode_idx = age // 20 if (age>0 and age<120) else 6
+            encode_idx = age // 20 if (age > 0 and age < 120) else 6
             age_one_hot[encode_idx] = 1
 
             sample_dict[f"{out_prefix}.age"] = age_one_hot
@@ -373,13 +370,12 @@ class OpEncodeMetaData(OpBase):
 
 
 class OpAugReplaceWithProb(OpBase):
-
     def __call__(self, sample_dict: NDict, key: str, value: Any, prob: float) -> NDict:
 
         if prob < 0 or prob > 1:
             raise Exception("prob should be between 0 and 1")
-        
-        if random.random() < prob: # can also use 'pyprob' library
+
+        if random.random() < prob:  # can also use 'pyprob' library
             sample_dict[key] = value
 
         return sample_dict
@@ -393,7 +389,15 @@ class OpAugOneHotWithProb(OpBase):
         Switch
     """
 
-    def __call__(self, sample_dict: NDict, key: str, prob: float, idx: Optional[int] = None, freeze_indices: List[int]=[], mode: str="default") -> NDict:
+    def __call__(
+        self,
+        sample_dict: NDict,
+        key: str,
+        prob: float,
+        idx: Optional[int] = None,
+        freeze_indices: List[int] = [],
+        mode: str = "default",
+    ) -> NDict:
         """
         :param key: key for the one-hot vector
         :param idx: idx to be change to 1
@@ -403,7 +407,7 @@ class OpAugOneHotWithProb(OpBase):
 
         if prob < 0 or prob > 1:
             raise Exception("prob should be between 0 and 1")
-        
+
         supported_modes = ["default", "ranking"]
         if mode not in supported_modes:
             raise Exception(f"mode ({mode}) should be in supported modes ({supported_modes}).")
@@ -413,12 +417,12 @@ class OpAugOneHotWithProb(OpBase):
 
         if mode == "default" and idx is None:
             raise Exception("in 'default' mode, idx must be provided.")
-        
-        if random.random() < prob: # can also use 'pyprob' library
+
+        if random.random() < prob:  # can also use 'pyprob' library
             one_hot = sample_dict[key]
 
             if mode == "default":
-                # TODO add freeze 
+                # TODO add freeze
                 one_hot = np.zeros_like(one_hot)
                 one_hot[idx] = 1
                 sample_dict[key] = one_hot
@@ -428,17 +432,15 @@ class OpAugOneHotWithProb(OpBase):
 
                 if idx in freeze_indices:  # do not augment
                     return sample_dict
-                
-                # with prob 0.5, do: TODO make it more beautiful :) 
-                if random.random() < 0.5:  
+
+                # with prob 0.5, do: TODO make it more beautiful :)
+                if random.random() < 0.5:
                     # raise rank
                     idx += 1
-                    idx = min(idx, len(one_hot)-1)
+                    idx = min(idx, len(one_hot) - 1)
                 else:
                     # decrease rank
                     idx -= 1
                     idx = max(idx, 0)
 
         return sample_dict
-
-

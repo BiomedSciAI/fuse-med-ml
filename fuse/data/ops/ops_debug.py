@@ -121,7 +121,7 @@ class OpPrintTypes(OpDebugBase):
         for key in sample_dict.keypaths():
             value = sample_dict[key]
             if isinstance(value, torch.Tensor) or isinstance(value, numpy.ndarray):
-                print(f"\t{key} - {type(value).__name__}, with dtype: {value.dtype}")
+                print(f"\t{key} - {type(value).__name__} with dtype: {value.dtype}")
             else:
                 print(f"\t{key} - {type(value).__name__}")
 

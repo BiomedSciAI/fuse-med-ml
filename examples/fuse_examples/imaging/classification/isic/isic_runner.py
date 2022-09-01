@@ -20,7 +20,7 @@ Created on June 30, 2021
 import os
 import copy
 import logging
-from typing import OrderedDict, Any
+from typing import OrderedDict, Sequence, Tuple
 
 import torch
 import torch.optim as optim
@@ -68,7 +68,7 @@ debug = FuseDebug(mode)
 # Modality
 ##########################################
 
-multimodality = True  # Set: 'False' to use only imaging, 'True' to use imaging + meta-data
+multimodality = False  # Set: 'False' to use only imaging, 'True' to use imaging + meta-data
 
 ##########################################
 # Output Paths
@@ -80,7 +80,7 @@ ROOT = "./_examples/isic/"
 # DATA = os.environ["ISIC19_DATA_PATH"] if "ISIC19_DATA_PATH" in os.environ else os.path.join(ROOT, "data_dir")
 DATA = os.path.join("_examples/isic/", "data_dir")
 # DATA = os.environ["ISIC19_DATA_PATH"]  # use 400 samples, comment line to use all
-experiment = "onehot_aug"
+experiment = "regular"
 modality = "multimodality" if multimodality else "imaging"
 experiment_id = f"_{experiment}_{modality}"
 model_dir = os.path.join(ROOT, f"model_dir{experiment_id}")  # TODO return to "model_dir"
@@ -93,7 +93,6 @@ PATHS = {
     "cache_dir": "/tmp/sagi/_examples/isic/cache_dir/",  # loaded cache
     "data_split_filename": os.path.join(ROOT, f"isic_split{experiment_id}.pkl"),
 }
-
 
 
 ##########################################
@@ -109,12 +108,12 @@ TRAIN_COMMON_PARAMS["data.validation_num_workers"] = 8
 TRAIN_COMMON_PARAMS["data.num_folds"] = 5
 TRAIN_COMMON_PARAMS["data.train_folds"] = [0, 1, 2]
 TRAIN_COMMON_PARAMS["data.validation_folds"] = [3]
-TRAIN_COMMON_PARAMS["data.samples_ids"] = {"full": None, "golden": FULL_GOLDEN_MEMBERS}["full"]
+TRAIN_COMMON_PARAMS["data.samples_ids"] = {"all": None, "golden": FULL_GOLDEN_MEMBERS}["all"]
 
 # ===============
 # PL Trainer
 # ===============
-TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 2
+TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 10
 TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
 TRAIN_COMMON_PARAMS["trainer.ckpt_path"] = None
@@ -128,13 +127,20 @@ TRAIN_COMMON_PARAMS["opt.weight_decay"] = 1e-3
 # ===============
 # Model
 # ===============
-TRAIN_COMMON_PARAMS["model"] = dict(dropout_rate=0.5, 
-                            tabular_data_inputs= [("data.input.clinical.all", 19)] if multimodality else None,
-                            tabular_layers_description = (128,) if multimodality else tuple()
-                            )
+TRAIN_COMMON_PARAMS["model"] = dict(
+    dropout_rate=0.5,
+    layers_description=(256,),
+    tabular_data_inputs=[("data.input.clinical.all", 19)] if multimodality else None,
+    tabular_layers_description=(128,) if multimodality else tuple(),
+)
 
 
-def create_model(dropout_rate: float, tabular_data_inputs: Any, tabular_layers_description: Any) -> torch.nn.Module:
+def create_model(
+    dropout_rate: float,
+    layers_description: Sequence[int],
+    tabular_data_inputs: Sequence[Tuple[str, int]],
+    tabular_layers_description: Sequence[int],
+) -> torch.nn.Module:
     """
     creates the model
     """
@@ -150,7 +156,7 @@ def create_model(dropout_rate: float, tabular_data_inputs: Any, tabular_layers_d
                 dropout_rate=dropout_rate,
                 conv_inputs=[("model.backbone_features", 1536)],
                 tabular_data_inputs=tabular_data_inputs,
-                layers_description=(256,),
+                layers_description=layers_description,
                 tabular_layers_description=tabular_layers_description,
                 num_classes=8,
                 pooling="avg",

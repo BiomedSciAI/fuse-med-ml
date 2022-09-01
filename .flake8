@@ -26,6 +26,9 @@ ignore =
 
 # Files to exclude:
 exclude =
+    # local private runs
+    _examples
+    
     # TEMP - ignore all tests
     test_*
 
