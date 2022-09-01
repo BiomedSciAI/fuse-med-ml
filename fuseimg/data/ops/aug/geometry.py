@@ -49,6 +49,8 @@ class OpAugAffine2D(OpBase):
         :param interpolation: used PIL interpolation method see TTF.affine for details.
         :return: the augmented image
         """
+        if key not in sample_dict:
+            return sample_dict
         aug_input = sample_dict[key]
 
         # verify
@@ -191,6 +193,8 @@ class OpAugSqueeze3Dto2D(OpBase):
         :param key: key to a tensor stored in sample_dict: 3D tensor representing an image to augment, shape [num_channels, spatial axis 1, spatial axis 2, spatial axis 3]
         :param axis_squeeze: the axis (1, 2 or 3) to squeeze into channel dimension - typically z axis
         """
+        if key not in sample_dict:
+            return sample_dict
         aug_input = sample_dict[key]
 
         # verify
@@ -238,6 +242,9 @@ class OpAugUnsqueeze3DFrom2D(OpBase):
         :param axis_squeeze: axis squeeze as specified in OpAugSqueeze3Dto2D
         :param channels: number of channels in the original tensor (before OpAugSqueeze3Dto2D)
         """
+        if key not in sample_dict:
+            return sample_dict
+
         aug_input = sample_dict[key]
 
         # verify
