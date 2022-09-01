@@ -52,7 +52,7 @@ def run_isic(root: str) -> None:
     }
 
     train_common_params = TRAIN_COMMON_PARAMS
-    train_common_params["trainer.num_epochs"] = 2
+    train_common_params["trainer.num_epochs"] = 1
     train_common_params["samples_ids"] = FULL_GOLDEN_MEMBERS
 
     infer_common_params = INFER_COMMON_PARAMS

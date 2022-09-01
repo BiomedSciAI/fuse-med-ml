@@ -14,7 +14,7 @@ class OpAugOneHotWithProb(OpBase):
 
     mode == "default":
         replace the current one-hot encoding idx with a given one.
-        
+
         example:
             (OpAugOneHotWithProb(), dict(key="data.input.clinical.encoding.sex", prob=0.05, idx=2, mode="default")),
             will change the one-hot idx to 2 with probability of 0.05.
@@ -62,7 +62,6 @@ class OpAugOneHotWithProb(OpBase):
             one_hot = sample_dict[key]
             one_hot = np.zeros_like(one_hot)
 
-
             if mode == "ranking":
                 idx = np.argmax(one_hot)  # Get the current one-hot value
 
@@ -70,7 +69,7 @@ class OpAugOneHotWithProb(OpBase):
                     return sample_dict
 
                 # idx +- 1 with probability of 0.5
-                idx = (idx+1) if random.random() < 0.5 else (idx-1)
+                idx = (idx + 1) if random.random() < 0.5 else (idx - 1)
 
                 # make sure idx in range
                 idx = max(idx, 0)
@@ -79,7 +78,6 @@ class OpAugOneHotWithProb(OpBase):
             # set one-hot
             one_hot[idx] = 1
             sample_dict[key] = one_hot
-
 
         return sample_dict
 

@@ -2,10 +2,9 @@ import os
 from zipfile import ZipFile
 from fuse.utils.file_io.file_io import create_dir
 import wget
-from typing import Any, Hashable, Optional, Sequence, List, Tuple
+from typing import Hashable, Optional, Sequence, List, Tuple
 import torch
 import numpy as np
-import random
 
 from fuse.data import DatasetDefault
 from fuse.data.ops.ops_cast import OpToTensor
