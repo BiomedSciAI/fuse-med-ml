@@ -76,14 +76,13 @@ multimodality = False  # Set: 'False' to use only imaging, 'True' to use imaging
 
 NUM_GPUS = 1
 ROOT = "./_examples/isic/"
-# TEMP, the data in the env ver contains only 400 samples
+# TEMP, the data in the env ver contains only 400 samples - TODO fix it
 # DATA = os.environ["ISIC19_DATA_PATH"] if "ISIC19_DATA_PATH" in os.environ else os.path.join(ROOT, "data_dir")
-DATA = os.path.join("_examples/isic/", "data_dir")
-# DATA = os.environ["ISIC19_DATA_PATH"]  # use 400 samples, comment line to use all
+DATA = os.path.join(ROOT, "data_dir")
 experiment = "regular"
 modality = "multimodality" if multimodality else "imaging"
 experiment_id = f"{experiment}_{modality}"
-model_dir = os.path.join(ROOT, f"model_dir_{experiment_id}")  # TODO return to "model_dir"
+model_dir = os.path.join(ROOT, f"model_dir_{experiment_id}")
 PATHS = {
     "model_dir": model_dir,
     "inference_dir": os.path.join(model_dir, "infer_dir"),
