@@ -17,13 +17,10 @@ Created on June 30, 2021
 
 """
 
-from typing import Dict, Tuple, Sequence, Optional
-
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+from typing import Dict, Tuple, Sequence
 
-from fuse.dl.models.heads.common import ClassifierFCN, ClassifierMLP
 from fuse.utils.ndict import NDict
 
 
@@ -33,7 +30,6 @@ class HeadGeneric(nn.Module):
         head: torch.nn.Module,
         head_name: str = "head_0",
         conv_inputs: Sequence[Tuple[str, int]] = None,
-        dropout_rate: float = 0.1,
     ) -> None:
         """
 
@@ -50,11 +46,13 @@ class HeadGeneric(nn.Module):
         super().__init__()
 
         self.head_name = head_name
-        assert conv_inputs is not None, "conv_inputs must be provided"
         self.conv_inputs = conv_inputs
         self.head = head
 
     def forward(self, batch_dict: NDict) -> Dict:
+        """
+        Forward pass
+        """
         res = torch.cat([batch_dict[conv_input[0]] for conv_input in self.conv_inputs])
 
         out = self.head(res)
