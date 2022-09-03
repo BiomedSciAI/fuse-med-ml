@@ -35,7 +35,7 @@ class ModelMultiHead(torch.nn.Module):
         heads: Sequence[torch.nn.Module],
         conv_inputs: Tuple[Tuple[str, int], ...] = None,
         backbone_args: Tuple[Tuple[str, int], ...] = None,
-        key_out_features: str = "model.backbone_features"
+        key_out_features: str = "model.backbone_features",
     ) -> None:
         """
         Default Fuse model - convolutional neural network with multiple heads
