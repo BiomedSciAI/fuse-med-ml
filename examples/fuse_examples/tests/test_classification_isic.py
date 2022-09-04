@@ -50,6 +50,9 @@ def run_isic(root: str) -> None:
         "data_split_filename": os.path.join(root, "split.pkl"),
     }
 
+    dd = paths["data_dir"]
+    print(f"data_dir={dd}")
+
     train_common_params = TRAIN_COMMON_PARAMS
     train_common_params["trainer.num_epochs"] = 1
     train_common_params["samples_ids"] = FULL_GOLDEN_MEMBERS
