@@ -65,31 +65,33 @@ mode = "default"  # Options: 'default', 'debug'. See details in FuseDebug
 debug = FuseDebug(mode)
 
 ##########################################
+# GPUs
+##########################################
+
+NUM_GPUS = 1
+
+##########################################
 # Modality
 ##########################################
 
-multimodality = True  # Set: 'False' to use only imaging, 'True' to use imaging + meta-data
+multimodality = True  # Set: 'False' to use only imaging, 'True' to use imaging & meta-data
 
 ##########################################
 # Output Paths
 ##########################################
 
-NUM_GPUS = 1
+
 ROOT = "./_examples/isic/"
-# TEMP, the data in the env ver contains only 400 samples - TODO fix it
-# DATA = os.environ["ISIC19_DATA_PATH"] if "ISIC19_DATA_PATH" in os.environ else os.path.join(ROOT, "data_dir")
 DATA = os.path.join(ROOT, "data_dir")
-experiment = "regular"
 modality = "multimodality" if multimodality else "imaging"
-experiment_id = f"{experiment}_{modality}"
-model_dir = os.path.join(ROOT, f"model_dir_{experiment_id}")
+model_dir = os.path.join(ROOT, f"model_dir_{modality}")
 PATHS = {
     "model_dir": model_dir,
     "inference_dir": os.path.join(model_dir, "infer_dir"),
     "eval_dir": os.path.join(model_dir, "eval_dir"),
     "data_dir": DATA,
     "cache_dir": os.path.join(ROOT, "cache_dir"),
-    "data_split_filename": os.path.join(ROOT, f"isic_split_{experiment_id}.pkl"),
+    "data_split_filename": os.path.join(ROOT, "isic_split.pkl"),
 }
 
 
