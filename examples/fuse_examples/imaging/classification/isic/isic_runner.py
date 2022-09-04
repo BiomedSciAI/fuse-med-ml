@@ -68,7 +68,7 @@ debug = FuseDebug(mode)
 # Modality
 ##########################################
 
-multimodality = False  # Set: 'False' to use only imaging, 'True' to use imaging + meta-data
+multimodality = True  # Set: 'False' to use only imaging, 'True' to use imaging + meta-data
 
 ##########################################
 # Output Paths

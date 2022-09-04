@@ -30,7 +30,6 @@ from fuse_examples.imaging.classification.isic.isic_runner import (
     run_train,
     run_infer,
     run_eval,
-    PATHS,
 )
 from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS
 
