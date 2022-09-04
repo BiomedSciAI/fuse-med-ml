@@ -58,6 +58,7 @@ def run_isic(root: str) -> None:
     train_common_params["samples_ids"] = FULL_GOLDEN_MEMBERS
 
     infer_common_params = INFER_COMMON_PARAMS
+    
     eval_common_params = EVAL_COMMON_PARAMS
 
     # Must use GPU due a long running time
