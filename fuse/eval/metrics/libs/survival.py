@@ -12,4 +12,4 @@ class MetricsSurvival:
         :param event_observed: Optioal- a length-n iterable censoring flags, 1 if observed, 0 if not. Default None assumes all observed.
         :return c-index (concordance index) score
         """
-        return concordance_index(pred,target,event_observed)
+        return concordance_index(target, pred, event_observed)
