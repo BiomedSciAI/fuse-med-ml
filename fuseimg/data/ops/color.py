@@ -62,9 +62,6 @@ class OpNormalizeAgainstSelf(OpBase):
         super().__init__(**kwargs)
 
     def __call__(self, sample_dict: NDict, key: str):
-        if key not in sample_dict:
-            return sample_dict
-
         img = sample_dict[key]
         sample_dict[key] = img / img.max()
 

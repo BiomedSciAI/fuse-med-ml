@@ -78,9 +78,6 @@ class OpSelectSlice(OpBase):
         """
         :param slice_idx: the index of the selected slice from the 1st dimmention of an input tensor
         """
-        if key not in sample_dict:
-            return sample_dict
-
         img = sample_dict[key]
         if len(img.shape) < 3:
             return sample_dict

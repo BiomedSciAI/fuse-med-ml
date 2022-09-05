@@ -155,11 +155,10 @@ class OpCast(OpReversibleBase):
             keys = key
 
         for key_name in keys:
-            if key_name in sample_dict:
-                value = sample_dict[key_name]
-                sample_dict[f"{op_id}_{key_name}"] = type(value).__name__
-                value = self._cast(value, **kwargs)
-                sample_dict[key_name] = value
+            value = sample_dict[key_name]
+            sample_dict[f"{op_id}_{key_name}"] = type(value).__name__
+            value = self._cast(value, **kwargs)
+            sample_dict[key_name] = value
 
         return sample_dict
 
