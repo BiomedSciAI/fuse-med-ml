@@ -29,7 +29,7 @@ from fuse.eval.metrics.libs.survival import MetricsSurvival
 
 class MetricCIndex(MetricMultiClassDefault):
     """
-    Compute auc roc (Receiver operating characteristic) score using sklearn (one vs rest)
+    Compute c-index (concordance index) score using lifelines
     """
 
     def __init__(
@@ -42,8 +42,7 @@ class MetricCIndex(MetricMultiClassDefault):
     ):
         """
         See MetricMultiClassDefault for the missing params
-        :param max_fpr: float > 0 and <= 1, default=None
-                        If not ``None``, the standardized partial AUC over the range [0, max_fpr] is returned.
+        :param event_observed:  a length-n iterable censoring flags, 1 if observed, 0 if not. Default None assumes all observed.
         """
         c_index = partial(MetricsSurvival.c_index, event_observed=event_observed)
         super().__init__(pred, target, metric_func=c_index, class_names=class_names, **kwargs)
