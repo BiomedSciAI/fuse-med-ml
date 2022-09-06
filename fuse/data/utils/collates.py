@@ -40,6 +40,7 @@ class CollateDefault(CollateToBatchList):
     def __init__(
         self,
         skip_keys: Sequence[str] = tuple(),
+        keep_keys: Sequence[str] = tuple(),
         raise_error_key_missing: bool = True,
         special_handlers_keys: Dict[str, Callable] = None,
     ):
@@ -54,6 +55,7 @@ class CollateDefault(CollateToBatchList):
         if special_handlers_keys is not None:
             self._special_handlers_keys.update(special_handlers_keys)
         self._special_handlers_keys[get_sample_id_key()] = CollateDefault.just_collect_to_list
+        self._keep_keys = keep_keys
 
     def __call__(self, samples: List[Dict]) -> Dict:
         """
@@ -65,7 +67,8 @@ class CollateDefault(CollateToBatchList):
 
         # collect all keys
         keys = self._collect_all_keys(samples)
-
+        if self._keep_keys:
+            keys = [k for k in keys if k in self._keep_keys]
         # collect values
         for key in keys:
 
