@@ -26,6 +26,7 @@ from collections import OrderedDict
 
 import pandas as pd
 import numpy as np
+from fuse.eval.metrics.survival.metrics_survival import MetricCIndex
 
 from fuse.utils import set_seed
 
@@ -705,5 +706,27 @@ def example_13() -> Dict:
     results = evaluator.eval(
         ids=None, data=data, metrics=metrics
     )  # ids == None -> run evaluation on all available samples
+
+    return results
+
+def example_14():
+    """
+    General group analysis example - compute the AUC for each group separately.
+    In this case the grouping is done according to gender
+    """
+    data = {
+        "pred": [0.1, 0.2, 0.6, 0.7, 0.8, 0.3, 0.6, 0.2, 0.7, 0.9],
+        "target": [0, 0, 1, 1, 1, 0, 0, 1, 1, 1],
+        "id": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+        "gender": ["female", "female", "female", "female", "female", "male", "male", "male", "male", "male"],
+    }
+    data = pd.DataFrame(data)
+
+    metrics = OrderedDict(
+        [("cindex_per_group", GroupAnalysis(MetricCIndex(pred="pred", target="target"), group="gender"))]
+    )
+
+    evaluator = EvaluatorDefault()
+    results = evaluator.eval(ids=None, data=data, metrics=metrics)
 
     return results
