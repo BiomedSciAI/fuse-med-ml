@@ -12,11 +12,11 @@ from fuse.data.utils.sample import get_sample_id
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.ops.op_base import OpBase
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
-from fuse.data.ops.ops_aug_common import OpSample
+from fuse.data.ops.ops_aug_common import OpSample, OpRandApply
 from fuse.data.ops.ops_read import OpReadDataframe
 from fuse.data.ops.ops_common import OpLambda, OpOverrideNaN, OpConcat
 from fuseimg.data.ops.color import OpToRange
-from fuse.data.ops.ops_aug_tabular import OpAugOneHotWithProb
+from fuse.data.ops.ops_aug_tabular import OpAugOneHot
 
 from fuse.utils import NDict
 
@@ -254,11 +254,14 @@ class ISIC:
                 (OpAugGaussian(), dict(key="data.input.img", std=0.03)),
                 # Meta-data Augmentation
                 # Drop age with prob
-                (OpAugOneHotWithProb(), dict(key="data.input.clinical.encoding.sex", prob=0.05, idx=2, mode="default")),
+                (
+                    OpRandApply(OpAugOneHot(), probability=0.05),
+                    dict(key="data.input.clinical.encoding.sex", idx=2, mode="default"),
+                ),
                 # switch age class with prob, except from unknowns
                 (
-                    OpAugOneHotWithProb(),
-                    dict(key="data.input.clinical.encoding.age", prob=0.05, mode="ranking", freeze_indices=[6]),
+                    OpRandApply(OpAugOneHot(), probability=0.05),
+                    dict(key="data.input.clinical.encoding.age", mode="ranking", freeze_indices=[6]),
                 ),
             ]
 

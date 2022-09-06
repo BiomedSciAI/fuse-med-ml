@@ -7,7 +7,7 @@ from fuse.data.ops.op_base import OpBase
 from fuse.utils import NDict
 
 
-class OpAugOneHotWithProb(OpBase):
+class OpAugOneHot(OpBase):
     """
     Apply an augmentation for an one-hot encoding vector with given probability.
     Op supports the following modes:
@@ -32,7 +32,6 @@ class OpAugOneHotWithProb(OpBase):
         self,
         sample_dict: NDict,
         key: str,
-        prob: float,
         idx: Optional[int] = None,
         freeze_indices: Sequence[int] = [],
         mode: str = "default",
@@ -45,9 +44,6 @@ class OpAugOneHotWithProb(OpBase):
         :param mode: see class desc
         """
 
-        if prob < 0 or prob > 1:
-            raise Exception("prob should be between 0 and 1")
-
         supported_modes = ["default", "ranking"]
         if mode not in supported_modes:
             raise Exception(f"mode ({mode}) should be in supported modes ({supported_modes}).")
@@ -58,26 +54,25 @@ class OpAugOneHotWithProb(OpBase):
         if mode == "default" and idx is None:
             raise Exception("in 'default' mode, idx must be provided.")
 
-        if random.random() < prob:  # can also use 'pyprob' library
-            one_hot = sample_dict[key]
-            one_hot = np.zeros_like(one_hot)
+        one_hot = sample_dict[key]
+        res_one_hot = np.zeros_like(one_hot)
 
-            if mode == "ranking":
-                idx = np.argmax(one_hot)  # Get the current one-hot value
+        if mode == "ranking":
+            idx = np.argmax(one_hot)  # Get the current one-hot value
 
-                if idx in freeze_indices:  # do not augment
-                    return sample_dict
+            if idx in freeze_indices:  # do not augment
+                return sample_dict
 
-                # idx +- 1 with probability of 0.5
-                idx = (idx + 1) if random.random() < 0.5 else (idx - 1)
+            # idx +- 1 with probability of 0.5
+            idx = (idx + 1) if random.random() < 0.5 else (idx - 1)
 
-                # make sure idx in range
-                idx = max(idx, 0)
-                idx = min(idx, len(one_hot) - 1)
+        # make sure idx in range
+        idx = max(idx, 0)
+        idx = min(idx, len(one_hot) - 1)
 
-            # set one-hot
-            one_hot[idx] = 1
-            sample_dict[key] = one_hot
+        # set one-hot
+        res_one_hot[idx] = 1
+        sample_dict[key] = one_hot
 
         return sample_dict
 
