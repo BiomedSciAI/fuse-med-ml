@@ -84,3 +84,26 @@ class ModelWrapSeqToDict(torch.nn.Module):
                 batch_dict[output_name] = model_output[i]
 
         return batch_dict
+
+
+class ModelWrapDictToSeq(torch.nn.Module):
+    """
+    Fuse model wrapper for wrapping fuse pytorch model and make him be in basic format- input is tensor and output is tensor
+    The user need to provide the input and output keys of the fuse model
+    """
+
+    def __init__(self, fuse_model: torch.nn.Module, output_key: str, input_key: str):
+        super().__init__()
+        self.model = fuse_model
+        self.output_key = output_key
+        self.input_key = input_key
+
+    def forward(self, input: torch.tensor):
+        batch_dict = NDict()
+        # find input key
+        batch_dict[self.input_key] = input
+        # feed fuse model with dict as he excpect
+        ans_ndict = self.model(batch_dict)
+        # extract model output from dict
+        output = ans_ndict[self.output_key]
+        return output

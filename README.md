@@ -206,11 +206,14 @@ $ pip install fuse-med-ml[all]
 
 # Examples
 
-* Easy access "Hello World" [colab notebook](https://colab.research.google.com/github/IBM/fuse-med-ml/blob/master/examples/fuse_examples/imaging/hello_world/hello_world.ipynb)
+* Easy access "Hello World" [colab notebook](https://colab.research.google.com/github/BiomedSciAI/fuse-med-ml/blob/master/examples/fuse_examples/imaging/hello_world/hello_world.ipynb)
 * classification
     * [**MNIST**](./examples/fuse_examples/imaging/classification/mnist/)  - a simple example, including training, inference and evaluation over [MNIST dataset](http://yann.lecun.com/exdb/mnist/)
+    * [**STOIC**](./examples/fuse_examples/imaging/classification/stoic21/) - severe COVID-19 classifier baseline given a Computed-Tomography (CT), age group and gender. [Challenge description](https://stoic2021.grand-challenge.org/)
+
+
     * [**KNIGHT Challenge**](./examples/fuse_examples/imaging/classification/knight) - preoperative prediction of risk class for patients with renal masses identified in clinical Computed Tomography (CT) imaging of the kidneys. Including data pre-processing, baseline implementation and evaluation pipeline for the challenge.
-    * [**Multimodality tutorial**](https://colab.research.google.com/github/IBM/fuse-med-ml/blob/master/examples/fuse_examples/multimodality/image_clinical/multimodality_image_clinical.ipynb) - demonstration of two popular simple methods integrating imaging and clinical data (tabular) using FuseMedML  
+    * [**Multimodality tutorial**](https://colab.research.google.com/github/BiomedSciAI/fuse-med-ml/blob/master/examples/fuse_examples/multimodality/image_clinical/multimodality_image_clinical.ipynb) - demonstration of two popular simple methods integrating imaging and clinical data (tabular) using FuseMedML  
     * [**Skin Lesion**](./examples/fuse_examples/imaging/classification/isic/) - skin lesion classification , including training, inference and evaluation over the public dataset introduced in [ISIC challenge](https://challenge.isic-archive.com/landing/2019)   
     * [**Breast Cancer Lesion Classification**](./examples/fuse_examples/imaging/classification/cmmd) - lesions classification of tumor ( benign, malignant) in breast mammography over the public dataset introduced in [The Chinese Mammography Database (CMMD)](https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508)  
     
@@ -220,7 +223,7 @@ $ pip install fuse-med-ml[all]
 # Community support - join the discussion!
 
 * Slack workspace at fusemedml.slack.com for informal communication - click [here](https://join.slack.com/t/fusemedml/shared_invite/zt-xr1jaj29-h7IMsSc0Lq4qpVNxW97Phw) to join
-* [Github Discussions](https://github.com/IBM/fuse-med-ml/discussions)
+* [Github Discussions](https://github.com/BiomedSciAI/fuse-med-ml/discussions)
 
 # Citation
 If you use FuseMedML in scientific context, please consider citing us:
@@ -229,7 +232,7 @@ If you use FuseMedML in scientific context, please consider citing us:
   doi = {10.5281/ZENODO.5146491},
   url = {https://zenodo.org/record/5146491},
   author = {IBM Research,  Haifa},
-  title = {FuseMedML: https://github.com/IBM/fuse-med-ml},
+  title = {FuseMedML: https://github.com/BiomedSciAI/fuse-med-ml},
   publisher = {Zenodo},
   year = {2021},
   copyright = {Apache License 2.0}

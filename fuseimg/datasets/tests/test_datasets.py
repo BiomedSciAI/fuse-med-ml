@@ -8,13 +8,11 @@ from fuse.utils.file_io.file_io import create_dir
 
 from fuseimg.datasets.kits21 import KITS21
 from fuseimg.datasets.stoic21 import STOIC21
-import numpy as np
 from tqdm import trange
 from testbook import testbook
 from fuse.eval.metrics.stat.metrics_stat_common import MetricUniqueValues
 from fuse.utils.multiprocessing.run_multiprocessed import get_from_global_storage, run_multiprocessed
 from fuse.eval.evaluator import EvaluatorDefault
-import multiprocessing as mp
 
 from fuseimg.datasets.isic import ISIC
 from examples.fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS, TEN_GOLDEN_MEMBERS
