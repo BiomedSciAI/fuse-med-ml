@@ -19,7 +19,9 @@ from genericpath import isdir
 import os
 from typing import Union, Dict, Optional, List
 
-from fuse_examples.imaging.classification.ukbb_prostate import cohort_and_label_def, files_download_from_cos, explain_with_gradcam
+import cohort_and_label_def
+import files_download_from_cos
+import explain_with_gradcam
 import pathlib
 import sys
 import copy
@@ -149,7 +151,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     # else:
     #     sample_ids = None
 
-    dataset_all = UKBB.dataset(data_dir=paths["data_dir"], target=train['target'], series_config=train['series_config'],
+    dataset_all = UKBB.dataset(data_dir=paths["data_dir"], target=train['target'], series_config=train['series_config'], aug_params= train['aug_params'],
                                input_source_gt=clinical_data_df, cache_dir=paths["cache_dir"],
                                reset_cache=False, num_workers=train["num_workers"], sample_ids=sample_ids,
                                train=True
@@ -170,11 +172,11 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     for fold in train["validation_folds"]:
         validation_sample_ids += folds[fold]
 
-    train_dataset = UKBB.dataset(data_dir=paths["data_dir"], target=train['target'], series_config=train['series_config'],
+    train_dataset = UKBB.dataset(data_dir=paths["data_dir"], target=train['target'], series_config=train['series_config'], aug_params= train['aug_params'],
                                  input_source_gt=clinical_data_df, cache_dir=paths["cache_dir"], reset_cache=False, num_workers=train["num_workers"],
                                  sample_ids=train_sample_ids, train=True)
 
-    validation_dataset = UKBB.dataset(data_dir=paths["data_dir"], target=train['target'], series_config=train['series_config'],
+    validation_dataset = UKBB.dataset(data_dir=paths["data_dir"], target=train['target'], series_config=train['series_config'], aug_params= train['aug_params'],
                                       input_source_gt=clinical_data_df, cache_dir=paths["cache_dir"], reset_cache=False,
                                       num_workers=train["num_workers"], sample_ids=validation_sample_ids)
 
@@ -301,7 +303,7 @@ def run_explain(train: NDict, paths: NDict, explain: NDict):
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Explain', {'attrs': ['bold', 'underline']})
 
-    checkpoint_file = os.path.join(paths["model_dir"], explain["checkpoint"])
+    checkpoint_file = explain["checkpoint"]
     lgr.info(f'checkpoint_file={checkpoint_file}', {'color': 'magenta'})
 
     # load model
@@ -311,9 +313,9 @@ def run_explain(train: NDict, paths: NDict, explain: NDict):
 
     input_source_gt = read_clinical_data_file(filename=paths["clinical_data_file"], targets=explain['target'], columns_to_add=explain.get('columns_to_add'))
 
-    infer_sample_ids = pd.read_csv(paths["sample_ids"])['sample_id'].to_list()
+    infer_sample_ids = pd.read_csv(explain["sample_ids"])['sample_id'].to_list()
     test_dataset = UKBB.dataset(data_dir=paths["data_dir"], target=explain['target'], series_config=train['series_config'],
-                                input_source_gt=input_source_gt, cache_dir=None, reset_cache = False, num_workers=explain['num_workers'],
+                                input_source_gt=input_source_gt, cache_dir=explain['cache_dir'], reset_cache = False, num_workers=explain['num_workers'],
                                 sample_ids=infer_sample_ids, train=False)
     ## Create dataloader
     infer_dataloader = DataLoader(dataset=test_dataset, batch_size=explain['batch_size'],
@@ -321,10 +323,10 @@ def run_explain(train: NDict, paths: NDict, explain: NDict):
                                   collate_fn=CollateDefault(raise_error_key_missing = False),
                                   num_workers=explain["num_workers"])
 
-    pl_module = LightningModuleDefault.load_from_checkpoint(checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu",
+    pl_module = LightningModuleDefault.load_from_checkpoint(checkpoint_file, model_dir=explain["model_dir"], model=model, map_location="cpu",
                                                             strict=True)
     
-    explain_with_gradcam.save_attention_centerpoint(pl_module ,pl_trainer, infer_dataloader , explain)
+    explain_with_gradcam.save_attention_centerpoint(pl_module , infer_dataloader , explain)
 
 
 def load_model_and_test_data(train: NDict, paths: NDict, infer: NDict):

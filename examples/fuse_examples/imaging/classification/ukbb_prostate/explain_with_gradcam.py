@@ -1,29 +1,48 @@
-from fuse.dl.models.model_wrapper import ModelWrapDictToSeq
 from fuse.utils.ndict import NDict
 import os
 import numpy as np
-from fuse.dl.models.model_wrapper import ModelWrapDictToSeq
 from medcam import medcam
-from cv2 import cv2
+import cv2
 import nibabel as nib
 from multiprocessing import Pool
 from tqdm import tqdm
-from pqdm.processes import pqdm
 import pandas as pd
 import torch.nn as nn
 import torch
+import pqdm
 
-def save_attention_centerpoint(pl_module, pl_trainer ,  infer_dataloader , explain: NDict) :
+class ModelWrapDictToSeq(torch.nn.Module):
+    """
+    Fuse model wrapper for wrapping fuse pytorch model and make him be in basic format- input is tensor and output is tensor
+    The user need to provide the input and output keys of the fuse model
+    """
+
+    def __init__(self, fuse_model: torch.nn.Module, output_key: str, input_key: str):
+        super().__init__()
+        self.model = fuse_model
+        self.output_key = output_key
+        self.input_key = input_key
+
+    def forward(self, input: torch.tensor):
+        batch_dict = NDict()
+        # find input key
+        batch_dict[self.input_key] = input
+        # feed fuse model with dict as he excpect
+        ans_ndict = self.model(batch_dict)
+        # extract model output from dict
+        output = NDict(ans_ndict)[self.output_key]
+        return output
+
+
+def save_attention_centerpoint(pl_module ,  infer_dataloader , explain: NDict) :
     if not os.path.isdir(explain['centerpoints_dir_name']):
         os.mkdir(explain['centerpoints_dir_name'])
     if not os.path.isdir(explain['attention_dir']):
         os.mkdir(explain['attention_dir'])
     device="cuda:0"
     # os.environ["CUDA_VISIBLE_DEVICES"] = "0, 1, 2 ,3,4,5,6,7"
-    model = ModelWrapDictToSeq(pl_module._model, output_key='head_0').to(device)
+    model = ModelWrapDictToSeq(pl_module._model,input_key ='data.input.img', output_key='output.head_0').to(device)
     model = medcam.inject(model, output_dir=os.path.join(explain['attention_dir']),label=explain['label'], backend='gcam', save_maps=True, layer='auto', return_attention=explain['debug']).to(device)
-    # model = nn.DataParallel(model, device_ids=[0, 1, 2 ,3,4,5,6,7])
-    # pl_trainer.test(model=model, datamodule=infer_dataloader, verbose=True)
     results = []
     i = 0
     try: 
@@ -35,14 +54,14 @@ def save_attention_centerpoint(pl_module, pl_trainer ,  infer_dataloader , expla
                 batch['data.input.img'] = batch['data.input.img'].to(device)
                 batch['data.gt.classification'] = batch['data.gt.classification'].to(device)
                 if explain['debug'] == True:
-                    logit, attention = model(batch['data.input.img'], batch['data.gt.classification'])
+                    logit, attention = model(batch['data.input.img'])
                 else:
-                    logit = model(batch['data.input.img'], batch['data.gt.classification'])
-                logit_vector = logit.detach().cpu().numpy()
-                # params = []
+                    logit = model(batch['data.input.img'])
+                logit_vector = logit
+                params = []
                 for j in range(0,batch['data.input.img'].shape[0]) :
                     sample =  batch['data.input.img'][j][0].cpu()
-                    logit = logit_vector[j][explain['label']]
+                    logit = logit_vector[j][explain['target_int']]
                     label = str(batch['data.gt.classification'][j])
                     if explain['debug'] == True:
                         attention_map = attention[j][0].cpu()
@@ -52,13 +71,14 @@ def save_attention_centerpoint(pl_module, pl_trainer ,  infer_dataloader , expla
                     param = {"i": i ,"logit":logit, "attention_map":attention_map ,"j": j ,"sample" : sample , "explain":explain , "identifier" : identifier, "label":label}
                     res = run_gradcam_on_sample(param)
                     results.append(res)
+                    #results.append(pqdm(params , run_gradcam_on_sample, n_jobs = explain["num_workers"]))
                 i += 1
-                # params.append(param)
+                params.append(param)
             except Exception as e:
-                print("got problem in batch containing the following examples",batch['data.input.img_path'])
-                print(e)
-                continue     
-            #pqdm(params , run_gradcam_on_sample, n_jobs = explain["num_workers"])
+                    print("got problem in batch containing the following examples",batch['data.input.img_path'])
+                    print(e)
+                    continue     
+            
     except Exception as e:
         print(e)
         df = pd.DataFrame(results, columns=["identifier","logit","dist", "big_point"])
@@ -98,9 +118,9 @@ def run_gradcam_on_sample(params):
         np.save(f, big_point)
     center = np.array([int(index / 2) for index in original_transposed.shape])
     dist = np.linalg.norm(big_point - center)
-    if logit < 0.9 and dist > 40 : 
-        print(identifier,"suspected as wrong")
-        print("logit",logit,"distate from center",dist,"center=",center)
+    # if logit < 0.9 and dist > 40 : 
+    #     print(identifier,"suspected as wrong")
+    #     print("logit",logit,"distate from center",dist,"center=",center)
     if explain['debug'] == True:
         attention_map = params["attention_map"]
         attention_map = attention_map.numpy()

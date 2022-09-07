@@ -25,6 +25,9 @@ from fuse.data.utils.sample import get_sample_id
 import zipfile
 # from fuseimg.data.ops import ops_mri
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
+from fuseimg.datasets.ukbb_read_mri_op import OpLoadUKBBZip
+from fuseimg.data.ops.aug.geometry import OpAugAffine2D, OpAugSqueeze3Dto2D, OpAugUnsqueeze3DFrom2D
+from fuseimg.data.ops.shape_ops import OpSelectSlice
 import SimpleITK as sitk
 import tempfile
 import shutil
@@ -54,74 +57,6 @@ class OpUKBBSampleIDDecode(OpBase):
 
         return sample_dict
 
-class OpLoadUKBBZip(OpBase):
-    '''
-    loads a zip and select a sequence and a station from it
-    '''
-    def __init__(self, dir_path: str, **kwargs):
-        super().__init__(**kwargs)
-        self._dir_path = dir_path
-
-    def __call__(self, sample_dict: NDict, series_config : NDict, key_in:str, key_out: str, unique_id_out: str) -> NDict:
-        '''
-        
-        '''
-        scans = []
-        zip_filenames = glob(os.path.join(self._dir_path,sample_dict[key_in]))
-        if len(zip_filenames) >1:
-            raise NotImplementedError(f"{sample_dict[key_in]} has more then one match. Currently not supported")
-        zip_filename = zip_filenames[0]
-        try:
-            zip_file = zipfile.ZipFile(zip_filename)
-        except:
-            print("error in opening",zip_filename, os.path.exists(zip_filename))
-            return None
-        filenames_list = [f.filename for f in zip_file.infolist() if '.dcm' in f.filename]
-        
-        for dicom_file in filenames_list:
-            with zip_file.open(dicom_file) as f:
-                dcm = pydicom.read_file(io.BytesIO(f.read()))
-                scans.append({'file': zip_filename.split("/")[-1], 'dcm_unique': dcm[0x0020000e].value, 'time':dcm[0x00080031].value, 'series': dcm[0x0008103e].value})
-                
-        dicom_tags = pd.DataFrame(scans)
-        dicom_tags['n_slices'] = dicom_tags.groupby(dicom_tags.columns.to_list())['file'].transform('size')
-        dicom_tags = dicom_tags.drop_duplicates()
-        dicom_tags = dicom_tags.sort_values(by=['time'])
-        if series_config['series'] in ['Dixon_noBH_in', 'Dixon_noBH_opp', 'Dixon_noBH_F', 'Dixon_noBH_W', 'Dixon_BH_17s_in', 'Dixon_BH_17s_opp', 'Dixon_BH_17s_F', 'Dixon_BH_17s_W'] :
-            if len(dicom_tags) != 24:
-                print(zip_filename, "has missing/extra sequences ",len(dicom_tags),"instead of 24")
-                return None
-            station_list = []
-            for i in range(6) :
-                for j in range(4) :
-                        station_list.append(i+1)
-            dicom_tags['station'] = station_list
-            try :
-                dcm_unique = dicom_tags[(dicom_tags['station'] == series_config['station']) & (dicom_tags['series'] == series_config['series'])]['dcm_unique'].iloc[0]
-            except:
-                print("requested file",zip_filename,"series description",series_config, "not found!!!")
-                return None
-        else:
-            try:
-                dcm_unique = dicom_tags[dicom_tags['series'] == series_config['series']]['dcm_unique'].iloc[0]
-            except:
-                print("requested file",zip_filename,"series description",series_config, "not found!!!")
-                return None
-        dirpath = tempfile.mkdtemp()
-        # ... do stuff with dirpath
-        for dicom_file in filenames_list:
-            with zip_file.open(dicom_file) as f:
-                if pydicom.read_file(io.BytesIO(f.read()))[0x0020000e].value  == dcm_unique :
-                    zip_file.extract(dicom_file, path=dirpath)
-        reader = sitk.ImageSeriesReader()
-        dicom_names = reader.GetGDCMSeriesFileNames(dirpath)
-        reader.SetFileNames(dicom_names)
-        image = reader.Execute()
-        numpy_img = sitk.GetArrayFromImage(image)
-        sample_dict[key_out] = numpy_img
-        sample_dict[unique_id_out] = dcm_unique
-        shutil.rmtree(dirpath)
-        return sample_dict
     
 class OpLoadCenterPoint(OpBase):
     '''
@@ -201,59 +136,51 @@ class UKBB:
         static_pipeline = PipelineDefault("cmmd_static", [
          # decoding sample ID
             (OpUKBBSampleIDDecode(), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path"    
-            (OpLoadUKBBZip(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", unique_id_out="data.ID", series_config=series_config)),
-            # (OpLoadCenterPoint(centerpoint_dir), dict(key_in="data.input.img_path", key_out="data.input.centerpoint")),
-            # (OpLoadVolumeAroundCenterPoint(), dict(key_in="data.input.img", key_out="data.input.img" , centerpoint = "data.input.centerpoint")),
-            (OpLambda(partial(skimage.transform.resize,
-                                                            output_shape=(44, 174, 224),
-                                                            mode='reflect',
-                                                            anti_aliasing=True,
-                                                            preserve_range=True)), dict(key="data.input.img")),
-            (OpNormalizeAgainstSelf(), dict(key="data.input.img")),
-            (OpToNumpy(), dict(key='data.input.img', dtype=np.float32)), 
-            # (OpLambda(partial(dump, filename="first.png", slice = 25)), dict(key="data.input.img")),
+            (OpLoadUKBBZip(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", series_config=series_config)),
             ])
         return static_pipeline
 
     @staticmethod
-    def dynamic_pipeline(data_source : pd.DataFrame, target: str, train: bool = False):
+    def dynamic_pipeline(data_source : pd.DataFrame, target: str,  aug_params: NDict = None,series_config:NDict = None,train: bool = False):
         """
         Get suggested dynamic pipeline. including pre-processing that might be modified and augmentation operations. 
         :param train : True iff we request dataset for train purpouse
         """
-        dynamic_pipeline = PipelineDefault("cmmd_dynamic", [
-            (OpReadDataframe(data_source,
-                    key_column="file_pattern", columns_to_extract=['file_pattern','patient_id', target],
-                    rename_columns={'patient_id' :"data.patientID", target: "data.gt.classification" }), dict()),
-            (OpToTensor(), dict(key="data.input.img",dtype=torch.float32)),
+        sers = series_config['series']
+        rel_sers = series_config['relevant_series']
+        indices = [i for i, x in enumerate(sers) if x in rel_sers]
+
+        ops = [(OpReadDataframe(
+            data_source,
+            key_column="file_pattern",
+            columns_to_extract=["file_pattern", "patient_id",target] ,
+            rename_columns={"patient_id": "data.patientID", target: "data.gt.classification"}), dict()),
+            (OpNormalizeAgainstSelf(), dict(key="data.input.img")),
+            (OpToNumpy(), dict(key="data.input.img", dtype=np.float32)),
+            (OpSelectSlice(), dict(key='data.input.img', slice_idx=indices)),
+            (OpToTensor(), dict(key="data.input.img", dtype=torch.float32)),
+
             (OpToTensor(), dict(key="data.gt.classification", dtype=torch.long)),
-            (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")) ])
+        ]
         # augmentation
         if train:
-            dynamic_pipeline.extend([ 
-                (OpLambda(partial(torch.squeeze, dim=0)), dict(key="data.input.img")),  
-
+            ops += [
                 # affine augmentation - will apply the same affine transformation on each slice
-                (OpRandApply(OpSample(OpAugAffine2D()), 0.5), dict(
-                    key="data.input.img",
-                    rotate=Uniform(-180.0,180.0),        
-                    scale=Uniform(0.8, 1.2),
-                    flip=(RandBool(0.5), RandBool(0.5)),
-                    translate=(RandInt(-15, 15), RandInt(-15, 15))
-                )),
-                
-                # color augmentation - check if it is useful in CT images
-                # (OpSample(OpAugColor()), dict(
-                #     key="data.input.img",
-                #     gamma=Uniform(0.8,1.2), 
-                #     contrast=Uniform(0.9,1.1),
-                #     add=Uniform(-0.01, 0.01)
-                # )),
+                (OpAugSqueeze3Dto2D(), dict(key='data.input.img', axis_squeeze=1))]
+            ops += [(OpRandApply(OpSample(OpAugAffine2D()), aug_params['apply_aug_prob']),
+                    dict(
+                        key="data.input.img",
+                        rotate=Uniform(*aug_params['rotate']),
+                        scale=Uniform(*aug_params['scale']),
+                        flip=(aug_params['flip'], aug_params['flip']),
+                        translate=(RandInt(*aug_params['translate']), RandInt(*aug_params['translate'])),
+                    ),
+                ),
+                (OpAugUnsqueeze3DFrom2D(), dict(key='data.input.img', axis_squeeze=1, channels=len(rel_sers))),
+                # (OpMasker(), dict())
+            ]
 
-                # add channel dimension -> [C=1, D, H, W]
-                (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")),
-                  
-        ])
+        dynamic_pipeline = PipelineDefault("ukbb_dynamic", ops)
 
         return dynamic_pipeline
 
@@ -264,6 +191,7 @@ class UKBB:
                 data_dir: str,
                 target: str,
                 series_config: NDict,
+                aug_params: NDict = None,
                 input_source_gt: pd.DataFrame = None,
                 cache_dir : str = None,
                 reset_cache : bool = True,
@@ -290,8 +218,9 @@ class UKBB:
             sample_ids = UKBB.sample_ids(data_dir)
 
 
-        static_pipeline = UKBB.static_pipeline(data_dir, series_config)
-        dynamic_pipeline = UKBB.dynamic_pipeline(input_source_gt, target,train=train)
+        static_pipeline = UKBB.static_pipeline(data_dir, series_config=series_config)
+        dynamic_pipeline = UKBB.dynamic_pipeline(input_source_gt, target, aug_params=aug_params, train=train,
+                                                 series_config=series_config)
         if cache_dir != None :                        
             cacher = SamplesCacher(f'cmmd_cache_ver', 
                 static_pipeline,

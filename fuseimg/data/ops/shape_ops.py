@@ -74,11 +74,10 @@ class OpSelectSlice(OpBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], key: str, slice_idx: int):
+    def __call__(self, sample_dict: NDict, key: str, slice_idx: int):
         """
         :param slice_idx: the index of the selected slice from the 1st dimmention of an input tensor
         """
-
         img = sample_dict[key]
         if len(img.shape) < 3:
             return sample_dict
