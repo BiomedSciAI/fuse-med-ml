@@ -23,26 +23,47 @@ import traceback
 
 import numpy as np
 
-from fuse.eval.metrics.classification.metrics_classification_common import MetricMultiClassDefault
 from fuse.eval.metrics.libs.survival import MetricsSurvival
+from fuse.eval.metrics.metrics_common import MetricWithCollectorBase
 
 
-class MetricCIndex(MetricMultiClassDefault):
+
+class MetricCIndex(MetricWithCollectorBase):
     """
     Compute c-index (concordance index) score using lifelines
     """
 
     def __init__(
         self,
-        pred: str,
-        target: str,
-        class_names: Optional[Sequence[str]] = None,
-        event_observed : Optional[Sequence[np.ndarray]] = None,
+        pred_key: str,
+        event_times_key: str,
+        event_observed_key: str,
         **kwargs,
     ):
         """
         See MetricMultiClassDefault for the missing params
-        :param event_observed:  a length-n iterable censoring flags, 1 if observed, 0 if not. Default None assumes all observed.
+        :param target:  a length-n iterable censoring flags, 1 if observed, 0 if not. Default None assumes all observed.
         """
-        c_index = partial(MetricsSurvival.c_index, event_observed=event_observed)
-        super().__init__(pred, target, metric_func=c_index, class_names=class_names, **kwargs)
+        super().__init__(pred_key=pred_key, event_times_key=event_times_key, event_observed_key=event_observed_key, **kwargs)
+
+
+    def eval(
+        self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None
+    ) -> Union[Dict[str, Any], Any]:
+        """
+        See super class
+        """
+        # extract values from collected data and results dict
+        kwargs = self._extract_arguments(results, ids)
+
+       
+        # single evaluation for all classes at once / binary classifier
+        try:
+            metric_results =MetricsSurvival.c_index(predicted_scores=np.asarray(kwargs['pred_key'])[:,1], 
+                                                    event_times=np.asarray(kwargs['event_times_key']), 
+                                                    event_observed = np.asarray(kwargs['event_observed_key']))
+        except:
+            track = traceback.format_exc()
+            print(f"Error in metric: {track}")
+            metric_results = None
+        return metric_results
