@@ -21,7 +21,9 @@ class MetricEnsemble(MetricDefault):
         and outputs a refined prediction using average, median or voting.
         :param pred_keys: List of key names (strings) for the multiple model prediction scores
         :param target: Optional key for target values. Only needed for optional saving the targets in an output file.
-        :param method: Ensembling method. 'average', 'median' or 'voting'
+        :param method: Ensembling method. 'average' or 'voting'.
+            if 'average', the predictions are assumed to be continuous (probabilities or regression output)
+            if 'voting', the predictions are assumed to be class predictions (integers)
         :param output_file: Optional output filename
         :param output_pred_key: output key name for the predictions
         :param output_target_key: output key name for the target
