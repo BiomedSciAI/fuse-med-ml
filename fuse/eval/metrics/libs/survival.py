@@ -4,12 +4,18 @@ import numpy as np
 
 class MetricsSurvival:
     @staticmethod
-    def c_index(predicted_scores: np.ndarray, event_times: np.ndarray = None, event_observed : np.ndarray = None ) -> float:
+    def c_index(pred: np.ndarray, event_times: np.ndarray = None, event_observed : np.ndarray = None, event_class_index: int = -1) -> float:
         """
         Compute c-index (concordance index) score using lifelines
-        :param predicted_scores: prediction array per sample. Each element is a score (scalar)
+        :param pred: prediction array per sample. Each element is a score (scalar)
         :param event_times: event/censor time array
         :param event_observed: Optioal- a length-n iterable censoring flags, 1 if observed, 0 if not. Default None assumes all observed.
+        :param event_class_index: Optional - the index of the event class in predicted scores tuples
         :return c-index (concordance index) score
         """
-        return concordance_index(event_times, predicted_scores, event_observed) 
+
+
+        if isinstance(pred[0], np.ndarray):
+            pred = np.asarray(pred)[:,event_class_index]
+           
+        return concordance_index(event_times, pred, event_observed) 
