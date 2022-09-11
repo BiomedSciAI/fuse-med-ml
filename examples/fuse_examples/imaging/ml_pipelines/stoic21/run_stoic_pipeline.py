@@ -64,6 +64,7 @@ eval_params["run_func"] = run_eval
 dataset_params = DATASET_COMMON_PARAMS
 dataset_params['train'] = train_params
 dataset_params['infer'] = infer_params
+dataset_params['target_key'] = 'data.gt.probSevere'
 
 splits = train_val_test_splits(paths=paths, params=dataset_params)
 sample_ids_per_fold = [(s[0], s[1]) for s in splits]
