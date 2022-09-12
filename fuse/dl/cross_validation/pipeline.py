@@ -1,4 +1,4 @@
-from typing import Dict, Callable
+from typing import Dict, Callable, Optional
 from fuse.utils import gpu as FuseUtilsGPU
 from sklearn.model_selection import KFold
 from functools import partial
@@ -39,7 +39,14 @@ def ensemble(test_dirs: Sequence[str], test_infer_filename: str, target_key: str
     _ = evaluator.eval(ids=None, data=data, metrics=metrics)
 
 
-def runner_wrapper(q_resources: Queue, rep_index: int, deterministic_mode: bool, fs: Union[Sequence[Callable], Callable], *f_args, **f_kwargs) -> None:
+def runner_wrapper(
+    q_resources: Queue,
+    rep_index: int,
+    deterministic_mode: bool,
+    fs: Union[Sequence[Callable], Callable],
+    *f_args: tuple, 
+    **f_kwargs: dict,
+) -> None:
     resource = q_resources.get()
     print(f"Using GPUs: {resource}")
     FuseUtilsGPU.choose_and_enable_multiple_gpus(len(resource), force_gpus=list(resource))
