@@ -102,7 +102,7 @@ TRAIN_COMMON_PARAMS["data.validation_folds"] = [4]
 # ===============
 # PL Trainer
 # ===============
-TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 3 # 50
+TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 3  # 50
 TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
 # use "dp" strategy temp when working with multiple GPUS - workaround for pytorch lightning issue: https://github.com/Lightning-AI/lightning/issues/11807
@@ -143,8 +143,7 @@ def create_model(imaging_dropout: float, clinical_dropout: float, fused_dropout:
 #################################
 # Train Template
 #################################
-def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault, \
-                paths: dict, train_params: dict):
+def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault, paths: dict, train_params: dict):
     # ==============================================================================
     # Logger
     # ==============================================================================
@@ -266,9 +265,7 @@ def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault,
     )
 
     # train
-    pl_trainer.fit(
-        pl_module, train_dataloader, validation_dataloader, ckpt_path=train_params["trainer.ckpt_path"]
-    )
+    pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=train_params["trainer.ckpt_path"])
 
     lgr.info("Train: Done", {"attrs": "bold"})
 
@@ -339,8 +336,8 @@ EVAL_COMMON_PARAMS["infer_filename"] = INFER_COMMON_PARAMS["infer_filename"]
 # Dataset Common Params
 ##########################################
 DATASET_COMMON_PARAMS = {}
-DATASET_COMMON_PARAMS['train'] = TRAIN_COMMON_PARAMS
-DATASET_COMMON_PARAMS['infer'] = INFER_COMMON_PARAMS
+DATASET_COMMON_PARAMS["train"] = TRAIN_COMMON_PARAMS
+DATASET_COMMON_PARAMS["infer"] = INFER_COMMON_PARAMS
 
 ######################################
 # Eval Template
@@ -388,12 +385,13 @@ if __name__ == "__main__":
     GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
     RUNNING_MODES = ["train", "infer", "eval"]  # Options: 'train', 'infer', 'eval'
-    
+
     train_dataset, infer_dataset = dataset.create_dataset(paths=PATHS, params=DATASET_COMMON_PARAMS)
     # train
     if "train" in RUNNING_MODES:
-        run_train(train_dataset=train_dataset, validation_dataset=infer_dataset, \
-                    paths=PATHS, train_params=TRAIN_COMMON_PARAMS)
+        run_train(
+            train_dataset=train_dataset, validation_dataset=infer_dataset, paths=PATHS, train_params=TRAIN_COMMON_PARAMS
+        )
 
     # infer
     if "infer" in RUNNING_MODES:

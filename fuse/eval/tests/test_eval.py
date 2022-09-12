@@ -182,7 +182,8 @@ class TestEval(unittest.TestCase):
 
     def test_eval_example_14(self):
         results = example_14()
-        self.assertGreater(results['metrics.accuracy'], 0.9)
+        self.assertGreater(results["metrics.accuracy"], 0.9)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -722,15 +722,24 @@ def example_14() -> Dict[str, Any]:
     ]
     output_file = "ensemble_output.gz"
     # define data
-    data = {str(k): model_dirs[k] for k in range(len(model_dirs))}    
+    data = {str(k): model_dirs[k] for k in range(len(model_dirs))}
 
     # list of metrics
     metrics = OrderedDict(
         [
             (
                 "ensemble",
-                MetricEnsemble(pred_keys=['0.model.output.classification', '1.model.output.classification', '2.model.output.classification', \
-                                        '3.model.output.classification', '4.model.output.classification'], target='0.data.label', output_file=output_file),
+                MetricEnsemble(
+                    pred_keys=[
+                        "0.model.output.classification",
+                        "1.model.output.classification",
+                        "2.model.output.classification",
+                        "3.model.output.classification",
+                        "4.model.output.classification",
+                    ],
+                    target="0.data.label",
+                    output_file=output_file,
+                ),
             ),
             (
                 "apply_thresh",

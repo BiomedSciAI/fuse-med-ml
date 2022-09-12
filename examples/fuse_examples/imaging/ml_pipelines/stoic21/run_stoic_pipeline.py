@@ -1,7 +1,12 @@
 from fuse.dl.cross_validation.pipeline import run
 from examples.fuse_examples.imaging.classification.stoic21.runner_stoic21 import run_train, run_infer, run_eval
 from examples.fuse_examples.imaging.classification.stoic21.dataset import create_dataset, train_val_test_splits
-from examples.fuse_examples.imaging.classification.stoic21.runner_stoic21 import TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS, DATASET_COMMON_PARAMS
+from examples.fuse_examples.imaging.classification.stoic21.runner_stoic21 import (
+    TRAIN_COMMON_PARAMS,
+    INFER_COMMON_PARAMS,
+    EVAL_COMMON_PARAMS,
+    DATASET_COMMON_PARAMS,
+)
 import os
 
 ##########################################
@@ -62,9 +67,9 @@ eval_params["run_func"] = run_eval
 ##########################################
 
 dataset_params = DATASET_COMMON_PARAMS
-dataset_params['train'] = train_params
-dataset_params['infer'] = infer_params
-dataset_params['target_key'] = 'data.gt.probSevere'
+dataset_params["train"] = train_params
+dataset_params["infer"] = infer_params
+dataset_params["target_key"] = "data.gt.probSevere"
 
 splits = train_val_test_splits(paths=paths, params=dataset_params)
 sample_ids_per_fold = [(s[0], s[1]) for s in splits]

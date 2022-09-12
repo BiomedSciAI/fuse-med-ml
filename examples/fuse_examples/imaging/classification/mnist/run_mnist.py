@@ -124,8 +124,7 @@ def create_model() -> torch.nn.Module:
 #################################
 # Train Template
 #################################
-def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault, \
-                paths: dict, train_params: dict):
+def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault, paths: dict, train_params: dict):
     # ==============================================================================
     # Logger
     # ==============================================================================
@@ -267,9 +266,7 @@ def run_infer(dataset: DatasetDefault, paths: dict, infer_params: dict):
 
     ## Data
     # dataloader
-    dataloader = DataLoader(
-        dataset=dataset, collate_fn=CollateDefault(), batch_size=2, num_workers=2
-    )
+    dataloader = DataLoader(dataset=dataset, collate_fn=CollateDefault(), batch_size=2, num_workers=2)
 
     # load pytorch lightning module
     model = create_model()
@@ -356,8 +353,12 @@ if __name__ == "__main__":
     validation_dataset = MNIST.dataset(PATHS["cache_dir"], train=False)
     # train
     if "train" in RUNNING_MODES:
-        run_train(train_dataset=train_dataset, validation_dataset=validation_dataset, \
-            paths=PATHS, train_params=TRAIN_COMMON_PARAMS)
+        run_train(
+            train_dataset=train_dataset,
+            validation_dataset=validation_dataset,
+            paths=PATHS,
+            train_params=TRAIN_COMMON_PARAMS,
+        )
 
     # infer
     if "infer" in RUNNING_MODES:
