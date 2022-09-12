@@ -229,7 +229,7 @@ class DatasetDefault(DatasetBase):
         :param mp_context: "fork", "spawn", "thread" or None for multiprocessing default
         """
         if items is None:
-            sample_ids = self._final_sample_ids
+            sample_ids = list(range(len(self)))
         else:
             sample_ids = items
 
