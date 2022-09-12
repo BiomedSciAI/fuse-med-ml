@@ -23,7 +23,6 @@ from typing import OrderedDict
 import copy
 from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
 
-
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
@@ -341,10 +340,9 @@ DATASET_COMMON_PARAMS["infer"] = INFER_COMMON_PARAMS
 # Eval Template
 ######################################
 
+
 def run_eval(paths: dict, eval_params: dict):
-
     infer_file = os.path.join(paths["inference_dir"], eval_params["infer_filename"])
-
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger("Fuse")
     lgr.info("Fuse Eval", {"attrs": ["bold", "underline"]})
