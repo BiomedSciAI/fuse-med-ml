@@ -11,6 +11,7 @@ from fuse.eval.evaluator import EvaluatorDefault
 from fuse.utils.file_io.file_io import create_or_reset_dir
 from fuse.utils.rand.seed import Seed
 
+
 def ensemble(test_dirs, test_infer_filename, target_key, ensembled_output_file):
     ensembled_output_dir = os.path.dirname(ensembled_output_file)
     create_or_reset_dir(ensembled_output_dir, force_reset=True)

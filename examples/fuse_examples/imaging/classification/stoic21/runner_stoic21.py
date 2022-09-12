@@ -340,6 +340,7 @@ DATASET_COMMON_PARAMS["infer"] = INFER_COMMON_PARAMS
 ######################################
 # Eval Template
 ######################################
+
 def run_eval(paths: dict, eval_params: dict):
     infer_file = os.path.join(paths["inference_dir"], eval_params["infer_filename"])
 

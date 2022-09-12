@@ -3,6 +3,7 @@ from fuseimg.datasets.mnist import MNIST
 from typing import Sequence
 from fuse.data import DatasetDefault
 
+
 def create_dataset(
     train_val_sample_ids: Union[Sequence, None] = None, paths: Optional[dict] = None, params: Optional[dict] = None
 ) -> Sequence[DatasetDefault]:
