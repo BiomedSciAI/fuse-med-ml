@@ -6,8 +6,8 @@ The examples in this folder demonstrates automation of an ML pipeline which cons
 * Test evaluation using the ensembled model
 * Multiple repetitions to check performance variability for multiple random seeds
 
-An ML pipeline is ran by calling the `run` function in `fuse.managers.pipeline`. This function expects a number of required parameters, as well as optional dictionaries `dataset_params`, `train_params`, `infer_params`, `eval_params`  and `paths` that can contain any number of additional custom parameters and path specifications.  
-Another optional parameter is `sample_ids`, which may contain a sequence of array pairs denoting sample ids for pre-defined train/validation splits. If this parameter is kept at `None`, the splits are decided at random.
+An ML pipeline is ran by calling the `run` function in `fuse.dl.cross_validation.pipeline`. This function expects a number of required parameters, as well as optional dictionaries `dataset_params`, `train_params`, `infer_params`, `eval_params`  and `paths` that can contain any number of additional custom parameters and path specifications.  
+Another optional parameter is `sample_ids_per_fold`, which may contain a sequence of array pairs denoting sample ids for pre-defined train/validation splits. If this parameter is not set, the splits are decided at random.
 
 The required parameters are as follows:  
 1. `num_folds` - Number of cross validation splits/folds.
@@ -20,17 +20,27 @@ The required parameters are as follows:
 8. `infer_func` - Callable to a custom inference function.
 9. `eval_func` - Callable to a custom evaluation function.
 
-The three custom functions `train_func`, `infer_func` and `eval_func` should receive the following input parameters:
-1. `dataset` - PyTorch or FuseMedML wrapped dataset
-2. `sample_ids` - A pair of arrays denoting train and validation sample ids.
-3. `cv_index` - Integer or string denoting the current split/fold.
-4. `test` - Boolean denoting whether we're in test phase
-5. `params` - Custom dictionary that can contain any number of additional parameters.
-6. `rep_index` - Integer denoting the repetition number
-7. `rand_gen` - Fuse random generator.
+The `dataset_func` is a function the user needs to implement for their use case. Its signature is required to be as follows:
+```
+dataset_func(train_val_sample_ids: Union[Sequence, None]=None, paths: Optional[dict]=None, params: Optional[dict]=None) -> Sequence[DatasetDefault]
+```
+It must return two fuse datasets. In case `train_val_sample_ids` is None, they are the train+validation (development set), and test datasets.  
+In case `train_val_sample_ids` is a pair of sample ids, they should be train and validation datasets corresponding to this sample id pair.    
 
-Example scripts are provided for the MNIST and KNIGHT datasets.
+The three custom functions `train_func`, `infer_func` and `eval_func` have minimal requirements and should have the following signatures:
+```
+train_func(train_dataset: DatasetDefault, validation_dataset: DatasetDefault, paths: dict, train_params: dict) -> None
 
-To summarize, in order to run an ML pipeline for a custom project, one needs to:
-1. implement a train, infer and eval running functions
-2. call `pipeline.run()` with the required and optional parameters as defined above.
+infer_func(dataset: DatasetDefault, paths: dict, infer_params: dict) -> None
+
+eval_func(paths: dict, eval_params: dict) -> None
+```
+
+
+Example scripts are provided for the MNIST and STOIC21 datasets.
+Note that we use examples that exist in FuseMedML also as stand-alone examples. Using their already existing train, inference and evaluation functions, we can obtain a cross-validation pipeline simply by defining a few parameters and following the requirements of the `dataset_func` and simple generic required signatures of `train_func`, `infer_func` and `eval_func`.
+
+To summarize, in order to run an ML cross validation and ensembling pipeline for a custom project, one needs to:
+1. implement a train, infer and eval running functions following the required signatures.
+2. implement a dataset function following the required signature and design principle.
+2. call `fuse.dl.cross_validation.pipeline.run()` with the required and optional parameters as defined above.
