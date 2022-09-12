@@ -3,7 +3,7 @@ from fuse.utils import gpu as FuseUtilsGPU
 from sklearn.model_selection import KFold
 from functools import partial
 from multiprocessing import Process, Queue
-from typing import Sequence
+from typing import Sequence, Union
 import os
 from fuse.eval.metrics.classification.metrics_ensembling_common import MetricEnsemble
 from collections import OrderedDict
@@ -12,7 +12,7 @@ from fuse.utils.file_io.file_io import create_or_reset_dir
 from fuse.utils.rand.seed import Seed
 
 
-def ensemble(test_dirs, test_infer_filename, target_key, ensembled_output_file):
+def ensemble(test_dirs: Sequence[str], test_infer_filename: str, target_key: str, ensembled_output_file: str) -> None:
     ensembled_output_dir = os.path.dirname(ensembled_output_file)
     create_or_reset_dir(ensembled_output_dir, force_reset=True)
     test_infer_filenames = [os.path.join(d, test_infer_filename) for d in test_dirs]
@@ -39,7 +39,7 @@ def ensemble(test_dirs, test_infer_filename, target_key, ensembled_output_file):
     _ = evaluator.eval(ids=None, data=data, metrics=metrics)
 
 
-def runner_wrapper(q_resources, rep_index, deterministic_mode, fs, *f_args, **f_kwargs):
+def runner_wrapper(q_resources: Queue, rep_index: int, deterministic_mode: bool, fs: Union[Sequence[Callable], Callable], *f_args, **f_kwargs) -> None:
     resource = q_resources.get()
     print(f"Using GPUs: {resource}")
     FuseUtilsGPU.choose_and_enable_multiple_gpus(len(resource), force_gpus=list(resource))
@@ -154,7 +154,7 @@ def run(
     paths: Dict = None,
     deterministic_mode: bool = True,
     sample_ids_per_fold: Sequence = None,
-):
+) -> None:
     """
     ML pipeline - run a full ML experiment pipeline which consists of training on multiple
     cross validation folds, validation inference and evaluation, inference and evaluation
