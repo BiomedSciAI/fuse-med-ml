@@ -36,7 +36,6 @@ from fuse.eval.metrics.classification.metrics_classification_common import Metri
 
 from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.collates import CollateDefault
-from fuse.data.utils.split import dataset_balanced_division_to_folds
 from fuse.data.datasets.dataset_default import DatasetDefault
 
 from fuse.dl.losses.loss_default import LossDefault
@@ -47,10 +46,9 @@ from fuse.dl.lightning.pl_module import LightningModuleDefault
 
 from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.utils_logger import fuse_logger_start
-from fuse.utils.file_io.file_io import create_dir, load_pickle, save_dataframe
+from fuse.utils.file_io.file_io import create_dir, save_dataframe
 import fuse.utils.gpu as GPU
 
-from fuseimg.datasets.stoic21 import STOIC21
 import examples.fuse_examples.imaging.classification.stoic21.dataset as dataset
 
 ###########################################################################################################

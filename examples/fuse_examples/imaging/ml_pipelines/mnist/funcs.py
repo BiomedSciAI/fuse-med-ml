@@ -1,9 +1,7 @@
-from typing import OrderedDict, Union, Optional
+from typing import Union, Optional
 from fuseimg.datasets.mnist import MNIST
 from typing import Sequence
 from fuse.data import DatasetDefault
-from examples.fuse_examples.imaging.classification.mnist.run_mnist import create_model
-
 
 def create_dataset(
     train_val_sample_ids: Union[Sequence, None] = None, paths: Optional[dict] = None, params: Optional[dict] = None

@@ -1,22 +1,15 @@
 from typing import Dict, Callable
 from fuse.utils import gpu as FuseUtilsGPU
-from fuse.utils.utils_debug import FuseDebug
 from sklearn.model_selection import KFold
-import multiprocessing
 from functools import partial
 from multiprocessing import Process, Queue
-from typing import Sequence, Optional
-import numpy as np
+from typing import Sequence
 import os
 from fuse.eval.metrics.classification.metrics_ensembling_common import MetricEnsemble
 from collections import OrderedDict
 from fuse.eval.evaluator import EvaluatorDefault
 from fuse.utils.file_io.file_io import create_or_reset_dir
 from fuse.utils.rand.seed import Seed
-from fuse.data import DatasetDefault
-import torch
-import time
-
 
 def ensemble(test_dirs, test_infer_filename, target_key, ensembled_output_file):
     ensembled_output_dir = os.path.dirname(ensembled_output_file)
