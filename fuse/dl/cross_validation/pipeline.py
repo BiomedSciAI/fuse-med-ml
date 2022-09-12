@@ -1,4 +1,4 @@
-from typing import Dict, Callable, Optional
+from typing import Dict, Callable
 from fuse.utils import gpu as FuseUtilsGPU
 from sklearn.model_selection import KFold
 from functools import partial
@@ -44,7 +44,7 @@ def runner_wrapper(
     rep_index: int,
     deterministic_mode: bool,
     fs: Union[Sequence[Callable], Callable],
-    *f_args: tuple, 
+    *f_args: tuple,
     **f_kwargs: dict,
 ) -> None:
     resource = q_resources.get()
