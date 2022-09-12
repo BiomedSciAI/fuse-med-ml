@@ -186,7 +186,6 @@ def run(
 
     if deterministic_mode:
         os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"  # required for pytorch deterministic mode
-    #multiprocessing.set_start_method("spawn")
 
     available_gpu_ids = FuseUtilsGPU.get_available_gpu_ids()
     if num_gpus_total < len(available_gpu_ids):
