@@ -30,6 +30,7 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 import pytorch_lightning as pl
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 from fuse.eval.evaluator import EvaluatorDefault
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
@@ -232,7 +233,7 @@ def run_infer(paths: dict, infer_common_params: dict):
     checkpoint_file = os.path.join(paths["model_dir"], infer_common_params["checkpoint"])
 
     #### Logger
-    if "LOCAL_RANK" not in os.environ:
+    if "LOCAL_RANK" not in os.environ:  # WA - consult with moshiko
         fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
 
     print("Fuse Inference")
@@ -277,6 +278,7 @@ EVAL_COMMON_PARAMS["infer_filename"] = INFER_COMMON_PARAMS["infer_filename"]
 ######################################
 # Eval Template
 ######################################
+@rank_zero_only
 def run_eval(paths: dict, eval_common_params: dict):
     create_dir(paths["eval_dir"])
     infer_file_path = os.path.join(paths["inference_dir"], eval_common_params["infer_filename"])
@@ -335,5 +337,5 @@ if __name__ == "__main__":
 
     # eval
     # Run eval only on the main process (zero local rank)
-    if "eval" in RUNNING_MODES and os.environ["LOCAL_RANK"] == "0":
+    if "eval" in RUNNING_MODES:
         run_eval(paths=PATHS, eval_common_params=EVAL_COMMON_PARAMS)

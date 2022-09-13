@@ -24,7 +24,7 @@ from fuse.utils.misc.misc import get_pretty_dataframe
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 
-# from pytorch_lightning.utilities.rank_zero import rank_zero_only
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 import torch
 import pandas as pd
 
@@ -77,6 +77,7 @@ class ModelEpochSummary(Callback):
         self._best_epoch_metrics = None
         self._best_epoch_index = None
 
+    @rank_zero_only
     def print_epoch_summary_table(self, epoch_metircs: dict, epoch_source_index: int) -> None:
         """Generate, print and log the table"""
 

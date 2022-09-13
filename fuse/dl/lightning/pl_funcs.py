@@ -157,7 +157,7 @@ def epoch_end_compute_and_log_losses(pl: pl.LightningModule, mode: str, batch_lo
             else:
                 losses.append(elem[key])
         loss = mean(losses)
-        pl.log(f"{mode}.losses.{key}", loss, on_epoch=True, sync_dist=True)
+        pl.log(f"{mode}.losses.{key}", loss, on_epoch=True)
 
 
 def epoch_end_compute_and_log_metrics(pl: pl.LightningModule, mode: str, metrics: OrderedDict[str, MetricBase]) -> None:
