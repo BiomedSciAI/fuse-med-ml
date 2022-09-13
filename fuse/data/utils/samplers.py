@@ -147,10 +147,10 @@ class BatchSamplerDefault(BatchSampler):
             print("WE HAVE A SAMPLER!")
             if isinstance(sampler, DistributedSampler):
                 print("DISTRIBUTED SAMPLER IS HERE!!!")
-            else:
-                print("REGULAR SAMPLER :(")
+
             collected_ids = [i for i in self._sampler]
             print(f"len collected_ids = {len(collected_ids)}")
+            print(f"10 first ids: {collected_ids[:10]}")
         else:
             print("NO SAMPLER FOR US")
             collected_ids = None

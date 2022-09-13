@@ -44,7 +44,7 @@ from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import create_dir, save_dataframe
 import fuse.utils.gpu as GPU
 
-from fuse_examples.imaging.classification.mnist import lenet
+from fuse_examples.imaging.classification.mnist.lenet import LeNet
 from fuse_examples.imaging.classification.mnist.mnist_data_module import MNISTDataModule
 
 
@@ -61,7 +61,7 @@ debug = FuseDebug(mode)
 ##########################################
 # Output Paths
 ##########################################
-ROOT = "_examples/mnist"  # TODO: fill path here
+ROOT = "_examples/mnist_ddp"
 model_dir = os.path.join(ROOT, "model_dir")
 PATHS = {
     "model_dir": model_dir,
@@ -95,7 +95,7 @@ TRAIN_COMMON_PARAMS["trainer.strategy"] = "ddp"
 # ===============
 # Optimizer
 # ===============
-TRAIN_COMMON_PARAMS["opt.lr"] = 1
+TRAIN_COMMON_PARAMS["opt.lr"] = 1e-4
 TRAIN_COMMON_PARAMS["opt.weight_decay"] = 0.001
 
 
@@ -105,7 +105,7 @@ def perform_softmax(logits: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
 
 
 def create_model() -> torch.nn.Module:
-    torch_model = lenet.LeNet()
+    torch_model = LeNet()
     # wrap basic torch model to automatically read inputs from batch_dict and save its outputs to batch_dict
     model = ModelWrapSeqToDict(
         model=torch_model,
@@ -289,13 +289,15 @@ INFER_COMMON_PARAMS["trainer.strategy"] = None
 
 def run_infer(paths: dict, infer_common_params: dict):
     create_dir(paths["inference_dir"])
-    infer_file = os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])
+    infer_file_path = os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])
     checkpoint_file = os.path.join(paths["model_dir"], infer_common_params["checkpoint"])
+
     #### Logger
-    fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
+    if "LOCAL_RANK" not in os.environ:
+        fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
 
     print("Fuse Inference")
-    print(f"infer_filename={infer_file}")
+    print(f"infer_file_path={infer_file_path}")
 
     ## Data
     # Create dataset
@@ -330,7 +332,7 @@ def run_infer(paths: dict, infer_common_params: dict):
 
     # convert list of batch outputs into a dataframe
     infer_df = convert_predictions_to_dataframe(predictions)
-    save_dataframe(infer_df, infer_file)
+    save_dataframe(infer_df, infer_file_path)
 
 
 ######################################
@@ -345,8 +347,10 @@ EVAL_COMMON_PARAMS["infer_filename"] = INFER_COMMON_PARAMS["infer_filename"]
 ######################################
 def run_eval(paths: dict, eval_common_params: dict):
     create_dir(paths["eval_dir"])
-    infer_file = os.path.join(paths["inference_dir"], eval_common_params["infer_filename"])
-    fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
+    infer_file_path = os.path.join(paths["inference_dir"], eval_common_params["infer_filename"])
+
+    if "LOCAL_RANK" not in os.environ:
+        fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
 
     print("Fuse Eval")
 
@@ -374,7 +378,7 @@ def run_eval(paths: dict, eval_common_params: dict):
     evaluator = EvaluatorDefault()
 
     # run
-    results = evaluator.eval(ids=None, data=infer_file, metrics=metrics, output_dir=paths["eval_dir"])
+    results = evaluator.eval(ids=None, data=infer_file_path, metrics=metrics, output_dir=paths["eval_dir"])
 
     return results
 
@@ -384,10 +388,10 @@ def run_eval(paths: dict, eval_common_params: dict):
 ######################################
 if __name__ == "__main__":
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
-    force_gpus = None  # [0]
     gpus = [2, 3, 4, 5]
+    force_gpus = None  # [0]
     # if "LOCAL_RANK" not in os.environ:
-    GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=gpus[:NUM_GPUS])
+    GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
     RUNNING_MODES = ["train", "infer", "eval"]  # Options: 'train', 'infer', 'eval'
     # train
