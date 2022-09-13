@@ -3,6 +3,6 @@
 scikit-image>=0.17.2
 torchvision>=0.8.1
 SimpleITK>=1.2.0
-opencv-python<=4.3.0.36 
+opencv-python>=4.2.0.32 # see https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2019-5064
 pydicom
 medpy
