@@ -22,12 +22,13 @@ from typing import Any, List, Optional, Union
 
 import numpy as np
 from torch.utils.data.sampler import Sampler, BatchSampler
-# from torchnlp.samplers.distributed_sampler import DistributedSampler
+
+from torch.utils.data.distributed import DistributedSampler
 
 from fuse.data.datasets.dataset_base import DatasetBase
 
 
-class BatchSamplerDefault(Sampler):
+class BatchSamplerDefault(BatchSampler):
     """
     Torch batch sampler - balancing per batch
     """
@@ -37,10 +38,12 @@ class BatchSamplerDefault(Sampler):
         dataset: DatasetBase,
         balanced_class_name: str,
         num_balanced_classes: int,
+        sampler: Optional[Sampler] = None,
         batch_size: Optional[int] = None,
         mode: str = "exact",
         balanced_class_weights: Union[List[int], List[float], None] = None,
         num_batches: Optional[int] = None,
+        verbose: bool = False,
         **dataset_get_multi_kwargs,
     ) -> None:
         """
@@ -61,19 +64,19 @@ class BatchSamplerDefault(Sampler):
         :param num_batches: optional - if set will force num_batches, otherwise num_batches will be automatically to go over each sample at least once (exactly or approximately).
         :param dataset_get_multi_kwargs: extra parameters for dataset.get_multi() to optimize the running time.
         """
-        super().__init__(None)
+        super().__init__(sampler, batch_size, False)
 
         # store input
         self._mode = mode
+        self.sampler = sampler
         self._dataset = dataset
         self._balanced_class_name = balanced_class_name
         self._num_balanced_classes = num_balanced_classes
         self._batch_size = batch_size
-        self.batch_size = batch_size  # temp sagi
-        self.drop_last = False  # temp sagi
         self._balanced_class_weights = balanced_class_weights
         self._num_batches = num_batches
         self._dataset_get_multi_kwargs = dataset_get_multi_kwargs
+        self._verbose = verbose
         # modify relevant keys
         if self._balanced_class_name not in self._dataset_get_multi_kwargs:
             self._dataset_get_multi_kwargs["keys"] = [self._balanced_class_name]
@@ -140,6 +143,16 @@ class BatchSamplerDefault(Sampler):
             elif self._mode == "approx":
                 self._balanced_class_weights = [1 / self._num_balanced_classes] * self._num_balanced_classes
 
+        if self.sampler:
+            print("WE HAVE A SAMPLER!")
+            if isinstance(sampler, DistributedSampler):
+                print("DISTRIBUTED SAMPLER IS HERE!!!")
+            else:
+                print("REGULAR SAMPLER :(")
+            collected_ids = [i for i in self.sampler]
+        else:
+            print("NO SAMPLER FOR US")
+            collected_ids = None
         # get balanced classes per each sample
         collected_data = dataset.get_multi(None, **self._dataset_get_multi_kwargs)
         self._balanced_classes = self._extract_balanced_classes(collected_data)
@@ -244,23 +257,62 @@ class BatchSamplerDefault(Sampler):
 
 
 class FuseBatchSampler(BatchSampler):
-    
-    def __init__(self, sampler: BatchSamplerDefault, batch_size: int, drop_last: bool):
-        """
-        
-        """
+    """
+    gets a sampler
+    """
+
+    def __init__(
+        self,
+        sampler: Sampler,
+        batch_size: int,
+        balanced_class_name: str = None,  # temp
+        num_balanced_classes: int = 0,  # temp
+        drop_last: bool = False,
+    ):
+        """ """
+        super().__init__(sampler, batch_size, drop_last)
         self.sampler = sampler
         self.batch_size = batch_size
         self.drop_last = drop_last
+        self.num_balanced_classes = num_balanced_classes
+        self.balanced_class_name = balanced_class_name
 
+        if isinstance(sampler, DistributedSampler):
+            print("DISTRIBUTED SAMPLER IS HERE!!!")
+        else:
+            print("REGULAR SAMPLER :(")
+
+        self.all_samples_ids = [sample for sample in sampler]
+        print(f"samples's length: {len(self.all_samples_ids)}")
+        # print(f"all samples: {self.all_samples}")
 
     def __iter__(self):
-        return iter(self.sampler)
+        return iter(self.batch_sampler)
 
     def __len__(self):
-        return len(self.sampler)
+        return len(self.batch_sampler)
 
 
+class FuseDistBalancedBatchSampler(BatchSampler):
+    """
+    doesn't get a sampeler, and create it's own DistributedSampler
+    """
 
-class FuseSampler(Sampler):
-    pass
+    def __init__(
+        self,
+        dataset: DatasetBase,
+        balanced_class_name: str,
+        num_balanced_classes: int,
+        batch_size: Optional[int] = None,
+        mode: str = "exact",
+        balanced_class_weights: Union[List[int], List[float], None] = None,
+        num_batches: Optional[int] = None,
+        **dataset_get_multi_kwargs,
+    ):
+        pass
+
+    def __iter__(self):
+        pass
+
+    def __len__(self):
+        pass

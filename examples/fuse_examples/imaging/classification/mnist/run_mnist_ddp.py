@@ -53,6 +53,8 @@ import fuse.utils.gpu as GPU
 from fuseimg.datasets.mnist import MNIST
 
 from fuse_examples.imaging.classification.mnist import lenet
+from fuse_examples.imaging.classification.mnist.mnist_data_module import MNISTDataModule
+
 
 ###########################################################################################################
 # Fuse
@@ -77,6 +79,7 @@ PATHS = {
 }
 
 NUM_GPUS = 2
+WORKERS = 10
 ##########################################
 # Train Common Params
 ##########################################
@@ -85,25 +88,22 @@ TRAIN_COMMON_PARAMS = {}
 # ============
 # Data
 # ============
-TRAIN_COMMON_PARAMS["data.batch_size"] = 400
-TRAIN_COMMON_PARAMS["data.train_num_workers"] = 8
-TRAIN_COMMON_PARAMS["data.validation_num_workers"] = 8
+TRAIN_COMMON_PARAMS["data.batch_size"] = 40
+TRAIN_COMMON_PARAMS["data.train_num_workers"] = WORKERS
+TRAIN_COMMON_PARAMS["data.validation_num_workers"] = WORKERS
 
 # ===============
 # PL Trainer
 # ===============
-TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 2
+TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 1
 TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
-# use "dp" strategy temp when working with multiple GPUS - workaround for pytorch lightning issue: https://github.com/Lightning-AI/lightning/issues/11807
-# TRAIN_COMMON_PARAMS["trainer.strategy"] = "ddp" if TRAIN_COMMON_PARAMS["trainer.num_devices"] > 1 else None
-TRAIN_COMMON_PARAMS["trainer.strategy"] = "ddp" 
-TRAIN_COMMON_PARAMS["trainer.ckpt_path"] = None  # path to the checkpoint you wish continue the training from
+TRAIN_COMMON_PARAMS["trainer.strategy"] = "ddp"
 
 # ===============
 # Optimizer
 # ===============
-TRAIN_COMMON_PARAMS["opt.lr"] = 1e-4
+TRAIN_COMMON_PARAMS["opt.lr"] = 1
 TRAIN_COMMON_PARAMS["opt.weight_decay"] = 0.001
 
 
@@ -131,52 +131,78 @@ def run_train(paths: dict, train_params: dict):
     # ==============================================================================
     # Logger
     # ==============================================================================
-    fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
+    if "LOCAL_RANK" not in os.environ:
+        fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
     print("Fuse Train")
 
     # ==============================================================================
     # Data
     # ==============================================================================
     # Train Data
-    print("Data - trainset:")
-    train_dataset = MNIST.dataset(paths["cache_dir"], train=True)
-    print("- Create sampler:")
-    sampler = BatchSamplerDefault(
-        dataset=train_dataset,
-        balanced_class_name="data.label",
-        num_balanced_classes=10,
-        batch_size=train_params["data.batch_size"],
-        balanced_class_weights=None,
-    )
-    print("- Create sampler: Done")
+    # print("Data - trainset:")
+    # train_dataset = MNIST.dataset(paths["cache_dir"], train=True)
 
-    # dist_sampler = DistributedSampler(train_dataset, shuffle=True)
-    seq_sampler = SequentialSampler(train_dataset)
-    batch_sampler = FuseBatchSampler(sampler, batch_size=train_params["data.batch_size"], drop_last=False)
+    # if torch.distributed.is_initialized():
+    #     dist_sampler = DistributedSampler(train_dataset, num_replicas=train_params["trainer.num_devices"])
+
+    # else:
+    #     dist_sampler = None
+
+    # seq_sampler = SequentialSampler(train_dataset)
+    # fuse_batch_sampler = FuseBatchSampler(
+    #     sampler=seq_sampler,
+    #     # balanced_class_name="data.label",
+    #     # num_balanced_classes=10,
+    #     batch_size=train_params["data.batch_size"],
+    # )
+
+    # print("- Create sampler:")
+    # batch_sampler_def = BatchSamplerDefault(
+    #     dataset=train_dataset,
+    #     balanced_class_name="data.label",
+    #     num_balanced_classes=10,
+    #     batch_size=train_params["data.batch_size"],
+    #     balanced_class_weights=None,
+    # )
+    # print("- Create sampler: Done")
+
+    # batch_sampler = BatchSampler(sampler=seq_sampler, batch_size=40, drop_last=False)
+    # fuse_batch_sampler = FuseDistBatchSampler(
+    #     sampler=dist_sampler,
+    #     balanced_class_name="data.label",
+    #     num_balanced_classes=10,
+    #     batch_size=train_params["data.batch_size"],
+    #     drop_last=False,
+    # )
 
     # Create dataloader
-    train_dataloader = DataLoader(
-        dataset=train_dataset,
-        sampler=seq_sampler,
-        # batch_sampler=batch_sampler,
-        collate_fn=CollateDefault(),
-        num_workers=train_params["data.train_num_workers"],
-    )
-    print("Data - trainset: Done")
+    # train_dataloader = DataLoader(
+    #     dataset=train_dataset,
+    #     # sampler=dist_sampler,
+    #     batch_sampler=batch_sampler_def,
+    #     collate_fn=CollateDefault(),
+    #     num_workers=train_params["data.train_num_workers"],
+    # )
+    # print("Data - trainset: Done")
 
     ## Validation data
-    print("Data - validation set:")
+    # print("Data - validation set:")
     # wrapping torch dataset
-    validation_dataset = MNIST.dataset(paths["cache_dir"], train=False)
+    # validation_dataset = MNIST.dataset(paths["cache_dir"], train=False)
 
-    # dataloader
-    validation_dataloader = DataLoader(
-        dataset=validation_dataset,
-        batch_size=train_params["data.batch_size"],
-        collate_fn=CollateDefault(),
-        num_workers=train_params["data.validation_num_workers"],
-    )
-    print("Data - validation set: Done")
+    # # dataloader
+    # validation_dataloader = DataLoader(
+    #     dataset=validation_dataset,
+    #     batch_size=train_params["data.batch_size"],
+    #     collate_fn=CollateDefault(),
+    #     num_workers=train_params["data.validation_num_workers"],
+    # )
+    # print("Data - validation set: Done")
+
+    ## DATA MODULE
+    print("- Create DataModule:")
+    datamodule = MNISTDataModule(cache_dir=paths["cache_dir"], batch_size=40, num_workers=10)
+    print("- Create DataModule: Done")
 
     # ====================================================================================
     # Model
@@ -244,12 +270,13 @@ def run_train(paths: dict, train_params: dict):
         accelerator=train_params["trainer.accelerator"],
         strategy=train_params["trainer.strategy"],
         devices=train_params["trainer.num_devices"],
-        # replace_sampler_ddp=False,
-        auto_select_gpus=True,
+        replace_sampler_ddp=True,
+        auto_select_gpus=False,
     )
 
     # train
-    pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=train_params["trainer.ckpt_path"])
+    pl_trainer.fit(pl_module, datamodule=datamodule)
+    # pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=train_params["trainer.ckpt_path"])
     print("Train: Done")
 
 
@@ -280,11 +307,13 @@ def run_infer(paths: dict, infer_common_params: dict):
 
     ## Data
     # Create dataset
-    validation_dataset = MNIST.dataset(paths["cache_dir"], train=False)
+    # validation_dataset = MNIST.dataset(paths["cache_dir"], train=False)
     # dataloader
-    validation_dataloader = DataLoader(
-        dataset=validation_dataset, collate_fn=CollateDefault(), batch_size=2, num_workers=2
-    )
+    # validation_dataloader = DataLoader(
+    #     dataset=validation_dataset, collate_fn=CollateDefault(), batch_size=2, num_workers=2
+    # )
+
+    datamodule = MNISTDataModule(cache_dir=paths["cache_dir"], num_workers=2, batch_size=10)
 
     # load pytorch lightning module
     model = create_model()
@@ -305,7 +334,7 @@ def run_infer(paths: dict, infer_common_params: dict):
         strategy=infer_common_params["trainer.strategy"],
         auto_select_gpus=True,
     )
-    predictions = pl_trainer.predict(pl_module, validation_dataloader, return_predictions=True)
+    predictions = pl_trainer.predict(pl_module, datamodule=datamodule, return_predictions=True)
 
     # convert list of batch outputs into a dataframe
     infer_df = convert_predictions_to_dataframe(predictions)
@@ -364,9 +393,9 @@ def run_eval(paths: dict, eval_common_params: dict):
 if __name__ == "__main__":
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None  # [0]
-
-    ## APPLY GLOBAL RANK
-    GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
+    gpus = [2, 3, 4, 5]
+    # if "LOCAL_RANK" not in os.environ:
+    GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=gpus[:NUM_GPUS])
 
     RUNNING_MODES = ["train", "infer", "eval"]  # Options: 'train', 'infer', 'eval'
     # train
