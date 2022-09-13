@@ -319,7 +319,7 @@ def run_eval(paths: dict, eval_common_params: dict):
 ######################################
 if __name__ == "__main__":
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
-    
+
     force_gpus = None  # [0]
 
     GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
@@ -334,5 +334,6 @@ if __name__ == "__main__":
         run_infer(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS)
 
     # eval
+    # Run eval only on the main process (zero local rank)
     if "eval" in RUNNING_MODES and os.environ["LOCAL_RANK"] == "0":
         run_eval(paths=PATHS, eval_common_params=EVAL_COMMON_PARAMS)
