@@ -144,16 +144,12 @@ class BatchSamplerDefault(BatchSampler):
                 self._balanced_class_weights = [1 / self._num_balanced_classes] * self._num_balanced_classes
 
         if self._sampler:
-            print("WE HAVE A SAMPLER!")
-            if isinstance(sampler, DistributedSampler):
-                print("DISTRIBUTED SAMPLER IS HERE!!!")
-
+            if self._verbose:
+                print(f"BatchSamplerDefault got a sampler of type: {type(self._sampler).__name__}")
             collected_ids = [i for i in self._sampler]
-            print(f"len collected_ids = {len(collected_ids)}")
-            print(f"10 first ids: {collected_ids[:10]}")
         else:
-            print("NO SAMPLER FOR US")
             collected_ids = None
+
         # get balanced classes per each sample
         collected_data = dataset.get_multi(items=collected_ids, **self._dataset_get_multi_kwargs)
         self._balanced_classes = self._extract_balanced_classes(collected_data)

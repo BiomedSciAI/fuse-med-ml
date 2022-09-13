@@ -130,68 +130,7 @@ def run_train(paths: dict, train_params: dict):
     # ==============================================================================
     # Data
     # ==============================================================================
-    # Train Data
-    # print("Data - trainset:")
-    # train_dataset = MNIST.dataset(paths["cache_dir"], train=True)
 
-    # if torch.distributed.is_initialized():
-    #     dist_sampler = DistributedSampler(train_dataset, num_replicas=train_params["trainer.num_devices"])
-
-    # else:
-    #     dist_sampler = None
-
-    # seq_sampler = SequentialSampler(train_dataset)
-    # fuse_batch_sampler = FuseBatchSampler(
-    #     sampler=seq_sampler,
-    #     # balanced_class_name="data.label",
-    #     # num_balanced_classes=10,
-    #     batch_size=train_params["data.batch_size"],
-    # )
-
-    # print("- Create sampler:")
-    # batch_sampler_def = BatchSamplerDefault(
-    #     dataset=train_dataset,
-    #     balanced_class_name="data.label",
-    #     num_balanced_classes=10,
-    #     batch_size=train_params["data.batch_size"],
-    #     balanced_class_weights=None,
-    # )
-    # print("- Create sampler: Done")
-
-    # batch_sampler = BatchSampler(sampler=seq_sampler, batch_size=40, drop_last=False)
-    # fuse_batch_sampler = FuseDistBatchSampler(
-    #     sampler=dist_sampler,
-    #     balanced_class_name="data.label",
-    #     num_balanced_classes=10,
-    #     batch_size=train_params["data.batch_size"],
-    #     drop_last=False,
-    # )
-
-    # Create dataloader
-    # train_dataloader = DataLoader(
-    #     dataset=train_dataset,
-    #     # sampler=dist_sampler,
-    #     batch_sampler=batch_sampler_def,
-    #     collate_fn=CollateDefault(),
-    #     num_workers=train_params["data.train_num_workers"],
-    # )
-    # print("Data - trainset: Done")
-
-    ## Validation data
-    # print("Data - validation set:")
-    # wrapping torch dataset
-    # validation_dataset = MNIST.dataset(paths["cache_dir"], train=False)
-
-    # # dataloader
-    # validation_dataloader = DataLoader(
-    #     dataset=validation_dataset,
-    #     batch_size=train_params["data.batch_size"],
-    #     collate_fn=CollateDefault(),
-    #     num_workers=train_params["data.validation_num_workers"],
-    # )
-    # print("Data - validation set: Done")
-
-    ## DATA MODULE
     print("- Create DataModule:")
     datamodule = MNISTDataModule(cache_dir=paths["cache_dir"], batch_size=40, num_workers=10)
     print("- Create DataModule: Done")
@@ -238,7 +177,7 @@ def run_train(paths: dict, train_params: dict):
     lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
     lr_sch_config = dict(scheduler=lr_scheduler, monitor="validation.losses.total_loss")
 
-    # optimizier and lr sch - see pl.LightningModule.configure_optimizers return value for all options
+    # optimizier and lr sch
     optimizers_and_lr_schs = dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
 
     # ====================================================================================
@@ -300,13 +239,6 @@ def run_infer(paths: dict, infer_common_params: dict):
     print(f"infer_file_path={infer_file_path}")
 
     ## Data
-    # Create dataset
-    # validation_dataset = MNIST.dataset(paths["cache_dir"], train=False)
-    # dataloader
-    # validation_dataloader = DataLoader(
-    #     dataset=validation_dataset, collate_fn=CollateDefault(), batch_size=2, num_workers=2
-    # )
-
     datamodule = MNISTDataModule(cache_dir=paths["cache_dir"], num_workers=2, batch_size=10)
 
     # load pytorch lightning module
@@ -349,8 +281,7 @@ def run_eval(paths: dict, eval_common_params: dict):
     create_dir(paths["eval_dir"])
     infer_file_path = os.path.join(paths["inference_dir"], eval_common_params["infer_filename"])
 
-    if "LOCAL_RANK" not in os.environ:
-        fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
+    fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
 
     print("Fuse Eval")
 
@@ -388,9 +319,9 @@ def run_eval(paths: dict, eval_common_params: dict):
 ######################################
 if __name__ == "__main__":
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
-    gpus = [2, 3, 4, 5]
+    
     force_gpus = None  # [0]
-    # if "LOCAL_RANK" not in os.environ:
+
     GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
     RUNNING_MODES = ["train", "infer", "eval"]  # Options: 'train', 'infer', 'eval'
@@ -403,5 +334,5 @@ if __name__ == "__main__":
         run_infer(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS)
 
     # eval
-    if "eval" in RUNNING_MODES:
+    if "eval" in RUNNING_MODES and os.environ["LOCAL_RANK"] == "0":
         run_eval(paths=PATHS, eval_common_params=EVAL_COMMON_PARAMS)

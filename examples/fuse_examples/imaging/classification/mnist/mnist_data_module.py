@@ -67,4 +67,4 @@ class MNISTDataModule(pl.LightningDataModule):
 if __name__ == "__main__":
     from fuse_examples.imaging.classification.mnist.run_mnist import PATHS
 
-    dm = MNISTDataModule(cache_dir=PATHS["cache_dir"], batch_size=20, num_workers=0)
+    dm = MNISTDataModule(cache_dir=PATHS["cache_dir"], batch_size=20, num_workers=10)
