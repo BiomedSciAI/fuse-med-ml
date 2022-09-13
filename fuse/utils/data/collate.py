@@ -34,7 +34,6 @@ class CollateToBatchList(Callable):
         self,
         skip_keys: Sequence[str] = tuple(),
         raise_error_key_missing: bool = True,
-        special_handlers_keys: Dict[str, Callable] = None,
     ):
         """
         :param skip_keys: do not collect the listed keys
