@@ -68,7 +68,7 @@ class BatchSamplerDefault(BatchSampler):
 
         # store input
         self._mode = mode
-        self.sampler = sampler
+        self._sampler = sampler
         self._dataset = dataset
         self._balanced_class_name = balanced_class_name
         self._num_balanced_classes = num_balanced_classes
@@ -143,18 +143,19 @@ class BatchSamplerDefault(BatchSampler):
             elif self._mode == "approx":
                 self._balanced_class_weights = [1 / self._num_balanced_classes] * self._num_balanced_classes
 
-        if self.sampler:
+        if self._sampler:
             print("WE HAVE A SAMPLER!")
             if isinstance(sampler, DistributedSampler):
                 print("DISTRIBUTED SAMPLER IS HERE!!!")
             else:
                 print("REGULAR SAMPLER :(")
-            collected_ids = [i for i in self.sampler]
+            collected_ids = [i for i in self._sampler]
+            print(f"len collected_ids = {len(collected_ids)}")
         else:
             print("NO SAMPLER FOR US")
             collected_ids = None
         # get balanced classes per each sample
-        collected_data = dataset.get_multi(None, **self._dataset_get_multi_kwargs)
+        collected_data = dataset.get_multi(items=collected_ids, **self._dataset_get_multi_kwargs)
         self._balanced_classes = self._extract_balanced_classes(collected_data)
 
         # split samples to groups
@@ -254,65 +255,3 @@ class BatchSamplerDefault(BatchSampler):
         assert len(collected_data) > 0, "Error: sampling failed, dataset size is 0"
         balanced_classes = [sample[self._balanced_class_name] for sample in collected_data]
         return np.array(balanced_classes)
-
-
-class FuseBatchSampler(BatchSampler):
-    """
-    gets a sampler
-    """
-
-    def __init__(
-        self,
-        sampler: Sampler,
-        batch_size: int,
-        balanced_class_name: str = None,  # temp
-        num_balanced_classes: int = 0,  # temp
-        drop_last: bool = False,
-    ):
-        """ """
-        super().__init__(sampler, batch_size, drop_last)
-        self.sampler = sampler
-        self.batch_size = batch_size
-        self.drop_last = drop_last
-        self.num_balanced_classes = num_balanced_classes
-        self.balanced_class_name = balanced_class_name
-
-        if isinstance(sampler, DistributedSampler):
-            print("DISTRIBUTED SAMPLER IS HERE!!!")
-        else:
-            print("REGULAR SAMPLER :(")
-
-        self.all_samples_ids = [sample for sample in sampler]
-        print(f"samples's length: {len(self.all_samples_ids)}")
-        # print(f"all samples: {self.all_samples}")
-
-    def __iter__(self):
-        return iter(self.batch_sampler)
-
-    def __len__(self):
-        return len(self.batch_sampler)
-
-
-class FuseDistBalancedBatchSampler(BatchSampler):
-    """
-    doesn't get a sampeler, and create it's own DistributedSampler
-    """
-
-    def __init__(
-        self,
-        dataset: DatasetBase,
-        balanced_class_name: str,
-        num_balanced_classes: int,
-        batch_size: Optional[int] = None,
-        mode: str = "exact",
-        balanced_class_weights: Union[List[int], List[float], None] = None,
-        num_batches: Optional[int] = None,
-        **dataset_get_multi_kwargs,
-    ):
-        pass
-
-    def __iter__(self):
-        pass
-
-    def __len__(self):
-        pass

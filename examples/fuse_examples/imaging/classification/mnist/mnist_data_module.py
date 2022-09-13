@@ -1,5 +1,3 @@
-from typing import OrderedDict, Tuple
-
 from torch.utils.data.dataloader import DataLoader
 import pytorch_lightning as pl
 from fuse.data.utils.collates import CollateDefault
@@ -75,7 +73,7 @@ class MNISTDataModule(pl.LightningDataModule):
     def teardown(self, stage):
         """
         Called on every process in DDP.
-        
+
         :param stage: clean process after stage
         """
         # clean up after fit or test

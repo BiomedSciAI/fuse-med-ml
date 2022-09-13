@@ -29,17 +29,11 @@ from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from torch.utils.data.dataloader import DataLoader
-from torch.utils.data.sampler import BatchSampler, SequentialSampler
-from torch.utils.data.distributed import DistributedSampler
 import pytorch_lightning as pl
 
 from fuse.eval.evaluator import EvaluatorDefault
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
-
-from fuse.data.utils.samplers import BatchSamplerDefault, FuseBatchSampler
-from fuse.data.utils.collates import CollateDefault
 
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
@@ -49,8 +43,6 @@ from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import create_dir, save_dataframe
 import fuse.utils.gpu as GPU
-
-from fuseimg.datasets.mnist import MNIST
 
 from fuse_examples.imaging.classification.mnist import lenet
 from fuse_examples.imaging.classification.mnist.mnist_data_module import MNISTDataModule
