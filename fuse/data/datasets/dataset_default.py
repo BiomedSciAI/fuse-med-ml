@@ -35,7 +35,7 @@ import numpy as np
 class DatasetDefault(DatasetBase):
     def __init__(
         self,
-        sample_ids: Sequence[Hashable],
+        sample_ids: Union[int,Sequence[Hashable]],
         static_pipeline: Optional[PipelineDefault] = None,
         dynamic_pipeline: Optional[PipelineDefault] = None,
         cacher: Optional[SamplesCacher] = None,
@@ -43,6 +43,9 @@ class DatasetDefault(DatasetBase):
     ):
         """
         :param sample_ids:      list of sample_ids included in dataset.
+            Optionally, you can provide an integer that describes only the size of the dataset. This is useful in massive datasets 
+             (for example 100M samples). In such case, multiple functionalities will not be supported, mainly - 
+              cacher, allow_uncached_sample_morphing and get_all_sample_ids
         :param static_pipeline:   static_pipeline, the output of this pipeline will be automatically cached.
         :param dynamic_pipeline:  dynamic_pipeline. applied sequentially after the static_pipeline, but not automatically cached.
                                 changing it will NOT trigger recaching of the static_pipeline part.
@@ -55,7 +58,15 @@ class DatasetDefault(DatasetBase):
         # store arguments
         self._static_pipeline = static_pipeline
         self._dynamic_pipeline = dynamic_pipeline
-        self._cacher = cacher
+        self._cacher = cacher        
+        if isinstance(sample_ids, (int, np.integer)):
+            #print(f'automatically creating sample_ids for the range [0,{sample_ids}]')
+            #sample_ids = np.arange(sample_ids)
+            if allow_uncached_sample_morphing:
+                raise Exception('allow_uncached_sample_morphing is not allowed when providing sample_ids=an integer value')
+            if cacher is not None:
+                raise Exception('providing a cacher is not allowed when providing sample_ids=an integer value')
+
         self._orig_sample_ids = sample_ids
         self._allow_uncached_sample_morphing = allow_uncached_sample_morphing
 
@@ -134,6 +145,9 @@ class DatasetDefault(DatasetBase):
         if not self._created:
             raise Exception("you must first call create()")
 
+        if isinstance(self._final_sample_ids, (int, np.integer)):
+            raise Exception('get_all_sample_ids is not supported when constructed with an integer for sample_ids')
+
         return copy.deepcopy(self._final_sample_ids)
 
     def __getitem__(self, item: Union[int, Hashable]) -> dict:
@@ -161,10 +175,10 @@ class DatasetDefault(DatasetBase):
             raise Exception("you must first call create()")
 
         # get sample id
-        if isinstance(item, (int, np.integer)):
-            sample_id = self._final_sample_ids[item]
-        else:
+        if not isinstance(item, (int, np.integer)) or isinstance(self._final_sample_ids, (int, np.integer)):
             sample_id = item
+        else:        
+            sample_id = self._final_sample_ids[item]                    
 
         # get collect marker info
         collect_marker_info = self._get_collect_marker_info(collect_marker_name)
@@ -249,6 +263,9 @@ class DatasetDefault(DatasetBase):
         if not self._created:
             raise Exception("you must first call create()")
 
+        if isinstance(self._final_sample_ids, (int, np.integer)):
+            return self._final_sample_ids
+        
         return len(self._final_sample_ids)
 
     # internal methods
