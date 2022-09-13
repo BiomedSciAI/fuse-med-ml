@@ -23,8 +23,6 @@ from torchvision import transforms
 import torchvision
 
 from fuse.data import DatasetDefault
-from fuse.data.pipelines.pipeline_default import PipelineDefault
-from fuse.data.ops.ops_debug import OpPrintTypes
 
 
 class MNIST:
@@ -36,7 +34,7 @@ class MNIST:
     MNIST_DATASET_VER = 0
 
     @staticmethod
-    def dataset(cache_dir: Optional[str] = None, train: bool = True, heavy_run: bool = False) -> DatasetDefault:
+    def dataset(cache_dir: Optional[str] = None, train: bool = True) -> DatasetDefault:
         """
         Get mnist dataset - each sample includes: 'data.image', 'data.label' and 'data.sample_id'
         :param cache_dir: optional - destination to cache mnist
@@ -45,27 +43,18 @@ class MNIST:
         """
 
         transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+
         # Create dataset
         torch_dataset = torchvision.datasets.MNIST(
             cache_dir, download=cache_dir is not None, train=train, transform=transform
         )
-
-        if heavy_run:
-            dynamic_pipeline = PipelineDefault(
-                "dynamic",
-                [
-                    (OpPrintTypes(num_samples=1), dict()),
-                ],
-            )
-        else:
-            dynamic_pipeline = None
 
         # wrapping torch dataset
         train_dataset = DatasetWrapSeqToDict(
             name=f"mnist-{train}",
             dataset=torch_dataset,
             sample_keys=("data.image", "data.label"),
-            dynamic_pipeline=dynamic_pipeline,
         )
+
         train_dataset.create()
         return train_dataset
