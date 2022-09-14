@@ -29,7 +29,7 @@ from fuseimg.datasets.mnist import MNIST
 
 from fuse.utils.rand.seed import Seed
 
-from examples.fuse_examples.imaging.classification.mnist.run_mnist import (
+from fuse_examples.imaging.classification.mnist.run_mnist import (
     EVAL_COMMON_PARAMS,
     INFER_COMMON_PARAMS,
     TRAIN_COMMON_PARAMS,

@@ -26,10 +26,10 @@ from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 from fuse.utils.rand.seed import Seed
 import fuse.utils.gpu as GPU
 
-import examples.fuse_examples.imaging.classification.stoic21.dataset as dataset
+import fuse_examples.imaging.classification.stoic21.dataset as dataset
 
 if "STOIC21_DATA_PATH" in os.environ:
-    from examples.fuse_examples.imaging.classification.stoic21.runner_stoic21 import (
+    from fuse_examples.imaging.classification.stoic21.runner_stoic21 import (
         PATHS,
         TRAIN_COMMON_PARAMS,
         run_train,
