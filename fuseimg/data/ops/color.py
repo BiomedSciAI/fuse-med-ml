@@ -1,8 +1,9 @@
-from typing import Tuple, Union
+from typing import Any, Callable, Tuple, Union
 import numpy as np
 import torch
 import skimage
 from fuse.utils.ndict import NDict
+import SimpleITK as sitk
 
 from fuse.data.ops.op_base import OpBase
 
@@ -12,7 +13,7 @@ from fuseimg.data.ops.ops_common_imaging import OpApplyTypesImaging
 
 class OpClip(OpBase):
     """
-    Clip values - support both torch tensor and numpy array
+    Clip values - supports: torch Tensor, numpy array and SITK Image
     """
 
     def __init__(self, **kwargs):
@@ -32,7 +33,7 @@ class OpClip(OpBase):
 
         img = sample_dict[key]
 
-        processed_img = self.clip(img, clip)
+        processed_img = self.clip(img, clip)            
 
         sample_dict[key] = processed_img
         return sample_dict
@@ -45,6 +46,12 @@ class OpClip(OpBase):
             processed_img = np.clip(img, clip[0], clip[1])
         elif isinstance(img, torch.Tensor):
             processed_img = torch.clamp(img, clip[0], clip[1], out=img)
+        elif isinstance(img, sitk.Image):
+            ref = img
+            img = sitk.GetArrayFromImage(img)
+            processed_img = np.clip(img, clip[0], clip[1])
+            processed_img = sitk.GetImageFromArray(processed_img)
+            processed_img.CopyInformation(ref)
         else:
             raise Exception(f"Error: unexpected type {type(img)}")
         return processed_img
@@ -63,7 +70,23 @@ class OpNormalizeAgainstSelf(OpBase):
 
     def __call__(self, sample_dict: NDict, key: str):
         img = sample_dict[key]
-        img = skimage.img_as_float(img)
+
+
+        is_stk_image = isinstance(img, sitk.Image)
+        if is_stk_image:
+            ref = img
+            img = sitk.GetArrayFromImage(img)
+            img = img.astype(float)
+
+        img_max = img.max()
+        img_min = img.min()
+        img = (img - img_min) / (img_max - img_min)
+
+        if is_stk_image:
+            img = sitk.GetImageFromArray(img)
+            img.CopyInformation(ref)
+
+
         sample_dict[key] = img
 
         return sample_dict
@@ -111,12 +134,30 @@ class OpToRange(OpBase):
         to_range: Tuple[float, float],
     ):
 
+        img = sample_dict[key]
+        is_stk_image = isinstance(img, sitk.Image)
+
+        if is_stk_image:
+            ref = img
+            img = sitk.GetArrayFromImage(img)
+            img = img.astype(float)
+
+
+        img = self.to_range(img, from_range, to_range)
+
+        if is_stk_image:
+            img = sitk.GetImageFromArray(img)
+            img.CopyInformation(ref)
+
+        sample_dict[key] = img
+        return sample_dict
+
+    @staticmethod
+    def to_range(img: np.ndarray, from_range: Tuple[float, float], to_range: Tuple[float, float]):
         from_range_start = from_range[0]
         from_range_end = from_range[1]
         to_range_start = to_range[0]
         to_range_end = to_range[1]
-
-        img = sample_dict[key]
 
         # shift to start at 0
         img -= from_range_start
@@ -126,9 +167,31 @@ class OpToRange(OpBase):
         # shift to start in desired start val
         img += to_range_start
 
-        sample_dict[key] = img
+        return img
 
-        return sample_dict
+
+def call_on_stk_img(img: sitk.Image, func: Callable, **func_kwargs: Any):
+    """
+    Apply function on SITK Image object while keeping the image information
+
+    :param img: the SITK Image object
+    :param func: the function we want to apply on the Image
+    :param func_kwargs: function's arguments
+    """
+    # Save ref Image to keep the info
+    ref = img
+
+    # Convert to ndarray and apply the function
+    img = sitk.GetArrayFromImage(img)
+    img = img.astype(float)
+    img = func(img, **func_kwargs)
+
+    # Return to SITK Image and copy info from ref
+    img = sitk.GetImageFromArray(img)
+    img.CopyInformation(ref)
+
+    return img
+
 
 
 op_to_range_img = OpApplyTypesImaging({DataTypeImaging.IMAGE: (OpToRange(), {})})

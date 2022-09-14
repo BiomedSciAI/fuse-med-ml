@@ -20,7 +20,7 @@ import radiomics
 
 class OpExtractDicomsPerSeq(OpBase):
     """
-    Extracts patient dicoms per sequence ID and stores them in the sample dict with a given prefix.
+    Extracts patient dicom paths per sequence ID and stores them in the sample dict with a given prefix.
     If sequence doesn't exist for the patient, stores an empty list.
 
     TODO
@@ -35,7 +35,7 @@ class OpExtractDicomsPerSeq(OpBase):
     def __init__(
         self,
         seq_ids: List[str],
-        series_desc_2_sequence_map: Dict[str, Str],
+        series_desc_2_sequence_map: Dict[str, str],
         use_order_indicator: bool = False,
     ):
         """
@@ -70,6 +70,7 @@ class OpExtractDicomsPerSeq(OpBase):
 
             for seq_info in seq_info_list:  # could be several sequences/series (sequence/series=  path)
 
+                # sort sequence's dicoms
                 dicom_group_ids, sorted_dicom_groups = sort_dicoms_by_field(
                     seq_path=seq_info["path"],
                     dicom_field=seq_info["dicom_field"],
@@ -132,9 +133,63 @@ class OpLoadDicomAsStkVol(OpBase):
         return sample_dict
 
 
-def get_stk_volume(img_path: str, dicom_files, reverse_order) -> Image:  # Not sure if Image
+class OpLoadDicomsAsStkVolByPath(OpBase):
     """
-    TODO
+    Load dicoms to a STK Image by giving the path to the dicoms dir
+    """
+
+    def __call__(self, sample_dict: NDict, key_in: str, key_out: str):
+        """
+        :param key_in: key for the sequence_path in the sample dict
+        :param key_out: where the stk volume will be stored inside the sample dict
+        """
+    
+        seq_path = sample_dict[key_in]
+        stk_vol = get_stk_volume(img_path=seq_path)
+        sample_dict[key_out] = stk_vol
+
+        return sample_dict
+
+
+class OpLoadDicomsAsStkVolByPaths(OpBase):
+    """
+    Load dicoms to a STK Image by giving the path to the dicoms dir
+    """
+
+    def __call__(self, sample_dict: NDict, seq_ids: List[str]):
+        """
+        :param key_in: key for the sequence_path in the sample dict
+        :param key_out: where the stk volume will be stored inside the sample dict
+        """
+
+        vols_lst = []
+
+        for seq_id in seq_ids:
+            seq_paths = sample_dict[f"data.input.{seq_id}.path"]
+            for seq_path in seq_paths:
+                if len(seq_path) == 0:
+                    # no volume for id, take zeros in the shape of the first vol
+                    first_vol = sample_dict[f"data.input.{seq_ids[0]}.stk_volume"]
+                    stk_vol = get_zeros_vol(first_vol[0])
+                elif seq_id == "ktrans":
+                    stk_vol = sitk.ReadImage(seq_path)
+                else:
+                    stk_vol = get_stk_volume(img_path=seq_path)
+
+                vols_lst.append(stk_vol)
+                sample_dict[f"data.input.{seq_id}.stk_volume"] = [stk_vol]
+            
+        sample_dict["data.input.selected_volumes"] = vols_lst
+
+        return sample_dict
+
+
+
+def get_stk_volume(
+    img_path: str, dicom_files: Optional[Union[List[str], str]] = None, reverse_order: bool = False
+) -> Image:
+    """
+    Read DICOM files into a 3D Image
 
     :param img_path:
     :param is_file:
@@ -144,20 +199,23 @@ def get_stk_volume(img_path: str, dicom_files, reverse_order) -> Image:  # Not s
     # Init Image reader
     series_reader = sitk.ImageSeriesReader()
 
+    # Handle dicom_files
     if dicom_files is None:
-        # dicom_files = series_reader.GetGDCMSeriesFileNames(img_path)
-        raise Exception("dicom_file is None")
+        dicom_files = series_reader.GetGDCMSeriesFileNames(img_path)
 
-    if isinstance(dicom_files, str):
-        # dicom_files = [dicom_files]
-        raise Exception("dicom file is a string")
+    if isinstance(dicom_files, str):  # TODO delete (?)
+        dicom_files = [dicom_files]
 
     if img_path not in dicom_files[0]:
         dicom_files = [os.path.join(img_path, dicom_file) for dicom_file in dicom_files]
 
+    # Reverse if needed
     dicom_files = dicom_files[::-1] if reverse_order else dicom_files
+
+    # Read files
     series_reader.SetFileNames(dicom_files)
     vol = series_reader.Execute()
+
     return vol
 
 
@@ -316,6 +374,7 @@ class OpSelectVolumes(OpBase):
 
         sample_id = get_sample_id(sample_dict)
 
+        # Init outputs' lists
         sample_dict[f"{key_out_volumes}"] = []
         sample_dict[f"{key_out_volumes_info}"] = []
 
@@ -323,9 +382,11 @@ class OpSelectVolumes(OpBase):
 
             sequence_info_list = sample_dict[f"{key_in_sequence_prefix}.{selected_seq_id}"]
 
-            # Handle sequence doesn't have data
-            if sequence_info_list == []:  # No info for sequence
-                if len(sample_dict[key_out_volumes]) == 0:  #
+            # Handle case if sequence doesn't have data.
+            # If the first sequence is missing, we cannot ref it, so we drop the sample.
+            # If non-first sequence is missing, we use the first sequence as a ref for Image of zeros.
+            if sequence_info_list == []:
+                if len(sample_dict[key_out_volumes]) == 0:
                     lgr = logging.getLogger("Fuse")
                     lgr.info(f"OpSelectVolumes: no data for{sample_id} is excluded", {"attrs": ["bold"]})
                     return None
@@ -333,9 +394,8 @@ class OpSelectVolumes(OpBase):
                 stk_volume = get_zeros_vol(seq_volume_template)
                 selected_sequence_info = {}
 
-            vol_inx_to_use = _get_as_list(
-                self._get_indexes_func(sample_id, selected_seq_id)
-            )  # TODO, supply the indices via a key in sample dict, and the user will need to take care of it (easy OpFunc)
+            # From the entire sequence (3D Image), select indexes of 2D Images to use
+            vol_inx_to_use = _get_as_list(self._get_indexes_func(sample_id, selected_seq_id))
 
             for inx in vol_inx_to_use:
 
@@ -343,19 +403,21 @@ class OpSelectVolumes(OpBase):
                     inx = -1  # take the last
 
                 # Get sequence's info and volume
-                # (For each sequence we several DICOM which are the slices.
+                # (For each sequence there are several DICOM which are the slices.
                 #  The inx is the slice index we will use from the entire slices for that sequence)
                 selected_sequence_info = sequence_info_list[inx]
-                stk_volume = selected_sequence_info[key_in_volume]  # Slice's volume
+                stk_volume = selected_sequence_info[key_in_volume]  # sequence volume
 
                 # Handle problem reading the volume
                 if len(stk_volume) == 0:  # if the volume is empty
-                    seq_volume_template = sample_dict[key_out_volumes][0]  # what if 'key_out_vols' lead to empty list?
+                    seq_volume_template = sample_dict[key_out_volumes][
+                        0
+                    ]  # TODO what if 'key_out_vols' lead to an empty list?
                     stk_volume = get_zeros_vol(seq_volume_template)
                     if self._verbose:
                         print(f"\n - problem with reading {selected_seq_id} volume!")
 
-                # Add info and volume to the result with matching index
+                # Add info and volume to the result lists with matching index
                 sample_dict[key_out_volumes].append(stk_volume)
                 sample_dict[key_out_volumes_info].append(
                     dict(
@@ -416,13 +478,13 @@ class OpDeleteSequenceAttr(OpBase):
 
 class OpResampleStkVolsBasedRef(OpBase):
     """
-    Resample selected volumes based on a given reference one.
-    TODO: write more clearly (?)
+    Resample volumes based on a given reference one.
+    Supported interpolation modes: "linear","nn" (nearest neighbor),"bspline".
     """
 
     def __init__(self, reference_inx: int, interpolation: str, verify_args: bool = True, **kwargs):
         """
-        :param reference_inx: index for the volume that will be used as a reference
+        :param reference_inx: index for the volume that will be used as a reference for size and spacing.
         :param interpolation: interpolation mode from - ["linear","nn" (nearest neighbor),"bspline"]
         :param kwargs:
         """
@@ -445,11 +507,19 @@ class OpResampleStkVolsBasedRef(OpBase):
 
         # cast volumes to match types
         volumes_res = [sitk.Cast(v, sitk.sitkFloat32) for v in volumes]
+
+        # Get the reference volume
         ref_volume = volumes[self._reference_inx]
 
         # create the STK resample operator that will excute the resampling
-        resample = self.create_resample(ref_volume, size=ref_volume.GetSize(), spacing=ref_volume.GetSpacing())
+        resample = create_resample(
+            vol_ref=ref_volume,
+            interpolation=self._interpolation,
+            size=ref_volume.GetSize(),
+            spacing=ref_volume.GetSpacing(),
+        )
 
+        # Resample all images TODO I think it should be executed also on the ref vol)
         for i, vol in enumerate(volumes_res):
             if i == self._reference_inx:
                 continue
@@ -458,41 +528,6 @@ class OpResampleStkVolsBasedRef(OpBase):
 
         sample_dict[key] = volumes_res
         return sample_dict
-
-    def create_resample(
-        self,
-        vol_ref: sitk.sitkFloat32,
-        size: Tuple[int, int, int],
-        spacing: Tuple[float, float, float],
-    ) -> sitk.ResampleImageFilter:
-        """
-        Create resampling operator based on the reference volume
-
-        TODO: this function exists twice in this file! solve it.
-
-        :param vol_ref: sitk vol to use as a ref
-        :param size: in pixels ()
-        :param spacing: in mm ()
-        :return: resample sitk operator
-        """
-
-        if self._interpolation == "linear":
-            interpolator = sitk.sitkLinear
-        elif self._interpolation == "nn":
-            interpolator = sitk.sitkNearestNeighbor
-        elif self._interpolation == "bspline":
-            interpolator = sitk.sitkBSpline
-        else:
-            raise Exception(
-                f"Error: unexpected interpolation mode: {self._interpolation}"
-            )  # TODO check this in the constructor??
-
-        resample = sitk.ResampleImageFilter()
-        resample.SetReferenceImage(vol_ref)
-        resample.SetOutputSpacing(spacing)
-        resample.SetInterpolator(interpolator)
-        resample.SetSize(size)
-        return resample
 
 
 #######
@@ -533,9 +568,13 @@ class OpStackList4DStk(OpBase):
         """
         vols_stk_list = sample_dict[key_in]
 
+        if isinstance(vols_stk_list, sitk.Image): # quick fix
+            vols_stk_list = [vols_stk_list]
+
         # Delete from dict if necessary
         if self._delete_input_volumes:
             del sample_dict[key_in]
+
 
         # Convert 3D Images into ndarrays and stack them in the last axis
         vol_arr = [sitk.GetArrayFromImage(vol) for vol in vols_stk_list]
@@ -658,18 +697,22 @@ class OpCreatePatchVolumes(OpBase):
 
     def __init__(
         self,
-        lesion_shape,
-        lesion_spacing,
+        lesion_shape: Tuple[int, int, int],
+        lesion_spacing: Tuple[float, float, float],
         pos_key: str = None,
         name_suffix: Optional[str] = "",
-        delete_input_volumes=False,
-        crop_based_annotation=True,
-        **kwargs,
+        delete_input_volumes: bool = False,
+        crop_based_annotation: bool = True,
     ):
         """
-        TODO
+        :param lesion_shape:
+        :param lesion_spacing:
+        :param pos_key:
+        :param name_suffix:
+        :param delete_input_volumes:
+        :param crop_based_annotation:
         """
-        super().__init__(**kwargs)
+        super().__init__()
         self._lesion_shape = lesion_shape
         self._lesion_spacing = lesion_spacing
         self._name_suffix = name_suffix
@@ -686,7 +729,10 @@ class OpCreatePatchVolumes(OpBase):
         key_out: str,
     ) -> NDict:
         """
-        TODO
+        :param key_in_volume4D:
+        :param key_in_ref_volume:
+        :param key_in_patch_annotations:
+        :param key_out:
         """
         vol_ref = sample_dict[key_in_ref_volume]
         vol_4D = sample_dict[key_in_volume4D]
@@ -758,7 +804,7 @@ class OpStk2Dict(OpBase):
         (OpStk2Dict(), dict(keys=["data.input.volume4D", "data.input.ref_volume"]))
     """
 
-    def __call__(self, sample_dict: NDict, keys: List[str]):
+    def __call__(self, sample_dict: NDict, keys: List[str]) -> NDict:
         """
         :param sample_dict:
         :param keys: list of the Images' keys that will be converted into dictionaries.
@@ -774,6 +820,50 @@ class OpStk2Dict(OpBase):
             sample_dict[key] = d
 
         return sample_dict
+
+class OpStk2Numpy(OpBase):
+
+    def __call__(self, sample_dict: NDict, key_in: str, key_out: str) -> NDict:
+        stk_image = sample_dict[key_in]
+        arr = sitk.GetArrayFromImage(stk_image)
+        sample_dict[key_out] = arr 
+        return sample_dict
+
+
+
+class OpStk2DictSingle(OpBase):
+    """
+    Cast SimpleITK Image (volume) into a dictionary with the following items:
+        data:
+        "arr": ndarray of the image
+        meta-data:
+        "origin": volume's origin
+        "spacing": volume's spacing
+        "direction": volume's direction
+
+    Note that the input keys are also the output ones meaning the conversion is inplace.
+
+    Example of use:
+        - Will con
+        (OpStk2Dict(), dict(keys=["data.input.volume4D", "data.input.ref_volume"]))
+    """
+
+    def __call__(self, sample_dict: NDict, key_in: str, key_out: str) -> NDict:
+        """
+        :param sample_dict:
+        :param keys: list of the Images' keys that will be converted into dictionaries.
+        """
+        vol_stk = sample_dict[key_in]
+        d = dict(
+            arr=sitk.GetArrayFromImage(vol_stk),
+            origin=vol_stk.GetOrigin(),
+            spacing=vol_stk.GetSpacing(),
+            direction=vol_stk.GetDirection(),
+        )
+        sample_dict[key_out] = d
+
+        return sample_dict
+
 
 
 class OpDict2Stk(OpBase):
@@ -805,6 +895,37 @@ class OpDict2Stk(OpBase):
             vol_stk.SetSpacing(d["spacing"])
             vol_stk.SetDirection(d["direction"])
             sample_dict[key] = vol_stk
+
+        return sample_dict
+
+class OpDict2StkSingle(OpBase):
+    """
+    Cast a dictonary into a SimpleITK Image (volume).
+    The dictonary should have the following items:
+        data:
+        "arr": ndarray of the image
+        meta-data:
+        "origin": volume's origin
+        "spacing": volume's spacing
+        "direction": volume's direction
+
+    Example of use:
+        (OpDict2Stk(), dict(keys=["data.input.volume4D", "data.input.ref_volume"]))
+    """
+
+    def __call__(self, sample_dict: NDict, key_in: str, key_out: str) -> NDict:
+        """
+        TODO
+
+        :param sample_dict:
+        :param keys: list of the dictionaries' keys that will be converted to Images.
+        """
+        d = sample_dict[key_in]
+        vol_stk = sitk.GetImageFromArray(d["arr"])
+        vol_stk.SetOrigin(d["origin"])
+        vol_stk.SetSpacing(d["spacing"])
+        vol_stk.SetDirection(d["direction"])
+        sample_dict[key_out] = vol_stk
 
         return sample_dict
 
@@ -1001,32 +1122,6 @@ def crop_lesion_vol(
 
         return mask_sitk
 
-    def create_resample(
-        vol_ref: sitk.sitkFloat32, interpolation: str, size: Tuple[int, int, int], spacing: Tuple[float, float, float]
-    ):
-        """
-        create_resample create resample operator
-        :param vol_ref: sitk vol to use as a ref
-        :param interpolation:['linear','nn','bspline']
-        :param size: in pixels ()
-        :param spacing: in mm ()
-        :return: resample sitk operator
-        """
-
-        if interpolation == "linear":
-            interpolator = sitk.sitkLinear
-        elif interpolation == "nn":
-            interpolator = sitk.sitkNearestNeighbor
-        elif interpolation == "bspline":
-            interpolator = sitk.sitkBSpline
-
-        resample = sitk.ResampleImageFilter()
-        resample.SetReferenceImage(vol_ref)
-        resample.SetOutputSpacing(spacing)
-        resample.SetInterpolator(interpolator)
-        resample.SetSize(size)
-        return resample
-
     def apply_resampling(
         img: sitk.sitkFloat32,
         mask: sitk.sitkFloat32,
@@ -1070,6 +1165,38 @@ def crop_lesion_vol(
     img, mask = apply_resampling(vol, mask, spacing=spacing, size=size, transform=translation)
 
     return img
+
+
+def create_resample(
+    vol_ref: sitk.sitkFloat32, interpolation: str, size: Tuple[int, int, int], spacing: Tuple[float, float, float]
+) -> sitk.ResampleImageFilter:
+    """
+    create_resample create resample operator
+
+    TODO set origin and direction for the resample (?)
+
+    :param vol_ref: sitk vol to use as a ref
+    :param interpolation:['linear','nn','bspline']
+    :param size: in pixels ()
+    :param spacing: in mm ()
+    :return: resample sitk operator
+    """
+
+    if interpolation == "linear":
+        interpolator = sitk.sitkLinear
+    elif interpolation == "nn":
+        interpolator = sitk.sitkNearestNeighbor
+    elif interpolation == "bspline":
+        interpolator = sitk.sitkBSpline
+    else:
+        raise Exception(f"Error: unexpected interpolation mode ({interpolation}).")
+
+    resample = sitk.ResampleImageFilter()
+    resample.SetReferenceImage(vol_ref)
+    resample.SetOutputSpacing(spacing)
+    resample.SetInterpolator(interpolator)
+    resample.SetSize(size)
+    return resample
 
 
 def extract_mask_from_annotation(vol_ref, bbox_coords):
@@ -1193,7 +1320,8 @@ def extract_seq_2_info_map(sample_path: str, series_desc_2_sequence_map: Dict[st
         dicom_field = extract_dicom_field(dcm_ds, seq_id)
 
         # Add info to the current sequence ID
-        seq_2_info_dict.setdefault(seq_id, []).append(
+        seq_2_info_dict.setdefault(seq_id, [])
+        seq_2_info_dict[seq_id].append(
             dict(path=seq_path, series_num=series_num, dicom_field=dicom_field, series_desc=series_desc)
         )
 

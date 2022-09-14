@@ -94,7 +94,7 @@ class TestDatasets(unittest.TestCase):
     @unittest.skipIf("DUKE_DATA_PATH" not in os.environ, "Expecting environment variable DUKE_DATA_PATH to be defined")
     def test_duke(self):
         data_path = os.environ["DUKE_DATA_PATH"]
-        num_samples = 1  # The number of samples to test the dataset's pipeline on them.
+        num_samples = 10  # The number of samples to test the dataset's pipeline on them.
         sample_ids = Duke.sample_ids()[:num_samples]
         dataset = Duke.dataset(
             data_dir=data_path,
@@ -123,7 +123,8 @@ class TestDatasets(unittest.TestCase):
         data_path = os.environ["PROSTATEX_DATA_PATH"]
         num_samples = 1  # The number of samples to test the dataset's pipeline on them
         sample_ids = ProstateX.sample_ids(data_path)[:num_samples]
-        sample_ids = np.append(sample_ids, "ProstateX-0191_1")  # Add problematic data
+        problematic_samples = ["ProstateX-0191_1", "ProstateX-0148_1", "ProstateX-0148_2"]
+        sample_ids = np.append(sample_ids, problematic_samples)  # Add problematic data
         num_samples = len(sample_ids)
         dataset = ProstateX.dataset(
             data_dir=data_path, train=True, sample_ids=sample_ids, reset_cache=True, num_workers=0

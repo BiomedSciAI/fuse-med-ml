@@ -7,6 +7,7 @@ from typing import Any, Callable, Hashable, Optional, Sequence, List, Dict
 from fuse.data.ops.ops_common import OpLambda, OpKeepKeypaths
 from functools import partial
 
+from fuseimg.data.ops.color import OpNormalizeAgainstSelf, OpClip, OpToRange
 from fuseimg.data.ops.aug.geometry_3d import OpRotation3D
 from fuseimg.data.ops.aug.geometry import OpAugSqueeze3Dto2D, OpAugAffine2D, OpAugUnsqueeze3DFrom2D
 from fuse.data.ops.ops_aug_common import OpSample, OpRandApply
@@ -34,17 +35,25 @@ from fuseimg.data.ops.ops_mri import (
     OpAddMaskFromBoundingBoxAsLastChannel,
     OpCreatePatchVolumes,
     OpStk2Dict,
+    OpStk2DictSingle,
     OpDict2Stk,
+    OpDict2StkSingle,
     OpSortSequence,
     OpGroupSequences,
     OpDeleteSequenceAttr,
+    OpLoadDicomsAsStkVolByPath,
+    extract_series_num,
+    extract_dicom_field,
+    sort_dicoms_by_field,
 )
+from fuseimg.data.ops.ops_debug import OpVis2DImage, OpVisImageHist
 
 import torch
+import pydicom
 
 from fuseimg.datasets.duke.duke_label_type import DukeLabelType
 
-# from fuse.data.ops.ops_debug import OpPrintTypes, OpPrintKeysContent
+from fuse.data.ops.ops_debug import OpPrintTypes, OpPrintKeysContent
 
 
 def get_selected_series_index(sample_id: List[str], seq_id: str) -> List[int]:  # Not so sure about types
@@ -56,9 +65,11 @@ def get_selected_series_index(sample_id: List[str], seq_id: str) -> List[int]:  
     """
     patient_id = sample_id[0]
     if patient_id in ["Breast_MRI_120", "Breast_MRI_596"]:
-        map = {"DCE_mix": [2], "MASK": [0]}
+        map = {"DCE_mix": [2], "MASK": [0]}  # NO MASK in seq ids
+        # idx = 2
     else:
-        map = {"DCE_mix": [1], "MASK": [0]}
+        map = {"DCE_mix": [1], "MASK": [0]}  # NO MASK in seq ids
+        # idx = 1
     return map[seq_id]
 
 
@@ -167,76 +178,96 @@ class Duke:
         seq_ids = ["DCE_mix_ph1", "DCE_mix_ph2", "DCE_mix_ph3", "DCE_mix_ph4", "DCE_mix", "DCE_mix_ph"]
 
         # Function for sorting 'OpSortSequence'
-        def sort_DCE_mix_ph_func(e: Dict[str, Any]) -> Any:
-            return e["series_num"]
+        def sort_DCE_mix_ph_func(seq_info_list: Dict[str, Any]) -> Any:
+            return seq_info_list["series_num"]
+
+        def image_process_func(img: np.ndarray):
+            return img[:,:,79]
 
         static_pipeline_steps = [
             # step 1: map sample_id to paths of MRI image
-            (OpDukeSampleIDDecode(data_path=mri_dir2), dict(key_out="data.input.mri_path")),
-            # step 2: read sequences
             (
-                OpExtractDicomsPerSeq(
-                    seq_ids=seq_ids, series_desc_2_sequence_map=series_desc_2_sequence_map, use_order_indicator=False
-                ),
-                dict(
-                    key_in="data.input.mri_path",
-                    key_out_sequence_prefix="data.input.sequence",
-                ),
+                OpDukeSampleIDDecode(data_path=mri_dir2, series_desc_2_sequence_map=series_desc_2_sequence_map),
+                dict(key_out="data.input.mri_path", sort_dicoms=False),
             ),
+            # step 2: read dicom paths (sorting)
+            # (
+            #     OpExtractDicomsPerSeq(
+            #         seq_ids=seq_ids, series_desc_2_sequence_map=series_desc_2_sequence_map, use_order_indicator=False
+            #     ),
+            #     dict(
+            #         key_in="data.input.mri_path",
+            #         key_out_sequence_prefix="data.input.sequence",
+            #     ),
+            # ),
             # step 3: Load STK volumes of MRI sequences
-            (
-                OpLoadDicomAsStkVol(seq_ids=seq_ids),
-                dict(key_sequence_prefix="data.input.sequence", key_volume="stk_volume"),
-            ),
+            # (
+            #     OpLoadDicomAsStkVol(seq_ids=seq_ids),
+            #     dict(key_sequence_prefix="data.input.sequence", key_volume="stk_volume"),
+            # ),
             # step 4: group DCE sequences into DCE_mix
-            (
-                OpSortSequence(key_sort=sort_DCE_mix_ph_func),
-                dict(key_in_seq_prefix="data.input.sequence", key_in_seq_id="DCE_mix_ph"),
-            ),
-            (
-                OpGroupSequences(delete_source_seq=True),
-                dict(
-                    ids_source=["DCE_mix_ph1", "DCE_mix_ph2", "DCE_mix_ph3", "DCE_mix_ph4", "DCE_mix_ph"],
-                    id_target="DCE_mix",
-                    key_sequence_prefix="data.input.sequence",
-                ),
-            ),
+            # (
+            #     OpSortSequence(key_sort=sort_DCE_mix_ph_func),
+            #     dict(key_in_seq_prefix="data.input.sequence", key_in_seq_id="DCE_mix_ph"),
+            # ),
+            # (
+            #     OpGroupSequences(delete_source_seq=True),
+            #     dict(
+            #         ids_source=["DCE_mix_ph1", "DCE_mix_ph2", "DCE_mix_ph3", "DCE_mix_ph4", "DCE_mix_ph"],
+            #         id_target="DCE_mix",
+            #         key_sequence_prefix="data.input.sequence",
+            #     ),
+            # ),
             # step 5: select single volume from DCE_mix sequence
-            (
-                OpSelectVolumes(
-                    get_indexes_func=select_series_func,
-                    selected_seq_ids=["DCE_mix"],
-                ),
-                dict(
-                    key_in_sequence_prefix="data.input.sequence",
-                    key_in_volume="stk_volume",
-                    key_out_volumes="data.input.selected_volumes",
-                    key_out_volumes_info="data.input.selected_volumes_info",
-                ),
-            ),
-            (
-                OpDeleteSequenceAttr(seq_ids=seq_ids),
-                dict(key_in_seq_prefix="data.input.sequence", attribute="stk_volume"),
-            ),
+            # (
+            #     OpSelectVolumes(
+            #         get_indexes_func=select_series_func,
+            #         selected_seq_ids=["DCE_mix"],
+            #     ),
+            #     dict(
+            #         key_in_sequence_prefix="data.input.sequence",
+            #         key_in_volume="stk_volume",
+            #         key_out_volumes="data.input.selected_volumes",
+            #         key_out_volumes_info="data.input.selected_volumes_info",
+            #     ),
+            # ),
+            # (
+            #     OpDeleteSequenceAttr(seq_ids=seq_ids),
+            #     dict(key_in_seq_prefix="data.input.sequence", attribute="stk_volume"),
+            # ),
             # step 6: set first volume to be the reference volume and register other volumes with respect to it
-            (
-                OpResampleStkVolsBasedRef(reference_inx=0, interpolation="bspline"),
-                dict(key="data.input.selected_volumes"),
-            ),
+            # (
+            #     OpResampleStkVolsBasedRef(reference_inx=0, interpolation="bspline"),
+            #     dict(key="data.input.selected_volumes"),
+            # ),
             # step 7: create a single 4D volume from all the sequences (4th channel is the sequences channel)
+            # (
+            #     OpStackList4DStk(delete_input_volumes=True),
+            #     dict(
+            #         key_in="data.input.selected_volumes",
+            #         key_out_volume4d="data.input.volume4D",
+            #         key_out_ref_volume="data.input.ref_volume",
+            #     ),
+            # ),
+            (OpLoadDicomsAsStkVolByPath(), dict(key_in="data.input.sub_path", key_out="data.input.stk_volume")),
+            # (OpPrintKeysContent(num_samples=1), dict(keys=None)),
+            (OpNormalizeAgainstSelf(), dict(key="data.input.stk_volume")),
+            # (OpVisImageHist(num_samples=1, show=False), dict(key="data.input.stk_volume", bins=10)),
+            # (OpVis2DImage(num_samples=1, show=False, image_process_func=image_process_func), dict(key="data.input.stk_volume")),
             (
                 OpStackList4DStk(delete_input_volumes=True),
                 dict(
-                    key_in="data.input.selected_volumes",
+                    key_in="data.input.stk_volume",
                     key_out_volume4d="data.input.volume4D",
                     key_out_ref_volume="data.input.ref_volume",
                 ),
             ),
         ]
 
-        if with_rescale:
-            # step 8: rescale the 4d volume
-            static_pipeline_steps += [(OpRescale4DStk(), dict(key="data.input.volume4D"))]
+        # if with_rescale:
+        #     # step 8: rescale the 4d volume
+        #     static_pipeline_steps += [(OpRescale4DStk(), dict(key="data.input.volume4D"))]
+
 
         # step 9: read raw annotations - will be used for labels, features, and also for creating lesion properties
         annotations_path = os.path.join(data_dir, "Annotation_Boxes.csv")
@@ -448,14 +479,88 @@ class OpDukeSampleIDDecode(OpBase):
     decodes sample id into path of the MRI image
     """
 
-    def __init__(self, data_path: str, **kwargs: Any):
-        super().__init__(**kwargs)
+    def __init__(self, data_path: str, series_desc_2_sequence_map: Dict[str, str]):
+        """
+        :param data_path:
+        :param series_desc_2_sequence_map:
+        """
+        super().__init__()
         self._data_path = data_path
+        self._series_desc_2_sequence_map = series_desc_2_sequence_map
 
-    def __call__(self, sample_dict: NDict, key_out: str) -> NDict:
+    def __call__(self, sample_dict: NDict, key_out: str, sort_dicoms: bool) -> NDict:
         sid = get_sample_id(sample_dict)
+        idx = 2 if sid in ["Breast_MRI_120", "Breast_MRI_596"] else 1
 
-        sample_dict[key_out] = get_sample_path(self._data_path, sid)
+        sample_path = get_sample_path(self._data_path, sid)
+        sample_dict[key_out] = sample_path
+
+        # Which seq_ids have dcm files?
+        seq_ids_to_paths = dict()
+        seq_2_info_dict = dict()
+        for seq_dir in os.listdir(sample_path):
+            seq_path = os.path.join(sample_path, seq_dir)
+
+            # get dcm file in dir
+            dcm_file = glob.glob(os.path.join(seq_path, "*.dcm"))[0]
+            dcm_ds = pydicom.dcmread(dcm_file)
+
+            # Read series description from one of the dicoms
+            series_desc = dcm_ds.SeriesDescription
+
+            # Derive the sequence ID from the series description
+            seq_id = self._series_desc_2_sequence_map.get(series_desc, "UNKNOWN")
+
+            series_num = extract_series_num(dcm_ds)  # TODO maybe take those as input (?)
+            dicom_field = extract_dicom_field(dcm_ds, seq_id)
+
+
+            seq_2_info_dict.setdefault(seq_id, [])
+            seq_2_info_dict[seq_id].append(
+                dict(path=seq_path, series_num=series_num, dicom_field=dicom_field, series_desc=series_desc)
+            )
+
+            seq_ids_to_paths.setdefault(seq_id, [])
+            seq_ids_to_paths[seq_id].append(seq_path)
+
+        # iterate by the wanted order and choose the sub-path to the relevant seq_dir
+        present_seq_ids = seq_ids_to_paths.keys()
+        wanted_sequences = ["DCE_mix_ph1", "DCE_mix_ph2", "DCE_mix_ph3", "DCE_mix_ph4", "DCE_mix_ph"]
+        iter_sequences = [seq_id for seq_id in wanted_sequences if seq_id in present_seq_ids]
+        if iter_sequences == []:
+            print(f"Didn't found sequence data for sample ({sid}).")
+            return
+            # raise Exception(f"Didn't found sequence data for sample ({sid}).")
+
+        # save the sub-path
+        wanted_seq_id = iter_sequences[0]  # OK
+        seq_sub_path = seq_ids_to_paths[wanted_seq_id][0]  # NAIVE !
+
+        # not naive:
+        if sort_dicoms:
+            wanted_seq_info_list = seq_2_info_dict[wanted_seq_id]
+            seq_info = wanted_seq_info_list[0]
+
+            dicom_group_ids, sorted_dicom_groups = sort_dicoms_by_field(
+                seq_path=seq_info["path"],
+                dicom_field=seq_info["dicom_field"],
+                use_order_indicator=False
+            )
+            for dicom_group_id, dicom_group in zip(dicom_group_ids, sorted_dicom_groups):
+                seq_info2 = dict(
+                    path=seq_info["path"],
+                    series_num=seq_info["series_num"],
+                    series_desc=seq_info["series_desc"],
+                    dicoms=dicom_group,  # each sequence/series path may contain several (sub-)sequence/series
+                    dicoms_id=dicom_group_id,
+                )
+
+                seq_sub_path = seq_info2["path"]
+                break
+
+
+
+        sample_dict["data.input.sub_path"] = seq_sub_path
         return sample_dict
 
 

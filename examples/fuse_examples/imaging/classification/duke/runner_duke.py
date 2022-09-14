@@ -70,7 +70,7 @@ else:
 # Output Paths
 ##########################################
 # ROOT = duke_utils.get_duke_user_dir()
-ROOT = "/tmp/_duke_sagi"
+ROOT = "./_examples/duke"
 data_dir = os.environ["DUKE_DATA_PATH"]
 
 if mode == "debug" or mode == "fast_debug":
@@ -99,7 +99,7 @@ else:
     selected_sample_ids = None
 
     data_split_file = "DUKE_folds.pkl"
-    model_dir = os.path.join(ROOT, "model_dir")
+    model_dir = os.path.join(ROOT, "model_dir_y_norm_n_rescale_n_sort")
     cache_dir = os.path.join(ROOT, "cache_dir")
     force_reset_model_dir = True
 

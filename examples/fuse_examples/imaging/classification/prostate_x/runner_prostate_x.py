@@ -84,7 +84,7 @@ def get_folds(n_folds: int) -> Tuple[List[int], List[int], List[int]]:
     return train_folds, validation_fold, heldout_fold
 
 
-mode = "default"  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
+mode = "debug"  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
 
 # allocate gpus
 # To use cpu - set NUM_GPUS to 0
@@ -276,7 +276,7 @@ def create_model(imaging_dropout: float, num_backbone_features: int, input_chann
     """
 
     model = ModelMultiHead(
-        conv_inputs=(("data.input.patch_volume", 1),),
+        conv_inputs=(("data.input.volume4D", 1),),
         backbone=BackboneResnet3D(in_channels=input_channels_num, pretrained=True),
         heads=[
             Head3DClassifier(

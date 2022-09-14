@@ -138,7 +138,7 @@ class OpPrintKeysContent(OpDebugBase):
     ```
     """
 
-    def call_debug(self, sample_dict: NDict, keys: List[str]) -> None:
+    def call_debug(self, sample_dict: NDict, keys: Optional[List[str]] = None) -> None:
         """
         :param keys: List of keys to print. Set to 'None' to print all keys.
         """

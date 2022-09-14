@@ -8,6 +8,7 @@ from fuse.data.ops.ops_debug import OpDebugBase
 import numpy
 import torch
 import matplotlib.pyplot as plt
+import SimpleITK as sitk
 
 
 class OpVis2DImage(OpDebugBase):
@@ -68,6 +69,9 @@ class OpVis2DImage(OpDebugBase):
         if isinstance(img, torch.Tensor):
             img = img.detach().cpu().numpy()
 
+        if isinstance(img, sitk.Image): # should not be array! temp sagi
+            img = sitk.GetArrayFromImage(img)
+
         assert isinstance(img, numpy.ndarray)
 
         if clip is not None:
@@ -90,6 +94,7 @@ class OpVis2DImage(OpDebugBase):
 
         plt.figure(**figure_kwargs)
         plt.imshow(img, **imshow_kwargs)
+        plt.colorbar()
         if self._show:
             plt.show()
         else:
@@ -110,11 +115,11 @@ class OpVisImageHist(OpDebugBase):
     ```
     Example:
     ```
-    (OpVisImageHist(first_sample_only=True), dict(key="data.input.img"))
+    (OpVisImageHist(num_samples=1), dict(key="data.input.img"))
     ```
     """
 
-    def __init__(self, show: bool = True, path: str = ".", **kwargs: Any):
+    def __init__(self, show: bool = True, path: str = ".", image_process_func: Optional[Callable]=None, **kwargs: Any):
         """
         :param show: if set to true will display it, otherwise will save it in `path`
         :param path: location to save the images. Used when `show` set to False
@@ -123,6 +128,7 @@ class OpVisImageHist(OpDebugBase):
         super().__init__(**kwargs)
         self._path = path
         self._show = show
+        self._image_process_func = image_process_func
 
     def call_debug(
         self, sample_dict: NDict, key: str, bins: int = 10, figure_kwargs: dict = {}, **hist_kwargs: Any
@@ -137,13 +143,16 @@ class OpVisImageHist(OpDebugBase):
         if isinstance(img, torch.Tensor):
             img = img.detach().cpu().numpy()
 
+        if isinstance(img, sitk.Image): # should not be array! temp sagi
+            img = sitk.GetArrayFromImage(img)
+
         assert isinstance(img, numpy.ndarray)
 
-        if self._image_format == "channels_first":
-            img = numpy.moveaxis(img, 0, -1)
         if self._image_process_func is not None:
             img = self._image_process_func(img)
-
+        
+        print(img.max())
+        print(numpy.histogram(img.flatten()))
         plt.figure(**figure_kwargs)
         plt.hist(img.flatten(), bins=bins, **hist_kwargs)
         if self._show:
