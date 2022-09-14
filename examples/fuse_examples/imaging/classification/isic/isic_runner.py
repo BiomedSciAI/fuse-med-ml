@@ -74,7 +74,7 @@ NUM_GPUS = 1
 # Modality
 ##########################################
 
-multimodality = True  # Set: 'False' to use only imaging, 'True' to use imaging & meta-data
+multimodality = False  # Set: 'False' to use only imaging, 'True' to use imaging & meta-data
 
 ##########################################
 # Output Paths
@@ -84,14 +84,14 @@ multimodality = True  # Set: 'False' to use only imaging, 'True' to use imaging 
 ROOT = "./_examples/isic/"
 DATA = os.path.join(ROOT, "data_dir")
 modality = "multimodality" if multimodality else "imaging"
-model_dir = os.path.join(ROOT, f"model_dir_{modality}")
+model_dir = os.path.join(ROOT, f"model_dir_{modality}_final")
 PATHS = {
     "model_dir": model_dir,
     "inference_dir": os.path.join(model_dir, "infer_dir"),
     "eval_dir": os.path.join(model_dir, "eval_dir"),
     "data_dir": DATA,
     "cache_dir": os.path.join(ROOT, "cache_dir"),
-    "data_split_filename": os.path.join(ROOT, "isic_split.pkl"),
+    "data_split_filename": os.path.join(model_dir, "isic_split.pkl"),
 }
 
 
@@ -108,7 +108,7 @@ TRAIN_COMMON_PARAMS["data.validation_num_workers"] = 8
 TRAIN_COMMON_PARAMS["data.num_folds"] = 5
 TRAIN_COMMON_PARAMS["data.train_folds"] = [0, 1, 2]
 TRAIN_COMMON_PARAMS["data.validation_folds"] = [3]
-TRAIN_COMMON_PARAMS["data.samples_ids"] = {"all": None, "golden": FULL_GOLDEN_MEMBERS}["golden"]
+TRAIN_COMMON_PARAMS["data.samples_ids"] = {"all": None, "golden": FULL_GOLDEN_MEMBERS}["all"]
 
 # ===============
 # PL Trainer

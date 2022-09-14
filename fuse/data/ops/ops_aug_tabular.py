@@ -1,6 +1,6 @@
 import random
 import numpy as np
-from typing import Optional, Any, Sequence
+from typing import Optional, Sequence
 
 from fuse.data.ops.op_base import OpBase
 
