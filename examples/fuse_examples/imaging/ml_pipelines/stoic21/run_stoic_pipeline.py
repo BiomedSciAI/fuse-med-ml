@@ -34,6 +34,7 @@ paths = {
     "eval_dir": os.path.join(root_path, "stoic21/eval_dir"),
 }
 
+
 ##########################################
 # Custom Parameters
 ##########################################
@@ -54,6 +55,7 @@ infer_params = INFER_COMMON_PARAMS
 infer_params["run_func"] = run_infer
 infer_params["infer_filename"] = "infer.gz"
 infer_params["trainer.auto_select_gpus"] = False
+infer_params["pred_key"] = "model.output.classification"
 
 ######################################
 # Eval Params

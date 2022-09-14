@@ -1,5 +1,6 @@
 from fuse.dl.cross_validation.pipeline import run
-from examples.fuse_examples.imaging.classification.mnist.run_mnist import run_train, run_infer, run_eval
+from examples.fuse_examples.imaging.classification.mnist.run_mnist import run_train, run_infer, run_eval, \
+                                            TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS
 from funcs import create_dataset
 import os
 
@@ -35,59 +36,34 @@ paths = {
 ##########################################
 
 dataset_params = {}
+dataset_params["target_key"] = "data.label"
 
 ##########################################
 # Train Params
 ##########################################
-train_params = {}
+train_params = TRAIN_COMMON_PARAMS
 
-# ============
-# Model
-# ============
-train_params["model"] = "lenet"  # 'resnet18' or 'lenet'
-
-# ============
-# Data
-# ============
-if train_params["model"] == "lenet":
-    train_params["data.batch_size"] = 100
-elif train_params["model"] == "resnet18":
-    train_params["data.batch_size"] = 30
-train_params["data.train_num_workers"] = 8
-train_params["data.validation_num_workers"] = 8
-
-# ===============
-# Train
-# ===============
-train_params["opt.lr"] = 1e-4
-train_params["opt.weight_decay"] = 0.001
-
-train_params["trainer.num_epochs"] = 2
-train_params["trainer.accelerator"] = "gpu"
 # use "dp" strategy temp when working with multiple GPUS - workaround for pytorch lightning issue: https://github.com/Lightning-AI/lightning/issues/11807
 train_params["trainer.strategy"] = "dp" if num_gpus_per_split > 1 else None
 train_params["trainer.num_devices"] = num_gpus_per_split
-train_params["trainer.ckpt_path"] = None  # checkpoint to continue from
-
 
 ######################################
 # Inference Params
 ######################################
-infer_params = {}
+infer_params = INFER_COMMON_PARAMS
 infer_params["infer_filename"] = "infer.gz"
-infer_params["checkpoint"] = "best_epoch.ckpt"
-infer_params["trainer.num_devices"] = 1
-infer_params["trainer.accelerator"] = "gpu"
-infer_params["trainer.strategy"] = None
+infer_params["pred_key"] = "model.output.classification"
+
 # ===============
 # Run function
 # ===============
 infer_params["run_func"] = run_infer
 
+
 ######################################
 # Eval Params
 ######################################
-eval_params = {}
+eval_params = EVAL_COMMON_PARAMS
 eval_params["infer_filename"] = infer_params["infer_filename"]
 eval_params["run_func"] = run_eval
 
