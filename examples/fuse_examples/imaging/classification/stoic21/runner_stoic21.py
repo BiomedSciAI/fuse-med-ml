@@ -99,7 +99,7 @@ TRAIN_COMMON_PARAMS["data.validation_folds"] = [4]
 # ===============
 # PL Trainer
 # ===============
-TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 3  # 50
+TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 50 
 TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
 # use "dp" strategy temp when working with multiple GPUS - workaround for pytorch lightning issue: https://github.com/Lightning-AI/lightning/issues/11807
