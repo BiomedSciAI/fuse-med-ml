@@ -49,11 +49,13 @@ from fuse_examples.imaging.classification.mnist.lenet import LeNet
 from fuse_examples.imaging.classification.mnist.mnist_data_module import MNISTDataModule
 
 """
-So you want to use DDP strategy to increase your batch size or boost your training?
+So you want to use distributed data parallel (DDP) strategy to increase your batch size or boost your training?
 
+TODO brief introduction ?
 
-
-
+@rank_zero_only
+A PyTorch-Lightning decorator that makes sure the function runs only in the main proccess.
+Helpful to evoid printing / logging multiple time.
 
 """
 ###########################################################################################################
@@ -63,7 +65,7 @@ So you want to use DDP strategy to increase your batch size or boost your traini
 ##########################################
 # Debug modes
 ##########################################
-mode = "default"  # Options: 'default', 'debug'. See details in FuseDebug
+mode = "default"
 debug = FuseDebug(mode)
 
 ##########################################
@@ -78,7 +80,7 @@ PATHS = {
     "eval_dir": os.path.join(model_dir, "eval_dir"),
 }
 
-NUM_GPUS = 2
+NUM_GPUS = 2  # Multiple GPU training
 WORKERS = 10
 ##########################################
 # Train Common Params
@@ -327,13 +329,10 @@ def run_eval(paths: dict, eval_common_params: dict):
 # Run
 ######################################
 if __name__ == "__main__":
-    # uncomment if you want to use specific gpus instead of automatically looking for free ones
 
-    force_gpus = None  # [0]
+    GPU.choose_and_enable_multiple_gpus(NUM_GPUS)
+    RUNNING_MODES = ["train", "infer", "eval"]
 
-    GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
-
-    RUNNING_MODES = ["train", "infer", "eval"]  # Options: 'train', 'infer', 'eval'
     # train
     if "train" in RUNNING_MODES:
         run_train(paths=PATHS, train_params=TRAIN_COMMON_PARAMS)
@@ -342,7 +341,6 @@ if __name__ == "__main__":
     if "infer" in RUNNING_MODES:
         run_infer(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS)
 
-    # eval
-    # Run eval only on the main process (zero local rank)
+    # eval - runs only on the main process (zero local rank)
     if "eval" in RUNNING_MODES:
         run_eval(paths=PATHS, eval_common_params=EVAL_COMMON_PARAMS)
