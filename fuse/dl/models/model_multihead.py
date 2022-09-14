@@ -35,6 +35,7 @@ class ModelMultiHead(torch.nn.Module):
         heads: Sequence[torch.nn.Module],
         conv_inputs: Tuple[Tuple[str, int], ...] = None,
         backbone_args: Tuple[Tuple[str, int], ...] = None,
+        key_out_features: str = "model.backbone_features",
     ) -> None:
         """
         Default Fuse model - convolutional neural network with multiple heads
@@ -56,6 +57,7 @@ class ModelMultiHead(torch.nn.Module):
         self.conv_inputs = conv_inputs
         self.backbone_args = backbone_args
         self.backbone = backbone
+        self.key_out_features = key_out_features
         self.add_module("backbone", self.backbone)
         self.heads = torch.nn.ModuleList(heads)
         self.add_module("heads", self.heads)
@@ -68,7 +70,7 @@ class ModelMultiHead(torch.nn.Module):
             backbone_args = [batch_dict[inp[0]] for inp in self.backbone_args]
             backbone_features = self.backbone.forward(*backbone_args)
 
-        batch_dict["model.backbone_features"] = backbone_features
+        batch_dict[self.key_out_features] = backbone_features
 
         for head in self.heads:
             batch_dict = head.forward(batch_dict)
