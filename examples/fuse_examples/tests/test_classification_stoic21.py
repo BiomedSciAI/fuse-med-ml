@@ -26,8 +26,10 @@ from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 from fuse.utils.rand.seed import Seed
 import fuse.utils.gpu as GPU
 
+import examples.fuse_examples.imaging.classification.stoic21.dataset as dataset
+
 if "STOIC21_DATA_PATH" in os.environ:
-    from fuse_examples.imaging.classification.stoic21.runner_stoic21 import (
+    from examples.fuse_examples.imaging.classification.stoic21.runner_stoic21 import (
         PATHS,
         TRAIN_COMMON_PARAMS,
         run_train,
@@ -35,6 +37,7 @@ if "STOIC21_DATA_PATH" in os.environ:
         run_eval,
         INFER_COMMON_PARAMS,
         EVAL_COMMON_PARAMS,
+        DATASET_COMMON_PARAMS,
     )
 
 
@@ -54,12 +57,14 @@ def run_stoic21(root: str) -> None:
     infer_common_params = INFER_COMMON_PARAMS
 
     analyze_common_params = EVAL_COMMON_PARAMS
+    dataset_common_params = DATASET_COMMON_PARAMS
 
     GPU.choose_and_enable_multiple_gpus(1)
 
     Seed.set_seed(0, False)  # previous test (in the pipeline) changed the deterministic behavior to True
-    run_train(paths, train_common_params)
-    run_infer(paths, infer_common_params)
+    train_dataset, infer_dataset = dataset.create_dataset(paths=paths, params=dataset_common_params)
+    run_train(train_dataset, infer_dataset, paths, train_common_params)
+    run_infer(infer_dataset, paths, infer_common_params)
     results = run_eval(paths, analyze_common_params)
 
     assert "metrics.auc" in results
