@@ -1,4 +1,5 @@
 from multiprocessing import set_start_method
+
 set_start_method("spawn", force=True)
 from typing import Dict, Callable
 from fuse.utils import gpu as FuseUtilsGPU
@@ -13,7 +14,10 @@ from fuse.eval.evaluator import EvaluatorDefault
 from fuse.utils.file_io.file_io import create_or_reset_dir
 from fuse.utils.rand.seed import Seed
 
-def ensemble(test_dirs: Sequence[str], test_infer_filename: str, pred_key:str, target_key: str, ensembled_output_file: str) -> None:
+
+def ensemble(
+    test_dirs: Sequence[str], test_infer_filename: str, pred_key: str, target_key: str, ensembled_output_file: str
+) -> None:
     ensembled_output_dir = os.path.dirname(ensembled_output_file)
     create_or_reset_dir(ensembled_output_dir, force_reset=True)
     test_infer_filenames = [os.path.join(d, test_infer_filename) for d in test_dirs]
@@ -289,7 +293,13 @@ def run(
             paths["inference_dir"], "test", "rep_" + str(rep_index), "ensemble", "infer.gz"
         )
 
-        ensemble(test_dirs, test_infer_filename, infer_params["pred_key"], dataset_params["target_key"], ensembled_output_file)
+        ensemble(
+            test_dirs,
+            test_infer_filename,
+            infer_params["pred_key"],
+            dataset_params["target_key"],
+            ensembled_output_file,
+        )
 
         # evaluate ensemble:
         paths_eval = paths.copy()

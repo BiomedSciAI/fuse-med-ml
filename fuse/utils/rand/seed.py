@@ -3,6 +3,7 @@ import numpy as np
 import random
 import os
 
+
 class Seed:
     """
     Random seed functionality - static methods
@@ -18,7 +19,7 @@ class Seed:
         """
         if deterministic_mode:
             os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
-            
+
         # random
         random.seed(seed)
 

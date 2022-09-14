@@ -1,6 +1,12 @@
 from fuse.dl.cross_validation.pipeline import run
-from examples.fuse_examples.imaging.classification.mnist.run_mnist import run_train, run_infer, run_eval, \
-                                            TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS
+from examples.fuse_examples.imaging.classification.mnist.run_mnist import (
+    run_train,
+    run_infer,
+    run_eval,
+    TRAIN_COMMON_PARAMS,
+    INFER_COMMON_PARAMS,
+    EVAL_COMMON_PARAMS,
+)
 from funcs import create_dataset
 import os
 
