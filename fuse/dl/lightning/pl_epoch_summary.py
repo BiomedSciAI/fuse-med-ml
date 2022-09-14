@@ -79,7 +79,10 @@ class ModelEpochSummary(Callback):
 
     @rank_zero_only
     def print_epoch_summary_table(self, epoch_metircs: dict, epoch_source_index: int) -> None:
-        """Generate, print and log the table"""
+        """
+        Generate, print and log the table.
+        Decorator make sure it runs only once in a DDP strategy.
+        """
 
         def get_value_as_float_str(dict, key):
             val_as_str = "N/A"

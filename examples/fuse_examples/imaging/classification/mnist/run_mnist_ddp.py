@@ -48,7 +48,14 @@ import fuse.utils.gpu as GPU
 from fuse_examples.imaging.classification.mnist.lenet import LeNet
 from fuse_examples.imaging.classification.mnist.mnist_data_module import MNISTDataModule
 
+"""
+So you want to use DDP strategy to increase your batch size or boost your training?
 
+
+
+
+
+"""
 ###########################################################################################################
 # Fuse
 ###########################################################################################################

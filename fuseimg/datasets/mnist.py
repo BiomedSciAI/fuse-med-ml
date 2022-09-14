@@ -50,11 +50,11 @@ class MNIST:
         )
 
         # wrapping torch dataset
-        train_dataset = DatasetWrapSeqToDict(
+        wrapped_dataset = DatasetWrapSeqToDict(
             name=f"mnist-{train}",
             dataset=torch_dataset,
             sample_keys=("data.image", "data.label"),
         )
 
-        train_dataset.create()
-        return train_dataset
+        wrapped_dataset.create()
+        return wrapped_dataset
