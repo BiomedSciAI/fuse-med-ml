@@ -108,7 +108,7 @@ TRAIN_COMMON_PARAMS["data.validation_num_workers"] = 8
 TRAIN_COMMON_PARAMS["data.num_folds"] = 5
 TRAIN_COMMON_PARAMS["data.train_folds"] = [0, 1, 2]
 TRAIN_COMMON_PARAMS["data.validation_folds"] = [3]
-TRAIN_COMMON_PARAMS["data.samples_ids"] = {"all": None, "golden": FULL_GOLDEN_MEMBERS}["all"]
+TRAIN_COMMON_PARAMS["data.samples_ids"] = {"all": None, "golden": FULL_GOLDEN_MEMBERS}["golden"]
 
 # ===============
 # PL Trainer
@@ -200,7 +200,6 @@ def run_train(paths: dict, train_common_params: dict) -> None:
         output_split_filename=paths["data_split_filename"],
         keys_to_balance=["data.label"],
         nfolds=train_common_params["data.num_folds"],
-        reset_split=True,
     )
 
     train_sample_ids = []
