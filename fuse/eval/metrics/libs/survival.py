@@ -4,7 +4,8 @@ import numpy as np
 
 class MetricsSurvival:
     @staticmethod
-    def c_index(pred: np.ndarray, event_times: np.ndarray = None, event_observed : np.ndarray = None, event_class_index: int = -1) -> float:
+    def c_index(pred: np.ndarray, event_times: np.ndarray = None, event_observed : np.ndarray = None,
+                event_class_index: int = -1, higher_score_longer_time = False) -> float:
         """
         Compute c-index (concordance index) score using lifelines
         :param pred: prediction array per sample. Each element is a score (scalar)
@@ -17,5 +18,6 @@ class MetricsSurvival:
 
         if isinstance(pred[0], np.ndarray):
             pred = np.asarray(pred)[:,event_class_index]
-           
-        return concordance_index(event_times, pred, event_observed) 
+        if not higher_score_longer_time:
+            pred = -1 * pred
+        return concordance_index(event_times, pred, event_observed)
