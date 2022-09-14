@@ -1,6 +1,3 @@
-from multiprocessing import set_start_method
-
-set_start_method("spawn", force=True)
 from typing import Dict, Callable
 from fuse.utils import gpu as FuseUtilsGPU
 from sklearn.model_selection import KFold
@@ -13,7 +10,8 @@ from collections import OrderedDict
 from fuse.eval.evaluator import EvaluatorDefault
 from fuse.utils.file_io.file_io import create_or_reset_dir
 from fuse.utils.rand.seed import Seed
-
+from multiprocessing import set_start_method
+set_start_method("spawn", force=True)
 
 def ensemble(
     test_dirs: Sequence[str], test_infer_filename: str, pred_key: str, target_key: str, ensembled_output_file: str
