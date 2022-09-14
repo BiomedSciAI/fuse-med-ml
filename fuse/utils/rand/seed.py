@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import random
-
+import os
 
 class Seed:
     """
@@ -16,6 +16,9 @@ class Seed:
         :param deterministic_mode: set PyTorch deterministic mode
         :return: Random generator to be used when creating Dataloader
         """
+        if deterministic_mode:
+            os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+            
         # random
         random.seed(seed)
 

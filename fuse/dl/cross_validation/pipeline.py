@@ -201,9 +201,6 @@ def run(
         for pre-defined train/validation splits. If this parameter is set to `None`,
         the splits are decided at random.
     """
-
-    if deterministic_mode:
-        os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"  # required for pytorch deterministic mode
     available_gpu_ids = FuseUtilsGPU.get_available_gpu_ids()
     if num_gpus_total < len(available_gpu_ids):
         available_gpu_ids = available_gpu_ids[0:num_gpus_total]
