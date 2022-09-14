@@ -45,7 +45,7 @@ class HeadGlobalPoolingClassifier(nn.Module):
         Classifier head with a global pooling operator.
 
         Output of a forward pass:
-        'model.logits.head_name' and 'outputs.head_name', both in shape [batch_size, num_classes]
+        'model.logits.head_name' and 'model.output.head_name', both in shape [batch_size, num_classes]
 
         :param head_name:                   batch_dict key
         :param conv_inputs:                 List of feature map inputs - tuples of (batch_dict key, channel depth)
