@@ -36,7 +36,7 @@ from fuse.eval.metrics.classification.metrics_classification_common import (
     MetricROCCurve,
 )
 from fuse.eval.metrics.metrics_common import CI
-
+from functools import partial
 
 ## Constants
 # Constants that defines the expected format of the prediction and target files and list the classes for task 1 and task @
@@ -200,6 +200,7 @@ def eval(
 
     dataframes_dict = {}
     metrics = {}
+    post_proc = partial(post_processing, task1=task1, task2=task2)
     # task 1
     if task1:
         # metrics to evaluate
@@ -210,7 +211,7 @@ def eval(
                         pred="task1_pred.array",
                         target="target.Task1-target",
                         class_names=TASK1_CLASS_NAMES,
-                        pre_collect_process_func=post_processing,
+                        pre_collect_process_func=post_proc,
                     ),
                     stratum="target.Task1-target",
                 ),
@@ -218,7 +219,7 @@ def eval(
                     pred="task1_pred.array",
                     target="target.Task1-target",
                     class_names=[None, ""],
-                    pre_collect_process_func=post_processing,
+                    pre_collect_process_func=post_proc,
                     output_filename=os.path.join(output_dir, "task1_roc.png"),
                 ),
             }
@@ -242,7 +243,7 @@ def eval(
                         pred="task2_pred.array",
                         target="target.Task2-target",
                         class_names=TASK2_CLASS_NAMES,
-                        pre_collect_process_func=post_processing,
+                        pre_collect_process_func=post_proc,
                     ),
                     stratum="target.Task2-target",
                 ),
@@ -251,7 +252,7 @@ def eval(
                     target="target.Task2-target",
                     class_names=TASK2_CLASS_NAMES,
                     output_filename=os.path.join(output_dir, "task2_roc.png"),
-                    pre_collect_process_func=post_processing,
+                    pre_collect_process_func=post_proc,
                 ),
             }
         )
