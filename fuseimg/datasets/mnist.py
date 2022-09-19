@@ -16,9 +16,10 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from typing import Optional
+from typing import Optional, Sequence
 from fuse.data.datasets.dataset_wrap_seq_to_dict import DatasetWrapSeqToDict
 from torchvision import transforms
+from torch.utils.data import Subset
 
 import torchvision
 
@@ -34,12 +35,13 @@ class MNIST:
     MNIST_DATASET_VER = 0
 
     @staticmethod
-    def dataset(cache_dir: Optional[str] = None, train: bool = True) -> DatasetDefault:
+    def dataset(cache_dir: Optional[str] = None, train: bool = True, sample_ids: Sequence = None) -> DatasetDefault:
         """
         Get mnist dataset - each sample includes: 'data.image', 'data.label' and 'data.sample_id'
         :param cache_dir: optional - destination to cache mnist
         :param train: If True, creates dataset from ``train-images-idx3-ubyte``,
             otherwise from ``t10k-images-idx3-ubyte``.
+        :param sample_ids: Optional list of sample ids. If None, then all data is used.
         """
 
         transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
@@ -48,8 +50,11 @@ class MNIST:
             cache_dir, download=cache_dir is not None, train=train, transform=transform
         )
         # wrapping torch dataset
+        if sample_ids is not None:
+            torch_train_dataset = Subset(torch_train_dataset, sample_ids)
+        train_str = "train" if train else "test"
         train_dataset = DatasetWrapSeqToDict(
-            name=f"mnist-{train}", dataset=torch_train_dataset, sample_keys=("data.image", "data.label")
+            name=f"mnist-{train_str}", dataset=torch_train_dataset, sample_keys=("data.image", "data.label")
         )
         train_dataset.create()
         return train_dataset
