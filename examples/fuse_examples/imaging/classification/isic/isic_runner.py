@@ -109,7 +109,7 @@ TRAIN_COMMON_PARAMS["data.num_folds"] = 5
 TRAIN_COMMON_PARAMS["data.train_folds"] = [0, 1, 2]
 TRAIN_COMMON_PARAMS["data.validation_folds"] = [3]
 TRAIN_COMMON_PARAMS["data.samples_ids"] = {"all": None, "golden": FULL_GOLDEN_MEMBERS}["all"]
-TRAIN_COMMON_PARAMS["data.reset_split"] = False
+TRAIN_COMMON_PARAMS["data.reset_cache"] = False
 
 
 # ===============
@@ -188,11 +188,11 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     # Train Data
     lgr.info("Train Data:", {"attrs": "bold"})
 
-    # split to folds randomly - temp
+    # split to folds randomly
     all_dataset = ISIC.dataset(
         paths["data_dir"],
         paths["cache_dir"],
-        reset_cache=False,
+        reset_cache=train_common_params["data.reset_cache"],
         num_workers=train_common_params["data.train_num_workers"],
         samples_ids=train_common_params["data.samples_ids"],
     )
@@ -202,7 +202,6 @@ def run_train(paths: dict, train_common_params: dict) -> None:
         output_split_filename=paths["data_split_filename"],
         keys_to_balance=["data.label"],
         nfolds=train_common_params["data.num_folds"],
-        reset_split=train_common_params["data.reset_split"],
     )
 
     train_sample_ids = []
