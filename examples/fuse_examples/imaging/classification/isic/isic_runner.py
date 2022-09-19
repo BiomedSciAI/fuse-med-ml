@@ -109,7 +109,6 @@ TRAIN_COMMON_PARAMS["data.num_folds"] = 5
 TRAIN_COMMON_PARAMS["data.train_folds"] = [0, 1, 2]
 TRAIN_COMMON_PARAMS["data.validation_folds"] = [3]
 TRAIN_COMMON_PARAMS["data.samples_ids"] = {"all": None, "golden": FULL_GOLDEN_MEMBERS}["all"]
-TRAIN_COMMON_PARAMS["data.reset_cache"] = False
 
 
 # ===============
@@ -192,7 +191,6 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     all_dataset = ISIC.dataset(
         paths["data_dir"],
         paths["cache_dir"],
-        reset_cache=train_common_params["data.reset_cache"],
         num_workers=train_common_params["data.train_num_workers"],
         samples_ids=train_common_params["data.samples_ids"],
     )

@@ -45,7 +45,6 @@ class OpAugOneHot(OpBase):
         """
         :param key: key for a one-hot numpy array vector.
         :param idx: in "default" mode: idx to be change to 1
-        :param prob: the probability that the functionality will be executed
         :param freeze_indices: in "ranking" mode: sequence of indices such that if one-hot vector has a '1' in one of those indices, the augmentation won't be executed.
         :param mode: see class desc
         """
