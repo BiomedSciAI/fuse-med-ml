@@ -202,7 +202,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
         output_split_filename=paths["data_split_filename"],
         keys_to_balance=["data.label"],
         nfolds=train_common_params["data.num_folds"],
-        reset_split = train_common_params["data.reset_split"]
+        reset_split=train_common_params["data.reset_split"],
     )
 
     train_sample_ids = []
