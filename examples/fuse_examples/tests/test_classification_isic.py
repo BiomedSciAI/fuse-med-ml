@@ -56,6 +56,7 @@ def run_isic(root: str) -> None:
     train_common_params = TRAIN_COMMON_PARAMS
     train_common_params["trainer.num_epochs"] = 1
     train_common_params["samples_ids"] = FULL_GOLDEN_MEMBERS
+    train_common_params["data.reset_split"] = True  # Make sure it will run on 400 examples
 
     infer_common_params = INFER_COMMON_PARAMS
 
