@@ -32,6 +32,7 @@ from typing import Dict, Optional, Any, List
 from termcolor import colored
 
 from fuse.utils.file_io.file_io import create_dir, create_or_reset_dir
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 
 class ProcessSafeHandler(logging.StreamHandler):
@@ -84,6 +85,7 @@ class ConsoleFormatter(logging.Formatter):
         return formatter.format(record)
 
 
+@rank_zero_only
 def fuse_logger_start(
     output_path: Optional[str] = None,
     console_verbose_level: int = logging.INFO,

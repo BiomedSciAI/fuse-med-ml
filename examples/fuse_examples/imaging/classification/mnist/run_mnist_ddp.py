@@ -17,7 +17,7 @@ Created on June 30, 2021
 
 ===============================
 
-MNIST classifier implementation that demonstrate end to end training, inference and evaluation using FuseMedML
+MNIST classifier implementation that demonstrate end to end training, inference and evaluation using FuseMedML with DDP strategy
 """
 
 import copy
@@ -133,8 +133,7 @@ def run_train(paths: dict, train_params: dict):
     # ==============================================================================
     # Logger
     # ==============================================================================
-    if "LOCAL_RANK" not in os.environ:
-        fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
+    fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
     print("Fuse Train")
 
     # ==============================================================================
@@ -242,8 +241,7 @@ def run_infer(paths: dict, infer_common_params: dict):
     checkpoint_file = os.path.join(paths["model_dir"], infer_common_params["checkpoint"])
 
     #### Logger
-    if "LOCAL_RANK" not in os.environ:  # WA - consult with moshiko
-        fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
+    fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
 
     print("Fuse Inference")
     print(f"infer_file_path={infer_file_path}")

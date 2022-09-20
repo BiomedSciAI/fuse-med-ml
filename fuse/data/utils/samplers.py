@@ -146,7 +146,7 @@ class BatchSamplerDefault(BatchSampler):
                 print(f"BatchSamplerDefault got a sampler of type: {type(self._sampler).__name__}")
             items = [i for i in self._sampler]  # get all samples that sampler posses
         else:
-            items = None   # equivalent to all samples in dataset
+            items = None  # equivalent to all samples in dataset
 
         # get balanced classes per each sample
         collected_data = dataset.get_multi(items=items, **self._dataset_get_multi_kwargs)
