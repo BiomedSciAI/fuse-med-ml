@@ -30,7 +30,8 @@ create_env() {
         requirements+=$(cat examples/requirements.txt)
     fi
 
-    PYTHON_VER=3.10
+    # Python version
+    PYTHON_VER=3.8
     ENV_NAME="fuse_$PYTHON_VER-CUDA-$force_cuda_version-$(echo -n $requirements | sha256sum | awk '{print $1;}')"
     echo $ENV_NAME
     
