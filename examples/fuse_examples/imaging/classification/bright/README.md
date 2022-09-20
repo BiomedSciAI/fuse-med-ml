@@ -5,7 +5,7 @@
 **Keywords: Computational Pathology, WSI-Classification, Atypias, Breast tumor Subtyping**
 
 ## Setup
-See https://github.com/IBM/fuse-med-ml#installation
+See https://github.com/BiomedSciAI/fuse-med-ml#installation
 
 ## Abstract
 The aim of the BRIGHT challenge is to provide an opportunity for the development, testing and evaluation of Artificial Intelligence (AI) models for automatic breast tumor subtyping of frequent lesions along with rare pathologies, by using clinical Hematoxylin & Eosin (H&E) stained gigapixel Whole-Slide Images (WSIs). 

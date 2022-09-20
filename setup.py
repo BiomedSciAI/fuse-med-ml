@@ -45,7 +45,7 @@ setup(
     description="Open-source PyTorch based framework designed to facilitate deep learning R&D in medical imaging",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/IBM/fuse-med-ml/",
+    url="https://github.com/BiomedSciAI/fuse-med-ml/",
     author="IBM Research - Machine Learning for Healthcare and Life Sciences",
     author_email="moshiko.raboh@ibm.com",
     packages=find_namespace_packages(),
