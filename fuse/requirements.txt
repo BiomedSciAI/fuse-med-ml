@@ -22,7 +22,7 @@ paramiko
 tables
 psutil
 ipykernel
-pytorch_lightning>=1.6
+pytorch_lightning>=1.76  # Latest version is better but cause a conflict with protobuf! -> tensorboard 2.9.1 (+) requires protobuf<3.20,>=3.9.2
 hydra-core
 omegaconf
 pycocotools>=2.0.1

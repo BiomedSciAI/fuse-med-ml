@@ -35,12 +35,14 @@ class MNISTDataModule(pl.LightningDataModule):
         )
         print("- DataModule, Create sampler: Done")
 
+        print("- DataModule, Create Dataloader:")
         train_dl = DataLoader(
             dataset=train_dataset,
             batch_sampler=batch_sampler,
             collate_fn=CollateDefault(),
             num_workers=self._num_workers,
         )
+        print("- DataModule, Create Dataloader: Done")
         return train_dl
 
     def val_dataloader(self):
