@@ -30,7 +30,6 @@ from fuse_examples.imaging.classification.isic.isic_runner import (
     run_train,
     run_infer,
     run_eval,
-    PATHS,
 )
 from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS
 
@@ -51,11 +50,15 @@ def run_isic(root: str) -> None:
         "data_split_filename": os.path.join(root, "split.pkl"),
     }
 
+    dd = paths["data_dir"]
+    print(f"data_dir={dd}")
+
     train_common_params = TRAIN_COMMON_PARAMS
-    train_common_params["trainer.num_epochs"] = 2
-    train_common_params["samples_ids"] = FULL_GOLDEN_MEMBERS
+    train_common_params["trainer.num_epochs"] = 1
+    train_common_params["data.samples_ids"] = FULL_GOLDEN_MEMBERS
 
     infer_common_params = INFER_COMMON_PARAMS
+
     eval_common_params = EVAL_COMMON_PARAMS
 
     # Must use GPU due a long running time

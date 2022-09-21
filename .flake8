@@ -26,11 +26,11 @@ ignore =
 
 # Files to exclude:
 exclude =
-    # ignore all tests
-    test_*
-    
-    # ignore local examples source files
+    # local private runs
     _examples
+    
+    # TEMP - ignore all tests
+    test_*
     
     ## General Excludes (TEMP, double check)
     # .py files
