@@ -140,7 +140,11 @@ def run_train(paths: dict, train_params: dict):
     # ==============================================================================
 
     print("- Create DataModule:")
-    datamodule = MNISTDataModule(cache_dir=paths["cache_dir"], batch_size=train_params["data.batch_size"], num_workers=train_params["data.num_workers"])
+    datamodule = MNISTDataModule(
+        cache_dir=paths["cache_dir"],
+        batch_size=train_params["data.batch_size"],
+        num_workers=train_params["data.num_workers"],
+    )
     print("- Create DataModule: Done")
 
     # ====================================================================================
