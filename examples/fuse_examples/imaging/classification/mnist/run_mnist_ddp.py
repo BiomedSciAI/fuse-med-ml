@@ -55,7 +55,7 @@ TODO brief introduction ?
 
 @rank_zero_only
 A PyTorch-Lightning decorator that makes sure the function runs only in the main proccess.
-Helpful to evoid printing / logging multiple time.
+Helpful to avoid printing / logging multiple time.
 
 """
 ###########################################################################################################
@@ -91,8 +91,7 @@ TRAIN_COMMON_PARAMS = {}
 # Data
 # ============
 TRAIN_COMMON_PARAMS["data.batch_size"] = 40
-TRAIN_COMMON_PARAMS["data.train_num_workers"] = WORKERS
-TRAIN_COMMON_PARAMS["data.validation_num_workers"] = WORKERS
+TRAIN_COMMON_PARAMS["data.num_workers"] = WORKERS
 
 # ===============
 # PL Trainer
@@ -141,7 +140,7 @@ def run_train(paths: dict, train_params: dict):
     # ==============================================================================
 
     print("- Create DataModule:")
-    datamodule = MNISTDataModule(cache_dir=paths["cache_dir"], batch_size=40, num_workers=10)
+    datamodule = MNISTDataModule(cache_dir=paths["cache_dir"], batch_size=train_params["data.batch_size"], num_workers=train_params["data.num_workers"])
     print("- Create DataModule: Done")
 
     # ====================================================================================
