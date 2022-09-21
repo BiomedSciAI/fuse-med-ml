@@ -1,5 +1,6 @@
 [![Open Source](https://badges.frapsoft.com/os/v1/open-source.svg)](https://opensource.org/)
 [![PyPI version](https://badge.fury.io/py/fuse-med-ml.svg)](https://badge.fury.io/py/fuse-med-ml)
+<!-- [![Python version](https://img.shields.io/pypi/pyversions/fuse-med-ml)](https://pypi.org/project/fuse-med-ml/) -->
 [![Slack channel](https://img.shields.io/badge/support-slack-slack.svg?logo=slack)](https://join.slack.com/t/fusemedml/shared_invite/zt-xr1jaj29-h7IMsSc0Lq4qpVNxW97Phw)
 [![Downloads](https://pepy.tech/badge/fuse-med-ml)](https://pepy.tech/project/fuse-med-ml)
 
