@@ -25,7 +25,11 @@ from fuse.data.ops.ops_common import OpCollectMarker
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuse.utils.ndict import NDict
-from fuse.utils.multiprocessing.run_multiprocessed import run_multiprocessed, get_from_global_storage
+from fuse.utils.multiprocessing.run_multiprocessed import (
+    run_multiprocessed,
+    get_from_global_storage,
+    _store_in_global_storage,
+)
 from fuse.data import get_sample_id, create_initial_sample, get_specific_sample_from_potentially_morphed
 import copy
 from collections import OrderedDict
@@ -33,6 +37,18 @@ import numpy as np
 
 
 class DatasetDefault(DatasetBase):
+    def _read_global(self, key: str):
+        full_key = f"{id(self)}@{key}"
+        ans = get_from_global_storage(full_key)
+        return ans
+        #return getattr(self, key)
+
+    def _write_global(self, key, val):
+        full_key = f"{id(self)}@{key}"
+        use_dict = {full_key: val}
+        _store_in_global_storage(use_dict)
+        #setattr(self, key, val)
+
     def __init__(
         self,
         sample_ids: Union[int, Sequence[Hashable]],
@@ -56,8 +72,8 @@ class DatasetDefault(DatasetBase):
         super().__init__()
 
         # store arguments
-        self._static_pipeline = static_pipeline
-        self._dynamic_pipeline = dynamic_pipeline
+        ##self._static_pipeline = static_pipeline
+        ##self._dynamic_pipeline = dynamic_pipeline
         self._cacher = cacher
         if isinstance(sample_ids, (int, np.integer)):
             # print(f'automatically creating sample_ids for the range [0,{sample_ids}]')
@@ -69,37 +85,42 @@ class DatasetDefault(DatasetBase):
             if cacher is not None:
                 raise Exception("providing a cacher is not allowed when providing sample_ids=an integer value")
 
-        self._orig_sample_ids = sample_ids
+        #self._orig_sample_ids = sample_ids
         self._allow_uncached_sample_morphing = allow_uncached_sample_morphing
 
         # verify unique names for dynamic pipelines
-        if self._dynamic_pipeline is not None and self._static_pipeline is not None:
-            if self._static_pipeline.get_name() == self._dynamic_pipeline.get_name():
+        if dynamic_pipeline is not None and static_pipeline is not None:
+            if static_pipeline.get_name() == dynamic_pipeline.get_name():
                 raise Exception(
-                    f"Detected identical name for static pipeline and dynamic pipeline ({self._static_pipeline.get_name(self._static_pipeline.get_name())}).\nThis is not allowed, please initiate the pipelines with different names."
+                    f"Detected identical name for static pipeline and dynamic pipeline ({static_pipeline.get_name(static_pipeline.get_name())}).\nThis is not allowed, please initiate the pipelines with different names."
                 )
 
-        if self._static_pipeline is None:
-            self._static_pipeline = PipelineDefault("dummy_static_pipeline", ops_and_kwargs=[])
-        if self._dynamic_pipeline is None:
-            self._dynamic_pipeline = PipelineDefault("dummy_dynamic_pipeline", ops_and_kwargs=[])
+        if static_pipeline is None:
+            static_pipeline = PipelineDefault("dummy_static_pipeline", ops_and_kwargs=[])
+        if dynamic_pipeline is None:
+            dynamic_pipeline = PipelineDefault("dummy_dynamic_pipeline", ops_and_kwargs=[])
 
-        if self._dynamic_pipeline is not None:
+        if dynamic_pipeline is not None:
             assert isinstance(
-                self._dynamic_pipeline, PipelineDefault
-            ), f"dynamic_pipeline may be None or a PipelineDefault instance. Instead got {type(self._dynamic_pipeline)}"
+                dynamic_pipeline, PipelineDefault
+            ), f"dynamic_pipeline may be None or a PipelineDefault instance. Instead got {type(dynamic_pipeline)}"
 
-        if self._static_pipeline is not None:
+        if static_pipeline is not None:
             assert isinstance(
-                self._static_pipeline, PipelineDefault
-            ), f"static_pipeline may be None or a PipelineDefault instance. Instead got {type(self._static_pipeline)}"
+                static_pipeline, PipelineDefault
+            ), f"static_pipeline may be None or a PipelineDefault instance. Instead got {type(static_pipeline)}"
 
         if self._allow_uncached_sample_morphing:
             warn(
                 "allow_uncached_sample_morphing is enabled! It is a significantly slower mode and should be used ONLY for debugging"
             )
 
+        self._write_global("self._static_pipeline", static_pipeline)
+        self._write_global("self._dynamic_pipeline", dynamic_pipeline)
+        self._write_global("self._orig_sample_ids", copy.deepcopy(sample_ids))
+
         self._created = False
+        
 
     def create(self, num_workers: int = 0, mp_context: Optional[str] = None) -> None:
         """
@@ -111,13 +132,17 @@ class DatasetDefault(DatasetBase):
         :return: None
         """
 
+        _static_pipeline = self._read_global(f"self._static_pipeline")
+        _dynamic_pipeline = self._read_global(f"self._dynamic_pipeline")
+        _orig_sample_ids = self._read_global(f"self._orig_sample_ids")
+
         self._output_sample_ids_info = None
         if self._cacher is not None:
-            self._output_sample_ids_info = self._cacher.cache_samples(self._orig_sample_ids)
+            self._output_sample_ids_info = self._cacher.cache_samples(_orig_sample_ids)
         elif self._allow_uncached_sample_morphing:
             _output_sample_ids_info_list = run_multiprocessed(
                 DatasetDefault._process_orig_sample_id,
-                [(sid, self._static_pipeline, False) for sid in self._orig_sample_ids],
+                [(sid, _static_pipeline, False) for sid in _orig_sample_ids],
                 workers=num_workers,
                 mp_context=mp_context,
             )
@@ -138,8 +163,9 @@ class DatasetDefault(DatasetBase):
                 if out_sids is None:
                     continue
                 self._final_sample_ids.extend(out_sids)
-        else:
-            self._final_sample_ids = copy.deepcopy(self._orig_sample_ids)
+        else:            
+            #self._final_sample_ids = copy.deepcopy(self._orig_sample_ids) 
+            self._write_global("self._final_sample_ids", _orig_sample_ids)
 
         self._created = True
 
@@ -176,11 +202,15 @@ class DatasetDefault(DatasetBase):
         if not self._created:
             raise Exception("you must first call create()")
 
+        _static_pipeline = self._read_global(f"self._static_pipeline")
+        _dynamic_pipeline = self._read_global(f"self._dynamic_pipeline")
+        _final_sample_ids = self._read_global(f"self._final_sample_ids")
+
         # get sample id
-        if not isinstance(item, (int, np.integer)) or isinstance(self._final_sample_ids, (int, np.integer)):
+        if not isinstance(item, (int, np.integer)) or isinstance(_final_sample_ids, (int, np.integer)):
             sample_id = item
         else:
-            sample_id = self._final_sample_ids[item]
+            sample_id = _final_sample_ids[item]
 
         # get collect marker info
         collect_marker_info = self._get_collect_marker_info(collect_marker_name)
@@ -192,7 +222,7 @@ class DatasetDefault(DatasetBase):
         if self._cacher is None:
             if not self._allow_uncached_sample_morphing:
                 sample = create_initial_sample(sample_id)
-                sample = self._static_pipeline(sample)
+                sample = _static_pipeline(sample)
                 if not isinstance(sample, dict):
                     raise Exception(
                         f'By default when caching is disabled sample morphing is not allowed, and the output of the static pipeline is expected to be a dict. Instead got {type(sample)}. You can use "allow_uncached_sample_morphing=True" to allow this, but be aware it is slow and should be used only for debugging'
@@ -200,12 +230,12 @@ class DatasetDefault(DatasetBase):
             else:
                 orig_sid = self._final_sid_to_orig_sid[sample_id]
                 sample = create_initial_sample(orig_sid)
-                sample = self._static_pipeline(sample)
+                sample = _static_pipeline(sample)
 
                 assert sample is not None
                 sample = get_specific_sample_from_potentially_morphed(sample, sample_id)
 
-        sample = self._dynamic_pipeline(sample, until_op_id=collect_marker_info["op_id"])
+        sample = _dynamic_pipeline(sample, until_op_id=collect_marker_info["op_id"])
 
         if not isinstance(sample, dict):
             raise Exception(
@@ -265,10 +295,12 @@ class DatasetDefault(DatasetBase):
         if not self._created:
             raise Exception("you must first call create()")
 
-        if isinstance(self._final_sample_ids, (int, np.integer)):
-            return self._final_sample_ids
+        _final_sample_ids = self._read_global(f"self._final_sample_ids")
 
-        return len(self._final_sample_ids)
+        if isinstance(_final_sample_ids, (int, np.integer)):
+            return _final_sample_ids
+
+        return len(_final_sample_ids)
 
     # internal methods
 
