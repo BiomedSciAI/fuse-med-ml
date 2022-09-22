@@ -2,10 +2,11 @@ import inspect
 from typing import Callable, Any, Type, Optional, Sequence
 from inspect import stack
 import warnings
-from fuse.utils.file_io.file_io import load_hdf5, save_hdf5_safe, load_pickle, save_pickle_safe
+from fuse.utils.file_io.file_io import load_pickle, save_pickle_safe
 import os
 from fuse.utils.cpu_profiling import Timer
 import hashlib
+
 
 def get_function_call_str(func, *_args, **_kwargs) -> str:
     """
@@ -146,25 +147,25 @@ def get_callers_string_description(
 
     return str_desc
 
-#TODO: consider adding "ignore list" of args that should not participate in cache value calculation (for example - "verbose")
-def run_cached_func(cache_dir:str, func:Callable, *args, **kwargs):
+
+# TODO: consider adding "ignore list" of args that should not participate in cache value calculation (for example - "verbose")
+def run_cached_func(cache_dir: str, func: Callable, *args, **kwargs):
     os.makedirs(cache_dir, exist_ok=True)
-    call_str = get_function_call_str(func, *args, **kwargs)    
+    call_str = get_function_call_str(func, *args, **kwargs)
     call_hash = hashlib.md5(call_str.encode("utf-8")).hexdigest()
 
-    cache_full_file_path = os.path.join(cache_dir, call_hash+'.pkl.gz')
-    print(f'cache_full_file_path={cache_full_file_path}')
-    
+    cache_full_file_path = os.path.join(cache_dir, call_hash + ".pkl.gz")
+    print(f"cache_full_file_path={cache_full_file_path}")
+
     if os.path.isfile(cache_full_file_path):
-        with Timer(f'loading {cache_full_file_path}'):
+        with Timer(f"loading {cache_full_file_path}"):
             ans = load_pickle(cache_full_file_path)
         return ans
 
-    with Timer(f'run_cached_func::running func ...'):
+    with Timer("run_cached_func::running func ..."):
         ans = func(*args, **kwargs)
 
-    with Timer(f'saving {cache_full_file_path}'):
+    with Timer(f"saving {cache_full_file_path}"):
         save_pickle_safe(ans, cache_full_file_path, compress=True)
 
     return ans
-

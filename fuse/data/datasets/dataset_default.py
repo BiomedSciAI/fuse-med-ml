@@ -41,13 +41,13 @@ class DatasetDefault(DatasetBase):
         full_key = f"{id(self)}@{key}"
         ans = get_from_global_storage(full_key)
         return ans
-        #return getattr(self, key)
+        # return getattr(self, key)
 
     def _write_global(self, key, val):
         full_key = f"{id(self)}@{key}"
         use_dict = {full_key: val}
         _store_in_global_storage(use_dict)
-        #setattr(self, key, val)
+        # setattr(self, key, val)
 
     def __init__(
         self,
@@ -85,7 +85,7 @@ class DatasetDefault(DatasetBase):
             if cacher is not None:
                 raise Exception("providing a cacher is not allowed when providing sample_ids=an integer value")
 
-        #self._orig_sample_ids = sample_ids
+        # self._orig_sample_ids = sample_ids
         self._allow_uncached_sample_morphing = allow_uncached_sample_morphing
 
         # verify unique names for dynamic pipelines
@@ -120,7 +120,6 @@ class DatasetDefault(DatasetBase):
         self._write_global("self._orig_sample_ids", copy.deepcopy(sample_ids))
 
         self._created = False
-        
 
     def create(self, num_workers: int = 0, mp_context: Optional[str] = None) -> None:
         """
@@ -132,9 +131,9 @@ class DatasetDefault(DatasetBase):
         :return: None
         """
 
-        _static_pipeline = self._read_global(f"self._static_pipeline")
-        _dynamic_pipeline = self._read_global(f"self._dynamic_pipeline")
-        _orig_sample_ids = self._read_global(f"self._orig_sample_ids")
+        _static_pipeline = self._read_global("self._static_pipeline")
+        #_dynamic_pipeline = self._read_global(f"self._dynamic_pipeline")
+        _orig_sample_ids = self._read_global("self._orig_sample_ids")
 
         self._output_sample_ids_info = None
         if self._cacher is not None:
@@ -163,8 +162,8 @@ class DatasetDefault(DatasetBase):
                 if out_sids is None:
                     continue
                 self._final_sample_ids.extend(out_sids)
-        else:            
-            #self._final_sample_ids = copy.deepcopy(self._orig_sample_ids) 
+        else:
+            # self._final_sample_ids = copy.deepcopy(self._orig_sample_ids)
             self._write_global("self._final_sample_ids", _orig_sample_ids)
 
         self._created = True
@@ -202,9 +201,9 @@ class DatasetDefault(DatasetBase):
         if not self._created:
             raise Exception("you must first call create()")
 
-        _static_pipeline = self._read_global(f"self._static_pipeline")
-        _dynamic_pipeline = self._read_global(f"self._dynamic_pipeline")
-        _final_sample_ids = self._read_global(f"self._final_sample_ids")
+        _static_pipeline = self._read_global("self._static_pipeline")
+        _dynamic_pipeline = self._read_global("self._dynamic_pipeline")
+        _final_sample_ids = self._read_global("self._final_sample_ids")
 
         # get sample id
         if not isinstance(item, (int, np.integer)) or isinstance(_final_sample_ids, (int, np.integer)):
@@ -295,7 +294,7 @@ class DatasetDefault(DatasetBase):
         if not self._created:
             raise Exception("you must first call create()")
 
-        _final_sample_ids = self._read_global(f"self._final_sample_ids")
+        _final_sample_ids = self._read_global("self._final_sample_ids")
 
         if isinstance(_final_sample_ids, (int, np.integer)):
             return _final_sample_ids
