@@ -38,7 +38,7 @@ from fuse.eval.metrics.classification.metrics_classification_common import Metri
 
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
-from fuse.dl.lightning.pl_module import LightningModuleDefault, BalancedLightningDataModule
+from fuse.dl.lightning.pl_module import LightningModuleDefault
 
 from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.utils_logger import fuse_logger_start
@@ -52,7 +52,7 @@ from fuse_examples.imaging.classification.mnist.mnist_data_module import MNISTDa
 So you want to use distributed data parallel (DDP)[1] strategy to increase your batch size or boost your training?
 FuseMedML supports DDP strategy based on PyTorch-Lightning [2].
 
-The following example shows how to use DDP with FuseMedML on the famous MNIST dataset. 
+The following example shows how to use DDP with FuseMedML on the famous MNIST dataset.
 NOTE that if you want to use FuseMedML's custom batch sampler 'BatchSamplerDefault' sampler, you shall implement a datamodule similar to 'MNISTDataModule'. (relevant for PyTorch-Lightning 1.7.6)
 
 
