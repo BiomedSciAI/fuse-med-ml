@@ -83,6 +83,7 @@ PATHS = {
     "cache_dir": os.path.join(ROOT, "cache_dir"),
     "inference_dir": os.path.join(model_dir, "infer_dir"),
     "eval_dir": os.path.join(model_dir, "eval_dir"),
+    "data_split_filename": os.path.join(model_dir, "mnist_split.pkl"),
 }
 
 NUM_GPUS = 2  # Multiple GPU training
@@ -150,6 +151,9 @@ def run_train(paths: dict, train_params: dict):
         cache_dir=paths["cache_dir"],
         batch_size=train_params["data.batch_size"],
         num_workers=train_params["data.num_workers"],
+        train_folds=[1, 2, 3, 4],
+        validation_folds=[5],
+        split_filename = paths["data_split_filename"],
     )
 
     print("- Create DataModule: Done")

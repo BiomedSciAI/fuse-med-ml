@@ -266,7 +266,13 @@ def run_infer(paths: dict, infer_common_params: dict):
     print(f"infer_file_path={infer_file_path}")
 
     ## Data
-    datamodule = MNISTDataModule(cache_dir=paths["cache_dir"], num_workers=2, batch_size=10)
+    datamodule = MNISTDataModule(
+        cache_dir=paths["cache_dir"],
+        num_workers=2,
+        batch_size=10,
+        train_folds=[],
+        validation_folds=[],
+    )
 
     # load pytorch lightning module
     model = create_model()
