@@ -8,7 +8,7 @@ from fuse.data.utils.samplers import BatchSamplerDefault
 
 class MNISTDataModule(pl.LightningDataModule):
     """
-    TODO use batch sampler
+    TODO
     """
 
     def __init__(self, cache_dir: str, num_workers: int, batch_size: int):

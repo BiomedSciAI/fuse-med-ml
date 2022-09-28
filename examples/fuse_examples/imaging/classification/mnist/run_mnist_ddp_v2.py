@@ -38,7 +38,7 @@ from fuse.eval.metrics.classification.metrics_classification_common import Metri
 
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
-from fuse.dl.lightning.pl_module import LightningModuleDefault
+from fuse.dl.lightning.pl_module import LightningModuleDefault, BalancedLightningDataModule
 
 from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.utils_logger import fuse_logger_start
@@ -145,11 +145,16 @@ def run_train(paths: dict, train_params: dict):
     # ==============================================================================
 
     print("- Create DataModule:")
+    
+    
+
     datamodule = MNISTDataModule(
         cache_dir=paths["cache_dir"],
         batch_size=train_params["data.batch_size"],
         num_workers=train_params["data.num_workers"],
     )
+
+    datamodule = BalancedLightningDataModule()  # Create
     print("- Create DataModule: Done")
 
     # ====================================================================================

@@ -18,7 +18,13 @@ Created on June 30, 2021
 
 import pytorch_lightning as pl
 from typing import Optional
+from torch.utils.data.dataset import Dataset
+from torch.utils.data.dataloader import DataLoader
+
 from fuse.dl.lightning.pl_funcs import *  # noqa
+from fuse.data.utils.samplers import BatchSamplerDefault
+from fuse.data.utils.collates import CollateDefault
+from fuse.utils.data.collate import CollateToBatchList
 
 
 class LightningModuleDefault(pl.LightningModule):
@@ -160,3 +166,81 @@ class LightningModuleDefault(pl.LightningModule):
     def set_predictions_keys(self, keys: List[str]) -> None:
         """Define which keys to extract from batch_dict on prediction mode"""
         self._prediction_keys = keys
+
+
+class BalancedLightningDataModule(pl.LightningDataModule):
+    """
+    TODO
+    """
+
+    def __init__(
+        self,
+        train_dataset: Dataset,
+        validation_dataset: Dataset,
+        predict_dataset: Dataset,
+        cache_dir: str,
+        num_workers: int,
+        batch_size: int,
+        balanced_class_name: str,
+        num_balanced_classes: int,
+        collate_fn: CollateToBatchList = None,
+        verbose: bool = False,
+    ):
+        super().__init__()
+        self._train_dataset = train_dataset
+        self._validation_dataset = validation_dataset
+        self._predict_dataset = predict_dataset
+        self._cache_dir = cache_dir
+        self._num_workers = num_workers
+        self._batch_size = batch_size
+        self._balanced_class_name = balanced_class_name
+        self._num_balanced_classes = num_balanced_classes
+        self._verbose = verbose
+        if collate_fn is None:
+            self._collate_fn = CollateDefault()
+
+    def train_dataloader(self):
+        """
+        TODO
+        """
+        batch_sampler = BatchSamplerDefault(
+            dataset=self._train_dataset,
+            balanced_class_name=self._balanced_class_name,
+            num_balanced_classes=self._num_balanced_classes,
+            batch_size=self._batch_size,
+            verbose=self._verbose,
+        )
+
+        train_dl = DataLoader(
+            dataset=self._train_dataset,
+            batch_sampler=batch_sampler,
+            collate_fn=self._collate_fn,
+            num_workers=self._num_workers,
+        )
+        return train_dl
+
+    def val_dataloader(self):
+        """
+        returns validation dataloader with custom args
+        """
+
+        validation_dl = DataLoader(
+            dataset=self._validation_dataset,
+            collate_fn=self._collate_fn,
+            num_workers=self._num_workers,
+            batch_size=self._batch_size,
+        )
+        return validation_dl
+
+    def predict_dataloader(self):
+        """
+        TODO
+        """
+
+        predict_dl = DataLoader(
+            dataset=self._predict_dataset,
+            collate_fn=self._collate_fn,
+            num_workers=self._num_workers,
+            batch_size=self._batch_size,
+        )
+        return predict_dl
