@@ -1,7 +1,7 @@
 from torch.utils.data.dataloader import DataLoader
 import pytorch_lightning as pl
-from fuse.data.utils.collates import CollateDefault
 
+from fuse.data.utils.collates import CollateDefault
 from fuseimg.datasets.mnist import MNIST
 from fuse.data.utils.samplers import BatchSamplerDefault
 
@@ -17,8 +17,7 @@ class MNISTDataModule(pl.LightningDataModule):
         self._cache_dir = cache_dir
         self._num_workers = num_workers
         self._batch_size = batch_size
-        return
-
+ 
     def train_dataloader(self):
         """
         returns train dataloader with custom args
