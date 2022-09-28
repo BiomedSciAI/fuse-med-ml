@@ -145,8 +145,6 @@ def run_train(paths: dict, train_params: dict):
     # ==============================================================================
 
     print("- Create DataModule:")
-    
-    
 
     datamodule = MNISTDataModule(
         cache_dir=paths["cache_dir"],
@@ -154,7 +152,6 @@ def run_train(paths: dict, train_params: dict):
         num_workers=train_params["data.num_workers"],
     )
 
-    datamodule = BalancedLightningDataModule()  # Create
     print("- Create DataModule: Done")
 
     # ====================================================================================

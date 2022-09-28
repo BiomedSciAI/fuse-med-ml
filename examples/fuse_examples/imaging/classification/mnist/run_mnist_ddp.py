@@ -38,7 +38,7 @@ from fuse.eval.metrics.classification.metrics_classification_common import Metri
 
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
-from fuse.dl.lightning.pl_module import LightningModuleDefault
+from fuse.dl.lightning.pl_module import LightningModuleDefault, BalancedLightningDataModule
 
 from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.utils_logger import fuse_logger_start
@@ -47,6 +47,8 @@ import fuse.utils.gpu as GPU
 
 from fuse_examples.imaging.classification.mnist.lenet import LeNet
 from fuse_examples.imaging.classification.mnist.mnist_data_module import MNISTDataModule
+from fuseimg.datasets.mnist import MNIST
+
 
 """
 So you want to use distributed data parallel (DDP)[1] strategy to increase your batch size or boost your training?
@@ -130,6 +132,23 @@ def create_model() -> torch.nn.Module:
     return model
 
 
+def create_datamodule(paths: dict, train_params: dict) -> BalancedLightningDataModule:
+    train_dataset = MNIST.dataset(paths["cache_dir"], train=True)
+    validation_dataset = MNIST.dataset(paths["cache_dir"], train=False)
+    predict_dataset = MNIST.dataset(paths["cache_dir"], train=False)
+
+    datamodule = BalancedLightningDataModule(
+        train_dataset=train_dataset,
+        validation_dataset=validation_dataset,
+        predict_dataset=predict_dataset,
+        num_workers=train_params["data.num_workers"],
+        batch_size=train_params["data.batch_size"],
+        balanced_class_name="data.label",
+        num_balanced_classes=10,
+    )
+    return datamodule
+
+
 #################################
 # Train Template
 #################################
@@ -145,11 +164,7 @@ def run_train(paths: dict, train_params: dict):
     # ==============================================================================
 
     print("- Create DataModule:")
-    datamodule = MNISTDataModule(
-        cache_dir=paths["cache_dir"],
-        batch_size=train_params["data.batch_size"],
-        num_workers=train_params["data.num_workers"],
-    )
+    datamodule = create_datamodule(paths, train_params)
     print("- Create DataModule: Done")
 
     # ====================================================================================

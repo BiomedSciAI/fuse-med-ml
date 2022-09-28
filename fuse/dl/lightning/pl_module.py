@@ -178,7 +178,6 @@ class BalancedLightningDataModule(pl.LightningDataModule):
         train_dataset: Dataset,
         validation_dataset: Dataset,
         predict_dataset: Dataset,
-        cache_dir: str,
         num_workers: int,
         batch_size: int,
         balanced_class_name: str,
@@ -190,7 +189,6 @@ class BalancedLightningDataModule(pl.LightningDataModule):
         self._train_dataset = train_dataset
         self._validation_dataset = validation_dataset
         self._predict_dataset = predict_dataset
-        self._cache_dir = cache_dir
         self._num_workers = num_workers
         self._batch_size = batch_size
         self._balanced_class_name = balanced_class_name
