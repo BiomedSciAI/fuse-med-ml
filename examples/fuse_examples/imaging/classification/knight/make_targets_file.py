@@ -85,7 +85,7 @@ if __name__ == "__main__":
     See details in function make_predictions_file.
     """
     # no arguments - set arguments inline - see details in function make_targets_file
-    data_path = ""
-    split = "baseline/splits_final.pkl"
+    data_path = "/projects/msieve/MedicalSieve/PatientData/KNIGHT_test/knight_test_data"
+    split = None#"baseline/splits_final.pkl"
     output_filename = "validation_targets.csv"
     make_targets_file(data_path=data_path, split=split, output_filename=output_filename)

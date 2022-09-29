@@ -27,6 +27,7 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 from fuse.data.utils.collates import CollateDefault
 from fuseimg.datasets.knight import KNIGHT
+import fuse.utils.gpu as GPU
 
 from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import save_dataframe
@@ -37,7 +38,7 @@ import pytorch_lightning as pl
 
 # add parent directory to path, so that 'knight' folder is treated as a module
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-from baseline.fuse_baseline import make_model  # noqa
+from baseline.fuse_baseline_improve import make_model  # noqa
 
 
 def make_predictions_file(
@@ -67,6 +68,7 @@ def make_predictions_file(
     lgr = logging.getLogger("Fuse")
     lgr.info("KNIGHT: make predictions file in FuseMedML", {"attrs": ["bold", "underline"]})
     lgr.info(f"predictions_filename={os.path.abspath(output_filename)}", {"color": "magenta"})
+    GPU.choose_and_enable_multiple_gpus(1, force_gpus=None)
 
     # Data
     # read train/val splits file.
@@ -124,7 +126,7 @@ def make_predictions_file(
 
     predictions_df = pd.DataFrame(data, columns=list(predictions_score_names))
     predictions_df.reset_index(inplace=True)
-    predictions_df.rename({"index": "Case_id"}, axis=1, inplace=True)
+    predictions_df.rename({"index": "case_id"}, axis=1, inplace=True)
 
     # save file
     save_dataframe(predictions_df, output_filename, index=False)
@@ -135,23 +137,28 @@ if __name__ == "__main__":
     Automaitically make prediction files in the requested format - given model definition and path to model dir create by FuseMedML during training
     """
     # no arguments - set arguments inline - see details in function make_predictions_file
-    model_dir = ""
-    checkpoint = "best"
-    data_path = ""
-    cache_path = ""
+    model_dir = "/data/usr/liam/clinical-only"
+    checkpoint = os.path.join(model_dir,"last.ckpt")
+    # checkpoint = os.path.join(model_dir,"best_epoch.ckpt")
+    pretrained = False
+    regression_head = False
+    data_path = "/projects/msieve/MedicalSieve/PatientData/KNIGHT_test/knight_test_data"
+    cache_path = os.environ["KNIGHT_CACHE"]
     split = None
     output_filename = "validation_predictions.csv"
+
     predictions_key_name = "model.output.head_0"
     task_num = 1  # 1 or 2
-
-    use_data = {"imaging": True, "clinical": True}  # specify whether to use imaging, clinical data or both
-    num_classes = 2
+    
+    use_data = {"imaging": False, "clinical": True}  # specify whether to use imaging, clinical data or both
+    num_classes = 2 if task_num == 1 else 5
     imaging_dropout = 0.5
     clinical_dropout = 0.0
     fused_dropout = 0.5
 
     model = make_model(
-        use_data=use_data, num_classes=num_classes, imaging_dropout=imaging_dropout, fused_dropout=fused_dropout
+        use_data=use_data, num_classes=num_classes, imaging_dropout=imaging_dropout,
+         fused_dropout=fused_dropout, pretrained=pretrained, regression_head=regression_head
     )
 
     make_predictions_file(

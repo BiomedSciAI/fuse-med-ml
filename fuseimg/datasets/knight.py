@@ -21,6 +21,324 @@ from functools import partial
 import torch
 import pandas as pd
 
+best_slices = [
+    312,
+    263,
+    172,
+    191,
+    43,
+    321,
+    47,
+    38,
+    131,
+    28,
+    12,
+    15,
+    23,
+    40,
+    112,
+    57,
+    58,
+    39,
+    68,
+    42,
+    29,
+    15,
+    336,
+    51,
+    38,
+    54,
+    183,
+    369,
+    31,
+    79,
+    19,
+    41,
+    55,
+    109,
+    47,
+    40,
+    54,
+    42,
+    23,
+    35,
+    67,
+    12,
+    198,
+    82,
+    33,
+    40,
+    63,
+    84,
+    28,
+    358,
+    23,
+    35,
+    157,
+    139,
+    31,
+    25,
+    31,
+    54,
+    28,
+    195,
+    57,
+    19,
+    35,
+    189,
+    28,
+    65,
+    189,
+    192,
+    297,
+    23,
+    31,
+    148,
+    68,
+    85,
+    30,
+    34,
+    30,
+    25,
+    205,
+    64,
+    26,
+    26,
+    30,
+    65,
+    65,
+    32,
+    52,
+    26,
+    50,
+    16,
+    48,
+    393,
+    30,
+    233,
+    24,
+    122,
+    412,
+    32,
+    192,
+    28,
+    192,
+    64,
+    149,
+    223,
+    46,
+    39,
+    34,
+    30,
+    34,
+    42,
+    20,
+    59,
+    84,
+    25,
+    179,
+    113,
+    215,
+    49,
+    374,
+    23,
+    217,
+    17,
+    22,
+    130,
+    150,
+    64,
+    45,
+    65,
+    66,
+    35,
+    33,
+    44,
+    258,
+    74,
+    21,
+    206,
+    32,
+    56,
+    53,
+    39,
+    140,
+    230,
+    169,
+    30,
+    63,
+    71,
+    162,
+    43,
+    10,
+    54,
+    54,
+    831,
+    17,
+    27,
+    354,
+    311,
+    411,
+    294,
+    291,
+    125,
+    101,
+    31,
+    60,
+    36,
+    32,
+    357,
+    54,
+    30,
+    28,
+    38,
+    226,
+    77,
+    36,
+    31,
+    47,
+    48,
+    35,
+    26,
+    33,
+    31,
+    32,
+    41,
+    35,
+    104,
+    73,
+    67,
+    70,
+    14,
+    163,
+    90,
+    72,
+    177,
+    81,
+    102,
+    80,
+    26,
+    76,
+    59,
+    145,
+    79,
+    28,
+    52,
+    126,
+    349,
+    43,
+    27,
+    40,
+    68,
+    42,
+    40,
+    24,
+    37,
+    45,
+    371,
+    210,
+    50,
+    286,
+    41,
+    77,
+    77,
+    70,
+    73,
+    28,
+    82,
+    29,
+    25,
+    49,
+    53,
+    22,
+    134,
+    30,
+    47,
+    24,
+    43,
+    59,
+    65,
+    47,
+    43,
+    35,
+    20,
+    65,
+    38,
+    15,
+    30,
+    35,
+    48,
+    271,
+    166,
+    51,
+    159,
+    124,
+    19,
+    35,
+    131,
+    122,
+    67,
+    55,
+    10,
+    62,
+    36,
+    38,
+    286,
+    40,
+    195,
+    162,
+    24,
+    34,
+    41,
+    79,
+    39,
+    35,
+    222,
+    339,
+    186,
+    54,
+    29,
+    220,
+    27,
+    49,
+    26,
+    27,
+    160,
+    29,
+    183,
+    152,
+    19,
+    39,
+    14,
+    179,
+    24,
+    352,
+    73,
+    71,
+    196,
+    187,
+    200,
+    22,
+    23,
+    160,
+    194,
+]
+class OpSlice(OpBase):
+    def __call__(self, sample_dict: NDict) -> NDict:
+        """ """
+        image_id = int(sample_dict["data.input.case_id"][-5:])
+        img = sample_dict["data.input.img"][best_slices[image_id]-1:best_slices[image_id]+2]
+
+        # img = sample_dict["data.input.img"]
+        # depth = img.shape[0]
+        # img = img[int(depth/2)-1:int(depth/2)+2]
+
+        if img.shape[1:] == (512, 796):
+            img = img[:,:,142:654]
+        sample_dict["data.input.img"]=img
+        # sample_dict["data.input.img"] = np.moveaxis((np.repeat(img[...,np.newaxis],3,-1)), -1, 0)
+        return sample_dict
+
 
 class OpKnightSampleIDDecode(OpBase):
     """
@@ -43,7 +361,6 @@ class OpKnightSampleIDDecode(OpBase):
 
         return sample_dict
 
-
 class OpClinicalLoad(OpBase):
     def __init__(self, json_path: str):
         super().__init__()
@@ -59,7 +376,6 @@ class OpClinicalLoad(OpBase):
             "smoking_history",
             "radiographic_size",
             "last_preop_egfr",
-            "voxel_spacing",
         ]
 
         if test:
@@ -96,11 +412,6 @@ class OpClinicalLoad(OpBase):
                 "high_risk",
                 "very_high_risk",
             ].index(row["aua_risk_group"])
-        row["voxel_spacing"] = (
-            row["voxel_spacing"]["z_spacing"],
-            row["voxel_spacing"]["y_spacing"],
-            row["voxel_spacing"]["x_spacing"],
-        )
 
         sample_dict["data.input.clinical"] = row
         return sample_dict
@@ -155,6 +466,7 @@ class OpPrepareClinical(OpBase):
             dtype=np.float32,
         )
         sample_dict["data.input.clinical.all"] = clinical_encoding
+        sample_dict["data.aux_label"] = radiographic_size.astype(np.float32)
         return sample_dict
 
 
@@ -189,13 +501,7 @@ class KNIGHT:
                 # fixed image normalization
                 (OpClip(), dict(key="data.input.img", clip=(-62, 301))),
                 (OpZScoreNorm(), dict(key="data.input.img", mean=104.0, std=75.3)),  # kits normalization
-                # transposing so the depth channel will be first
-                (
-                    OpLambda(partial(np.moveaxis, source=-1, destination=0)),
-                    dict(key="data.input.img"),
-                ),  # convert image from shape [H, W, D] to shape [D, H, W]
                 (OpPrepareClinical(), dict()),  # process clinical data
-                (OpResizeTo(channels_first=False), dict(key="data.input.img", output_shape=resize_to)),
             ],
         )
         return static_pipeline
@@ -258,6 +564,7 @@ class KNIGHT:
         test: bool = False,
         reset_cache: bool = False,
         resize_to: Tuple = (70, 256, 256),
+        two_dim: bool = False,
     ) -> DatasetDefault:
         """
         Get cached dataset
@@ -291,6 +598,14 @@ class KNIGHT:
             return dataset
 
         static_pipeline = KNIGHT.static_pipeline(data_path, resize_to=resize_to, test=("test" in split))
+        if two_dim:
+            static_pipeline.extend(
+                [(OpSlice(), dict())]
+            )
+        else:
+            static_pipeline.extend(
+                [(OpResizeTo(channels_first=False), dict(key="data.input.img", output_shape=resize_to))]
+            )
         if "train" in split:
             train_cacher = SamplesCacher(
                 "train_cache", static_pipeline, cache_dirs=[f"{cache_dir}/train"], restart_cache=reset_cache, workers=8
