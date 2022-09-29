@@ -129,4 +129,3 @@ class Head3D(nn.Module):
             batch_dict["model.output." + self.head_name] = cls_preds
 
         return batch_dict
-
