@@ -59,8 +59,6 @@ class DatasetDefault(DatasetBase):
         super().__init__()
 
         # store arguments
-        ##self._static_pipeline = static_pipeline
-        ##self._dynamic_pipeline = dynamic_pipeline
         self._cacher = cacher
         if isinstance(sample_ids, (int, np.integer)):
             if allow_uncached_sample_morphing:
