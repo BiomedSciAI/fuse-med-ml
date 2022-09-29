@@ -387,9 +387,6 @@ class OpDeleteKeypaths(OpBase):
     A case where this is useful is if you want to limit the amount of data that gets transferred by multiprocessing by DataLoader workers.
     """
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
     def __call__(self, sample_dict: NDict, keypaths: List[str]) -> Union[None, dict, List[dict]]:
         for k in keypaths:
             del sample_dict[k]
