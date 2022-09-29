@@ -47,6 +47,7 @@ class CollateDefault(CollateToBatchList):
         :param skip_keys: do not collect the listed keys
         :param special_handlers_keys: per key specify a callable which gets as an input list of values and convert it to a batch.
                                       The rest of the keys will be converted to batch using PyTorch default collate_fn()
+                                      Example of such Callable can be seen in the CollateDefault.pad_all_tensors_to_same_size.
         :param raise_error_key_missing: if False, will not raise an error if there are keys that do not exist in some of the samples. Instead will set those values to None.
         """
         super().__init__(skip_keys, raise_error_key_missing)
@@ -117,7 +118,7 @@ class CollateDefault(CollateToBatchList):
         return values
 
     @staticmethod
-    def pad_all_tensors_to_same_size(values: List[torch.Tensor], pad_val: float = 0.0):
+    def pad_all_tensors_to_same_size(values: List[torch.Tensor], pad_val: float = 0.0) -> torch.Tensor:
         """
         pad tensors and create a batch - the shape will be the max size per dim
         values: list of tensor - all should have the same number of dimensions

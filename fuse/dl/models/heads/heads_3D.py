@@ -51,6 +51,8 @@ class Head3D(nn.Module):
         :param mode:      "classification" or "regression"
         :param conv_inputs: Sequence of tuples, each indication features name in batch_dict and size of features (channels)
             for example: conv_inputs=(('model.backbone_features', 512),)
+            if set to None, the head will work only using the global features.
+            can be useful i.e for exploring the contribution of imaging vs. clinical features only.
         :param dropout_rate: dropout fraction
         :param num_outputs:  Number of output classes (in case of classification) or just num outputs in case of regression
         :param append_features: Sequence of tuples, each indication features name in batch_dict and size of features (channels).
