@@ -56,7 +56,7 @@ def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_d
                 mode="classification",
                 conv_inputs=conv_inputs,
                 dropout_rate=imaging_dropout,
-                num_classes=num_classes,
+                num_outputs=num_classes,
                 append_features=append_features,
                 append_layers_description=(256, 128),
                 fused_dropout_rate=fused_dropout,

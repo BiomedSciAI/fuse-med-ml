@@ -129,7 +129,7 @@ def create_model(imaging_dropout: float, clinical_dropout: float, fused_dropout:
                 dropout_rate=imaging_dropout,
                 append_dropout_rate=clinical_dropout,
                 fused_dropout_rate=fused_dropout,
-                num_classes=2,
+                num_outputs=2,
                 append_features=[("data.input.clinical", 8)],
                 append_layers_description=(256, 128),
             ),
