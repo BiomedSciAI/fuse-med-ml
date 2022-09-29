@@ -89,8 +89,7 @@ class Head1D(nn.Module):
 
     def forward(self, batch_dict: Dict) -> Dict:
 
-        conv_input = torch.cat([batch_dict[conv_input[0]] for conv_input in self.conv_inputs])
-
+        conv_input = torch.cat([batch_dict[conv_input[0]] for conv_input in self.conv_inputs], dim=1)
         global_features = conv_input
 
         if self.append_features is not None:
