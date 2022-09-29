@@ -128,7 +128,7 @@ def uncollate(batch: Dict) -> List[Dict]:
 
     if batch_size is None:
         for key in keys:
-            if isinstance(batch[key], (np.ndarray, list, tuple)):
+            if isinstance(batch[key], (np.ndarray, list)):
                 batch_size = len(batch[key])
                 break
 
@@ -138,11 +138,13 @@ def uncollate(batch: Dict) -> List[Dict]:
     for sample_index in range(batch_size):
         sample = NDict()
         for key in keys:
-            if isinstance(batch[key], (np.ndarray, torch.Tensor, list, tuple)):
+            if isinstance(batch[key], (np.ndarray, torch.Tensor, list)):
                 try:
                     sample[key] = batch[key][sample_index]
                 except IndexError:
-                    logging.error(f"Error - IndexError - key={key}, batch_size={batch_size}, len={batch[key]}")
+                    logging.error(
+                        f"Error - IndexError - key={key}, batch_size={batch_size}, type={type((batch[key]))}, len={len(batch[key])}"
+                    )
                     raise
             else:
                 sample[key] = batch[key]  # broadcast single value for all batch
