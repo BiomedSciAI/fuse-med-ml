@@ -52,4 +52,11 @@ setup(
     license="Apache License 2.0",
     install_requires=fuse_requirements,
     extras_require={"fuseimg": fuseimg_requirements, "dev": fuse_requirements_dev, "all": all_requirements},
+    python_requires=">=3.7",
+    classifiers=[
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+    ],
 )
