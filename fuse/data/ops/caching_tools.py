@@ -149,7 +149,21 @@ def get_callers_string_description(
 
 
 # TODO: consider adding "ignore list" of args that should not participate in cache value calculation (for example - "verbose")
-def run_cached_func(cache_dir: str, func: Callable, *args, **kwargs):
+def run_cached_func(cache_dir: str, func: Callable, *args, **kwargs) -> Any:
+    """
+    Will cache the function output in the first time that
+     it is executed, and will load from cache on the next times.
+
+    The cache hash value will be based on the function name, the args, and the code of the function.
+
+    Args:
+
+    :param cache_dir: the directory into which caches will be stored/loaded
+    :param func: the function to run
+    :param *args: positional args to provide to the function
+    :param **kwargs: kwargs to provide to the function
+
+    """
     os.makedirs(cache_dir, exist_ok=True)
     call_str = get_function_call_str(func, *args, **kwargs)
     call_hash = hashlib.md5(call_str.encode("utf-8")).hexdigest()
