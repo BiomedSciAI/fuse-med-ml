@@ -20,7 +20,7 @@ import logging
 import sys
 import time
 from IPython import get_ipython
-from collections import Iterable
+from collections.abc import Iterable
 from threading import Lock
 
 from typing import List, Union, Sequence, Optional, Hashable, Any
