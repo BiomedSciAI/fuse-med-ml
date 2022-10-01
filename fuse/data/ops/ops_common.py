@@ -394,6 +394,19 @@ class OpKeepKeypaths(OpBase):
         return sample_dict
 
 
+class OpDeleteKeypaths(OpBase):
+    """
+    Use this op to remove keypaths from the sample
+    A case where this is useful is if you want to limit the amount of data that gets transferred by multiprocessing by DataLoader workers.
+    """
+
+    def __call__(self, sample_dict: NDict, keypaths: List[str]) -> Union[None, dict, List[dict]]:
+        for k in keypaths:
+            del sample_dict[k]
+
+        return sample_dict
+
+
 class OpLookup(OpBase):
     """
     Convert a value to another value. It should be specified in a dictionary mapping old value to a new value
