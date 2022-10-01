@@ -10,7 +10,6 @@ import numpy as np
 from fuseimg.datasets.kits21 import KITS21
 from fuseimg.datasets.stoic21 import STOIC21
 from fuseimg.datasets.isic import ISIC
-from fuseimg.datasets.duke.duke import Duke
 from fuseimg.datasets.prostate_x import ProstateX
 from tqdm import trange
 from testbook import testbook
@@ -90,31 +89,6 @@ class TestDatasets(unittest.TestCase):
 
         self.assertEqual(ds[0]["data.input.clinical"].shape[0], 8)
         self.assertTrue(5 in dict(results["metrics.age"]))
-
-    @unittest.skipIf("DUKE_DATA_PATH" not in os.environ, "Expecting environment variable DUKE_DATA_PATH to be defined")
-    def test_duke(self):
-        data_path = os.environ["DUKE_DATA_PATH"]
-        num_samples = 1  # The number of samples to test the dataset's pipeline on them.
-        sample_ids = Duke.sample_ids()[:num_samples]
-        dataset = Duke.dataset(
-            data_dir=data_path,
-            train=True,
-            sample_ids=sample_ids,
-            reset_cache=True,
-            num_workers=10,
-            add_clinical_features=True,
-        )
-
-        # Check that the dataset contains the correct number of samples
-        self.assertEqual(len(dataset), num_samples)
-
-        # Check the samples id's are correct
-        for sample_index in range(num_samples):
-            sample = dataset[sample_index]
-            self.assertEqual(get_sample_id(sample), sample_ids[sample_index])
-
-        # TODO delete when done
-        print("test_duke: Done!")
 
     @unittest.skipIf(
         "PROSTATEX_DATA_PATH" not in os.environ, "Expecting environment variable PROSTATEX_DATA_PATH to be defined"
