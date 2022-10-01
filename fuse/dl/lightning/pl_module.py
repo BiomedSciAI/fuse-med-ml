@@ -26,6 +26,8 @@ from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.collates import CollateDefault
 from fuse.utils.data.collate import CollateToBatchList
 
+# import traceback, sys
+
 
 class LightningModuleDefault(pl.LightningModule):
     """
@@ -45,7 +47,7 @@ class LightningModuleDefault(pl.LightningModule):
         callbacks: Optional[Sequence[pl.Callback]] = None,
         best_epoch_source: Optional[Union[Dict, List[Dict]]] = None,
         save_hyperparameters: Optional[List[str]] = None,
-        **kwargs
+        **kwargs,
     ):
         """
         :param model_dir: location for checkpoints and logs
@@ -95,6 +97,7 @@ class LightningModuleDefault(pl.LightningModule):
         step_metrics(self._train_metrics, batch_dict)
 
         # return the total_loss, the losses and drop everything else
+        # traceback.print_stack(file=sys.stdout)
         return {"loss": total_loss, "losses": batch_dict["losses"]}
 
     def validation_step(self, batch_dict: NDict, batch_idx: int) -> dict:

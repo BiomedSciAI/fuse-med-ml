@@ -1,6 +1,8 @@
 from typing import List
-from torch.utils.data.dataloader import DataLoader
+from torch.utils.data import DataLoader
 import pytorch_lightning as pl
+
+# from torch.utils.data import random_split
 
 from fuse.data.utils.collates import CollateDefault
 from fuseimg.datasets.mnist import MNIST
@@ -14,7 +16,13 @@ class MNISTDataModule(pl.LightningDataModule):
     """
 
     def __init__(
-        self, cache_dir: str, num_workers: int, batch_size: int, train_folds: List[int], validation_folds: List[int], split_filename: str
+        self,
+        cache_dir: str,
+        num_workers: int,
+        batch_size: int,
+        train_folds: List[int],
+        validation_folds: List[int],
+        split_filename: str,
     ):
         """ """
         super().__init__()
@@ -24,17 +32,13 @@ class MNISTDataModule(pl.LightningDataModule):
         self._train_ids = []
         self._validation_ids = []
 
-        print(f"split_filename={split_filename}")
-
         folds = dataset_balanced_division_to_folds(
             dataset=MNIST.dataset(self._cache_dir, train=True),
             keys_to_balance=["data.label"],
             nfolds=len(train_folds) + len(validation_folds),
             output_split_filename=split_filename,
-            reset_split = True,
+            reset_split=False,
         )
-
-        print(folds)
 
         for fold in train_folds:
             self._train_ids += folds[fold]
@@ -45,7 +49,8 @@ class MNISTDataModule(pl.LightningDataModule):
     def setup(self, stage: str):
 
         if stage == "fit":
-            self._mnist_train = MNIST.dataset(self._cache_dir, train=True, sample_ids=self._train_ids)
+            self._mnist_train = MNIST.dataset(self._cache_dir, train=True, sample_ids=self._train_ids)  # Doesn't work
+            # self._mnist_train = MNIST.dataset(self._cache_dir, train=True, sample_ids=None)  # Works
             self._mnist_validation = MNIST.dataset(self._cache_dir, train=True, sample_ids=self._validation_ids)
 
         if stage == "predict":
@@ -82,6 +87,7 @@ class MNISTDataModule(pl.LightningDataModule):
             num_workers=self._num_workers,
             batch_size=self._batch_size,
         )
+
         return validation_dl
 
     def predict_dataloader(self):

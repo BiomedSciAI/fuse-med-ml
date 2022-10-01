@@ -151,9 +151,9 @@ def run_train(paths: dict, train_params: dict):
         cache_dir=paths["cache_dir"],
         batch_size=train_params["data.batch_size"],
         num_workers=train_params["data.num_workers"],
-        train_folds=[1, 2, 3, 4],
-        validation_folds=[5],
-        split_filename = paths["data_split_filename"],
+        train_folds=[0, 1, 2, 3],
+        validation_folds=[4],
+        split_filename=paths["data_split_filename"],
     )
 
     print("- Create DataModule: Done")
