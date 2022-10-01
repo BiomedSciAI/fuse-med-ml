@@ -311,6 +311,14 @@ class NDict(dict):
                 print("---" * level, key)
                 NDict._print_tree_static(data_dict[key], level)
 
+    def describe(self) -> None:
+        for k in self.keypaths():
+            print(f"{k}")
+            val = self[k]
+            print(f"\ttype={type(val)}")
+            if hasattr(val, "shape"):
+                print(f"\tshape={val.shape}")
+
 
 class NestedKeyError(KeyError):
     def __init__(self, key: str, d: NDict) -> None:
