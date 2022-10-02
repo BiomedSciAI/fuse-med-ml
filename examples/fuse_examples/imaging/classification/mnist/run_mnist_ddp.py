@@ -24,7 +24,6 @@ import copy
 import logging
 import os
 from typing import OrderedDict, Tuple
-import random
 from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
 import numpy
 
@@ -45,7 +44,6 @@ from fuse.dl.lightning.pl_module import LightningModuleDefault, BalancedLightnin
 from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import create_dir, save_dataframe
-from fuse.data.utils.split import dataset_balanced_division_to_folds
 import fuse.utils.gpu as GPU
 
 from fuse_examples.imaging.classification.mnist.lenet import LeNet

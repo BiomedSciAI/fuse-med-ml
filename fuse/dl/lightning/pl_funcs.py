@@ -36,8 +36,6 @@ from fuse.dl.losses.loss_base import LossBase
 from fuse.eval import MetricBase
 from fuse.eval.metrics.utils import PerSampleData
 
-import os
-
 
 def model_checkpoint_callbacks(model_dir: str, best_epoch_source: Union[Dict, List[Dict]]) -> List[pl.Callback]:
     """

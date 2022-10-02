@@ -42,8 +42,6 @@ import fuse.utils.gpu as GPU
 
 from fuse.eval.evaluator import EvaluatorDefault
 from fuse.dl.losses.loss_default import LossDefault
-
-from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.split import dataset_balanced_division_to_folds
 
