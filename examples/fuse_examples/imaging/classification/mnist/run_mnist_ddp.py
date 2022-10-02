@@ -91,7 +91,7 @@ PATHS = {
 }
 
 NUM_GPUS = 2  # Multiple GPU training
-WORKERS = 0
+WORKERS = 10
 ##########################################
 # Train Common Params
 ##########################################
@@ -106,7 +106,7 @@ TRAIN_COMMON_PARAMS["data.num_workers"] = WORKERS
 # ===============
 # PL Trainer
 # ===============
-TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 1
+TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 5
 TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
 TRAIN_COMMON_PARAMS["trainer.strategy"] = "ddp"
@@ -141,31 +141,40 @@ def create_datamodule(paths: dict, train_params: dict) -> BalancedLightningDataM
 
 
     # TODO move to main when finish
-    train_params["data.num_folds"] = 6
-    train_params["data.train_folds"] = [0,1,2,3,4]
-    train_params["data.validation_folds"] = [5]
-    folds = dataset_balanced_division_to_folds(
-        dataset=all_dataset,
-        output_split_filename=paths["data_split_filename"],
-        keys_to_balance=["data.label"],
-        nfolds=train_params["data.num_folds"],
-        reset_split=True
-    )
+    # train_params["data.num_folds"] = 6
+    # train_params["data.train_folds"] = [0,1,2,3,4]
+    # train_params["data.validation_folds"] = [5]
+    # folds = dataset_balanced_division_to_folds(
+    #     dataset=all_dataset,
+    #     output_split_filename=paths["data_split_filename"],
+    #     keys_to_balance=["data.label"],
+    #     nfolds=train_params["data.num_folds"],
+    #     reset_split=True
+    # )
 
-    train_sample_ids = []
-    for fold in train_params["data.train_folds"]:
-        train_sample_ids += folds[fold]
-    validation_sample_ids = []
-    for fold in train_params["data.validation_folds"]:
-        validation_sample_ids += folds[fold]
+    all_sample_ids = [("mnist-train", i) for i in range(60_000)]
+    numpy.random.RandomState(seed=42).shuffle(all_sample_ids)
+    
+    train_sample_ids = all_sample_ids[:50_000]
+    validation_sample_ids = all_sample_ids[50_000:]
+
+
+    # train_sample_ids = []
+    # for fold in train_params["data.train_folds"]:
+    #     train_sample_ids += folds[fold]
+    # validation_sample_ids = []
+    # for fold in train_params["data.validation_folds"]:
+    #     validation_sample_ids += folds[fold]
 
     # print(train_sample_ids)
-    train_sample_ids = [("mnist-train", i) for i in range(1,60000)] + [("mnist-train", 0)]
+    # train_sample_ids = [("mnist-train", i) for i in range(60000)]
     # train_sample_ids = [("mnist-train", i) for i in trange(60000) if ("mnist-train", i) in train_sample_ids]
     # numpy.random.RandomState().shuffle(train_sample_ids)
+    print("Create datasets:")
     train_dataset = MNIST.dataset(paths["cache_dir"], train=True, sample_ids=train_sample_ids)
     validation_dataset = MNIST.dataset(paths["cache_dir"], train=True, sample_ids=validation_sample_ids)
     predict_dataset = MNIST.dataset(paths["cache_dir"], train=False)
+    print("Create datasets: DONE")
 
     datamodule = BalancedLightningDataModule(
         train_dataset=train_dataset,
@@ -283,7 +292,7 @@ INFER_COMMON_PARAMS["trainer.accelerator"] = "gpu"
 # Inference Template
 ######################################
 
-
+@rank_zero_only
 def run_infer(paths: dict, infer_common_params: dict):
     create_dir(paths["inference_dir"])
     infer_file_path = os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])

@@ -200,6 +200,7 @@ class BalancedLightningDataModule(pl.LightningDataModule):
         balanced_class_name: str,
         num_balanced_classes: int,
         collate_fn: CollateToBatchList = None,
+        sampler_mode: str = "exact",
         verbose: bool = False,
     ):
         super().__init__()
@@ -210,6 +211,7 @@ class BalancedLightningDataModule(pl.LightningDataModule):
         self._batch_size = batch_size
         self._balanced_class_name = balanced_class_name
         self._num_balanced_classes = num_balanced_classes
+        self._sampler_mode = sampler_mode
         self._verbose = verbose
         if collate_fn is None:
             self._collate_fn = CollateDefault()
@@ -218,17 +220,22 @@ class BalancedLightningDataModule(pl.LightningDataModule):
         """
         TODO
         """
+        print("Create BatchSamplerDefault:")
         batch_sampler = BatchSamplerDefault(
             dataset=self._train_dataset,
             balanced_class_name=self._balanced_class_name,
             num_balanced_classes=self._num_balanced_classes,
             batch_size=self._batch_size,
+            mode=self._sampler_mode,
             verbose=self._verbose,
+            workers=self._num_workers
         )
+        print("Create BatchSamplerDefault: DONE")
 
         train_dl = DataLoader(
             dataset=self._train_dataset,
-            batch_sampler=batch_sampler,
+            batch_size=self._batch_size,
+            batch_sampler=None,
             collate_fn=self._collate_fn,
             num_workers=self._num_workers,
         )
@@ -238,15 +245,13 @@ class BalancedLightningDataModule(pl.LightningDataModule):
         """
         returns validation dataloader with custom args
         """
-        print(f"HEY 5 ({os.getpid()}):")
-
         validation_dl = DataLoader(
             dataset=self._validation_dataset,
             collate_fn=self._collate_fn,
             num_workers=self._num_workers,
             batch_size=self._batch_size,
         )
-        print(f"HEY 5 ({os.getpid()}): DONE")
+
         return validation_dl
 
     def predict_dataloader(self):
