@@ -185,7 +185,7 @@ def create_datamodule(paths: dict, train_common_params: dict) -> BalancedLightni
         output_split_filename=paths["data_split_filename"],
         keys_to_balance=["data.label"],
         nfolds=train_common_params["data.num_folds"],
-        reset_split=True
+        reset_split=True,
     )
 
     train_sample_ids = []
@@ -214,7 +214,6 @@ def create_datamodule(paths: dict, train_common_params: dict) -> BalancedLightni
 
     infer_dataset = ISIC.dataset(paths["data_dir"], paths["cache_dir"], samples_ids=infer_sample_ids, train=False)
 
-
     datamodule = BalancedLightningDataModule(
         train_dataset=train_dataset,
         validation_dataset=validation_dataset,
@@ -223,10 +222,11 @@ def create_datamodule(paths: dict, train_common_params: dict) -> BalancedLightni
         batch_size=train_common_params["data.batch_size"],
         balanced_class_name="data.label",
         num_balanced_classes=8,
-        sampler_mode="approx"
+        sampler_mode="approx",
     )
 
     return datamodule
+
 
 #################################
 # Train Template
@@ -248,9 +248,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     # Train Data
     lgr.info("Train Data:", {"attrs": "bold"})
 
-
     datamodule = create_datamodule(paths, train_common_params)
-
 
     lgr.info("Train Data: Done", {"attrs": "bold"})
 
@@ -335,9 +333,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     )
 
     # train
-    pl_trainer.fit(
-        pl_module, datamodule=datamodule, ckpt_path=train_common_params["trainer.ckpt_path"]
-    )
+    pl_trainer.fit(pl_module, datamodule=datamodule, ckpt_path=train_common_params["trainer.ckpt_path"])
 
     lgr.info("Train: Done", {"attrs": "bold"})
 
@@ -360,6 +356,7 @@ INFER_COMMON_PARAMS["trainer.accelerator"] = TRAIN_COMMON_PARAMS["trainer.accele
 ######################################
 # Inference Template
 ######################################
+
 
 @rank_zero_only
 def run_infer(paths: dict, infer_common_params: dict) -> None:

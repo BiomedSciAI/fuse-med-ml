@@ -89,26 +89,16 @@ class LightningModuleDefault(pl.LightningModule):
 
     ## Step
     def training_step(self, batch_dict: NDict, batch_idx: int) -> dict:
-        print(f"HEY 6.0 ({os.getpid()}):")
         # run forward function and store the outputs in batch_dict["model"]
         batch_dict = self.forward(batch_dict)
-        print(f"HEY 6.0 ({os.getpid()}): DONE")
         # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss and save losses values in batch_dict["losses"]
-        print(f"HEY 6.1 ({os.getpid()}):")
         total_loss = step_losses(self._losses, batch_dict)
-        print(f"HEY 6.1 ({os.getpid()}): DONE")
         # given the batch_dict and FuseMedML style losses - collect the required values to compute the metrics on epoch_end
-        print(f"HEY 6.2 ({os.getpid()}):")
         step_metrics(self._train_metrics, batch_dict)
-        print(f"HEY 6.2 ({os.getpid()}): DONE")
-
         # return the total_loss, the losses and drop everything else
-        # traceback.print_stack(file=sys.stdout)
-        
         return {"loss": total_loss, "losses": batch_dict["losses"]}
 
     def validation_step(self, batch_dict: NDict, batch_idx: int) -> dict:
-        print(f"HEY 7.0 ({os.getpid()}):")
         # run forward function and store the outputs in batch_dict["model"]
         batch_dict = self.forward(batch_dict)
         # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss (ignored) and save losses values in batch_dict["losses"]
@@ -117,7 +107,6 @@ class LightningModuleDefault(pl.LightningModule):
         step_metrics(self._validation_metrics, batch_dict)
 
         # return just the losses and drop everything else
-        print(f"HEY 7.0 ({os.getpid()}): DONE")
         return {"losses": batch_dict["losses"]}
 
     def test_step(self, batch_dict: NDict, batch_idx: int) -> dict:
@@ -143,25 +132,20 @@ class LightningModuleDefault(pl.LightningModule):
 
     ## Epoch end
     def training_epoch_end(self, step_outputs) -> None:
-        print(f"HEY 3 ({os.getpid()}):")
         # for the logs to be at each epoch, not each step
         self.log("step", float(self.current_epoch), on_epoch=True, sync_dist=True)
         # calc average epoch loss and log it
         epoch_end_compute_and_log_losses(self, "train", [e["losses"] for e in step_outputs])
         # evaluate  and log it
         epoch_end_compute_and_log_metrics(self, "train", self._train_metrics)
-        print(f"HEY 3 ({os.getpid()}): DONE")
-
 
     def validation_epoch_end(self, step_outputs) -> None:
-        print(f"HEY 4 ({os.getpid()}):")
         # for the logs to be at each epoch, not each step
         self.log("step", float(self.current_epoch), on_epoch=True, sync_dist=True)
         # calc average epoch loss and log it
         epoch_end_compute_and_log_losses(self, "validation", [e["losses"] for e in step_outputs])
         # evaluate  and log it
         epoch_end_compute_and_log_metrics(self, "validation", self._validation_metrics)
-        print(f"HEY 4 ({os.getpid()}): DONE")
 
     def test_epoch_end(self, step_outputs) -> None:
         # for the logs to be at each epoch, not each step
@@ -228,7 +212,7 @@ class BalancedLightningDataModule(pl.LightningDataModule):
             batch_size=self._batch_size,
             mode=self._sampler_mode,
             verbose=self._verbose,
-            workers=self._num_workers
+            workers=self._num_workers,
         )
         print("Create BatchSamplerDefault: DONE")
 

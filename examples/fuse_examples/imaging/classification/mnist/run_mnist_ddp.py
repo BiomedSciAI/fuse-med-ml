@@ -139,7 +139,6 @@ def create_datamodule(paths: dict, train_params: dict) -> BalancedLightningDataM
 
     all_dataset = MNIST.dataset(paths["cache_dir"], train=True)
 
-
     # TODO move to main when finish
     # train_params["data.num_folds"] = 6
     # train_params["data.train_folds"] = [0,1,2,3,4]
@@ -154,10 +153,9 @@ def create_datamodule(paths: dict, train_params: dict) -> BalancedLightningDataM
 
     all_sample_ids = [("mnist-train", i) for i in range(60_000)]
     numpy.random.RandomState(seed=42).shuffle(all_sample_ids)
-    
+
     train_sample_ids = all_sample_ids[:50_000]
     validation_sample_ids = all_sample_ids[50_000:]
-
 
     # train_sample_ids = []
     # for fold in train_params["data.train_folds"]:
@@ -291,6 +289,7 @@ INFER_COMMON_PARAMS["trainer.accelerator"] = "gpu"
 ######################################
 # Inference Template
 ######################################
+
 
 @rank_zero_only
 def run_infer(paths: dict, infer_common_params: dict):
