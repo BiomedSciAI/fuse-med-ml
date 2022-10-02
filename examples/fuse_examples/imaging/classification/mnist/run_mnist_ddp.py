@@ -100,7 +100,7 @@ TRAIN_COMMON_PARAMS = {}
 # ============
 # Data
 # ============
-TRAIN_COMMON_PARAMS["data.batch_size"] = 800
+TRAIN_COMMON_PARAMS["data.batch_size"] = 50
 TRAIN_COMMON_PARAMS["data.num_workers"] = WORKERS
 
 # ===============
@@ -137,42 +137,18 @@ def create_model() -> torch.nn.Module:
 
 def create_datamodule(paths: dict, train_params: dict) -> BalancedLightningDataModule:
 
-    all_dataset = MNIST.dataset(paths["cache_dir"], train=True)
-
-    # TODO move to main when finish
-    # train_params["data.num_folds"] = 6
-    # train_params["data.train_folds"] = [0,1,2,3,4]
-    # train_params["data.validation_folds"] = [5]
-    # folds = dataset_balanced_division_to_folds(
-    #     dataset=all_dataset,
-    #     output_split_filename=paths["data_split_filename"],
-    #     keys_to_balance=["data.label"],
-    #     nfolds=train_params["data.num_folds"],
-    #     reset_split=True
-    # )
-
+    # Divide MNIST fit dataset into train and validation
+    # TODO use 'dataset_balanced_division_to_folds'. See Other examples for ref.
     all_sample_ids = [("mnist-train", i) for i in range(60_000)]
     numpy.random.RandomState(seed=42).shuffle(all_sample_ids)
 
     train_sample_ids = all_sample_ids[:50_000]
     validation_sample_ids = all_sample_ids[50_000:]
 
-    # train_sample_ids = []
-    # for fold in train_params["data.train_folds"]:
-    #     train_sample_ids += folds[fold]
-    # validation_sample_ids = []
-    # for fold in train_params["data.validation_folds"]:
-    #     validation_sample_ids += folds[fold]
-
-    # print(train_sample_ids)
-    # train_sample_ids = [("mnist-train", i) for i in range(60000)]
-    # train_sample_ids = [("mnist-train", i) for i in trange(60000) if ("mnist-train", i) in train_sample_ids]
-    # numpy.random.RandomState().shuffle(train_sample_ids)
-    print("Create datasets:")
+    # Create datasets
     train_dataset = MNIST.dataset(paths["cache_dir"], train=True, sample_ids=train_sample_ids)
     validation_dataset = MNIST.dataset(paths["cache_dir"], train=True, sample_ids=validation_sample_ids)
     predict_dataset = MNIST.dataset(paths["cache_dir"], train=False)
-    print("Create datasets: DONE")
 
     datamodule = BalancedLightningDataModule(
         train_dataset=train_dataset,
@@ -199,7 +175,6 @@ def run_train(paths: dict, train_params: dict):
     # ==============================================================================
     # Data
     # ==============================================================================
-
     print("- Create DataModule:")
     datamodule = create_datamodule(paths, train_params)
     print("- Create DataModule: Done")
@@ -347,10 +322,9 @@ def run_eval(paths: dict, eval_common_params: dict):
     infer_file_path = os.path.join(paths["inference_dir"], eval_common_params["infer_filename"])
 
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
-
     print("Fuse Eval")
 
-    # metrics
+    ## Metrics
     class_names = [str(i) for i in range(10)]
 
     metrics = OrderedDict(
