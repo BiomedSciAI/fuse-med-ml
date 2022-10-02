@@ -36,6 +36,8 @@ from fuse.dl.losses.loss_base import LossBase
 from fuse.eval import MetricBase
 from fuse.eval.metrics.utils import PerSampleData
 
+import os
+
 
 def model_checkpoint_callbacks(model_dir: str, best_epoch_source: Union[Dict, List[Dict]]) -> List[pl.Callback]:
     """
@@ -93,18 +95,28 @@ def step_losses(losses: Dict[str, LossBase], batch_dict: NDict) -> torch.Tensor:
     :return: total_loss (sum all losses results). The values for tracking purpose will be stored in batch_dict['losses']
     """
     total_loss = None
+    print(f"HEY 6.1.0 ({os.getpid()}):")
+    print(f"len(losses.items()) = {len(losses.items())}")
     for loss_name, loss_function in losses.items():
+        print(f"HEY 6.1.0.1 ({os.getpid()}):")
         current_loss_result = loss_function(batch_dict)
+        print(f"HEY 6.1.0.1 ({os.getpid()}): DONE")
+        print(f"HEY 6.1.0.2 ({os.getpid()}):")
+        print(f"current_loss_result = {current_loss_result}")
+        print(f"HEY 6.1.0.2 ({os.getpid()}): DONE")
+        print(f"HEY 6.1.0.0 ({os.getpid()}):")
         batch_dict["losses." + loss_name] = current_loss_result.data.item()
+        print(f"HEY 6.1.0.0 ({os.getpid()}): DONE")
         # sum all losses for backward
         if total_loss is None:
             total_loss = current_loss_result
         else:
             total_loss += current_loss_result
-
+    print(f"HEY 6.1.0 ({os.getpid()}): DONE")
+    print(f"HEY 6.1.1 ({os.getpid()}):")
     if total_loss is not None:
         batch_dict["losses.total_loss"] = total_loss.data.item()
-
+    print(f"HEY 6.1.1 ({os.getpid()}): DONE")
     return total_loss
 
 
@@ -157,7 +169,9 @@ def epoch_end_compute_and_log_losses(pl: pl.LightningModule, mode: str, batch_lo
             else:
                 losses.append(elem[key])
         loss = mean(losses)
-        pl.log(f"{mode}.losses.{key}", loss, on_epoch=True, sync_dist=True)
+        print(f"HEY 2 ({os.getpid()}):")
+        pl.log(f"{mode}.losses.{key}", loss, on_epoch=True, sync_dist=True, rank_zero_only=True)
+        print(f"HEY 2 ({os.getpid()}): DONE")
 
 
 def epoch_end_compute_and_log_metrics(pl: pl.LightningModule, mode: str, metrics: OrderedDict[str, MetricBase]) -> None:
@@ -186,4 +200,6 @@ def epoch_end_compute_and_log_metrics(pl: pl.LightningModule, mode: str, metrics
     # log metrics
     for key in epoch_results.keypaths():
         if epoch_results[key] is not None and not isinstance(epoch_results[key], (PerSampleData)):
-            pl.log(f"{mode}.{key}", epoch_results[key], on_epoch=True, sync_dist=True)
+            print(f"HEY 1 ({os.getpid()}):")
+            pl.log(f"{mode}.{key}", epoch_results[key], on_epoch=True, sync_dist=True, rank_zero_only=True)
+            print(f"HEY 1 ({os.getpid()}): DONE")

@@ -12,6 +12,7 @@ limitations under the License.
 Created on June 30, 2021
 """
 
+from copy import deepcopy
 import os
 from typing import Hashable, Sequence
 from fuse.data.datasets.dataset_base import DatasetBase
@@ -162,6 +163,6 @@ def dataset_balanced_division_to_folds(
 
         folds = {}
         for fold in range(nfolds):
-            folds[fold] = list(df_folds[df_folds["fold"] == fold][get_sample_id_key()])
+            folds[fold] = deepcopy(list(df_folds[df_folds["fold"] == fold][get_sample_id_key()]))
         save_pickle(folds, output_split_filename)
         return folds

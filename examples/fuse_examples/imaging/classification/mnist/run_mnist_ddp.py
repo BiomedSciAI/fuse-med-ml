@@ -24,7 +24,9 @@ import copy
 import logging
 import os
 from typing import OrderedDict, Tuple
+import random
 from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
+import numpy
 
 import torch
 import torch.nn.functional as F
@@ -43,10 +45,10 @@ from fuse.dl.lightning.pl_module import LightningModuleDefault, BalancedLightnin
 from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import create_dir, save_dataframe
+from fuse.data.utils.split import dataset_balanced_division_to_folds
 import fuse.utils.gpu as GPU
 
 from fuse_examples.imaging.classification.mnist.lenet import LeNet
-from fuse_examples.imaging.classification.mnist.mnist_data_module import MNISTDataModule
 from fuseimg.datasets.mnist import MNIST
 
 
@@ -85,10 +87,11 @@ PATHS = {
     "cache_dir": os.path.join(ROOT, "cache_dir"),
     "inference_dir": os.path.join(model_dir, "infer_dir"),
     "eval_dir": os.path.join(model_dir, "eval_dir"),
+    "data_split_filename": os.path.join(model_dir, "mnist_split.pkl"),
 }
 
 NUM_GPUS = 2  # Multiple GPU training
-WORKERS = 10
+WORKERS = 0
 ##########################################
 # Train Common Params
 ##########################################
@@ -97,7 +100,7 @@ TRAIN_COMMON_PARAMS = {}
 # ============
 # Data
 # ============
-TRAIN_COMMON_PARAMS["data.batch_size"] = 40
+TRAIN_COMMON_PARAMS["data.batch_size"] = 800
 TRAIN_COMMON_PARAMS["data.num_workers"] = WORKERS
 
 # ===============
@@ -133,8 +136,35 @@ def create_model() -> torch.nn.Module:
 
 
 def create_datamodule(paths: dict, train_params: dict) -> BalancedLightningDataModule:
-    train_dataset = MNIST.dataset(paths["cache_dir"], train=True)
-    validation_dataset = MNIST.dataset(paths["cache_dir"], train=False)
+
+    all_dataset = MNIST.dataset(paths["cache_dir"], train=True)
+
+
+    # TODO move to main when finish
+    train_params["data.num_folds"] = 6
+    train_params["data.train_folds"] = [0,1,2,3,4]
+    train_params["data.validation_folds"] = [5]
+    folds = dataset_balanced_division_to_folds(
+        dataset=all_dataset,
+        output_split_filename=paths["data_split_filename"],
+        keys_to_balance=["data.label"],
+        nfolds=train_params["data.num_folds"],
+        reset_split=True
+    )
+
+    train_sample_ids = []
+    for fold in train_params["data.train_folds"]:
+        train_sample_ids += folds[fold]
+    validation_sample_ids = []
+    for fold in train_params["data.validation_folds"]:
+        validation_sample_ids += folds[fold]
+
+    # print(train_sample_ids)
+    train_sample_ids = [("mnist-train", i) for i in range(1,60000)] + [("mnist-train", 0)]
+    # train_sample_ids = [("mnist-train", i) for i in trange(60000) if ("mnist-train", i) in train_sample_ids]
+    # numpy.random.RandomState().shuffle(train_sample_ids)
+    train_dataset = MNIST.dataset(paths["cache_dir"], train=True, sample_ids=train_sample_ids)
+    validation_dataset = MNIST.dataset(paths["cache_dir"], train=True, sample_ids=validation_sample_ids)
     predict_dataset = MNIST.dataset(paths["cache_dir"], train=False)
 
     datamodule = BalancedLightningDataModule(
@@ -266,13 +296,7 @@ def run_infer(paths: dict, infer_common_params: dict):
     print(f"infer_file_path={infer_file_path}")
 
     ## Data
-    datamodule = MNISTDataModule(
-        cache_dir=paths["cache_dir"],
-        num_workers=2,
-        batch_size=10,
-        train_folds=[],
-        validation_folds=[],
-    )
+    datamodule = create_datamodule(paths, infer_common_params)
 
     # load pytorch lightning module
     model = create_model()
@@ -354,6 +378,7 @@ if __name__ == "__main__":
 
     GPU.choose_and_enable_multiple_gpus(NUM_GPUS)
     RUNNING_MODES = ["train", "infer", "eval"]
+    RUNNING_MODES = ["train"]
 
     # train
     if "train" in RUNNING_MODES:

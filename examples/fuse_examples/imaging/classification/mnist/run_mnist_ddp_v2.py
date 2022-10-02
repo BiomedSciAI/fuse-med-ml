@@ -87,7 +87,7 @@ PATHS = {
 }
 
 NUM_GPUS = 2  # Multiple GPU training
-WORKERS = 10
+WORKERS = 0
 ##########################################
 # Train Common Params
 ##########################################
