@@ -41,12 +41,10 @@ class ClassifierFCN(nn.Module):
         """
         super().__init__()
         layer_list = []
-        layer_list.append(nn.Conv2d(in_ch, layers_description[0], kernel_size=1, stride=1))
-        layer_list.append(nn.ReLU())
-        if dropout_rate is not None and dropout_rate > 0:
-            layer_list.append(nn.Dropout(p=dropout_rate))
-        last_layer_size = layers_description[0]
-        for curr_layer_size in layers_description[1:]:
+        last_layer_size = in_ch
+        
+        for i in range(len(layers_description)):
+            curr_layer_size = layers_description[i]
             layer_list.append(nn.Conv2d(last_layer_size, curr_layer_size, kernel_size=1, stride=1))
             layer_list.append(nn.ReLU())
             if dropout_rate is not None and dropout_rate > 0:
@@ -83,12 +81,10 @@ class ClassifierFCN3D(nn.Module):
         """
         super().__init__()
         layer_list = []
-        layer_list.append(nn.Conv3d(in_ch, layers_description[0], kernel_size=1, stride=1))
-        layer_list.append(nn.ReLU())
-        if dropout_rate is not None and dropout_rate > 0:
-            layer_list.append(nn.Dropout(p=dropout_rate))
-        last_layer_size = layers_description[0]
-        for curr_layer_size in layers_description[1:]:
+        last_layer_size = in_ch
+       
+        for i in range(len(layers_description)):
+            curr_layer_size = layers_description[i]
             layer_list.append(nn.Conv3d(last_layer_size, curr_layer_size, kernel_size=1, stride=1))
             layer_list.append(nn.ReLU())
             if dropout_rate is not None and dropout_rate > 0:
@@ -113,9 +109,10 @@ class ClassifierMLP(nn.Module):
     def __init__(
         self,
         in_ch: int,
-        num_classes: Optional[int],
+        num_classes: Optional[int] = None,
         layers_description: Sequence[int] = (256,),
         dropout_rate: float = 0.1,
+        bias: bool = True
     ):
         """
         :param in_ch: Number of input channels
@@ -125,12 +122,9 @@ class ClassifierMLP(nn.Module):
         """
         super().__init__()
         layer_list = []
-        layer_list.append(nn.Linear(in_ch, layers_description[0]))
-        layer_list.append(nn.ReLU())
-        if dropout_rate is not None and dropout_rate > 0:
-            layer_list.append(nn.Dropout(p=dropout_rate))
-        last_layer_size = layers_description[0]
-        for curr_layer_size in layers_description[1:]:
+        last_layer_size = in_ch
+        for i in range(len(layers_description)):
+            curr_layer_size = layers_description[i]
             layer_list.append(nn.Linear(last_layer_size, curr_layer_size))
             layer_list.append(nn.ReLU())
             if dropout_rate is not None and dropout_rate > 0:
@@ -138,7 +132,7 @@ class ClassifierMLP(nn.Module):
             last_layer_size = curr_layer_size
 
         if num_classes is not None:
-            layer_list.append(nn.Linear(last_layer_size, num_classes))
+            layer_list.append(nn.Linear(in_features=last_layer_size, out_features=num_classes, bias=bias))
 
         self.classifier = nn.Sequential(*layer_list)
 
