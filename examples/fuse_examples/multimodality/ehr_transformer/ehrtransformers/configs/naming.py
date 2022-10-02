@@ -1,0 +1,5 @@
+padding_token = 'PAD'
+unknown_token = 'UNK'
+separator_token = 'SEP'
+cls_token = 'CLS'
+mask_token = 'MASK'
