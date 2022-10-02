@@ -60,7 +60,8 @@ ModelMultiHead(
     conv_inputs=(('data.input.img', 1),),                                       # input to the backbone model   
     backbone=BackboneResnet3D(in_channels=1),                                   # PyTorch nn Module    
     heads=[                                                                     # list of heads - gives the option to support multi task / multi head approach
-               Head3DClassifier(head_name='classification',                     
+               Head3D(head_name='classification',
+                                mode="classification",                  
                                 conv_inputs=[("model.backbone_features", 512)]  # Input to the classification head
                                 ,),                                              
           ]
