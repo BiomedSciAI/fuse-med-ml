@@ -55,15 +55,17 @@ So you want to use distributed data parallel (DDP)[1] strategy to increase your 
 FuseMedML supports DDP strategy based on PyTorch-Lightning [2].
 
 The following example shows how to use DDP with FuseMedML on the famous MNIST dataset.
-NOTE that if you want to use FuseMedML's custom batch sampler 'BatchSamplerDefault' sampler, you shall implement a datamodule similar to 'MNISTDataModule'. (relevant for PyTorch-Lightning 1.7.6)
+NOTE that currently, due PyTorch-Lightning issue[3], we don't support training with our custom batch sampler. We are monitoring
+that issue and we'll fixed that asap (depends on PL updates).
 
-
+FYI:
 @rank_zero_only
-A PyTorch-Lightning decorator that makes sure the function runs only in the main proccess (where the RANK is 0).
+A PyTorch-Lightning decorator that makes sure the function runs only in the main process (where the RANK is 0).
 Helpful to avoid printing / logging multiple time.
 
 [1] PyTorch: https://pytorch.org/tutorials/intermediate/ddp_tutorial.html
 [2] PyTorch-Lightning: https://pytorch-lightning.readthedocs.io/en/latest/accelerators/gpu_intermediate.html
+[3] https://github.com/Lightning-AI/lightning/issues/4450
 """
 ###########################################################################################################
 # Fuse
@@ -98,7 +100,7 @@ TRAIN_COMMON_PARAMS = {}
 # ============
 # Data
 # ============
-TRAIN_COMMON_PARAMS["data.batch_size"] = 50
+TRAIN_COMMON_PARAMS["data.batch_size"] = 50  # batch size for each GPU. effective batch size = batch_size*num_gpus
 TRAIN_COMMON_PARAMS["data.num_workers"] = WORKERS
 
 # ===============
@@ -107,7 +109,7 @@ TRAIN_COMMON_PARAMS["data.num_workers"] = WORKERS
 TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 5
 TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
-TRAIN_COMMON_PARAMS["trainer.strategy"] = "ddp"
+TRAIN_COMMON_PARAMS["trainer.strategy"] = "ddp"  # using ddp strategy
 
 # ===============
 # Optimizer
@@ -133,10 +135,15 @@ def create_model() -> torch.nn.Module:
     return model
 
 
-def create_datamodule(paths: dict, train_params: dict) -> BalancedLightningDataModule:
+def create_datamodule(paths: dict, common_params: dict) -> BalancedLightningDataModule:
+    """
+    Creates PL datamodule using our 'BalancedLightningDataModule' - a wrapper for PL datamodule using a balanced batch sampler.
+    Another option is to use 'MNISTDataModule' class in 'examples/fuse_examples/imaging/classification/mnist/mnist_data_module.py'
 
-    # Divide MNIST fit dataset into train and validation
-    # TODO use 'dataset_balanced_division_to_folds'. See Other examples for ref.
+    TODO Ask @moshiko - maybe we should do our custom datamodule more robust and supply the batch_sampler to it?
+    """
+
+    # Divide MNIST fit dataset into train and validation.
     all_sample_ids = [("mnist-train", i) for i in range(60_000)]
     numpy.random.RandomState(seed=42).shuffle(all_sample_ids)
 
@@ -152,8 +159,8 @@ def create_datamodule(paths: dict, train_params: dict) -> BalancedLightningDataM
         train_dataset=train_dataset,
         validation_dataset=validation_dataset,
         predict_dataset=predict_dataset,
-        num_workers=train_params["data.num_workers"],
-        batch_size=train_params["data.batch_size"],
+        num_workers=common_params["data.num_workers"],
+        batch_size=common_params["data.batch_size"],
         balanced_class_name="data.label",
         num_balanced_classes=10,
     )
@@ -219,7 +226,7 @@ def run_train(paths: dict, train_params: dict):
     lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
     lr_sch_config = dict(scheduler=lr_scheduler, monitor="validation.losses.total_loss")
 
-    # optimizier and lr sch
+    # optimizer and lr sch
     optimizers_and_lr_schs = dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
 
     # ====================================================================================
@@ -241,8 +248,8 @@ def run_train(paths: dict, train_params: dict):
         default_root_dir=paths["model_dir"],
         max_epochs=train_params["trainer.num_epochs"],
         accelerator=train_params["trainer.accelerator"],
-        strategy=train_params["trainer.strategy"],
-        devices=train_params["trainer.num_devices"],
+        strategy=train_params["trainer.strategy"],  # Use ddp strategy
+        devices=train_params["trainer.num_devices"],  # Multi GPU
     )
 
     # train
@@ -256,7 +263,7 @@ def run_train(paths: dict, train_params: dict):
 INFER_COMMON_PARAMS = {}
 INFER_COMMON_PARAMS["infer_filename"] = "infer_file.gz"
 INFER_COMMON_PARAMS["checkpoint"] = "best_epoch.ckpt"
-INFER_COMMON_PARAMS["trainer.num_devices"] = 1
+INFER_COMMON_PARAMS["trainer.num_devices"] = 1  # No need for multiple GPUs
 INFER_COMMON_PARAMS["trainer.accelerator"] = "gpu"
 
 ######################################
@@ -264,7 +271,7 @@ INFER_COMMON_PARAMS["trainer.accelerator"] = "gpu"
 ######################################
 
 
-@rank_zero_only
+@rank_zero_only  # Inference is a cheap relatively to training. No need to multiple GPU here
 def run_infer(paths: dict, infer_common_params: dict):
     create_dir(paths["inference_dir"])
     infer_file_path = os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])
@@ -347,7 +354,6 @@ def run_eval(paths: dict, eval_common_params: dict):
 
     # run
     results = evaluator.eval(ids=None, data=infer_file_path, metrics=metrics, output_dir=paths["eval_dir"])
-
     return results
 
 
@@ -358,7 +364,6 @@ if __name__ == "__main__":
 
     GPU.choose_and_enable_multiple_gpus(NUM_GPUS)
     RUNNING_MODES = ["train", "infer", "eval"]
-    RUNNING_MODES = ["train"]
 
     # train
     if "train" in RUNNING_MODES:

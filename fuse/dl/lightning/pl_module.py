@@ -218,8 +218,8 @@ class BalancedLightningDataModule(pl.LightningDataModule):
 
         train_dl = DataLoader(
             dataset=self._train_dataset,
-            # batch_size=self._batch_size,
-            batch_sampler=batch_sampler,
+            batch_size=self._batch_size,
+            # batch_sampler=batch_sampler,  # Doesn't work well in DDP.
             collate_fn=self._collate_fn,
             num_workers=self._num_workers,
         )
