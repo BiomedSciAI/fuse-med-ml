@@ -77,8 +77,8 @@ class ModelEpochSummary(Callback):
         self._best_epoch_metrics = None
         self._best_epoch_index = None
 
-    @rank_zero_only
-    def print_epoch_summary_table(self, epoch_metircs: dict, epoch_source_index: int) -> None:
+    @rank_zero_only  # Avoid printing multiple time in multi GPU training (DDP)
+    def print_epoch_summary_table(self, epoch_metrics: dict, epoch_source_index: int) -> None:
         """
         Generate, print and log the table.
         Decorator make sure it runs only once in a DDP strategy.
@@ -98,9 +98,9 @@ class ModelEpochSummary(Callback):
         )
         idx = 0
 
-        eval_keys = sorted(epoch_metircs.keys())
+        eval_keys = sorted(epoch_metrics.keys())
         for evaluator_name in eval_keys:
-            current_str = get_value_as_float_str(epoch_metircs, evaluator_name)
+            current_str = get_value_as_float_str(epoch_metrics, evaluator_name)
             best_so_far_str = get_value_as_float_str(self._best_epoch_metrics, evaluator_name)
 
             stats_table.loc[idx] = [f"{evaluator_name}", best_so_far_str, current_str]

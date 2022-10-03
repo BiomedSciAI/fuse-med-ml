@@ -46,7 +46,8 @@ class BatchSamplerDefault(BatchSampler):
         :param dataset: dataset used to extract the balanced class from each sample
         :param balanced_class_name:  the name of balanced class to extract from dataset
         :param num_balanced_classes: number of classes to balance between
-        :param sampler: optional - pytorch sampler for collecting the data.
+        :param sampler: Optional - pytorch sampler for collecting the data.
+                        In use in DDP strategy, when PL trainer re-instantiate a custom batch_sampler with a DistributedSampler.
         :param batch_size: batch_size.
                         - In "exact" mode
                             If balanced_class_weights is None, must be set and divided by num_balanced_classes. Otherwise keep None.
@@ -144,6 +145,9 @@ class BatchSamplerDefault(BatchSampler):
         if self._sampler:
             if self._verbose:
                 print(f"BatchSamplerDefault got a sampler of type: {type(self._sampler).__name__}")
+            # Get all samples that sampler posses.
+            # In use in DDP strategy: each process runs on a different GPU with a different instance of 'DistributedSampler'.
+            #   The DistributedSampler(s) make sure that each GPU posses a different subset of the samplers to avoid overlaps.
             items = [i for i in self._sampler]  # get all samples that sampler posses
         else:
             items = None  # equivalent to all samples in dataset
