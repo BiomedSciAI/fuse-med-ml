@@ -53,6 +53,10 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from fuseimg.datasets.isic import ISIC
 from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS
 
+"""
+This is another example of using DDP strategy, this time with ISIC dataset.
+Note that in the example I used the decorator @rank_zero_only also on the run_infer function (no need for a speed-up / large batch size)
+"""
 
 ###########################################################################################################
 # Fuse
@@ -64,11 +68,10 @@ mode = "default"  # Options: 'default', 'debug'. See details in FuseDebug
 debug = FuseDebug(mode)
 
 ##########################################
-# GPUs
+# GPUs and Workers
 ##########################################
-
 NUM_GPUS = 2
-NUM_WORKERS = 0
+NUM_WORKERS = 10
 
 ##########################################
 # Modality

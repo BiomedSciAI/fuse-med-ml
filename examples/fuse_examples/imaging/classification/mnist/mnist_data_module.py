@@ -12,7 +12,11 @@ from fuse.data.utils.split import dataset_balanced_division_to_folds
 
 class MNISTDataModule(pl.LightningDataModule):
     """
-    TODO
+    Example of a custom Lightning datamodule using FuseMedML tools (folds + batch_sampler)
+
+    For reference please visit: 
+    https://pytorch-lightning.readthedocs.io/en/latest/data/datamodule.html
+    https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.core.LightningDataModule.html
     """
 
     def __init__(
@@ -24,7 +28,14 @@ class MNISTDataModule(pl.LightningDataModule):
         validation_folds: List[int],
         split_filename: str,
     ):
-        """ """
+        """
+        :param cache_dir: path to cache directory
+        :param num_workers: number of processes to pass to dataloader and batch_sampler
+        :param batch_size: batch_sampler's batch size
+        :param train_folds: which folds will be used for training (#total_folds = #train_folds + #validation_folds)
+        :param validation_folds: which folds will be used for validation (#total_folds = #train_folds + #validation_folds)
+        :param split_filename: path to `division_to_folds` file
+        """
         super().__init__()
         self._cache_dir = cache_dir
         self._num_workers = num_workers
@@ -32,10 +43,11 @@ class MNISTDataModule(pl.LightningDataModule):
         self._train_ids = []
         self._validation_ids = []
 
+        # divide into tain and validation folds 
         folds = dataset_balanced_division_to_folds(
             dataset=MNIST.dataset(self._cache_dir, train=True),
             keys_to_balance=["data.label"],
-            nfolds=len(train_folds) + len(validation_folds),
+            nfolds=len(train_folds + validation_folds),
             output_split_filename=split_filename,
             reset_split=False,
         )
@@ -47,27 +59,36 @@ class MNISTDataModule(pl.LightningDataModule):
             self._validation_ids += folds[fold]
 
     def setup(self, stage: str):
+        """
+        called on every process in DDP
 
+        :param stage: trainer stage
+        """
+
+        # assign train/val datasets for use in dataloaders
         if stage == "fit":
-            self._mnist_train = MNIST.dataset(self._cache_dir, train=True, sample_ids=self._train_ids)  # Doesn't work
-            # self._mnist_train = MNIST.dataset(self._cache_dir, train=True, sample_ids=None)  # Works
+            self._mnist_train = MNIST.dataset(self._cache_dir, train=True, sample_ids=self._train_ids)
             self._mnist_validation = MNIST.dataset(self._cache_dir, train=True, sample_ids=self._validation_ids)
 
+        # assign prediction (infer) dataset for use in dataloader
         if stage == "predict":
             self._mnist_predict = MNIST.dataset(self._cache_dir, train=False)
 
     def train_dataloader(self):
         """
-        returns train dataloader with custom args
+        returns train dataloader with class args
         """
+        # Create a batch sampler for the dataloader
         batch_sampler = BatchSamplerDefault(
             dataset=self._mnist_train,
             balanced_class_name="data.label",
             num_balanced_classes=10,
             batch_size=self._batch_size,
+            workers=self._num_workers,
             verbose=True,
         )
 
+        # Create dataloader
         train_dl = DataLoader(
             dataset=self._mnist_train,
             batch_sampler=batch_sampler,
@@ -79,8 +100,9 @@ class MNISTDataModule(pl.LightningDataModule):
 
     def val_dataloader(self):
         """
-        returns validation dataloader with custom args
+        returns validation dataloader with class args
         """
+        # Create dataloader
         validation_dl = DataLoader(
             dataset=self._mnist_validation,
             collate_fn=CollateDefault(),
@@ -92,7 +114,7 @@ class MNISTDataModule(pl.LightningDataModule):
 
     def predict_dataloader(self):
         """
-        NOTE: In MNIST example we use the same data for validation and evaluation. (TODO change (?)
+        returns validation dataloader with class args
         """
 
         predict_dl = DataLoader(
@@ -102,15 +124,3 @@ class MNISTDataModule(pl.LightningDataModule):
             batch_size=self._batch_size,
         )
         return predict_dl
-
-
-if __name__ == "__main__":
-    from fuse_examples.imaging.classification.mnist.run_mnist import PATHS
-
-    dm = MNISTDataModule(
-        cache_dir=PATHS["cache_dir"],
-        batch_size=20,
-        num_workers=10,
-        train_folds=[1, 2, 3, 4],
-        validation_folds=[5],
-    )
