@@ -2,8 +2,6 @@ from typing import List
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 
-# from torch.utils.data import random_split
-
 from fuse.data.utils.collates import CollateDefault
 from fuseimg.datasets.mnist import MNIST
 from fuse.data.utils.samplers import BatchSamplerDefault
@@ -65,7 +63,6 @@ class MNISTDataModule(pl.LightningDataModule):
 
         :param stage: trainer stage
         """
-
         # assign train/val datasets for use in dataloaders
         if stage == "fit":
             self._mnist_train = MNIST.dataset(self._cache_dir, train=True, sample_ids=self._train_ids)
@@ -117,7 +114,7 @@ class MNISTDataModule(pl.LightningDataModule):
         """
         returns validation dataloader with class args
         """
-
+        # Create dataloader
         predict_dl = DataLoader(
             dataset=self._mnist_predict,
             collate_fn=CollateDefault(),
