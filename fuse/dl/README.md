@@ -69,7 +69,7 @@ Implemented backbones include a "vanilla" fully connected network, or Multi Laye
 [The KNIGHT challenge example uses a 3D ResNet backbone `BackboneResnet3D`](../../examples/fuse_examples/imaging/classification/knight/baseline/fuse_baseline.py)  
 
 Implemented "heads" include a number of parameterized classifier heads, in 1D, 2D and 3D, as well as a dense segmentation head.  
-[The KNIGHT challenge example uses a 3D classification head `Head3DClassifier`](../../examples/fuse_examples/imaging/classification/knight/baseline/fuse_baseline.py)
+[The KNIGHT challenge example uses a 3D classification head `Head3D`](../../examples/fuse_examples/imaging/classification/knight/baseline/fuse_baseline.py)
 
 ## templates
 This module contains a walkthrough template code rich with comments, to demonstrate training with FuseMedML, with all required building blocks.
