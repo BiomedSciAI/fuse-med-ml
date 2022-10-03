@@ -187,7 +187,7 @@ class BalancedLightningDataModule(pl.LightningDataModule):
         num_balanced_classes: int,
         sampler_mode: str = "exact",
         collate_fn: CollateToBatchList = None,
-        use_custom_batch_sampler: bool=False,
+        use_custom_batch_sampler: bool = False,
         verbose: bool = False,
     ):
         """
@@ -214,7 +214,7 @@ class BalancedLightningDataModule(pl.LightningDataModule):
         self._num_balanced_classes = num_balanced_classes
         self._sampler_mode = sampler_mode
         self._use_custom_batch_sampler = use_custom_batch_sampler
-        self._verbose = verbose׳
+        self._verbose = verbose
         if collate_fn is None:
             self._collate_fn = CollateDefault()
 
