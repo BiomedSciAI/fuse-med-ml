@@ -134,6 +134,7 @@ def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault,
     # ==============================================================================
     # Data
     # ==============================================================================
+    print("Data - training set:")
     print("- Create sampler:")
     sampler = BatchSamplerDefault(
         dataset=train_dataset,
@@ -151,7 +152,7 @@ def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault,
         collate_fn=CollateDefault(),
         num_workers=train_params["data.train_num_workers"],
     )
-    print("Data - trainset: Done")
+    print("Data - training set: Done")
 
     ## Validation data
     print("Data - validation set:")

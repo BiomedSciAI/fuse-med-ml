@@ -77,11 +77,11 @@ class ModelEpochSummary(Callback):
         self._best_epoch_metrics = None
         self._best_epoch_index = None
 
-    @rank_zero_only  # Avoid printing multiple time in multi GPU training (DDP)
+    @rank_zero_only
     def print_epoch_summary_table(self, epoch_metrics: dict, epoch_source_index: int) -> None:
         """
         Generate, print and log the table.
-        Decorator make sure it runs only once in a DDP strategy.
+        Decorator makes sure it runs only once in a DDP strategy.
         """
 
         def get_value_as_float_str(dict, key):

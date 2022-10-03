@@ -348,6 +348,6 @@ if __name__ == "__main__":
     if "infer" in RUNNING_MODES:
         run_infer(paths=PATHS, infer_common_params=INFER_COMMON_PARAMS)
 
-    # eval - runs only on the main process (zero local rank)
+    # eval - runs only on the main process
     if "eval" in RUNNING_MODES:
         run_eval(paths=PATHS, eval_common_params=EVAL_COMMON_PARAMS)

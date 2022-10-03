@@ -18,15 +18,13 @@ Created on June 30, 2021
 
 import pytorch_lightning as pl
 from typing import Optional
-from torch.utils.data.dataset import Dataset
 from torch.utils.data.dataloader import DataLoader
 
 from fuse.dl.lightning.pl_funcs import *  # noqa
+from fuse.data.datasets.dataset_base import DatasetBase
 from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.collates import CollateDefault
 from fuse.utils.data.collate import CollateToBatchList
-
-# import traceback, sys
 
 
 class LightningModuleDefault(pl.LightningModule):
@@ -54,7 +52,7 @@ class LightningModuleDefault(pl.LightningModule):
         :param model: Pytorch model to use
         :param optimizers_and_lr_schs: see pl.LightningModule.configure_optimizers for details and relevant options
         :param losses: dict of FuseMedML style losses
-        :param train_metrics: dict of FuseMedML style metrics - used for trainset
+        :param train_metrics: dict of FuseMedML style metrics - used for training set
         :param validation_metrics: dict of FuseMedML style metrics - used for validation set (must be different instances of metrics (from train_metrics!)
         :param test_metrics: dict of FuseMedML style metrics - used for test set (must be different instances of metrics (from train_metrics and validation_metrics!)
         :param optimizers_and_lr_schs: see pl.LightningModule.configure_optimizers return value for all options
@@ -123,11 +121,11 @@ class LightningModuleDefault(pl.LightningModule):
     def predict_step(self, batch_dict: NDict, batch_idx: int) -> dict:
         if self._prediction_keys is None:
             raise Exception(
-                "Error: predict_step expectes list of prediction keys to extract from batch_dict. Please specify it using set_predictions_keys() method "
+                "Error: predict_step expects list of prediction keys to extract from batch_dict. Please specify it using set_predictions_keys() method "
             )
         # run forward function and store the outputs in batch_dict["model"]
         batch_dict = self.forward(batch_dict)
-        # extract the requried keys - defined in self.set_predictions_keys()
+        # extract the required keys - defined in self.set_predictions_keys()
         return step_extract_predictions(self._prediction_keys, batch_dict)
 
     ## Epoch end
@@ -149,13 +147,13 @@ class LightningModuleDefault(pl.LightningModule):
 
     def test_epoch_end(self, step_outputs) -> None:
         # for the logs to be at each epoch, not each step
-        self.log("step", self.current_epoch, on_epoch=True, rank_zero_only=True)
+        self.log("step", self.current_epoch, on_epoch=True, sync_dist=True)
         # calc average epoch loss and log it
         epoch_end_compute_and_log_losses(self, "test", [e["losses"] for e in step_outputs])
         # evaluate  and log it
         epoch_end_compute_and_log_metrics(self, "test", self._test_metrics)
 
-    # confiugration
+    # configuration
     def configure_callbacks(self) -> Sequence[pl.Callback]:
         """train loop callbacks"""
         return self._callbacks
@@ -171,23 +169,41 @@ class LightningModuleDefault(pl.LightningModule):
 
 class BalancedLightningDataModule(pl.LightningDataModule):
     """
-    TODO
+    Fuse generic implementation of PL datamodule.
+    This module aims to wrap one's datasets into a datamodule for Lightning's Trainer.
+    See use case example in "run_mnist_ddp.py"
+
+    For more robust changes consider to implement your datamodule from scratch.
     """
 
     def __init__(
         self,
-        train_dataset: Dataset,
-        validation_dataset: Dataset,
-        predict_dataset: Dataset,
+        train_dataset: DatasetBase,
+        validation_dataset: DatasetBase,
+        predict_dataset: DatasetBase,
         num_workers: int,
         batch_size: int,
         balanced_class_name: str,
         num_balanced_classes: int,
-        collate_fn: CollateToBatchList = None,
         sampler_mode: str = "exact",
-        use_custom_batch_sampler=True,
+        collate_fn: CollateToBatchList = None,
+        use_custom_batch_sampler: bool=False,
         verbose: bool = False,
     ):
+        """
+        :param train_dataset: training dataset
+        :param validation_dataset: validation dataset
+        :param predict_dataset: prediction (inference) dataset
+        :param num_workers: number of processes
+        :param batch_size: batch size
+        :param balanced_class_name: see BatchSamplerDefault class for ref.  // ASK @MOSHIKO, maybe pass with **batch_sampler_args (?) more nit but less readable (?)
+        :param num_balanced_classes: see BatchSamplerDefault class for ref.
+        :param sampler_mode: see BatchSamplerDefault class for ref.
+        :param collate_fn: dataloader param
+        :param use_custom_batch_sampler: set True to use Fuse's BatchSamplerDefault, else will use default one.
+                Note that currently DDP doesn't work with our custom batch sampler. Will be fixed in the future.
+        :param verbose: set to true for debug messages
+        """
         super().__init__()
         self._train_dataset = train_dataset
         self._validation_dataset = validation_dataset
@@ -198,13 +214,13 @@ class BalancedLightningDataModule(pl.LightningDataModule):
         self._num_balanced_classes = num_balanced_classes
         self._sampler_mode = sampler_mode
         self._use_custom_batch_sampler = use_custom_batch_sampler
-        self._verbose = verbose
+        self._verbose = verbose׳
         if collate_fn is None:
             self._collate_fn = CollateDefault()
 
     def train_dataloader(self):
         """
-        TODO
+        returns train dataloader with class custom args
         """
         if self._use_custom_batch_sampler:
             # Create fuse batch sampler and nullify batch_size
@@ -236,7 +252,7 @@ class BalancedLightningDataModule(pl.LightningDataModule):
 
     def val_dataloader(self):
         """
-        returns validation dataloader with custom args
+        returns validation dataloader with class custom args
         """
         validation_dl = DataLoader(
             dataset=self._validation_dataset,
@@ -249,7 +265,7 @@ class BalancedLightningDataModule(pl.LightningDataModule):
 
     def predict_dataloader(self):
         """
-        TODO
+        returns prediction dataloader with class custom args
         """
 
         predict_dl = DataLoader(

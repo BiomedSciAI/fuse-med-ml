@@ -60,6 +60,7 @@ class MNISTDataModule(pl.LightningDataModule):
 
     def setup(self, stage: str):
         """
+        creates datasets by stage
         called on every process in DDP
 
         :param stage: trainer stage
