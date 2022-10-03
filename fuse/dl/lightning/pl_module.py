@@ -185,6 +185,7 @@ class BalancedLightningDataModule(pl.LightningDataModule):
         num_balanced_classes: int,
         collate_fn: CollateToBatchList = None,
         sampler_mode: str = "exact",
+        use_custom_batch_sampler=True,
         verbose: bool = False,
     ):
         super().__init__()
@@ -196,6 +197,7 @@ class BalancedLightningDataModule(pl.LightningDataModule):
         self._balanced_class_name = balanced_class_name
         self._num_balanced_classes = num_balanced_classes
         self._sampler_mode = sampler_mode
+        self._use_custom_batch_sampler = use_custom_batch_sampler
         self._verbose = verbose
         if collate_fn is None:
             self._collate_fn = CollateDefault()
@@ -204,22 +206,29 @@ class BalancedLightningDataModule(pl.LightningDataModule):
         """
         TODO
         """
-        print("Create BatchSamplerDefault:")
-        batch_sampler = BatchSamplerDefault(
-            dataset=self._train_dataset,
-            balanced_class_name=self._balanced_class_name,
-            num_balanced_classes=self._num_balanced_classes,
-            batch_size=self._batch_size,
-            mode=self._sampler_mode,
-            verbose=self._verbose,
-            workers=self._num_workers,
-        )
-        print("Create BatchSamplerDefault: DONE")
+        if self._use_custom_batch_sampler:
+            # Create fuse batch sampler and nullify batch_size
+            print("Create BatchSamplerDefault:")
+            batch_sampler = BatchSamplerDefault(
+                dataset=self._train_dataset,
+                balanced_class_name=self._balanced_class_name,
+                num_balanced_classes=self._num_balanced_classes,
+                batch_size=self._batch_size,
+                mode=self._sampler_mode,
+                verbose=self._verbose,
+                workers=self._num_workers,
+            )
+            print("Create BatchSamplerDefault: DONE")
+            batch_size = None  # should not provide batch_size for custom batch_sampler
+        else:
+            # Doesn't use custom batch sampler
+            batch_sampler = None
+            batch_size = self._batch_size  # should provide batch_size for default batch_sampler
 
         train_dl = DataLoader(
             dataset=self._train_dataset,
-            batch_size=self._batch_size,
-            # batch_sampler=batch_sampler,  # Doesn't work well in DDP.
+            batch_size=batch_size,
+            batch_sampler=batch_sampler,
             collate_fn=self._collate_fn,
             num_workers=self._num_workers,
         )

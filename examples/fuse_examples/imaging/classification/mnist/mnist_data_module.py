@@ -14,7 +14,7 @@ class MNISTDataModule(pl.LightningDataModule):
     """
     Example of a custom Lightning datamodule using FuseMedML tools (folds + batch_sampler)
 
-    For reference please visit: 
+    For reference please visit:
     https://pytorch-lightning.readthedocs.io/en/latest/data/datamodule.html
     https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.core.LightningDataModule.html
     """
@@ -43,7 +43,7 @@ class MNISTDataModule(pl.LightningDataModule):
         self._train_ids = []
         self._validation_ids = []
 
-        # divide into tain and validation folds 
+        # divide into tain and validation folds
         folds = dataset_balanced_division_to_folds(
             dataset=MNIST.dataset(self._cache_dir, train=True),
             keys_to_balance=["data.label"],
