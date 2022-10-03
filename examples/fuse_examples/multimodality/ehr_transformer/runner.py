@@ -122,6 +122,7 @@ def get_train_manager_multihead(paths, model, train_params, optim_config, head_c
         default_root_dir=paths["model_dir"],
         max_epochs=train_params["trainer.num_epochs"],
         accelerator=train_params["trainer.accelerator"],
+        num_sanity_val_steps=0,
         devices=train_params["trainer.num_devices"],
         auto_select_gpus=True,
     )
