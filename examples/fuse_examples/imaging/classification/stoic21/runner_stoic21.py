@@ -40,7 +40,7 @@ from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
 from fuse.dl.models import ModelMultiHead
-from fuse.dl.models.heads.heads_3D import Head3DClassifier
+from fuse.dl.models.heads.heads_3D import Head3D
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 
 from fuse.utils.utils_debug import FuseDebug
@@ -116,19 +116,20 @@ TRAIN_COMMON_PARAMS["opt.weight_decay"] = 0.005
 def create_model(imaging_dropout: float, clinical_dropout: float, fused_dropout: float) -> torch.nn.Module:
     """
     creates the model
-    See Head3DClassifier for details about imaging_dropout, clinical_dropout, fused_dropout
+    See Head3D for details about imaging_dropout, clinical_dropout, fused_dropout
     """
     model = ModelMultiHead(
         conv_inputs=(("data.input.img", 1),),
         backbone=BackboneResnet3D(in_channels=1),
         heads=[
-            Head3DClassifier(
+            Head3D(
                 head_name="classification",
+                mode="classification",
                 conv_inputs=[("model.backbone_features", 512)],
                 dropout_rate=imaging_dropout,
                 append_dropout_rate=clinical_dropout,
                 fused_dropout_rate=fused_dropout,
-                num_classes=2,
+                num_outputs=2,
                 append_features=[("data.input.clinical", 8)],
                 append_layers_description=(256, 128),
             ),
