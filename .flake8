@@ -26,9 +26,12 @@ ignore =
 
 # Files to exclude:
 exclude =
+    # local private runs
+    _examples
+    
     # TEMP - ignore all tests
     test_*
-
+    
     ## General Excludes (TEMP, double check)
     # .py files
     __init__.py
@@ -51,4 +54,3 @@ exclude =
     ext_deps
     libs
     releases
-    

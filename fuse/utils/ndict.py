@@ -17,7 +17,7 @@ Created on June 30, 2021
 
 """
 from __future__ import annotations
-from _collections_abc import dict_items
+from _collections_abc import dict_items, dict_keys
 
 import copy
 import types
@@ -129,7 +129,10 @@ class NDict(dict):
         """
         return list(self.flatten().keys())
 
-    def keys(self) -> dict_items:
+    def keys(self) -> dict_keys:
+        """
+        returns the top-level keys of the dictionary
+        """
         return self._stored.keys()
 
     def values(self) -> dict_items:
@@ -307,6 +310,14 @@ class NDict(dict):
             for key in keys:
                 print("---" * level, key)
                 NDict._print_tree_static(data_dict[key], level)
+
+    def describe(self) -> None:
+        for k in self.keypaths():
+            print(f"{k}")
+            val = self[k]
+            print(f"\ttype={type(val)}")
+            if hasattr(val, "shape"):
+                print(f"\tshape={val.shape}")
 
 
 class NestedKeyError(KeyError):

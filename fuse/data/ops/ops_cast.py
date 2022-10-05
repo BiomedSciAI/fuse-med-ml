@@ -28,7 +28,6 @@ from fuse.utils.ndict import NDict
 import SimpleITK as sitk
 
 
-
 class Cast:
     """
     Cast methods

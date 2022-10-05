@@ -168,9 +168,9 @@ def get_available_gpu_ids_from_nvidia_smi_output(raw_output: str) -> List[int]:
         if "Off" in line:
             current_gpu = int(split_output[line_idx][4])
             continue
-        if current_gpu is not -1:
+        if current_gpu != -1:
             loc = line.find("MiB /")
-            if loc is not -1:
+            if loc != -1:
                 memory_usage = int(line[int(loc - 7) : loc])
                 if memory_usage < 50:
                     available_gpu_ids.append(current_gpu)

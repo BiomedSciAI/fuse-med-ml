@@ -143,7 +143,7 @@ class OpLoadDicomsAsStkVolByPath(OpBase):
         :param key_in: key for the sequence_path in the sample dict
         :param key_out: where the stk volume will be stored inside the sample dict
         """
-    
+
         seq_path = sample_dict[key_in]
         stk_vol = get_stk_volume(img_path=seq_path)
         sample_dict[key_out] = stk_vol
@@ -178,11 +178,10 @@ class OpLoadDicomsAsStkVolByPaths(OpBase):
 
                 vols_lst.append(stk_vol)
                 sample_dict[f"data.input.{seq_id}.stk_volume"] = [stk_vol]
-            
+
         sample_dict["data.input.selected_volumes"] = vols_lst
 
         return sample_dict
-
 
 
 def get_stk_volume(
@@ -568,13 +567,12 @@ class OpStackList4DStk(OpBase):
         """
         vols_stk_list = sample_dict[key_in]
 
-        if isinstance(vols_stk_list, sitk.Image): # quick fix
+        if isinstance(vols_stk_list, sitk.Image):  # quick fix
             vols_stk_list = [vols_stk_list]
 
         # Delete from dict if necessary
         if self._delete_input_volumes:
             del sample_dict[key_in]
-
 
         # Convert 3D Images into ndarrays and stack them in the last axis
         vol_arr = [sitk.GetArrayFromImage(vol) for vol in vols_stk_list]
@@ -821,14 +819,13 @@ class OpStk2Dict(OpBase):
 
         return sample_dict
 
-class OpStk2Numpy(OpBase):
 
+class OpStk2Numpy(OpBase):
     def __call__(self, sample_dict: NDict, key_in: str, key_out: str) -> NDict:
         stk_image = sample_dict[key_in]
         arr = sitk.GetArrayFromImage(stk_image)
-        sample_dict[key_out] = arr 
+        sample_dict[key_out] = arr
         return sample_dict
-
 
 
 class OpStk2DictSingle(OpBase):
@@ -865,7 +862,6 @@ class OpStk2DictSingle(OpBase):
         return sample_dict
 
 
-
 class OpDict2Stk(OpBase):
     """
     Cast a dictonary into a SimpleITK Image (volume).
@@ -897,6 +893,7 @@ class OpDict2Stk(OpBase):
             sample_dict[key] = vol_stk
 
         return sample_dict
+
 
 class OpDict2StkSingle(OpBase):
     """

@@ -20,7 +20,7 @@ Created on June 30, 2021
 import os
 import copy
 import logging
-from typing import OrderedDict
+from typing import OrderedDict, Sequence, Tuple
 
 import torch
 import torch.optim as optim
@@ -65,20 +65,35 @@ mode = "default"  # Options: 'default', 'debug'. See details in FuseDebug
 debug = FuseDebug(mode)
 
 ##########################################
-# Output Paths
+# GPUs
 ##########################################
 
 NUM_GPUS = 1
-ROOT = "_examples/isic/"
-model_dir = os.path.join(ROOT, "model_dir")
+
+##########################################
+# Modality
+##########################################
+
+multimodality = False  # Set: 'False' to use only imaging, 'True' to use imaging & meta-data
+
+##########################################
+# Output Paths
+##########################################
+
+
+ROOT = "./_examples/isic/"
+DATA = os.path.join(ROOT, "data_dir")
+modality = "multimodality" if multimodality else "imaging"
+model_dir = os.path.join(ROOT, f"model_dir_{modality}_final")
 PATHS = {
     "model_dir": model_dir,
     "inference_dir": os.path.join(model_dir, "infer_dir"),
     "eval_dir": os.path.join(model_dir, "eval_dir"),
-    "data_dir": os.path.join(ROOT, "data_dir"),
+    "data_dir": DATA,
     "cache_dir": os.path.join(ROOT, "cache_dir"),
-    "data_split_filename": os.path.join(ROOT, "isic_split.pkl"),
+    "data_split_filename": os.path.join(model_dir, "isic_split.pkl"),
 }
+
 
 ##########################################
 # Train Common Params
@@ -87,18 +102,19 @@ TRAIN_COMMON_PARAMS = {}
 # ============
 # Data
 # ============
-TRAIN_COMMON_PARAMS["data.batch_size"] = 8
+TRAIN_COMMON_PARAMS["data.batch_size"] = 32
 TRAIN_COMMON_PARAMS["data.train_num_workers"] = 8
 TRAIN_COMMON_PARAMS["data.validation_num_workers"] = 8
 TRAIN_COMMON_PARAMS["data.num_folds"] = 5
 TRAIN_COMMON_PARAMS["data.train_folds"] = [0, 1, 2]
 TRAIN_COMMON_PARAMS["data.validation_folds"] = [3]
-TRAIN_COMMON_PARAMS["data.samples_ids"] = FULL_GOLDEN_MEMBERS  # Change to None to use all members
+TRAIN_COMMON_PARAMS["data.samples_ids"] = {"all": None, "golden": FULL_GOLDEN_MEMBERS}["all"]
+
 
 # ===============
 # PL Trainer
 # ===============
-TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 20
+TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 30
 TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
 TRAIN_COMMON_PARAMS["trainer.ckpt_path"] = None
@@ -112,10 +128,20 @@ TRAIN_COMMON_PARAMS["opt.weight_decay"] = 1e-3
 # ===============
 # Model
 # ===============
-TRAIN_COMMON_PARAMS["model"] = dict(dropout_rate=0.5)
+TRAIN_COMMON_PARAMS["model"] = dict(
+    dropout_rate=0.5,
+    layers_description=(256,),
+    tabular_data_inputs=[("data.input.clinical.all", 19)] if multimodality else None,
+    tabular_layers_description=(128,) if multimodality else tuple(),
+)
 
 
-def create_model(dropout_rate: float) -> torch.nn.Module:
+def create_model(
+    dropout_rate: float,
+    layers_description: Sequence[int],
+    tabular_data_inputs: Sequence[Tuple[str, int]],
+    tabular_layers_description: Sequence[int],
+) -> torch.nn.Module:
     """
     creates the model
     """
@@ -130,6 +156,9 @@ def create_model(dropout_rate: float) -> torch.nn.Module:
                 head_name="head_0",
                 dropout_rate=dropout_rate,
                 conv_inputs=[("model.backbone_features", 1536)],
+                tabular_data_inputs=tabular_data_inputs,
+                layers_description=layers_description,
+                tabular_layers_description=tabular_layers_description,
                 num_classes=8,
                 pooling="avg",
             ),
@@ -158,11 +187,10 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     # Train Data
     lgr.info("Train Data:", {"attrs": "bold"})
 
-    # split to folds randomly - temp
+    # split to folds randomly
     all_dataset = ISIC.dataset(
         paths["data_dir"],
         paths["cache_dir"],
-        reset_cache=False,
         num_workers=train_common_params["data.train_num_workers"],
         samples_ids=train_common_params["data.samples_ids"],
     )
@@ -181,7 +209,13 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     for fold in train_common_params["data.validation_folds"]:
         validation_sample_ids += folds[fold]
 
-    train_dataset = ISIC.dataset(paths["data_dir"], paths["cache_dir"], samples_ids=train_sample_ids, train=True)
+    train_dataset = ISIC.dataset(
+        paths["data_dir"],
+        paths["cache_dir"],
+        samples_ids=train_sample_ids,
+        train=True,
+        num_workers=train_common_params["data.train_num_workers"],
+    )
 
     lgr.info("- Create sampler:")
     sampler = BatchSamplerDefault(
@@ -361,6 +395,7 @@ def run_infer(paths: dict, infer_common_params: dict) -> None:
         accelerator=infer_common_params["trainer.accelerator"],
         devices=infer_common_params["trainer.num_devices"],
         auto_select_gpus=True,
+        max_epochs=0,
     )
     predictions = pl_trainer.predict(pl_module, infer_dataloader, return_predictions=True)
 

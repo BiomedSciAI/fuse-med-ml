@@ -1,7 +1,6 @@
 from typing import Any, Callable, Tuple, Union
 import numpy as np
 import torch
-import skimage
 from fuse.utils.ndict import NDict
 import SimpleITK as sitk
 
@@ -33,7 +32,7 @@ class OpClip(OpBase):
 
         img = sample_dict[key]
 
-        processed_img = self.clip(img, clip)            
+        processed_img = self.clip(img, clip)
 
         sample_dict[key] = processed_img
         return sample_dict
@@ -71,24 +70,20 @@ class OpNormalizeAgainstSelf(OpBase):
     def __call__(self, sample_dict: NDict, key: str):
         img = sample_dict[key]
 
-
         is_stk_image = isinstance(img, sitk.Image)
         if is_stk_image:
             ref = img
             img = sitk.GetArrayFromImage(img)
             img = img.astype(float)
 
-        img_max = img.max()
-        img_min = img.min()
-        img = (img - img_min) / (img_max - img_min)
+        img -= img.min()
+        img /= img.max()
 
         if is_stk_image:
             img = sitk.GetImageFromArray(img)
             img.CopyInformation(ref)
 
-
         sample_dict[key] = img
-
         return sample_dict
 
 
@@ -142,7 +137,6 @@ class OpToRange(OpBase):
             img = sitk.GetArrayFromImage(img)
             img = img.astype(float)
 
-
         img = self.to_range(img, from_range, to_range)
 
         if is_stk_image:
@@ -191,7 +185,6 @@ def call_on_stk_img(img: sitk.Image, func: Callable, **func_kwargs: Any):
     img.CopyInformation(ref)
 
     return img
-
 
 
 op_to_range_img = OpApplyTypesImaging({DataTypeImaging.IMAGE: (OpToRange(), {})})

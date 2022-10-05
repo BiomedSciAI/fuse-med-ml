@@ -128,7 +128,7 @@ class BatchSamplerDefault(Sampler):
             if self._mode == "exact":
                 if self._batch_size % self._num_balanced_classes:
                     raise Exception(
-                        f"Error: num_balanced_class ({self._num_balanced_classes}) should devide batch_size ({self._batch_size}) in exact mode."
+                        f"Error: num_balanced_class ({self._num_balanced_classes}) should divide batch_size ({self._batch_size}) in exact mode."
                     )
 
                 self._balanced_class_weights = [

@@ -25,6 +25,8 @@ from unittest import result
 from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 from fuse.utils.ndict import NDict
 
+from fuseimg.datasets.mnist import MNIST
+
 from fuse.utils.rand.seed import Seed
 
 from fuse_examples.imaging.classification.mnist.run_mnist import (
@@ -53,8 +55,10 @@ def run_mnist(root: str) -> None:
 
     eval_common_params = EVAL_COMMON_PARAMS
     Seed.set_seed(0, False)  # previous test (in the pipeline) changed the deterministic behavior to True
-    run_train(paths, train_common_params)
-    run_infer(paths, infer_common_params)
+    train_dataset = MNIST.dataset(paths["cache_dir"], train=True)
+    validation_dataset = MNIST.dataset(paths["cache_dir"], train=False)
+    run_train(train_dataset, validation_dataset, paths, train_common_params)
+    run_infer(validation_dataset, paths, infer_common_params)
     results = run_eval(paths, eval_common_params)
     assert results["metrics.auc.macro_avg"] >= 0.95, "Error: expecting higher performence"
 

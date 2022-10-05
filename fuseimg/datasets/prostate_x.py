@@ -218,35 +218,34 @@ class ProstateX:
             ),
             # (OpPrintShapes(num_samples=1), dict()),
             # (OpPrintKeysContent(num_samples=1), dict()),
-
         ]
         if with_rescale:
             # step 10:
             static_pipeline_steps += [(OpRescale4DStk(), dict(key="data.input.volume4D"))]
 
         static_pipeline_steps += [
-        #     # step 11: read tabular data for each patch
+            #     # step 11: read tabular data for each patch
             (
                 OpReadDataframe(data=annotations_df, key_column="Sample ID"),
                 dict(key_out_group="data.input.patch_annotations"),
             ),
-        #     # step 12: create patch volumes: (i) fixed size around center of annotatins (orig), and (ii) entire annotations
-        #     (
-        #         OpCreatePatchVolumes(
-        #             lesion_shape=(ProstateX.PATCH_Z_SIZE, ProstateX.PATCH_XY_SIZE, ProstateX.PATCH_XY_SIZE),
-        #             name_suffix="_T0",
-        #             pos_key="pos",
-        #             lesion_spacing=(3, 0.5, 0.5),
-        #             crop_based_annotation=False,
-        #             delete_input_volumes=not keep_stk_volumes,
-        #         ),
-        #         dict(
-        #             key_in_volume4D="data.input.volume4D",
-        #             key_in_ref_volume="data.input.ref_volume",
-        #             key_in_patch_annotations="data.input.patch_annotations",
-        #             key_out="data.input.patch_volume",
-        #         ),
-        #     ),
+            #     # step 12: create patch volumes: (i) fixed size around center of annotatins (orig), and (ii) entire annotations
+            #     (
+            #         OpCreatePatchVolumes(
+            #             lesion_shape=(ProstateX.PATCH_Z_SIZE, ProstateX.PATCH_XY_SIZE, ProstateX.PATCH_XY_SIZE),
+            #             name_suffix="_T0",
+            #             pos_key="pos",
+            #             lesion_spacing=(3, 0.5, 0.5),
+            #             crop_based_annotation=False,
+            #             delete_input_volumes=not keep_stk_volumes,
+            #         ),
+            #         dict(
+            #             key_in_volume4D="data.input.volume4D",
+            #             key_in_ref_volume="data.input.ref_volume",
+            #             key_in_patch_annotations="data.input.patch_annotations",
+            #             key_out="data.input.patch_volume",
+            #         ),
+            #     ),
         ]
         # if keep_stk_volumes:
         #     static_pipeline_steps += [
@@ -487,14 +486,14 @@ class OpProstateXSampleIDDecode(OpBase):
         self, sample_dict: NDict, key_out_path_mri: str, key_out_path_ktrans: str, key_out_patient_id: str
     ) -> NDict:
         """
-        TODO 
+        TODO
         """
         # Those are b series description that need a fix.
         # currenly skip them, just for the initial run
         B_SER_SKIP = [
-        "diffusie-3Scan-4bval_fs",
-        "ep2d_DIFF_tra_b50_500_800_1400_alle_spoelen",
-        "diff tra b 50 500 800 WIP511b alle spoelen",
+            "diffusie-3Scan-4bval_fs",
+            "ep2d_DIFF_tra_b50_500_800_1400_alle_spoelen",
+            "diff tra b 50 500 800 WIP511b alle spoelen",
         ]
 
         sid = get_sample_id(sample_dict)
@@ -514,7 +513,7 @@ class OpProstateXSampleIDDecode(OpBase):
         sample_dict["data.input.ktrans_path"] = ktrans_path  # TODO delete, temp
 
         # T2, b (+ b_mix), ADC
-        
+
         # Which seq_ids have dcm files?
         seq_ids_to_paths = dict()
         for seq_dir in os.listdir(sample_path):
@@ -539,12 +538,12 @@ class OpProstateXSampleIDDecode(OpBase):
         # using T2 as a ref vol
         if "T2" not in present_seq_ids:
             return None
-        
+
         # rename 'b_mix' -> 'b'
         if "b_mix" in present_seq_ids:
             seq_ids_to_paths["b"] = seq_ids_to_paths.pop("b_mix")
 
-        wanted_seq_ids =["T2", "b", "ADC"]
+        wanted_seq_ids = ["T2", "b", "ADC"]
 
         for seq_id in wanted_seq_ids:
             if seq_id in present_seq_ids:
@@ -556,8 +555,6 @@ class OpProstateXSampleIDDecode(OpBase):
                 seq_paths[seq_id] = seq_sub_path
             else:
                 seq_paths[seq_id] = [""]
-
-
 
         # set paths
         sample_dict["data.input.T2.path"] = seq_paths["T2"]

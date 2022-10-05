@@ -69,7 +69,7 @@ class OpVis2DImage(OpDebugBase):
         if isinstance(img, torch.Tensor):
             img = img.detach().cpu().numpy()
 
-        if isinstance(img, sitk.Image): # should not be array! temp sagi
+        if isinstance(img, sitk.Image):  # should not be array! temp sagi
             img = sitk.GetArrayFromImage(img)
 
         assert isinstance(img, numpy.ndarray)
@@ -119,7 +119,9 @@ class OpVisImageHist(OpDebugBase):
     ```
     """
 
-    def __init__(self, show: bool = True, path: str = ".", image_process_func: Optional[Callable]=None, **kwargs: Any):
+    def __init__(
+        self, show: bool = True, path: str = ".", image_process_func: Optional[Callable] = None, **kwargs: Any
+    ):
         """
         :param show: if set to true will display it, otherwise will save it in `path`
         :param path: location to save the images. Used when `show` set to False
@@ -143,14 +145,14 @@ class OpVisImageHist(OpDebugBase):
         if isinstance(img, torch.Tensor):
             img = img.detach().cpu().numpy()
 
-        if isinstance(img, sitk.Image): # should not be array! temp sagi
+        if isinstance(img, sitk.Image):  # should not be array! temp sagi
             img = sitk.GetArrayFromImage(img)
 
         assert isinstance(img, numpy.ndarray)
 
         if self._image_process_func is not None:
             img = self._image_process_func(img)
-        
+
         print(img.max())
         print(numpy.histogram(img.flatten()))
         plt.figure(**figure_kwargs)

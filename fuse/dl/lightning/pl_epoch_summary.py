@@ -71,7 +71,7 @@ class ModelEpochSummary(Callback):
         self._monitor = monitor
         self._mode = mode
         self._dirpath = dirpath
-        self._filename = filename if filename is not None else f"epoch_summary_{self._monitor}.txt"
+        self._filename = filename if filename is not None else f"epoch_summary_{self._monitor.replace('/', '.')}.txt"
         self._best_epoch_metrics = None
         self._best_epoch_index = None
 
