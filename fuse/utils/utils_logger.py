@@ -85,7 +85,7 @@ class ConsoleFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-@rank_zero_only
+@rank_zero_only  # in ddp should start the logger once - on the main process
 def fuse_logger_start(
     output_path: Optional[str] = None,
     console_verbose_level: int = logging.INFO,
