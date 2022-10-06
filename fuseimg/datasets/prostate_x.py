@@ -4,14 +4,12 @@ import os
 import logging
 import torch
 from enum import Enum
-import pydicom
 
 import pickle
 from typing import Callable, Hashable, Optional, Sequence, List, Any, Dict
 
 import pandas as pd
 from functools import partial
-
 
 from fuse.data import DatasetDefault
 from fuse.data import PipelineDefault
@@ -39,11 +37,9 @@ from fuseimg.data.ops.ops_mri import (
     OpStk2Dict,
     OpRenameSequence,
     OpDeleteSequenceAttr,
-    OpLoadDicomsAsStkVolByPaths,
-    OpStk2Numpy,
 )
 
-from fuse.data.ops.ops_debug import OpPrintKeysContent, OpPrintShapes
+# from fuse.data.ops.ops_debug import OpPrintKeysContent
 
 
 def get_selected_series_index(sample_id: List[str], seq_id: str) -> int:
@@ -131,7 +127,7 @@ class ProstateX:
         static_pipeline_steps = [
             # step 1: map sample_ids to - Done
             (
-                OpProstateXSampleIDDecode(root_path=root_path, series_desc_2_sequence_map=series_desc_2_sequence_map),
+                OpProstateXSampleIDDecode(root_path=root_path),
                 dict(
                     key_out_path_mri="data.input.mri_path",
                     key_out_path_ktrans="data.input.ktrans_path",
@@ -139,70 +135,68 @@ class ProstateX:
                 ),
             ),
             # step 2: read files info for the sequences
-            # (
-            #     OpExtractDicomsPerSeq(
-            #         seq_ids=seq_ids,
-            #         series_desc_2_sequence_map=series_desc_2_sequence_map,
-            #         use_order_indicator=False,
-            #     ),
-            #     dict(
-            #         key_in="data.input.mri_path",
-            #         key_out_sequence_prefix="data.input.sequence",
-            #     ),
-            # ),
+            (
+                OpExtractDicomsPerSeq(
+                    seq_ids=seq_ids,
+                    series_desc_2_sequence_map=series_desc_2_sequence_map,
+                    use_order_indicator=False,
+                ),
+                dict(
+                    key_in="data.input.mri_path",
+                    key_out_sequence_prefix="data.input.sequence",
+                ),
+            ),
             # step 3: Load STK volumes of MRI sequences
-            # (
-            #     OpLoadDicomAsStkVol(seq_ids=seq_ids, seq_reverse_map=seq_reverse_map),
-            #     dict(key_sequence_prefix="data.input.sequence", key_volume="stk_volume"),
-            # ),
+            (
+                OpLoadDicomAsStkVol(seq_ids=seq_ids, seq_reverse_map=seq_reverse_map),
+                dict(key_sequence_prefix="data.input.sequence", key_volume="stk_volume"),
+            ),
             # step 4: rename sequence b_mix (if exists) to b; fix certain b sequences
-            # (
-            #     OpRenameSequence(),
-            #     dict(
-            #         seq_id_old="b_mix",
-            #         seq_id_new="b",
-            #         key_sequence_prefix="data.input.sequence",
-            #     ),
-            # ),
+            (
+                OpRenameSequence(),
+                dict(
+                    seq_id_old="b_mix",
+                    seq_id_new="b",
+                    key_sequence_prefix="data.input.sequence",
+                ),
+            ),
             # step 5: read ktrans
-            # (
-            #     OpReadSTKImage(
-            #         data_path=root_path,
-            #     ),
-            #     dict(key_in="data.input.ktrans_path", key_sequence_prefix="data.input.sequence", seq_id="ktrans"),
-            # ),
+            (
+                OpReadSTKImage(
+                    data_path=root_path,
+                ),
+                dict(key_in="data.input.ktrans_path", key_sequence_prefix="data.input.sequence", seq_id="ktrans"),
+            ),
             # step 6.0: select single volume from b_mix/T2 sequence
-            # (
-            #     OpSelectVolumes(
-            #         get_indexes_func=select_series_func,
-            #         selected_seq_ids=["T2", "b", "ADC", "ktrans"],
-            #     ),
-            #     dict(
-            #         key_in_sequence_prefix="data.input.sequence",
-            #         key_in_volume="stk_volume",
-            #         key_out_volumes="data.input.selected_volumes",
-            #         key_out_volumes_info="data.input.selected_volumes_info",
-            #     ),
-            # ),
-            # step 1.5: new load
-            (OpLoadDicomsAsStkVolByPaths(), dict(seq_ids=["T2", "b", "ADC", "ktrans"])),
+            (
+                OpSelectVolumes(
+                    get_indexes_func=select_series_func,
+                    selected_seq_ids=["T2", "b", "ADC", "ktrans"],
+                ),
+                dict(
+                    key_in_sequence_prefix="data.input.sequence",
+                    key_in_volume="stk_volume",
+                    key_out_volumes="data.input.selected_volumes",
+                    key_out_volumes_info="data.input.selected_volumes_info",
+                ),
+            ),
             # step 6.1: delete the volumes to save space
-            # (
-            #     OpDeleteSequenceAttr(seq_ids=seq_ids),
-            #     dict(key_in_seq_prefix="data.input.sequence", attribute="stk_volume"),
-            # ),
+            (
+                OpDeleteSequenceAttr(seq_ids=seq_ids),
+                dict(key_in_seq_prefix="data.input.sequence", attribute="stk_volume"),
+            ),
             # step 7: fix sequences
-            # (
-            #     OpLambda(
-            #         func=partial(
-            #             fix_certain_b_sequences,
-            #             key_in_volumes_info="data.input.selected_volumes_info",
-            #             key_volumes="data.input.selected_volumes",
-            #         )
-            #     ),
-            #     dict(key=None),
-            # ),
-            # step 8: set reference     volume to be first and register other volumes with respect to it
+            (
+                OpLambda(
+                    func=partial(
+                        fix_certain_b_sequences,
+                        key_in_volumes_info="data.input.selected_volumes_info",
+                        key_volumes="data.input.selected_volumes",
+                    )
+                ),
+                dict(key=None),
+            ),
+            # step 8: set reference volume to be first and register other volumes with respect to it
             (
                 OpResampleStkVolsBasedRef(reference_inx=0, interpolation="bspline"),
                 dict(key="data.input.selected_volumes"),
@@ -216,49 +210,43 @@ class ProstateX:
                     key_out_ref_volume="data.input.ref_volume",
                 ),
             ),
-            # (OpPrintShapes(num_samples=1), dict()),
-            # (OpPrintKeysContent(num_samples=1), dict()),
         ]
         if with_rescale:
             # step 10:
             static_pipeline_steps += [(OpRescale4DStk(), dict(key="data.input.volume4D"))]
 
         static_pipeline_steps += [
-            #     # step 11: read tabular data for each patch
+            # step 11: read tabular data for each patch
             (
                 OpReadDataframe(data=annotations_df, key_column="Sample ID"),
                 dict(key_out_group="data.input.patch_annotations"),
             ),
-            #     # step 12: create patch volumes: (i) fixed size around center of annotatins (orig), and (ii) entire annotations
-            #     (
-            #         OpCreatePatchVolumes(
-            #             lesion_shape=(ProstateX.PATCH_Z_SIZE, ProstateX.PATCH_XY_SIZE, ProstateX.PATCH_XY_SIZE),
-            #             name_suffix="_T0",
-            #             pos_key="pos",
-            #             lesion_spacing=(3, 0.5, 0.5),
-            #             crop_based_annotation=False,
-            #             delete_input_volumes=not keep_stk_volumes,
-            #         ),
-            #         dict(
-            #             key_in_volume4D="data.input.volume4D",
-            #             key_in_ref_volume="data.input.ref_volume",
-            #             key_in_patch_annotations="data.input.patch_annotations",
-            #             key_out="data.input.patch_volume",
-            #         ),
-            #     ),
+            # step 12: create patch volumes: (i) fixed size around center of annotatins (orig), and (ii) entire annotations
+            (
+                OpCreatePatchVolumes(
+                    lesion_shape=(ProstateX.PATCH_Z_SIZE, ProstateX.PATCH_XY_SIZE, ProstateX.PATCH_XY_SIZE),
+                    name_suffix="_T0",
+                    pos_key="pos",
+                    lesion_spacing=(3, 0.5, 0.5),
+                    crop_based_annotation=False,
+                    delete_input_volumes=not keep_stk_volumes,
+                ),
+                dict(
+                    key_in_volume4D="data.input.volume4D",
+                    key_in_ref_volume="data.input.ref_volume",
+                    key_in_patch_annotations="data.input.patch_annotations",
+                    key_out="data.input.patch_volume",
+                ),
+            ),
         ]
-        # if keep_stk_volumes:
-        #     static_pipeline_steps += [
-        #         # step 13: move to ndarray - to allow quick saving
-        #         (
-        #             OpStk2Dict(),
-        #             dict(keys=["data.input.patient_id", "data.input.volume4D", "data.input.ref_volume"]),
-        #         )
-        #     ]
-
-        static_pipeline_steps += [
-            (OpStk2Numpy(), dict(key_in="data.input.volume4D", key_out="data.input.volume4D")),
-        ]
+        if keep_stk_volumes:
+            static_pipeline_steps += [
+                # step 13: move to ndarray - to allow quick saving
+                (
+                    OpStk2Dict(),
+                    dict(keys=["data.input.patient_id", "data.input.volume4D", "data.input.ref_volume"]),
+                )
+            ]
         static_pipeline = PipelineDefault("static", static_pipeline_steps, verbose=verbose)
 
         return static_pipeline
@@ -270,11 +258,10 @@ class ProstateX:
         num_channels: int = 5,
         verbose: Optional[bool] = True,
     ) -> PipelineDefault:
-        # volume_key = "data.input.patch_volume"
-        volume_key = "data.input.volume4D"
+        volume_key = "data.input.patch_volume"
         dynamic_steps = [(OpToTensor(), dict(key=volume_key, dtype=torch.float32))]
 
-        # keys_2_keep = [volume_key, "data.input.patient_id"]
+        keys_2_keep = [volume_key, "data.input.patient_id"]
         if label_type is not None:
             key_ground_truth = "data.ground_truth"
             dynamic_steps.append(
@@ -287,77 +274,77 @@ class ProstateX:
                     ),
                 )
             )
-        #     keys_2_keep.append(key_ground_truth)
+            keys_2_keep.append(key_ground_truth)
 
-        # dynamic_steps.append((OpKeepKeypaths(), dict(keep_keypaths=keys_2_keep)))
+        dynamic_steps.append((OpKeepKeypaths(), dict(keep_keypaths=keys_2_keep)))
 
-        # # augmentations, only for training data
-        # if train:
-        #     dynamic_steps += [
-        #         (
-        #             OpRandApply(OpSample(OpRotation3D()), 0.5),
-        #             dict(
-        #                 key="data.input.patch_volume",
-        #                 ax1_rot=Uniform(-5.0, 5.0),
-        #                 ax2_rot=Uniform(-5.0, 5.0),
-        #                 ax3_rot=Uniform(-5.0, 5.0),
-        #             ),
-        #         ),
-        #         # [
-        #         #     ('data.input',),
-        #         #     squeeze_3d_to_2d,
-        #         #     {'axis_squeeze': 'z'},
-        #         #     {}
-        #         # ],
-        #         (OpAugSqueeze3Dto2D(), dict(key="data.input.patch_volume", axis_squeeze=1)),
-        #         (
-        #             OpRandApply(OpSample(OpAugAffine2D()), 0.5),
-        #             dict(
-        #                 key="data.input.patch_volume",
-        #                 rotate=Uniform(0, 360.0),
-        #                 scale=Uniform(0.9, 1.1),
-        #                 flip=(RandBool(0.5), RandBool(0.5)),
-        #                 translate=(RandInt(-4, 4), RandInt(-4, 4)),
-        #             ),
-        #         ),
-        #         # [
-        #         #     ('data.input',),
-        #         #     aug_op_affine,
-        #         #     {'rotate': Uniform(-3.0, 3.0),
-        #         #      'translate': (RandInt(-2, 2), RandInt(-2, 2)),
-        #         #      'flip': (False, False),
-        #         #      'scale': Uniform(0.9, 1.1),
-        #         #      'channels': Choice(image_channels, probabilities=None)},
-        #         #     {'apply': RandBool(0.5) if train_common_params['data.aug.phase_misalignment'] else 0}
-        #         # ],
-        #         (
-        #             OpRandApply(OpSample(OpAugAffine2D()), 0.5),
-        #             dict(
-        #                 key="data.input.patch_volume",
-        #                 rotate=Uniform(-3.0, 3.0),
-        #                 scale=Uniform(0.9, 1.1),
-        #                 flip=(False, False),
-        #                 translate=(RandInt(-2, 2), RandInt(-2, 2)),
-        #                 channels=Choice(
-        #                     [list(range(0, ProstateX.PATCH_Z_SIZE))]
-        #                 ),  # todo: but we are 2D - there are no channels??
-        #             ),
-        #         ),
-        #         # [
-        #         #     ('data.input',),
-        #         #     unsqueeze_2d_to_3d,
-        #         #     {'channels': num_channels, 'axis_squeeze': 'z'},
-        #         #     {}
-        #         # ],
-        #         (
-        #             OpAugUnsqueeze3DFrom2D(),
-        #             dict(
-        #                 key="data.input.patch_volume",
-        #                 axis_squeeze=1,
-        #                 channels=num_channels,
-        #             ),
-        #         ),
-        #     ]
+        # augmentations, only for training data
+        if train:
+            dynamic_steps += [
+                (
+                    OpRandApply(OpSample(OpRotation3D()), 0.5),
+                    dict(
+                        key="data.input.patch_volume",
+                        ax1_rot=Uniform(-5.0, 5.0),
+                        ax2_rot=Uniform(-5.0, 5.0),
+                        ax3_rot=Uniform(-5.0, 5.0),
+                    ),
+                ),
+                # [
+                #     ('data.input',),
+                #     squeeze_3d_to_2d,
+                #     {'axis_squeeze': 'z'},
+                #     {}
+                # ],
+                (OpAugSqueeze3Dto2D(), dict(key="data.input.patch_volume", axis_squeeze=1)),
+                (
+                    OpRandApply(OpSample(OpAugAffine2D()), 0.5),
+                    dict(
+                        key="data.input.patch_volume",
+                        rotate=Uniform(0, 360.0),
+                        scale=Uniform(0.9, 1.1),
+                        flip=(RandBool(0.5), RandBool(0.5)),
+                        translate=(RandInt(-4, 4), RandInt(-4, 4)),
+                    ),
+                ),
+                # [
+                #     ('data.input',),
+                #     aug_op_affine,
+                #     {'rotate': Uniform(-3.0, 3.0),
+                #      'translate': (RandInt(-2, 2), RandInt(-2, 2)),
+                #      'flip': (False, False),
+                #      'scale': Uniform(0.9, 1.1),
+                #      'channels': Choice(image_channels, probabilities=None)},
+                #     {'apply': RandBool(0.5) if train_common_params['data.aug.phase_misalignment'] else 0}
+                # ],
+                (
+                    OpRandApply(OpSample(OpAugAffine2D()), 0.5),
+                    dict(
+                        key="data.input.patch_volume",
+                        rotate=Uniform(-3.0, 3.0),
+                        scale=Uniform(0.9, 1.1),
+                        flip=(False, False),
+                        translate=(RandInt(-2, 2), RandInt(-2, 2)),
+                        channels=Choice(
+                            [list(range(0, ProstateX.PATCH_Z_SIZE))]
+                        ),  # todo: but we are 2D - there are no channels??
+                    ),
+                ),
+                # [
+                #     ('data.input',),
+                #     unsqueeze_2d_to_3d,
+                #     {'channels': num_channels, 'axis_squeeze': 'z'},
+                #     {}
+                # ],
+                (
+                    OpAugUnsqueeze3DFrom2D(),
+                    dict(
+                        key="data.input.patch_volume",
+                        axis_squeeze=1,
+                        channels=num_channels,
+                    ),
+                ),
+            ]
 
         dynamic_pipeline = PipelineDefault("dynamic", dynamic_steps, verbose=verbose)
 
@@ -476,91 +463,26 @@ class OpProstateXSampleIDDecode(OpBase):
     Decodes sample id into path of MRI images
     """
 
-    def __init__(self, root_path: str, series_desc_2_sequence_map: Dict[str, str]):
-        super().__init__()
+    def __init__(self, root_path: str, **kwargs: Any):
+        super().__init__(**kwargs)
         self._root_path = root_path
         self._data_path = os.path.join(root_path, "PROSTATEx")
-        self._series_desc_2_sequence_map = series_desc_2_sequence_map
 
     def __call__(
         self, sample_dict: NDict, key_out_path_mri: str, key_out_path_ktrans: str, key_out_patient_id: str
     ) -> NDict:
-        """
-        TODO
-        """
-        # Those are b series description that need a fix.
-        # currenly skip them, just for the initial run
-        B_SER_SKIP = [
-            "diffusie-3Scan-4bval_fs",
-            "ep2d_DIFF_tra_b50_500_800_1400_alle_spoelen",
-            "diff tra b 50 500 800 WIP511b alle spoelen",
-        ]
-
         sid = get_sample_id(sample_dict)
-        patient_id = sid[:-2]
-        sample_path = get_sample_path(self._data_path, patient_id)
-        sample_dict[key_out_patient_id] = patient_id
-        sample_dict[key_out_path_mri] = sample_path
 
-        seq_paths = dict()
+        patient_id = sid[:-2]
+        sample_dict[key_out_patient_id] = patient_id
+        sample_dict[key_out_path_mri] = get_sample_path(self._data_path, patient_id)
 
         # ktrans
         ktrans_patient_dir = os.path.join(self._root_path, "ProstateXKtrains-train-fixed", patient_id)
         ktrans_mhd_files = glob.glob(os.path.join(ktrans_patient_dir, "*.mhd"))
         assert len(ktrans_mhd_files) == 1
         ktrans_path = ktrans_mhd_files[0]
-        seq_paths["ktrans"] = [ktrans_path]
-        sample_dict["data.input.ktrans_path"] = ktrans_path  # TODO delete, temp
-
-        # T2, b (+ b_mix), ADC
-
-        # Which seq_ids have dcm files?
-        seq_ids_to_paths = dict()
-        for seq_dir in os.listdir(sample_path):
-            seq_path = os.path.join(sample_path, seq_dir)
-
-            # get dcm file in dir
-            dcm_file = glob.glob(os.path.join(seq_path, "*.dcm"))[0]
-            dcm_ds = pydicom.dcmread(dcm_file)
-
-            # Read series description from one of the dicoms
-            series_desc = dcm_ds.SeriesDescription
-
-            # Derive the sequence ID from the series description
-            seq_id = self._series_desc_2_sequence_map.get(series_desc, "UNKNOWN")
-
-            seq_ids_to_paths.setdefault(seq_id, [])
-            seq_ids_to_paths[seq_id].append(seq_path)
-
-        # iterate by the wanted order and choose the sub-path to the relevant seq_dir
-        present_seq_ids = seq_ids_to_paths.keys()
-
-        # using T2 as a ref vol
-        if "T2" not in present_seq_ids:
-            return None
-
-        # rename 'b_mix' -> 'b'
-        if "b_mix" in present_seq_ids:
-            seq_ids_to_paths["b"] = seq_ids_to_paths.pop("b_mix")
-
-        wanted_seq_ids = ["T2", "b", "ADC"]
-
-        for seq_id in wanted_seq_ids:
-            if seq_id in present_seq_ids:
-                if seq_id == "b":
-                    seq_sub_path = [seq_ids_to_paths[seq_id][0], seq_ids_to_paths[seq_id][0]]
-                else:
-                    seq_sub_path = [seq_ids_to_paths[seq_id][0]]  # naive, choose 0. else, like tal
-
-                seq_paths[seq_id] = seq_sub_path
-            else:
-                seq_paths[seq_id] = [""]
-
-        # set paths
-        sample_dict["data.input.T2.path"] = seq_paths["T2"]
-        sample_dict["data.input.b.path"] = seq_paths["b"]
-        sample_dict["data.input.ADC.path"] = seq_paths["ADC"]
-        sample_dict["data.input.ktrans.path"] = seq_paths["ktrans"]
+        sample_dict[key_out_path_ktrans] = ktrans_path
 
         return sample_dict
 
@@ -618,9 +540,7 @@ class OpAddProstateXLabelAndClinicalFeatures(OpBase):
 def get_prostate_x_annotations_df(data_dir: str) -> pd.DataFrame:
     """
     Returns the prostate_X dataset after some preprocessing.
-
     TODO: consider accumulate all the filters and apply them at once (or even think on a better option)
-
     :param data_dir: data directory
     """
     if True:

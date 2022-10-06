@@ -48,7 +48,7 @@ from fuse.utils.file_io.file_io import create_dir, load_pickle, save_dataframe
 from fuseimg.datasets import prostate_x
 from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
 from fuse.dl.models import ModelMultiHead
-from fuse.dl.models.heads.heads_3D import Head3DClassifier
+from fuse.dl.models.heads.heads_3D import Head3D
 
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
@@ -84,7 +84,7 @@ def get_folds(n_folds: int) -> Tuple[List[int], List[int], List[int]]:
     return train_folds, validation_fold, heldout_fold
 
 
-mode = "debug"  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
+mode = "default"  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
 
 # allocate gpus
 # To use cpu - set NUM_GPUS to 0
@@ -109,10 +109,10 @@ assert (
     "PROSTATEX_DATA_PATH" in os.environ
 ), "Expecting environment variable PROSTATEX_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
 data_dir = os.environ["PROSTATEX_DATA_PATH"]
-ROOT = "/tmp/_prostate_x_sagi_2"
+ROOT = "./_examples/prostate_x"
 
 if mode == "debug":
-    data_split_file = os.path.join(ROOT, f"prostate_x_{n_folds}folds_debug.pkl")
+    data_split_file = f"prostate_x_{n_folds}_folds_debug.pkl"
     selected_sample_ids = prostate_x.get_samples_for_debug(data_dir=data_dir, n_pos=20, n_neg=20, label_type=label_type)
     print(selected_sample_ids)
     cache_dir = os.path.join(ROOT, "cache_dir_debug")
@@ -121,7 +121,7 @@ if mode == "debug":
     batch_size = 2
     num_epoch = 2
 else:
-    data_split_file = os.path.join(ROOT, f"prostatex_{n_folds}folds.pkl")
+    data_split_file = f"prostatex_{n_folds}_folds.pkl"
     cache_dir = os.path.join(ROOT, "cache_dir_pl")
     model_dir = os.path.join(ROOT, f"model_dir_pl_{heldout_fold[0]}")
     selected_sample_ids = None
@@ -276,16 +276,16 @@ def create_model(imaging_dropout: float, num_backbone_features: int, input_chann
     """
 
     model = ModelMultiHead(
-        conv_inputs=(("data.input.volume4D", 1),),
+        conv_inputs=(("data.input.patch_volume", 1),),
         backbone=BackboneResnet3D(in_channels=input_channels_num, pretrained=True),
         heads=[
-            Head3DClassifier(
+            Head3D(
                 head_name="classification",
                 conv_inputs=[("model.backbone_features", num_backbone_features)],
                 dropout_rate=imaging_dropout,
                 # append_dropout_rate=clinical_dropout,
                 # fused_dropout_rate=fused_dropout,
-                num_classes=2,
+                num_outputs=2,  # num of classes
                 # append_features=[("data.input.clinical", 8)],
                 # append_layers_description=(256, 128),
             ),
