@@ -235,7 +235,7 @@ class BalancedLightningDataModule(pl.LightningDataModule):
                 workers=self._num_workers,
             )
             print("Create BatchSamplerDefault: DONE")
-            batch_size = None  # should not provide batch_size for custom batch_sampler
+            batch_size = 1  # should not provide batch_size for custom batch_sampler (1 is default)
         else:
             # Doesn't use custom batch sampler
             batch_sampler = None

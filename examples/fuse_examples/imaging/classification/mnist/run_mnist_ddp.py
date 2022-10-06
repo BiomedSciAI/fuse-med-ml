@@ -91,7 +91,7 @@ PATHS = {
 }
 
 NUM_GPUS = 2  # Multiple GPU training
-WORKERS = 10
+WORKERS = 20
 ##########################################
 # Train Common Params
 ##########################################
@@ -163,6 +163,7 @@ def create_datamodule(paths: dict, common_params: dict) -> BalancedLightningData
         batch_size=common_params["data.batch_size"],
         balanced_class_name="data.label",
         num_balanced_classes=10,
+        use_custom_batch_sampler=False,  # currently doesn't support custom
     )
     return datamodule
 
