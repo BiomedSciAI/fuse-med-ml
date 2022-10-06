@@ -267,7 +267,6 @@ class BalancedLightningDataModule(pl.LightningDataModule):
         """
         returns prediction dataloader with class custom args
         """
-
         predict_dl = DataLoader(
             dataset=self._predict_dataset,
             collate_fn=self._collate_fn,

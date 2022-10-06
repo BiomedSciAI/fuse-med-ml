@@ -265,6 +265,8 @@ INFER_COMMON_PARAMS["infer_filename"] = "infer_file.gz"
 INFER_COMMON_PARAMS["checkpoint"] = "best_epoch.ckpt"
 INFER_COMMON_PARAMS["trainer.num_devices"] = 1  # No need for multiple GPUs
 INFER_COMMON_PARAMS["trainer.accelerator"] = "gpu"
+INFER_COMMON_PARAMS["data.num_workers"] = TRAIN_COMMON_PARAMS["data.num_workers"]
+INFER_COMMON_PARAMS["data.batch_size"] = TRAIN_COMMON_PARAMS["data.batch_size"]
 
 ######################################
 # Inference Template
