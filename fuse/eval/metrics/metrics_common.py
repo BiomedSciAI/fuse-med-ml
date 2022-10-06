@@ -110,11 +110,14 @@ class MetricCollector(MetricBase):
 
         samples = uncollate(batch)
 
+        # If in distributed mode (multi gpu training) we shall gather the result from all the machine to evaluate with respect to the entire batch.
         if dist.is_initialized():
-            world_size = dist.get_world_size()
+            world_size = dist.get_world_size()  # num of gpus
             samples_gather = [None for rank in range(world_size)]
+            # samples_gather[i] will have the 'samples' value of the i's GPU
             dist.all_gather_object(samples_gather, samples)
 
+            # union all the GPU's samples into one samples list
             samples = []
             for rank in range(world_size):
                 samples += samples_gather[rank]
