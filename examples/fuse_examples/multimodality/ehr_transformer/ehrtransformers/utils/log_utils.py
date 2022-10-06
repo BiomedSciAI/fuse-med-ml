@@ -1,3 +1,22 @@
+"""
+(C) Copyright 2021 IBM Corp.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Created on June 30, 2021
+
+"""
+
 import os
 from distutils.dir_util import copy_tree
 from shutil import copy
@@ -6,6 +25,7 @@ import torch
 import sys
 from torch.utils.tensorboard import SummaryWriter
 from ehrtransformers.model.model_selector import model_type
+
 base_out_dir_key = 'output_dir_main' #path for all experiments on this type of data and training task
 global_base_out_dir_key = 'uber_base_path' #path for all ehr experiments, where global statistics summary is saved
 

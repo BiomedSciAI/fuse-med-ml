@@ -1,23 +1,27 @@
+"""
+(C) Copyright 2021 IBM Corp.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Created on June 30, 2021
+
+"""
+
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 import pandas as pd
 import numpy as np
 import os
 import matplotlib.pyplot as plt
-
-# event_path = '/data/usr/vadim/EHR/PD_ALL_SERV_270_after_ind_90_to_event_tr_90_to_event_merge_10_days/EVENT/models/PD/outcome_admdate_visit/run_103/Logs/model_dir/validation/' #events.out.tfevents.1651395755.lsf-gpu4.26342.1'
-event_paths = [ '/data/usr/vadim/EHR/PD_ALL_SERV_270_after_ind_90_to_event_tr_90_to_event_merge_5_days/EVENT/models/PD/outcome_admdate_visit/run_139/Logs/model_dir/validation/', # pretrained model path, None if not to continue from pretrained
-  # '/data/usr/vadim/EHR/PD_ALL_SERV_270_after_ind_90_to_event_tr_90_to_event_merge_5_days/EVENT/models/PD/outcome_admdate_visit/run_136/Logs/model_dir/validation/', # pretrained model path, None if not to continue from pretrained
-  # '/data/usr/vadim/EHR/PD_ALL_SERV_270_after_ind_90_to_event_tr_90_to_event_merge_10_days/EVENT/models/PD/outcome_admdate_visit/run_102/Logs/model_dir/validation/', # pretrained model path, None if not to continue from pretrained
-  # '/data/usr/vadim/EHR/PD_ALL_SERV_270_after_ind_90_to_event_tr_90_to_event_merge_10_days_with_procedures/EVENT/models/PD/outcome_admdate_visit/run_101/Logs/model_dir/validation/',# pretrained model path, None if not to continue from pretrained
-  # '/data/usr/vadim/EHR/PD_ALL_SERV_270_after_ind_90_to_event_tr_90_to_event_merge_5_days_with_procedures/EVENT/models/PD/outcome_admdate_visit/run_101/Logs/model_dir/validation/',
-  # '/gpfs/haifa/projects/s/serqet_pd/vadim/PD/multihead_event_next_vis/run_103/Logs/model_dir/validation/',
-  # '/gpfs/haifa/projects/s/serqet_pd/vadim/PD/multihead_event_next_vis/run_116/Logs/model_dir/validation/',
-  # '/gpfs/haifa/projects/s/serqet_pd/vadim/PD/multihead_event_next_vis/run_133/Logs/model_dir/validation/',
-  # '/gpfs/haifa/projects/s/serqet_pd/vadim/PD/multihead_event_next_vis/run_112/Logs/model_dir/validation/',
-  # '/gpfs/haifa/projects/s/serqet_pd/vadim/PD/multihead_event_next_vis/run_103/Logs/model_dir/validation/',
-  # '/gpfs/haifa/projects/s/serqet_pd/vadim/PD/multihead_event_next_vis/run_103/Logs/model_dir/validation/',
-  '/gpfs/haifa/projects/s/serqet_pd/vadim/PD/multihead_5_days/with_procedures/run_101/Logs/model_dir/validation/'
-]
 
 def parse_tb_output(event_path:str, verbose:int = 0):
   event_acc = EventAccumulator(event_path)

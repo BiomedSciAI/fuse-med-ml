@@ -1,34 +1,28 @@
 """
-Load ICD to CCS mapping from RWD database and save to json.
+(C) Copyright 2021 IBM Corp.
 
-Requires db credentials stored in env vars `DB_USER` and `DB_PASSWORD`.
-This needs to be run only once to create the json.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-The table that we are using is created here:
-https://github.ibm.com/MLHLS/rwd-processing/blob/45b3af5334da46240f27d125f5503d0ee79a08a9/prep/preprocessing/sqlTruven/createIcdCcsTables.sql
+   http://www.apache.org/licenses/LICENSE-2.0
 
-Note that because CCS is not defined for icd10, the icd10 keys are mapped first
-to icd9 and then to CCS. Note also that the icd9 "E" codes overlap with icd10
-codes. There are 35 like that. Here we utilize the icd9 version because the
-majority of the data is icd9. Should that assumption change, this script would
-need to be modified.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Created on June 30, 2021
+
 """
+
 from os import environ
 import os
 import pandas as pd
 # from ibm_db import connect
 # from ibm_db_dbi import Connection
 import json
-
-# props = {
-#     "HOSTNAME": "lnx-vfn106.haifa.ibm.com",
-#     "PORT": "50000",
-#     "DATABASE": "Truven1",
-#     "PROTOCOL": "TCPIP",
-#     "UID": environ["DB_USER"],
-#     "PWD": environ["DB_PASSWORD"],
-# }
-# connection_string = ";".join("%s=%s" % (k, v) for k, v in props.items())
 
 
 def get_icd_ccs_dict(icd_ccs_map_df):
@@ -52,17 +46,3 @@ def read_icd_ccs_dict(json_filepath=None):
     with open(json_filepath) as f:
         tmp = json.load(f)
         return tmp
-
-if __name__ == "__main__":
-
-    a=1
-    # connection = connect(connection_string, "", "")
-    # conn = Connection(connection)
-    # query = "SELECT * FROM RWD.v_icd_ccs_map icm"
-    # icd_ccs_table = pd.read_sql(query, conn).applymap(lambda x: x.strip())
-    # icd_to_ccs = get_icd_ccs_dict(icd_ccs_table)
-    #
-    # ofname = "icd_to_ccs.json"
-    #
-    # with open(ofname, "w", encoding="utf8") as f:
-    #     json.dump(icd_to_ccs, f)

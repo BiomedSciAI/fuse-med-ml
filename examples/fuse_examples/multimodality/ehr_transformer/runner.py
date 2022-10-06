@@ -1,16 +1,28 @@
-from sys import argv
+"""
+
+(C) Copyright 2021 IBM Corp.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+   http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+Created on June 30, 2021
+
+"""
+
 import os
 import copy
-import pandas as pd
-import socket
 import torch
 import torch.optim as optim
 import pytorch_lightning as pl
-from yaml import safe_load
 
 from ehrtransformers.utils.tb_parser import parse_tb_output, plot_tb_summary
 from ehrtransformers.utils.common import load_pkl
-from ehrtransformers.configs.config import get_config #, get_config_path
+from ehrtransformers.configs.config import get_config
 from ehrtransformers.utils.log_utils import Logger, get_output_dir, get_run_index_from_model_location
 from ehrtransformers.model.utils import age_vocab
 from ehrtransformers.model.OutcomeFuse import (
@@ -18,7 +30,7 @@ from ehrtransformers.model.OutcomeFuse import (
     cleanup_vocab
 )
 
-from ehrtransformers.model.model_selector import BertBackbone, BertConfig, model_type
+from ehrtransformers.model.model_selector import BertBackbone, BertConfig
 from ehrtransformers.data_access.utils import reduce_vocab
 from ehrtransformers.data_access.icd_to_ccs import read_icd_ccs_dict
 from ehrtransformers.utils.save_results import save_translated_outputs
