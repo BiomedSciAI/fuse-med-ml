@@ -42,6 +42,7 @@ class SamplesCacher:
         restart_cache: bool = False,
         workers: int = 0,
         verbose=1,
+        use_pipeline_hash: Optional[bool] = True,
         **audit_kwargs: dict,
     ) -> None:
         """
@@ -59,6 +60,7 @@ class SamplesCacher:
         Should be used every time that any of the OPs participating in the "static cache" part changed in any way
         (for example, code change)
         :param workers: number of multiprocessing workers used when building the cache. Default value is 0 (no multiprocessing)
+        :param use_pipeline_hash [Optional]: indicates whether to use a hash of given pipeline for naming its cache dir. Default=True
         :param **audit_kwargs: optional custom kwargs to pass to SampleCachingAudit instance.
             auditing cached samples (usually periodically) is very important, in order to avoid "stale" cached samples.
             To disable pass audit_first_sample=False, audit_rate=None,
@@ -83,8 +85,13 @@ class SamplesCacher:
             self._read_dirs_logic = custom_read_dirs_callable
 
         self._pipeline = pipeline
+        self._use_pipeline_hash = use_pipeline_hash
+
         self._pipeline_desc_text = str(pipeline)
-        self._pipeline_desc_hash = "hash_" + hashlib.md5(self._pipeline_desc_text.encode("utf-8")).hexdigest()
+        if use_pipeline_hash:
+            self._pipeline_desc_hash = 'hash_'+hashlib.md5(self._pipeline_desc_text.encode('utf-8')).hexdigest()
+        else:
+            self._pipeline_desc_hash = 'hash_fixed'
 
         self._verbose = verbose
 
@@ -96,6 +103,8 @@ class SamplesCacher:
             self.delete_cache()
 
         self._audit_kwargs = audit_kwargs
+        if 'ignore_nan_inequality' not in self._audit_kwargs:
+            self._audit_kwargs['ignore_nan_inequality'] = True  #as DeepDiff(float('nan'), float('nan')) reports difference
         self._audit = SampleCachingAudit(**self._audit_kwargs)
 
         self._workers = workers
