@@ -57,7 +57,7 @@ class Cast:
         if isinstance(value, np.ndarray) and dtype is None:
             pass  # do nothing
         if isinstance(value, sitk.Image):
-            value = sitk.GetArrayFromImage(img)
+            value = sitk.GetArrayFromImage(value)
         elif isinstance(value, (torch.Tensor, int, float, list, np.ndarray)):
             value = np.array(value, dtype=dtype)
         else:

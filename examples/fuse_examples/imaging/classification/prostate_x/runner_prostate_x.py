@@ -137,7 +137,7 @@ PATHS = {
     "model_dir": model_dir,
     "cache_dir": cache_dir,
     # "data_split_filename": os.path.join(ROOT, data_split_file),
-    "data_split_filename": "/dccstor/mm_hcls/usr/sagi/fuse_1/_examples/prostate_x/prostatex_8_folds.pkl", # to match Michal's
+    "data_split_filename": "/dccstor/mm_hcls/usr/sagi/fuse_1/_examples/prostate_x/prostatex_8_folds.pkl",  # to match Michal's
     "data_dir": data_dir,
     "inference_dir": os.path.join(model_dir, "infer_dir"),
     "eval_dir": os.path.join(model_dir, "eval_dir"),
