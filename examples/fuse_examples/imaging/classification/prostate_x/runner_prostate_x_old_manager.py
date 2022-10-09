@@ -17,10 +17,8 @@ Created on June 30, 2021
 
 """
 
-import torch
 import logging
 import os
-import copy
 from typing import OrderedDict, Optional
 
 import torch.nn.functional as F
@@ -34,24 +32,22 @@ from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.split import dataset_balanced_division_to_folds
 from fuse.dl.losses.loss_default import LossDefault
+from fuse.dl.managers.callbacks.callback_metric_statistics import MetricStatisticsCallback
+from fuse.dl.managers.callbacks.callback_tensorboard import TensorboardCallback
+from fuse.dl.managers.callbacks.callback_time_statistics import TimeStatisticsCallback
+from fuse.dl.managers.manager_default import ManagerDefault
 from fuse.dl.models.heads import Head1DClassifier
 from fuse.eval.evaluator import EvaluatorDefault
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
+from fuse.utils.file_io.file_io import load_pickle
 from fuse.utils.rand.seed import Seed
 from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.utils_logger import fuse_logger_start
-from fuse.utils.file_io.file_io import create_dir, load_pickle, save_dataframe
-
 from fuseimg.datasets import prostate_x
 
-from fuse.dl.lightning.pl_module import LightningModuleDefault
-from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
-import pytorch_lightning as pl
-from fuse_examples import fuse_examples_utils
-
 from fuse.data.utils.export import ExportDataset
-
+from fuse_examples import fuse_examples_utils
 
 def main():
     mode = 'default'  # Options: 'default', 'fast', 'debug', 'verbose', 'user'. See details in FuseDebug
@@ -61,12 +57,12 @@ def main():
     if mode == 'debug':
         NUM_GPUS = 1
     else:
-        NUM_GPUS = 1
+        NUM_GPUS = 2
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None  # [0]
     GPU.choose_and_enable_multiple_gpus(NUM_GPUS, force_gpus=force_gpus)
 
-    PATHS, TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS = get_setting(mode, num_devices=NUM_GPUS, n_folds=8,
+    PATHS, TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS = get_setting(mode, n_folds=8,
                                                                                       heldout_fold=4)
     print(PATHS)
 
@@ -88,8 +84,7 @@ def main():
 
     print(f"Done running with heldout={INFER_COMMON_PARAMS['data.infer_folds']}")
 
-
-def get_setting(mode, num_devices, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=8, heldout_fold=7):
+def get_setting(mode, label_type=prostate_x.ProstateXLabelType.ClinSig, n_folds=8, heldout_fold=7, num_epoch=None):
     ###########################################################################################################
     # Fuse
     ###########################################################################################################
@@ -114,17 +109,20 @@ def get_setting(mode, num_devices, label_type=prostate_x.ProstateXLabelType.Clin
         model_dir = os.path.join(ROOT, 'model_dir_debug')
         num_workers = 0
         batch_size = 2
-        num_epoch = 5
+        if num_epoch is None:
+            num_epoch = 5
     else:
         data_split_file = os.path.join(ROOT, f'prostatex_{n_folds}folds.pkl')
-        cache_dir = os.path.join(ROOT, f'cache_dir_pl')
-        model_dir = os.path.join(ROOT, f'model_dir_pl_{heldout_fold}')
+        cache_dir = os.path.join(ROOT, f'cache_dir')
+        model_dir = os.path.join(ROOT, f'model_dir_{heldout_fold}')
         selected_sample_ids = None
 
         num_workers = 16
         batch_size = 50
-        num_epoch = 50
+        if num_epoch is None:
+            num_epoch = 50
     PATHS = {'model_dir': model_dir,
+             'force_reset_model_dir': True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
              'cache_dir': cache_dir,
              'data_split_filename': os.path.join(ROOT, data_split_file),
              'data_dir': data_dir,
@@ -136,6 +134,9 @@ def get_setting(mode, num_devices, label_type=prostate_x.ProstateXLabelType.Clin
     # Train Common Params
     ##########################################
     TRAIN_COMMON_PARAMS = {}
+    # ============
+    # Model
+    # ============
 
     # ============
     # Data
@@ -150,20 +151,6 @@ def get_setting(mode, num_devices, label_type=prostate_x.ProstateXLabelType.Clin
     TRAIN_COMMON_PARAMS['data.num_folds'] = n_folds
     TRAIN_COMMON_PARAMS['data.train_folds'] = train_folds
     TRAIN_COMMON_PARAMS['data.validation_folds'] = [validation_fold]
-
-    # ===============
-    # PL Trainer
-    # ===============
-    TRAIN_COMMON_PARAMS['trainer.num_epochs'] = num_epoch
-    TRAIN_COMMON_PARAMS['trainer.num_devices'] = num_devices
-    TRAIN_COMMON_PARAMS['trainer.accelerator'] = "gpu"
-    TRAIN_COMMON_PARAMS['trainer.ckpt_path'] = None  # path to the checkpoint you wish continue the training from
-
-    # ===============
-    # Optimizer
-    # ===============
-    TRAIN_COMMON_PARAMS['opt.lr'] = 1e-3
-    TRAIN_COMMON_PARAMS['opt.weight_decay'] = 0.005
 
     # ===============
     # Manager - Train
@@ -185,9 +172,9 @@ def get_setting(mode, num_devices, label_type=prostate_x.ProstateXLabelType.Clin
     TRAIN_COMMON_PARAMS['manager.dropout'] = 0.5
     TRAIN_COMMON_PARAMS['manager.momentum'] = 0.9
     TRAIN_COMMON_PARAMS['manager.resume_checkpoint_filename'] = None  # if not None, will try to load the checkpoint
-    # TRAIN_COMMON_PARAMS['imaging_dropout'] = 0.25
-    # # TRAIN_COMMON_PARAMS['fused_dropout'] = 0.0
-    # # TRAIN_COMMON_PARAMS['clinical_dropout'] = 0.0
+    TRAIN_COMMON_PARAMS['imaging_dropout'] = 0.25
+    # TRAIN_COMMON_PARAMS['fused_dropout'] = 0.0
+    # TRAIN_COMMON_PARAMS['clinical_dropout'] = 0.0
 
     TRAIN_COMMON_PARAMS['num_backbone_features_imaging'] = 512
 
@@ -204,7 +191,7 @@ def get_setting(mode, num_devices, label_type=prostate_x.ProstateXLabelType.Clin
             TRAIN_COMMON_PARAMS['num_backbone_features_imaging'] + TRAIN_COMMON_PARAMS['num_backbone_features_clinical']
 
     # classification task:
-    # supported tasks are: 'ClinSig'
+    # supported labels are: 'ClinSig'
     TRAIN_COMMON_PARAMS['label_type'] = label_type
     TRAIN_COMMON_PARAMS['class_num'] = label_type.get_num_classes()
 
@@ -213,30 +200,16 @@ def get_setting(mode, num_devices, label_type=prostate_x.ProstateXLabelType.Clin
         {'input_channels_num': input_channels_num,
          }
 
-    # ============
-    # Model
-    # ============
-
-    TRAIN_COMMON_PARAMS['model'] = dict(imaging_dropout=0.25,
-                                        # fused_dropout=0.0,
-                                        # clinical_dropout=0.0,
-                                        num_backbone_features=TRAIN_COMMON_PARAMS['num_backbone_features'],
-                                        input_channels_num=5,
-                                    )
-
     ######################################
     # Inference Common Params
     ######################################
     INFER_COMMON_PARAMS = {}
-    INFER_COMMON_PARAMS['infer_filename'] = 'infer_file.gz'
-    INFER_COMMON_PARAMS['checkpoint'] = "best_epoch.ckpt"
+    INFER_COMMON_PARAMS['infer_filename'] = 'validation_set_infer.gz'
+    INFER_COMMON_PARAMS['checkpoint'] = 'best'  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
     INFER_COMMON_PARAMS['data.infer_folds'] = [heldout_fold]  # infer validation set
     INFER_COMMON_PARAMS['data.batch_size'] = 4
     INFER_COMMON_PARAMS['data.num_workers'] = num_workers
     INFER_COMMON_PARAMS['label_type'] = TRAIN_COMMON_PARAMS['label_type']
-    INFER_COMMON_PARAMS['model'] = TRAIN_COMMON_PARAMS['model']
-    INFER_COMMON_PARAMS['trainer.num_devices'] = num_devices
-    INFER_COMMON_PARAMS['trainer.accelerator'] = "gpu"
 
     ######################################
     # Analyze Common Params
@@ -247,41 +220,10 @@ def get_setting(mode, num_devices, label_type=prostate_x.ProstateXLabelType.Clin
     return PATHS, TRAIN_COMMON_PARAMS, INFER_COMMON_PARAMS, EVAL_COMMON_PARAMS
 
 
-def create_model(imaging_dropout: float, num_backbone_features: int, input_channels_num: int) -> torch.nn.Module:
-    """
-    creates the model
-    See Head3DClassifier for details about imaging_dropout, clinical_dropout, fused_dropout
-    """
-    conv_inputs = (('data.input.patch_volume', 1),)
-
-    model = Fuse_model_3d_multichannel(
-        conv_inputs=conv_inputs,  # previously 'data.input'. could be either 'data.input.patch_volume' or  'data.input.patch_volume_orig'
-        backbone=ResNet(conv_inputs=conv_inputs, ch_num=input_channels_num),
-        # since backbone resnet contains pooling and fc, the feature output is 1D,
-        # hence we use Head1dClassifier as classification head
-        heads=[
-            Head1DClassifier(head_name='classification',
-                             conv_inputs=[('model.backbone_features', num_backbone_features)],
-                             post_concat_inputs=None,  # [('data.clinical_features',9),]
-                             post_concat_model=None,  # (256,256)
-                             dropout_rate=imaging_dropout,
-                             # append_dropout_rate=train_params['clinical_dropout'],
-                             # fused_dropout_rate=train_params['fused_dropout'],
-                             shared_classifier_head=None,
-                             layers_description=None,
-                             num_classes=2,
-                             # append_features=[("data.input.clinical", 8)],
-                             # append_layers_description=(256,128),
-                             ),
-        ]
-    )
-    return model
-
-
 #################################
 # Train Template
 #################################
-def run_train(paths: dict, train_params: dict):
+def run_train(paths: dict, train_params: dict, reset_cache=None, audit_cache=None):
     Seed.set_seed(222, False)
 
     # ==============================================================================
@@ -296,16 +238,19 @@ def run_train(paths: dict, train_params: dict):
     lgr.info(f'train folds={train_params["data.train_folds"]}', {'color': 'magenta'})
     lgr.info(f'validation folds={train_params["data.validation_folds"]}', {'color': 'magenta'})
 
+
     # ==============================================================================
     # Data
     # ==============================================================================
     # Train Data
     lgr.info(f'Train Data:', {'attrs': 'bold'})
 
-    reset_cache = ask_user('Do you want to reset cache?')
+    if reset_cache is None:
+        reset_cache = ask_user('Do you want to reset cache?')
     cache_kwargs = {'use_pipeline_hash': False}
     if not reset_cache:
-        audit_cache = ask_user('Do you want to audit cache?')
+        if audit_cache is None:
+            audit_cache = ask_user('Do you want to audit cache?')
         if not audit_cache:
             cache_kwargs2 = dict(audit_first_sample=False, audit_rate=None)
             cache_kwargs = {**cache_kwargs, **cache_kwargs2}
@@ -323,7 +268,7 @@ def run_train(paths: dict, train_params: dict):
                                                output_split_filename=paths["data_split_filename"],
                                                keys_to_balance=["data.ground_truth"],
                                                id='data.input.patient_id',
-                                               workers=0,  # todo: stuck in Export to dataframe
+                                               workers=0,  #todo: stuck in Export to dataframe
                                                nfolds=train_params["data.num_folds"],
                                                verbose=True)
 
@@ -350,7 +295,7 @@ def run_train(paths: dict, train_params: dict):
                                   balanced_class_name='data.ground_truth',
                                   num_balanced_classes=train_params['class_num'],
                                   batch_size=train_params['data.batch_size'],
-                                  workers=0  # train_params['data.train_num_workers'] #todo: stuck
+                                  workers=0 #train_params['data.train_num_workers'] #todo: stuck
                                   )
     lgr.info(f'- Create sampler: Done')
 
@@ -373,7 +318,28 @@ def run_train(paths: dict, train_params: dict):
     # ==============================================================================
     lgr.info('Model:', {'attrs': 'bold'})
 
-    model = create_model(**train_params["model"])
+    conv_inputs = (('data.input.patch_volume', 1),)
+    model = Fuse_model_3d_multichannel(
+        conv_inputs=conv_inputs,  # previously 'data.input'. could be either 'data.input.patch_volume' or  'data.input.patch_volume_orig'
+        backbone=ResNet(conv_inputs=conv_inputs, ch_num=train_params['backbone_model_dict']['input_channels_num']),
+        # since backbone resnet contains pooling and fc, the feature output is 1D,
+        # hence we use Head1dClassifier as classification head
+        heads=[
+            Head1DClassifier(head_name='classification',
+                             conv_inputs=[('model.backbone_features', train_params['num_backbone_features'])],
+                             post_concat_inputs=train_params['post_concat_inputs'],
+                             post_concat_model=train_params['post_concat_model'],
+                             dropout_rate=train_params['imaging_dropout'],
+                             # append_dropout_rate=train_params['clinical_dropout'],
+                             # fused_dropout_rate=train_params['fused_dropout'],
+                             shared_classifier_head=None,
+                             layers_description=None,
+                             num_classes=2,
+                             # append_features=[("data.input.clinical", 8)],
+                             # append_layers_description=(256,128),
+                             ),
+        ]
+    )
 
     lgr.info('Model: Done', {'attrs': 'bold'})
 
@@ -389,51 +355,51 @@ def run_train(paths: dict, train_params: dict):
     # Metrics
     # ====================================================================================
     lgr.info('Metrics:', {'attrs': 'bold'})
-    train_metrics = OrderedDict([
+    metrics = OrderedDict([
         ('auc', MetricAUCROC(pred='model.output.classification', target='data.ground_truth'))
     ])
-    validation_metrics = copy.deepcopy(train_metrics) # use the same metrics in validation as well
-
-    # either a dict with arguments to pass to ModelCheckpoint or list dicts for multiple ModelCheckpoint callbacks (to monitor and save checkpoints for more then one metric).
-    best_epoch_source = dict(
-        monitor="validation.metrics.auc",
-        mode="max",
-    )
-
-    # create optimizer
-    optimizer = optim.SGD(model.parameters(), lr=train_params['opt.lr'], weight_decay=train_params['opt.weight_decay'], momentum=0.9, nesterov=True)
-
-    # create learning scheduler
-    lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
-    lr_sch_config = dict(scheduler=lr_scheduler,
-                         monitor="validation.losses.total_loss")
-
-    # optimizier and lr sch - see pl.LightningModule.configure_optimizers return value for all options
-    optimizers_and_lr_schs = dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
 
     # =====================================================================================
-    #  Train
+    #  Callbacks
+    # =====================================================================================
+    callbacks = [
+        # default callbacks
+        TensorboardCallback(model_dir=paths['model_dir']),  # save statistics for tensorboard
+        MetricStatisticsCallback(output_path=paths['model_dir'] + "/metrics.csv"),  # save statistics a csv file
+        TimeStatisticsCallback(num_epochs=train_params['manager.train_params']['num_epochs'], load_expected_part=0.1)  # time profiler
+    ]
+
+    # =====================================================================================
+    #  Manager - Train
     # =====================================================================================
     lgr.info('Train:', {'attrs': 'bold'})
 
-    # create instance of PL module - FuseMedML generic version
-    pl_module = LightningModuleDefault(model_dir=paths["model_dir"],
-                                       model=model,
-                                       losses=losses,
-                                       train_metrics=train_metrics,
-                                       validation_metrics=validation_metrics,
-                                       best_epoch_source=best_epoch_source,
-                                       optimizers_and_lr_schs=optimizers_and_lr_schs)
+    # create optimizer
+    optimizer = optim.Adam(model.parameters(), lr=train_params['manager.learning_rate'],
+                           weight_decay=train_params['manager.weight_decay'])
 
-    # create lightining trainer.
-    pl_trainer = pl.Trainer(default_root_dir=paths['model_dir'],
-                            max_epochs=train_params['trainer.num_epochs'],
-                            accelerator=train_params["trainer.accelerator"],
-                            devices=train_params["trainer.num_devices"],
-                            auto_select_gpus=True)
+    # create learning scheduler
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, verbose=True)
 
-    # train
-    pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=train_params['trainer.ckpt_path'])
+    # train from scratch
+    manager = ManagerDefault(output_model_dir=paths['model_dir'], force_reset=paths['force_reset_model_dir'])
+    # Providing the objects required for the training process.
+    manager.set_objects(net=model,
+                        optimizer=optimizer,
+                        losses=losses,
+                        metrics=metrics,
+                        best_epoch_source=train_params['manager.best_epoch_source'],
+                        lr_scheduler=scheduler,
+                        callbacks=callbacks,
+                        train_params=train_params['manager.train_params'])
+
+    ## Continue training
+    if train_params['manager.resume_checkpoint_filename'] is not None:
+        # Loading the checkpoint including model weights, learning rate, and epoch_index.
+        manager.load_checkpoint(checkpoint=train_params['manager.resume_checkpoint_filename'], mode='train')
+
+    # Start training
+    manager.train(train_dataloader=train_dataloader, validation_dataloader=validation_dataloader)
 
     lgr.info('Train: Done', {'attrs': 'bold'})
 
@@ -442,15 +408,11 @@ def run_train(paths: dict, train_params: dict):
 # Inference Template
 ######################################
 def run_infer(paths: dict, infer_common_params: dict, audit_cache: Optional[bool] = True):
-    create_dir(paths['inference_dir'])
-    infer_file = os.path.join(paths['inference_dir'], infer_common_params['infer_filename'])
-    checkpoint_file  = os.path.join(paths['model_dir'], infer_common_params['checkpoint'])
-
     #### Logger
     fuse_logger_start(output_path=paths['inference_dir'], console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Inference', {'attrs': ['bold', 'underline']})
-    lgr.info(f'infer_filename={infer_file}', {'color': 'magenta'})
+    lgr.info(f'infer_filename={os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])}', {'color': 'magenta'})
     lgr.info(f'infer folds={infer_common_params["data.infer_folds"]}', {'color': 'magenta'})
 
     ## Data
@@ -460,43 +422,34 @@ def run_infer(paths: dict, infer_common_params: dict, audit_cache: Optional[bool
     for fold in infer_common_params["data.infer_folds"]:
         infer_sample_ids += folds[fold]
 
+
     params = dict(label_type=infer_common_params['label_type'], data_dir=paths["data_dir"],
                   cache_dir=paths["cache_dir"], train=False,
                   sample_ids=infer_sample_ids, verbose=False)
     if not audit_cache:
-        params['cache_kwargs'] = dict(use_pipeline_hash=False, audit_first_sample=False, audit_rate=None)
+        params['cache_kwargs'] =dict(use_pipeline_hash=False, audit_first_sample=False, audit_rate=None)
     else:
         params['cache_kwargs'] = dict(use_pipeline_hash=False)
-    infer_dataset = prostate_x.ProstateX.dataset(**params)
+    validation_dataset = prostate_x.ProstateX.dataset(**params)
 
     # dataloader
-    infer_dataloader = DataLoader(dataset=infer_dataset, batch_size=infer_common_params['data.batch_size'], collate_fn=CollateDefault(),
+    validation_dataloader = DataLoader(dataset=validation_dataset, batch_size=infer_common_params['data.batch_size'], collate_fn=CollateDefault(),
                                        num_workers=infer_common_params['data.num_workers'])
 
-    # load python lightning module
-    model = create_model(**infer_common_params["model"])
-    pl_module = LightningModuleDefault.load_from_checkpoint(checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True)
-    # set the prediction keys to extract (the ones used be the evaluation function).
-    pl_module.set_predictions_keys(['model.output.classification', 'data.ground_truth']) # which keys to extract and dump into file
-
-    # create a trainer instance
-    pl_trainer = pl.Trainer(default_root_dir=paths['model_dir'],
-                            accelerator=infer_common_params["trainer.accelerator"],
-                            devices=infer_common_params["trainer.num_devices"],
-                            auto_select_gpus=True)
-    predictions = pl_trainer.predict(pl_module, infer_dataloader, return_predictions=True)
-
-    # convert list of batch outputs into a dataframe
-    infer_df = convert_predictions_to_dataframe(predictions)
-    save_dataframe(infer_df, infer_file)
+    ## Manager for inference
+    manager = ManagerDefault()
+    output_columns = ['model.output.classification', 'data.ground_truth']
+    manager.infer(data_loader=validation_dataloader,
+                  input_model_dir=paths['model_dir'],
+                  checkpoint=infer_common_params['checkpoint'],
+                  output_columns=output_columns,
+                  output_file_name=os.path.join(paths["inference_dir"], infer_common_params["infer_filename"]))
 
 
 ######################################
 # Analyze Template
 ######################################
 def run_eval(paths: dict, eval_common_params: dict):
-    infer_file = os.path.join(paths['inference_dir'], eval_common_params['infer_filename'])
-
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger('Fuse')
     lgr.info('Fuse Analyze', {'attrs': ['bold', 'underline']})
@@ -515,7 +468,7 @@ def run_eval(paths: dict, eval_common_params: dict):
 
     # run
     results = evaluator.eval(ids=None,
-                             data=infer_file,
+                             data=os.path.join(paths["inference_dir"], eval_common_params["infer_filename"]),
                              metrics=metrics,
                              output_dir=paths['eval_dir'])
 
