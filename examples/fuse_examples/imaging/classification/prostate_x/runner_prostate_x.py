@@ -76,7 +76,7 @@ def get_folds(n_folds: int) -> Tuple[List[int], List[int], List[int]]:
 
     # prev logic. for debugging. delete (?)
     else:
-        heldout_fold = 6
+        heldout_fold = 4
         train_folds = [i % n_folds for i in range(heldout_fold + 1, heldout_fold + n_folds - 1)]
         validation_fold = [(heldout_fold - 1) % n_folds]
         heldout_fold = [heldout_fold]
@@ -117,7 +117,7 @@ if mode == "debug":
     print(selected_sample_ids)
     cache_dir = os.path.join(ROOT, "cache_dir_debug")
     model_dir = os.path.join(ROOT, "model_dir_debug")
-    num_workers = 16
+    num_workers = 10
     batch_size = 2
     num_epoch = 2
 else:
@@ -126,9 +126,9 @@ else:
     model_dir = os.path.join(ROOT, f"model_dir_pl_{heldout_fold[0]}")
     selected_sample_ids = None
 
-    num_workers = 16
+    num_workers = 10
     batch_size = 18
-    num_epoch = 15
+    num_epoch = 50
 
 ##########################################
 # Output Paths
@@ -136,7 +136,8 @@ else:
 PATHS = {
     "model_dir": model_dir,
     "cache_dir": cache_dir,
-    "data_split_filename": os.path.join(ROOT, data_split_file),
+    # "data_split_filename": os.path.join(ROOT, data_split_file),
+    "data_split_filename": "/dccstor/mm_hcls/usr/sagi/fuse_1/_examples/prostate_x/prostatex_8_folds.pkl", # to match Michal's
     "data_dir": data_dir,
     "inference_dir": os.path.join(model_dir, "infer_dir"),
     "eval_dir": os.path.join(model_dir, "eval_dir"),
@@ -351,6 +352,7 @@ def run_train(paths: dict, train_params: dict) -> None:
         workers=0,  # todo: stuck in Export to dataframe
         nfolds=train_params["data.num_folds"],
         verbose=True,
+        reset_split=False,
     )
 
     train_sample_ids = []

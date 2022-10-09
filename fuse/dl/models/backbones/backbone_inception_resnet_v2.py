@@ -311,7 +311,7 @@ class BackboneInceptionResnetV2(nn.Module):
                 raise Exception("Invalid URL for InceptionResnetV2 pretrained weights")
             except URLError as e:
                 logging.getLogger("Fuse").warning(
-                    f"Couldn't load pretraind weights from the url: '{pretrained_weights_url}' due to the following URLError: '{e}'."
+                    f"Couldn't load pretrained weights from the url: '{pretrained_weights_url}' due to the following URLError: '{e}'."
                 )
 
         # recreate the first conv with the required number of input parameters
