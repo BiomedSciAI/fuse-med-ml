@@ -100,7 +100,7 @@ class ISIC:
             filename = os.path.join(data_path, "ISIC_2019_Training_Input.zip")
             print(f"Extract to {path}")
             if not os.path.exists(filename):
-                wget.download(url, os.path.join(data_path, "ISIC_2019_Training_Input.zip"))
+                wget.download(url, filename)
 
             if sample_ids_to_download is not None:
                 members = [os.path.join("ISIC_2019_Training_Input", m + ".jpg") for m in sample_ids_to_download]
