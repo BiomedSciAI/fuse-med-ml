@@ -66,7 +66,7 @@ class OpClinicalLoad(OpBase):
             json_data = pd.read_json(os.path.join(self.json_path, "features.json"))[cols]
         else:
             cols += ["aua_risk_group"]
-            json_data = pd.read_json(os.path.join(self.json_path, "knight.json"))[cols] 
+            json_data = pd.read_json(os.path.join(self.json_path, "knight.json"))[cols]
 
         sid = sample_dict["data.input.case_id"]
         row = json_data[json_data["case_id"] == sid].to_dict("records")[0]

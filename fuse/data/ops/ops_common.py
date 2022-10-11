@@ -490,7 +490,8 @@ class OpZScoreNorm(OpBase):
 
 
 class OpCond(OpBase):
-    """ Apply given op if the condition (either directly specified or read from the sample_dict) is True"""
+    """Apply given op if the condition (either directly specified or read from the sample_dict) is True"""
+
     def __init__(self, op: OpBase):
         """
         :param op: the op to apply
