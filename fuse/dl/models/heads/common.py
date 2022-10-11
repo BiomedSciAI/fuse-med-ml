@@ -83,8 +83,7 @@ class ClassifierFCN3D(nn.Module):
         layer_list = []
         last_layer_size = in_ch
        
-        for i in range(len(layers_description)):
-            curr_layer_size = layers_description[i]
+        for curr_layer_size in layers_description:
             layer_list.append(nn.Conv3d(last_layer_size, curr_layer_size, kernel_size=1, stride=1))
             layer_list.append(nn.ReLU())
             if dropout_rate is not None and dropout_rate > 0:
@@ -123,8 +122,7 @@ class ClassifierMLP(nn.Module):
         super().__init__()
         layer_list = []
         last_layer_size = in_ch
-        for i in range(len(layers_description)):
-            curr_layer_size = layers_description[i]
+        for curr_layer_size in layers_description:
             layer_list.append(nn.Linear(last_layer_size, curr_layer_size))
             layer_list.append(nn.ReLU())
             if dropout_rate is not None and dropout_rate > 0:
