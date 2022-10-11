@@ -38,6 +38,7 @@ class MetricCIndex(MetricDefault):
         pred: str,
         event_times: str,
         event_observed: Optional[str]=None,
+        time_unit: Optional[int]=1,
         **kwargs,
     ):
         """
@@ -46,7 +47,7 @@ class MetricCIndex(MetricDefault):
         :param event_times:  a length-n iterable event times, or censor times if event is not observed.
         :param event_observed: a length-n iterable event observed flags, 1 if observed, 0 if not (i.e. censored). Default None assumes all observed.
         """
-        super().__init__(pred=pred, target=None, event_times=event_times, event_observed=event_observed, 
+        super().__init__(pred=pred, target=None, event_times=event_times, event_observed=event_observed, time_unit=time_unit,
                          metric_func=MetricsSurvival.c_index, **kwargs)
 
 
