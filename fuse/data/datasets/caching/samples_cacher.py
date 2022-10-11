@@ -137,12 +137,8 @@ class SamplesCacher:
         print("---- list end ----")
         print("deleting ... ")
         for del_dir in dirs_to_delete:
-            print(f"deleting {del_dir} ...")
-            all_found = glob(os.path.join(del_dir, "hash_*"))
-            for found in all_found:
-                if not os.path.isdir(found):
-                    continue
-                delete_directory_tree(found)
+            print(f"deleting {os.path.abspath(del_dir)} ...")
+            delete_directory_tree(del_dir)
 
     def _get_write_dir(self):
         ans = self._write_dir_logic(self._cache_dirs)
@@ -175,7 +171,7 @@ class SamplesCacher:
         for curr_read_dir in read_dirs:
             fullpath_filename = os.path.join(curr_read_dir, "full_sets_info", hash_filename)
             if os.path.isfile(fullpath_filename):
-                print(f"entire samples set {hash_filename} already cached. Found {fullpath_filename}")
+                print(f"entire samples set {hash_filename} already cached. Found {os.path.abspath(fullpath_filename)}")
                 return load_pickle(fullpath_filename)
 
         orig_sid_to_final = OrderedDict()

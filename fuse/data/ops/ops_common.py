@@ -487,3 +487,24 @@ class OpZScoreNorm(OpBase):
     def __call__(self, sample_dict: NDict, key: str, mean: float, std: float):
         sample_dict[key] = (sample_dict[key] - mean) / std
         return sample_dict
+
+
+class OpCond(OpBase):
+    """ Apply given op if the condition (either directly specified or read from the sample_dict) is True"""
+    def __init__(self, op: OpBase):
+        """
+        :param op: the op to apply
+        """
+        super().__init__()
+        self._op = op
+
+    def __call__(self, sample_dict: NDict, condition: Union[str, bool], **kwargs) -> Union[None, dict, List[dict]]:
+        """
+        :param condition:instruct if to call the inner op. Can either a boolean or a key to sample_dict used to extract the boolean
+        """
+        if isinstance(condition, str):
+            condition = sample_dict[condition]
+        if condition:
+            return self._op(sample_dict, **kwargs)
+        else:
+            return sample_dict
