@@ -171,9 +171,10 @@ class BalancedLightningDataModule(pl.LightningDataModule):
     """
     Fuse generic implementation of PL datamodule.
     This module aims to wrap one's datasets into a datamodule for Lightning's Trainer.
+    Must when using DDP strategy, otherwise optional.
     See use case example in "run_mnist_ddp.py"
 
-    For more robust changes consider to implement your datamodule from scratch.
+    Tip: for more robust changes consider to implement your datamodule from scratch.
     """
 
     def __init__(
@@ -183,12 +184,9 @@ class BalancedLightningDataModule(pl.LightningDataModule):
         predict_dataset: DatasetBase,
         num_workers: int,
         batch_size: int,
-        balanced_class_name: str,
-        num_balanced_classes: int,
-        sampler_mode: str = "exact",
         collate_fn: CollateToBatchList = None,
         use_custom_batch_sampler: bool = False,
-        verbose: bool = False,
+        **batch_sampler_kwargs: Dict[str, Any],
     ):
         """
         :param train_dataset: training dataset
@@ -196,13 +194,10 @@ class BalancedLightningDataModule(pl.LightningDataModule):
         :param predict_dataset: prediction (inference) dataset
         :param num_workers: number of processes
         :param batch_size: batch size
-        :param balanced_class_name: see BatchSamplerDefault class for ref.  // ASK @MOSHIKO, maybe pass with **batch_sampler_args (?) more nit but less readable (?)
-        :param num_balanced_classes: see BatchSamplerDefault class for ref.
-        :param sampler_mode: see BatchSamplerDefault class for ref.
         :param collate_fn: dataloader param
         :param use_custom_batch_sampler: set True to use Fuse's BatchSamplerDefault, else will use default one.
                 Note that currently DDP doesn't work with our custom batch sampler. Will be fixed in the future.
-        :param verbose: set to true for debug messages
+        :param batch_sampler_kwargs: batch sampler's keyword arguments - see 'BatchSamplerDefault'.
         """
         super().__init__()
         self._train_dataset = train_dataset
@@ -210,11 +205,8 @@ class BalancedLightningDataModule(pl.LightningDataModule):
         self._predict_dataset = predict_dataset
         self._num_workers = num_workers
         self._batch_size = batch_size
-        self._balanced_class_name = balanced_class_name
-        self._num_balanced_classes = num_balanced_classes
-        self._sampler_mode = sampler_mode
         self._use_custom_batch_sampler = use_custom_batch_sampler
-        self._verbose = verbose
+        self._batch_sampler_kwargs = batch_sampler_kwargs
         if collate_fn is None:
             self._collate_fn = CollateDefault()
 
@@ -227,12 +219,9 @@ class BalancedLightningDataModule(pl.LightningDataModule):
             print("Create BatchSamplerDefault:")
             batch_sampler = BatchSamplerDefault(
                 dataset=self._train_dataset,
-                balanced_class_name=self._balanced_class_name,
-                num_balanced_classes=self._num_balanced_classes,
                 batch_size=self._batch_size,
-                mode=self._sampler_mode,
-                verbose=self._verbose,
                 workers=self._num_workers,
+                **self._batch_sampler_kwargs,
             )
             print("Create BatchSamplerDefault: DONE")
             batch_size = 1  # should not provide batch_size for custom batch_sampler (1 is default)
