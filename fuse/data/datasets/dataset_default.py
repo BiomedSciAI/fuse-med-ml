@@ -147,6 +147,7 @@ class DatasetDefault(DatasetBase):
         else:
             self._final_sample_ids = self._orig_sample_ids
 
+        self._orig_sample_ids = None  # should not be use after create. use self._final_sample_ids instead
         self._created = True
 
     def get_all_sample_ids(self):
@@ -344,3 +345,23 @@ class DatasetDefault(DatasetBase):
         # sum += f"Pipeline dynamic: {self._dynamic_pipeline.summary()}"
 
         return sum
+
+    def subset(self, indices: Sequence[int]) -> None:
+        """
+        :param items: indices of the subset
+        """
+        if indices is None:
+            # Do nothing, the subset is the whole dataset
+            return
+
+        if not self._created:
+            raise Exception("you must first call create()")
+
+        # will contain the subset sample ids
+        subset_final_sample_ids = list(range(len(indices)))
+
+        # grab the specified data
+        for i, item in enumerate(indices):
+            subset_final_sample_ids[i] = self._final_sample_ids[item]
+
+        self._final_sample_ids = subset_final_sample_ids
