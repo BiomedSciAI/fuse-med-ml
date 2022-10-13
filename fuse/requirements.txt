@@ -11,7 +11,6 @@ pycocotools>=2.0.1
 torch>=1.5.0
 torchvision>=0.8.1
 pytorch_lightning
-protobuf
 tensorboard
 wget
 ipython
