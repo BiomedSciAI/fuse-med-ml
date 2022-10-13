@@ -54,7 +54,7 @@ class EvaluatorDefault:
         id_key: str = "id",
         batch_size: Optional[int] = None,
         output_dir: Optional[str] = None,
-        silent: Optional[str] = True
+        silent: bool = True
     ) -> NDict:
         """
         evaluate, return, print and optionally dump results to a file
@@ -80,7 +80,7 @@ class EvaluatorDefault:
                                               data must be an iterator of samples.
                                               A batch will be automatically created from batch_size samples
         :param output_dir: Optional - dump results to directory
-        :param silent: Optional - print results if true
+        :param silent: print results if false
         :return: dictionary that holds all the results.
         """
         self.silent = silent
