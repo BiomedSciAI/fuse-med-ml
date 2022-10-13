@@ -54,7 +54,7 @@ class EvaluatorDefault:
         id_key: str = "id",
         batch_size: Optional[int] = None,
         output_dir: Optional[str] = None,
-        silent: bool = True
+        silent: bool = True,
     ) -> NDict:
         """
         evaluate, return, print and optionally dump results to a file
@@ -279,7 +279,8 @@ class EvaluatorDefault:
                 results += f"{metric_result}\n"
 
         # print to screen
-        if not self.silent: print(results)
+        if not self.silent:
+            print(results)
 
         # make sure the output folder exist
         if output_dir is not None:
