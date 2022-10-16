@@ -53,6 +53,16 @@ from fuse.dl.models.heads.heads_3D import Head3D
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
 import pytorch_lightning as pl
+import argparse
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--heldout_fold", help="Name the job", type=int, default=-1)
+
+args = parser.parse_args()
+
+if args.heldout_fold == -1:
+    raise Exception("should specify heldout fold")
 
 
 def get_folds(n_folds: int) -> Tuple[List[int], List[int], List[int]]:
@@ -76,7 +86,7 @@ def get_folds(n_folds: int) -> Tuple[List[int], List[int], List[int]]:
 
     # prev logic. for debugging. delete (?)
     else:
-        heldout_fold = 4
+        heldout_fold = args.heldout_fold  # Change here when comparing to Michal's
         train_folds = [i % n_folds for i in range(heldout_fold + 1, heldout_fold + n_folds - 1)]
         validation_fold = [(heldout_fold - 1) % n_folds]
         heldout_fold = [heldout_fold]
@@ -122,7 +132,7 @@ if mode == "debug":
     num_epoch = 2
 else:
     data_split_file = f"prostatex_{n_folds}_folds.pkl"
-    cache_dir = os.path.join(ROOT, "cache_dir_pl")
+    cache_dir = os.path.join(ROOT, f"cache_dir_pl_{heldout_fold[0]}")
     model_dir = os.path.join(ROOT, f"model_dir_pl_{heldout_fold[0]}")
     selected_sample_ids = None
 
@@ -137,7 +147,7 @@ PATHS = {
     "model_dir": model_dir,
     "cache_dir": cache_dir,
     # "data_split_filename": os.path.join(ROOT, data_split_file),
-    "data_split_filename": "/dccstor/mm_hcls/usr/sagi/fuse_1/_examples/prostate_x/prostatex_8_folds.pkl",  # to match Michal's
+    "data_split_filename": "/dccstor/mm_hcls/usr/sagi/prostatex_8_folds.pkl",  # hard coded to compare
     "data_dir": data_dir,
     "inference_dir": os.path.join(model_dir, "infer_dir"),
     "eval_dir": os.path.join(model_dir, "eval_dir"),

@@ -48,15 +48,15 @@ class OpExtractDicomsPerSeq(OpBase):
         self._series_desc_2_sequence_map = series_desc_2_sequence_map
         self._use_order_indicator = use_order_indicator
 
-    def __call__(self, sample_dict: NDict, key_in: str, key_out_sequence_prefix: str) -> NDict:
+    def __call__(self, sample_dict: NDict, key_in_sample_path: str, key_out_sequence_prefix: str) -> NDict:
         """
         TODO
         :param sample_dict:
-        :param key_in: key for the sample's path the stored in the sample_dict
+        :param key_in_sample_path: key for the sample's path the stored in the sample_dict
         :param key_out_seq_ids: the ids will be used as a suffix in storing the series in the sample_dict
         :param key_out_sequence_prefix: the prefix used to store the series in the sample_dict
         """
-        sample_path = sample_dict[key_in]
+        sample_path = sample_dict[key_in_sample_path]
         # sample_dict[key_out_seq_ids] = []
         seq_2_info_map = extract_seq_2_info_map(sample_path, self._series_desc_2_sequence_map)
 
@@ -342,7 +342,6 @@ class OpSelectVolumes(OpBase):
         get_indexes_func,
         selected_seq_ids: list,
         verbose: bool = True,
-        **kwargs,
     ):
         """
         :param get_indexes_func:
@@ -350,7 +349,7 @@ class OpSelectVolumes(OpBase):
         :param delete_input_volumes:
         :param verbose:
         """
-        super().__init__(**kwargs)
+        super().__init__()
         self._get_indexes_func = get_indexes_func
         self._selected_seq_ids = selected_seq_ids
         self._verbose = verbose
@@ -435,6 +434,7 @@ class OpSelectVolumes(OpBase):
 
 class OpDeleteSequenceAttr(OpBase):
     """
+    TODO I think we have an op th
     Delete sequence's attribute.
     Useful to save memory and caching time.
 
@@ -480,16 +480,15 @@ class OpResampleStkVolsBasedRef(OpBase):
     Supported interpolation modes: "linear","nn" (nearest neighbor),"bspline".
     """
 
-    def __init__(self, reference_inx: int, interpolation: str, verify_args: bool = True, **kwargs):
+    def __init__(self, reference_inx: int, interpolation: str):
         """
         :param reference_inx: index for the volume that will be used as a reference for size and spacing.
         :param interpolation: interpolation mode from - ["linear","nn" (nearest neighbor),"bspline"]
         :param kwargs:
         """
-        super().__init__(**kwargs)
+        super().__init__()
         self._reference_inx = reference_inx
         self._interpolation = interpolation
-        self._verify_args = verify_args
 
     def __call__(self, sample_dict: NDict, key: str) -> NDict:
         """
@@ -499,9 +498,8 @@ class OpResampleStkVolsBasedRef(OpBase):
         volumes = sample_dict[key]
 
         # Verify arguments
-        if self._verify_args:
-            if len(volumes) == 0:
-                raise Exception("Expecting non-empty list.")
+        if len(volumes) == 0:
+            raise Exception("Expecting non-empty list.")
 
         # cast volumes to match types
         volumes_res = [sitk.Cast(v, sitk.sitkFloat32) for v in volumes]
@@ -509,7 +507,7 @@ class OpResampleStkVolsBasedRef(OpBase):
         # Get the reference volume
         ref_volume = volumes[self._reference_inx]
 
-        # create the STK resample operator that will excute the resampling
+        # create the STK resample operator that will execute the resampling
         resample = create_resample(
             vol_ref=ref_volume,
             interpolation=self._interpolation,
@@ -568,8 +566,8 @@ class OpStackList4DStk(OpBase):
 
         if isinstance(vols_stk_list, sitk.Image):  # quick fix
             vols_stk_list = [vols_stk_list]
+            raise Exception("Should be list!")
 
-        # Delete from dict if necessary
         if self._delete_input_volumes:
             del sample_dict[key_in]
 
@@ -1303,10 +1301,8 @@ def extract_seq_2_info_map(sample_path: str, series_desc_2_sequence_map: Dict[st
         if len(dcm_files) == 0:
             raise Exception(f"Could not find any dicoms in the sequence directory: {seq_path} .")
 
-        # Read one of the dicoms dataset
+        # Read one of the dicoms dataset to obtain series description
         dcm_ds = pydicom.dcmread(dcm_files[0])
-
-        # Read series description from one of the dicoms
         series_desc = dcm_ds.SeriesDescription
 
         # Derive the sequence ID from the series description

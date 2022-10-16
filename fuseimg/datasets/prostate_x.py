@@ -142,7 +142,7 @@ class ProstateX:
                     use_order_indicator=False,
                 ),
                 dict(
-                    key_in="data.input.mri_path",
+                    key_in_sample_path="data.input.mri_path",
                     key_out_sequence_prefix="data.input.sequence",
                 ),
             ),
@@ -473,7 +473,7 @@ class OpProstateXSampleIDDecode(OpBase):
     ) -> NDict:
         sid = get_sample_id(sample_dict)
 
-        patient_id = sid[:-2]
+        patient_id = sid[:-2]  # for example, "ProstateX-0003"
         sample_dict[key_out_patient_id] = patient_id
         sample_dict[key_out_path_mri] = get_sample_path(self._data_path, patient_id)
 

@@ -149,15 +149,15 @@ class OpFunc(OpReversibleBase):
 
     Example:
 
-    def add_seperator(text:str, sep=' '):
+    def add_separator(text:str, sep=' '):
         return sep.join(text)
 
-    OpAddSeperator = OpFunc(add_seperator)
+    OpAddSeparator = OpFunc(add_separator)
 
     usage in pipeline:
 
     pipeline = [
-        (OpAddSeperator, dict(inputs={'data.text_input':'text'}, outputs='data.text_input'), #
+        (OpAddSeparator, dict(inputs={'data.text_input':'text'}, outputs='data.text_input'), #
     ]
 
     """
@@ -282,7 +282,7 @@ class OpApplyTypes(OpReversibleBase):
 
     def __init__(self, type_to_op_dict: Dict[Enum, Tuple[OpBase, dict]], type_detector: TypeDetectorBase):
         """
-        :param type_to_op_dict: map a type (See enum DataType) to a pair of op and correspending arguments (will be added/override the arguments provided in __call__() function)
+        :param type_to_op_dict: map a type (See enum DataType) to a pair of op and corresponding arguments (will be added/override the arguments provided in __call__() function)
         """
         super().__init__()
         self._type_to_op_dict = type_to_op_dict
