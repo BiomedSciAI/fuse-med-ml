@@ -28,7 +28,8 @@ import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
 
 import fuse.utils.gpu as GPU
-from fuse_examples.fuse_examples_utils import ask_user  # , get_fuse_examples_user_dir
+
+# from fuse_examples.fuse_examples_utils import ask_user  # , get_fuse_examples_user_dir
 
 # from fuse_examples.imaging.utils.backbone_3d_multichannel import Fuse_model_3d_multichannel, ResNet
 from fuse.data.utils.collates import CollateDefault
@@ -46,9 +47,10 @@ from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import create_dir, load_pickle, save_dataframe
 
 from fuseimg.datasets import prostate_x
-from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
-from fuse.dl.models import ModelMultiHead
-from fuse.dl.models.heads.heads_3D import Head3D
+
+# from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
+# from fuse.dl.models import ModelMultiHead
+# from fuse.dl.models.heads.heads_3D import Head3D
 
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe

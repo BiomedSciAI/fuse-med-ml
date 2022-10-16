@@ -12,7 +12,6 @@ limitations under the License.
 Created on June 30, 2021
 """
 
-from cmath import log
 from typing import Sequence, Dict, Tuple, Optional
 
 import torch
@@ -20,7 +19,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from fuse.utils.ndict import NDict
-import numpy as np
 
 
 class LinearLayers(nn.Module):

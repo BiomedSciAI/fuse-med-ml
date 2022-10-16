@@ -173,7 +173,6 @@ class OpVis3DImage(OpDebugBase):
 
     """
 
-
     def __init__(
         self,
         show: bool = True,
@@ -213,13 +212,13 @@ class OpVis3DImage(OpDebugBase):
             vol = sitk.GetArrayFromImage(vol)
 
         assert isinstance(vol, numpy.ndarray)
-        assert channel_axis >= 0 and channel_axis < 3 
+        assert channel_axis >= 0 and channel_axis < 3
 
-        # Plot the images on a subplots array 
+        # Plot the images on a subplots array
         fig, axs = plt.subplots(nrows=n_rows, ncols=n_cols)
 
         num_slices = vol.shape[channel_axis]
-        plot_size = (n_rows * n_cols)
+        plot_size = n_rows * n_cols
         assert plot_size < num_slices
         jump = num_slices // plot_size
 
@@ -242,10 +241,9 @@ class OpVis3DImage(OpDebugBase):
                 img = vol[:, :, vol_slice]
 
             print(f"type(axs)={type(axs)}")
-            ax.imshow(img, cmap='gray')
-            ax.axis('off')
+            ax.imshow(img, cmap="gray")
+            ax.axis("off")
             ax.title.set_text(f"slice {vol_slice}")
-
 
         if self._show:
             plt.show()

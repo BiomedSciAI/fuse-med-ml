@@ -54,4 +54,4 @@ exclude =
     ext_deps
     libs
     releases
-    _job_runner.py
+    _*.py
