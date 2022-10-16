@@ -166,7 +166,13 @@ class OpVisImageHist(OpDebugBase):
 
 
 class OpVis3DImage(OpDebugBase):
-    
+    """
+    Example of use:
+            (OpVis3DImage(num_samples=1, show=False), dict(key="data.debug.3d_volume", n_rows=2, n_cols=3, channel_axis=0))
+
+
+    """
+
 
     def __init__(
         self,
@@ -223,19 +229,22 @@ class OpVis3DImage(OpDebugBase):
         print(f"type(axs[0])={type(axs[0])}")
         print(f"axes.shape={axs.shape}")
         # Loop through subplots and draw image
+        fig.suptitle(f"Total number of slices = {num_slices}")
         for ii, ax in enumerate(axs.flatten()):
+            vol_slice = ii * jump
             if channel_axis == 0:
-                img = vol[ii * jump, :, :]
+                img = vol[vol_slice, :, :]
 
             elif channel_axis == 1:
-                img = vol[:, ii * jump, :]
+                img = vol[:, vol_slice, :]
 
             elif channel_axis == 2:
-                img = vol[:, :, ii * jump]
+                img = vol[:, :, vol_slice]
 
             print(f"type(axs)={type(axs)}")
             ax.imshow(img, cmap='gray')
             ax.axis('off')
+            ax.title.set_text(f"slice {vol_slice}")
 
 
         if self._show:

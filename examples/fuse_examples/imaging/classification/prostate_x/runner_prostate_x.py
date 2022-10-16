@@ -251,11 +251,12 @@ EVAL_COMMON_PARAMS["infer_filename"] = INFER_COMMON_PARAMS["infer_filename"]
 # Michal's implementation
 def create_model(imaging_dropout: float, num_backbone_features: int, input_channels_num: int) -> torch.nn.Module:
     from fuse.dl.models.model_temp import Fuse_model_3d_multichannel, ResNet, Head1DClassifier
+
     """
     Creates the model
     See Head3DClassifier for details about imaging_dropout, clinical_dropout, fused_dropout
     """
-    conv_inputs = (('data.input.patch_volume', 1),)
+    conv_inputs = (("data.input.patch_volume", 1),)
 
     model = Fuse_model_3d_multichannel(
         conv_inputs=conv_inputs,  # previously 'data.input'. could be either 'data.input.patch_volume' or  'data.input.patch_volume_orig'
@@ -263,20 +264,21 @@ def create_model(imaging_dropout: float, num_backbone_features: int, input_chann
         # since backbone resnet contains pooling and fc, the feature output is 1D,
         # hence we use Head1dClassifier as classification head
         heads=[
-            Head1DClassifier(head_name='classification',
-                             conv_inputs=[('model.backbone_features', num_backbone_features)],
-                             post_concat_inputs=None,  # [('data.clinical_features',9),]
-                             post_concat_model=None,  # (256,256)
-                             dropout_rate=imaging_dropout,
-                             # append_dropout_rate=train_params['clinical_dropout'],
-                             # fused_dropout_rate=train_params['fused_dropout'],
-                             shared_classifier_head=None,
-                             layers_description=None,
-                             num_classes=2,
-                             # append_features=[("data.input.clinical", 8)],
-                             # append_layers_description=(256,128),
-                             ),
-        ]
+            Head1DClassifier(
+                head_name="classification",
+                conv_inputs=[("model.backbone_features", num_backbone_features)],
+                post_concat_inputs=None,  # [('data.clinical_features',9),]
+                post_concat_model=None,  # (256,256)
+                dropout_rate=imaging_dropout,
+                # append_dropout_rate=train_params['clinical_dropout'],
+                # fused_dropout_rate=train_params['fused_dropout'],
+                shared_classifier_head=None,
+                layers_description=None,
+                num_classes=2,
+                # append_features=[("data.input.clinical", 8)],
+                # append_layers_description=(256,128),
+            ),
+        ],
     )
     return model
 

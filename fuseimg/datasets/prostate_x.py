@@ -363,7 +363,10 @@ class ProstateX:
                 dict(key=None),
             ),
             (OpPrintShapes(num_samples=1), dict()),
-            (OpVis3DImage(num_samples=1, show=False), dict(key="data.debug.3d_volume", n_rows=3, n_cols=3, channel_axis=0))
+            (
+                OpVis3DImage(num_samples=1, show=False),
+                dict(key="data.debug.3d_volume", n_rows=2, n_cols=3, channel_axis=0),
+            ),
         ]
 
         dynamic_steps = dynamic_steps + debug_steps
@@ -746,9 +749,10 @@ class OpFixProstateBSequence(OpBase):
                     volume.CopyInformation(adc_volume)
         return sample_dict
 
+
 def extract_3d_vol_debug(sample_dict: NDict, key_in: str, key_out: str, key_in_ch: int = 0) -> NDict:
-    
+
     vol_4d = sample_dict[key_in]
-    vol_3d = vol_4d[key_in_ch,:,:,:]
+    vol_3d = vol_4d[key_in_ch, :, :, :]
     sample_dict[key_out] = vol_3d
     return sample_dict
