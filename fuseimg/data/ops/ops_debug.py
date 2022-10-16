@@ -1,5 +1,5 @@
 import os
-from typing import Callable, Optional, Tuple, Any
+from typing import Callable, Optional, Tuple, Any, Dict
 from fuse.data.ops.ops_cast import Cast
 from fuse.data.utils.sample import get_sample_id
 from fuse.utils import NDict
@@ -163,3 +163,88 @@ class OpVisImageHist(OpDebugBase):
             plt.savefig(
                 os.path.join(self._path, f"hist_{get_sample_id(sample_dict).replace('.', '__')}.png")
             )  # save fig
+
+
+class OpVis3DImage(OpDebugBase):
+    
+
+    def __init__(
+        self,
+        show: bool = True,
+        path: str = ".",
+        **kwargs: Dict[str, Any],
+    ):
+        """
+        :param show:
+        :param path:
+        :param kwargs:
+        """
+        super().__init__(**kwargs)
+        self._show = show
+        self._path = path
+
+    def call_debug(
+        self,
+        sample_dict: NDict,
+        key: str,
+        n_rows: int,
+        n_cols: int,
+        channel_axis: int,
+    ) -> None:
+        """
+        :param sample_dict:
+        :param key:
+        :param n_rows:
+        :param n_cols:
+        :param channel_axis:
+        """
+
+        vol = sample_dict[key]
+        if isinstance(vol, torch.Tensor):
+            vol = vol.detach().cpu().numpy()
+
+        if isinstance(vol, sitk.Image):  # should not be array! temp sagi
+            vol = sitk.GetArrayFromImage(vol)
+
+        assert isinstance(vol, numpy.ndarray)
+        assert channel_axis >= 0 and channel_axis < 3 
+
+        # Plot the images on a subplots array 
+        fig, axs = plt.subplots(nrows=n_rows, ncols=n_cols)
+
+        num_slices = vol.shape[channel_axis]
+        plot_size = (n_rows * n_cols)
+        assert plot_size < num_slices
+        jump = num_slices // plot_size
+
+        print(f"num_slices={num_slices}")
+        print(f"plot_size={plot_size}")
+        print(f"jump={jump}")
+        print(f"type(axs[0])={type(axs[0])}")
+        print(f"axes.shape={axs.shape}")
+        # Loop through subplots and draw image
+        for ii, ax in enumerate(axs.flatten()):
+            if channel_axis == 0:
+                img = vol[ii * jump, :, :]
+
+            elif channel_axis == 1:
+                img = vol[:, ii * jump, :]
+
+            elif channel_axis == 2:
+                img = vol[:, :, ii * jump]
+
+            print(f"type(axs)={type(axs)}")
+            ax.imshow(img, cmap='gray')
+            ax.axis('off')
+
+
+        if self._show:
+            plt.show()
+
+        else:
+            if self._name is None:
+                filename = os.path.join(self._path, get_sample_id(sample_dict).replace(".", "__")) + ".png"
+            else:
+                filename = os.path.join(self._path, self._name, get_sample_id(sample_dict).replace(".", "__")) + ".png"
+            create_dir(os.path.dirname(filename))
+            plt.savefig(filename)  # save fig

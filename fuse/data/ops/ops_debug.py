@@ -27,7 +27,9 @@ class OpDebugBase(OpBase):
         self._num_samples_done = 0
 
     def reset(self, name: Optional[str] = None):
-        """Reset operation state"""
+        """
+        Reset operation state
+        """
         self._num_samples_done = 0
         self._name = name
 

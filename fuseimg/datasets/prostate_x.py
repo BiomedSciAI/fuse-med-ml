@@ -39,7 +39,8 @@ from fuseimg.data.ops.ops_mri import (
     OpDeleteSequenceAttr,
 )
 
-# from fuse.data.ops.ops_debug import OpPrintKeysContent
+from fuse.data.ops.ops_debug import OpPrintShapes, OpPrintTypes
+from fuseimg.data.ops.ops_debug import OpVis3DImage
 
 
 def get_selected_series_index(sample_id: List[str], seq_id: str) -> int:
@@ -201,6 +202,7 @@ class ProstateX:
                 OpResampleStkVolsBasedRef(reference_inx=0, interpolation="bspline"),
                 dict(key="data.input.selected_volumes"),
             ),
+            (OpPrintShapes(num_samples=1), dict()),
             # step 9: create a single 4D volume from all the sequences (4th channel is the sequence)
             (
                 OpStackList4DStk(delete_input_volumes=True),
@@ -210,6 +212,7 @@ class ProstateX:
                     key_out_ref_volume="data.input.ref_volume",
                 ),
             ),
+            (OpPrintShapes(num_samples=1), dict()),
         ]
         if with_rescale:
             # step 10:
@@ -345,6 +348,25 @@ class ProstateX:
                     ),
                 ),
             ]
+
+        debug_steps = [
+            (OpPrintShapes(num_samples=1), dict()),
+            (OpPrintTypes(num_samples=1), dict()),
+            (
+                OpLambda(
+                    func=partial(
+                        extract_3d_vol_debug,
+                        key_in="data.input.patch_volume",
+                        key_out="data.debug.3d_volume",
+                    )
+                ),
+                dict(key=None),
+            ),
+            (OpPrintShapes(num_samples=1), dict()),
+            (OpVis3DImage(num_samples=1, show=False), dict(key="data.debug.3d_volume", n_rows=3, n_cols=3, channel_axis=0))
+        ]
+
+        dynamic_steps = dynamic_steps + debug_steps
 
         dynamic_pipeline = PipelineDefault("dynamic", dynamic_steps, verbose=verbose)
 
@@ -723,3 +745,10 @@ class OpFixProstateBSequence(OpBase):
 
                     volume.CopyInformation(adc_volume)
         return sample_dict
+
+def extract_3d_vol_debug(sample_dict: NDict, key_in: str, key_out: str, key_in_ch: int = 0) -> NDict:
+    
+    vol_4d = sample_dict[key_in]
+    vol_3d = vol_4d[key_in_ch,:,:,:]
+    sample_dict[key_out] = vol_3d
+    return sample_dict
