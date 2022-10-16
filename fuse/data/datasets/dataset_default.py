@@ -348,6 +348,8 @@ class DatasetDefault(DatasetBase):
 
     def subset(self, indices: Sequence[int]) -> None:
         """
+        create a subset of the dataset by a given indices (inplace).
+
         :param items: indices of the subset
         """
         if indices is None:
