@@ -166,7 +166,7 @@ class ResidualBlock(torch.nn.Module):
         out = self.relu(out)
         out = self.conv2(out)
         out = self.bn2(out)
-        res_mod = "concat"
+        res_mod = "sum"
         if res_mod == "sum":
             if self.downsample:
                 residual = self.downsample(x)
@@ -191,7 +191,7 @@ class ResNet(torch.nn.Module):
         layers = [1, 1, 1, 1, 1]
         out_features = [32, 64, 128, 256, 512]
         self.in_channels = 16
-        in_features = [self.in_channels, 48, 112, 240, 496]
+        in_features = [self.in_channels, 32, 64, 128, 256]
         self.conv_inputs = conv_inputs
         if self.ch_num is None:
             self.conv = conv3x3(1, 16)
@@ -213,7 +213,7 @@ class ResNet(torch.nn.Module):
         self.max_pool2 = nn.MaxPool3d((2, 2, 2), stride=(2, 2, 2))
         self.max_pool1 = nn.MaxPool3d((1, 2, 2), stride=(1, 2, 2))
 
-        self.conv_last = conv3x3(1008, 1008)
+        self.conv_last = conv3x3(512, 1008)
         self.bn_last = nn.BatchNorm3d(1008)
 
         self.dropout = nn.Dropout(0.5)

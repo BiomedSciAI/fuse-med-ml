@@ -153,8 +153,6 @@ class OpVisImageHist(OpDebugBase):
         if self._image_process_func is not None:
             img = self._image_process_func(img)
 
-        print(img.max())
-        print(numpy.histogram(img.flatten()))
         plt.figure(**figure_kwargs)
         plt.hist(img.flatten(), bins=bins, **hist_kwargs)
         if self._show:
@@ -222,11 +220,6 @@ class OpVis3DImage(OpDebugBase):
         assert plot_size < num_slices
         jump = num_slices // plot_size
 
-        print(f"num_slices={num_slices}")
-        print(f"plot_size={plot_size}")
-        print(f"jump={jump}")
-        print(f"type(axs[0])={type(axs[0])}")
-        print(f"axes.shape={axs.shape}")
         # Loop through subplots and draw image
         fig.suptitle(f"Total number of slices = {num_slices}")
         for ii, ax in enumerate(axs.flatten()):
@@ -240,7 +233,6 @@ class OpVis3DImage(OpDebugBase):
             elif channel_axis == 2:
                 img = vol[:, :, vol_slice]
 
-            print(f"type(axs)={type(axs)}")
             ax.imshow(img, cmap="gray")
             ax.axis("off")
             ax.title.set_text(f"slice {vol_slice}")
