@@ -187,22 +187,22 @@ class OpVis3DImage(OpDebugBase):
         super().__init__(**kwargs)
         self._show = show
         self._path = path
-    
+
     def frame_args(self, duration: int):
         return {
-                "frame": {"duration": duration},
-                "mode": "immediate",
-                "fromcurrent": True,
-                "transition": {"duration": duration, "easing": "linear"},
-            }
-    
+            "frame": {"duration": duration},
+            "mode": "immediate",
+            "fromcurrent": True,
+            "transition": {"duration": duration, "easing": "linear"},
+        }
+
     def make_plotly_vis(self, vol=None):
         """
         args:
             vol: lxwxh numpy-like matrix
-        
+
         output:
-           plotly.graph_objs._figure.Figure 
+           plotly.graph_objs._figure.Figure
         """
         # uncomment the below line for example from their website (brain MRI)
         # vol = io.imread("<https://s3.amazonaws.com/assets.datacamp.com/blog_assets/attention-mri.tif>")
@@ -212,23 +212,29 @@ class OpVis3DImage(OpDebugBase):
         # Define frames
         nb_frames = 68
 
-        fig = go.Figure(frames=[go.Frame(data=go.Surface(
-            z=(6.7 - k * 0.1) * np.ones((r, c)),
-            surfacecolor=np.flipud(volume[67 - k]),
-            cmin=0, cmax=1
-            ),
-            name=str(k) # you need to name the frame for the animation to behave properly
-            )
-            for k in range(nb_frames)])
+        fig = go.Figure(
+            frames=[
+                go.Frame(
+                    data=go.Surface(
+                        z=(6.7 - k * 0.1) * np.ones((r, c)), surfacecolor=np.flipud(volume[67 - k]), cmin=0, cmax=1
+                    ),
+                    name=str(k),  # you need to name the frame for the animation to behave properly
+                )
+                for k in range(nb_frames)
+            ]
+        )
 
         # Add data to be displayed before animation starts
-        fig.add_trace(go.Surface(
-            z=6.7 * np.ones((r, c)),
-            surfacecolor=np.flipud(volume[67]),
-            colorscale='Gray',
-            cmin=0, cmax=1,
-            colorbar=dict(thickness=20, ticklen=4)
-            ))
+        fig.add_trace(
+            go.Surface(
+                z=6.7 * np.ones((r, c)),
+                surfacecolor=np.flipud(volume[67]),
+                colorscale="Gray",
+                cmin=0,
+                cmax=1,
+                colorbar=dict(thickness=20, ticklen=4),
+            )
+        )
 
         sliders = [
             {
@@ -249,35 +255,35 @@ class OpVis3DImage(OpDebugBase):
 
         # Layout
         fig.update_layout(
-                title='Slices in volumetric data',
-                width=600,
-                height=600,
-                scene=dict(
-                            zaxis=dict(range=[-0.1, 6.8], autorange=False),
-                            aspectratio=dict(x=1, y=1, z=1),
-                            ),
-                updatemenus = [
-                    {
-                        "buttons": [
-                            {
-                                "args": [None, self.frame_args(50)],
-                                "label": "&#9654;", # play symbol
-                                "method": "animate",
-                            },
-                            {
-                                "args": [[None], self.frame_args(0)],
-                                "label": "&#9724;", # pause symbol
-                                "method": "animate",
-                            },
-                        ],
-                        "direction": "left",
-                        "pad": {"r": 10, "t": 70},
-                        "type": "buttons",
-                        "x": 0.1,
-                        "y": 0,
-                    }
-                ],
-                sliders=sliders
+            title="Slices in volumetric data",
+            width=600,
+            height=600,
+            scene=dict(
+                zaxis=dict(range=[-0.1, 6.8], autorange=False),
+                aspectratio=dict(x=1, y=1, z=1),
+            ),
+            updatemenus=[
+                {
+                    "buttons": [
+                        {
+                            "args": [None, self.frame_args(50)],
+                            "label": "&#9654;",  # play symbol
+                            "method": "animate",
+                        },
+                        {
+                            "args": [[None], self.frame_args(0)],
+                            "label": "&#9724;",  # pause symbol
+                            "method": "animate",
+                        },
+                    ],
+                    "direction": "left",
+                    "pad": {"r": 10, "t": 70},
+                    "type": "buttons",
+                    "x": 0.1,
+                    "y": 0,
+                }
+            ],
+            sliders=sliders,
         )
         return fig
 
@@ -331,14 +337,18 @@ class OpVis3DImage(OpDebugBase):
             ax.imshow(img, cmap="gray")
             ax.axis("off")
             ax.title.set_text(f"slice {vol_slice}")
-        
+
         # make plotly figure and save
         plotly_fig = self.make_plotly_vis(vol)
         if self._name is None:
             # filename will be something like ./ProstateX-0008_1_PLOTLY.html
-            filename = os.path.join(self._path, get_sample_id(sample_dict).replace(".", "__")) + '_PLOTLY' + ".html"
+            filename = os.path.join(self._path, get_sample_id(sample_dict).replace(".", "__")) + "_PLOTLY" + ".html"
         else:
-            filename = os.path.join(self._path, self._name, get_sample_id(sample_dict).replace(".", "__")) + '_PLOTLY' + ".html"
+            filename = (
+                os.path.join(self._path, self._name, get_sample_id(sample_dict).replace(".", "__"))
+                + "_PLOTLY"
+                + ".html"
+            )
         create_dir(os.path.dirname(filename))
         plotly_fig.write_html(filename)
 
