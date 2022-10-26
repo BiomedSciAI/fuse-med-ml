@@ -8,3 +8,4 @@ pydicom
 medpy
 radiomics
 openpyxl
+plotly
