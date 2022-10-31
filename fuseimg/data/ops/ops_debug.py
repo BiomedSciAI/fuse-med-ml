@@ -253,6 +253,10 @@ class OpVis3DImage(OpDebugBase):
 
 class OpVis3DPlotly(OpDebugBase):
     """
+    Visualize a 3D image as plotly figure exported to html.
+    Supports only gray scale.
+    To view results, open the <path>_PLOTLY.html file generated in chrome (have not yet tested another browser).
+
     Example of use:
             (OpVis3DPlotly(num_samples=1), dict(key="data.debug.3d_volume"))
     """
