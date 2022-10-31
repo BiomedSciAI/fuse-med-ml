@@ -21,7 +21,7 @@ class ProjectPatchesTokenizer(nn.Module):
 
     def __init__(self, *, image_shape: Sequence[int], patch_shape: Sequence[int], channels: int, token_dim: int):
         super().__init__()
-        assert len(image_shape) == len(patch_shape), 'patch and image must have identical dimensions'
+        assert len(image_shape) == len(patch_shape), "patch and image must have identical dimensions"
         image_shape = np.array(image_shape)
         patch_shape = np.array(patch_shape)
         assert (image_shape % patch_shape == 0).all(), "Image dimensions must be divisible by the patch size."
@@ -44,7 +44,7 @@ class ProjectPatchesTokenizer(nn.Module):
             raise NotImplementedError("only supports 1D/2D/3D images")
 
     def forward(self, x):
-        assert len(x.shape) == self.image_dim + 2, 'input should be [batch, channels] + image_shape'
+        assert len(x.shape) == self.image_dim + 2, "input should be [batch, channels] + image_shape"
         x = self.proj_layer(x)
         x = x.flatten(start_dim=2, end_dim=-1)  # x.shape == (batch_size, token_dim, num_tokens)
         x = x.transpose(1, 2)  # x.shape == (batch_size, num_tokens, token_dim)
@@ -84,5 +84,5 @@ def main():
     print(pred.shape)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

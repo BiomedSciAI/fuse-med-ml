@@ -10,6 +10,7 @@ class Transformer(nn.Module):
     Gets a [batch_size, num_tokens, token_dim] shaped tensor
     Returns a [batch_size, num_tokens + 1, token_dim] shaped tensor, where the first token is the CLS token
     """
+
     def __init__(
         self,
         *,
