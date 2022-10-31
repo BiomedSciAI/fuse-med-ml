@@ -42,8 +42,8 @@ bibliography: paper.bib
 # Summary
 
 Machine Learning is at the forefront of scientific progress in Healthcare and Medicine. To accelerate scientific discovery, it is important to have tools that allow progress iterations to be collaborative, reproducible, reusable and easily built upon without "reinventing the wheel".
-FuseMedML, or *fuse*, is a Python framework for accelerated Machine Learning (ML) based discovery in the medical domain. It is highly flexible and designed for easy collaboration, encouraging code reuse. Flexibility is enabled by a generic data object design where data is kept in a nested (hierarchical) Python dictionary (NDict), allowing to easily deal with information from different modalities. Functional components allow to specify input and output keys, to be read from and written to the nested dictionary.  
-Easy code reuse is enabled through key components implemented as standalone packages under the main *fuse* repo using the same design principles. These include *fuse.data* - a flexible data processing pipeline, *fuse.eval* - a library for evaluating ML models, *fuse.dl* - reusable Deep Learning model architecture components and loss functions, and more. 
+FuseMedML, or *fuse*, is a Python framework designed for accelerated Machine Learning (ML) based discovery in the medical domain. It is highly flexible and designed for easy collaboration, encouraging code reuse. Flexibility is enabled by a generic data object design where data is kept in a nested (hierarchical) Python dictionary (NDict), allowing to easily deal with information from different modalities. Functional components allow to specify input and output keys, to be read from and written to the nested dictionary.  
+Easy code reuse is enabled through key components implemented as standalone packages under the main *fuse* repo using the same design principles. These include *fuse.data* - a flexible data processing pipeline, *fuse.dl* - reusable Deep Learning model architecture components and loss functions, and *fuse.eval* - a library for evaluating ML models.
 
 # Statement of need
 Medical related research projects span multiple modalities (e.g., imaging, clinical data, biochemical representations) and tasks (e.g., classification, segmentation, clinical conditions prediction).
@@ -58,6 +58,20 @@ Before open sourcing it, we used *fuse* internally in multiple research projects
 We were also able to meaningfully measure our progress and statistical significance of our results with off-the-shelf *fuse.eval* components that facilitate metrics' confidence interval calculation and model comparison. These tools were enabled us to organize two challenges as part of the 2022 International Symposium on Biomedical Imaging (ISBI) [@knight], [@bright].
 
 # Components
+
+## *fuse.data*
+FuseMedML's data package is designed for building a flexible data pipeline with reusable building blocks called *ops*.
+Each op(eration) gets as an input a `sample_dict`, a dictionary that stores all the necessary information about a sample processed so far. Typically, an *op* also gets keys that specify what it should consider in `sample_dict` and where to store the output.
+
+A data pipeline consists of a `static_pipline` and a `dynamic_pipeline`. 
+The output of the `static_pipeline` is cached to optimize running time and maximize GPU utilization.
+The `dynamic_pipeline` is responsible for "online" processing that we don't want cached, such as random augmentations.
+An instance of a *fuse* dataset class, which inherits from the PyTorch dataset class is then created from defined static and dynamic pipelines.  
+The data package includes also includes generic utilities such as a PyTorch based sampler enabling batch class balancing and a tool for splitting data into folds acording to predefined criteria.
+
+## *fuse.dl*
+
+## *fuse.eval*
 
 
 
