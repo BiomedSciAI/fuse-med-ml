@@ -298,7 +298,6 @@ class OpVis3DPlotly(OpDebugBase):
         """
         # uncomment the below line for example from their website (brain MRI)
         # vol = io.imread("<https://s3.amazonaws.com/assets.datacamp.com/blog_assets/attention-mri.tif>")
-        print(f"--- DEBUG volu shape: {vol.shape}")
 
         nb_frames, w, h = vol.shape
         cmin = vol.min()
