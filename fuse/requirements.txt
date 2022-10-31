@@ -8,9 +8,8 @@ scipy>=1.5.4
 matplotlib>=3.3.3
 scikit-learn>=0.23.2
 termcolor>=1.1.0
-torch==1.12.1+cu111
-torchmetrics==0.10.0
-torchvision==0.13.1+cu111
+torch>=1.5.0,<1.13.0
+torchvision>=0.8.1,<0.14.0
 tensorboard
 wget
 ipython
