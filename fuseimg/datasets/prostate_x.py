@@ -40,7 +40,7 @@ from fuseimg.data.ops.ops_mri import (
 )
 
 from fuse.data.ops.ops_debug import OpPrintShapes, OpPrintTypes
-from fuseimg.data.ops.ops_debug import OpVis3DImage
+from fuseimg.data.ops.ops_debug import OpVis3DImage, OpVis3DPlotly
 
 
 def get_selected_series_index(sample_id: List[str], seq_id: str) -> int:
@@ -367,6 +367,7 @@ class ProstateX:
                 OpVis3DImage(num_samples=1, show=False),
                 dict(key="data.debug.3d_volume", n_rows=2, n_cols=3, channel_axis=0),
             ),
+            (OpVis3DPlotly(num_samples=1), dict(key="data.debug.3d_volume")),
         ]
 
         dynamic_steps = dynamic_steps + debug_steps
