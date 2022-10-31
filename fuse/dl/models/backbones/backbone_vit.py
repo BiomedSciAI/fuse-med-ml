@@ -51,18 +51,26 @@ class ProjectPatchesTokenizer(nn.Module):
         return x
 
 
-class Vit(nn.Module):
+class ViT(nn.Module):
     """
     Projects a 1D/2D/3D image into tokens, and then runs it through a transformer
     """
 
     def __init__(self, token_dim: int, projection_kwargs: dict, transformer_kwargs: dict):
+        """
+        :param token_dim: the dimension of each token in the transformer
+        :param projection_kwargs: positional arguments for the ProjectPatchesTokenizer class
+        :param transformer_kwargs: positional arguments for the Transformer class
+        """
         super().__init__()
         self.projection_layer = ProjectPatchesTokenizer(token_dim=token_dim, **projection_kwargs)
         num_tokens = self.projection_layer.num_tokens
         self.transformer = Transformer(num_tokens=num_tokens, token_dim=token_dim, **transformer_kwargs)
 
     def forward(self, x: torch.Tensor, pool: str = "none"):
+        """
+        :param pool: returns all tokens (pool='none'), only cls token (pool='cls') or the average token (pool='mean')
+        """
         assert pool in ["none", "cls", "mean"]
         x = self.projection_layer(x)
         x = self.transformer(x)
@@ -73,16 +81,21 @@ class Vit(nn.Module):
         return x
 
 
-def main():
-    # usage example
+def usage_example():
+    # transformer token dimension
     token_dim = 64
+    # input is a 3d image with shape [128,128,128] and 1 channel
+    # projected using 3d patches of size [16,16,16]
     projection_kwargs = dict(image_shape=[128, 128, 128], patch_shape=[16, 16, 16], channels=1)
+    # the transformer specification
     transformer_kwargs = dict(depth=4, heads=4, mlp_dim=256, dim_head=64, dropout=0.0, emb_dropout=0.0)
-    vit = Vit(token_dim=token_dim, projection_kwargs=projection_kwargs, transformer_kwargs=transformer_kwargs)
+    vit = ViT(token_dim=token_dim, projection_kwargs=projection_kwargs, transformer_kwargs=transformer_kwargs)
+    # an example input to the model
     x = torch.zeros([1, projection_kwargs["channels"]] + projection_kwargs["image_shape"])
+    print(f"image is projected into {vit.projection_layer.num_tokens} tokens")
     pred = vit(x, pool="cls")
-    print(pred.shape)
+    print(f"output shape is: {pred.shape}")
 
 
 if __name__ == "__main__":
-    main()
+    usage_example()
