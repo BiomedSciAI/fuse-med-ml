@@ -1,9 +1,7 @@
 from typing import Sequence
-
 import numpy as np
 import torch
 from torch import nn
-
 from fuse.dl.models.backbones.backbone_transformer import Transformer
 
 
@@ -95,6 +93,7 @@ def usage_example():
     print(f"image is projected into {vit.projection_layer.num_tokens} tokens")
     pred = vit(x, pool="cls")
     print(f"output shape is: {pred.shape}")
+    return pred
 
 
 if __name__ == "__main__":
