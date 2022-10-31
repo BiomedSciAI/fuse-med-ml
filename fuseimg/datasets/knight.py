@@ -170,7 +170,7 @@ class KNIGHT:
         get all the sample ids in train-set
         sample_id is directory file named case_xxxxx found in the specified path
         """
-        files = [f for f in glob(os.path.join(path, "data/case_*"))]
+        files = [os.path.basename(f) for f in glob(os.path.join(path, "case_*"))]
         return files
 
     @staticmethod
@@ -196,7 +196,6 @@ class KNIGHT:
                 ),  # convert image from shape [H, W, D] to shape [D, H, W]
                 (OpPrepareClinical(), dict()),  # process clinical data
                 (OpResizeTo(channels_first=False), dict(key="data.input.img", output_shape=resize_to)),
-                # (OpResample_patient(), dict())
             ],
         )
         return static_pipeline
@@ -278,7 +277,7 @@ class KNIGHT:
         if sample_ids is not None:
             static_pipeline = KNIGHT.static_pipeline(data_path, resize_to=resize_to, test=test)
             cacher = SamplesCacher(
-                "cache", static_pipeline, cache_dirs=[f"{cache_dir}/data"], restart_cache=reset_cache
+                "cache", static_pipeline, cache_dirs=[f"{cache_dir}/data"], restart_cache=reset_cache, workers=8
             )
             dataset = DatasetDefault(
                 sample_ids=sample_ids,
@@ -294,7 +293,7 @@ class KNIGHT:
         static_pipeline = KNIGHT.static_pipeline(data_path, resize_to=resize_to, test=("test" in split))
         if "train" in split:
             train_cacher = SamplesCacher(
-                "train_cache", static_pipeline, cache_dirs=[f"{cache_dir}/train"], restart_cache=reset_cache
+                "train_cache", static_pipeline, cache_dirs=[f"{cache_dir}/train"], restart_cache=reset_cache, workers=8
             )
 
             train_dataset = DatasetDefault(
@@ -315,7 +314,7 @@ class KNIGHT:
             print("Validation Data:", {"attrs": "bold"})
 
             val_cacher = SamplesCacher(
-                "val_cache", static_pipeline, cache_dirs=[f"{cache_dir}/val"], restart_cache=reset_cache
+                "val_cache", static_pipeline, cache_dirs=[f"{cache_dir}/val"], restart_cache=reset_cache, workers=8
             )
             ## Create dataset
             validation_dataset = DatasetDefault(

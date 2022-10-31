@@ -147,7 +147,6 @@ class OpFunc(OpReversibleBase):
         (OpAddSeperator, dict(inputs={'data.text_input':'text'}, outputs='data.text_input'), #
     ]
 
-
     """
 
     def __init__(self, func: Callable, **kwargs):
@@ -382,12 +381,25 @@ class OpKeepKeypaths(OpBase):
         return sample_dict
 
 
+class OpDeleteKeypaths(OpBase):
+    """
+    Use this op to remove keypaths from the sample
+    A case where this is useful is if you want to limit the amount of data that gets transferred by multiprocessing by DataLoader workers.
+    """
+
+    def __call__(self, sample_dict: NDict, keypaths: List[str]) -> Union[None, dict, List[dict]]:
+        for k in keypaths:
+            del sample_dict[k]
+
+        return sample_dict
+
+
 class OpLookup(OpBase):
     """
     Convert a value to another value. It should be specified in a dictionary mapping old value to a new value
     Example:
     To read the gender represented by strings "male" and "female" and convert it to int do the following
-    (OpLookup(map={"male": 0, "female": 1}). dict(key_in="data.input.gender", key_out="data.input,gender"))
+    (OpLookup(map={"male": 0, "female": 1}). dict(key_in="data.input.gender", key_out="data.input.gender"))
     """
 
     def __init__(self, map: dict, not_exist_error: bool = True):
@@ -401,7 +413,7 @@ class OpLookup(OpBase):
     def __call__(self, sample_dict: NDict, key_in: str, key_out: str) -> Union[None, dict, List[dict]]:
         """
         :param key_in: key to a value
-        :param key_out: key to store the converted vale
+        :param key_out: key to store the converted value
         """
         value = sample_dict[key_in]
         if value in self._map:
@@ -497,3 +509,25 @@ class OpZScoreNorm(OpBase):
     def __call__(self, sample_dict: NDict, key: str, mean: float, std: float):
         sample_dict[key] = (sample_dict[key] - mean) / std
         return sample_dict
+
+
+class OpCond(OpBase):
+    """Apply given op if the condition (either directly specified or read from the sample_dict) is True"""
+
+    def __init__(self, op: OpBase):
+        """
+        :param op: the op to apply
+        """
+        super().__init__()
+        self._op = op
+
+    def __call__(self, sample_dict: NDict, condition: Union[str, bool], **kwargs) -> Union[None, dict, List[dict]]:
+        """
+        :param condition:instruct if to call the inner op. Can either a boolean or a key to sample_dict used to extract the boolean
+        """
+        if isinstance(condition, str):
+            condition = sample_dict[condition]
+        if condition:
+            return self._op(sample_dict, **kwargs)
+        else:
+            return sample_dict

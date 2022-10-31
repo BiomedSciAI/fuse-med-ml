@@ -27,17 +27,18 @@ from fuse.utils.ndict import NDict
 from fuse.dl.models.heads.common import ClassifierFCN3D, ClassifierMLP
 
 
-class Head3DClassifier(nn.Module):
+class Head3D(nn.Module):
     """
-    Model that capture slice feature including the 3D context given the local feature about a slice.
+    Model that capture slice feature including the 3D context given the local feature about a slice for classification/regression.
     """
 
     def __init__(
         self,
         head_name: str = "head_0",
+        mode: str = None,  # "classification" or "regression"
         conv_inputs: Sequence[Tuple[str, int]] = None,
         dropout_rate: float = 0.1,
-        num_classes: int = 3,
+        num_outputs: int = 3,  # num classes in case of classification
         append_features: Optional[Tuple[str, int]] = None,
         layers_description: Sequence[int] = (256,),
         append_layers_description: Sequence[int] = tuple(),
@@ -47,10 +48,13 @@ class Head3DClassifier(nn.Module):
         """
         Create simple 3D context model
         :param head_name: string representing the head name
+        :param mode:      "classification" or "regression"
         :param conv_inputs: Sequence of tuples, each indication features name in batch_dict and size of features (channels)
             for example: conv_inputs=(('model.backbone_features', 512),)
+            if set to None, the head will work only using the global features.
+            can be useful i.e for exploring the contribution of imaging vs. clinical features only.
         :param dropout_rate: dropout fraction
-        :param num_classes: number of output classes
+        :param num_outputs:  Number of output classes (in case of classification) or just num outputs in case of regression
         :param append_features: Sequence of tuples, each indication features name in batch_dict and size of features (channels).
                                 Those are global features that appended after the global max pooling operation
         :param layers_description:          Layers description for the classifier module - sequence of hidden layers sizes (Not used currently)
@@ -60,10 +64,10 @@ class Head3DClassifier(nn.Module):
         super().__init__()
         # save input params
         self.head_name = head_name
-        assert conv_inputs is not None, "conv_inputs must be provided"
+        self.mode = mode
         self.conv_inputs = conv_inputs
         self.dropout_rate = dropout_rate
-        self.num_classes = num_classes
+        self.num_outputs = num_outputs
         self.append_features = append_features
         self.gmp = nn.AdaptiveMaxPool3d(output_size=1)
         self.features_size = sum([features[1] for features in self.conv_inputs]) if self.conv_inputs is not None else 0
@@ -83,7 +87,7 @@ class Head3DClassifier(nn.Module):
                 )
 
         self.conv_classifier_3d = ClassifierFCN3D(
-            self.features_size, self.num_classes, layers_description, fused_dropout_rate
+            self.features_size, self.num_outputs, layers_description, fused_dropout_rate
         )
 
         self.do = nn.Dropout3d(p=self.dropout_rate)
@@ -97,10 +101,6 @@ class Head3DClassifier(nn.Module):
         if self.conv_inputs is not None:
             conv_input = torch.cat([batch_dict[conv_input[0]] for conv_input in self.conv_inputs], dim=1)
             global_features = self.gmp(conv_input)
-            # save global max pooling features in case needed (mostly to analyze)
-            batch_dict["model." + self.head_name + ".gmp_features"] = (
-                global_features.squeeze(dim=4).squeeze(dim=3).squeeze(dim=2)
-            )
             # backward compatibility
             if hasattr(self, "do"):
                 global_features = self.do(global_features)
@@ -120,9 +120,12 @@ class Head3DClassifier(nn.Module):
         logits = logits.squeeze(dim=4)
         logits = logits.squeeze(dim=3)
         logits = logits.squeeze(dim=2)  # squeeze will change the shape to  [batch_size, channels']
-
-        cls_preds = F.softmax(logits, dim=1)
-        batch_dict["model.logits." + self.head_name] = logits
-        batch_dict["model.output." + self.head_name] = cls_preds
+        if self.mode == "regression":
+            prediction = logits
+            batch_dict["model.output." + self.head_name] = prediction
+        else:  # classification
+            cls_preds = F.softmax(logits, dim=1)
+            batch_dict["model.logits." + self.head_name] = logits
+            batch_dict["model.output." + self.head_name] = cls_preds
 
         return batch_dict

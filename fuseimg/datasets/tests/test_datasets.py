@@ -92,7 +92,7 @@ class TestDatasets(unittest.TestCase):
 
         create_dir(self.isic_cache_dir)
         dataset = ISIC.dataset(
-            self.isic_data_dir, self.isic_cache_dir, reset_cache=True, samples_ids=TEN_GOLDEN_MEMBERS
+            self.isic_data_dir, self.isic_cache_dir, train=True, reset_cache=True, samples_ids=TEN_GOLDEN_MEMBERS
         )
         self.assertEqual(len(dataset), 10)
         for sample_index in range(10):
