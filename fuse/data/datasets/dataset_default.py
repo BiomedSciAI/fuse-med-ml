@@ -352,7 +352,7 @@ class DatasetDefault(DatasetBase):
         create a subset of the dataset by a given indices (inplace).
 
         Example:
-
+            For the dataset '[-2, 1, 5, 3, 8, 5, 6]' and the indices '[1, 2, 5]', the subset is [1, 5, 5]
 
         :param items: indices of the subset - if None, the subset is the whole set.
         """
@@ -363,12 +363,5 @@ class DatasetDefault(DatasetBase):
         if not self._created:
             raise Exception("you must first call create()")
 
-        # # will contain the subset sample ids
-        # subset_final_sample_ids = list(range(len(indices)))
-
-        # # grab the specified data
-        # for i, item in enumerate(indices):
-        #     subset_final_sample_ids[i] = self._final_sample_ids[item]
-
-        # self._final_sample_ids = subset_final_sample_ids
+        # grab the specified data
         self._final_sample_ids = itemgetter(*indices)(self._final_sample_ids)
