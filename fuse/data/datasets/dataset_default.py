@@ -18,7 +18,6 @@ Created on June 30, 2021
 """
 
 from typing import Dict, Hashable, List, Optional, Sequence, Union
-
 from warnings import warn
 from fuse.data.datasets.dataset_base import DatasetBase
 from fuse.data.ops.ops_common import OpCollectMarker
