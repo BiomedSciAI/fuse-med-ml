@@ -33,6 +33,7 @@ from fuse.data import get_sample_id, create_initial_sample, get_specific_sample_
 import copy
 from collections import OrderedDict
 import numpy as np
+from operator import itemgetter
 
 
 class DatasetDefault(DatasetBase):
@@ -350,7 +351,10 @@ class DatasetDefault(DatasetBase):
         """
         create a subset of the dataset by a given indices (inplace).
 
-        :param items: indices of the subset
+        Example:
+
+
+        :param items: indices of the subset - if None, the subset is the whole set.
         """
         if indices is None:
             # Do nothing, the subset is the whole dataset
@@ -359,11 +363,12 @@ class DatasetDefault(DatasetBase):
         if not self._created:
             raise Exception("you must first call create()")
 
-        # will contain the subset sample ids
-        subset_final_sample_ids = list(range(len(indices)))
+        # # will contain the subset sample ids
+        # subset_final_sample_ids = list(range(len(indices)))
 
-        # grab the specified data
-        for i, item in enumerate(indices):
-            subset_final_sample_ids[i] = self._final_sample_ids[item]
+        # # grab the specified data
+        # for i, item in enumerate(indices):
+        #     subset_final_sample_ids[i] = self._final_sample_ids[item]
 
-        self._final_sample_ids = subset_final_sample_ids
+        # self._final_sample_ids = subset_final_sample_ids
+        self._final_sample_ids = itemgetter(*indices)(self._final_sample_ids)

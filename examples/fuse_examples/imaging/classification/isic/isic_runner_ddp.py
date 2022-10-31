@@ -109,13 +109,13 @@ TRAIN_COMMON_PARAMS["data.num_workers"] = NUM_WORKERS
 TRAIN_COMMON_PARAMS["data.num_folds"] = 5
 TRAIN_COMMON_PARAMS["data.train_folds"] = [0, 1, 2]
 TRAIN_COMMON_PARAMS["data.validation_folds"] = [3]
-TRAIN_COMMON_PARAMS["data.samples_ids"] = {"all": None, "golden": FULL_GOLDEN_MEMBERS}["golden"]
+TRAIN_COMMON_PARAMS["data.samples_ids"] = {"all": None, "golden": FULL_GOLDEN_MEMBERS}["all"]
 
 
 # ===============
 # PL Trainer
 # ===============
-TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 1
+TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 25
 TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
 TRAIN_COMMON_PARAMS["trainer.ckpt_path"] = None
