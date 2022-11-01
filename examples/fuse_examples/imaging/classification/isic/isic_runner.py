@@ -21,7 +21,6 @@ import os
 import copy
 import logging
 from typing import OrderedDict, Sequence, Tuple
-from fuse_examples.imaging.classification.isic.isic_runner_ddp import NUM_WORKERS
 
 import torch
 import torch.optim as optim
@@ -43,18 +42,20 @@ import fuse.utils.gpu as GPU
 
 from fuse.eval.evaluator import EvaluatorDefault
 from fuse.dl.losses.loss_default import LossDefault
-
-from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.split import dataset_balanced_division_to_folds
 
 import pytorch_lightning as pl
-from fuse.dl.lightning.pl_module import LightningModuleDefault
+from fuse.dl.lightning.pl_module import LightningModuleDefault, BalancedLightningDataModule
 from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 from fuseimg.datasets.isic import ISIC
 from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS
 
+"""
+This is another example of using DDP strategy, this time with ISIC dataset.
+"""
 
 ###########################################################################################################
 # Fuse
@@ -66,25 +67,24 @@ mode = "default"  # Options: 'default', 'debug'. See details in FuseDebug
 debug = FuseDebug(mode)
 
 ##########################################
-# GPUs
+# GPUs and Workers
 ##########################################
-
-NUM_GPUS = 1
+NUM_GPUS = 1  # Multiple GPU training
 NUM_WORKERS = 8
 
 ##########################################
 # Modality
 ##########################################
 
-multimodality = False  # Set: 'False' to use only imaging, 'True' to use imaging & meta-data
+multimodality = True  # Set: 'False' to use only imaging, 'True' to use imaging & meta-data
 
 ##########################################
 # Output Paths
 ##########################################
 
 
-ROOT = "./_examples/isic/"
-DATA = os.path.join(ROOT, "data_dir")
+ROOT = "./_examples/isic_ddp/"
+DATA = os.environ["ISIC19_DATA_PATH"] if "ISIC19_DATA_PATH" in os.environ else os.path.join(ROOT, "data_dir")
 modality = "multimodality" if multimodality else "imaging"
 model_dir = os.path.join(ROOT, f"model_dir_{modality}_final")
 PATHS = {
@@ -104,9 +104,8 @@ TRAIN_COMMON_PARAMS = {}
 # ============
 # Data
 # ============
-TRAIN_COMMON_PARAMS["data.batch_size"] = 32
-TRAIN_COMMON_PARAMS["data.train_num_workers"] = NUM_WORKERS
-TRAIN_COMMON_PARAMS["data.validation_num_workers"] = NUM_WORKERS
+TRAIN_COMMON_PARAMS["data.batch_size"] = 8  # Effective = batch_size * num_gpus
+TRAIN_COMMON_PARAMS["data.num_workers"] = NUM_WORKERS
 TRAIN_COMMON_PARAMS["data.num_folds"] = 5
 TRAIN_COMMON_PARAMS["data.train_folds"] = [0, 1, 2]
 TRAIN_COMMON_PARAMS["data.validation_folds"] = [3]
@@ -116,10 +115,11 @@ TRAIN_COMMON_PARAMS["data.samples_ids"] = {"all": None, "golden": FULL_GOLDEN_ME
 # ===============
 # PL Trainer
 # ===============
-TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 30
+TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 25
 TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
-TRAIN_COMMON_PARAMS["trainer.strategy"] = "ddp" if NUM_GPUS > 1 else None
+TRAIN_COMMON_PARAMS["trainer.ckpt_path"] = None
+TRAIN_COMMON_PARAMS["trainer.strategy"] = "ddp"  # Pass to trainer we use DDP strategy
 
 # ===============
 # Optimizer
@@ -169,6 +169,66 @@ def create_model(
     return model
 
 
+def create_datamodule(paths: dict, train_common_params: dict) -> BalancedLightningDataModule:
+    """
+    For the DDP strategy one need to create a Lightning Data Module.
+    While we can create a custom datamodule class for the ISIC dataset, here we chose a more generic approach.
+    We use Fuse's "BalancedLightningDataModule" class, which takes all user's relevant datasets and returns a
+    LightningDataModule subclass.
+    """
+    ## Create training and validation datasets
+    # split to folds randomly
+    all_dataset = ISIC.dataset(
+        paths["data_dir"],
+        paths["cache_dir"],
+        num_workers=train_common_params["data.num_workers"],
+        samples_ids=train_common_params["data.samples_ids"],
+    )
+
+    folds = dataset_balanced_division_to_folds(
+        dataset=all_dataset,
+        output_split_filename=paths["data_split_filename"],
+        keys_to_balance=["data.label"],
+        nfolds=train_common_params["data.num_folds"],
+        reset_split=False,
+    )
+
+    train_sample_ids = []
+    for fold in train_common_params["data.train_folds"]:
+        train_sample_ids += folds[fold]
+    validation_sample_ids = []
+    for fold in train_common_params["data.validation_folds"]:
+        validation_sample_ids += folds[fold]
+
+    # Create train dataset
+    train_dataset = ISIC.dataset(
+        paths["data_dir"],
+        paths["cache_dir"],
+        samples_ids=train_sample_ids,
+        train=True,
+        num_workers=train_common_params["data.num_workers"],
+    )
+
+    # Create validation dataset
+    validation_dataset = ISIC.dataset(
+        paths["data_dir"], paths["cache_dir"], samples_ids=validation_sample_ids, train=False
+    )
+
+    datamodule = BalancedLightningDataModule(
+        train_dataset=train_dataset,
+        validation_dataset=validation_dataset,
+        predict_dataset=None,  # No need, this module only being used in the trainer's "fit" stage
+        num_workers=train_common_params["data.num_workers"],
+        batch_size=train_common_params["data.batch_size"],
+        balanced_class_name="data.label",
+        num_balanced_classes=8,
+        sampler_mode="approx",
+        use_custom_batch_sampler=False,  # Currently Lightning doesn't support Fuse custom sampler
+    )
+
+    return datamodule
+
+
 #################################
 # Train Template
 #################################
@@ -181,6 +241,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     lgr.info("Fuse Train", {"attrs": ["bold", "underline"]})
 
     lgr.info(f'model_dir={paths["model_dir"]}', {"color": "magenta"})
+    lgr.info(f'data_dir={paths["data_dir"]}', {"color": "magenta"})
     lgr.info(f'cache_dir={paths["cache_dir"]}', {"color": "magenta"})
 
     # ==============================================================================
@@ -189,52 +250,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     # Train Data
     lgr.info("Train Data:", {"attrs": "bold"})
 
-    # split to folds randomly
-    all_dataset = ISIC.dataset(
-        paths["data_dir"],
-        paths["cache_dir"],
-        num_workers=train_common_params["data.train_num_workers"],
-        samples_ids=train_common_params["data.samples_ids"],
-    )
-
-    folds = dataset_balanced_division_to_folds(
-        dataset=all_dataset,
-        output_split_filename=paths["data_split_filename"],
-        keys_to_balance=["data.label"],
-        nfolds=train_common_params["data.num_folds"],
-    )
-
-    train_sample_ids = []
-    for fold in train_common_params["data.train_folds"]:
-        train_sample_ids += folds[fold]
-    validation_sample_ids = []
-    for fold in train_common_params["data.validation_folds"]:
-        validation_sample_ids += folds[fold]
-
-    train_dataset = ISIC.dataset(
-        paths["data_dir"],
-        paths["cache_dir"],
-        samples_ids=train_sample_ids,
-        train=True,
-        num_workers=train_common_params["data.train_num_workers"],
-    )
-
-    lgr.info("- Create sampler:")
-    sampler = BatchSamplerDefault(
-        dataset=train_dataset,
-        balanced_class_name="data.label",
-        num_balanced_classes=8,
-        batch_size=train_common_params["data.batch_size"],
-    )
-    lgr.info("- Create sampler: Done")
-
-    # Create dataloader
-    train_dataloader = DataLoader(
-        dataset=train_dataset,
-        batch_sampler=sampler,
-        collate_fn=CollateDefault(),
-        num_workers=train_common_params["data.train_num_workers"],
-    )
+    datamodule = create_datamodule(paths, train_common_params)
 
     lgr.info("Train Data: Done", {"attrs": "bold"})
 
@@ -242,17 +258,8 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     lgr.info("Validation Data:", {"attrs": "bold"})
 
     # dataset
-    validation_dataset = ISIC.dataset(
-        paths["data_dir"], paths["cache_dir"], samples_ids=validation_sample_ids, train=False
-    )
 
     # dataloader
-    validation_dataloader = DataLoader(
-        dataset=validation_dataset,
-        batch_size=train_common_params["data.batch_size"],
-        collate_fn=CollateDefault(),
-        num_workers=train_common_params["data.validation_num_workers"],
-    )
     lgr.info("Validation Data: Done", {"attrs": "bold"})
 
     # ==============================================================================
@@ -299,7 +306,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     }["ReduceLROnPlateau"]
     lr_sch_config = dict(scheduler=lr_scheduler, monitor="validation.losses.total_loss")
 
-    # optimizer and lr sch - see pl.LightningModule.configure_optimizers return value for all options
+    # optimizier and lr sch - see pl.LightningModule.configure_optimizers return value for all options
     optimizers_and_lr_schs = dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
 
     # =====================================================================================
@@ -328,7 +335,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     )
 
     # train
-    pl_trainer.fit(pl_module, train_dataloader, validation_dataloader)
+    pl_trainer.fit(pl_module, datamodule=datamodule, ckpt_path=train_common_params["trainer.ckpt_path"])
 
     lgr.info("Train: Done", {"attrs": "bold"})
 
@@ -339,12 +346,13 @@ def run_train(paths: dict, train_common_params: dict) -> None:
 INFER_COMMON_PARAMS = {}
 INFER_COMMON_PARAMS["infer_filename"] = "infer_file.gz"
 INFER_COMMON_PARAMS["checkpoint"] = "best_epoch.ckpt"
-INFER_COMMON_PARAMS["data.num_workers"] = TRAIN_COMMON_PARAMS["data.train_num_workers"]
+INFER_COMMON_PARAMS["data.num_workers"] = NUM_WORKERS
 INFER_COMMON_PARAMS["data.infer_folds"] = [4]  # infer validation set
 INFER_COMMON_PARAMS["data.batch_size"] = 4
+INFER_COMMON_PARAMS["data.samples_ids"] = TRAIN_COMMON_PARAMS["data.samples_ids"]
 
 INFER_COMMON_PARAMS["model"] = TRAIN_COMMON_PARAMS["model"]
-INFER_COMMON_PARAMS["trainer.num_devices"] = TRAIN_COMMON_PARAMS["trainer.num_devices"]
+INFER_COMMON_PARAMS["trainer.num_devices"] = 1  # No need for multi-gpu in inference
 INFER_COMMON_PARAMS["trainer.accelerator"] = TRAIN_COMMON_PARAMS["trainer.accelerator"]
 
 ######################################
@@ -352,6 +360,7 @@ INFER_COMMON_PARAMS["trainer.accelerator"] = TRAIN_COMMON_PARAMS["trainer.accele
 ######################################
 
 
+@rank_zero_only
 def run_infer(paths: dict, infer_common_params: dict) -> None:
     create_dir(paths["inference_dir"])
     infer_file = os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])
@@ -414,6 +423,7 @@ EVAL_COMMON_PARAMS["infer_filename"] = INFER_COMMON_PARAMS["infer_filename"]
 ######################################
 # Eval Template
 ######################################
+@rank_zero_only
 def run_eval(paths: dict, eval_common_params: dict) -> None:
     infer_file = os.path.join(paths["inference_dir"], eval_common_params["infer_filename"])
 
