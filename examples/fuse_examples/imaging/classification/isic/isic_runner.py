@@ -21,6 +21,7 @@ import os
 import copy
 import logging
 from typing import OrderedDict, Sequence, Tuple
+from fuse_examples.imaging.classification.isic.isic_runner_ddp import NUM_WORKERS
 
 import torch
 import torch.optim as optim
@@ -69,6 +70,7 @@ debug = FuseDebug(mode)
 ##########################################
 
 NUM_GPUS = 1
+NUM_WORKERS = 8
 
 ##########################################
 # Modality
@@ -103,8 +105,8 @@ TRAIN_COMMON_PARAMS = {}
 # Data
 # ============
 TRAIN_COMMON_PARAMS["data.batch_size"] = 32
-TRAIN_COMMON_PARAMS["data.train_num_workers"] = 8
-TRAIN_COMMON_PARAMS["data.validation_num_workers"] = 8
+TRAIN_COMMON_PARAMS["data.train_num_workers"] = NUM_WORKERS
+TRAIN_COMMON_PARAMS["data.validation_num_workers"] = NUM_WORKERS
 TRAIN_COMMON_PARAMS["data.num_folds"] = 5
 TRAIN_COMMON_PARAMS["data.train_folds"] = [0, 1, 2]
 TRAIN_COMMON_PARAMS["data.validation_folds"] = [3]
@@ -117,7 +119,7 @@ TRAIN_COMMON_PARAMS["data.samples_ids"] = {"all": None, "golden": FULL_GOLDEN_ME
 TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 30
 TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
-TRAIN_COMMON_PARAMS["trainer.ckpt_path"] = None
+TRAIN_COMMON_PARAMS["trainer.strategy"] = "ddp" if NUM_GPUS > 1 else None
 
 # ===============
 # Optimizer
@@ -297,7 +299,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     }["ReduceLROnPlateau"]
     lr_sch_config = dict(scheduler=lr_scheduler, monitor="validation.losses.total_loss")
 
-    # optimizier and lr sch - see pl.LightningModule.configure_optimizers return value for all options
+    # optimizer and lr sch - see pl.LightningModule.configure_optimizers return value for all options
     optimizers_and_lr_schs = dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
 
     # =====================================================================================
@@ -316,19 +318,17 @@ def run_train(paths: dict, train_common_params: dict) -> None:
         optimizers_and_lr_schs=optimizers_and_lr_schs,
     )
 
-    # create lightining trainer.
+    # create lightning trainer.
     pl_trainer = pl.Trainer(
         default_root_dir=paths["model_dir"],
         max_epochs=train_common_params["trainer.num_epochs"],
         accelerator=train_common_params["trainer.accelerator"],
         devices=train_common_params["trainer.num_devices"],
-        auto_select_gpus=True,
+        strategy=train_common_params["trainer.strategy"],
     )
 
     # train
-    pl_trainer.fit(
-        pl_module, train_dataloader, validation_dataloader, ckpt_path=train_common_params["trainer.ckpt_path"]
-    )
+    pl_trainer.fit(pl_module, train_dataloader, validation_dataloader)
 
     lgr.info("Train: Done", {"attrs": "bold"})
 
