@@ -53,9 +53,6 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from fuseimg.datasets.isic import ISIC
 from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS
 
-"""
-This is another example of using DDP strategy, this time with ISIC dataset.
-"""
 
 ###########################################################################################################
 # Fuse
@@ -69,7 +66,7 @@ debug = FuseDebug(mode)
 ##########################################
 # GPUs and Workers
 ##########################################
-NUM_GPUS = 1  # Multiple GPU training
+NUM_GPUS = 1  # supports multiple gpu training with DDP strategy
 NUM_WORKERS = 8
 
 ##########################################
@@ -83,7 +80,7 @@ multimodality = True  # Set: 'False' to use only imaging, 'True' to use imaging 
 ##########################################
 
 
-ROOT = "./_examples/isic_ddp/"
+ROOT = "./_examples/isic/"
 DATA = os.environ["ISIC19_DATA_PATH"] if "ISIC19_DATA_PATH" in os.environ else os.path.join(ROOT, "data_dir")
 modality = "multimodality" if multimodality else "imaging"
 model_dir = os.path.join(ROOT, f"model_dir_{modality}_final")
@@ -104,7 +101,7 @@ TRAIN_COMMON_PARAMS = {}
 # ============
 # Data
 # ============
-TRAIN_COMMON_PARAMS["data.batch_size"] = 8  # Effective = batch_size * num_gpus
+TRAIN_COMMON_PARAMS["data.batch_size"] = 32  # effective batch size = batch_size * num_gpus
 TRAIN_COMMON_PARAMS["data.num_workers"] = NUM_WORKERS
 TRAIN_COMMON_PARAMS["data.num_folds"] = 5
 TRAIN_COMMON_PARAMS["data.train_folds"] = [0, 1, 2]
@@ -115,11 +112,10 @@ TRAIN_COMMON_PARAMS["data.samples_ids"] = {"all": None, "golden": FULL_GOLDEN_ME
 # ===============
 # PL Trainer
 # ===============
-TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 25
+TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 30
 TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
-TRAIN_COMMON_PARAMS["trainer.ckpt_path"] = None
-TRAIN_COMMON_PARAMS["trainer.strategy"] = "ddp"  # Pass to trainer we use DDP strategy
+TRAIN_COMMON_PARAMS["trainer.strategy"] = "ddp"
 
 # ===============
 # Optimizer
@@ -171,8 +167,8 @@ def create_model(
 
 def create_datamodule(paths: dict, train_common_params: dict) -> BalancedLightningDataModule:
     """
-    For the DDP strategy one need to create a Lightning Data Module.
-    While we can create a custom datamodule class for the ISIC dataset, here we chose a more generic approach.
+    In order to supports the DDP strategy one need to create a Lightning Data Module.
+    While we can create a custom datamodule class for the ISIC dataset, here we chose a more generic approach:
     We use Fuse's "BalancedLightningDataModule" class, which takes all user's relevant datasets and returns a
     LightningDataModule subclass.
     """
@@ -217,12 +213,10 @@ def create_datamodule(paths: dict, train_common_params: dict) -> BalancedLightni
     datamodule = BalancedLightningDataModule(
         train_dataset=train_dataset,
         validation_dataset=validation_dataset,
-        predict_dataset=None,  # No need, this module only being used in the trainer's "fit" stage
         num_workers=train_common_params["data.num_workers"],
         batch_size=train_common_params["data.batch_size"],
         balanced_class_name="data.label",
         num_balanced_classes=8,
-        sampler_mode="approx",
         use_custom_batch_sampler=False,  # Currently Lightning doesn't support Fuse custom sampler
     )
 
@@ -335,7 +329,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     )
 
     # train
-    pl_trainer.fit(pl_module, datamodule=datamodule, ckpt_path=train_common_params["trainer.ckpt_path"])
+    pl_trainer.fit(pl_module, datamodule=datamodule)
 
     lgr.info("Train: Done", {"attrs": "bold"})
 
