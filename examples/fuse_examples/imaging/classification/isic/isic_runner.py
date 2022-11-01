@@ -213,6 +213,7 @@ def create_datamodule(paths: dict, train_common_params: dict) -> BalancedLightni
     datamodule = BalancedLightningDataModule(
         train_dataset=train_dataset,
         validation_dataset=validation_dataset,
+        predict_dataset=None,  # No need, this module only being used in the trainer's "fit" stage
         num_workers=train_common_params["data.num_workers"],
         batch_size=train_common_params["data.batch_size"],
         balanced_class_name="data.label",
