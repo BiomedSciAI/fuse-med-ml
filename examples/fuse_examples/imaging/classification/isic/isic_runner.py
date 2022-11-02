@@ -218,7 +218,9 @@ def create_datamodule(paths: dict, train_common_params: dict) -> BalancedLightni
         batch_size=train_common_params["data.batch_size"],
         balanced_class_name="data.label",
         num_balanced_classes=8,
-        use_custom_batch_sampler=True if NUM_GPUS <= 1 else False,  # Currently Lightning doesn't support Fuse custom sampler
+        use_custom_batch_sampler=True
+        if NUM_GPUS <= 1
+        else False,  # Currently Lightning doesn't support Fuse custom sampler
     )
 
     return datamodule
