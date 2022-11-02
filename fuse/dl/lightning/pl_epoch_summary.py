@@ -80,7 +80,7 @@ class ModelEpochSummary(Callback):
     @rank_zero_only
     def print_epoch_summary_table(self, epoch_metrics: dict, epoch_source_index: int) -> None:
         """
-        Generate, print and log the table.
+        Generate, print and log the epoch summary table.
         Decorator makes sure it runs only once in a DDP strategy.
         """
 

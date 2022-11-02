@@ -218,7 +218,7 @@ def create_datamodule(paths: dict, train_common_params: dict) -> BalancedLightni
         batch_size=train_common_params["data.batch_size"],
         balanced_class_name="data.label",
         num_balanced_classes=8,
-        use_custom_batch_sampler=False,  # Currently Lightning doesn't support Fuse custom sampler
+        use_custom_batch_sampler=True if NUM_GPUS <= 1 else False,  # Currently Lightning doesn't support Fuse custom sampler
     )
 
     return datamodule
@@ -242,20 +242,11 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     # ==============================================================================
     # Data
     # ==============================================================================
-    # Train Data
-    lgr.info("Train Data:", {"attrs": "bold"})
+    lgr.info("Datamodule:", {"attrs": "bold"})
 
     datamodule = create_datamodule(paths, train_common_params)
 
-    lgr.info("Train Data: Done", {"attrs": "bold"})
-
-    ## Validation data
-    lgr.info("Validation Data:", {"attrs": "bold"})
-
-    # dataset
-
-    # dataloader
-    lgr.info("Validation Data: Done", {"attrs": "bold"})
+    lgr.info("Datamodule: Done", {"attrs": "bold"})
 
     # ==============================================================================
     # Model
@@ -344,7 +335,6 @@ INFER_COMMON_PARAMS["checkpoint"] = "best_epoch.ckpt"
 INFER_COMMON_PARAMS["data.num_workers"] = NUM_WORKERS
 INFER_COMMON_PARAMS["data.infer_folds"] = [4]  # infer validation set
 INFER_COMMON_PARAMS["data.batch_size"] = 4
-INFER_COMMON_PARAMS["data.samples_ids"] = TRAIN_COMMON_PARAMS["data.samples_ids"]
 
 INFER_COMMON_PARAMS["model"] = TRAIN_COMMON_PARAMS["model"]
 INFER_COMMON_PARAMS["trainer.num_devices"] = 1  # No need for multi-gpu in inference
