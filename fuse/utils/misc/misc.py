@@ -20,10 +20,9 @@ import logging
 import sys
 import time
 from IPython import get_ipython
-from collections.abc import Iterable
 from threading import Lock
 
-from typing import List, Union, Sequence, Optional, Hashable, Any
+from typing import List, Union, Sequence, Optional, Hashable, Any, Iterable
 
 import numpy as np
 import pandas as pd

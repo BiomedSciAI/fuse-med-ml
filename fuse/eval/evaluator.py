@@ -54,6 +54,7 @@ class EvaluatorDefault:
         id_key: str = "id",
         batch_size: Optional[int] = None,
         output_dir: Optional[str] = None,
+        silent: bool = True,
     ) -> NDict:
         """
         evaluate, return, print and optionally dump results to a file
@@ -79,8 +80,10 @@ class EvaluatorDefault:
                                               data must be an iterator of samples.
                                               A batch will be automatically created from batch_size samples
         :param output_dir: Optional - dump results to directory
+        :param silent: print results if false
         :return: dictionary that holds all the results.
         """
+        self.silent = silent
 
         if ids is not None:
             ids_df = pd.DataFrame(ids, columns=[id_key]).set_index(id_key)  # use the specified samples
@@ -276,7 +279,8 @@ class EvaluatorDefault:
                 results += f"{metric_result}\n"
 
         # print to screen
-        print(results)
+        if not self.silent:
+            print(results)
 
         # make sure the output folder exist
         if output_dir is not None:

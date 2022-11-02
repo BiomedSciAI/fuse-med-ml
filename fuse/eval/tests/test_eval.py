@@ -185,6 +185,10 @@ class TestEval(unittest.TestCase):
         self.assertAlmostEqual(results["metrics.reliability_calibrated"]["avg_accuracy"], 0.566, places=2)
         self.assertAlmostEqual(results["metrics.reliability_calibrated"]["avg_confidence"], 0.485, places=2)
 
+    def test_eval_example_14(self):
+        results = example_14()
+        self.assertGreater(results["metrics.accuracy"], 0.9)
+
 
 if __name__ == "__main__":
     unittest.main()

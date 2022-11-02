@@ -1,5 +1,6 @@
 [![Open Source](https://badges.frapsoft.com/os/v1/open-source.svg)](https://opensource.org/)
 [![PyPI version](https://badge.fury.io/py/fuse-med-ml.svg)](https://badge.fury.io/py/fuse-med-ml)
+[![Python version](https://img.shields.io/pypi/pyversions/fuse-med-ml)](https://pypi.org/project/fuse-med-ml/)
 [![Slack channel](https://img.shields.io/badge/support-slack-slack.svg?logo=slack)](https://join.slack.com/t/fusemedml/shared_invite/zt-xr1jaj29-h7IMsSc0Lq4qpVNxW97Phw)
 [![Downloads](https://pepy.tech/badge/fuse-med-ml)](https://pepy.tech/project/fuse-med-ml)
 
@@ -59,7 +60,8 @@ ModelMultiHead(
     conv_inputs=(('data.input.img', 1),),                                       # input to the backbone model   
     backbone=BackboneResnet3D(in_channels=1),                                   # PyTorch nn Module    
     heads=[                                                                     # list of heads - gives the option to support multi task / multi head approach
-               Head3DClassifier(head_name='classification',                     
+               Head3D(head_name='classification',
+                                mode="classification",                  
                                 conv_inputs=[("model.backbone_features", 512)]  # Input to the classification head
                                 ,),                                              
           ]
@@ -173,7 +175,7 @@ Note - in general, we find it helpful to follow the same directory structure sho
  
 # Installation
 
-FuseMedML is tested on Python >= 3.7 (3.7 is recommended) and PyTorch >= 1.5   
+FuseMedML is tested on Python >= 3.7 and PyTorch >= 1.5   
 
 ## We recommend using a Conda environment
 
