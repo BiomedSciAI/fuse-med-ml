@@ -264,14 +264,21 @@ class OpVis3DPlotly(OpDebugBase):
     def __init__(
         self,
         path: str = ".",
+        callback: Optional[Callable] = None,
         **kwargs: Dict[str, Any],
     ):
         """
         :param path: location to save .html rendered volume files
+        :param callback: function which accepts np.ndarray which can be applied immediately before visualization to the volume
         :param kwargs: see super class arguments
+
+        Example using callback (with some function to binarize the volume):
+            (OpVis3DPlotly(num_samples=1, callback=lambda x:np.where(x>0.5, 1, 0)), dict(key="data.debug.3d_volume")),
         """
         super().__init__(**kwargs)
         self._path = path
+        self._callback = callback
+    
 
     def frame_args(self, duration: int):
         """
@@ -417,6 +424,9 @@ class OpVis3DPlotly(OpDebugBase):
         if isinstance(vol, sitk.Image):  # should not be array! temp sagi
             vol = sitk.GetArrayFromImage(vol)
         assert isinstance(vol, numpy.ndarray)
+
+        if self._callback is not None:
+            vol = self._callback(vol)
 
         # make plotly figure and save
         plotly_fig = self.get_plotly_fig_from_vol(vol)
