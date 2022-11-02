@@ -278,7 +278,6 @@ class OpVis3DPlotly(OpDebugBase):
         super().__init__(**kwargs)
         self._path = path
         self._callback = callback
-    
 
     def frame_args(self, duration: int):
         """
