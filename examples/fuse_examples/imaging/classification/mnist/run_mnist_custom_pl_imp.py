@@ -247,8 +247,7 @@ def run_train(paths: dict, train_params: dict):
     # Logger(s)
     # ==============================================================================
     fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
-    import pdb; pdb.set_trace()
-    lightning_csv_logger = CSVLogger("lightning_csv_logs", name="")
+    lightning_csv_logger = CSVLogger(save_dir=paths["model_dir"], name="lightning_metrics")
     print("Fuse Train")
 
     # ==============================================================================
@@ -308,7 +307,7 @@ def run_train(paths: dict, train_params: dict):
         strategy=train_params["trainer.strategy"],
         devices=train_params["trainer.num_devices"],
         auto_select_gpus=True,
-        # logger=lightning_csv_logger,
+        logger=lightning_csv_logger,
     )
 
     # train
