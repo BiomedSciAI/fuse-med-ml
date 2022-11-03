@@ -4,3 +4,4 @@ testbook
 mypy==0.950
 flake8
 black==22.3.0
+pre-commit
