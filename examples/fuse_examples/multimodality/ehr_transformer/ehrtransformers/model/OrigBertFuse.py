@@ -28,7 +28,6 @@ import torch.nn.functional as F
 import pytorch_pretrained_bert as Bert
 
 from typing import Dict
-#from fuse.utils.utils_hierarchical_dict import FuseUtilsHierarchicalDict
 
 class BertConfig(Bert.modeling.BertConfig):
     def __init__(self, config):
@@ -150,23 +149,5 @@ class BertForMultiLabelPredictionHead(nn.Module):
 
         batch_dict['model.logits.' + self.head_name] = logits
         batch_dict['model.output.' + self.head_name] = cls_preds
-
-        return batch_dict
-
-class BertContrastiveHead(nn.Module):
-    def __init__(self, config, feat_inputs, head_name='contrastive'):
-        super().__init__()
-
-        self.feat_inputs = feat_inputs
-        self.head_name=head_name
-
-
-    def forward(self, batch_dict: Dict) -> Dict:
-        feat_input = torch.cat(
-            [batch_dict[feat_input[0]] for feat_input in self.feat_inputs])
-
-        batch_dict['model.logits.' + self.head_name] = feat_input
-        batch_dict['model.output.' + self.head_name] = feat_input
-        # batch_dict['model.output.' + self.head_name] = cls_preds
 
         return batch_dict

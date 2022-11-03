@@ -32,7 +32,7 @@ from ehrtransformers.data_access.utils import (
 from ehrtransformers.model.OutcomeFuse import (
     cleanup_vocab
 )
-from ehrtransformers.model.model_selector import BertForMultiLabelPredictionHead, BertContrastiveHead, BertConfig, model_type
+from ehrtransformers.model.model_selector import BertForMultiLabelPredictionHead, BertConfig, model_type
 
 from ehrtransformers.model.losses import SupConLoss
 from ehrtransformers.model.utils import (
