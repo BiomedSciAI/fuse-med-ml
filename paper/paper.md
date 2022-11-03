@@ -43,7 +43,7 @@ bibliography: paper.bib
 
 Machine Learning is at the forefront of scientific progress in Healthcare and Medicine. To accelerate scientific discovery, it is important to have tools that allow progress iterations to be collaborative, reproducible, reusable and easily built upon without "reinventing the wheel".
 FuseMedML, or *fuse*, is a Python framework designed for accelerated Machine Learning (ML) based discovery in the medical domain. It is highly flexible and designed for easy collaboration, encouraging code reuse. Flexibility is enabled by a generic data object design where data is kept in a nested (hierarchical) Python dictionary (NDict), allowing to easily deal with information from different modalities. Functional components allow to specify input and output keys, to be read from and written to the nested dictionary.  
-Easy code reuse is enabled through key components implemented as standalone packages under the main *fuse* repo using the same design principles. These include *fuse.data* - a flexible data processing pipeline, *fuse.dl* - reusable Deep Learning model architecture components and loss functions, and *fuse.eval* - a library for evaluating ML models.
+Easy code reuse is enabled through key components implemented as standalone packages under the main *fuse* repo using the same design principles. These include *fuse.data* - a flexible data processing pipeline, *fuse.dl* - reusable Deep Learning (DL) model architecture components and loss functions, and *fuse.eval* - a library for evaluating ML models.
 
 # Statement of need
 Medical related research projects span multiple modalities (e.g., imaging, clinical data, biochemical representations) and tasks (e.g., classification, segmentation, clinical conditions prediction).
@@ -61,7 +61,7 @@ We were also able to meaningfully measure our progress and statistical significa
 
 ## *fuse.data*
 FuseMedML's data package is designed for building a flexible data pipeline with reusable building blocks called *ops*.
-Each op(eration) gets as an input a `sample_dict`, a dictionary that stores all the necessary information about a sample processed so far. Typically, an *op* also gets keys that specify what it should consider in `sample_dict` and where to store the output.
+Each op(eration) gets as an input a `sample_dict`, a dictionary that stores all the necessary information about a sample processed so far. Typically, an *op* also gets keys that specify what it should consider in `sample_dict` and where to store the output. Similarly, a minibatch is represented by a `batch_dict`.
 
 A data pipeline consists of a `static_pipline` and a `dynamic_pipeline`. 
 The output of the `static_pipeline` is cached to optimize running time and maximize GPU utilization.
@@ -70,45 +70,11 @@ An instance of a *fuse* dataset class, which inherits from the PyTorch dataset c
 The data package includes also includes generic utilities such as a PyTorch based sampler enabling batch class balancing and a tool for splitting data into folds acording to predefined criteria.
 
 ## *fuse.dl*
+FuseMedML's DL package works with PyTorch models, only modifying them to interact with a `batch_dict`. For training, *fuse.dl* utilizes PyTorch-Lightning, either through a ready made `LightningModuleDefault` class inheriting from Pytorch-Lightning's `LightningModule` class, or by allowing users who seek maximal customizability to implement their own custom `LightningModule` and operate in close resemblance to the standard PyTorch-Lightning workflow.    
 
 ## *fuse.eval*
+The evaluation package of fuse is a standalone library for evaluating ML models for various performance metrics and comparing between models. It comes with advanced capabilities such as generic confidence interval wrapper for any metric, generic one vs. all extension for any binary metric to a multi-class scenario, metrics for model comparison taking into account statistical significance, model calibration tools, pipelining for combining a sequence of metrics with possible dependencies, automatic per-fold evaluation and sub-group analysis, automaric handling of massive data through batching and multiprocessing, and more. 
 
-
-
-check ref [@Pearson:2017]
-
-
-
-# Mathematics
-
-Single dollars ($) are required for inline mathematics e.g. $f(x) = e^{\pi/x}$
-
-Double dollars make self-standing equations:
-
-$$\Theta(x) = \left\{\begin{array}{l}
-0\textrm{ if } x < 0\cr
-1\textrm{ else}
-\end{array}\right.$$
-
-You can also use plain \LaTeX for equations
-\begin{equation}\label{eq:fourier}
-\hat f(\omega) = \int_{-\infty}^{\infty} f(x) e^{i\omega x} dx
-\end{equation}
-and refer to \autoref{eq:fourier} from text.
-
-# Citations
-
-Citations to entries in paper.bib should be in
-[rMarkdown](http://rmarkdown.rstudio.com/authoring_bibliographies_and_citations.html)
-format.
-
-If you want to cite a software repository URL (e.g. something on GitHub without a preferred
-citation) then you can do it with the example BibTeX entry below for @fidgit.
-
-For a quick reference, the following citation commands can be used:
-- `@author:2001`  ->  "Author et al. (2001)"
-- `[@author:2001]` -> "(Author et al., 2001)"
-- `[@author1:2001; @author2:2001]` -> "(Author1 et al., 2001; Author2 et al., 2002)"
 
 # Figures
 
