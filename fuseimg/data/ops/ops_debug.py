@@ -12,7 +12,6 @@ import plotly.graph_objects as go
 import numpy as np
 
 
-
 class OpVis2DImage(OpDebugBase):
     """
     Visualize a 2D image (either display it or save it as an image).
@@ -103,6 +102,7 @@ class OpVis2DImage(OpDebugBase):
             create_dir(os.path.dirname(filename))
             plt.savefig(filename)  # save fig
 
+
 class OpVisImageHist(OpDebugBase):
     """
     Visualize single image histogram (either display it or save it as an image).
@@ -154,6 +154,7 @@ class OpVisImageHist(OpDebugBase):
             plt.savefig(
                 os.path.join(self._path, f"hist_{get_sample_id(sample_dict).replace('.', '__')}.png")
             )  # save fig
+
 
 class OpVis3DPlotly(OpDebugBase):
     """
