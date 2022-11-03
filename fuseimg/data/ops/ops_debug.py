@@ -279,7 +279,7 @@ class OpVis3DPlotly(OpDebugBase):
         self._path = path
         self._callback = callback
 
-    def frame_args(self, duration: int):
+    def frame_args(self, duration: int) -> dict:
         """
         Required for buttons used in the plotly graph animation.
         Everything is hardcoded/constant except for duration.
