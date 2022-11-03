@@ -28,6 +28,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
 import pytorch_lightning as pl
+from pytorch_lightning.loggers import CSVLogger
 
 from fuse.eval.evaluator import EvaluatorDefault
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
@@ -99,7 +100,7 @@ TRAIN_COMMON_PARAMS["data.validation_folds"] = [4]
 # ===============
 # PL Trainer
 # ===============
-TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 50
+TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 2
 TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
 # use "dp" strategy temp when working with multiple GPUS - workaround for pytorch lightning issue: https://github.com/Lightning-AI/lightning/issues/11807
@@ -146,6 +147,7 @@ def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault,
     # Logger
     # ==============================================================================
     fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
+    lightning_csv_logger = CSVLogger(save_dir=paths["model_dir"], name="lightning_metrics")
     lgr = logging.getLogger("Fuse")
     lgr.info("Fuse Train", {"attrs": ["bold", "underline"]})
 
@@ -260,6 +262,7 @@ def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault,
         devices=train_params["trainer.num_devices"],
         strategy=train_params["trainer.strategy"],
         auto_select_gpus=train_params["trainer.auto_select_gpus"],
+        logger=lightning_csv_logger,
     )
 
     # train
