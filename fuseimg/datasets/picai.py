@@ -2,7 +2,7 @@ from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuseimg.data.ops.image_loader import OpLoadImage
 from fuseimg.data.ops.color import OpNormalizeAgainstSelf
-from fuseimg.data.ops.shape_ops import OpFlipBrightSideOnLeft2D, OpFindBiggestNonEmptyBbox2D, OpResizeAndPad2D
+from fuseimg.data.ops.aug.geometry import OpAugAffine2D, OpAugSqueeze3Dto2D, OpAugUnsqueeze3DFrom2D
 from fuse.data import PipelineDefault, OpToTensor
 from fuse.data.ops.ops_common import OpLambda
 from fuseimg.data.ops.aug.color import OpAugColor
@@ -75,43 +75,29 @@ class PICAI:
         return static_pipeline
 
     @staticmethod
-    def dynamic_pipeline(train: bool = False):
+    def dynamic_pipeline(train: bool = False, aug_params: NDict = None):
         """
         Get suggested dynamic pipeline. including pre-processing that might be modified and augmentation operations.
         :param train : True iff we request dataset for train purpouse
         """
-        dynamic_pipeline = PipelineDefault(
-            "cmmd_dynamic",
-            [
+        ops = []
+        ops +=[
                 (OpToTensor(), dict(key="data.input.img", dtype=torch.float32)),
                 (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")),
-            ],
-        )
+            ]
         if train:
-            dynamic_pipeline.extend(
-                [
-                    (
-                        OpRandApply(OpSample(OpAugAffine2D()), 0.5),
-                        dict(
-                            key="data.input.img",
-                            rotate=Uniform(-30.0, 30.0),
-                            scale=Uniform(0.9, 1.1),
-                            flip=(RandBool(0.3), RandBool(0.5)),
-                            translate=(RandInt(-10, 10), RandInt(-10, 10)),
-                        ),
-                    ),
-                    (
-                        OpRandApply(OpSample(OpAugColor()), 0.5),
-                        dict(
-                            key="data.input.img",
-                            gamma=Uniform(0.9, 1.1),
-                            contrast=Uniform(0.85, 1.15),
-                            mul=Uniform(0.95, 1.05),
-                            add=Uniform(-0.06, 0.06),
-                        ),
-                    ),
+            ops +=[
+                    # affine augmentation - will apply the same affine transformation on each slice
+                    (OpAugSqueeze3Dto2D(), dict(key='data.input.img', axis_squeeze=1)),
+                    (OpRandApply(OpSample(OpAugAffine2D()), aug_params['apply_aug_prob']),
+                         dict(key="data.input.img",
+                              rotate=Uniform(*aug_params['rotate']),
+                              scale=Uniform(*aug_params['scale']),
+                              flip=(aug_params['flip'], aug_params['flip']),
+                              translate=(RandInt(*aug_params['translate']), RandInt(*aug_params['translate'])))),
+                        (OpAugUnsqueeze3DFrom2D(), dict(key='data.input.img', axis_squeeze=1, channels=1)),
                 ]
-            )
+        dynamic_pipeline = PipelineDefault("picai_dynamic", ops)
         return dynamic_pipeline
 
 
@@ -125,6 +111,7 @@ class PICAI:
         num_workers: int = 10,
         sample_ids: Optional[Sequence[Hashable]] = None,
         train: bool = False,
+        aug_params= NDict,
     ):
         """
         Creates Fuse Dataset single object (either for training, validation and test or user defined set)
@@ -147,7 +134,7 @@ class PICAI:
             sample_ids = all_sample_ids
 
         static_pipeline = PICAI.static_pipeline(data_dir, input_source_gt, target)
-        dynamic_pipeline = PICAI.dynamic_pipeline(train=train)
+        dynamic_pipeline = PICAI.dynamic_pipeline(train=train,aug_params=aug_params)
 
         cacher = SamplesCacher(
             "cache_ver",

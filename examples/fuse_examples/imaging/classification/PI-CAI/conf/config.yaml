@@ -26,6 +26,14 @@ train:
     devices : 1
     num_epochs : 100
     ckpt_path : 
+  aug_params:
+    apply_aug_prob: 0.9
+    rotate: [-180, 180]
+    scale: [0.9, 2]
+    flip: 0.5
+    translate: [-25, 25]
+    mask_prob: 0
+    total_mask_prob: 0
 infer:
   infer_filename : validation_set_infer.gz
   checkpoint : best_epoch.ckpt

@@ -128,6 +128,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
         reset_cache=False,
         num_workers=train["num_workers"],
         train=True,
+        aug_params=train["aug_params"]
     )
     folds = dataset_balanced_division_to_folds(
         dataset=dataset_all,
@@ -154,6 +155,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
         num_workers=train["num_workers"],
         sample_ids=train_sample_ids,
         train=True,
+        aug_params=train["aug_params"]
     )
 
     validation_dataset = PICAI.dataset(
@@ -163,7 +165,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
         paths["cache_dir"],
         reset_cache=False,
         num_workers=train["num_workers"],
-        sample_ids=validation_sample_ids,
+        sample_ids=validation_sample_ids
     )
 
     ## Create sampler
