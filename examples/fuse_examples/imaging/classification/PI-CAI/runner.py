@@ -40,7 +40,9 @@ from fuse.dl.losses.loss_default import LossDefault
 
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy
 from fuseimg.datasets.picai import PICAI
-from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
+from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
+from fuse.dl.models import ModelMultiHead
+from fuse.dl.models.heads.heads_3D import Head3D
 from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
 from pytorch_lightning import Trainer
 from fuse.dl.lightning.pl_module import LightningModuleDefault
@@ -78,19 +80,19 @@ def create_model(train: NDict, paths: NDict) -> torch.nn.Module:
     else:
         raise ("unsuported target!!")
     model = ModelMultiHead(
-        conv_inputs=(("data.input.img", 1),),
-        backbone=BackboneInceptionResnetV2(input_channels_num=1),
+        conv_inputs=(('data.input.img', 1),),
+        backbone=BackboneResnet3D(in_channels=1),
         heads=[
-            HeadGlobalPoolingClassifier(
-                head_name="head_0",
-                dropout_rate=0.5,
-                conv_inputs=[("model.backbone_features", 384)],
-                layers_description=(256,),
-                num_classes=num_classes,
-                pooling="avg",
-            ),
-        ],
-    )
+            Head3D(head_name='head_0',
+                             conv_inputs=[("model.backbone_features", 512)],
+                             #  dropout_rate=train_params['imaging_dropout'],
+                             #  append_dropout_rate=train_params['clinical_dropout'],
+                             #  fused_dropout_rate=train_params['fused_dropout'],
+                             num_classes=num_classes,
+                             #  append_features=[("data.input.clinical", 8)],
+                             #  append_layers_description=(256,128),
+                             ),
+        ])
     return model, num_classes, gt_label, skip_keys, class_names
 
 
