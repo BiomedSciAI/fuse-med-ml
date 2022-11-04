@@ -27,4 +27,3 @@ ipykernel
 hydra-core
 omegaconf
 nibabel
-vit-pytorch
