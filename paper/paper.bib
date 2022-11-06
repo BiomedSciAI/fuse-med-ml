@@ -1,63 +1,121 @@
+
 @inproceedings{raboh2022context,
-  title={Context in medical imaging: the case of focal liver lesion classification},
-  author={Raboh, Moshe and Levanony, Dana and Dufort, Paul and Sitek, Arkadiusz},
-  booktitle={Medical Imaging 2022: Image Processing},
-  volume={12032},
-  pages={165--172},
-  year={2022},
-  organization={SPIE}
+author = {Moshe Raboh and Dana Levanony and Paul Dufort and Arkadiusz Sitek},
+title = {{Context in medical imaging: the case of focal liver lesion classification}},
+volume = {12032},
+booktitle = {Medical Imaging 2022: Image Processing},
+editor = {Olivier Colliot and Ivana Išgum},
+organization = {International Society for Optics and Photonics},
+publisher = {SPIE},
+pages = {120320O},
+keywords = {Classification, Multiphase CT, Deep learninig, Context, Medical imaging, 3D, Lesion, Liver},
+year = {2022},
+doi = {10.1117/12.2609385},
+URL = {https://doi.org/10.1117/12.2609385}
 }
 
 @inproceedings{rabinovici2022early,
-  title={Early prediction of metastasis in women with locally advanced breast cancer},
-  author={Rabinovici-Cohen, Simona and Tlusty, Tal and Fern{\'a}ndez, Xos{\'e} M and Rejo, Beatriz Grandal},
-  booktitle={Medical Imaging 2022: Computer-Aided Diagnosis},
-  volume={12033},
-  pages={92--101},
-  year={2022},
-  organization={SPIE}
+author = {Simona Rabinovici-Cohen and Tal Tlusty and Xos{\'e} M. Fern{\'a}ndez and Beatriz Grandal Rejo},
+title = {{Early prediction of metastasis in women with locally advanced breast cancer}},
+volume = {12033},
+booktitle = {Medical Imaging 2022: Computer-Aided Diagnosis},
+editor = {Karen Drukker and Khan M. Iftekharuddin and Hongbing Lu and Maciej A. Mazurowski and Chisako Muramatsu and Ravi K. Samala},
+organization = {International Society for Optics and Photonics},
+publisher = {SPIE},
+pages = {120330F},
+keywords = {breast cancer, outcome prediction, neoadjuvant chemotherapy , imaging biomarkers, deep learning, machine learning, magnetic resonance imaging, MRI, BigMedilytics EU project},
+year = {2022},
+doi = {10.1117/12.2613169},
+URL = {https://doi.org/10.1117/12.2613169}
 }
 
-@article{rabinovici2022multimodal,
-  title={Multimodal Prediction of Five-Year Breast Cancer Recurrence in Women Who Receive Neoadjuvant Chemotherapy},
-  author={Rabinovici-Cohen, Simona and Fern{\'a}ndez, Xos{\'e} M and Grandal Rejo, Beatriz and Hexter, Efrat and Hijano Cubelos, Oliver and Pajula, Juha and P{\"o}l{\"o}nen, Harri and Reyal, Fabien and Rosen-Zvi, Michal},
-  journal={Cancers},
-  volume={14},
-  number={16},
-  pages={3848},
-  year={2022},
-  publisher={MDPI}
+
+@Article{rabinovici2022multimodal,
+AUTHOR = {Rabinovici-Cohen, Simona and Fernández, Xosé M. and Grandal Rejo, Beatriz and Hexter, Efrat and Hijano Cubelos, Oliver and Pajula, Juha and Pölönen, Harri and Reyal, Fabien and Rosen-Zvi, Michal},
+TITLE = {Multimodal Prediction of Five-Year Breast Cancer Recurrence in Women Who Receive Neoadjuvant Chemotherapy},
+JOURNAL = {Cancers},
+VOLUME = {14},
+YEAR = {2022},
+NUMBER = {16},
+ARTICLE-NUMBER = {3848},
+URL = {https://www.mdpi.com/2072-6694/14/16/3848},
+PubMedID = {36010844},
+ISSN = {2072-6694},
+ABSTRACT = {In current clinical practice, it is difficult to predict whether a patient receiving neoadjuvant chemotherapy (NAC) for breast cancer is likely to encounter recurrence after treatment and have the cancer recur locally in the breast or in other areas of the body. We explore the use of clinical history, immunohistochemical markers, and multiparametric magnetic resonance imaging (DCE, ADC, Dixon) to predict the risk of post-treatment recurrence within five years. We performed a retrospective study on a cohort of 1738 patients from Institut Curie and analyzed the data using classical machine learning, image processing, and deep learning. Our results demonstrate the ability to predict recurrence prior to NAC treatment initiation using each modality alone, and the possible improvement achieved by combining the modalities. When evaluated on holdout data, the multimodal model achieved an AUC of 0.75 (CI: 0.70, 0.80) and 0.57 specificity at 0.90 sensitivity. We then stratified the data based on known prognostic biomarkers. We found that our models can provide accurate recurrence predictions (AUC &gt; 0.89) for specific groups of women under 50 years old with poor prognoses. A version of our method won second place at the BMMR2 Challenge, with a very small margin from being first, and was a standout from the other challenge entries.},
+DOI = {10.3390/cancers14163848}
 }
 
-@inproceedings{jubran2021glimpse,
-  title={A Glimpse into the Future: Disease Progression Simulation for Breast Cancer in Mammograms},
-  author={Jubran, Ibrahim and Raboh, Moshiko and Perek, Shaked and Gruen, David and Hexter, Efrat},
-  booktitle={International Workshop on Simulation and Synthesis in Medical Imaging},
-  pages={34--43},
-  year={2021},
-  organization={Springer}
+@InProceedings{jubran2021glimpse,
+author="Jubran, Ibrahim
+and Raboh, Moshiko
+and Perek, Shaked
+and Gruen, David
+and Hexter, Efrat",
+editor="Svoboda, David
+and Burgos, Ninon
+and Wolterink, Jelmer M.
+and Zhao, Can",
+title="A Glimpse into the Future: Disease Progression Simulation for Breast Cancer in Mammograms",
+booktitle="Simulation and Synthesis in Medical Imaging",
+year="2021",
+publisher="Springer International Publishing",
+address="Cham",
+pages="34--43",
+abstract="Simulating the disease progression of a suspicious finding in mammography (MG) images could assist in the early detection of breast cancer, where the telltale signs of malignancy are subtle and hard to detect. It could also decrease both unnecessary biopsies and treatments of indolent or low-grade disease that might otherwise remain asymptomatic. We propose a novel approach to simulating disease progression, as a significant step towards those goals. Our architecture uses the powerful Wasserstein GAN in combination with a novel component that simulates the progression of the disease in deep feature space. This allows us to learn from unlabeled longitudinal MG pairs of current and prior studies, stabilize the learning procedure, and overcome misalignment between the MG pairs. Our output image replicates an actual MG image, maintains the prior's shape and general appearance while also containing a finding with characteristics that resemble the current image's suspicious finding. We simulate a progression of: (i) a full MG prior image in low-resolution, and (ii) a high-resolution patch in suspicious areas of the prior image. We demonstrate the effectiveness of our pipeline in achieving the above goals using quantitative and qualitative metrics and a reader study. Our results show the high quality of our simulation and the promise it holds for early risk stratification.",
+isbn="978-3-030-87592-3"
 }
 
-@inproceedings{tlusty2021pre,
-  title={Pre-biopsy multi-class classification of breast lesion pathology in mammograms},
-  author={Tlusty, Tal and Ozery-Flato, Michal and Barros, Vesna and Barkan, Ella and Amit, Mika and Gruen, David and Guindy, Michal and Arazi, Tal and Rozin, Mona and Rosen-Zvi, Michal and others},
-  booktitle={International Workshop on Machine Learning in Medical Imaging},
-  pages={277--286},
-  year={2021},
-  organization={Springer}
+@InProceedings{tlusty2021pre,
+author="Tlusty, Tal
+and Ozery-Flato, Michal
+and Barros, Vesna
+and Barkan, Ella
+and Amit, Mika
+and Gruen, David
+and Guindy, Michal
+and Arazi, Tal
+and Rozin, Mona
+and Rosen-Zvi, Michal
+and Hexter, Efrat",
+editor="Lian, Chunfeng
+and Cao, Xiaohuan
+and Rekik, Islem
+and Xu, Xuanang
+and Yan, Pingkun",
+title="Pre-biopsy Multi-class Classification of Breast Lesion Pathology in Mammograms",
+booktitle="Machine Learning in Medical Imaging",
+year="2021",
+publisher="Springer International Publishing",
+address="Cham",
+pages="277--286",
+abstract="Characterization of lesions by artificial intelligence (AI) has been the subject of extensive research. In recent years, many studies demonstrated the ability of convolution neural networks (CNNs) to successfully distinguish between malignant and benign breast lesions in mammography (MG) images. However, to date, no study has assessed the specific sub-type of lesions in MG images, as detailed in histolopathology reports. We present a method for finer classification of breast lesions in MG images into multiple pathology sub-types. Our approach works well with radiologists' diagnostic workflow, and uses data available in radiology reports. The proposed Dual-Radiology Dual-Resolution Network (Du-Rad Du-Res Net) receives dual input from the radiologist and dual image resolutions. The radiologist input includes annotation of the lesion area and semantic radiology features; the dual image resolutions comprise a low resolution of the entire mammogram and a high resolution of the lesion area. The network estimates the likelihood of malignancy, as well as the associated pathological sub-type. We show that the combined input of the lesion region of interest (ROI) and the entire mammogram is important for optimizing the model's performance. We tested the AI in a reader study on a dataset of 100 heldout cases. The AI outperformed three breast radiologists in the task of lesion histopathology sub-typing.",
+isbn="978-3-030-87589-3"
 }
 
-@inproceedings{golts2022ensemble,
-  title={An Ensemble of 3D U-Net Based Models for Segmentation of Kidney and Masses in CT Scans},
-  author={Golts, Alex and Khapun, Daniel and Shats, Daniel and Shoshan, Yoel and Gilboa-Solomon, Flora},
-  booktitle={International Challenge on Kidney and Kidney Tumor Segmentation},
-  pages={103--115},
-  year={2022},
-  organization={Springer}
+@InProceedings{golts2022ensemble,
+author="Golts, Alex
+and Khapun, Daniel
+and Shats, Daniel
+and Shoshan, Yoel
+and Gilboa-Solomon, Flora",
+editor="Heller, Nicholas
+and Isensee, Fabian
+and Trofimova, Darya
+and Tejpaul, Resha
+and Papanikolopoulos, Nikolaos
+and Weight, Christopher",
+title="An Ensemble of 3D U-Net Based Models for Segmentation of Kidney and Masses in CT Scans",
+booktitle="Kidney and Kidney Tumor Segmentation",
+year="2022",
+publisher="Springer International Publishing",
+address="Cham",
+pages="103--115",
+abstract="Automatic segmentation of renal tumors and surrounding anatomy in computed tomography (CT) scans is a promising tool for assisting radiologists and surgeons in their efforts to study these scans and improve the prospect of treating kidney cancer. We describe our approach, which we used to compete in the 2021 Kidney and Kidney Tumor Segmentation (KiTS21) challenge. Our approach is based on the successful 3D U-Net architecture with our added innovations, including the use of transfer learning, an unsupervised regularized loss, custom postprocessing, and multi-annotator ground truth that mimics the evaluation protocol. Our submission has reached the 2nd place in the KiTS21 challenge.",
+isbn="978-3-030-98385-7"
 }
 
 @misc{knight,
-  author = {Raboh, Moshiko and Golts, Alex and Heller, Nicholas and Tejpaul, Resha and Abdallah, Nour and Benidir, Tarik and Campbell, 
+  author = {Raboh, Moshe and Golts, Alex and Heller, Nicholas and Tejpaul, Resha and Abdallah, Nour and Benidir, Tarik and Campbell, 
   			Steve C. and Remer, Erick and Foncubierta, Antonio and Gabrani, Maria and Müller, Henning and Hexter, Efrat and Rabinovici-Cohen, Simona and 
 			Shoshan, Yoel and Weight, Christopher and Rosen-Zvi, Michal},
   title = {{KNIGHT Challenge - Kidney clinical Notes and Imaging to Guide and Help personalize Treatment and biomarkers discovery}},
