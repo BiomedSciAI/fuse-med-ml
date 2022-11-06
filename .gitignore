@@ -1,5 +1,6 @@
 test-reports/
 *.png
+!paper/figures/diagram.png
 *.py[cod]
 **.snapshots
 **/*.snapshots
