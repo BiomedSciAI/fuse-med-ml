@@ -103,8 +103,6 @@ class SamplesCacher:
             self.delete_cache()
 
         self._audit_kwargs = audit_kwargs
-        if 'ignore_nan_inequality' not in self._audit_kwargs:
-            self._audit_kwargs['ignore_nan_inequality'] = True  #as DeepDiff(float('nan'), float('nan')) reports difference
         self._audit = SampleCachingAudit(**self._audit_kwargs)
 
         self._workers = workers
@@ -348,7 +346,7 @@ class SamplesCacher:
         return output_info
 
 
-def _get_available_write_location(cache_dirs: List[str], max_allowed_used_space=None):
+def _get_available_write_location(cache_dirs: List[str], max_allowed_used_space=0.95):
     """
     :param cache_dirs: write directories. Directories are checked in order that they are provided.
     :param max_allowed_used_space: set to a value between 0.0 to 1.0.

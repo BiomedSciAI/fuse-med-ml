@@ -140,7 +140,8 @@ def step_extract_predictions(prediction_keys: Sequence[str], batch_dict: NDict) 
     return outputs
 
 
-def epoch_end_compute_and_log_losses(pl: pl.LightningModule, mode: str, batch_losses: Sequence[Dict]) -> None:
+def epoch_end_compute_and_log_losses(pl: pl.LightningModule, mode: str, batch_losses: Sequence[Dict],
+                                     sep: str= '.') -> None:
     """
     On epoch end average out the batch losses and log the averaged losses
     :param pl: LightiningModule. Used for logging.
@@ -157,10 +158,11 @@ def epoch_end_compute_and_log_losses(pl: pl.LightningModule, mode: str, batch_lo
             else:
                 losses.append(elem[key])
         loss = mean(losses)
-        pl.log(f"{mode}/losses.{key}", loss, on_epoch=True)
+        pl.log(f"{mode}{sep}losses.{key}", loss, on_epoch=True)
 
 
-def epoch_end_compute_and_log_metrics(pl: pl.LightningModule, mode: str, metrics: OrderedDict[str, MetricBase]) -> None:
+def epoch_end_compute_and_log_metrics(pl: pl.LightningModule, mode: str, metrics: OrderedDict[str, MetricBase],
+                                      sep:str = '.') -> None:
     """
     On epoch end compute and log per epoch metrics
     :param pl: LightiningModule. Used for logging.
@@ -186,4 +188,4 @@ def epoch_end_compute_and_log_metrics(pl: pl.LightningModule, mode: str, metrics
     # log metrics
     for key in epoch_results.keypaths():
         if epoch_results[key] is not None and not isinstance(epoch_results[key], (PerSampleData)):
-            pl.log(f"{mode}/{key}", epoch_results[key], on_epoch=True)
+            pl.log(f"{mode}{sep}{key}", epoch_results[key], on_epoch=True)
