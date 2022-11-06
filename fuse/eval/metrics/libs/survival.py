@@ -5,8 +5,13 @@ import numpy as np
 
 class MetricsSurvival:
     @staticmethod
-    def c_index(pred: np.ndarray, event_times: np.ndarray = None, event_observed : np.ndarray = None,
-                event_class_index: int = -1, time_unit: int=1) -> float:
+    def c_index(
+        pred: np.ndarray,
+        event_times: np.ndarray = None,
+        event_observed: np.ndarray = None,
+        event_class_index: int = -1,
+        time_unit: int = 1,
+    ) -> float:
         """
         Compute c-index (concordance index) score using lifelines
         :param pred: prediction array per sample. Each element is a score (scalar). Higher score - higher chance for the event

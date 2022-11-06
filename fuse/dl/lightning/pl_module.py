@@ -39,7 +39,7 @@ class LightningModuleDefault(pl.LightningModule):
         callbacks: Optional[Sequence[pl.Callback]] = None,
         best_epoch_source: Optional[Union[Dict, List[Dict]]] = None,
         save_hyperparameters: Optional[List[str]] = None,
-        tensorboard_sep: str = '.',
+        tensorboard_sep: str = ".",
         **kwargs
     ):
         """
@@ -131,8 +131,7 @@ class LightningModuleDefault(pl.LightningModule):
         # for the logs to be at each epoch, not each step
         self.log("step", float(self.current_epoch), on_epoch=True)
         # calc average epoch loss and log it
-        epoch_end_compute_and_log_losses(self, "train", [e["losses"] for e in step_outputs],
-                                         sep=self._sep)
+        epoch_end_compute_and_log_losses(self, "train", [e["losses"] for e in step_outputs], sep=self._sep)
         # evaluate  and log it
         epoch_end_compute_and_log_metrics(self, "train", self._train_metrics, sep=self._sep)
 
@@ -140,8 +139,7 @@ class LightningModuleDefault(pl.LightningModule):
         # for the logs to be at each epoch, not each step
         self.log("step", float(self.current_epoch), on_epoch=True)
         # calc average epoch loss and log it
-        epoch_end_compute_and_log_losses(self, "validation", [e["losses"] for e in step_outputs],
-                                         sep=self._sep)
+        epoch_end_compute_and_log_losses(self, "validation", [e["losses"] for e in step_outputs], sep=self._sep)
         # evaluate  and log it
         epoch_end_compute_and_log_metrics(self, "validation", self._validation_metrics, sep=self._sep)
 

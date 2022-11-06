@@ -27,7 +27,7 @@ def run_multiprocessed(
     keep_results_order: bool = True,
     as_iterator=False,
     mp_context: Optional[str] = None,
-    desc: Optional[str] = None
+    desc: Optional[str] = None,
 ) -> List[Any]:
     """
     Args:
@@ -63,7 +63,7 @@ def run_multiprocessed(
         copy_to_global_storage=copy_to_global_storage,
         keep_results_order=keep_results_order,
         mp_context=mp_context,
-        desc=desc
+        desc=desc,
     )
 
     if as_iterator:

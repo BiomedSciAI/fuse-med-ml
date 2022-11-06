@@ -42,7 +42,7 @@ class ClassifierFCN(nn.Module):
         super().__init__()
         layer_list = []
         last_layer_size = in_ch
-        
+
         for i in range(len(layers_description)):
             curr_layer_size = layers_description[i]
             layer_list.append(nn.Conv2d(last_layer_size, curr_layer_size, kernel_size=1, stride=1))
@@ -82,7 +82,7 @@ class ClassifierFCN3D(nn.Module):
         super().__init__()
         layer_list = []
         last_layer_size = in_ch
-       
+
         for curr_layer_size in layers_description:
             layer_list.append(nn.Conv3d(last_layer_size, curr_layer_size, kernel_size=1, stride=1))
             layer_list.append(nn.ReLU())
@@ -111,7 +111,7 @@ class ClassifierMLP(nn.Module):
         num_classes: Optional[int] = None,
         layers_description: Sequence[int] = (256,),
         dropout_rate: float = 0.1,
-        bias: bool = True
+        bias: bool = True,
     ):
         """
         :param in_ch: Number of input channels

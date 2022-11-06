@@ -38,7 +38,7 @@ class DatasetDefault(DatasetBase):
         dynamic_pipeline: Optional[PipelineDefault] = None,
         cacher: Optional[SamplesCacher] = None,
         allow_uncached_sample_morphing: bool = False,
-        always_return_dict = True,
+        always_return_dict=True,
     ):
         """
         :param sample_ids:      list of sample_ids included in dataset.
@@ -122,7 +122,7 @@ class DatasetDefault(DatasetBase):
                 [(sid, self._static_pipeline, False) for sid in self._orig_sample_ids],
                 workers=num_workers,
                 mp_context=mp_context,
-                desc='dataset_default.sample_morphing'
+                desc="dataset_default.sample_morphing",
             )
 
             self._output_sample_ids_info = OrderedDict()
@@ -197,7 +197,7 @@ class DatasetDefault(DatasetBase):
                 sample = create_initial_sample(sample_id)
                 sample = self._static_pipeline(sample)
                 if not isinstance(sample, dict):
-                    if self._always_return_dict :
+                    if self._always_return_dict:
                         raise Exception(
                             f'By default when caching is disabled sample morphing is not allowed, and the output of the static pipeline is expected to be a dict. Instead got {type(sample)}. You can use "allow_uncached_sample_morphing=True" to allow this, but be aware it is slow and should be used only for debugging'
                         )
@@ -243,7 +243,7 @@ class DatasetDefault(DatasetBase):
         workers: int = 10,
         verbose: int = 1,
         mp_context: Optional[str] = None,
-        desc: str = 'dataset_default.get_multi',
+        desc: str = "dataset_default.get_multi",
         **kwargs,
     ) -> List[Dict]:
         """
@@ -265,7 +265,7 @@ class DatasetDefault(DatasetBase):
             workers=workers,
             verbose=verbose,
             mp_context=mp_context,
-            desc=desc
+            desc=desc,
         )
         return list_sample_dict
 

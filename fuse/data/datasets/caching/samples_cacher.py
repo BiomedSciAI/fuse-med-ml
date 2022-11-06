@@ -89,9 +89,9 @@ class SamplesCacher:
 
         self._pipeline_desc_text = str(pipeline)
         if use_pipeline_hash:
-            self._pipeline_desc_hash = 'hash_'+hashlib.md5(self._pipeline_desc_text.encode('utf-8')).hexdigest()
+            self._pipeline_desc_hash = "hash_" + hashlib.md5(self._pipeline_desc_text.encode("utf-8")).hexdigest()
         else:
-            self._pipeline_desc_hash = 'hash_fixed'
+            self._pipeline_desc_hash = "hash_fixed"
 
         self._verbose = verbose
 
@@ -189,7 +189,7 @@ class SamplesCacher:
             workers=self._workers,
             copy_to_global_storage=for_global_storage,
             verbose=1,
-            desc='caching'
+            desc="caching",
         )
 
         for initial_sample_id, output_sample_ids in zip(orig_sample_ids, all_ans):
