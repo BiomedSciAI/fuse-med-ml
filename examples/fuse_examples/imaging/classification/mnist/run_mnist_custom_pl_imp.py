@@ -31,7 +31,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
 import pytorch_lightning as pl
-from pytorch_lightning.loggers import CSVLogger
+from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
 
 from fuse.eval.evaluator import EvaluatorDefault
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
@@ -247,7 +247,8 @@ def run_train(paths: dict, train_params: dict):
     # Logger(s)
     # ==============================================================================
     fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
-    lightning_csv_logger = CSVLogger(save_dir=paths["model_dir"], name="lightning_metrics")
+    lightning_csv_logger = CSVLogger(save_dir=paths["model_dir"], name="lightning_csv_logs")
+    lightning_tb_logger = TensorBoardLogger(save_dir=paths["model_dir"], name="lightning_tb_logs")
     print("Fuse Train")
 
     # ==============================================================================
@@ -307,7 +308,7 @@ def run_train(paths: dict, train_params: dict):
         strategy=train_params["trainer.strategy"],
         devices=train_params["trainer.num_devices"],
         auto_select_gpus=True,
-        logger=lightning_csv_logger,
+        logger=[lightning_csv_logger, lightning_tb_logger],
     )
 
     # train
