@@ -319,6 +319,7 @@ def run_infer(dataset: DatasetDefault, paths: dict, infer_params: dict):
         devices=infer_params["trainer.num_devices"],
         strategy=infer_params["trainer.strategy"],
         auto_select_gpus=infer_params["trainer.auto_select_gpus"],
+        logger=None,
     )
     predictions = pl_trainer.predict(pl_module, infer_dataloader, return_predictions=True)
 

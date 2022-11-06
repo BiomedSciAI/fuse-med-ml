@@ -365,6 +365,7 @@ def run_infer(paths: dict, infer_common_params: dict):
         devices=infer_common_params["trainer.num_devices"],
         strategy=infer_common_params["trainer.strategy"],
         auto_select_gpus=True,
+        logger=None,
     )
     predictions = pl_trainer.predict(pl_module, validation_dataloader, return_predictions=True)
 
