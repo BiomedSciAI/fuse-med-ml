@@ -71,8 +71,6 @@ The data package includes also includes generic utilities such as a PyTorch base
 
 ![In this example a medical image loader is the reusable *fuse* component. Different projects can have different formats for their data samples, but they can all use OpMedicalImageLoader by providing the appropriate key names when calling it. In Project B the same key name is used for the input and output, resulting in the loaded image data overriding the image paths in the updated sample.\label{fig:diagram}](figures/diagram.png){width=100%}
 
-![test caption](figures/diagram.png)
-
 ## *fuse.dl*
 FuseMedML's DL package works with PyTorch models, only modifying them to interact with a `batch_dict`. For training, *fuse.dl* utilizes PyTorch-Lightning, either through a ready made `LightningModuleDefault` class inheriting from Pytorch-Lightning's `LightningModule` class, or by allowing users who seek maximal customizability to implement their own custom `LightningModule` and operate in close resemblance to the standard PyTorch-Lightning workflow.    
 
