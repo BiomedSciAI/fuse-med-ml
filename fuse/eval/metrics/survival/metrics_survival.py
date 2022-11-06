@@ -17,11 +17,8 @@ Created on June 30, 2021
 
 """
 
-from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union, Hashable
-import traceback
 
-import numpy as np
+from typing import Optional
 
 from fuse.eval.metrics.libs.survival import MetricsSurvival
 from fuse.eval.metrics.metrics_common import MetricDefault
