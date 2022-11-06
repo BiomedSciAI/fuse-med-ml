@@ -1,5 +1,5 @@
 ---
-title: 'tmp'
+title: 'FuseMedML: a framework for accelerated discovery in machine learning based biomedicine'
 tags:
   - Deep Learning
   - Machine Learning
@@ -60,7 +60,7 @@ We were also able to meaningfully measure our progress and statistical significa
 # Components
 
 ## *fuse.data*
-FuseMedML's data package is designed for building a flexible data pipeline with reusable building blocks called *ops*.
+FuseMedML's data package is designed for building a flexible data pipeline with reusable building blocks called *ops*. See \autoref{fig:diagram} for a simple example for how such a building block can be used across different projects.
 Each op(eration) gets as an input a `sample_dict`, a dictionary that stores all the necessary information about a sample processed so far. Typically, an *op* also gets keys that specify what it should consider in `sample_dict` and where to store the output. Similarly, a minibatch is represented by a `batch_dict`.
 
 A data pipeline consists of a `static_pipline` and a `dynamic_pipeline`. 
@@ -68,6 +68,8 @@ The output of the `static_pipeline` is cached to optimize running time and maxim
 The `dynamic_pipeline` is responsible for "online" processing that we don't want cached, such as random augmentations.
 An instance of a *fuse* dataset class, which inherits from the PyTorch dataset class is then created from defined static and dynamic pipelines.  
 The data package includes also includes generic utilities such as a PyTorch based sampler enabling batch class balancing and a tool for splitting data into folds acording to predefined criteria.
+
+![In this example a medical image loader is the reusable *fuse* component. Different projects can have different formats for their data samples, but they can all use OpMedicalImageLoader by providing the appropriate key names when calling it. In Project B the same key name is used for the input and output, resulting in the loaded image data overriding the image paths in the updated sample. \label{fig:diagram}](figure.png)
 
 ## *fuse.dl*
 FuseMedML's DL package works with PyTorch models, only modifying them to interact with a `batch_dict`. For training, *fuse.dl* utilizes PyTorch-Lightning, either through a ready made `LightningModuleDefault` class inheriting from Pytorch-Lightning's `LightningModule` class, or by allowing users who seek maximal customizability to implement their own custom `LightningModule` and operate in close resemblance to the standard PyTorch-Lightning workflow.    
