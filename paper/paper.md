@@ -77,18 +77,4 @@ FuseMedML's DL package works with PyTorch models, only modifying them to interac
 ## *fuse.eval*
 The evaluation package of fuse is a standalone library for evaluating ML models for various performance metrics and comparing between models. It comes with advanced capabilities such as generic confidence interval wrapper for any metric, generic one vs. all extension for any binary metric to a multi-class scenario, metrics for model comparison taking into account statistical significance, model calibration tools, pipelining for combining a sequence of metrics with possible dependencies, automatic per-fold evaluation and sub-group analysis, automaric handling of massive data through batching and multiprocessing, and more. 
 
-
-# Figures
-
-Figures can be included like this:
-![Caption for example figure.\label{fig:example}](figure.png)
-and referenced from text using \autoref{fig:example}.
-
-Figure sizes can be customized by adding an optional second parameter:
-![Caption for example figure.](figure.png){ width=20% }
-
-# Acknowledgements
-
-TBD
-
 # References
