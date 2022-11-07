@@ -3,13 +3,17 @@
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
+
    http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
 Created on June 30, 2021
+
 """
 
 from typing import Dict, Hashable, List, Optional, Sequence, Union
@@ -38,7 +42,6 @@ class DatasetDefault(DatasetBase):
         dynamic_pipeline: Optional[PipelineDefault] = None,
         cacher: Optional[SamplesCacher] = None,
         allow_uncached_sample_morphing: bool = False,
-        always_return_dict=True,
     ):
         """
         :param sample_ids:      list of sample_ids included in dataset.
@@ -50,6 +53,7 @@ class DatasetDefault(DatasetBase):
                                 changing it will NOT trigger recaching of the static_pipeline part.
         :param cacher: optional SamplesCacher instance which will be used for caching samples to speed up samples loading
         :param allow_uncached_sample_morphing:  when enabled, allows an Op, to return None, or to return multiple samples (in a list)
+
         """
         super().__init__()
 
@@ -68,7 +72,6 @@ class DatasetDefault(DatasetBase):
 
         # self._orig_sample_ids = sample_ids
         self._allow_uncached_sample_morphing = allow_uncached_sample_morphing
-        self._always_return_dict = always_return_dict
 
         # verify unique names for dynamic pipelines
         if dynamic_pipeline is not None and static_pipeline is not None:
@@ -197,12 +200,9 @@ class DatasetDefault(DatasetBase):
                 sample = create_initial_sample(sample_id)
                 sample = self._static_pipeline(sample)
                 if not isinstance(sample, dict):
-                    if self._always_return_dict:
-                        raise Exception(
-                            f'By default when caching is disabled sample morphing is not allowed, and the output of the static pipeline is expected to be a dict. Instead got {type(sample)}. You can use "allow_uncached_sample_morphing=True" to allow this, but be aware it is slow and should be used only for debugging'
-                        )
-                    else:
-                        return None
+                    raise Exception(
+                        f'By default when caching is disabled sample morphing is not allowed, and the output of the static pipeline is expected to be a dict. Instead got {type(sample)}. You can use "allow_uncached_sample_morphing=True" to allow this, but be aware it is slow and should be used only for debugging'
+                    )
             else:
                 orig_sid = self._final_sid_to_orig_sid[sample_id]
                 sample = create_initial_sample(orig_sid)
