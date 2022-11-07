@@ -50,7 +50,7 @@ from fuse.dl.lightning.pl_module import LightningModuleDefault, BalancedLightnin
 from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
-from fuseimg.datasets.isic import ISIC
+from fuseimg.datasets.isic import ISIC, ISICDataModule
 from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS
 
 
@@ -83,7 +83,7 @@ multimodality = True  # Set: 'False' to use only imaging, 'True' to use imaging 
 ROOT = "./_examples/isic/"
 DATA = os.environ["ISIC19_DATA_PATH"] if "ISIC19_DATA_PATH" in os.environ else os.path.join(ROOT, "data_dir")
 modality = "multimodality" if multimodality else "imaging"
-model_dir = os.path.join(ROOT, f"model_dir_{modality}_final")
+model_dir = os.path.join(ROOT, f"model_dir_{modality}")
 PATHS = {
     "model_dir": model_dir,
     "inference_dir": os.path.join(model_dir, "infer_dir"),
@@ -106,16 +106,17 @@ TRAIN_COMMON_PARAMS["data.num_workers"] = NUM_WORKERS
 TRAIN_COMMON_PARAMS["data.num_folds"] = 5
 TRAIN_COMMON_PARAMS["data.train_folds"] = [0, 1, 2]
 TRAIN_COMMON_PARAMS["data.validation_folds"] = [3]
+TRAIN_COMMON_PARAMS["data.infer_folds"] = [4]
 TRAIN_COMMON_PARAMS["data.samples_ids"] = {"all": None, "golden": FULL_GOLDEN_MEMBERS}["golden"]
 
 
 # ===============
 # PL Trainer
 # ===============
-TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 30
+TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 3
 TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
-TRAIN_COMMON_PARAMS["trainer.strategy"] = "ddp"
+TRAIN_COMMON_PARAMS["trainer.strategy"] = "ddp" if NUM_GPUS > 1 else None
 
 # ===============
 # Optimizer
@@ -172,56 +173,75 @@ def create_datamodule(paths: dict, train_common_params: dict) -> BalancedLightni
     We use Fuse's "BalancedLightningDataModule" class, which takes all user's relevant datasets and returns a
     LightningDataModule subclass.
     """
-    ## Create training and validation datasets
-    # split to folds randomly
-    all_dataset = ISIC.dataset(
-        paths["data_dir"],
-        paths["cache_dir"],
-        num_workers=train_common_params["data.num_workers"],
-        samples_ids=train_common_params["data.samples_ids"],
-    )
+    use_new = True  # super temp
 
-    folds = dataset_balanced_division_to_folds(
-        dataset=all_dataset,
-        output_split_filename=paths["data_split_filename"],
-        keys_to_balance=["data.label"],
-        nfolds=train_common_params["data.num_folds"],
-        reset_split=False,
-    )
+    if not use_new:
+        ## Create training and validation datasets
+        # split to folds randomly
+        all_dataset = ISIC.dataset(
+            paths["data_dir"],
+            paths["cache_dir"],
+            num_workers=train_common_params["data.num_workers"],
+            samples_ids=train_common_params["data.samples_ids"],
+        )
 
-    train_sample_ids = []
-    for fold in train_common_params["data.train_folds"]:
-        train_sample_ids += folds[fold]
-    validation_sample_ids = []
-    for fold in train_common_params["data.validation_folds"]:
-        validation_sample_ids += folds[fold]
+        folds = dataset_balanced_division_to_folds(
+            dataset=all_dataset,
+            output_split_filename=paths["data_split_filename"],
+            keys_to_balance=["data.label"],
+            nfolds=train_common_params["data.num_folds"],
+            reset_split=False,
+        )
 
-    # Create train dataset
-    train_dataset = ISIC.dataset(
-        paths["data_dir"],
-        paths["cache_dir"],
-        samples_ids=train_sample_ids,
-        train=True,
-        num_workers=train_common_params["data.num_workers"],
-    )
+        train_sample_ids = []
+        for fold in train_common_params["data.train_folds"]:
+            train_sample_ids += folds[fold]
+        validation_sample_ids = []
+        for fold in train_common_params["data.validation_folds"]:
+            validation_sample_ids += folds[fold]
 
-    # Create validation dataset
-    validation_dataset = ISIC.dataset(
-        paths["data_dir"], paths["cache_dir"], samples_ids=validation_sample_ids, train=False
-    )
+        # Create train dataset
+        train_dataset = ISIC.dataset(
+            paths["data_dir"],
+            paths["cache_dir"],
+            samples_ids=train_sample_ids,
+            train=True,
+            num_workers=train_common_params["data.num_workers"],
+        )
 
-    datamodule = BalancedLightningDataModule(
-        train_dataset=train_dataset,
-        validation_dataset=validation_dataset,
-        predict_dataset=None,  # No need, this module only being used in the trainer's "fit" stage
-        num_workers=train_common_params["data.num_workers"],
-        batch_size=train_common_params["data.batch_size"],
-        balanced_class_name="data.label",
-        num_balanced_classes=8,
-        use_custom_batch_sampler=True
-        if NUM_GPUS <= 1
-        else False,  # Currently Lightning doesn't support Fuse custom sampler
-    )
+        # Create validation dataset
+        validation_dataset = ISIC.dataset(
+            paths["data_dir"], paths["cache_dir"], samples_ids=validation_sample_ids, train=False
+        )
+
+        datamodule = BalancedLightningDataModule(
+            train_dataset=train_dataset,
+            validation_dataset=validation_dataset,
+            predict_dataset=None,  # No need, this module only being used in the trainer's "fit" stage
+            num_workers=train_common_params["data.num_workers"],
+            batch_size=train_common_params["data.batch_size"],
+            balanced_class_name="data.label",
+            num_balanced_classes=8,
+            use_custom_batch_sampler=True
+            if NUM_GPUS <= 1
+            else False,  # Currently Lightning doesn't support Fuse custom sampler
+        )
+
+    if use_new:
+        datamodule = ISICDataModule(
+            data_dir=paths["data_dir"],
+            cache_dir=paths["cache_dir"],
+            num_workers=train_common_params["data.num_workers"],
+            batch_size=train_common_params["data.batch_size"],
+            train_folds=train_common_params["data.train_folds"],
+            validation_folds=train_common_params["data.validation_folds"],
+            infer_folds=train_common_params["data.infer_folds"],
+            split_filename=paths["data_split_filename"],
+            sample_ids=train_common_params["data.samples_ids"],
+            reset_cache=True,
+            reset_split=False,
+            use_batch_sample=True if NUM_GPUS <= 1 else False,
+        )
 
     return datamodule
 
@@ -294,7 +314,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     }["ReduceLROnPlateau"]
     lr_sch_config = dict(scheduler=lr_scheduler, monitor="validation.losses.total_loss")
 
-    # optimizier and lr sch - see pl.LightningModule.configure_optimizers return value for all options
+    # optimizer and lr sch - see pl.LightningModule.configure_optimizers return value for all options
     optimizers_and_lr_schs = dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
 
     # =====================================================================================

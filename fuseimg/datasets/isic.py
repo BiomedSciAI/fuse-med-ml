@@ -5,7 +5,7 @@ import wget
 from typing import Hashable, Optional, Sequence, List, Tuple
 import torch
 import numpy as np
-
+import pytorch_lightning as pl
 from fuse.data import DatasetDefault
 from fuse.data.ops.ops_cast import OpToTensor
 from fuse.data.utils.sample import get_sample_id
@@ -17,13 +17,16 @@ from fuse.data.ops.ops_read import OpReadDataframe
 from fuse.data.ops.ops_common import OpLambda, OpOverrideNaN, OpConcat
 from fuseimg.data.ops.color import OpToRange
 from fuse.data.ops.ops_aug_tabular import OpAugOneHot
-
+from fuse.data.utils.split import dataset_balanced_division_to_folds
 from fuse.utils import NDict
 
 from fuseimg.data.ops.image_loader import OpLoadImage
 from fuseimg.data.ops.aug.color import OpAugColor, OpAugGaussian
 from fuseimg.data.ops.aug.geometry import OpResizeTo, OpAugAffine2D
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
+from fuse.data.utils.samplers import BatchSamplerDefault
+from torch.utils.data import DataLoader
+from fuse.data.utils.collates import CollateDefault
 
 
 class OpISICSampleIDDecode(OpBase):
@@ -296,11 +299,11 @@ class ISIC:
     ) -> DatasetDefault:
         """
         Get cached dataset
-        :param train: if true returns the train dataset, else the validation one.
+        :param train: if true, apply augmentations in the dynamic pipeline
         :param reset_cache: set to True to reset the cache
         :param num_workers: number of processes used for caching
         :param append_dyn_pipeline: pipeline steps to append at the end of the suggested dynamic pipeline
-        :param sample_ids: dataset including the specified sample_ids or None for all the samples.
+        :param samples_ids: dataset including the specified samples_ids or None for all the samples.
         """
         # Download data if doesn't exist
         ISIC.download(data_path=data_path, sample_ids_to_download=samples_ids)
@@ -325,6 +328,151 @@ class ISIC:
 
         my_dataset.create()
         return my_dataset
+
+
+class ISICDataModule(pl.LightningDataModule):
+    """
+    Example of a custom Lightning datamodule using FuseMedML tools
+    """
+
+    def __init__(
+        self,
+        data_dir: str,
+        cache_dir: str,
+        num_workers: int,
+        batch_size: int,
+        train_folds: List[int],
+        validation_folds: List[int],
+        infer_folds: List[int],
+        split_filename: str,
+        sample_ids: Optional[Sequence[Hashable]] = None,
+        reset_cache: bool = False,
+        reset_split: bool = False,
+        use_batch_sample: bool = True,
+    ):
+        """
+        :param cache_dir:
+        """
+        super().__init__()
+        self._data_dir = data_dir
+        self._cache_dir = cache_dir
+        self._num_workers = num_workers
+        self._batch_size = batch_size
+        self._use_batch_sample = use_batch_sample
+
+        # divide into balanced train, validation and evaluation folds
+        self._train_ids = []
+        self._validation_ids = []
+        self._infer_ids = []
+
+        all_data = ISIC.dataset(
+            self._data_dir,
+            self._cache_dir,
+            num_workers=self._num_workers,
+            train=False,
+            reset_cache=reset_cache,
+            samples_ids=sample_ids,
+        )
+
+        folds = dataset_balanced_division_to_folds(
+            dataset=all_data,
+            keys_to_balance=["data.label"],
+            nfolds=len(train_folds + validation_folds + infer_folds),
+            output_split_filename=split_filename,
+            reset_split=reset_split,
+        )
+
+        for fold in train_folds:
+            self._train_ids += folds[fold]
+
+        for fold in validation_folds:
+            self._validation_ids += folds[fold]
+
+        for fold in infer_folds:
+            self._infer_ids += folds[fold]
+
+    def setup(self, stage: str) -> None:
+        """
+        creates datasets by stage
+        called on every process in DDP
+        :param stage: trainer stage
+        """
+        # assign train/val datasets
+        if stage == "fit":
+            self._train_dataset = ISIC.dataset(
+                self._data_dir, self._cache_dir, num_workers=self._num_workers, train=True, samples_ids=self._train_ids
+            )
+            self._validation_dataset = ISIC.dataset(
+                self._data_dir,
+                self._cache_dir,
+                num_workers=self._num_workers,
+                train=False,
+                samples_ids=self._validation_ids,
+            )
+
+        # assign prediction (infer) dataset
+        if stage == "predict":
+            self._predict_dataset = ISIC.dataset(
+                self._data_dir, self._cache_dir, num_workers=self._num_workers, train=False, samples_ids=self._infer_ids
+            )
+
+    def train_dataloader(self) -> DataLoader:
+        """
+        returns train dataloader with class args
+        """
+        if self._use_batch_sample:
+            # Create a batch sampler for the dataloader
+            batch_sampler = BatchSamplerDefault(
+                dataset=self._train_dataset,
+                balanced_class_name="data.label",
+                num_balanced_classes=8,
+                batch_size=self._batch_size,
+                workers=self._num_workers,
+                verbose=True,
+            )
+            batch_size = 1  # should not provide batch_size for custom batch_sampler (1 is default)
+
+        else:
+            batch_sampler = None
+            batch_size = self._batch_size
+
+        # Create dataloader
+        train_dl = DataLoader(
+            dataset=self._train_dataset,
+            batch_sampler=batch_sampler,
+            batch_size=batch_size,
+            collate_fn=CollateDefault(),
+            num_workers=self._num_workers,
+        )
+
+        return train_dl
+
+    def val_dataloader(self) -> DataLoader:
+        """
+        returns validation dataloader with class args
+        """
+        # Create dataloader
+        validation_dl = DataLoader(
+            dataset=self._validation_dataset,
+            collate_fn=CollateDefault(),
+            num_workers=self._num_workers,
+            batch_size=self._batch_size,
+        )
+
+        return validation_dl
+
+    def predict_dataloader(self) -> DataLoader:
+        """
+        returns validation dataloader with class args
+        """
+        # Create dataloader
+        predict_dl = DataLoader(
+            dataset=self._predict_dataset,
+            collate_fn=CollateDefault(),
+            num_workers=self._num_workers,
+            batch_size=self._batch_size,
+        )
+        return predict_dl
 
 
 class OpEncodeMetaData(OpBase):
@@ -359,7 +507,7 @@ class OpEncodeMetaData(OpBase):
             sample_dict[f"{out_prefix}.site"] = site_one_hot
 
         # Encode sex into a one-hot vector of length 3
-        # male, famale, N/A
+        # male, female, N/A
         if "sex" in self._items_to_encode:
             sex = sample_dict[key_sex]
             sex_one_hot = np.zeros(len(ISIC.SEX_INDEX))
