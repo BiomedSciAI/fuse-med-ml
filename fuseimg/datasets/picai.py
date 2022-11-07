@@ -7,6 +7,7 @@ from fuse.data import PipelineDefault, OpToTensor
 from fuse.data.ops.ops_common import OpLambda
 from fuseimg.data.ops.aug.color import OpAugColor
 from fuseimg.data.ops.aug.geometry import OpAugAffine2D
+from fuse.data.ops.ops_common import OpConcat, OpLambda, OpLookup, OpToOneHot
 from fuse.data.ops.ops_aug_common import OpSample, OpRandApply
 from fuse.data.ops.ops_read import OpReadDataframe
 from fuse.data.ops.ops_cast import OpToNumpy
@@ -81,6 +82,7 @@ class PICAI:
         :param train : True iff we request dataset for train purpouse
         """
         ops = []
+        bool_map = {"NO": 0, "YES": 1}
         ops +=[
                 (OpToTensor(), dict(key="data.input.img", dtype=torch.float32)),
                 (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")),
@@ -88,6 +90,7 @@ class PICAI:
         if train:
             ops +=[
                     # affine augmentation - will apply the same affine transformation on each slice
+                    (OpLookup(bool_map), dict(key_in="data.gt.classification", key_out="data.gt.classification")),
                     (OpAugSqueeze3Dto2D(), dict(key='data.input.img', axis_squeeze=1)),
                     (OpRandApply(OpSample(OpAugAffine2D()), aug_params['apply_aug_prob']),
                          dict(key="data.input.img",

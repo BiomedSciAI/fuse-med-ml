@@ -88,7 +88,7 @@ def create_model(train: NDict, paths: NDict) -> torch.nn.Module:
                              #  dropout_rate=train_params['imaging_dropout'],
                              #  append_dropout_rate=train_params['clinical_dropout'],
                              #  fused_dropout_rate=train_params['fused_dropout'],
-                             num_classes=num_classes,
+                             num_outputs=num_classes,
                              #  append_features=[("data.input.clinical", 8)],
                              #  append_layers_description=(256,128),
                              ),
@@ -383,7 +383,7 @@ def main(cfg: DictConfig) -> None:
     print(cfg)
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None  # [0]
-    #choose_and_enable_multiple_gpus(cfg["train.trainer.devices"], force_gpus=force_gpus)
+    choose_and_enable_multiple_gpus(cfg["train.trainer.devices"], force_gpus=force_gpus)
 
     # Path to the stored dataset location
     # dataset should be download from https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508
