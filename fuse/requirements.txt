@@ -28,4 +28,3 @@ hydra-core
 omegaconf
 nibabel
 vit-pytorch
-plotly
