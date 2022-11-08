@@ -18,6 +18,7 @@ from typing import Hashable, Optional, Sequence
 import torch
 import pandas as pd
 import numpy as np
+import skimage
 import pydicom
 import os
 import glob
@@ -45,7 +46,7 @@ class PICAI:
     """
     """
     @staticmethod
-    def static_pipeline(data_dir: str, data_source: pd.DataFrame, target: str) -> PipelineDefault:
+    def static_pipeline(data_dir: str, target: str) -> PipelineDefault:
         """
         Get suggested static pipeline (which will be cached), typically loading the data plus design choices that we won't experiment with.
         :param data_path: path to original kits21 data (can be downloaded by KITS21.download())
@@ -56,27 +57,21 @@ class PICAI:
                 # decoding sample ID
                 (OpPICAISampleIDDecode(), dict()),  # will save image and seg path to "data.input.img_path"
                 (OpLoadImage(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", format="mha")),
-                (OpToNumpy(), dict(key="data.input.img", dtype=np.float32)),
+                (OpLambda(partial(skimage.transform.resize,
+                                                output_shape=(23, 320, 320),
+                                                mode='reflect',
+                                                anti_aliasing=True,
+                                                preserve_range=True)), dict(key="data.input.img")),
                 (OpNormalizeAgainstSelf(), dict(key="data.input.img")),
+                (OpToNumpy(), dict(key="data.input.img", dtype=np.float32)),
+                
                 # (OpResizeAndPad2D(), dict(key="data.input.img", resize_to=(2200, 1200), padding=(60, 60))),
-                (
-                    OpReadDataframe(
-                        data_source,
-                        key_column="index",
-                        key_name="data.input.img_path",
-                        columns_to_extract=['index','patient_id','study_id','mri_date','patient_age','psa','psad','prostate_volume','histopath_type','lesion_GS','lesion_ISUP','case_ISUP','case_csPCa'],
-                        rename_columns=dict(
-                            patient_id="data.patientID", case_csPCa="data.gt.classification", case_ISUP="data.gt.subtype"
-                        ),
-                    ),
-                    dict(),
-                ),
             ],
         )
         return static_pipeline
 
     @staticmethod
-    def dynamic_pipeline(train: bool = False, aug_params: NDict = None):
+    def dynamic_pipeline(data_source: pd.DataFrame,train: bool = False, aug_params: NDict = None):
         """
         Get suggested dynamic pipeline. including pre-processing that might be modified and augmentation operations.
         :param train : True iff we request dataset for train purpouse
@@ -86,11 +81,25 @@ class PICAI:
         ops +=[
                 (OpToTensor(), dict(key="data.input.img", dtype=torch.float32)),
                 (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")),
+                (
+                    OpReadDataframe(
+                        data_source,
+                        key_column="index",
+                        key_name="data.input.img_path",
+                        #'psa','psad','prostate_volume','histopath_type','lesion_GS','lesion_ISUP','case_ISUP'
+                        columns_to_extract=['index','patient_id','study_id','mri_date','patient_age','case_csPCa'],
+                        rename_columns=dict(
+                            patient_id="data.patientID", case_csPCa="data.gt.classification"
+                        ),
+                    ),
+                    dict(),
+                ),
+                (OpLookup(bool_map), dict(key_in="data.gt.classification", key_out="data.gt.classification")),
             ]
         if train:
             ops +=[
                     # affine augmentation - will apply the same affine transformation on each slice
-                    (OpLookup(bool_map), dict(key_in="data.gt.classification", key_out="data.gt.classification")),
+                    
                     (OpAugSqueeze3Dto2D(), dict(key='data.input.img', axis_squeeze=1)),
                     (OpRandApply(OpSample(OpAugAffine2D()), aug_params['apply_aug_prob']),
                          dict(key="data.input.img",
@@ -136,8 +145,8 @@ class PICAI:
         if sample_ids is None:
             sample_ids = all_sample_ids
 
-        static_pipeline = PICAI.static_pipeline(data_dir, input_source_gt, target)
-        dynamic_pipeline = PICAI.dynamic_pipeline(train=train,aug_params=aug_params)
+        static_pipeline = PICAI.static_pipeline(data_dir,target)
+        dynamic_pipeline = PICAI.dynamic_pipeline(input_source_gt,train=train,aug_params=aug_params)
 
         cacher = SamplesCacher(
             "cache_ver",

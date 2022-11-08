@@ -190,7 +190,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
         shuffle=False,
         drop_last=False,
         batch_sampler=sampler,
-        collate_fn=CollateDefault(skip_keys=skip_keys),
+        collate_fn=CollateDefault(skip_keys=skip_keys,special_handlers_keys={"data.input.img":CollateDefault.pad_all_tensors_to_same_size}),
         num_workers=train["num_workers"],
     )
     lgr.info("Train Data: Done", {"attrs": "bold"})
