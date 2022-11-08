@@ -33,6 +33,7 @@ from fuse.data import get_sample_id, create_initial_sample, get_specific_sample_
 import copy
 from collections import OrderedDict
 import numpy as np
+from operator import itemgetter
 
 
 class DatasetDefault(DatasetBase):
@@ -147,6 +148,7 @@ class DatasetDefault(DatasetBase):
         else:
             self._final_sample_ids = self._orig_sample_ids
 
+        self._orig_sample_ids = None  # should not be use after create. use self._final_sample_ids instead
         self._created = True
 
     def get_all_sample_ids(self):
@@ -344,3 +346,22 @@ class DatasetDefault(DatasetBase):
         # sum += f"Pipeline dynamic: {self._dynamic_pipeline.summary()}"
 
         return sum
+
+    def subset(self, indices: Sequence[int]) -> None:
+        """
+        create a subset of the dataset by a given indices (inplace).
+
+        Example:
+            For the dataset '[-2, 1, 5, 3, 8, 5, 6]' and the indices '[1, 2, 5]', the subset is [1, 5, 5]
+
+        :param items: indices of the subset - if None, the subset is the whole set.
+        """
+        if indices is None:
+            # Do nothing, the subset is the whole dataset
+            return
+
+        if not self._created:
+            raise Exception("you must first call create()")
+
+        # grab the specified data
+        self._final_sample_ids = itemgetter(*indices)(self._final_sample_ids)
