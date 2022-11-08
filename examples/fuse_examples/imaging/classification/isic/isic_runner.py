@@ -43,10 +43,9 @@ import fuse.utils.gpu as GPU
 from fuse.eval.evaluator import EvaluatorDefault
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.data.utils.collates import CollateDefault
-from fuse.data.utils.split import dataset_balanced_division_to_folds
 
 import pytorch_lightning as pl
-from fuse.dl.lightning.pl_module import LightningModuleDefault, BalancedLightningDataModule
+from fuse.dl.lightning.pl_module import LightningModuleDefault
 from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
@@ -107,13 +106,13 @@ TRAIN_COMMON_PARAMS["data.num_folds"] = 5
 TRAIN_COMMON_PARAMS["data.train_folds"] = [0, 1, 2]
 TRAIN_COMMON_PARAMS["data.validation_folds"] = [3]
 TRAIN_COMMON_PARAMS["data.infer_folds"] = [4]
-TRAIN_COMMON_PARAMS["data.samples_ids"] = {"all": None, "golden": FULL_GOLDEN_MEMBERS}["golden"]
+TRAIN_COMMON_PARAMS["data.samples_ids"] = {"all": None, "golden": FULL_GOLDEN_MEMBERS}["all"]
 
 
 # ===============
 # PL Trainer
 # ===============
-TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 3
+TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 30
 TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
 TRAIN_COMMON_PARAMS["trainer.strategy"] = "ddp" if NUM_GPUS > 1 else None
@@ -166,82 +165,24 @@ def create_model(
     return model
 
 
-def create_datamodule(paths: dict, train_common_params: dict) -> BalancedLightningDataModule:
+def create_datamodule(paths: dict, train_common_params: dict) -> pl.LightningDataModule:
     """
-    In order to supports the DDP strategy one need to create a Lightning Data Module.
-    While we can create a custom datamodule class for the ISIC dataset, here we chose a more generic approach:
-    We use Fuse's "BalancedLightningDataModule" class, which takes all user's relevant datasets and returns a
-    LightningDataModule subclass.
+    In order to support the DDP strategy one need to create a Lightning Data Module.
     """
-    use_new = True  # super temp
-
-    if not use_new:
-        ## Create training and validation datasets
-        # split to folds randomly
-        all_dataset = ISIC.dataset(
-            paths["data_dir"],
-            paths["cache_dir"],
-            num_workers=train_common_params["data.num_workers"],
-            samples_ids=train_common_params["data.samples_ids"],
-        )
-
-        folds = dataset_balanced_division_to_folds(
-            dataset=all_dataset,
-            output_split_filename=paths["data_split_filename"],
-            keys_to_balance=["data.label"],
-            nfolds=train_common_params["data.num_folds"],
-            reset_split=False,
-        )
-
-        train_sample_ids = []
-        for fold in train_common_params["data.train_folds"]:
-            train_sample_ids += folds[fold]
-        validation_sample_ids = []
-        for fold in train_common_params["data.validation_folds"]:
-            validation_sample_ids += folds[fold]
-
-        # Create train dataset
-        train_dataset = ISIC.dataset(
-            paths["data_dir"],
-            paths["cache_dir"],
-            samples_ids=train_sample_ids,
-            train=True,
-            num_workers=train_common_params["data.num_workers"],
-        )
-
-        # Create validation dataset
-        validation_dataset = ISIC.dataset(
-            paths["data_dir"], paths["cache_dir"], samples_ids=validation_sample_ids, train=False
-        )
-
-        datamodule = BalancedLightningDataModule(
-            train_dataset=train_dataset,
-            validation_dataset=validation_dataset,
-            predict_dataset=None,  # No need, this module only being used in the trainer's "fit" stage
-            num_workers=train_common_params["data.num_workers"],
-            batch_size=train_common_params["data.batch_size"],
-            balanced_class_name="data.label",
-            num_balanced_classes=8,
-            use_custom_batch_sampler=True
-            if NUM_GPUS <= 1
-            else False,  # Currently Lightning doesn't support Fuse custom sampler
-        )
-
-    if use_new:
-        datamodule = ISICDataModule(
-            data_dir=paths["data_dir"],
-            cache_dir=paths["cache_dir"],
-            num_workers=train_common_params["data.num_workers"],
-            batch_size=train_common_params["data.batch_size"],
-            train_folds=train_common_params["data.train_folds"],
-            validation_folds=train_common_params["data.validation_folds"],
-            infer_folds=train_common_params["data.infer_folds"],
-            split_filename=paths["data_split_filename"],
-            sample_ids=train_common_params["data.samples_ids"],
-            reset_cache=True,
-            reset_split=False,
-            use_batch_sample=True if NUM_GPUS <= 1 else False,
-        )
+    datamodule = ISICDataModule(
+        data_dir=paths["data_dir"],
+        cache_dir=paths["cache_dir"],
+        num_workers=train_common_params["data.num_workers"],
+        batch_size=train_common_params["data.batch_size"],
+        train_folds=train_common_params["data.train_folds"],
+        validation_folds=train_common_params["data.validation_folds"],
+        infer_folds=train_common_params["data.infer_folds"],
+        split_filename=paths["data_split_filename"],
+        sample_ids=train_common_params["data.samples_ids"],
+        reset_cache=False,
+        reset_split=False,
+        use_batch_sampler=True if NUM_GPUS <= 1 else False,
+    )
 
     return datamodule
 

@@ -18,13 +18,8 @@ Created on June 30, 2021
 
 import pytorch_lightning as pl
 from typing import Optional
-from torch.utils.data.dataloader import DataLoader
 
 from fuse.dl.lightning.pl_funcs import *  # noqa
-from fuse.data.datasets.dataset_base import DatasetBase
-from fuse.data.utils.samplers import BatchSamplerDefault
-from fuse.data.utils.collates import CollateDefault
-from fuse.utils.data.collate import CollateToBatchList
 
 
 class LightningModuleDefault(pl.LightningModule):
@@ -45,7 +40,7 @@ class LightningModuleDefault(pl.LightningModule):
         callbacks: Optional[Sequence[pl.Callback]] = None,
         best_epoch_source: Optional[Union[Dict, List[Dict]]] = None,
         save_hyperparameters: Optional[List[str]] = None,
-        **kwargs,
+        **kwargs: dict,
     ):
         """
         :param model_dir: location for checkpoints and logs
@@ -129,15 +124,17 @@ class LightningModuleDefault(pl.LightningModule):
         return step_extract_predictions(self._prediction_keys, batch_dict)
 
     ## Epoch end
-    def training_epoch_end(self, step_outputs) -> None:
+    def training_epoch_end(self, step_outputs: Union[list, List[dict]]) -> None:
         # for the logs to be at each epoch, not each step
+        print(step_outputs)
+        print(type(step_outputs))
         self.log("step", float(self.current_epoch), on_epoch=True, sync_dist=True)
         # calc average epoch loss and log it
         epoch_end_compute_and_log_losses(self, "train", [e["losses"] for e in step_outputs])
         # evaluate  and log it
         epoch_end_compute_and_log_metrics(self, "train", self._train_metrics)
 
-    def validation_epoch_end(self, step_outputs) -> None:
+    def validation_epoch_end(self, step_outputs: Union[list, List[dict]]) -> None:
         # for the logs to be at each epoch, not each step
         self.log("step", float(self.current_epoch), on_epoch=True, sync_dist=True)
         # calc average epoch loss and log it
@@ -145,7 +142,7 @@ class LightningModuleDefault(pl.LightningModule):
         # evaluate  and log it
         epoch_end_compute_and_log_metrics(self, "validation", self._validation_metrics)
 
-    def test_epoch_end(self, step_outputs) -> None:
+    def test_epoch_end(self, step_outputs: Union[list, List[dict]]) -> None:
         # for the logs to be at each epoch, not each step
         self.log("step", self.current_epoch, on_epoch=True, sync_dist=True)
         # calc average epoch loss and log it
@@ -165,101 +162,3 @@ class LightningModuleDefault(pl.LightningModule):
     def set_predictions_keys(self, keys: List[str]) -> None:
         """Define which keys to extract from batch_dict on prediction mode"""
         self._prediction_keys = keys
-
-
-class BalancedLightningDataModule(pl.LightningDataModule):
-    """
-    Fuse generic implementation of PL datamodule.
-    This module aims to wrap one's datasets into a datamodule for Lightning's Trainer.
-    Must when using DDP strategy, otherwise optional.
-    See use case example in "run_mnist_ddp.py"
-
-    Tip: for more robust changes consider to implement your datamodule from scratch.
-    """
-
-    def __init__(
-        self,
-        train_dataset: DatasetBase,
-        validation_dataset: DatasetBase,
-        predict_dataset: DatasetBase,
-        num_workers: int,
-        batch_size: int,
-        collate_fn: CollateToBatchList = None,
-        use_custom_batch_sampler: bool = False,
-        **batch_sampler_kwargs: Dict[str, Any],
-    ):
-        """
-        :param train_dataset: training dataset
-        :param validation_dataset: validation dataset
-        :param predict_dataset: prediction (inference) dataset
-        :param num_workers: number of processes
-        :param batch_size: batch size
-        :param collate_fn: dataloader param
-        :param use_custom_batch_sampler: set True to use Fuse's BatchSamplerDefault, else will use default one.
-                Note that currently DDP doesn't work with our custom batch sampler. Will be fixed in the future.
-        :param batch_sampler_kwargs: batch sampler's keyword arguments - see 'BatchSamplerDefault'.
-        """
-        super().__init__()
-        self._train_dataset = train_dataset
-        self._validation_dataset = validation_dataset
-        self._predict_dataset = predict_dataset
-        self._num_workers = num_workers
-        self._batch_size = batch_size
-        self._use_custom_batch_sampler = use_custom_batch_sampler
-        self._batch_sampler_kwargs = batch_sampler_kwargs
-        if collate_fn is None:
-            self._collate_fn = CollateDefault()
-
-    def train_dataloader(self):
-        """
-        returns train dataloader with class custom args
-        """
-        if self._use_custom_batch_sampler:
-            # Create fuse batch sampler and nullify batch_size
-            print("Create BatchSamplerDefault:")
-            batch_sampler = BatchSamplerDefault(
-                dataset=self._train_dataset,
-                batch_size=self._batch_size,
-                workers=self._num_workers,
-                **self._batch_sampler_kwargs,
-            )
-            print("Create BatchSamplerDefault: DONE")
-            batch_size = 1  # should not provide batch_size for custom batch_sampler (1 is default)
-        else:
-            # Doesn't use custom batch sampler
-            batch_sampler = None
-            batch_size = self._batch_size  # should provide batch_size for default batch_sampler
-
-        train_dl = DataLoader(
-            dataset=self._train_dataset,
-            batch_size=batch_size,
-            batch_sampler=batch_sampler,
-            collate_fn=self._collate_fn,
-            num_workers=self._num_workers,
-        )
-        return train_dl
-
-    def val_dataloader(self):
-        """
-        returns validation dataloader with class custom args
-        """
-        validation_dl = DataLoader(
-            dataset=self._validation_dataset,
-            collate_fn=self._collate_fn,
-            num_workers=self._num_workers,
-            batch_size=self._batch_size,
-        )
-
-        return validation_dl
-
-    def predict_dataloader(self):
-        """
-        returns prediction dataloader with class custom args
-        """
-        predict_dl = DataLoader(
-            dataset=self._predict_dataset,
-            collate_fn=self._collate_fn,
-            num_workers=self._num_workers,
-            batch_size=self._batch_size,
-        )
-        return predict_dl

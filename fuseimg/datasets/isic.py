@@ -332,7 +332,7 @@ class ISIC:
 
 class ISICDataModule(pl.LightningDataModule):
     """
-    Example of a custom Lightning datamodule using FuseMedML tools
+    Example of a custom Lightning datamodule that use FuseMedML tools.
     """
 
     def __init__(
@@ -348,17 +348,28 @@ class ISICDataModule(pl.LightningDataModule):
         sample_ids: Optional[Sequence[Hashable]] = None,
         reset_cache: bool = False,
         reset_split: bool = False,
-        use_batch_sample: bool = True,
+        use_batch_sampler: bool = True,
     ):
         """
-        :param cache_dir:
+        :param data_dir: path to data directory
+        :param cache_dir: path to cache directory
+        :param num_workers: number of process to use
+        :param batch_size: model's batch size
+        :param train_folds: which folds will be used for training
+        :param validation_folds: which folds will be used for validation
+        :param infer_folds: which folds will be used for inference (final evaluation)
+        :param split_filename: path to file that will contain the data's split to folds
+        :param sample_ids: subset of the sample ids to use, if None - use all.
+        :param reset_cache: set True to reset the cache data
+        :param reset_split: set True to reset the split file
+        :param use_batch_sample: set True to use Fuse's custom balanced batch sampler (see BatchSamplerDefault class)
         """
         super().__init__()
         self._data_dir = data_dir
         self._cache_dir = cache_dir
         self._num_workers = num_workers
         self._batch_size = batch_size
-        self._use_batch_sample = use_batch_sample
+        self._use_batch_sampler = use_batch_sampler
 
         # divide into balanced train, validation and evaluation folds
         self._train_ids = []
@@ -395,6 +406,7 @@ class ISICDataModule(pl.LightningDataModule):
         """
         creates datasets by stage
         called on every process in DDP
+
         :param stage: trainer stage
         """
         # assign train/val datasets
@@ -420,7 +432,7 @@ class ISICDataModule(pl.LightningDataModule):
         """
         returns train dataloader with class args
         """
-        if self._use_batch_sample:
+        if self._use_batch_sampler:
             # Create a batch sampler for the dataloader
             batch_sampler = BatchSamplerDefault(
                 dataset=self._train_dataset,
