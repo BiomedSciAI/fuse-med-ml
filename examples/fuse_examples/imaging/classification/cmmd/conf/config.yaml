@@ -6,7 +6,7 @@ paths:
   data_misc_dir : working_dir/data_misc
   data_split_filename:  cmmd_split.pkl
   data_dir : ${oc.env:CMMD_DATA_PATH}
-run: 
+run:
   running_modes : ['train', 'infer', 'eval']
 train:
   target : classification
@@ -18,12 +18,12 @@ train:
   batch_size: 2
   learning_rate : 1e-4
   weight_decay :  0
-  resume_checkpoint_filename : 
+  resume_checkpoint_filename :
   trainer:
     accelerator : gpu
     devices : 1
     num_epochs : 100
-    ckpt_path : 
+    ckpt_path :
 infer:
   infer_filename : validation_set_infer.gz
   checkpoint : best_epoch.ckpt

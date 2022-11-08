@@ -1,4 +1,3 @@
-from re import T
 from typing import Sequence, Union, Dict, Optional
 import numpy as np
 import matplotlib.pyplot as plt
