@@ -124,7 +124,7 @@ class LightningModuleDefault(pl.LightningModule):
         return step_extract_predictions(self._prediction_keys, batch_dict)
 
     ## Epoch end
-    def training_epoch_end(self, step_outputs: Union[list, List[dict]]) -> None:
+    def training_epoch_end(self, step_outputs: List[dict]) -> None:
         # for the logs to be at each epoch, not each step
         print(step_outputs)
         print(type(step_outputs))
@@ -134,7 +134,7 @@ class LightningModuleDefault(pl.LightningModule):
         # evaluate  and log it
         epoch_end_compute_and_log_metrics(self, "train", self._train_metrics)
 
-    def validation_epoch_end(self, step_outputs: Union[list, List[dict]]) -> None:
+    def validation_epoch_end(self, step_outputs: List[dict]) -> None:
         # for the logs to be at each epoch, not each step
         self.log("step", float(self.current_epoch), on_epoch=True, sync_dist=True)
         # calc average epoch loss and log it
@@ -142,7 +142,7 @@ class LightningModuleDefault(pl.LightningModule):
         # evaluate  and log it
         epoch_end_compute_and_log_metrics(self, "validation", self._validation_metrics)
 
-    def test_epoch_end(self, step_outputs: Union[list, List[dict]]) -> None:
+    def test_epoch_end(self, step_outputs: List[dict]) -> None:
         # for the logs to be at each epoch, not each step
         self.log("step", self.current_epoch, on_epoch=True, sync_dist=True)
         # calc average epoch loss and log it
