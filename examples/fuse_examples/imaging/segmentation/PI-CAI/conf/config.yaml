@@ -1,0 +1,42 @@
+paths:
+  working_dir : /dccstor/mm_hcls/guez/fuse-med-ml/working_dir
+  model_dir : ${paths.working_dir}/model_new/InceptionResnetV2_2017_test
+  inference_dir : ${paths.working_dir}/model_new/infer_dir
+  eval_dir : ${paths.working_dir}/model_new/eval_dir
+  cache_dir : ${paths.working_dir}/examples/cache_dir
+  clinical_file : /dccstor/mm_hcls/datasets/PI-CAI/labels/picai_labels-main/clinical_information/marksheet.csv
+  data_misc_dir : ${paths.working_dir}/data_misc
+  data_split_filename:  split.pkl
+  data_dir : /dccstor/mm_hcls/datasets/PI-CAI/images
+run: 
+  running_modes : ['train', 'infer', 'eval']
+train:
+  target : classification
+  reset_cache: False
+  num_workers : 12
+  num_folds : 5
+  train_folds : [0,1,2]
+  validation_folds : [3]
+  batch_size: 8
+  learning_rate : 1e-4
+  weight_decay :  0
+  resume_checkpoint_filename : 
+  trainer:
+    accelerator : gpu
+    devices : 1
+    num_epochs : 100
+    ckpt_path : 
+  aug_params:
+    apply_aug_prob: 0.9
+    rotate: [-180, 180]
+    scale: [0.9, 2]
+    flip: 0.5
+    translate: [-25, 25]
+    mask_prob: 0
+    total_mask_prob: 0
+infer:
+  infer_filename : validation_set_infer.gz
+  checkpoint : best_epoch.ckpt
+  infer_folds : [4]
+  target : classification
+  num_workers : 12
