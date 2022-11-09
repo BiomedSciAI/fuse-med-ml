@@ -502,6 +502,7 @@ class OpZScoreNorm(OpBase):
         return sample_dict
 
 
+<<<<<<< HEAD
 class OpIfElse(OpBase):
     """
     Meta-op for applying Op by a certain condition.
@@ -538,5 +539,25 @@ class OpIfElse(OpBase):
             return self._op_false(sample_dict, op_false_args)
 
         # Do nothing
+=======
+class OpCond(OpBase):
+    """Apply given op if the condition (either directly specified or read from the sample_dict) is True"""
+
+    def __init__(self, op: OpBase):
+        """
+        :param op: the op to apply
+        """
+        super().__init__()
+        self._op = op
+
+    def __call__(self, sample_dict: NDict, condition: Union[str, bool], **kwargs) -> Union[None, dict, List[dict]]:
+        """
+        :param condition:instruct if to call the inner op. Can either a boolean or a key to sample_dict used to extract the boolean
+        """
+        if isinstance(condition, str):
+            condition = sample_dict[condition]
+        if condition:
+            return self._op(sample_dict, **kwargs)
+>>>>>>> origin/master
         else:
             return sample_dict

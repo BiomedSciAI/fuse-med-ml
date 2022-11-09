@@ -134,6 +134,7 @@ def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault,
     # ==============================================================================
     # Data
     # ==============================================================================
+    print("Data - training set:")
     print("- Create sampler:")
     sampler = BatchSamplerDefault(
         dataset=train_dataset,
@@ -151,7 +152,7 @@ def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault,
         collate_fn=CollateDefault(),
         num_workers=train_params["data.train_num_workers"],
     )
-    print("Data - trainset: Done")
+    print("Data - training set: Done")
 
     ## Validation data
     print("Data - validation set:")
@@ -207,7 +208,7 @@ def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault,
     lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
     lr_sch_config = dict(scheduler=lr_scheduler, monitor="validation.losses.total_loss")
 
-    # optimizier and lr sch - see pl.LightningModule.configure_optimizers return value for all options
+    # optimizer and lr sch - see pl.LightningModule.configure_optimizers return value for all options
     optimizers_and_lr_schs = dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
 
     # ====================================================================================

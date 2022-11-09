@@ -170,7 +170,7 @@ class KNIGHT:
         get all the sample ids in train-set
         sample_id is directory file named case_xxxxx found in the specified path
         """
-        files = [f for f in glob(os.path.join(path, "data/case_*"))]
+        files = [os.path.basename(f) for f in glob(os.path.join(path, "case_*"))]
         return files
 
     @staticmethod

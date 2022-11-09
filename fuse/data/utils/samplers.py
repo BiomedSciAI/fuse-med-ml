@@ -18,15 +18,13 @@ Created on June 30, 2021
 """
 
 import math
-from typing import Any, List, Optional, Union
-
 import numpy as np
-from torch.utils.data.sampler import Sampler
-
+from typing import Any, List, Optional, Union
+from torch.utils.data.sampler import Sampler, BatchSampler
 from fuse.data.datasets.dataset_base import DatasetBase
 
 
-class BatchSamplerDefault(Sampler):
+class BatchSamplerDefault(BatchSampler):
     """
     Torch batch sampler - balancing per batch
     """
@@ -36,16 +34,20 @@ class BatchSamplerDefault(Sampler):
         dataset: DatasetBase,
         balanced_class_name: str,
         num_balanced_classes: int,
+        sampler: Optional[Sampler] = None,
         batch_size: Optional[int] = None,
         mode: str = "exact",
         balanced_class_weights: Union[List[int], List[float], None] = None,
         num_batches: Optional[int] = None,
+        verbose: bool = False,
         **dataset_get_multi_kwargs,
     ) -> None:
         """
         :param dataset: dataset used to extract the balanced class from each sample
         :param balanced_class_name:  the name of balanced class to extract from dataset
         :param num_balanced_classes: number of classes to balance between
+        :param sampler: Optional - pytorch sampler for collecting the data.
+                        In use in DDP strategy, when PL trainer re-instantiate a custom batch_sampler with a DistributedSampler.
         :param batch_size: batch_size.
                         - In "exact" mode
                             If balanced_class_weights is None, must be set and divided by num_balanced_classes. Otherwise keep None.
@@ -58,19 +60,22 @@ class BatchSamplerDefault(Sampler):
                                         In mode 'approx' expecting list of floats that sums up to ~1
                                         If not specified - an equal number of samples from each class will be used.
         :param num_batches: optional - if set will force num_batches, otherwise num_batches will be automatically to go over each sample at least once (exactly or approximately).
+        :param verbose:
         :param dataset_get_multi_kwargs: extra parameters for dataset.get_multi() to optimize the running time.
         """
-        super().__init__(None)
+        super().__init__(sampler, batch_size, False)
 
         # store input
-        self._mode = mode
         self._dataset = dataset
         self._balanced_class_name = balanced_class_name
         self._num_balanced_classes = num_balanced_classes
+        self._sampler = sampler
         self._batch_size = batch_size
+        self._mode = mode
         self._balanced_class_weights = balanced_class_weights
         self._num_batches = num_batches
         self._dataset_get_multi_kwargs = dataset_get_multi_kwargs
+        self._verbose = verbose
         # modify relevant keys
         if self._balanced_class_name not in self._dataset_get_multi_kwargs:
             self._dataset_get_multi_kwargs["keys"] = [self._balanced_class_name]
@@ -136,6 +141,19 @@ class BatchSamplerDefault(Sampler):
                 ] * self._num_balanced_classes
             elif self._mode == "approx":
                 self._balanced_class_weights = [1 / self._num_balanced_classes] * self._num_balanced_classes
+
+        if self._sampler:
+            if self._verbose:
+                print(f"BatchSamplerDefault got a sampler of type: {type(self._sampler).__name__}")
+            # Get all samples that sampler posses.
+            # In use in DDP strategy: each process runs on a different GPU with a different instance of 'DistributedSampler'.
+            #   The DistributedSampler(s) make sure that each GPU posses a different subset of the samplers to avoid overlaps.
+            items = [i for i in self._sampler]  # get all samples that sampler posses
+        else:
+            items = None  # equivalent to all samples in dataset
+
+        # take a subset of the dataset with the relevant values
+        dataset.subset(items)
 
         # get balanced classes per each sample
         collected_data = dataset.get_multi(None, **self._dataset_get_multi_kwargs)
