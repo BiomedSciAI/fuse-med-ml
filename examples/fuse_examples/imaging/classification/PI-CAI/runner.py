@@ -52,9 +52,9 @@ import torch
 import hydra
 from omegaconf import DictConfig, OmegaConf
 
-assert (
-    "CMMD_DATA_PATH" in os.environ
-), "Expecting environment variable CMMD_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
+# assert (
+#     "PICAI_DATA_PATH" in os.environ
+# ), "Expecting environment variable CMMD_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
 ##########################################
 # Debug modes
 ##########################################
