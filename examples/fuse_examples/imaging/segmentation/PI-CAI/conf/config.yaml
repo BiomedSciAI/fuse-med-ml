@@ -8,6 +8,7 @@ paths:
   data_misc_dir : ${paths.working_dir}/data_misc
   data_split_filename:  split.pkl
   data_dir : /dccstor/mm_hcls/datasets/PI-CAI/images
+  seg_dir : /dccstor/mm_hcls/datasets/PI-CAI/labels/picai_labels-main/csPCa_lesion_delineations/human_expert/resampled
 run: 
   running_modes : ['train', 'infer', 'eval']
 train:
