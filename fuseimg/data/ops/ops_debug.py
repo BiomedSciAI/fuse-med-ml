@@ -1,9 +1,5 @@
 import os
-<<<<<<< HEAD
-from typing import Callable, Optional, Tuple, Any
-=======
 from typing import Callable, Optional, Tuple, Any, Dict
->>>>>>> origin/master
 from fuse.data.ops.ops_cast import Cast
 from fuse.data.utils.sample import get_sample_id
 from fuse.utils import NDict
@@ -13,11 +9,8 @@ import numpy
 import torch
 import matplotlib.pyplot as plt
 import SimpleITK as sitk
-<<<<<<< HEAD
-=======
 import plotly.graph_objects as go
 import numpy as np
->>>>>>> origin/master
 
 
 class OpVis2DImage(OpDebugBase):
