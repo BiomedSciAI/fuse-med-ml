@@ -115,14 +115,14 @@ class PICAI:
                 # decoding sample ID
                 (OpPICAISampleIDDecode(), dict()),  # will save image and seg path to "data.input.img_path"
                 (OpLoadPICAIImage(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img")),
-                (OpLoadPICAISegmentation(seg_dir), dict(key_in="data.input.img_path", key_out="data.input.seg")),
+                (OpLoadPICAISegmentation(seg_dir), dict(key_in="data.input.img_path", key_out="data.gt.seg")),
                 (OpRepeat((OpLambda(partial(skimage.transform.resize,
                                                 output_shape=(23, 320, 320),
                                                 mode='reflect',
                                                 anti_aliasing=True,
-                                                preserve_range=True))),kwargs_per_step_to_add = repeat_images)) ,
-                (OpRepeat((OpNormalizeAgainstSelf()),kwargs_per_step_to_add = repeat_images)) ,
-                (OpRepeat((OpToNumpy(), dict( dtype=np.float32)),kwargs_per_step_to_add = repeat_images)) ,
+                                                preserve_range=True))),kwargs_per_step_to_add = repeat_images),{}) ,
+                (OpRepeat((OpNormalizeAgainstSelf()),kwargs_per_step_to_add = repeat_images),{}) ,
+                (OpRepeat((OpToNumpy(), dict( dtype=np.float32)),kwargs_per_step_to_add = repeat_images),{}) ,
                 
                 # (OpResizeAndPad2D(), dict(key="data.input.img", resize_to=(2200, 1200), padding=(60, 60))),
             ],
@@ -138,8 +138,8 @@ class PICAI:
         ops = []
         bool_map = {"NO": 0, "YES": 1}
         ops +=[
-                (OpRepeat((OpToTensor(), dict( dtype=torch.float32)),kwargs_per_step_to_add = repeat_images)) ,
-                (OpRepeat((OpLambda(partial(torch.unsqueeze, dim=0))),kwargs_per_step_to_add = repeat_images)) ,
+                (OpRepeat((OpToTensor(), dict( dtype=torch.float32)),kwargs_per_step_to_add = repeat_images),{}) ,
+                (OpRepeat((OpLambda(partial(torch.unsqueeze, dim=0))),kwargs_per_step_to_add = repeat_images),{}) ,
                 (
                     OpReadDataframe(
                         data_source,
@@ -159,7 +159,7 @@ class PICAI:
             ops +=[
                     # affine augmentation - will apply the same affine transformation on each slice
                     
-                    (OpRepeat((OpAugSqueeze3Dto2D(), dict(axis_squeeze=1)),kwargs_per_step_to_add = repeat_images)) ,
+                    (OpRepeat((OpAugSqueeze3Dto2D(), dict(axis_squeeze=1)),kwargs_per_step_to_add = repeat_images),{}) ,
                     (OpRandApply(OpSampleAndRepeat(OpAugAffine2D(),kwargs_per_step_to_add = repeat_images), aug_params['apply_aug_prob']),
                          dict(
                               rotate=Uniform(*aug_params['rotate']),
