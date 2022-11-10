@@ -6,10 +6,13 @@ from fuse.utils.ndict import NDict
 
 class LossWrapToDict(torch.nn.Module):
     """
-    Wraps a torch loss function to support a batch dict
+    Wraps a torch loss function to support a batch dict.
+    See usage_example() below for additional details.
     """
 
-    def __init__(self, *, loss_module: torch.nn.Module, loss_arg_to_batch_key: Dict[str, str]) -> None:
+    def __init__(
+        self, *, loss_module: torch.nn.Module, loss_arg_to_batch_key: Dict[str, str], weight: float = 1.0
+    ) -> None:
         """
         :param loss_module: the loss module to wrap
         :param loss_arg_to_batch_key: each key is an argument in the forward function,
@@ -18,13 +21,14 @@ class LossWrapToDict(torch.nn.Module):
         super().__init__()
         self._loss_module = loss_module
         self.loss_arg_to_batch_key = loss_arg_to_batch_key
+        self._weight = weight
 
     def forward(self, batch_dict: NDict) -> torch.Tensor:
         # collect arguments for loss module
         loss_kwargs = {arg: batch_dict[batch_key] for arg, batch_key in self.loss_arg_to_batch_key.items()}
         # run loss function
         loss = self._loss_module(**loss_kwargs)
-        return loss
+        return self._weight * loss
 
 
 def usage_example() -> torch.Tensor:
