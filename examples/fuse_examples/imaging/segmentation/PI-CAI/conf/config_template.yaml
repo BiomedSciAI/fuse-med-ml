@@ -13,6 +13,7 @@ run:
   running_modes : ['train', 'infer', 'eval']
 train:
   target : classification
+  series_config : ['_t2w']
   reset_cache: False
   num_workers : 12
   num_folds : 5

@@ -207,8 +207,7 @@ class PICAI:
         if sample_ids is None:
             sample_ids = all_sample_ids
 
-        sequences = ["_t2w"]
-        repeat_images = [dict(key="data.input.img"+seq) for seq in sequences]
+        repeat_images = [dict(key="data.input.img"+seq) for seq in train_cfg["series_config"]]
         repeat_images.append(dict(key="data.gt.seg"))
         static_pipeline = PICAI.static_pipeline(paths["data_dir"],paths["seg_dir"], train_cfg["target"],repeat_images)
         dynamic_pipeline = PICAI.dynamic_pipeline(input_source_gt,train=train,repeat_images=repeat_images,aug_params=train_cfg["aug_params"])
