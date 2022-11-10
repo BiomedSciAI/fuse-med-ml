@@ -79,21 +79,27 @@ class ViT(nn.Module):
         return x
 
 
-def vit_tiny(image_shape: Sequence[int] = (224, 224), patch_shape: Sequence[int] = (16, 16), channels: int = 3):
+def vit_tiny(
+    image_shape: Sequence[int] = (224, 224), patch_shape: Sequence[int] = (16, 16), channels: int = 3
+) -> nn.Module:
     token_dim = 192
     projection_kwargs = dict(image_shape=image_shape, patch_shape=patch_shape, channels=channels)
     transformer_kwargs = dict(depth=12, heads=3, mlp_dim=token_dim * 4, dim_head=64, dropout=0.0, emb_dropout=0.0)
     return ViT(token_dim=token_dim, projection_kwargs=projection_kwargs, transformer_kwargs=transformer_kwargs)
 
 
-def vit_small(image_shape: Sequence[int] = (224, 224), patch_shape: Sequence[int] = (16, 16), channels: int = 3):
+def vit_small(
+    image_shape: Sequence[int] = (224, 224), patch_shape: Sequence[int] = (16, 16), channels: int = 3
+) -> nn.Module:
     token_dim = 384
     projection_kwargs = dict(image_shape=image_shape, patch_shape=patch_shape, channels=channels)
     transformer_kwargs = dict(depth=12, heads=6, mlp_dim=token_dim * 4, dim_head=64, dropout=0.0, emb_dropout=0.0)
     return ViT(token_dim=token_dim, projection_kwargs=projection_kwargs, transformer_kwargs=transformer_kwargs)
 
 
-def vit_base(image_shape: Sequence[int] = (224, 224), patch_shape: Sequence[int] = (16, 16), channels: int = 3):
+def vit_base(
+    image_shape: Sequence[int] = (224, 224), patch_shape: Sequence[int] = (16, 16), channels: int = 3
+) -> nn.Module:
     token_dim = 768
     projection_kwargs = dict(image_shape=image_shape, patch_shape=patch_shape, channels=channels)
     transformer_kwargs = dict(depth=12, heads=12, mlp_dim=token_dim * 4, dim_head=64, dropout=0.0, emb_dropout=0.0)
