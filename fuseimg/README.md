@@ -22,7 +22,7 @@ Here you can find useful ops for imaging and public datasets implementations
 
 * OpHWCToCHW - transform HWC (height, width, channel) to CHW (channel, height, width)
 * OpCHWToHWC - transform CHW (channel, height, width) to HWC (height, width, channel)
-* OpSelectSlice - select one slice from the input tensor, 
+* OpSelectSlice - select one slice from the input tensor,
 * OpFindBiggestNonEmptyBbox2D - Finds the the biggest connected component bounding box in the image that is non empty (dark)
 * OpFlipBrightSideOnLeft2D - Returns an image where the brigheter half side is on the left, flips the image if the condition does nt hold.
 * OpResizeAndPad2D - Resize and Pad a 2D image
@@ -33,9 +33,9 @@ Here you can find useful ops for imaging and public datasets implementations
 
 [**color**](data/ops/aug/color.py)
 
-* OpAugColor - color augmentation for gray scale images of any dimensions, including addition, multiplication, gamma and contrast adjusting 
+* OpAugColor - color augmentation for gray scale images of any dimensions, including addition, multiplication, gamma and contrast adjusting
 * OpAugGaussian - add gaussian noise to numpy array or torch tensor of any dimensions
-  
+
 [**geometry**](data/ops/aug/geometry.py)
 
 * OpAugAffine2D -  2D affine transformation for torch tensors

@@ -89,6 +89,7 @@ class DatasetWrapSeqToDict(DatasetDefault):
         dataset: Dataset,
         sample_keys: Union[Sequence[str], str],
         cache_dir: Optional[str] = None,
+        sample_ids: Optional[Sequence] = None,
         **kwargs,
     ):
         """
@@ -96,9 +97,12 @@ class DatasetWrapSeqToDict(DatasetDefault):
         :param dataset: the dataset to extract the data from
         :param sample_keys: sequence keys - naming each value returned by dataset[i]
         :param cache_dir: Optional - provied a path in case caching is required to help optimize the running time
+        :param sample_ids: Optional - subset of the data's sample ids.
         :param kwargs: optional, additional arguments to provide to DatasetDefault
         """
-        sample_ids = [(name, i) for i in range(len(dataset))]
+        if sample_ids is None:
+            sample_ids = [(name, i) for i in range(len(dataset))]
+
         static_pipeline = PipelineDefault(name="staticp", ops_and_kwargs=[(OpReadDataset(dataset, sample_keys), {})])
         if cache_dir is not None:
             cacher = SamplesCacher("dataset_test_cache", static_pipeline, cache_dir, restart_cache=True)

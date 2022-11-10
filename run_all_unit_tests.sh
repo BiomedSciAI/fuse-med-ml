@@ -21,7 +21,7 @@ create_env() {
 
     requirements=$(cat fuse/requirements.txt)
     requirements+=$(cat fuse/requirements_dev.txt)
-    
+
     if [ $mode = "fuseimg" ] || [ $mode = "examples" ]; then
         requirements+=$(cat fuseimg/requirements.txt)
     fi
@@ -34,7 +34,7 @@ create_env() {
     PYTHON_VER=3.8
     ENV_NAME="fuse_$PYTHON_VER-CUDA-$force_cuda_version-$(echo -n $requirements | sha256sum | awk '{print $1;}')"
     echo $ENV_NAME
-    
+
     # env full name
     if [ $env_path = "no" ]; then
         env="-n $ENV_NAME"
