@@ -45,3 +45,11 @@ class DatasetBase(Dataset):
         :param items: specify the list of sequence to read or None for all
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def subset(self, indices: Sequence[int]) -> None:
+        """
+        subset of a dataset at specified indices - inplace
+        :param indices: indices of the samples that will remain in the subset
+        """
+        raise NotImplementedError

@@ -11,7 +11,7 @@ Contains Timer and Profiler classes for timing code execution, and finding CPU b
 
 ## data
 Contains a collate function that converts a list of dictionaries with common keys to a dictionary with these keys whose values become a list of the original dictionary's values:
-```dict[str, Any] -> dict[str, list[Any]]``` 
+```dict[str, Any] -> dict[str, list[Any]]```
 
 ## file_io
 Contains a set of utilities related to reading and writing files. These include saving and loading Pickle, text, hdf5 files, extracting zip files, path manipulation, file and directory deletion and more.
@@ -35,7 +35,7 @@ GPU related utilities, including finding which GPUs are available, setting `$CUD
 Nested dictionary implementation. Extends Python's `dict` type to allow accessing keys with a '.' notation, i.e `d.abc.def` instead `d['abc']['def']`.
 
 ## utils_debug
-Contains a class implementing debugging utilities. In "debug" mode it automatically disables multi-threading and multiprocessing. 
+Contains a class implementing debugging utilities. In "debug" mode it automatically disables multi-threading and multiprocessing.
 
 ## utils_hierarchical_dict
 Implements a class similar to Ndict described above. It is kept for backwards compatibility.

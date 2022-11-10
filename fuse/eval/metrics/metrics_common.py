@@ -21,7 +21,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, Hashable, Optional, Sequence, Tuple, Union
 import copy
 from fuse.utils import uncollate
-
+import torch.distributed as dist
 import pandas as pd
 import torch
 import numpy as np
@@ -38,7 +38,7 @@ class MetricBase(ABC):
     @abstractmethod
     def collect(self, batch: Dict) -> None:
         """
-        aggregate data from batchs
+        aggregate data from batches
         :param batch: bath dict
         """
         raise NotImplementedError
@@ -109,6 +109,19 @@ class MetricCollector(MetricBase):
             batch = NDict(batch)
 
         samples = uncollate(batch)
+
+        # If in distributed mode (multi gpu training) we shall gather the result from all the machine to evaluate with respect to the entire batch.
+        if dist.is_initialized():
+            world_size = dist.get_world_size()  # num of gpus
+            samples_gather = [None for rank in range(world_size)]
+            # samples_gather[i] will have the 'samples' value of the i's GPU
+            dist.all_gather_object(samples_gather, samples)
+
+            # union all the GPU's samples into one samples list
+            samples = []
+            for rank in range(world_size):
+                samples += samples_gather[rank]
+
         for sample in samples:
             sample_to_collect = {}
 
@@ -249,7 +262,7 @@ class MetricWithCollectorBase(MetricBase):
         :param pre_collect_process_func: Optional callable - the callable will get as an input a batch_dict or a dataframe and can preprocess it if required
         :param external_data_collector: Optional - in a case space optimization required and there by using shared collector for few metrics
         :param extract_ids: self._extract_arguments packs all arguments for a underlying function. Set to True, to pack also the ids (under the name 'ids')
-        :param kwargs: specify keyworded and value arguments you want to collect from the source data.
+        :param kwargs: specify keywords and value arguments you want to collect from the source data.
                 can be strings (key names) and/or actual values
                 to collect from the results dictionary: add a "results:" prefix to the key name
         """

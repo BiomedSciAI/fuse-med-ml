@@ -73,9 +73,9 @@ class KnightTestTestCase(unittest.TestCase):
         os.environ["KNIGHT_RESULTS"] = os.path.join(self.root, "train", "results")
         config = """
         experiment_num : 0
-        task_num : task_1 # task_1 or task_2 
+        task_num : task_1 # task_1 or task_2
         num_gpus : 1
-        use_data : {"imaging": True, "clinical": True} 
+        use_data : {"imaging": True, "clinical": True}
         batch_size : 2
         resize_to : [70, 256, 256]
         num_epochs : 0

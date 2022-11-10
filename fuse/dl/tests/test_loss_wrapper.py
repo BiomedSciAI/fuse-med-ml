@@ -18,13 +18,16 @@ Created on June 30, 2021
 """
 
 import unittest
-from fuse.dl.models.backbones.backbone_vit import usage_example
+
+import torch
+
+from fuse.dl.losses.loss_wrap_to_dict import usage_example
 
 
 class TestViT(unittest.TestCase):
     def test_vit_usage_example(self) -> None:
-        results = usage_example()
-        self.assertEqual(tuple(results.shape), (1, 192))
+        loss = usage_example()
+        self.assertEqual(type(loss), torch.Tensor)
 
 
 if __name__ == "__main__":
