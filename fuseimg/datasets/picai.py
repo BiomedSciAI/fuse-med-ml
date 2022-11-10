@@ -173,6 +173,7 @@ class PICAI:
                     #           scale=Uniform(*aug_params['scale']),
                     #           flip=(aug_params['flip'], aug_params['flip']),
                     #           translate=(RandInt(*aug_params['translate']), RandInt(*aug_params['translate'])))),
+                    
                     (OpRepeat(OpAugUnsqueeze3DFrom2D(),kwargs_per_step_to_add = repeat_images), dict( axis_squeeze=1, channels=1)),
                 ]
         dynamic_pipeline = PipelineDefault("picai_dynamic", ops)

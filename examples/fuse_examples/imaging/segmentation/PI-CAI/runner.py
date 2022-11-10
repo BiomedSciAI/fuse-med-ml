@@ -81,7 +81,7 @@ def create_model(train: NDict, paths: NDict) -> torch.nn.Module:
     else:
         raise ("unsuported target!!")
     model = ModelMultiHead(
-        conv_inputs=(('data.input.img', 1),),
+        conv_inputs=(('data.input.img_t2w', 1),),
         backbone=BackboneResnet3D(in_channels=1),
         heads=[
             Head3D(head_name='head_0',
@@ -373,7 +373,7 @@ def main(cfg: DictConfig) -> None:
     print(cfg)
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None  # [0]
-    #choose_and_enable_multiple_gpus(cfg["train.trainer.devices"], force_gpus=force_gpus)
+    choose_and_enable_multiple_gpus(cfg["train.trainer.devices"], force_gpus=force_gpus)
 
     # Path to the stored dataset location
     # dataset should be download from https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508
