@@ -124,14 +124,10 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     #### Train Data
     # split to folds randomly - temp
     dataset_all = PICAI.dataset(
-        paths["data_dir"],
-        paths["clinical_file"],
-        train["target"],
-        paths["cache_dir"],
+        paths = paths,
+        train_cfg = train,
         reset_cache=False,
-        num_workers=train["num_workers"],
         train=True,
-        aug_params=train["aug_params"]
     )
     folds = dataset_balanced_division_to_folds(
         dataset=dataset_all,
@@ -150,24 +146,17 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
         validation_sample_ids += folds[fold]
 
     train_dataset = PICAI.dataset(
-        paths["data_dir"],
-        paths["clinical_file"],
-        train["target"],
-        paths["cache_dir"],
+        paths = paths,
+        train_cfg = train,
         reset_cache=False,
-        num_workers=train["num_workers"],
         sample_ids=train_sample_ids,
         train=True,
-        aug_params=train["aug_params"]
     )
 
     validation_dataset = PICAI.dataset(
-        paths["data_dir"],
-        paths["clinical_file"],
-        train["target"],
-        paths["cache_dir"],
+        paths = paths,
+        train_cfg = train,
         reset_cache=False,
-        num_workers=train["num_workers"],
         sample_ids=validation_sample_ids
     )
 
@@ -384,7 +373,7 @@ def main(cfg: DictConfig) -> None:
     print(cfg)
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None  # [0]
-    choose_and_enable_multiple_gpus(cfg["train.trainer.devices"], force_gpus=force_gpus)
+    #choose_and_enable_multiple_gpus(cfg["train.trainer.devices"], force_gpus=force_gpus)
 
     # Path to the stored dataset location
     # dataset should be download from https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508
