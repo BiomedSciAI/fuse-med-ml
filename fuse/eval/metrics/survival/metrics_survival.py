@@ -33,7 +33,7 @@ class MetricCIndex(MetricDefault):
         self,
         pred: str,
         event_times: str,
-        event_observed: Optional[str] = None,
+        event_observed: str,
         time_unit: Optional[int] = 1,
         **kwargs,
     ):
@@ -41,7 +41,7 @@ class MetricCIndex(MetricDefault):
         See MetricDefault for the missing params
         :param pred: a length-n iterable prediction scores
         :param event_times:  a length-n iterable event times, or censor times if event is not observed.
-        :param event_observed: a length-n iterable event observed flags, 1 if observed, 0 if not (i.e. censored). Default None assumes all observed.
+        :param event_observed: a length-n iterable event observed flags, 1 if observed, 0 if not (i.e. censored).
         """
         super().__init__(
             pred=pred,
@@ -56,21 +56,21 @@ class MetricCIndex(MetricDefault):
 
 class MetricExpectedCIndex(MetricDefault):
     """
-    Compute ctd-index (concordance index) score using lifelines
+    Compute expected C-index (concordance index) score when given a survival distribution
     """
 
     def __init__(
         self,
         pred: str,
         event_times: str,
-        event_observed: Optional[str] = None,
+        event_observed: str,
         **kwargs,
     ):
         """
         See MetricDefault for the missing params
         :param pred: a length-n iterable prediction scores
         :param event_times:  a length-n iterable event times, or censor times if event is not observed.
-        :param event_observed: a length-n iterable event observed flags, 1 if observed, 0 if not (i.e. censored). Default None assumes all observed.
+        :param event_observed: a length-n iterable event observed flags, 1 if observed, 0 if not (i.e. censored).
         """
         super().__init__(
             pred=pred,
