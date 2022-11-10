@@ -27,7 +27,7 @@ class LossWrapToDict(torch.nn.Module):
         return loss
 
 
-def usage_example():
+def usage_example() -> torch.Tensor:
     batch_size = 100
     num_classes = 10
     # creating an example of a batch_dict
@@ -45,6 +45,7 @@ def usage_example():
     # running the wrapped loss with the batch_dict
     loss_result = wrapped_loss(batch_dict)
     print(f"the output loss is: {loss_result}")
+    return loss_result
 
 
 if __name__ == "__main__":
