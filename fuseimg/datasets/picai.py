@@ -77,9 +77,10 @@ class OpLoadPICAISegmentation(OpBase):
     Loads a medical image
     """
 
-    def __init__(self, dir_path: str, seuqences: Sequence[str] = ["_t2w"], **kwargs):
+    def __init__(self, data_dir:str , dir_path: str, seuqences: Sequence[str] = ["_t2w"], **kwargs):
         super().__init__(**kwargs)
         self._dir_path = dir_path
+        self._data_dir = data_dir
         # self._sequences = seuqences
 
     def __call__(
@@ -99,15 +100,18 @@ class OpLoadPICAISegmentation(OpBase):
             my_img  = nib.load(img_filename)
             nii_data = my_img.get_fdata()
             sample_dict[key_out] = nii_data
-            return sample_dict
         else:
-            return None
+            img_filename = os.path.join(self._data_dir,sample_dict[key_in].split("_")[0],sample_dict[key_in]+"_t2w.mha")
+            image_data, image_header = load(img_filename)
+            nii_data = np.zeros(image_data.shape)
+        sample_dict[key_out] = nii_data
+        return sample_dict
 
 class PICAI:
     """
     """
     @staticmethod
-    def static_pipeline(data_dir: str,seg_dir:str, target: str, repeat_images =Sequence[NDict]) -> PipelineDefault:
+    def static_pipeline(data_dir: str,seg_dir:str, target: str, repeat_images :Sequence[NDict]) -> PipelineDefault:
         """
         Get suggested static pipeline (which will be cached), typically loading the data plus design choices that we won't experiment with.
         :param data_path: path to original kits21 data (can be downloaded by KITS21.download())
@@ -118,7 +122,7 @@ class PICAI:
                 # decoding sample ID
                 (OpPICAISampleIDDecode(), dict()),  # will save image and seg path to "data.input.img_path"
                 (OpLoadPICAIImage(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img")),
-                (OpLoadPICAISegmentation(seg_dir), dict(key_in="data.input.img_path", key_out="data.gt.seg")),
+                (OpLoadPICAISegmentation(data_dir,seg_dir), dict(key_in="data.input.img_path", key_out="data.gt.seg")),
                 (OpRepeat((OpLambda(partial(skimage.transform.resize,
                                                 output_shape=(23, 320, 320),
                                                 mode='reflect',
