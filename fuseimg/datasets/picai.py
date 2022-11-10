@@ -129,7 +129,7 @@ class PICAI:
                                                 anti_aliasing=True,
                                                 preserve_range=True))),kwargs_per_step_to_add = repeat_images),{}) ,
                 (OpRepeat((OpNormalizeAgainstSelf()),kwargs_per_step_to_add = repeat_images),{}) ,
-                (OpRepeat((OpToNumpy()),kwargs_per_step_to_add = repeat_images),{}) ,
+                (OpRepeat((OpToNumpy()),kwargs_per_step_to_add = repeat_images),dict(dtype=np.float32)) ,
                 
                 # (OpResizeAndPad2D(), dict(key="data.input.img", resize_to=(2200, 1200), padding=(60, 60))),
             ],
@@ -145,7 +145,7 @@ class PICAI:
         ops = []
         bool_map = {"NO": 0, "YES": 1}
         ops +=[
-                (OpRepeat((OpToTensor()),kwargs_per_step_to_add = repeat_images),{}) ,
+                (OpRepeat((OpToTensor()),kwargs_per_step_to_add = repeat_images),dict( dtype=torch.float32)) ,
                 (OpRepeat((OpLambda(partial(torch.unsqueeze, dim=0))),kwargs_per_step_to_add = repeat_images),{}) ,
                 (
                     OpReadDataframe(
