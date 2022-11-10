@@ -156,7 +156,7 @@ class BatchSamplerDefault(BatchSampler):
         dataset.subset(items)
 
         # get balanced classes per each sample
-        collected_data = dataset.get_multi(None, **self._dataset_get_multi_kwargs)
+        collected_data = dataset.get_multi(None, desc="batch_sampler", **self._dataset_get_multi_kwargs)
         self._balanced_classes = self._extract_balanced_classes(collected_data)
 
         # split samples to groups
