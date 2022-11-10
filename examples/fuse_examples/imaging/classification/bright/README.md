@@ -8,9 +8,9 @@
 See https://github.com/BiomedSciAI/fuse-med-ml#installation
 
 ## Abstract
-The aim of the BRIGHT challenge is to provide an opportunity for the development, testing and evaluation of Artificial Intelligence (AI) models for automatic breast tumor subtyping of frequent lesions along with rare pathologies, by using clinical Hematoxylin & Eosin (H&E) stained gigapixel Whole-Slide Images (WSIs). 
+The aim of the BRIGHT challenge is to provide an opportunity for the development, testing and evaluation of Artificial Intelligence (AI) models for automatic breast tumor subtyping of frequent lesions along with rare pathologies, by using clinical Hematoxylin & Eosin (H&E) stained gigapixel Whole-Slide Images (WSIs).
 
-To this end, a large annotated cohort of WSIs, which includes Noncancerous (Pathological Benign, Usual Ductal Hyperplasia), Precancerous (Flat Epithelia Atypia, Atypical Ductal Hyperplasia) and Cancerous (Ductal Carcinoma in Situ, Invasive Carcinoma) categories, will be available. BRIGHT is the first breast tumor subtyping challenge that includes atypical lesions and consists of more than 550 annotated WSIs across a wide spectrum of tumor subtypes. 
+To this end, a large annotated cohort of WSIs, which includes Noncancerous (Pathological Benign, Usual Ductal Hyperplasia), Precancerous (Flat Epithelia Atypia, Atypical Ductal Hyperplasia) and Cancerous (Ductal Carcinoma in Situ, Invasive Carcinoma) categories, will be available. BRIGHT is the first breast tumor subtyping challenge that includes atypical lesions and consists of more than 550 annotated WSIs across a wide spectrum of tumor subtypes.
 
 The Challenge includes two tasks: (1) WSI classification into three classes as per cancer risk, and (b) WSI classification into six fine-grained lesion subtypes.
 
@@ -45,14 +45,14 @@ python eval.py <target_filename> <task1 prediction_filename> <task1 prediction_f
 ```
 To evaluate the dummy example predictions and targets
 ```
-cd fuse-med-ml/examples/fuse_examples/imaging/classification/knight/eval 
+cd fuse-med-ml/examples/fuse_examples/imaging/classification/knight/eval
 python eval.py example/example_targets.csv example/example_task1_predictions.csv example/example_task2_predictions.csv example/results
-```    
+```
 
 ### Baseline
 As an additional example, we also include the validation prediction files and validation target file of the challenge baseline implementation:
- 
- 
+
+
 See [validation baseline prediction file for task 1](./eval/baseline/validation_baseline_task1_predictions.csv)
 
 
