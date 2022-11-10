@@ -95,10 +95,13 @@ class OpLoadPICAISegmentation(OpBase):
         """
         # for seq in self._sequences:
         img_filename = os.path.join(self._dir_path, sample_dict[key_in]+".nii.gz")
-        my_img  = nib.load(img_filename)
-        nii_data = my_img.get_fdata()
-        sample_dict[key_out] = nii_data
-        return sample_dict
+        if os.path.exists(img_filename):
+            my_img  = nib.load(img_filename)
+            nii_data = my_img.get_fdata()
+            sample_dict[key_out] = nii_data
+            return sample_dict
+        else:
+            return None
 
 class PICAI:
     """
@@ -122,7 +125,7 @@ class PICAI:
                                                 anti_aliasing=True,
                                                 preserve_range=True))),kwargs_per_step_to_add = repeat_images),{}) ,
                 (OpRepeat((OpNormalizeAgainstSelf()),kwargs_per_step_to_add = repeat_images),{}) ,
-                (OpRepeat((OpToNumpy(), dict( dtype=np.float32)),kwargs_per_step_to_add = repeat_images),{}) ,
+                (OpRepeat((OpToNumpy()),kwargs_per_step_to_add = repeat_images),{}) ,
                 
                 # (OpResizeAndPad2D(), dict(key="data.input.img", resize_to=(2200, 1200), padding=(60, 60))),
             ],
