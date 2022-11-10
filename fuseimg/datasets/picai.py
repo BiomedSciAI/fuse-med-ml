@@ -145,7 +145,7 @@ class PICAI:
         ops = []
         bool_map = {"NO": 0, "YES": 1}
         ops +=[
-                (OpRepeat((OpToTensor(), dict( dtype=torch.float32)),kwargs_per_step_to_add = repeat_images),{}) ,
+                (OpRepeat((OpToTensor()),kwargs_per_step_to_add = repeat_images),{}) ,
                 (OpRepeat((OpLambda(partial(torch.unsqueeze, dim=0))),kwargs_per_step_to_add = repeat_images),{}) ,
                 (
                     OpReadDataframe(
@@ -166,14 +166,14 @@ class PICAI:
             ops +=[
                     # affine augmentation - will apply the same affine transformation on each slice
                     
-                    (OpRepeat((OpAugSqueeze3Dto2D(), dict(axis_squeeze=1)),kwargs_per_step_to_add = repeat_images),{}) ,
-                    (OpRandApply(OpSampleAndRepeat(OpAugAffine2D(),kwargs_per_step_to_add = repeat_images), aug_params['apply_aug_prob']),
-                         dict(
-                              rotate=Uniform(*aug_params['rotate']),
-                              scale=Uniform(*aug_params['scale']),
-                              flip=(aug_params['flip'], aug_params['flip']),
-                              translate=(RandInt(*aug_params['translate']), RandInt(*aug_params['translate'])))),
-                        (OpAugUnsqueeze3DFrom2D(), dict(key='data.input.img', axis_squeeze=1, channels=1)),
+                    (OpRepeat((OpAugSqueeze3Dto2D()),kwargs_per_step_to_add = repeat_images), dict(axis_squeeze=1)) ,
+                    # (OpRandApply(OpSampleAndRepeat(OpAugAffine2D(),kwargs_per_step_to_add = repeat_images), aug_params['apply_aug_prob']),
+                    #      dict(
+                    #           rotate=Uniform(*aug_params['rotate']),
+                    #           scale=Uniform(*aug_params['scale']),
+                    #           flip=(aug_params['flip'], aug_params['flip']),
+                    #           translate=(RandInt(*aug_params['translate']), RandInt(*aug_params['translate'])))),
+                    (OpRepeat(OpAugUnsqueeze3DFrom2D(),kwargs_per_step_to_add = repeat_images), dict( axis_squeeze=1, channels=1)),
                 ]
         dynamic_pipeline = PipelineDefault("picai_dynamic", ops)
         return dynamic_pipeline
