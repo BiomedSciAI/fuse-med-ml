@@ -76,7 +76,7 @@ class OpReadDataframe(OpBase):
 
         # rename columns
         if self._rename_columns is not None:
-            df.rename(self._rename_columns, axis=1, inplace=True)
+            df = df.rename(self._rename_columns, axis=1)
 
         # convert to dictionary: {index -> {column -> value}}
         if self._key_column is not None:

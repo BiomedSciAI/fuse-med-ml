@@ -28,3 +28,4 @@ hydra-core
 omegaconf
 nibabel
 vit-pytorch
+lifelines
