@@ -120,8 +120,8 @@ def uncollate(batch: Dict) -> List[Dict]:
     if not keys:
         return samples
 
-    if 'data.sample_id' in keys:
-        batch_size = len(batch['data.sample_id'])
+    if "data.sample_id" in keys:
+        batch_size = len(batch["data.sample_id"])
     else:
         batch_size = None
 
