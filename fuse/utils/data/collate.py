@@ -120,11 +120,16 @@ def uncollate(batch: Dict) -> List[Dict]:
     if not keys:
         return samples
 
-    batch_size = None
-    for key in keys:
-        if isinstance(batch[key], torch.Tensor):
-            batch_size = len(batch[key])
-            break
+    if "data.sample_id" in keys:
+        batch_size = len(batch["data.sample_id"])
+    else:
+        batch_size = None
+
+    if batch_size is None:
+        for key in keys:
+            if isinstance(batch[key], torch.Tensor):
+                batch_size = len(batch[key])
+                break
 
     if batch_size is None:
         for key in keys:
