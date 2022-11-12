@@ -37,12 +37,14 @@ from fuse.data.utils.split import dataset_balanced_division_to_folds
 from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
 from fuse.dl.losses.loss_default import LossDefault
+from fuse.dl.losses.segmentation.loss_dice import DiceLoss #DiceBCELoss
 
 from unet import UNet
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy
 from fuseimg.datasets.picai import PICAI
 from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
 from fuse.dl.models import ModelMultiHead
+from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
 from fuse.dl.models.heads.heads_3D import Head3D
 from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
 from pytorch_lightning import Trainer
@@ -62,6 +64,28 @@ from omegaconf import DictConfig, OmegaConf
 mode = "default"  # Options: 'default', 'debug'. See details in FuseDebug
 debug = FuseDebug(mode)
 
+def print_struct(d, level=0):
+    if type(d) == dict or type(d) == NDict:
+        keys = d.keys()
+        level += 1
+        for key in keys:
+            print('---' * level, key)
+            print_struct(d[key], level)
+    else:
+        if hasattr(d, 'shape'):
+            print(d.shape)
+
+def pre_proc_batch(in_batch):
+    out_batch = []
+    for batch in in_batch:
+        if len(batch.shape) > 4:
+            # reshape
+            shape = batch.shape
+            batch = batch.transpose(1,2)
+            batch = batch.view(-1, shape[1], shape[-2], shape[-1])
+        out_batch.append(batch)
+
+    return out_batch
 
 def create_model(train: NDict, paths: NDict) -> torch.nn.Module:
     """
@@ -73,27 +97,40 @@ def create_model(train: NDict, paths: NDict) -> torch.nn.Module:
         gt_label = "data.gt.classification"
         skip_keys = ["data.gt.subtype"]
         class_names = ["Benign", "Malignant"]
-    elif train["target"] == "subtype":
-        num_classes = 4
-        gt_label = "data.gt.subtype"
-        skip_keys = ["data.gt.classification"]
-        class_names = ["Luminal A", "Luminal B", "HER2-enriched", "triple negative"]
+        model = ModelMultiHead(
+            conv_inputs=(('data.input.img_t2w', 1),),
+            backbone=BackboneResnet3D(in_channels=1),
+            heads=[
+                Head3D(head_name='head_0',
+                                conv_inputs=[("model.backbone_features", 512)],
+                                #  dropout_rate=train_params['imaging_dropout'],
+                                #  append_dropout_rate=train_params['clinical_dropout'],
+                                #  fused_dropout_rate=train_params['fused_dropout'],
+                                num_outputs=num_classes,
+                                #  append_features=[("data.input.clinical", 8)],
+                                #  append_layers_description=(256,128),
+                                ),
+            ])
+    # elif train["target"] == "subtype":
+    #     num_classes = 4
+    #     gt_label = "data.gt.subtype"
+    #     skip_keys = ["data.gt.classification"]
+    #     class_names = ["Luminal A", "Luminal B", "HER2-enriched", "triple negative"]
+    elif train['target'] == 'segmentation':
+        num_classes = 2
+        gt_label = "data.gt.seg"
+        skip_keys = ["data.gt.subtype"]
+        class_names = ["Benign", "Malignant"]
+        torch_model = UNet(n_channels=1, n_classes=1, bilinear=False)
+
+        model = ModelWrapSeqToDict(model=torch_model,
+                                model_inputs=['data.input.img_t2w'],
+                                model_outputs=['model.logits.segmentation'],
+                                pre_forward_processing_function=pre_proc_batch
+                                )
     else:
         raise ("unsuported target!!")
-    model = ModelMultiHead(
-        conv_inputs=(('data.input.img_t2w', 1),),
-        backbone=BackboneResnet3D(in_channels=1),
-        heads=[
-            Head3D(head_name='head_0',
-                             conv_inputs=[("model.backbone_features", 512)],
-                             #  dropout_rate=train_params['imaging_dropout'],
-                             #  append_dropout_rate=train_params['clinical_dropout'],
-                             #  fused_dropout_rate=train_params['fused_dropout'],
-                             num_outputs=num_classes,
-                             #  append_features=[("data.input.clinical", 8)],
-                             #  append_layers_description=(256,128),
-                             ),
-        ])
+
     return model, num_classes, gt_label, skip_keys, class_names
 
 
@@ -104,7 +141,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     # ==============================================================================
     # Logger
     # ==============================================================================
-    fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
+    # fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
     lgr = logging.getLogger("Fuse")
 
     # Download data
@@ -164,7 +201,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     lgr.info("- Create sampler:")
     sampler = BatchSamplerDefault(
         dataset=train_dataset,
-        balanced_class_name=gt_label,
+        balanced_class_name= "data.gt.classification", #gt_label, TODO - make diff label for balance-sampler
         num_balanced_classes=num_classes,
         batch_size=train["batch_size"],
         mode="approx",
@@ -194,35 +231,44 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
         shuffle=False,
         drop_last=False,
         batch_sampler=None,
-        batch_size=train["batch_size"],
+        batch_size=1, # TODO - set a validation batch_size parameter instead of - train["batch_size"],
         num_workers=train["num_workers"],
         collate_fn=CollateDefault(skip_keys=skip_keys),
     )
     lgr.info("Validation Data: Done", {"attrs": "bold"})
 
+    for x in train_dataloader:
+        x.print_tree()
+        out = model(x)
+        out.print_tree()
+        break
+
     # ====================================================================================
     #  Loss
     # ====================================================================================
+    # TODO - add a classification loss - add head to the bottom of the unet
     losses = {
-        "cls_loss": LossDefault(pred="model.logits.head_0", target=gt_label, callable=F.cross_entropy, weight=1.0)
+        # "cls_loss": LossDefault(pred="model.logits.head_0", target=gt_label, callable=F.cross_entropy, weight=1.0)
+        'dice_loss': DiceLoss(pred_name='model.logits.segmentation', 
+                                 target_name='data.gt.seg')
     }
 
     # ====================================================================================
     # Metrics
     # ====================================================================================
-    train_metrics = OrderedDict(
-        [
-            ("op", MetricApplyThresholds(pred="model.output.head_0")),  # will apply argmax
-            ("auc", MetricAUCROC(pred="model.output.head_0", target=gt_label, class_names=class_names)),
-            ("accuracy", MetricAccuracy(pred="results:metrics.op.cls_pred", target=gt_label)),
-        ]
-    )
+    train_metrics = OrderedDict()
+        # [
+        #     ("op", MetricApplyThresholds(pred="model.output.head_0")),  # will apply argmax
+        #     ("auc", MetricAUCROC(pred="model.output.head_0", target=gt_label, class_names=class_names)),
+        #     ("accuracy", MetricAccuracy(pred="results:metrics.op.cls_pred", target=gt_label)),
+        # ]
+    # )
 
     validation_metrics = copy.deepcopy(train_metrics)  # use the same metrics in validation as well
 
     # either a dict with arguments to pass to ModelCheckpoint or list dicts for multiple ModelCheckpoint callbacks (to monitor and save checkpoints for more then one metric).
     best_epoch_source = dict(
-        monitor="validation.metrics.auc.macro_avg",
+        monitor="validation.losses.total_loss",  #metrics.auc.macro_avg",
         mode="max",
     )
 

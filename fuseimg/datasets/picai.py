@@ -29,6 +29,46 @@ from medpy.io import load
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
 
 
+class OpSample3dImg(OpBase):
+    """
+    Squeeze selected axis of volume image into channel dimension, in order to fit the 2D augmentation functions
+    """
+
+    def __init__(self, verify_arguments: bool = True):
+        """
+        :param verify_arguments: this ops expects torch tensor with 4 dimensions. Set to False to disable verification
+        """
+        super().__init__()
+        self._verify_arguments = verify_arguments
+
+    def __call__(self, sample_dict: NDict, key: str, axis: int, slice: float) -> NDict:
+        """
+        :param key: key to a tensor stored in sample_dict: 3D tensor representing an image to augment, shape [num_channels, spatial axis 1, spatial axis 2, spatial axis 3]
+        :param axis_squeeze: the axis (1, 2 or 3) to squeeze into channel dimension - typically z axis
+        :param slice: random number in [0, 1] that define the selected slice
+        """
+        # print(key, slice)
+        aug_input = sample_dict[key]
+        n_slices = aug_input.shape[axis]
+        n = int(n_slices * slice)
+
+        # verify
+        if self._verify_arguments:
+            assert isinstance(
+                aug_input, torch.Tensor
+            ), f"Error: OpSample3dImg expects torch Tensor, got {type(aug_input)}"
+            # assert (
+            #     len(aug_input.shape) == 4
+            # ), f"Error: OpSample3dImg expects tensor with 4 dimensions. got {aug_input.shape}"
+
+        aug_output = aug_input[n]
+
+        # add channel dim - TODO -check in case of multiple channels
+        aug_output = torch.unsqueeze(aug_output, dim=0)
+
+        sample_dict[key] = aug_output
+        return sample_dict
+
 
 class OpPICAISampleIDDecode(OpBase):
     """
@@ -167,6 +207,7 @@ class PICAI:
                     # affine augmentation - will apply the same affine transformation on each slice
                     
                     (OpRepeat((OpAugSqueeze3Dto2D()),kwargs_per_step_to_add = repeat_images), dict(axis_squeeze=1)) ,
+                    (OpSampleAndRepeat((OpSample3dImg()),kwargs_per_step_to_add = repeat_images), dict(axis=0, slice=Uniform(0.0, 1.0))),
                     # (OpRandApply(OpSampleAndRepeat(OpAugAffine2D(),kwargs_per_step_to_add = repeat_images), aug_params['apply_aug_prob']),
                     #      dict(
                     #           rotate=Uniform(*aug_params['rotate']),
@@ -174,7 +215,7 @@ class PICAI:
                     #           flip=(aug_params['flip'], aug_params['flip']),
                     #           translate=(RandInt(*aug_params['translate']), RandInt(*aug_params['translate'])))),
                     
-                    (OpRepeat(OpAugUnsqueeze3DFrom2D(),kwargs_per_step_to_add = repeat_images), dict( axis_squeeze=1, channels=1)),
+                    # (OpRepeat(OpAugUnsqueeze3DFrom2D(),kwargs_per_step_to_add = repeat_images), dict( axis_squeeze=1, channels=1)),
                 ]
         dynamic_pipeline = PipelineDefault("picai_dynamic", ops)
         return dynamic_pipeline

@@ -310,6 +310,9 @@ class NDict(dict):
             for key in keys:
                 print("---" * level, key)
                 NDict._print_tree_static(data_dict[key], level)
+        else:
+            if hasattr(data_dict, 'shape'):
+                print(data_dict.shape)
 
     def describe(self) -> None:
         for k in self.keypaths():

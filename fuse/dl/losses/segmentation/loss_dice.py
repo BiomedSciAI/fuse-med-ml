@@ -87,7 +87,7 @@ class DiceLoss(LossBase):
         target_name,
         filter_func: Optional[Callable] = None,
         class_weights=None,
-        ignore_cls_index_list=None,
+        ignore_cls_index_list=[],
         resize_mode: str = "maxpool",
         **kwargs
     ):
@@ -104,7 +104,11 @@ class DiceLoss(LossBase):
         :param kwargs:                   args pass to BinaryDiceLoss
         """
 
-        super().__init__(pred_name, target_name, class_weights)
+        super().__init__()
+        # super().__init__(pred_name, target_name, class_weights)
+        self.pred_name = pred_name
+        self.target_name = target_name
+        # self.weight = weight
         self.class_weights = class_weights
         self.filter_func = filter_func
         self.kwargs = kwargs
@@ -123,6 +127,10 @@ class DiceLoss(LossBase):
         tar_shape = target.shape
         if len(tar_shape) < 4:
             target = target.unsqueeze(1)
+        # TEMP -TODO - think of a better solution
+        if len(tar_shape) > len(predict.shape):
+            target = target.transpose(1,2)
+            target = target.view(-1, tar_shape[1], tar_shape[-2], tar_shape[-1])
         nt, ct, ht, wt = target.shape
 
         if h != ht or w != wt:  # upsample
@@ -162,4 +170,77 @@ class DiceLoss(LossBase):
                 total_loss += dice_loss
         total_loss /= total_class_weights
 
-        return self.weight * total_loss
+        return total_loss
+
+
+class DiceBCELoss(LossBase):
+
+    def __init__(self, 
+                 pred_name: str = None,
+                 target_name: str = None,
+                 filter_func: Optional[Callable]=None,
+                 class_weights=None,
+                 bce_weight: float=1.0,
+                 power: int=1, 
+                 eps: float=1.,
+                 reduction: str='mean'):
+        '''
+        Compute a weighted sum of dice-loss and cross entropy loss.
+
+        :param pred_name:        batch_dict key for predicted output (e.g., class probabilities after softmax).
+                                 Expected Tensor shape = [batch, num_classes, height, width]
+        :param target_name:      batch_dict key for target (e.g., ground truth label). Expected Tensor shape = [batch, height, width]
+        :param filter_func:      function that filters batch_dict/ The function gets ans input batch_dict and returns filtered batch_dict
+        :param class_weights:    An array of shape [num_classes,]
+        :param bce_weight:       weight to attach to the bce loss, default : 1.0
+        :param power:            Denominator value: \sum{x^p} + \sum{y^p}, default: 1
+        :param eps:              A float number to smooth loss, and avoid NaN error, default: 1
+        :param reduction:        Reduction method to apply, return mean over batch if 'mean',
+                                 return sum if 'sum', return a tensor of shape [N,] if 'none'
+
+        Returns:            Loss tensor according to arg reduction
+        Raise:              Exception if unexpected reduction
+        '''
+
+        super().__init__(pred_name, target_name, 1.0)
+        self.class_weights = class_weights
+        self.bce_weight = bce_weight
+        self.filter_func = filter_func
+        self.dice = BinaryDiceLoss(power, eps, reduction)
+
+    def __call__(self, batch_dict):
+
+        if self.filter_func is not None:
+            batch_dict = self.filter_func(batch_dict)
+        predict = FuseUtilsHierarchicalDict.get(batch_dict, self.pred_name).float()
+        target = FuseUtilsHierarchicalDict.get(batch_dict, self.target_name).long()
+
+        target = target.type(torch.float32)  
+
+        total_loss = 0
+        n_classes = predict.shape[1]
+
+        # Convert target to one hot encoding
+        if n_classes > 1 and target.shape[1] != n_classes:
+            target = make_one_hot(target, n_classes)
+
+        assert predict.shape == target.shape, 'predict & target shape do not match'
+
+        total_class_weights = sum(self.class_weights) if self.class_weights is not None else n_classes
+        for cls_index in range(n_classes):
+            dice_loss = self.dice(predict[:, cls_index, :, :], target[:, cls_index, :, :])
+            if self.bce_weight > 0.0:
+                bce_loss = F.binary_cross_entropy(predict[:, cls_index, :, :].view(-1), 
+                                                  target[:, cls_index, :, :].view(-1), 
+                                                  reduction='mean')
+                dice_loss += self.bce_weight * bce_loss
+
+            if self.class_weights is not None:
+                assert self.class_weights.shape[0] == n_classes, \
+                    'Expect weight shape [{}], got[{}]'.format(n_classes, self.class_weights.shape[0])
+                dice_loss *= self.class_weights[cls_index]
+
+            total_loss += dice_loss
+        total_loss /= total_class_weights
+
+        return total_loss
