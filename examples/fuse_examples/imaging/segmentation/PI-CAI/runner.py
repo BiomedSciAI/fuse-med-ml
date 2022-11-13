@@ -76,7 +76,7 @@ def print_struct(d, level=0):
         if hasattr(d, 'shape'):
             print(d.shape)
 
-def pre_proc_batch(in_batch):
+def pre_proc_batch(in_batch): # [N, C, D, H, W]
     out_batch = []
     for batch in in_batch:
         if len(batch.shape) > 4:
@@ -86,7 +86,11 @@ def pre_proc_batch(in_batch):
             batch = batch.view(-1, shape[1], shape[-2], shape[-1])
         out_batch.append(batch)
 
-    return out_batch
+    return out_batch # [N * D, C, H, W]
+
+
+def post_proc_batch(out_model): # [N * D, C, H, W]
+    return torch.unsqueeze(out_model,dim=0).transpose(1,2) # [N, C, D, H, W]
 
 def create_model(train: NDict, paths: NDict) -> torch.nn.Module:
     """
@@ -127,7 +131,8 @@ def create_model(train: NDict, paths: NDict) -> torch.nn.Module:
         model = ModelWrapSeqToDict(model=torch_model,
                                 model_inputs=['data.input.img_t2w'],
                                 model_outputs=['model.logits.segmentation'],
-                                pre_forward_processing_function=pre_proc_batch
+                                pre_forward_processing_function=pre_proc_batch,
+                                post_forward_processing_function=post_proc_batch
                                 )
     else:
         raise ("unsuported target!!")

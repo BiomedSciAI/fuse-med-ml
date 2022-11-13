@@ -78,8 +78,9 @@ class MetricsInstanceSegmentaion:
         :param target: sample target inputs - list of segmentations supported by COCO
         :return matrix of iou computed between each element from pred and target
         """
+        y_det = [(p > threshold).astype(int) for p in pred]
         scores = evaluate(
-            y_det=(pred > threshold).astype(int),
+            y_det=y_det,
             y_true=target,
         )
         return scores

@@ -3,7 +3,7 @@ from typing import List, Optional
 from fuse.eval.metrics.libs.instance_segmentation import MetricsInstanceSegmentaion
 
 import numpy as np
-
+from fuse.eval.metrics.metrics_common import MetricDefault
 from fuse.eval.metrics.metrics_common import MetricPerSampleDefault
 
 
@@ -42,7 +42,7 @@ def calculate_recall(metric_result: List[float], threshold: float = 0.5) -> floa
     result = np.mean(per_instane_results)
     return result
 
-class MetricDetectionPICAI(MetricPerSampleDefault):
+class MetricDetectionPICAI(MetricDefault):
     """
     Compute detection precision based on IOU Jaccard score for binary instance segmentation input
     """
@@ -66,12 +66,11 @@ class MetricDetectionPICAI(MetricPerSampleDefault):
         picai = partial(
             MetricsInstanceSegmentaion.picai_metric,
         )
-        precision = partial(calculate_precision, threshold=threshold)
+        # precision = partial(calculate_precision, threshold=threshold)
         super().__init__(
             pred=pred,
             target=target,
-            metric_per_sample_func=picai,
-            result_aggregate_func=precision,
+            metric_func=picai,
             **kwargs
         )
 

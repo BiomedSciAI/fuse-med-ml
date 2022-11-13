@@ -123,7 +123,7 @@ class DiceLoss(LossBase):
         predict = batch_dict[self.pred_name].float()
         target = batch_dict[self.target_name].long()
 
-        n, c, h, w = predict.shape
+        batch_size, n, c, h, w = predict.shape
         tar_shape = target.shape
         if len(tar_shape) < 4:
             target = target.unsqueeze(1)
@@ -131,7 +131,7 @@ class DiceLoss(LossBase):
         if len(tar_shape) > len(predict.shape):
             target = target.transpose(1,2)
             target = target.view(-1, tar_shape[1], tar_shape[-2], tar_shape[-1])
-        nt, ct, ht, wt = target.shape
+        batch_size, nt, ct, ht, wt = target.shape
 
         if h != ht or w != wt:  # upsample
             if self.resize_mode == "maxpool":
