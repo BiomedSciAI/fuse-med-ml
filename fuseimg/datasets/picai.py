@@ -151,11 +151,13 @@ class PICAI:
     """
     """
     @staticmethod
-    def static_pipeline(data_dir: str,seg_dir:str, target: str, repeat_images :Sequence[NDict]) -> PipelineDefault:
+    def static_pipeline(data_source: pd.DataFrame, data_dir: str,seg_dir:str, target: str, repeat_images :Sequence[NDict]) -> PipelineDefault:
         """
         Get suggested static pipeline (which will be cached), typically loading the data plus design choices that we won't experiment with.
         :param data_path: path to original kits21 data (can be downloaded by KITS21.download())
         """
+
+        bool_map = {"NO": 0, "YES": 1}
         static_pipeline = PipelineDefault(
             "cmmd_static",
             [
@@ -170,7 +172,20 @@ class PICAI:
                                                 preserve_range=True))),kwargs_per_step_to_add = repeat_images),{}) ,
                 (OpRepeat((OpNormalizeAgainstSelf()),kwargs_per_step_to_add = repeat_images),{}) ,
                 (OpRepeat((OpToNumpy()),kwargs_per_step_to_add = repeat_images),dict(dtype=np.float32)) ,
-                
+                (
+                    OpReadDataframe(
+                        data_source,
+                        key_column="index",
+                        key_name="data.input.img_path",
+                        #'psa','psad','prostate_volume','histopath_type','lesion_GS','lesion_ISUP','case_ISUP'
+                        columns_to_extract=['index','patient_id','study_id','mri_date','patient_age','case_csPCa'],
+                        rename_columns=dict(
+                            patient_id="data.patientID", case_csPCa="data.gt.classification"
+                        ),
+                    ),
+                    dict(),
+                ),
+                (OpLookup(bool_map), dict(key_in="data.gt.classification", key_out="data.gt.classification")),
                 # (OpResizeAndPad2D(), dict(key="data.input.img", resize_to=(2200, 1200), padding=(60, 60))),
             ],
         )
@@ -187,20 +202,6 @@ class PICAI:
         ops +=[
                 (OpRepeat((OpToTensor()),kwargs_per_step_to_add = repeat_images),dict( dtype=torch.float32)) ,
                 (OpRepeat((OpLambda(partial(torch.unsqueeze, dim=0))),kwargs_per_step_to_add = repeat_images),{}) ,
-                (
-                    OpReadDataframe(
-                        data_source,
-                        key_column="index",
-                        key_name="data.input.img_path",
-                        #'psa','psad','prostate_volume','histopath_type','lesion_GS','lesion_ISUP','case_ISUP'
-                        columns_to_extract=['index','patient_id','study_id','mri_date','patient_age','case_csPCa'],
-                        rename_columns=dict(
-                            patient_id="data.patientID", case_csPCa="data.gt.classification"
-                        ),
-                    ),
-                    dict(),
-                ),
-                (OpLookup(bool_map), dict(key_in="data.gt.classification", key_out="data.gt.classification")),
             ]
         if train:
             ops +=[
@@ -250,8 +251,8 @@ class PICAI:
 
         repeat_images = [dict(key="data.input.img"+seq) for seq in train_cfg["series_config"]]
         repeat_images.append(dict(key="data.gt.seg"))
-        static_pipeline = PICAI.static_pipeline(paths["data_dir"],paths["seg_dir"], train_cfg["target"],repeat_images)
-        dynamic_pipeline = PICAI.dynamic_pipeline(input_source_gt,train=train,repeat_images=repeat_images,aug_params=train_cfg["aug_params"])
+        static_pipeline = PICAI.static_pipeline(input_source_gt, paths["data_dir"],paths["seg_dir"], train_cfg["target"],repeat_images)
+        dynamic_pipeline = PICAI.dynamic_pipeline(input_source_gt, train=train,repeat_images=repeat_images,aug_params=train_cfg["aug_params"])
 
         cacher = SamplesCacher(
             "cache_ver",

@@ -171,7 +171,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
         dataset=dataset_all,
         output_split_filename=os.path.join(paths["data_misc_dir"], paths["data_split_filename"]),
         id="data.patientID",
-        keys_to_balance=[gt_label],
+        keys_to_balance=["data.gt.classification"],
         nfolds=train["num_folds"],
         workers=train["num_workers"],
     )
@@ -258,10 +258,10 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     # Metrics
     # ====================================================================================
     train_metrics =OrderedDict(
-        [
-            ("picai_metric", MetricDetectionPICAI(pred='model.logits.segmentation', 
-                                 target='data.gt.seg')),  # will apply argmax
-        ]
+        # [
+        #     ("picai_metric", MetricDetectionPICAI(pred='model.logits.segmentation', 
+        #                          target='data.gt.seg')),  # will apply argmax
+        # ]
     )
 
     validation_metrics = copy.deepcopy(train_metrics)  # use the same metrics in validation as well
