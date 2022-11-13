@@ -42,6 +42,38 @@ def calculate_recall(metric_result: List[float], threshold: float = 0.5) -> floa
     result = np.mean(per_instane_results)
     return result
 
+class MetricDetectionPICAI(MetricPerSampleDefault):
+    """
+    Compute detection precision based on IOU Jaccard score for binary instance segmentation input
+    """
+
+    def __init__(
+        self,
+        pred: str,
+        target: str,
+        threshold=0.5,
+        **kwargs
+    ):
+        """
+        See super class for the missing params, to read more about the segmentation types go to class MetricsInstanceSegmentaion
+        :param segmentation_pred_type: input pred format - pixel_map , uncompressed_RLE , compressed_RLE , polygon , bbox
+        :param segmentation_target_type: input target format - pixel_map , uncompressed_RLE , compressed_RLE , polygon , bbox
+        :param height: height of the original image ( y axis)
+        :param width: width of the original image ( x axis)
+        :param threshold: a number which determines the metric value of which above we consider for detection
+                          it's purpouse to ignore misdetected instances , 0.5 is the common threshold on iou metric
+        """
+        picai = partial(
+            MetricsInstanceSegmentaion.picai_metric,
+        )
+        precision = partial(calculate_precision, threshold=threshold)
+        super().__init__(
+            pred=pred,
+            target=target,
+            metric_per_sample_func=picai,
+            result_aggregate_func=precision,
+            **kwargs
+        )
 
 class MetricDetectionPrecision(MetricPerSampleDefault):
     """

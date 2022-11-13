@@ -41,6 +41,7 @@ from fuse.dl.losses.segmentation.loss_dice import DiceLoss #DiceBCELoss
 
 from unet import UNet
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy
+from fuse.eval.metrics.detection.metrics_detection_common import MetricDetectionPICAI
 from fuseimg.datasets.picai import PICAI
 from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
 from fuse.dl.models import ModelMultiHead
@@ -256,20 +257,19 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     # ====================================================================================
     # Metrics
     # ====================================================================================
-    train_metrics = OrderedDict()
-        # [
-        #     ("op", MetricApplyThresholds(pred="model.output.head_0")),  # will apply argmax
-        #     ("auc", MetricAUCROC(pred="model.output.head_0", target=gt_label, class_names=class_names)),
-        #     ("accuracy", MetricAccuracy(pred="results:metrics.op.cls_pred", target=gt_label)),
-        # ]
-    # )
+    train_metrics =OrderedDict(
+        [
+            ("picai_metric", MetricDetectionPICAI(pred='model.logits.segmentation', 
+                                 target='data.gt.seg')),  # will apply argmax
+        ]
+    )
 
     validation_metrics = copy.deepcopy(train_metrics)  # use the same metrics in validation as well
 
     # either a dict with arguments to pass to ModelCheckpoint or list dicts for multiple ModelCheckpoint callbacks (to monitor and save checkpoints for more then one metric).
     best_epoch_source = dict(
         monitor="validation.losses.total_loss",  #metrics.auc.macro_avg",
-        mode="max",
+        mode="min",
     )
 
     # =====================================================================================

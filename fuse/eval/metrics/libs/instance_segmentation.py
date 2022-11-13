@@ -3,7 +3,7 @@ from typing import Any, Dict, Sequence
 import numpy as np
 
 from pycocotools import mask as maskUtils
-
+from picai_eval import evaluate
 
 class MetricsInstanceSegmentaion:
     @staticmethod
@@ -66,7 +66,24 @@ class MetricsInstanceSegmentaion:
             output_list = [MetricsInstanceSegmentaion.convert_pixel_map_COCO_type(element) for element in input_list]
 
         return output_list
-
+    @staticmethod
+    def picai_metric(
+        pred: Sequence[np.ndarray],
+        target: Sequence[np.ndarray],
+        threshold = 0.5,
+    ) -> np.ndarray:
+        """
+        Compute iou (jaccard) score using pycocotools functions
+        :param pred: sample prediction inputs - list of segmentations supported by COCO
+        :param target: sample target inputs - list of segmentations supported by COCO
+        :return matrix of iou computed between each element from pred and target
+        """
+        scores = evaluate(
+            y_det=(pred > threshold).astype(int),
+            y_true=target,
+        )
+        return scores
+    
     @staticmethod
     def iou_jaccard(
         pred: Sequence[np.ndarray],
