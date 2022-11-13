@@ -24,7 +24,7 @@ class OpRandApply(OpReversibleBase):
         See super class
         """
         apply = self._param_sampler.sample()
-        sample_dict[op_id] = apply
+        sample_dict[f"{op_id}.enable"] = apply
         if apply:
             sample_dict = op_call(self._op, sample_dict, f"{op_id}.apply", **kwargs)
         return sample_dict
@@ -33,7 +33,7 @@ class OpRandApply(OpReversibleBase):
         """
         See super class
         """
-        apply = sample_dict[op_id]
+        apply = sample_dict[f"{op_id}.enable"]
         if apply:
             sample_dict = op_reverse(self._op, sample_dict, key_to_reverse, key_to_follow, f"{op_id}.apply")
 

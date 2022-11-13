@@ -237,11 +237,11 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     )
     lgr.info("Validation Data: Done", {"attrs": "bold"})
 
-    for x in train_dataloader:
-        x.print_tree()
-        out = model(x)
-        out.print_tree()
-        break
+    # for x in train_dataloader:
+    #     x.print_tree()
+    #     out = model(x)
+    #     out.print_tree()
+    #     break
 
     # ====================================================================================
     #  Loss

@@ -12,7 +12,7 @@ paths:
 run: 
   running_modes : ['train', 'infer', 'eval']
 train:
-  target : classification
+  target : segmentation
   series_config : ['_t2w']
   reset_cache: False
   num_workers : 12

@@ -95,11 +95,14 @@ class CollateToBatchList(Callable):
         for index, sample in enumerate(samples):
             sample = NDict(sample)
             if key not in sample:
-                has_error = True
-                if self._raise_error_key_missing:
-                    raise Exception(f"Error: key {key} does not exist in sample {index}: {sample}")
-                else:
+                if key.startswith("internal"):
                     value = None
+                else:        
+                    has_error = True
+                    if self._raise_error_key_missing:
+                        raise Exception(f"Error: key {key} does not exist in sample {index}: {sample}")
+                    else:
+                        value = None
             else:
                 value = sample[key]
             collected_values.append(value)

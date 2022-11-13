@@ -208,14 +208,14 @@ class PICAI:
                     
                     (OpRepeat((OpAugSqueeze3Dto2D()),kwargs_per_step_to_add = repeat_images), dict(axis_squeeze=1)) ,
                     (OpSampleAndRepeat((OpSample3dImg()),kwargs_per_step_to_add = repeat_images), dict(axis=0, slice=Uniform(0.0, 1.0))),
-                    # (OpRandApply(OpSampleAndRepeat(OpAugAffine2D(),kwargs_per_step_to_add = repeat_images), aug_params['apply_aug_prob']),
-                    #      dict(
-                    #           rotate=Uniform(*aug_params['rotate']),
-                    #           scale=Uniform(*aug_params['scale']),
-                    #           flip=(aug_params['flip'], aug_params['flip']),
-                    #           translate=(RandInt(*aug_params['translate']), RandInt(*aug_params['translate'])))),
+                    (OpRandApply(OpSampleAndRepeat(OpAugAffine2D(),kwargs_per_step_to_add = repeat_images), aug_params['apply_aug_prob']),
+                         dict(
+                              rotate=Uniform(*aug_params['rotate']),
+                              scale=Uniform(*aug_params['scale']),
+                              flip=(aug_params['flip'], aug_params['flip']),
+                              translate=(RandInt(*aug_params['translate']), RandInt(*aug_params['translate'])))),
                     
-                    # (OpRepeat(OpAugUnsqueeze3DFrom2D(),kwargs_per_step_to_add = repeat_images), dict( axis_squeeze=1, channels=1)),
+                    (OpRepeat(OpAugUnsqueeze3DFrom2D(),kwargs_per_step_to_add = repeat_images), dict( axis_squeeze=1, channels=1)),
                 ]
         dynamic_pipeline = PipelineDefault("picai_dynamic", ops)
         return dynamic_pipeline
