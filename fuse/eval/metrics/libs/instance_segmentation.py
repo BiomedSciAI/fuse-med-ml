@@ -78,12 +78,14 @@ class MetricsInstanceSegmentaion:
         :param target: sample target inputs - list of segmentations supported by COCO
         :return matrix of iou computed between each element from pred and target
         """
-        y_det = [(p > threshold).astype(int) for p in pred]
+        y_det = [(p.squeeze() > threshold).astype(float) for p in pred]
+        y_true = [t.squeeze().astype(float) for t in target]
         scores = evaluate(
             y_det=y_det,
-            y_true=target,
+            y_true=y_true,
+            num_parallel_calls=1,
         )
-        return scores
+        return scores.AP
     
     @staticmethod
     def iou_jaccard(

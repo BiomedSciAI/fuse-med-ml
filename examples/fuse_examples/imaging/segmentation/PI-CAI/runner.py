@@ -263,10 +263,10 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     # Metrics
     # ====================================================================================
     train_metrics =OrderedDict(
-        # [
-        #     ("picai_metric", MetricDetectionPICAI(pred='model.logits.segmentation', 
-        #                          target='data.gt.seg')),  # will apply argmax
-        # ]
+        [
+            ("picai_metric", MetricDetectionPICAI(pred='model.logits.segmentation', 
+                                 target='data.gt.seg')),  # will apply argmax
+        ]
     )
 
     validation_metrics = copy.deepcopy(train_metrics)  # use the same metrics in validation as well
