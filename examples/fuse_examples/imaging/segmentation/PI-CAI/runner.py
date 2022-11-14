@@ -52,6 +52,10 @@ from pytorch_lightning import Trainer
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 from fuse.utils.file_io.file_io import create_dir, load_pickle, save_dataframe
 from fuse.eval.evaluator import EvaluatorDefault
+from picai_baseline.unet.training_setup.default_hyperparam import \
+    get_default_hyperparams
+from picai_baseline.unet.training_setup.neural_network_selector import \
+    neural_network_for_run
 import torch
 import hydra
 from omegaconf import DictConfig, OmegaConf
@@ -126,13 +130,33 @@ def create_model(train: NDict, paths: NDict) -> torch.nn.Module:
         gt_label = "data.gt.seg"
         skip_keys = ["data.gt.subtype"]
         class_names = ["Benign", "Malignant"]
-        torch_model = UNet(n_channels=1, n_classes=1, bilinear=False)
+        #torch_model = UNet(n_channels=1, n_classes=1, bilinear=False)
+
+        # define the model specifications used for initialization at train-time
+        # note: if the default hyperparam listed in picai_baseline was used,
+        # passing arguments 'image_shape', 'num_channels', 'num_classes' and
+        # 'model_type' via function 'get_default_hyperparams' is enough.
+        # otherwise arguments 'model_strides' and 'model_features' must also
+        # be explicitly passed directly to function 'neural_network_for_run'
+        # define input data specs [image shape, spatial res, num channels, num classes]
+        img_spec = {
+            'image_shape': [20, 256, 256],
+            'spacing': [3.0, 0.5, 0.5],
+            'num_channels': 1,
+            'num_classes': 2,
+        }
+        args = get_default_hyperparams({
+            'model_type': 'unet',
+            **img_spec
+        })
+        device="cuda:0"
+        torch_model = neural_network_for_run(args=args, device=device)
 
         model = ModelWrapSeqToDict(model=torch_model,
                                 model_inputs=['data.input.img_t2w'],
                                 model_outputs=['model.logits.segmentation'],
-                                pre_forward_processing_function=pre_proc_batch,
-                                post_forward_processing_function=post_proc_batch
+                                # pre_forward_processing_function=pre_proc_batch,
+                                # post_forward_processing_function=post_proc_batch
                                 )
     else:
         raise ("unsuported target!!")

@@ -166,7 +166,7 @@ class PICAI:
                 (OpLoadPICAIImage(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img")),
                 (OpLoadPICAISegmentation(data_dir,seg_dir), dict(key_in="data.input.img_path", key_out="data.gt.seg")),
                 (OpRepeat((OpLambda(partial(skimage.transform.resize,
-                                                output_shape=(23, 320, 320),
+                                                output_shape=(20, 256, 256),
                                                 mode='reflect',
                                                 anti_aliasing=True,
                                                 preserve_range=True))),kwargs_per_step_to_add = repeat_images),{}) ,
