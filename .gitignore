@@ -1,6 +1,7 @@
 test-reports/
 *.png
 !paper/figures/diagram.png
+!paper/figures/metric_pipeline.png
 *.py[cod]
 **.snapshots
 **/*.snapshots
