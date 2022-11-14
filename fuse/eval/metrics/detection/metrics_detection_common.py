@@ -52,6 +52,7 @@ class MetricDetectionPICAI(MetricDefault):
         pred: str,
         target: str,
         threshold=0.5,
+        num_workers : int = 10,
         **kwargs
     ):
         """
@@ -64,7 +65,7 @@ class MetricDetectionPICAI(MetricDefault):
                           it's purpouse to ignore misdetected instances , 0.5 is the common threshold on iou metric
         """
         picai = partial(
-            MetricsInstanceSegmentaion.picai_metric,
+            MetricsInstanceSegmentaion.picai_metric,threshold=threshold, num_workers=num_workers
         )
         # precision = partial(calculate_precision, threshold=threshold)
         super().__init__(

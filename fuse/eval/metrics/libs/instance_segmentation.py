@@ -70,7 +70,8 @@ class MetricsInstanceSegmentaion:
     def picai_metric(
         pred: Sequence[np.ndarray],
         target: Sequence[np.ndarray],
-        threshold = 0.5,
+        threshold : float = 0.5,
+        num_workers : int = 10,
     ) -> np.ndarray:
         """
         Compute iou (jaccard) score using pycocotools functions
@@ -83,7 +84,7 @@ class MetricsInstanceSegmentaion:
         scores = evaluate(
             y_det=y_det,
             y_true=y_true,
-            num_parallel_calls=1,
+            num_parallel_calls=num_workers,
         )
         results={}
         results["AP"] = scores.AP

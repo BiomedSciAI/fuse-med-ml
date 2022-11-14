@@ -265,7 +265,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     train_metrics =OrderedDict(
         [
             ("picai_metric", MetricDetectionPICAI(pred='model.logits.segmentation', 
-                                 target='data.gt.seg')),  # will apply argmax
+                                 target='data.gt.seg',threshold=0.5, num_workers= train["num_workers"])),  # will apply argmax
         ]
     )
 
