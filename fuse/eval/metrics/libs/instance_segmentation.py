@@ -85,7 +85,11 @@ class MetricsInstanceSegmentaion:
             y_true=y_true,
             num_parallel_calls=1,
         )
-        return scores.AP
+        results={}
+        results["AP"] = scores.AP
+        results["AUROC"] = scores.auroc
+        results["ranking"] = 0.5*(results["AP"] + results["AUROC"] )
+        return results
     
     @staticmethod
     def iou_jaccard(
