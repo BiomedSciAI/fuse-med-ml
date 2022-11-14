@@ -18,10 +18,7 @@ Created on June 30, 2021
 """
 from typing import Optional, Sequence
 from fuse.data.datasets.dataset_wrap_seq_to_dict import DatasetWrapSeqToDict
-from torchvision import transforms
-from torch.utils.data import Subset
-
-import torchvision
+from torchvision import transforms, datasets
 
 from fuse.data import DatasetDefault
 
@@ -45,16 +42,18 @@ class MNIST:
         """
 
         transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+
         # Create dataset
-        torch_train_dataset = torchvision.datasets.MNIST(
-            cache_dir, download=cache_dir is not None, train=train, transform=transform
-        )
+        torch_dataset = datasets.MNIST(cache_dir, download=cache_dir is not None, train=train, transform=transform)
+
         # wrapping torch dataset
-        if sample_ids is not None:
-            torch_train_dataset = Subset(torch_train_dataset, sample_ids)
-        train_str = "train" if train else "test"
-        train_dataset = DatasetWrapSeqToDict(
-            name=f"mnist-{train_str}", dataset=torch_train_dataset, sample_keys=("data.image", "data.label")
+        name_str = "train" if train else "test"
+        wrapped_dataset = DatasetWrapSeqToDict(
+            name=f"mnist-{name_str}",
+            dataset=torch_dataset,
+            sample_keys=("data.image", "data.label"),
+            sample_ids=sample_ids,
         )
-        train_dataset.create()
-        return train_dataset
+
+        wrapped_dataset.create()
+        return wrapped_dataset

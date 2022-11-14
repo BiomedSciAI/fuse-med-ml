@@ -300,7 +300,7 @@ class MetricsLibClass:
             elif pred[0].shape[0] == 1:
                 return np.where(pred > operation_point, 1, 0)
             else:
-                raise Exception(f"Error - got single float as an operation point for multiclass prediction")
+                raise Exception("Error - got single float as an operation point for multi-class prediction")
 
         # convert according to thresholds
         output_class = np.array([-1 for x in range(len(pred))])

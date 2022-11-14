@@ -10,6 +10,7 @@ class Transformer(nn.Module):
     Gets a [batch_size, num_tokens, token_dim] shaped tensor
     Returns a [batch_size, num_tokens + 1, token_dim] shaped tensor, where the first token is the CLS token
     """
+
     def __init__(
         self,
         *,
@@ -31,6 +32,10 @@ class Transformer(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        :param x: [batch_size, num_tokens, token_dim] shaped tensor
+        :return: [batch_size, num_tokens + 1, token_dim] shaped tensor, where the first token is the CLS token
+        """
         b, n, _ = x.shape
         cls_tokens = repeat(self.cls_token, "1 1 d -> b 1 d", b=b)
         x = torch.cat((cls_tokens, x), dim=1)

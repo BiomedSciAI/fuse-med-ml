@@ -128,6 +128,11 @@ class TestEval(unittest.TestCase):
         results = example_12()
         self.assertAlmostEqual(results["metrics.acc"], 0.615, places=2)
 
+    def test_eval_example_14(self):
+        results = example_14()
+        self.assertAlmostEqual(results["metrics.cindex_per_group.male"], 0.66, places=2)
+        self.assertAlmostEqual(results["metrics.cindex_per_group.female"], 1.0, places=2)
+
     def test_eval_example_seg_0(self):
         results = example_seg_0()
         self.assertAlmostEqual(results["metrics.dice_label_1.1"], 0.8740, places=3)

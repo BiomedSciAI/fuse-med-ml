@@ -122,7 +122,7 @@ def step_metrics(metrics: OrderedDict[str, MetricBase], batch_dict: NDict) -> No
 
 def step_extract_predictions(prediction_keys: Sequence[str], batch_dict: NDict) -> Dict[str, Any]:
     """
-    Extract the specified perdictions from batch_dict (torch Tensors will be detached, moved to cpu and coverted to numpy)
+    Extract the specified predictions from batch_dict (torch Tensors will be detached, moved to cpu and coverted to numpy)
     :param prediction_keys: the keys to extract
     :param batch_dict: FuseMedML batch_dict including data and model outputs
     """
@@ -140,10 +140,12 @@ def step_extract_predictions(prediction_keys: Sequence[str], batch_dict: NDict) 
     return outputs
 
 
-def epoch_end_compute_and_log_losses(pl: pl.LightningModule, mode: str, batch_losses: Sequence[Dict]) -> None:
+def epoch_end_compute_and_log_losses(
+    pl: pl.LightningModule, mode: str, batch_losses: Sequence[Dict], sep: str = "."
+) -> None:
     """
     On epoch end average out the batch losses and log the averaged losses
-    :param pl: LightiningModule. Used for logging.
+    :param pl: LightningModule. Used for logging.
     :param mode: prefix to add to each loss name (when logging), typically validation/train/test
     :param batch_losses: list of batch_dict["losses"] as added by 'epoch_losses'
     :return: None
@@ -157,15 +159,17 @@ def epoch_end_compute_and_log_losses(pl: pl.LightningModule, mode: str, batch_lo
             else:
                 losses.append(elem[key])
         loss = mean(losses)
-        pl.log(f"{mode}.losses.{key}", loss, on_epoch=True)
+        pl.log(f"{mode}{sep}losses.{key}", loss, on_epoch=True, sync_dist=True)
 
 
-def epoch_end_compute_and_log_metrics(pl: pl.LightningModule, mode: str, metrics: OrderedDict[str, MetricBase]) -> None:
+def epoch_end_compute_and_log_metrics(
+    pl: pl.LightningModule, mode: str, metrics: OrderedDict[str, MetricBase], sep: str = "."
+) -> None:
     """
     On epoch end compute and log per epoch metrics
-    :param pl: LightiningModule. Used for logging.
+    :param pl: LightningModule. Used for logging.
     :param mode: prefix to add to each metric name (when logging), typically validation/train/test
-    :param metrics: Dict of FuseMedML style metircs
+    :param metrics: Dict of FuseMedML style metrics
     :return: None
     """
     # compute metrics
@@ -186,4 +190,4 @@ def epoch_end_compute_and_log_metrics(pl: pl.LightningModule, mode: str, metrics
     # log metrics
     for key in epoch_results.keypaths():
         if epoch_results[key] is not None and not isinstance(epoch_results[key], (PerSampleData)):
-            pl.log(f"{mode}.{key}", epoch_results[key], on_epoch=True)
+            pl.log(f"{mode}{sep}{key}", epoch_results[key], on_epoch=True, sync_dist=True)

@@ -30,7 +30,7 @@ class BackboneResnet3D(VideoResNet):
     3D model classifier (ResNet architecture"
     """
 
-    def __init__(self, pretrained: bool = False, in_channels: int = 3, name: str = "r3d_18") -> None:
+    def __init__(self, pretrained: bool = False, in_channels: int = 3, name: str = "r3d_18", pool=False) -> None:
         """
         Create 3D ResNet model
         :param pretrained: Use pretrained weights
@@ -65,6 +65,8 @@ class BackboneResnet3D(VideoResNet):
                 nn.BatchNorm3d(64),
                 nn.ReLU(inplace=True),
             )
+        self.pool = pool
+        self.gmp = nn.AdaptiveMaxPool3d(output_size=1)
 
     def features(self, x: Tensor) -> Any:
         """
@@ -78,6 +80,8 @@ class BackboneResnet3D(VideoResNet):
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
+        if self.pool:
+            x = self.gmp(x).flatten(1)
         return x
 
     def forward(self, x: Tensor) -> Tuple[Tensor, None, None, None]:  # type: ignore
