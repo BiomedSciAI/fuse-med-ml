@@ -63,7 +63,7 @@ class OpNormalizeAgainstSelf(OpBase):
     def __call__(self, sample_dict: NDict, key: str):
         img = sample_dict[key]
         img -= img.min()
-        img /= img.max()
+        img = img / img.max()
         sample_dict[key] = img
 
         return sample_dict
