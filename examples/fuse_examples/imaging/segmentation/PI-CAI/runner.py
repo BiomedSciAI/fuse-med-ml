@@ -113,7 +113,7 @@ def pre_proc_batch(in_batch): # [N, C, D, H, W]
 
 def post_proc_batch(out_model): # [N * D, C, H, W]
     # return torch.unsqueeze(out_model,dim=0).transpose(1,2) # [N, C, D, H, W]
-    return F.softmax(out_model)
+    return F.softmax(out_model, dim=0)
 
     # n_slices = 23
     # n_all, ch, h, w = out_model.shape
