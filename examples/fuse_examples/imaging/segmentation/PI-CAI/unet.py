@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
+from fuse.dl.models.heads.common import ClassifierFCN
 """
 implementation of Unet based on - 
 U-Net: Convolutional Networks for Biomedical Image Segmentation
@@ -84,8 +84,26 @@ class OutConv(nn.Module):
         return self.sig(self.conv(x))
 
 
+class ClsHead(nn.Module):
+    def __init__(self, in_channels, kernel_size, num_classes=2, dropout_rate=0.1):
+        super(ClsHead, self).__init__()
+        # TODO - check alternatively with global pooling
+        self.conv = nn.Conv2d(in_channels, in_channels, kernel_size=kernel_size)
+
+        layers_description = (512,)
+        self.classifier_head_module = ClassifierFCN(
+            in_ch=in_channels,
+            num_classes=num_classes,
+            layers_description=layers_description,
+            dropout_rate=dropout_rate,
+        )
+
+    def forward(self, x):
+        return self.classifier_head_module(self.conv(x))
+
+
 class UNet(nn.Module):
-    def __init__(self, n_channels, n_classes, bilinear=True):
+    def __init__(self, n_channels, n_classes, bilinear=True, dropout_rate=0.1):
         super(UNet, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
@@ -103,6 +121,12 @@ class UNet(nn.Module):
         self.up4 = Up(128, 64, bilinear)
         self.outc = OutConv(64, n_classes)
 
+        # # TODO - add image-size as input to set the kernel size param
+        # self.head = ClsHead(1024, 
+        #                        kernel_size=20, 
+        #                        num_classes=n_classes,
+        #                        dropout_rate=dropout_rate)
+
     def forward(self, x):
         x1 = self.inc(x)
         x2 = self.down1(x1)
@@ -114,4 +138,7 @@ class UNet(nn.Module):
         x = self.up3(x, x2)
         x = self.up4(x, x1)
         logits = self.outc(x)
+        
+        # cls = self.head(x5)
+
         return logits

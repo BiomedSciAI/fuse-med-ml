@@ -19,6 +19,7 @@ import os
 import sys
 import copy
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
+import numpy as np
 
 from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.gpu import choose_and_enable_multiple_gpus
@@ -39,6 +40,8 @@ from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolin
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.losses.segmentation.loss_dice import DiceLoss #DiceBCELoss
 
+from typing import Any, Callable, Dict, List, Sequence
+from fuse.data import get_sample_id_key
 from unet import UNet
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy
 from fuse.eval.metrics.detection.metrics_detection_common import MetricDetectionPICAI
@@ -94,7 +97,72 @@ def pre_proc_batch(in_batch): # [N, C, D, H, W]
 
 
 def post_proc_batch(out_model): # [N * D, C, H, W]
-    return torch.unsqueeze(out_model,dim=0).transpose(1,2) # [N, C, D, H, W]
+    # return torch.unsqueeze(out_model,dim=0).transpose(1,2) # [N, C, D, H, W]
+    return out_model
+
+    # n_slices = 23
+    # n_all, ch, h, w = out_model.shape
+    # nb = int(n_all / n_slices)
+    # if nb == 0:
+    #     import ipdb; ipdb.set_trace(context=7) # BREAKPOINT
+
+    # out_model = out_model.view(nb, n_slices, ch, h, w)
+    # return out_model.transpose(1,2) # [N, C, D, H, W]
+
+
+class Val_collate(CollateDefault):
+
+    def __init__(
+        self,
+        skip_keys: Sequence[str] = tuple(),
+        keep_keys: Sequence[str] = tuple(),
+        raise_error_key_missing: bool = True,
+        special_handlers_keys: Dict[str, Callable] = None,
+    ):
+        """
+        :param skip_keys: do not collect the listed keys
+        :param keep_keys: specifies a list of keys to collect. missing keep_keys are skipped.
+        :param special_handlers_keys: per key specify a callable which gets as an input list of values and convert it to a batch.
+                                      The rest of the keys will be converted to batch using PyTorch default collate_fn()
+                                      Example of such Callable can be seen in the CollateDefault.pad_all_tensors_to_same_size.
+        :param raise_error_key_missing: if False, will not raise an error if there are keys that do not exist in some of the samples. Instead will set those values to None.
+        """
+        super().__init__(skip_keys, raise_error_key_missing)
+        self._special_handlers_keys = {}
+        if special_handlers_keys is not None:
+            self._special_handlers_keys.update(special_handlers_keys)
+        self._special_handlers_keys[get_sample_id_key()] = CollateDefault.just_collect_to_list
+        self._keep_keys = keep_keys
+
+    def __call__(self, samples: List[Dict]) -> Dict:
+        """
+        collate list of samples into batch_dict
+        :param samples: list of samples
+        :return: batch_dict
+        """
+        batch_dict = NDict()
+
+        # collect all keys
+        keys = self._collect_all_keys(samples)
+
+        # collect values
+        for key in keys:
+            try:
+                # collect values into a list
+                collected_values, has_error = self._collect_values_to_list(samples, key)
+
+                # batch values
+                if isinstance(collected_values[0], (torch.Tensor, np.ndarray)):
+                    collected_values = [cv.transpose(0,1) for cv in collected_values]
+                    batch_dict[key] = torch.cat(collected_values, axis=0)
+                else:
+                    self._batch_dispatch(batch_dict, samples, key, has_error, collected_values)
+            except:
+                print(f"Error: Failed to collect key {key}")
+                raise
+
+        return batch_dict
+
 
 def create_model(train: NDict, paths: NDict) -> torch.nn.Module:
     """
@@ -130,7 +198,16 @@ def create_model(train: NDict, paths: NDict) -> torch.nn.Module:
         gt_label = "data.gt.seg"
         skip_keys = ["data.gt.subtype"]
         class_names = ["Benign", "Malignant"]
-        #torch_model = UNet(n_channels=1, n_classes=1, bilinear=False)
+        torch_model = UNet(n_channels=1, n_classes=1, bilinear=False)
+
+        model = ModelWrapSeqToDict(model=torch_model,
+                                model_inputs=['data.input.img_t2w'],
+                                model_outputs=['model.logits.segmentation'],
+                                pre_forward_processing_function=pre_proc_batch,
+                                post_forward_processing_function=post_proc_batch
+                                )
+
+    elif train['target'] == 'seg3d':
 
         # define the model specifications used for initialization at train-time
         # note: if the default hyperparam listed in picai_baseline was used,
@@ -158,6 +235,7 @@ def create_model(train: NDict, paths: NDict) -> torch.nn.Module:
                                 # pre_forward_processing_function=pre_proc_batch,
                                 # post_forward_processing_function=post_proc_batch
                                 )
+
     else:
         raise ("unsuported target!!")
 
@@ -216,7 +294,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
         paths = paths,
         train_cfg = train,
         reset_cache=False,
-        sample_ids=train_sample_ids,
+        sample_ids=train_sample_ids,  #[:10],
         train=True,
     )
 
@@ -224,7 +302,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
         paths = paths,
         train_cfg = train,
         reset_cache=False,
-        sample_ids=validation_sample_ids
+        sample_ids=validation_sample_ids  #[:10]
     )
 
     ## Create sampler
@@ -263,7 +341,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
         batch_sampler=None,
         batch_size=1, # TODO - set a validation batch_size parameter instead of - train["batch_size"],
         num_workers=train["num_workers"],
-        collate_fn=CollateDefault(skip_keys=skip_keys),
+        collate_fn=Val_collate(), #CollateDefault(skip_keys=skip_keys),
     )
     lgr.info("Validation Data: Done", {"attrs": "bold"})
 
@@ -287,10 +365,10 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     # Metrics
     # ====================================================================================
     train_metrics =OrderedDict(
-        [
-            ("picai_metric", MetricDetectionPICAI(pred='model.logits.segmentation', 
-                                 target='data.gt.seg',threshold=0.5, num_workers= train["num_workers"])),  # will apply argmax
-        ]
+        # [
+        #     ("picai_metric", MetricDetectionPICAI(pred='model.logits.segmentation', 
+        #                          target='data.gt.seg',threshold=0.5, num_workers= train["num_workers"])),  # will apply argmax
+        # ]
     )
 
     validation_metrics = copy.deepcopy(train_metrics)  # use the same metrics in validation as well

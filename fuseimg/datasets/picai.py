@@ -166,7 +166,8 @@ class PICAI:
                 (OpLoadPICAIImage(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img")),
                 (OpLoadPICAISegmentation(data_dir,seg_dir), dict(key_in="data.input.img_path", key_out="data.gt.seg")),
                 (OpRepeat((OpLambda(partial(skimage.transform.resize,
-                                                output_shape=(20, 256, 256),
+                                                # output_shape=(20, 256, 256),
+                                                output_shape=(23, 320, 320),
                                                 mode='reflect',
                                                 anti_aliasing=True,
                                                 preserve_range=True))),kwargs_per_step_to_add = repeat_images),{}) ,
@@ -207,14 +208,14 @@ class PICAI:
             ops +=[
                     # affine augmentation - will apply the same affine transformation on each slice
                     
-                    # (OpRepeat((OpAugSqueeze3Dto2D()),kwargs_per_step_to_add = repeat_images), dict(axis_squeeze=1)) ,
-                    # # (OpSampleAndRepeat((OpSample3dImg()),kwargs_per_step_to_add = repeat_images), dict(axis=0, slice=Uniform(0.0, 1.0))),
-                    # (OpRandApply(OpSampleAndRepeat(OpAugAffine2D(),kwargs_per_step_to_add = repeat_images), aug_params['apply_aug_prob']),
-                    #      dict(
-                    #           rotate=Uniform(*aug_params['rotate']),
-                    #           scale=Uniform(*aug_params['scale']),
-                    #           flip=(aug_params['flip'], aug_params['flip']),
-                    #           translate=(RandInt(*aug_params['translate']), RandInt(*aug_params['translate'])))),
+                    (OpRepeat((OpAugSqueeze3Dto2D()),kwargs_per_step_to_add = repeat_images), dict(axis_squeeze=1)) ,
+                    (OpSampleAndRepeat((OpSample3dImg()),kwargs_per_step_to_add = repeat_images), dict(axis=0, slice=Uniform(0.0, 1.0))),
+                    (OpRandApply(OpSampleAndRepeat(OpAugAffine2D(),kwargs_per_step_to_add = repeat_images), aug_params['apply_aug_prob']),
+                         dict(
+                              rotate=Uniform(*aug_params['rotate']),
+                              scale=Uniform(*aug_params['scale']),
+                              flip=(aug_params['flip'], aug_params['flip']),
+                              translate=(RandInt(*aug_params['translate']), RandInt(*aug_params['translate'])))),
                     
                     # (OpRepeat(OpAugUnsqueeze3DFrom2D(),kwargs_per_step_to_add = repeat_images), dict( axis_squeeze=1, channels=1)),
                 ]
