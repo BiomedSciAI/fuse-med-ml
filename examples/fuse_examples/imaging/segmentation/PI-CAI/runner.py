@@ -113,7 +113,7 @@ def pre_proc_batch(in_batch): # [N, C, D, H, W]
 
 def post_proc_batch(out_model): # [N * D, C, H, W]
     # return torch.unsqueeze(out_model,dim=0).transpose(1,2) # [N, C, D, H, W]
-    return F.softmax(out_model, dim=0)
+    return F.softmax(out_model)
 
     # n_slices = 23
     # n_all, ch, h, w = out_model.shape
@@ -394,10 +394,10 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     # Metrics
     # ====================================================================================
     train_metrics =OrderedDict(
-        [
-            ("picai_metric", MetricDetectionPICAI(pred='model.logits.segmentation', 
-                                 target='data.gt.seg',threshold=0.5, num_workers= train["num_workers"])),  # will apply argmax
-        ]
+        # [
+        #     ("picai_metric", MetricDetectionPICAI(pred='model.logits.segmentation', 
+        #                          target='data.gt.seg',threshold=0.5, num_workers= train["num_workers"])),  # will apply argmax
+        # ]
     )
 
     validation_metrics = copy.deepcopy(train_metrics)  # use the same metrics in validation as well
