@@ -334,15 +334,28 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     lgr.info("Validation Data:", {"attrs": "bold"})
 
     ## Create dataloader
-    validation_dataloader = DataLoader(
-        dataset=validation_dataset,
-        shuffle=False,
-        drop_last=False,
-        batch_sampler=None,
-        batch_size=1, # TODO - set a validation batch_size parameter instead of - train["batch_size"],
-        num_workers=train["num_workers"],
-        collate_fn=Val_collate(), #CollateDefault(skip_keys=skip_keys),
-    )
+    if train["target"] == "segmentation":
+        validation_dataloader = DataLoader(
+            dataset=validation_dataset,
+            shuffle=False,
+            drop_last=False,
+            batch_sampler=None,
+            batch_size=1, # TODO - set a validation batch_size parameter instead of - train["batch_size"],
+            num_workers=train["num_workers"],
+            collate_fn=Val_collate(), #CollateDefault(skip_keys=skip_keys),
+        )
+    if train["target"] == "seg3d":
+        validation_dataloader = DataLoader(
+            dataset=validation_dataset,
+            shuffle=False,
+            drop_last=False,
+            batch_sampler=None,
+            batch_size=train["batch_size"], # TODO - set a validation batch_size parameter instead of - train["batch_size"],
+            num_workers=train["num_workers"],
+            collate_fn=CollateDefault(skip_keys=skip_keys)
+        )
+    else:
+        raise ("unsuported target!!")
     lgr.info("Validation Data: Done", {"attrs": "bold"})
 
     # for x in train_dataloader:
