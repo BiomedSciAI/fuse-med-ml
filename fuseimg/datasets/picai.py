@@ -186,6 +186,7 @@ class PICAI:
                     dict(),
                 ),
                 (OpLookup(bool_map), dict(key_in="data.gt.classification", key_out="data.gt.classification")),
+                (OpToOneHot(len(bool_map)), dict(key_in="data.gt.classification", key_out="data.gt.classification_one_hot")),
                 # (OpResizeAndPad2D(), dict(key="data.input.img", resize_to=(2200, 1200), padding=(60, 60))),
             ],
         )

@@ -38,8 +38,9 @@ from fuse.data.utils.split import dataset_balanced_division_to_folds
 from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
 from fuse.dl.losses.loss_default import LossDefault
-from fuse.dl.losses.segmentation.loss_dice import DiceLoss #DiceBCELoss
-
+from fuse.dl.losses.segmentation.loss_dice import DiceLoss
+import monai
+import torch.nn as nn
 from typing import Any, Callable, Dict, List, Sequence
 from fuse.data import get_sample_id_key
 from unet import UNet
@@ -63,6 +64,20 @@ import torch
 import hydra
 from omegaconf import DictConfig, OmegaConf
 
+class DiceCELoss(nn.Module):
+    """Dice and Xentropy loss"""
+
+    def __init__(self):
+        super().__init__()
+        self.dice = monai.losses.DiceLoss(to_onehot_y=True, softmax=True)
+        self.cross_entropy = nn.CrossEntropyLoss()
+
+    def forward(self, y_pred, y_true):
+        dice = self.dice(y_pred, y_true)
+        # CrossEntropyLoss target needs to have shape (B, D, H, W)
+        # Target from pipeline has shape (B, 1, D, H, W)
+        cross_entropy = self.cross_entropy(y_pred, torch.squeeze(y_true, dim=1).long())
+        return dice + cross_entropy
 # assert (
 #     "PICAI_DATA_PATH" in os.environ
 # ), "Expecting environment variable CMMD_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
@@ -341,7 +356,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
             num_workers=train["num_workers"],
             collate_fn=Val_collate(), #CollateDefault(skip_keys=skip_keys),
         )
-    if train["target"] == "seg3d":
+    elif train["target"] == "seg3d":
         validation_dataloader = DataLoader(
             dataset=validation_dataset,
             shuffle=False,
@@ -365,12 +380,16 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     #  Loss
     # ====================================================================================
     # TODO - add a classification loss - add head to the bottom of the unet
-    losses = {
-        # "cls_loss": LossDefault(pred="model.logits.head_0", target=gt_label, callable=F.cross_entropy, weight=1.0)
-        'dice_loss': DiceLoss(pred_name='model.logits.segmentation', 
-                                 target_name='data.gt.seg')
-    }
-
+    if train["target"] == "seg3d":
+        losses = {
+            "dice_ce_monai_loss": LossDefault(pred="model.logits.segmentation", target='data.gt.seg', callable=DiceCELoss(), weight=1.0)
+        }
+    elif train["target"] == "segmentation":
+        losses = {
+            'dice_amir_loss': DiceLoss(pred_name='model.logits.segmentation', target_name='data.gt.seg')
+        }
+    else:
+        raise ("unsuported target!!")
     # ====================================================================================
     # Metrics
     # ====================================================================================
