@@ -46,7 +46,7 @@ class OpReadDataframe(OpBase):
         :param columns_to_extract: list of columns to extract from dataframe. When None (default) all columns are extracted
         :param rename_columns: rename columns from dataframe, when None (default) column names are kept
         :param key_name: name of value in sample_dict which will be used as the key/index
-        :param key_column: name of the column which use as key/index
+        :param key_column: name of the column which use as key/index. set to None to do nothing.
         """
         super().__init__()
 
