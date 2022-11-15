@@ -169,35 +169,32 @@ def create_model(train: NDict, paths: NDict) -> torch.nn.Module:
     creates the model
     See HeadGlobalPoolingClassifier for details
     """
-    if train["target"] == "classification":
-        num_classes = 2
-        gt_label = "data.gt.classification"
-        skip_keys = ["data.gt.subtype"]
-        class_names = ["Benign", "Malignant"]
-        model = ModelMultiHead(
-            conv_inputs=(('data.input.img_t2w', 1),),
-            backbone=BackboneResnet3D(in_channels=1),
-            heads=[
-                Head3D(head_name='head_0',
-                                conv_inputs=[("model.backbone_features", 512)],
-                                #  dropout_rate=train_params['imaging_dropout'],
-                                #  append_dropout_rate=train_params['clinical_dropout'],
-                                #  fused_dropout_rate=train_params['fused_dropout'],
-                                num_outputs=num_classes,
-                                #  append_features=[("data.input.clinical", 8)],
-                                #  append_layers_description=(256,128),
-                                ),
-            ])
+    num_classes = 2
+    gt_label = "data.gt.seg"
+    # if train["target"] == "classification":
+    #     gt_label = "data.gt.classification"
+    #     skip_keys = ["data.gt.subtype"]
+    #     class_names = ["Benign", "Malignant"]
+    #     model = ModelMultiHead(
+    #         conv_inputs=(('data.input.img_t2w', 1),),
+    #         backbone=BackboneResnet3D(in_channels=1),
+    #         heads=[
+    #             Head3D(head_name='head_0',
+    #                             conv_inputs=[("model.backbone_features", 512)],
+    #                             #  dropout_rate=train_params['imaging_dropout'],
+    #                             #  append_dropout_rate=train_params['clinical_dropout'],
+    #                             #  fused_dropout_rate=train_params['fused_dropout'],
+    #                             num_outputs=num_classes,
+    #                             #  append_features=[("data.input.clinical", 8)],
+    #                             #  append_layers_description=(256,128),
+    #                             ),
+    #         ])
     # elif train["target"] == "subtype":
     #     num_classes = 4
     #     gt_label = "data.gt.subtype"
     #     skip_keys = ["data.gt.classification"]
     #     class_names = ["Luminal A", "Luminal B", "HER2-enriched", "triple negative"]
-    elif train['target'] == 'segmentation':
-        num_classes = 2
-        gt_label = "data.gt.seg"
-        skip_keys = ["data.gt.subtype"]
-        class_names = ["Benign", "Malignant"]
+    if train['target'] == 'segmentation':
         torch_model = UNet(n_channels=1, n_classes=1, bilinear=False)
 
         model = ModelWrapSeqToDict(model=torch_model,
@@ -239,7 +236,7 @@ def create_model(train: NDict, paths: NDict) -> torch.nn.Module:
     else:
         raise ("unsuported target!!")
 
-    return model, num_classes, gt_label, skip_keys, class_names
+    return model, num_classes, gt_label
 
 
 #################################
@@ -258,7 +255,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     # ==============================================================================
     lgr.info("Model:", {"attrs": "bold"})
 
-    model, num_classes, gt_label, skip_keys, class_names = create_model(train, paths)
+    model, num_classes, gt_label = create_model(train, paths)
     lgr.info("Model: Done", {"attrs": "bold"})
 
     lgr.info("\nFuse Train", {"attrs": ["bold", "underline"]})
@@ -325,7 +322,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
         shuffle=False,
         drop_last=False,
         batch_sampler=sampler,
-        collate_fn=CollateDefault(skip_keys=skip_keys,special_handlers_keys={"data.input.img":CollateDefault.pad_all_tensors_to_same_size}),
+        collate_fn=CollateDefault(special_handlers_keys={"data.input.img":CollateDefault.pad_all_tensors_to_same_size}),
         num_workers=train["num_workers"],
     )
     lgr.info("Train Data: Done", {"attrs": "bold"})
