@@ -349,7 +349,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
             batch_sampler=None,
             batch_size=train["batch_size"], # TODO - set a validation batch_size parameter instead of - train["batch_size"],
             num_workers=train["num_workers"],
-            collate_fn=CollateDefault(skip_keys=skip_keys)
+            collate_fn=CollateDefault()
         )
     else:
         raise ("unsuported target!!")
