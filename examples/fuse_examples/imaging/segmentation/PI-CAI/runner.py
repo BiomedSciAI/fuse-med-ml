@@ -75,7 +75,7 @@ class DiceCELoss(nn.Module):
         self.cross_entropy = nn.CrossEntropyLoss()
 
     def forward(self, y_pred, y_true):
-        dice = self.dice(torch.unsqueeze(y_pred[:,1,:,:,:],axis=1).shape, y_true)
+        dice = self.dice(torch.unsqueeze(y_pred[:,1,:,:,:],axis=1), y_true)
         # CrossEntropyLoss target needs to have shape (B, D, H, W)
         # Target from pipeline has shape (B, 1, D, H, W)
         cross_entropy = self.cross_entropy(y_pred[:,1,:,:,:], torch.squeeze(y_true, dim=1))
