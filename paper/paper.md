@@ -58,16 +58,16 @@ FuseMedML's data package is designed for building a flexible and powerful data p
 Each *op* class's `__call__` function gets as an input a `sample_dict`, a dictionary that stores all the necessary information about a sample processed so far. Typically, an *op*'s constructor gets keys that specify what it should consider in `sample_dict` and where to store the output. Similarly, a minibatch is represented by a `batch_dict`.  
 A special kind of *ops* are "Meta *ops*". They can be thought of as a form of wrapper *op* around a regular, lower level *op* or function, to help achieve a special behavior such as repeating that low level *op*, applying it with random values and more. "Meta *ops*" also help avoid writing boilerplate code.  
 
-A data pipeline consists of a `static_pipline` and a `dynamic_pipeline`. 
+A data pipeline may consist of a `static_pipline` and a `dynamic_pipeline`. 
 The output of the `static_pipeline` is cached to optimize running time and GPU utilization.
-The `dynamic_pipeline` is responsible for "online" processing that we don't want cached, such as random augmentations.
+The `dynamic_pipeline` is responsible for "online" processing that we don't want to cache, such as random augmentations.
 An instance of a *fuse* dataset class, which inherits from the PyTorch dataset class is then created from defined static and dynamic pipelines.  
-The data package includes also includes generic utilities such as a PyTorch based sampler enabling batch class balancing and a tool for splitting data into folds acording to predefined criteria.
+The data package also includes generic utilities such as a PyTorch based sampler enabling batch class balancing and a tool for splitting data into folds acording to predefined criteria.
 
 ![In this example a medical image loader is the *fuse* component reused in projects A and B. Different projects can have different formats for their data samples, but they can all use OpMedicalImageLoader by providing the appropriate key names when calling it. In Project B the same key name is used for the input and output, resulting in the loaded image data overriding the image paths in the updated sample.\label{fig:diagram}](figures/diagram.png){width=100%}
 
 ## *fuse.dl*
-FuseMedML's DL package works with PyTorch models, only modifying them to interact with a `batch_dict`. For training, *fuse.dl* utilizes PyTorch-Lightning, either through a ready made `LightningModuleDefault` class inheriting from Pytorch-Lightning's `LightningModule` class, or by allowing users who seek maximal customizability to implement their own custom `LightningModule` and operate in close resemblance to the standard PyTorch-Lightning workflow or use alternative training loop implementations.   
+FuseMedML's DL package works with PyTorch models, only modifying them to interact with a `batch_dict`. For training, *fuse.dl* utilizes PyTorch-Lightning, either through an already made `LightningModuleDefault` class that inherits from Pytorch-Lightning's `LightningModule` class, or by allowing users who seek maximal customizability to implement their own custom `LightningModule` and operate in close resemblance to the standard PyTorch-Lightning workflow or use alternative training loop implementations.   
 
 ## *fuse.eval*
 The evaluation package of fuse is a standalone library for evaluating ML models for various performance metrics and comparing between models. It comes with advanced capabilities such as generic confidence interval wrapper for any metric, generic one vs. all extension for any binary metric to a multi-class scenario, metrics for model comparison taking into account statistical significance, model calibration tools, pipelining for combining a sequence of metrics with possible dependencies, automatic per-fold evaluation and sub-group analysis, automaric handling of massive data through batching and multiprocessing, and more. See \autoref{fig:metric_pipeline} for an example of an evaluation metric pipeline that can be reused across projects.  
