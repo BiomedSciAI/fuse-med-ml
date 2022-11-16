@@ -4,6 +4,7 @@ import numpy as np
 
 from pycocotools import mask as maskUtils
 from picai_eval import evaluate
+from report_guided_annotation import extract_lesion_candidates
 
 class MetricsInstanceSegmentaion:
     @staticmethod
@@ -79,7 +80,7 @@ class MetricsInstanceSegmentaion:
         :param target: sample target inputs - list of segmentations supported by COCO
         :return matrix of iou computed between each element from pred and target
         """
-        y_det = [(p[0] > threshold).astype(float) for p in pred]
+        y_det = [extract_lesion_candidates(p[0])[0] for p in pred]
         y_true = [t.squeeze().astype(float) for t in target]
         scores = evaluate(
             y_det=y_det,
