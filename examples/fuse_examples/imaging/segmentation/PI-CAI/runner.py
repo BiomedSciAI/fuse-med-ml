@@ -170,7 +170,8 @@ class Val_collate(CollateDefault):
                 collected_values, has_error = self._collect_values_to_list(samples, key)
 
                 # batch values
-                if isinstance(collected_values[0], (torch.Tensor, np.ndarray)):
+                if isinstance(collected_values[0], (torch.Tensor, np.ndarray)) and \
+                                        len(collected_values[0].shape) > 1 :
                     collected_values = [cv.transpose(0,1) for cv in collected_values]
                     batch_dict[key] = torch.cat(collected_values, axis=0)
                 else:
@@ -380,28 +381,28 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     #     break
 
     # ====================================================================================
-    #  Loss
+    #  Loss and metrics
     # ====================================================================================
     # TODO - add a classification loss - add head to the bottom of the unet
     if train["target"] == "seg3d":
         losses = {
             "dice_ce_monai_loss": LossDefault(pred="model.logits.segmentation", target='data.gt.seg', callable=DiceCELoss(), weight=1.0)
         }
+
+        train_metrics =OrderedDict(
+            [
+                ("picai_metric", MetricDetectionPICAI(pred='model.logits.segmentation', 
+                                     target='data.gt.seg',threshold=0.5, num_workers= train["num_workers"])),  # will apply argmax
+            ]
+        )
     elif train["target"] == "segmentation":
         losses = {
             'dice_amir_loss': DiceLoss(pred_name='model.logits.segmentation', target_name='data.gt.seg')
         }
+
+        train_metrics =OrderedDict()
     else:
         raise ("unsuported target!!")
-    # ====================================================================================
-    # Metrics
-    # ====================================================================================
-    train_metrics =OrderedDict(
-        [
-            ("picai_metric", MetricDetectionPICAI(pred='model.logits.segmentation', 
-                                 target='data.gt.seg',threshold=0.5, num_workers= train["num_workers"])),  # will apply argmax
-        ]
-    )
 
     validation_metrics = copy.deepcopy(train_metrics)  # use the same metrics in validation as well
 
