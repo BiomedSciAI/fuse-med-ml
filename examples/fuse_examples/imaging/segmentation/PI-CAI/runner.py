@@ -64,20 +64,21 @@ from picai_baseline.unet.training_setup.neural_network_selector import \
 import torch
 import hydra
 from omegaconf import DictConfig, OmegaConf
+from monai.losses import DiceFocalLoss
 
 class DiceCELoss(nn.Module):
     """Dice and Xentropy loss"""
 
     def __init__(self):
         super().__init__()
-        self.dice = monai.losses.DiceLoss(to_onehot_y=True, softmax=True)
+        self.dice = monai.losses.DiceFocalLoss(to_onehot_y=True, softmax=True)
         self.cross_entropy = nn.CrossEntropyLoss()
 
     def forward(self, y_pred, y_true):
         dice = self.dice(y_pred, y_true)
         # CrossEntropyLoss target needs to have shape (B, D, H, W)
         # Target from pipeline has shape (B, 1, D, H, W)
-        cross_entropy = self.cross_entropy(y_pred, torch.squeeze(y_true, dim=1).long())
+        cross_entropy = self.cross_entropy(y_pred[:,1,:,:,:], torch.squeeze(y_true, dim=1))
         return dice + cross_entropy
 # assert (
 #     "PICAI_DATA_PATH" in os.environ
@@ -386,14 +387,14 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     # TODO - add a classification loss - add head to the bottom of the unet
     if train["target"] == "seg3d":
         losses = {
-            "dice_ce_monai_loss": LossDefault(pred="model.logits.segmentation", target='data.gt.seg', callable=DiceCELoss(), weight=1.0)
+            "dice_focal_monai_loss": LossDefault(pred="model.logits.segmentation", target='data.gt.seg', callable=DiceCELoss(), weight=1.0)
         }
 
         train_metrics =OrderedDict(
-            [
-                ("picai_metric", MetricDetectionPICAI(pred='model.logits.segmentation', 
-                                     target='data.gt.seg',threshold=0.5, num_workers= train["num_workers"])),  # will apply argmax
-            ]
+            # [
+            #     ("picai_metric", MetricDetectionPICAI(pred='model.logits.segmentation', 
+            #                          target='data.gt.seg',threshold=0.5, num_workers= train["num_workers"])),  # will apply argmax
+            # ]
         )
     elif train["target"] == "segmentation":
         losses = {
