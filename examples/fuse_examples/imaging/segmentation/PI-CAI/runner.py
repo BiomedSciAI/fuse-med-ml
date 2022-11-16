@@ -242,7 +242,7 @@ def create_model(train: NDict, paths: NDict) -> torch.nn.Module:
             'model_type': 'unet',
             **img_spec
         })
-        device="cuda:0"
+        device="cuda"
         torch_model = neural_network_for_run(args=args, device=device)
 
         model = ModelWrapSeqToDict(model=torch_model,

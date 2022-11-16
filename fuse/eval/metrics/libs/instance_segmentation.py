@@ -80,7 +80,7 @@ class MetricsInstanceSegmentaion:
         :param target: sample target inputs - list of segmentations supported by COCO
         :return matrix of iou computed between each element from pred and target
         """
-        y_det = [extract_lesion_candidates(p[0])[0] for p in pred]
+        y_det = [extract_lesion_candidates(p[1])[0] for p in pred]
         y_true = [t.squeeze().astype(float) for t in target]
         scores = evaluate(
             y_det=y_det,
