@@ -1,5 +1,4 @@
 """
-
 (C) Copyright 2021 IBM Corp.
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -11,7 +10,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 Created on June 30, 2021
-
 """
 
 from collections import OrderedDict
@@ -20,6 +18,8 @@ import sys
 import copy
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 import numpy as np
+from pathlib import Path
+import pickle
 
 from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.gpu import choose_and_enable_multiple_gpus
@@ -115,19 +115,9 @@ def pre_proc_batch(in_batch): # [N, C, D, H, W]
 
 def post_proc_batch(out_model): # [N * D, C, H, W]
     # return torch.unsqueeze(out_model,dim=0).transpose(1,2) # [N, C, D, H, W]
-    softmax_values =F.softmax(out_model,dim=0)
+    softmax_values =F.softmax(out_model,dim=1)
     return softmax_values
     
-
-    # n_slices = 23
-    # n_all, ch, h, w = out_model.shape
-    # nb = int(n_all / n_slices)
-    # if nb == 0:
-    #     import ipdb; ipdb.set_trace(context=7) # BREAKPOINT
-
-    # out_model = out_model.view(nb, n_slices, ch, h, w)
-    # return out_model.transpose(1,2) # [N, C, D, H, W]
-
 
 class Val_collate(CollateDefault):
 
@@ -184,7 +174,7 @@ class Val_collate(CollateDefault):
         return batch_dict
 
 
-def create_model(train: NDict,paths: NDict) -> torch.nn.Module:
+def create_model(target) -> torch.nn.Module:
     """
     creates the model
     See HeadGlobalPoolingClassifier for details
@@ -212,7 +202,7 @@ def create_model(train: NDict,paths: NDict) -> torch.nn.Module:
     #     gt_label = "data.gt.subtype"
     #     skip_keys = ["data.gt.classification"]
     #     class_names = ["Luminal A", "Luminal B", "HER2-enriched", "triple negative"]
-    if train['target'] == 'segmentation':
+    if target == 'segmentation':
         torch_model = UNet(n_channels=1, n_classes=1, bilinear=False)
 
         model = ModelWrapSeqToDict(model=torch_model,
@@ -222,7 +212,7 @@ def create_model(train: NDict,paths: NDict) -> torch.nn.Module:
                                 post_forward_processing_function=post_proc_batch
                                 )
 
-    elif train['target'] == 'seg3d':
+    elif target == 'seg3d':
 
         # define the model specifications used for initialization at train-time
         # note: if the default hyperparam listed in picai_baseline was used,
@@ -285,7 +275,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     # split to folds randomly - temp
     dataset_all = PICAI.dataset(
         paths = paths,
-        train_cfg = train,
+        cfg = train,
         reset_cache=False,
         train=True,
     )
@@ -307,7 +297,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
 
     train_dataset = PICAI.dataset(
         paths = paths,
-        train_cfg = train,
+        cfg = train,
         reset_cache=False,
         sample_ids=train_sample_ids,  #[:10],
         train=True,
@@ -315,7 +305,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
 
     validation_dataset = PICAI.dataset(
         paths = paths,
-        train_cfg = train,
+        cfg = train,
         reset_cache=False,
         sample_ids=validation_sample_ids  #[:10]
     )
@@ -456,10 +446,10 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
 ######################################
 # Inference Template
 ######################################
-def run_infer(train: NDict, paths: NDict, infer: NDict):
+def run_infer(infer: NDict, paths: NDict):
     create_dir(paths["inference_dir"])
     #### Logger
-    fuse_logger_start(output_path=paths["inference_dir"], console_verbose_level=logging.INFO)
+    # fuse_logger_start(output_path=paths["inference_dir"], console_verbose_level=logging.INFO)
     lgr = logging.getLogger("Fuse")
     lgr.info("Fuse Inference", {"attrs": ["bold", "underline"]})
     infer_file = os.path.join(paths["inference_dir"], infer["infer_filename"])
@@ -468,7 +458,7 @@ def run_infer(train: NDict, paths: NDict, infer: NDict):
 
     lgr.info("Model:", {"attrs": "bold"})
 
-    model = create_model(train, paths)
+    model = create_model(infer["target"])
     lgr.info("Model: Done", {"attrs": "bold"})
     ## Data
     folds = load_pickle(
@@ -480,19 +470,20 @@ def run_infer(train: NDict, paths: NDict, infer: NDict):
         infer_sample_ids += folds[fold]
 
     test_dataset = PICAI.dataset(
-        paths["data_dir"],
-        paths["data_misc_dir"],
-        infer["target"],
-        paths["cache_dir"],
+        paths=paths,
+        cfg=infer,
         sample_ids=infer_sample_ids,
-        train=False,
+        reset_cache=False,
     )
+
     ## Create dataloader
     infer_dataloader = DataLoader(
         dataset=test_dataset,
         shuffle=False,
         drop_last=False,
-        collate_fn=CollateDefault(),
+        batch_sampler=None,
+        batch_size=1, # TODO - set a validation batch_size parameter instead of - train["batch_size"],
+        collate_fn=Val_collate(), #CollateDefault(skip_keys=skip_keys),
         num_workers=infer["num_workers"],
     )
     # load python lightning module
@@ -501,20 +492,21 @@ def run_infer(train: NDict, paths: NDict, infer: NDict):
     )
     # set the prediction keys to extract (the ones used be the evaluation function).
     pl_module.set_predictions_keys(
-        ["model.output.head_0", "data.gt.classification"]
+        ["model.logits.segmentation", "data.gt.seg", "data.gt.classification"]
     )  # which keys to extract and dump into file
     lgr.info("Test Data: Done", {"attrs": "bold"})
     # create lightining trainer.
     pl_trainer = Trainer(
         default_root_dir=paths["model_dir"],
-        max_epochs=train["trainer"]["num_epochs"],
-        accelerator=train["trainer"]["accelerator"],
-        devices=train["trainer"]["devices"],
+        accelerator=infer["accelerator"],
         num_sanity_val_steps=-1,
         auto_select_gpus=True,
     )
     # create a trainer instance
     predictions = pl_trainer.predict(pl_module, infer_dataloader, return_predictions=True)
+
+    with open(Path(infer_file).parents[0] / 'infer.pickle', 'wb') as f:
+        pickle.dump( predictions, f)
 
     # convert list of batch outputs into a dataframe
     infer_df = convert_predictions_to_dataframe(predictions)
@@ -573,7 +565,7 @@ def main(cfg: DictConfig) -> None:
 
     # infer
     if "infer" in cfg["run.running_modes"]:
-        run_infer(cfg["train"], cfg["paths"], cfg["infer"])
+        run_infer(cfg["infer"], cfg["paths"])
     #
     # analyze
     if "eval" in cfg["run.running_modes"]:
