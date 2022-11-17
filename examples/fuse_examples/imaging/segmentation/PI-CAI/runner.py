@@ -115,7 +115,7 @@ def pre_proc_batch(in_batch): # [N, C, D, H, W]
 
 def post_proc_batch(out_model): # [N * D, C, H, W]
     # return torch.unsqueeze(out_model,dim=0).transpose(1,2) # [N, C, D, H, W]
-    softmax_values =F.softmax(out_model)
+    softmax_values =F.softmax(out_model,dim=1)
     return softmax_values
     
 
@@ -243,7 +243,7 @@ def create_model(train: NDict, paths: NDict) -> torch.nn.Module:
             'model_type': 'unet',
             **img_spec
         })
-        device="cuda"
+        device="cuda:0"
         torch_model = neural_network_for_run(args=args, device=device)
 
         model = ModelWrapSeqToDict(model=torch_model,
