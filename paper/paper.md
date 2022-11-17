@@ -59,7 +59,7 @@ Each *op* class's `__call__` function gets as an input a `sample_dict`, a dictio
 A special kind of *ops* are "Meta *ops*". They can be thought of as a form of wrapper *op* around a regular, lower level *op* or function, to help achieve a special behavior such as repeating that low level *op*, applying it with random values and more. "Meta *ops*" also help avoid writing boilerplate code.  
 
 A data pipeline may consist of a `static_pipline` and a `dynamic_pipeline`. 
-The output of the `static_pipeline` is cached to optimize running time and GPU utilization.
+The output of the `static_pipeline` can be cached to optimize running time and GPU utilization.
 The `dynamic_pipeline` is responsible for "online" processing that we don't want to cache, such as random augmentations.
 An instance of a *fuse* dataset class, which inherits from the PyTorch dataset class is then created from defined static and dynamic pipelines.  
 The data package also includes generic utilities such as a PyTorch based sampler enabling batch class balancing and a tool for splitting data into folds acording to predefined criteria.
