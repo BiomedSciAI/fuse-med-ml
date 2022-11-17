@@ -97,15 +97,6 @@ class csPCaAlgorithm(SegmentationAlgorithm):
         self.scanner_manufacturer = self.clinical_info["scanner_manufacturer"]
         self.scanner_model_name = self.clinical_info["scanner_model_name"]
         self.diffusion_high_bvalue = self.clinical_info["diffusion_high_bvalue"]
-
-        # define input data specs [image shape, spatial res, num channels, num classes]
-        self.img_spec = {
-            'image_shape': [20, 256, 256],
-            'spacing': [3.0, 0.5, 0.5],
-            'num_channels': 3,
-            'num_classes': 2,
-        }
-
         # load trained algorithm architecture + weights
         self.models = []
         arch_name = ['unet']
