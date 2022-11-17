@@ -151,7 +151,7 @@ class PICAI:
     """
     """
     @staticmethod
-    def static_pipeline(data_dir: str, repeat_images :Sequence[NDict]) -> PipelineDefault:
+    def static_pipeline( repeat_images :Sequence[NDict]) -> PipelineDefault:
         """
         Get suggested static pipeline (which will be cached), typically loading the data plus design choices that we won't experiment with.
         :param data_path: path to original kits21 data (can be downloaded by KITS21.download())
@@ -162,7 +162,7 @@ class PICAI:
             [
                 # decoding sample ID
                 (OpPICAISampleIDDecode(), dict()),  # will save image and seg path to "data.input.img_path"
-                (OpLoadPICAIImage(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img")),
+                (OpLoadPICAIImage(""), dict(key_in="data.input.img_path", key_out="data.input.img")),
                 #(OpLoadPICAISegmentation(data_dir,seg_dir), dict(key_in="data.input.img_path", key_out="data.gt.seg")),
                 (OpRepeat((OpLambda(partial(skimage.transform.resize,
                                                 output_shape=(20, 256, 256),
@@ -207,7 +207,7 @@ class PICAI:
 
 
     @staticmethod
-    def dataset(
+    def dataset(sample_ids,
     ):
         """
         Creates Fuse Dataset single object (either for training, validation and test or user defined set)
@@ -221,11 +221,9 @@ class PICAI:
         :return: DatasetDefault object
         """
 
-        sample_ids = [list(Path(x).glob("*.mha"))[0] for x in "/input/images/transverse-t2-prostate-mri/"]
-
         repeat_images = [dict(key="data.input.img"+seq) for seq in ["_t2w"]]
-        static_pipeline = PICAI.static_pipeline("/input/images/transverse-t2-prostate-mri/",repeat_images)
-        dynamic_pipeline = PICAI.dynamic_pipeline(repeat_images=repeat_images)
+        static_pipeline = PICAI.static_pipeline(repeat_images)
+        dynamic_pipeline = PICAI.dynamic_pipeline(repeat_images)
 
         my_dataset = DatasetDefault(
             sample_ids=sample_ids,

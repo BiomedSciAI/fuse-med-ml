@@ -184,13 +184,11 @@ class Val_collate(CollateDefault):
         return batch_dict
 
 
-def create_model(train: NDict, paths: NDict) -> torch.nn.Module:
+def create_model(train: NDict) -> torch.nn.Module:
     """
     creates the model
     See HeadGlobalPoolingClassifier for details
     """
-    num_classes = 2
-    gt_label = "data.gt.seg"
     # if train["target"] == "classification":
     #     gt_label = "data.gt.classification"
     #     skip_keys = ["data.gt.subtype"]
@@ -256,7 +254,7 @@ def create_model(train: NDict, paths: NDict) -> torch.nn.Module:
     else:
         raise ("unsuported target!!")
 
-    return model, num_classes, gt_label
+    return model
 
 
 #################################
@@ -275,7 +273,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     # ==============================================================================
     lgr.info("Model:", {"attrs": "bold"})
 
-    model, num_classes, gt_label = create_model(train, paths)
+    model = create_model(train, paths)
     lgr.info("Model: Done", {"attrs": "bold"})
 
     lgr.info("\nFuse Train", {"attrs": ["bold", "underline"]})
@@ -327,7 +325,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     sampler = BatchSamplerDefault(
         dataset=train_dataset,
         balanced_class_name= "data.gt.classification", #gt_label, TODO - make diff label for balance-sampler
-        num_balanced_classes=num_classes,
+        num_balanced_classes=2,
         batch_size=train["batch_size"],
         mode="approx",
         workers=train["num_workers"],
@@ -470,7 +468,7 @@ def run_infer(train: NDict, paths: NDict, infer: NDict):
 
     lgr.info("Model:", {"attrs": "bold"})
 
-    model, num_classes, gt_label, skip_keys, class_names = create_model(train, paths)
+    model = create_model(train, paths)
     lgr.info("Model: Done", {"attrs": "bold"})
     ## Data
     folds = load_pickle(
