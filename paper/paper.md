@@ -26,7 +26,7 @@ authors:
     affiliation: 1
   
 affiliations:
- - name: IBM Research - Israel
+ - name: IBM Research - Haifa, Israel
    index: 1
 date: 26 October 2022
 bibliography: paper.bib
