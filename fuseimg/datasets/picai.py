@@ -166,7 +166,8 @@ class PICAI:
                 (OpLoadPICAIImage(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img")),
                 (OpLoadPICAISegmentation(data_dir,seg_dir), dict(key_in="data.input.img_path", key_out="data.gt.seg")),
                 (OpRepeat((OpLambda(partial(skimage.transform.resize,
-                                                output_shape=(20, 256, 256),
+                                                # output_shape=(20, 256, 256),
+                                                output_shape=(23, 320, 320),
                                                 mode='reflect',
                                                 anti_aliasing=True,
                                                 preserve_range=True))),kwargs_per_step_to_add = repeat_images),{}) ,
@@ -241,7 +242,7 @@ class PICAI:
     @staticmethod
     def dataset(
         paths: NDict,
-        train_cfg: NDict,
+        cfg: NDict,
         reset_cache: bool = True,
         sample_ids: Optional[Sequence[Hashable]] = None,
         train: bool = False,
@@ -265,10 +266,14 @@ class PICAI:
         if sample_ids is None:
             sample_ids = all_sample_ids
 
-        repeat_images = [dict(key="data.input.img"+seq) for seq in train_cfg["series_config"]]
+        repeat_images = [dict(key="data.input.img"+seq) for seq in cfg["series_config"]]
         repeat_images.append(dict(key="data.gt.seg"))
-        static_pipeline = PICAI.static_pipeline(input_source_gt, paths["data_dir"],paths["seg_dir"], train_cfg["target"],repeat_images)
-        dynamic_pipeline = PICAI.dynamic_pipeline(input_source_gt, train_cfg["target"], train=train,repeat_images=repeat_images,aug_params=train_cfg["aug_params"])
+        static_pipeline = PICAI.static_pipeline(input_source_gt, paths["data_dir"],paths["seg_dir"], cfg["target"],repeat_images)
+        if train:
+            dynamic_pipeline = PICAI.dynamic_pipeline(input_source_gt, cfg["target"], train=train,repeat_images=repeat_images,aug_params=cfg["aug_params"])
+        else:
+            dynamic_pipeline = PICAI.dynamic_pipeline(input_source_gt, cfg["target"], train=train,repeat_images=repeat_images)
+
 
         cacher = SamplesCacher(
             "cache_ver",
@@ -277,7 +282,7 @@ class PICAI:
             restart_cache=reset_cache,
             audit_first_sample=False,
             audit_rate=None,
-            workers=train_cfg["num_workers"],
+            workers=cfg["num_workers"],
         )
 
         my_dataset = DatasetDefault(
