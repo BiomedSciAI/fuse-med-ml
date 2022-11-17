@@ -8,7 +8,7 @@ from evalutils import SegmentationAlgorithm
 from evalutils.validators import (UniqueImagesValidator,
                                   UniquePathIndicesValidator)
 
-from fuseimg.datasets.picai_test import PICAI
+from picai_test import PICAI
 from picai_baseline.unet.training_setup.default_hyperparam import \
     get_default_hyperparams
 from picai_baseline.unet.training_setup.neural_network_selector import \

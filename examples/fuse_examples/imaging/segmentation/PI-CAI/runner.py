@@ -47,7 +47,7 @@ from fuse.data import get_sample_id_key
 from unet import UNet
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy
 from fuse.eval.metrics.detection.metrics_detection_common import MetricDetectionPICAI
-from fuseimg.datasets.picai import PICAI
+from picai import PICAI
 from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
 from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
@@ -78,8 +78,8 @@ class DiceCELoss(nn.Module):
         dice = self.dice(torch.unsqueeze(y_pred[:,1,:,:,:],axis=1), y_true)
         # CrossEntropyLoss target needs to have shape (B, D, H, W)
         # Target from pipeline has shape (B, 1, D, H, W)
-        cross_entropy = self.cross_entropy(y_pred[:,1,:,:,:], torch.squeeze(y_true, dim=1))
-        return dice + cross_entropy
+        #cross_entropy = self.cross_entropy(y_pred[:,1,:,:,:], torch.squeeze(y_true, dim=1))
+        return dice #+ cross_entropy
 # assert (
 #     "PICAI_DATA_PATH" in os.environ
 # ), "Expecting environment variable CMMD_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
@@ -238,7 +238,7 @@ def create_model(target) -> torch.nn.Module:
                                 model_inputs=['data.input.img_t2w'],
                                 model_outputs=['model.logits.segmentation'],
                                 # pre_forward_processing_function=pre_proc_batch,
-                                post_forward_processing_function=post_proc_batch
+                                #post_forward_processing_function=post_proc_batch
                                 )
 
     else:
