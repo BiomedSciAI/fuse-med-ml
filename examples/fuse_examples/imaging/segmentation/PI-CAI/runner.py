@@ -263,7 +263,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     # ==============================================================================
     lgr.info("Model:", {"attrs": "bold"})
 
-    model = create_model(train, paths)
+    model = create_model(train["target"])
     lgr.info("Model: Done", {"attrs": "bold"})
 
     lgr.info("\nFuse Train", {"attrs": ["bold", "underline"]})
