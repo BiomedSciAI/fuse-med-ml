@@ -114,7 +114,7 @@ class csPCaAlgorithm(SegmentationAlgorithm):
         # be explicitly passed directly to function 'neural_network_for_run'
         train={}
         train['target'] == 'seg3d'
-        model = create_model(train)
+        model = create_model(train,{})
         # load python lightning module
         pl_module = LightningModuleDefault.load_from_checkpoint(
             checkpoint_path, model_dir=self.algorithm_weights_dir, model=model, map_location=self.device, strict=True
