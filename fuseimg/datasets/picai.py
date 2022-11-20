@@ -87,9 +87,9 @@ class PICAI:
                         key_column="index",
                         key_name="data.input.img_path",
                         #'psa','psad','prostate_volume','histopath_type','lesion_GS','lesion_ISUP','case_ISUP'
-                        columns_to_extract=['index','patient_id','study_id','mri_date','patient_age','case_csPCa'],
+                        columns_to_extract=['index','patient_id','study_id','mri_date','patient_age','case_csPCa','case_ISUP'],
                         rename_columns=dict(
-                            patient_id="data.patientID", case_csPCa="data.gt.classification"
+                            patient_id="data.patientID", case_csPCa="data.gt.classification", case_ISUP="data.gt.subtype"
                         ),
                     ),
                     dict(),

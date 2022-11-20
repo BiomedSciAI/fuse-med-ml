@@ -73,10 +73,10 @@ def create_model(train: NDict, paths: NDict) -> torch.nn.Module:
         skip_keys = ["data.gt.subtype"]
         class_names = ["Benign", "Malignant"]
     elif train["target"] == "subtype":
-        num_classes = 4
+        num_classes = 6
         gt_label = "data.gt.subtype"
         skip_keys = ["data.gt.classification"]
-        class_names = ["Luminal A", "Luminal B", "HER2-enriched", "triple negative"]
+        class_names = ["Healthy -0 ", "ISUP 1", "ISUP 2", "ISUP 3", "ISUP 4", "ISUP 5"]
     else:
         raise ("unsuported target!!")
     model = ModelMultiHead(
