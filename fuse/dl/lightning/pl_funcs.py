@@ -20,7 +20,7 @@ Created on June 30, 2021
 Collection of useful functions to implement FuseMedML pytorch lightning based module and train loop
 """
 import traceback
-from typing import Any, Dict, List, OrderedDict, Sequence, Union
+from typing import Any, Dict, List, OrderedDict, Sequence, Union, Mapping, TypeVar
 from statistics import mean
 from fuse.data.utils.sample import get_sample_id_key
 from fuse.utils.data.collate import uncollate
@@ -35,6 +35,47 @@ from fuse.utils import NDict
 from fuse.dl.losses.loss_base import LossBase
 from fuse.eval import MetricBase
 from fuse.eval.metrics.utils import PerSampleData
+
+# for clearml
+from clearml import Task
+TaskInstance = TypeVar("TaskInstance", bound="Task")
+
+
+
+def start_clearml_logger(
+    project_name: str | None = None,
+    task_name: str | None = None,
+    tags: Sequence[str] | None = None,
+    reuse_last_task_id: bool | str = True,
+    continue_last_task: bool | str | int = False,
+    output_uri: str | bool | None = None,
+    auto_connect_arg_parser: bool | Mapping[str, bool] = True,
+    auto_connect_frameworks: bool | Mapping[str, bool | str | list] = True,
+    auto_resource_monitoring: bool = True,
+    auto_connect_streams: bool | Mapping[str, bool] = True,
+    deferred_init: bool = False,
+) -> TaskInstance:
+    """
+    Just a fuse function to quickly start the clearml logger. It sets up patches to pytorch lightning logging hooks so it doesnt need to be passed to any lightning logger.
+    For information on all the arguments please see: https://clear.ml/docs/latest/docs/references/sdk/task/ or https://github.com/allegroai/clearml/blob/master/clearml/task.py
+
+    Example usage:
+    from dl.lightning.pl_funcs import start_clearml_logger
+    start_clearml_logger(project_name="my_project_name", task_name="test_01")
+    """
+    task = Task.init(
+        project_name=project_name,
+        task_name=task_name,
+        tags=tags,
+        reuse_last_task_id=reuse_last_task_id,
+        continue_last_task=continue_last_task,
+        output_uri=output_uri,
+        auto_connect_arg_parser=auto_connect_arg_parser,
+        auto_connect_frameworks=auto_connect_frameworks,
+        auto_resource_monitoring=auto_resource_monitoring,
+        auto_connect_streams=auto_connect_streams,
+        deferred_init=deferred_init)
+    return task
 
 
 def model_checkpoint_callbacks(model_dir: str, best_epoch_source: Union[Dict, List[Dict]]) -> List[pl.Callback]:
