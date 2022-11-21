@@ -80,7 +80,7 @@ class BackboneResnet3D(VideoResNet):
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
-        if "pool" in self.__dict__.keys() and self.pool:
+        if hasattr(self, "pool") and self.pool:
             x = self.gmp(x).flatten(1)
         return x
 
