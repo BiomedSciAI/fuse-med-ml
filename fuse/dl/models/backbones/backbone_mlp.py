@@ -46,7 +46,7 @@ class BackboneMultilayerPerceptron(torch.nn.Module):
 
         self.mlp = nn.ModuleList(mlp_layers)
 
-    def forward(self, input_tensor: Dict) -> Dict:
+    def forward(self, input_tensor: torch.Tensor) -> torch.Tensor:
         for layer in self.mlp:
             input_tensor = layer(input_tensor)
         return input_tensor
