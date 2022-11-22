@@ -42,7 +42,7 @@ class MetricsLibClass:
         Compute auc roc (Receiver operating characteristic) score using sklearn (one vs rest)
         :param pred: prediction array per sample. Each element shape [num_classes]
         :param target: target per sample. Each element is an integer in range [0 - num_classes)
-        :param sample_weight: Optional - weight per sample for a weighted auc. Each element is  float in range [0-1] 
+        :param sample_weight: Optional - weight per sample for a weighted auc. Each element is  float in range [0-1]
         :param pos_class_index: the class to compute the metrics in one vs rest manner - set to 1 in binary classification
         :param max_fpr: float > 0 and <= 1, default=None
                         If not ``None``, the standardized partial AUC over the range [0, max_fpr] is returned.
