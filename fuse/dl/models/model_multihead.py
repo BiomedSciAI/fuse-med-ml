@@ -43,7 +43,6 @@ class ModelMultiHead(torch.nn.Module):
         :param backbone_args:   batch_dict name for generic backbone model input and its number of input channels. Unused if None
         :param backbone:        PyTorch backbone module - a convolutional (in which case conv_inputs must be supplied) or some other (in which case backbone_args must be supplied) neural network
         :param heads:           Sequence of head modules
-        :param key_out_features: key to where to store the backbone features inside the batch dict
         """
         super().__init__()
         if (conv_inputs is not None) and (backbone_args is not None):
