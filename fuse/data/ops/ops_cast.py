@@ -184,6 +184,25 @@ class OpToTensor(OpCast):
         return Cast.to_tensor(value, dtype, device)
 
 
+class OpToNestedTensor(OpBase):
+    """
+    Convert list of tensors in a nested tensor
+
+    TODO inherit from OpCast (?). Currently problematic because for list of keys it calls _cast() on each value separately
+
+    Example:
+        (OpToNestedTensor(), dict(keys_in=["data.drug.encoding", "data.target.encoding"], key_out="data.input.nested_tensor")),
+    """
+
+    def __call__(self, sample_dict: NDict, keys_in: Sequence[str], key_out: str, dtype: Optional[torch.dtype] = None, device: Optional[torch.device] = None) -> Tensor:
+        """
+        :param keys: keys for tensor in the sample dict
+        """
+        tensor_list = [sample_dict[key] for key in keys_in]
+        # requires torch >= 1.13.0
+        sample_dict[key_out] = torch.nested.nested_tensor(tensor_list, dtype=dtype, device=device)
+        return sample_dict
+
 class OpToNumpy(OpCast):
     """
     Convert many types to numpy
