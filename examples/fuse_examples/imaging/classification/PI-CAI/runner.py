@@ -70,12 +70,10 @@ def create_model(train: NDict, paths: NDict) -> torch.nn.Module:
     if train["target"] == "classification":
         num_classes = 2
         gt_label = "data.gt.classification"
-        skip_keys = ["data.gt.subtype"]
         class_names = ["Benign", "Malignant"]
     elif train["target"] == "subtype":
         num_classes = 6
         gt_label = "data.gt.subtype"
-        skip_keys = ["data.gt.classification"]
         class_names = ["Healthy -0 ", "ISUP 1", "ISUP 2", "ISUP 3", "ISUP 4", "ISUP 5"]
     else:
         raise ("unsuported target!!")
@@ -85,6 +83,7 @@ def create_model(train: NDict, paths: NDict) -> torch.nn.Module:
         heads=[
             Head3D(head_name='head_0',
                              conv_inputs=[("model.backbone_features", 512)],
+                             mode = "classification",
                              #  dropout_rate=train_params['imaging_dropout'],
                              #  append_dropout_rate=train_params['clinical_dropout'],
                              #  fused_dropout_rate=train_params['fused_dropout'],
@@ -92,8 +91,18 @@ def create_model(train: NDict, paths: NDict) -> torch.nn.Module:
                              #  append_features=[("data.input.clinical", 8)],
                              #  append_layers_description=(256,128),
                              ),
+            Head3D(head_name='head_1',
+                             conv_inputs=[("model.backbone_features", 512)],
+                             mode = "regression",
+                             #  dropout_rate=train_params['imaging_dropout'],
+                             #  append_dropout_rate=train_params['clinical_dropout'],
+                             #  fused_dropout_rate=train_params['fused_dropout'],
+                             num_outputs=1,
+                             #  append_features=[("data.input.clinical", 8)],
+                             #  append_layers_description=(256,128),
+                             ),
         ])
-    return model, num_classes, gt_label, skip_keys, class_names
+    return model, num_classes, gt_label, class_names
 
 
 #################################
@@ -112,7 +121,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     # ==============================================================================
     lgr.info("Model:", {"attrs": "bold"})
 
-    model, num_classes, gt_label, skip_keys, class_names = create_model(train, paths)
+    model, num_classes, gt_label, class_names = create_model(train, paths)
     lgr.info("Model: Done", {"attrs": "bold"})
 
     lgr.info("\nFuse Train", {"attrs": ["bold", "underline"]})
@@ -125,7 +134,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     dataset_all = PICAI.dataset(
         paths["data_dir"],
         paths["clinical_file"],
-        train["target"],
+        train,
         paths["cache_dir"],
         reset_cache=False,
         num_workers=train["num_workers"],
@@ -151,7 +160,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     train_dataset = PICAI.dataset(
         paths["data_dir"],
         paths["clinical_file"],
-        train["target"],
+        train,
         paths["cache_dir"],
         reset_cache=False,
         num_workers=train["num_workers"],
@@ -163,7 +172,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     validation_dataset = PICAI.dataset(
         paths["data_dir"],
         paths["clinical_file"],
-        train["target"],
+        train,
         paths["cache_dir"],
         reset_cache=False,
         num_workers=train["num_workers"],
@@ -190,7 +199,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
         shuffle=False,
         drop_last=False,
         batch_sampler=sampler,
-        collate_fn=CollateDefault(skip_keys=skip_keys,special_handlers_keys={"data.input.img":CollateDefault.pad_all_tensors_to_same_size}),
+        collate_fn=CollateDefault(special_handlers_keys={"data.input.img":CollateDefault.pad_all_tensors_to_same_size}),
         num_workers=train["num_workers"],
     )
     lgr.info("Train Data: Done", {"attrs": "bold"})
@@ -206,7 +215,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
         batch_sampler=None,
         batch_size=train["batch_size"],
         num_workers=train["num_workers"],
-        collate_fn=CollateDefault(skip_keys=skip_keys),
+        collate_fn=CollateDefault(),
     )
     lgr.info("Validation Data: Done", {"attrs": "bold"})
 
@@ -214,7 +223,8 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     #  Loss
     # ====================================================================================
     losses = {
-        "cls_loss": LossDefault(pred="model.logits.head_0", target=gt_label, callable=F.cross_entropy, weight=1.0)
+        "cls_loss": LossDefault(pred="model.logits.head_0", target="data.gt.classification", callable=F.cross_entropy, weight=0.5),
+        "mse_loss": LossDefault(pred="model.output.head_1", target="data.gt.subtype", callable=F.mse_loss, weight=0.5)
     }
 
     # ====================================================================================
@@ -231,10 +241,13 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     validation_metrics = copy.deepcopy(train_metrics)  # use the same metrics in validation as well
 
     # either a dict with arguments to pass to ModelCheckpoint or list dicts for multiple ModelCheckpoint callbacks (to monitor and save checkpoints for more then one metric).
-    best_epoch_source = dict(
+    best_epoch_source = [dict(
         monitor="validation.metrics.auc.macro_avg",
         mode="max",
-    )
+    ),dict(
+        monitor="validation.losses.mse_loss",
+        mode="min",
+    )]
 
     # =====================================================================================
     #  Manager - Train
@@ -293,7 +306,7 @@ def run_infer(train: NDict, paths: NDict, infer: NDict):
 
     lgr.info("Model:", {"attrs": "bold"})
 
-    model, num_classes, gt_label, skip_keys, class_names = create_model(train, paths)
+    model, num_classes, gt_label, class_names = create_model(train, paths)
     lgr.info("Model: Done", {"attrs": "bold"})
     ## Data
     folds = load_pickle(

@@ -46,7 +46,7 @@ class PICAI:
     """
     """
     @staticmethod
-    def static_pipeline(data_dir: str, target: str) -> PipelineDefault:
+    def static_pipeline(data_dir: str, train_cfg: NDict) -> PipelineDefault:
         """
         Get suggested static pipeline (which will be cached), typically loading the data plus design choices that we won't experiment with.
         :param data_path: path to original kits21 data (can be downloaded by KITS21.download())
@@ -58,7 +58,7 @@ class PICAI:
                 (OpPICAISampleIDDecode(), dict()),  # will save image and seg path to "data.input.img_path"
                 (OpLoadImage(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", format="mha")),
                 (OpLambda(partial(skimage.transform.resize,
-                                                output_shape=(23, 320, 320),
+                                                output_shape=tuple(train_cfg["resize_resolution"]),
                                                 mode='reflect',
                                                 anti_aliasing=True,
                                                 preserve_range=True)), dict(key="data.input.img")),
@@ -95,6 +95,8 @@ class PICAI:
                     dict(),
                 ),
                 (OpLookup(bool_map), dict(key_in="data.gt.classification", key_out="data.gt.classification")),
+                (OpToTensor(), dict(key="data.gt.subtype", dtype=torch.float32)),
+                (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.gt.subtype")),
             ]
         if train:
             ops +=[
@@ -117,7 +119,7 @@ class PICAI:
     def dataset(
         data_dir: str,
         clinical_file: str,
-        target: str,
+        train_cfg: str,
         cache_dir: str = None,
         reset_cache: bool = True,
         num_workers: int = 10,
@@ -145,7 +147,7 @@ class PICAI:
         if sample_ids is None:
             sample_ids = all_sample_ids
 
-        static_pipeline = PICAI.static_pipeline(data_dir,target)
+        static_pipeline = PICAI.static_pipeline(data_dir,train_cfg)
         dynamic_pipeline = PICAI.dynamic_pipeline(input_source_gt,train=train,aug_params=aug_params)
 
         cacher = SamplesCacher(
