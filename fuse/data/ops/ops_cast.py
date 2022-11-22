@@ -194,7 +194,14 @@ class OpToNestedTensor(OpBase):
         (OpToNestedTensor(), dict(keys_in=["data.drug.encoding", "data.target.encoding"], key_out="data.input.nested_tensor")),
     """
 
-    def __call__(self, sample_dict: NDict, keys_in: Sequence[str], key_out: str, dtype: Optional[torch.dtype] = None, device: Optional[torch.device] = None) -> Tensor:
+    def __call__(
+        self,
+        sample_dict: NDict,
+        keys_in: Sequence[str],
+        key_out: str,
+        dtype: Optional[torch.dtype] = None,
+        device: Optional[torch.device] = None,
+    ) -> Tensor:
         """
         :param keys: keys for tensor in the sample dict
         """
@@ -202,6 +209,7 @@ class OpToNestedTensor(OpBase):
         # requires torch >= 1.13.0
         sample_dict[key_out] = torch.nested.nested_tensor(tensor_list, dtype=dtype, device=device)
         return sample_dict
+
 
 class OpToNumpy(OpCast):
     """
