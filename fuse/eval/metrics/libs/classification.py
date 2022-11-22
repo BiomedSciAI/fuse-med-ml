@@ -42,7 +42,7 @@ class MetricsLibClass:
         Compute auc roc (Receiver operating characteristic) score using sklearn (one vs rest)
         :param pred: prediction array per sample. Each element shape [num_classes]
         :param target: target per sample. Each element is an integer in range [0 - num_classes)
-        :param sample_weight: Optional - weight per sample for a weighted auc. Each element is  float in range [0-1]
+        :param sample_weight: Optional - weight per sample for a weighted auc. Each element is  float in range [0-1] 
         :param pos_class_index: the class to compute the metrics in one vs rest manner - set to 1 in binary classification
         :param max_fpr: float > 0 and <= 1, default=None
                         If not ``None``, the standardized partial AUC over the range [0, max_fpr] is returned.
@@ -140,7 +140,7 @@ class MetricsLibClass:
     ):
         """
         Compute accuracy score
-        :param pred: class prediction. Each element is an integer in range [0 - num_classes) or a float in range [0-1]
+        :param pred: class prediction. Each element is an integer in range [0 - num_classes) or a float in range [0-1] in which case argmax will be applied
         :param target: the target class. Each element is an integer in range [0 - num_classes) or its one hot encoded version
         :param sample_weight: Optional - weight per sample for a weighted score. Each element is  float in range [0-1]
         :return: accuracy score
@@ -167,7 +167,7 @@ class MetricsLibClass:
         """
         Compute metrics derived from one-vs-rest confusion matrix such as 'sensitivity', 'recall', 'tpr', 'specificity',  'selectivity', 'npr', 'precision', 'ppv', 'f1'
         Assuming that there are positive cases and negative cases in targets
-        :param pred: class prediction. Each element is an integer in range [0 - num_classes) or a float in range [0-1]
+        :param pred: class prediction. Each element is an integer in range [0 - num_classes) or a float in range [0-1] in which case argmax will be applied
         :param target: the target class. Each element is an integer in range [0 - num_classes) or its one hot encoded version
         :param pos_class_index: the class to compute the metrics in one vs rest manner - set to 1 in binary classification
         :param metrics: required metrics names, options: 'sensitivity', 'recall', 'tpr', 'specificity',  'selectivity', 'npr', 'precision', 'ppv', 'f1'
