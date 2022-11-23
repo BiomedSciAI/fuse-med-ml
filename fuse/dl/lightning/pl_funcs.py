@@ -38,8 +38,8 @@ from fuse.eval.metrics.utils import PerSampleData
 
 # for clearml
 from clearml import Task
-TaskInstance = TypeVar("TaskInstance", bound="Task")
 
+TaskInstance = TypeVar("TaskInstance", bound="Task")
 
 
 def start_clearml_logger(
@@ -74,7 +74,8 @@ def start_clearml_logger(
         auto_connect_frameworks=auto_connect_frameworks,
         auto_resource_monitoring=auto_resource_monitoring,
         auto_connect_streams=auto_connect_streams,
-        deferred_init=deferred_init)
+        deferred_init=deferred_init,
+    )
     return task
 
 
