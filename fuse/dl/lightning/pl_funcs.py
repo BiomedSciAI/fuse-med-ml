@@ -43,16 +43,16 @@ TaskInstance = TypeVar("TaskInstance", bound="Task")
 
 
 def start_clearml_logger(
-    project_name: str | None = None,
-    task_name: str | None = None,
-    tags: Sequence[str] | None = None,
-    reuse_last_task_id: bool | str = True,
-    continue_last_task: bool | str | int = False,
-    output_uri: str | bool | None = None,
-    auto_connect_arg_parser: bool | Mapping[str, bool] = True,
-    auto_connect_frameworks: bool | Mapping[str, bool | str | list] = True,
+    project_name: Union[str, None] = None,
+    task_name: Union[str, None] = None,
+    tags: Union[Sequence[str], None] = None,
+    reuse_last_task_id: Union[bool, str] = True,
+    continue_last_task: Union[bool, str, int] = False,
+    output_uri: Union[str, bool, None] = None,
+    auto_connect_arg_parser: Union[bool, Mapping[str, bool]] = True,
+    auto_connect_frameworks: Union[bool, Mapping[str, bool]] = True,
     auto_resource_monitoring: bool = True,
-    auto_connect_streams: bool | Mapping[str, bool] = True,
+    auto_connect_streams: Union[bool, Mapping[str, bool]] = True,
     deferred_init: bool = False,
 ) -> TaskInstance:
     """
