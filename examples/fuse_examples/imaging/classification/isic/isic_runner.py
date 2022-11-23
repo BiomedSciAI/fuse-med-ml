@@ -69,7 +69,7 @@ debug = FuseDebug(mode)
 # GPUs and Workers
 ##########################################
 NUM_GPUS = 1  # supports multiple gpu training with DDP strategy
-NUM_WORKERS = 16
+NUM_WORKERS = 8
 
 ##########################################
 # Modality
@@ -79,14 +79,14 @@ multimodality = True # Set: 'False' to use only imaging, 'True' to use imaging &
 ##########################################
 # Model Type
 ##########################################
-model_type = "CNN" # Set: 'Transformer' to use ViT/MMViT, 'CNN' to use InceptionResNet
+model_type = "Transformer" # Set: 'Transformer' to use ViT/MMViT, 'CNN' to use InceptionResNet
 
 ##########################################
 # Output Paths
 ##########################################
 
 
-ROOT = "/dccstor/mm_hcls/shatz/_examples/isic/"
+ROOT = "./_examples/isic/"
 DATA = os.environ["ISIC19_DATA_PATH"] if "ISIC19_DATA_PATH" in os.environ else os.path.join(ROOT, "data_dir")
 modality = "multimodality" if multimodality else "imaging"
 model_dir = os.path.join(ROOT, f"model_dir_{modality}")
@@ -107,7 +107,7 @@ TRAIN_COMMON_PARAMS = {}
 # ============
 # Data
 # ============
-TRAIN_COMMON_PARAMS["data.batch_size"] = 64  # effective batch size = batch_size * num_gpus
+TRAIN_COMMON_PARAMS["data.batch_size"] = 32  # effective batch size = batch_size * num_gpus
 TRAIN_COMMON_PARAMS["data.num_workers"] = NUM_WORKERS
 TRAIN_COMMON_PARAMS["data.num_folds"] = 5
 TRAIN_COMMON_PARAMS["data.train_folds"] = [0, 1, 2]
