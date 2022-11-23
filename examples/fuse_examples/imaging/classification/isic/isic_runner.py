@@ -74,12 +74,12 @@ NUM_WORKERS = 16
 ##########################################
 # Modality
 ##########################################
-multimodality = False # Set: 'False' to use only imaging, 'True' to use imaging & meta-data
+multimodality = True # Set: 'False' to use only imaging, 'True' to use imaging & meta-data
 
 ##########################################
 # Model Type
 ##########################################
-model_type = "Transformer" # Set: 'Transformer' to use ViT/MMViT, 'CNN' to use InceptionResNet
+model_type = "CNN" # Set: 'Transformer' to use ViT/MMViT, 'CNN' to use InceptionResNet
 
 ##########################################
 # Output Paths
@@ -252,7 +252,8 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     # ==============================================================================
     # Logger
     # ==============================================================================
-    start_clearml_logger(project_name="SHATZ_isic", task_name=f"{model_type}_multimodal_{multimodality}_III")
+    data_string = "multimodal" if multimodality else "imaging"
+    start_clearml_logger(project_name="SHATZ_isic_II", task_name=f"{model_type}_{data_string}")
     fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
     lgr = logging.getLogger("Fuse")
     lgr.info("Fuse Train", {"attrs": ["bold", "underline"]})
