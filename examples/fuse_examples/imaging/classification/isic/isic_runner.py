@@ -46,7 +46,7 @@ from fuse.data.utils.collates import CollateDefault
 
 import pytorch_lightning as pl
 from fuse.dl.lightning.pl_module import LightningModuleDefault
-from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe, start_clearml_logger
+from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 from fuseimg.datasets.isic import ISIC, ISICDataModule
@@ -261,8 +261,6 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     # ==============================================================================
     # Logger
     # ==============================================================================
-    data_string = "multimodal" if multimodality else "imaging"
-    start_clearml_logger(project_name="SHATZ_isic_II", task_name=f"{model_type}_{data_string}")
     fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
     lgr = logging.getLogger("Fuse")
     lgr.info("Fuse Train", {"attrs": ["bold", "underline"]})
@@ -277,8 +275,6 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     lgr.info("Datamodule:", {"attrs": "bold"})
 
     datamodule = create_datamodule(paths, train_common_params)
-    # datamodule.setup(stage="fit")
-    # td = datamodule._train_dataset
 
     lgr.info("Datamodule: Done", {"attrs": "bold"})
 
