@@ -46,12 +46,15 @@ from fuse.data.utils.collates import CollateDefault
 
 import pytorch_lightning as pl
 from fuse.dl.lightning.pl_module import LightningModuleDefault
-from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
+from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe, start_clearml_logger
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 from fuseimg.datasets.isic import ISIC, ISICDataModule
 from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS
 
+import torch.nn as nn
+from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
+from fuse.dl.models.backbones.backbone_vit import ViT
 
 ###########################################################################################################
 # Fuse
@@ -66,20 +69,24 @@ debug = FuseDebug(mode)
 # GPUs and Workers
 ##########################################
 NUM_GPUS = 1  # supports multiple gpu training with DDP strategy
-NUM_WORKERS = 8
+NUM_WORKERS = 16
 
 ##########################################
 # Modality
 ##########################################
+multimodality = True # Set: 'False' to use only imaging, 'True' to use imaging & meta-data
 
-multimodality = True  # Set: 'False' to use only imaging, 'True' to use imaging & meta-data
+##########################################
+# Model Type
+##########################################
+model_type = "CNN" # Set: 'Transformer' to use ViT/MMViT, 'CNN' to use InceptionResNet
 
 ##########################################
 # Output Paths
 ##########################################
 
 
-ROOT = "./_examples/isic/"
+ROOT = "/dccstor/mm_hcls/shatz/_examples/isic/"
 DATA = os.environ["ISIC19_DATA_PATH"] if "ISIC19_DATA_PATH" in os.environ else os.path.join(ROOT, "data_dir")
 modality = "multimodality" if multimodality else "imaging"
 model_dir = os.path.join(ROOT, f"model_dir_{modality}")
@@ -100,7 +107,7 @@ TRAIN_COMMON_PARAMS = {}
 # ============
 # Data
 # ============
-TRAIN_COMMON_PARAMS["data.batch_size"] = 32  # effective batch size = batch_size * num_gpus
+TRAIN_COMMON_PARAMS["data.batch_size"] = 64  # effective batch size = batch_size * num_gpus
 TRAIN_COMMON_PARAMS["data.num_workers"] = NUM_WORKERS
 TRAIN_COMMON_PARAMS["data.num_folds"] = 5
 TRAIN_COMMON_PARAMS["data.train_folds"] = [0, 1, 2]
@@ -126,15 +133,63 @@ TRAIN_COMMON_PARAMS["opt.weight_decay"] = 1e-3
 # ===============
 # Model
 # ===============
-TRAIN_COMMON_PARAMS["model"] = dict(
-    dropout_rate=0.5,
-    layers_description=(256,),
-    tabular_data_inputs=[("data.input.clinical.all", 19)] if multimodality else None,
-    tabular_layers_description=(128,) if multimodality else tuple(),
-)
+if model_type == "CNN":
+    TRAIN_COMMON_PARAMS["model"] = dict(
+        dropout_rate=0.5,
+        layers_description=(256,),
+        tabular_data_inputs=[("data.input.clinical.all", 19)] if multimodality else None,
+        tabular_layers_description=(128,) if multimodality else tuple(),
+    )
+elif model_type == "Transformer":
+    TRAIN_COMMON_PARAMS["model"] = dict(
+        random_dict = None
+    )
 
+def perform_softmax(logits: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    cls_preds = F.softmax(logits, dim=1)
+    return logits, cls_preds
 
-def create_model(
+class MMViT(ViT):
+    def __init__(self, token_dim: int, projection_kwargs: dict, transformer_kwargs: dict, multimodality: bool):
+        super().__init__(token_dim, projection_kwargs, transformer_kwargs)
+        self.multimodality = multimodality
+        num_tokens = self.projection_layer.num_tokens
+        self.token_dim = token_dim
+        self._head = nn.Linear(token_dim, 8)
+        if self.multimodality:
+            # change pos embedding to accept additional token for multimodal
+            self.transformer.pos_embedding = nn.Parameter(torch.randn(1, num_tokens + 2, token_dim))
+    
+    # Multimodal forward
+    def forward(self, img_x: torch.Tensor, clinical_x: torch.Tensor = None):
+        # return super().forward(x, pool)
+        img_x = self.projection_layer(img_x)
+        if self.multimodality:
+            clinical_x = clinical_x.unsqueeze(1)
+            clinical_x_zeros = torch.zeros((img_x.shape[0], 1, self.token_dim))
+            clinical_x_zeros[:, :, :19] = clinical_x
+            clinical_x = clinical_x_zeros.cuda()
+            x = torch.cat((img_x, clinical_x), 1)
+        else:
+            x = img_x
+        x = self.transformer(x)
+        x = self._head(x[:, 0])
+        return x
+
+def create_transformer_model(random_dict) -> ModelWrapSeqToDict:
+    token_dim = 768
+    projection_kwargs = dict(image_shape=[300, 300], patch_shape=[30, 30], channels=3)
+    transformer_kwargs = dict(depth=12, heads=12, mlp_dim=token_dim*4, dim_head=64, dropout=0.0, emb_dropout=0.0)
+    torch_model = MMViT(token_dim=token_dim, projection_kwargs=projection_kwargs, transformer_kwargs=transformer_kwargs, multimodality=multimodality)
+    model = ModelWrapSeqToDict(
+        model=torch_model,
+        model_inputs=["data.input.img", "data.input.clinical.all"] if multimodality else ["data.input.img"],
+        post_forward_processing_function=perform_softmax,
+        model_outputs=["model.logits.head_0", "model.output.head_0"],
+    )
+    return model
+
+def create_cnn_model(
     dropout_rate: float,
     layers_description: Sequence[int],
     tabular_data_inputs: Sequence[Tuple[str, int]],
@@ -194,6 +249,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     # ==============================================================================
     # Logger
     # ==============================================================================
+    start_clearml_logger(project_name="SHATZ_isic", task_name="cnn_MM_multimodal_III")
     fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
     lgr = logging.getLogger("Fuse")
     lgr.info("Fuse Train", {"attrs": ["bold", "underline"]})
@@ -208,6 +264,8 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     lgr.info("Datamodule:", {"attrs": "bold"})
 
     datamodule = create_datamodule(paths, train_common_params)
+    # datamodule.setup(stage="fit")
+    # td = datamodule._train_dataset
 
     lgr.info("Datamodule: Done", {"attrs": "bold"})
 
@@ -216,7 +274,11 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     # ==============================================================================
     lgr.info("Model:", {"attrs": "bold"})
 
-    model = create_model(**train_common_params["model"])
+    # model = create_model(**train_common_params["model"])
+    if model_type == "Transformer":
+        model = create_transformer_model(**train_common_params["model"])
+    elif model_type == "CNN":
+        model = create_cnn_model(**train_common_params["model"])
 
     lgr.info("Model: Done", {"attrs": "bold"})
 
