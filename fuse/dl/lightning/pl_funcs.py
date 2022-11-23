@@ -43,8 +43,8 @@ TaskInstance = TypeVar("TaskInstance", bound="Task")
 
 
 def start_clearml_logger(
-    project_name: Union[str, None] = None,
-    task_name: Union[str, None] = None,
+    project_name: Union[str, None],
+    task_name: Union[str, None],
     tags: Union[Sequence[str], None] = None,
     reuse_last_task_id: Union[bool, str] = True,
     continue_last_task: Union[bool, str, int] = False,

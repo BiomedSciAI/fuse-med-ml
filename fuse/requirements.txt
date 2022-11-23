@@ -29,3 +29,4 @@ omegaconf
 nibabel
 vit-pytorch
 lifelines
+clearml
