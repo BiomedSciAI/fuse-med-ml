@@ -166,7 +166,7 @@ class MMViT(ViT):
             self.transformer.pos_embedding = nn.Parameter(torch.randn(1, num_tokens + 2, token_dim))
 
     # This forward can be Multimodal or just Imaging
-    def forward(self, img_x: torch.Tensor, clinical_x: torch.Tensor = None):
+    def forward(self, img_x: torch.Tensor, clinical_x: torch.Tensor = None) -> torch.Tensor:
         img_x = self.projection_layer(img_x)
         if self.multimodality:
             clinical_x = clinical_x.unsqueeze(1)
