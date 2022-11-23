@@ -74,12 +74,12 @@ NUM_WORKERS = 16
 ##########################################
 # Modality
 ##########################################
-multimodality = True # Set: 'False' to use only imaging, 'True' to use imaging & meta-data
+multimodality = False # Set: 'False' to use only imaging, 'True' to use imaging & meta-data
 
 ##########################################
 # Model Type
 ##########################################
-model_type = "CNN" # Set: 'Transformer' to use ViT/MMViT, 'CNN' to use InceptionResNet
+model_type = "Transformer" # Set: 'Transformer' to use ViT/MMViT, 'CNN' to use InceptionResNet
 
 ##########################################
 # Output Paths
@@ -141,8 +141,11 @@ if model_type == "CNN":
         tabular_layers_description=(128,) if multimodality else tuple(),
     )
 elif model_type == "Transformer":
+    token_dim = 768
     TRAIN_COMMON_PARAMS["model"] = dict(
-        random_dict = None
+        token_dim = token_dim,
+        projection_kwargs = dict(image_shape=[300, 300], patch_shape=[30, 30], channels=3),
+        transformer_kwargs = dict(depth=12, heads=12, mlp_dim=token_dim*4, dim_head=64, dropout=0.0, emb_dropout=0.0),
     )
 
 def perform_softmax(logits: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -160,9 +163,8 @@ class MMViT(ViT):
             # change pos embedding to accept additional token for multimodal
             self.transformer.pos_embedding = nn.Parameter(torch.randn(1, num_tokens + 2, token_dim))
     
-    # Multimodal forward
+    # This forward can be Multimodal or just Imaging
     def forward(self, img_x: torch.Tensor, clinical_x: torch.Tensor = None):
-        # return super().forward(x, pool)
         img_x = self.projection_layer(img_x)
         if self.multimodality:
             clinical_x = clinical_x.unsqueeze(1)
@@ -176,10 +178,11 @@ class MMViT(ViT):
         x = self._head(x[:, 0])
         return x
 
-def create_transformer_model(random_dict) -> ModelWrapSeqToDict:
-    token_dim = 768
-    projection_kwargs = dict(image_shape=[300, 300], patch_shape=[30, 30], channels=3)
-    transformer_kwargs = dict(depth=12, heads=12, mlp_dim=token_dim*4, dim_head=64, dropout=0.0, emb_dropout=0.0)
+def create_transformer_model(
+    token_dim: int,
+    projection_kwargs: dict,
+    transformer_kwargs: dict,
+) -> ModelWrapSeqToDict:
     torch_model = MMViT(token_dim=token_dim, projection_kwargs=projection_kwargs, transformer_kwargs=transformer_kwargs, multimodality=multimodality)
     model = ModelWrapSeqToDict(
         model=torch_model,
@@ -249,7 +252,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     # ==============================================================================
     # Logger
     # ==============================================================================
-    start_clearml_logger(project_name="SHATZ_isic", task_name="cnn_MM_multimodal_III")
+    start_clearml_logger(project_name="SHATZ_isic", task_name=f"{model_type}_multimodal_{multimodality}_III")
     fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
     lgr = logging.getLogger("Fuse")
     lgr.info("Fuse Train", {"attrs": ["bold", "underline"]})
