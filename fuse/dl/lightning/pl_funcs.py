@@ -62,7 +62,7 @@ def start_clearml_logger(
     General Clearml instructions:
     Unless using offline mode, to use clearml, you must first make an account on their website https://app.clear.ml/login?redirect=%2Fsettings%2Fworkspace-configuration.
     Then, you must create a ~/clearml.conf file and specify server address as shown here https://clear.ml/docs/latest/docs/configs/clearml_conf/.
-    Otherwise, offline mode instructions can be found here: https://clear.ml/docs/latest/docs/guides/set_offline/ 
+    Otherwise, offline mode instructions can be found here: https://clear.ml/docs/latest/docs/guides/set_offline/
 
     Example usage:
     from dl.lightning.pl_funcs import start_clearml_logger
