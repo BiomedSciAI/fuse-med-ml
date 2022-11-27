@@ -59,6 +59,11 @@ def start_clearml_logger(
     Just a fuse function to quickly start the clearml logger. It sets up patches to pytorch lightning logging hooks so it doesnt need to be passed to any lightning logger.
     For information on all the arguments please see: https://clear.ml/docs/latest/docs/references/sdk/task/ or https://github.com/allegroai/clearml/blob/master/clearml/task.py
 
+    General Clearml instructions:
+    Unless using offline mode, to use clearml, you must first make an account on their website https://app.clear.ml/login?redirect=%2Fsettings%2Fworkspace-configuration.
+    Then, you must create a ~/clearml.conf file and specify server address as shown here https://clear.ml/docs/latest/docs/configs/clearml_conf/.
+    Otherwise, offline mode instructions can be found here: https://clear.ml/docs/latest/docs/guides/set_offline/ 
+
     Example usage:
     from dl.lightning.pl_funcs import start_clearml_logger
     start_clearml_logger(project_name="my_project_name", task_name="test_01")
