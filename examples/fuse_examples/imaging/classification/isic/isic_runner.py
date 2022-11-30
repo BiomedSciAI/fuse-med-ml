@@ -52,6 +52,9 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from fuseimg.datasets.isic import ISIC, ISICDataModule
 from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS
 
+import torch.nn as nn
+from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
+from fuse.dl.models.backbones.backbone_vit import ViT
 
 ###########################################################################################################
 # Fuse
@@ -71,8 +74,12 @@ NUM_WORKERS = 8
 ##########################################
 # Modality
 ##########################################
-
 multimodality = True  # Set: 'False' to use only imaging, 'True' to use imaging & meta-data
+
+##########################################
+# Model Type
+##########################################
+model_type = "Transformer"  # Set: 'Transformer' to use ViT/MMViT, 'CNN' to use InceptionResNet
 
 ##########################################
 # Output Paths
@@ -126,15 +133,75 @@ TRAIN_COMMON_PARAMS["opt.weight_decay"] = 1e-3
 # ===============
 # Model
 # ===============
-TRAIN_COMMON_PARAMS["model"] = dict(
-    dropout_rate=0.5,
-    layers_description=(256,),
-    tabular_data_inputs=[("data.input.clinical.all", 19)] if multimodality else None,
-    tabular_layers_description=(128,) if multimodality else tuple(),
-)
+if model_type == "CNN":
+    TRAIN_COMMON_PARAMS["model"] = dict(
+        dropout_rate=0.5,
+        layers_description=(256,),
+        tabular_data_inputs=[("data.input.clinical.all", 19)] if multimodality else None,
+        tabular_layers_description=(128,) if multimodality else tuple(),
+    )
+elif model_type == "Transformer":
+    token_dim = 768
+    TRAIN_COMMON_PARAMS["model"] = dict(
+        token_dim=token_dim,
+        projection_kwargs=dict(image_shape=[300, 300], patch_shape=[30, 30], channels=3),
+        transformer_kwargs=dict(depth=12, heads=12, mlp_dim=token_dim * 4, dim_head=64, dropout=0.0, emb_dropout=0.0),
+    )
 
 
-def create_model(
+def perform_softmax(logits: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    cls_preds = F.softmax(logits, dim=1)
+    return logits, cls_preds
+
+
+class MMViT(ViT):
+    def __init__(self, token_dim: int, projection_kwargs: dict, transformer_kwargs: dict, multimodality: bool):
+        super().__init__(token_dim, projection_kwargs, transformer_kwargs)
+        self.multimodality = multimodality
+        num_tokens = self.projection_layer.num_tokens
+        self.token_dim = token_dim
+        self._head = nn.Linear(token_dim, 8)
+        if self.multimodality:
+            # change pos embedding to accept additional token for multimodal
+            self.transformer.pos_embedding = nn.Parameter(torch.randn(1, num_tokens + 2, token_dim))
+
+    # This forward can be Multimodal or just Imaging
+    def forward(self, img_x: torch.Tensor, clinical_x: torch.Tensor = None) -> torch.Tensor:
+        img_x = self.projection_layer(img_x)
+        if self.multimodality:
+            clinical_x = clinical_x.unsqueeze(1)
+            clinical_x_zeros = torch.zeros((img_x.shape[0], 1, self.token_dim))
+            clinical_x_zeros[:, :, :19] = clinical_x
+            clinical_x = clinical_x_zeros.cuda()
+            x = torch.cat((img_x, clinical_x), 1)
+        else:
+            x = img_x
+        x = self.transformer(x)
+        x = self._head(x[:, 0])
+        return x
+
+
+def create_transformer_model(
+    token_dim: int,
+    projection_kwargs: dict,
+    transformer_kwargs: dict,
+) -> ModelWrapSeqToDict:
+    torch_model = MMViT(
+        token_dim=token_dim,
+        projection_kwargs=projection_kwargs,
+        transformer_kwargs=transformer_kwargs,
+        multimodality=multimodality,
+    )
+    model = ModelWrapSeqToDict(
+        model=torch_model,
+        model_inputs=["data.input.img", "data.input.clinical.all"] if multimodality else ["data.input.img"],
+        post_forward_processing_function=perform_softmax,
+        model_outputs=["model.logits.head_0", "model.output.head_0"],
+    )
+    return model
+
+
+def create_cnn_model(
     dropout_rate: float,
     layers_description: Sequence[int],
     tabular_data_inputs: Sequence[Tuple[str, int]],
@@ -216,7 +283,10 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     # ==============================================================================
     lgr.info("Model:", {"attrs": "bold"})
 
-    model = create_model(**train_common_params["model"])
+    if model_type == "Transformer":
+        model = create_transformer_model(**train_common_params["model"])
+    elif model_type == "CNN":
+        model = create_cnn_model(**train_common_params["model"])
 
     lgr.info("Model: Done", {"attrs": "bold"})
 
@@ -339,7 +409,11 @@ def run_infer(paths: dict, infer_common_params: dict) -> None:
     )
 
     # load python lightning module
-    model = create_model(**infer_common_params["model"])
+    if model_type == "Transformer":
+        model = create_transformer_model(**infer_common_params["model"])
+    elif model_type == "CNN":
+        model = create_cnn_model(**infer_common_params["model"])
+
     pl_module = LightningModuleDefault.load_from_checkpoint(
         checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True
     )
