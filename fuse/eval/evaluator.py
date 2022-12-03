@@ -55,6 +55,7 @@ class EvaluatorDefault:
         batch_size: Optional[int] = None,
         output_dir: Optional[str] = None,
         silent: bool = True,
+        error_missing_ids: bool = True,
     ) -> NDict:
         """
         evaluate, return, print and optionally dump results to a file
@@ -81,6 +82,7 @@ class EvaluatorDefault:
                                               A batch will be automatically created from batch_size samples
         :param output_dir: Optional - dump results to directory
         :param silent: print results if false
+        :param error_missing_ids: allow missing ids in data
         :return: dictionary that holds all the results.
         """
         self.silent = silent
@@ -91,9 +93,9 @@ class EvaluatorDefault:
             ids_df = None  # use all samples
 
         if batch_size is None:
-            data_df = self.read_data(data, ids_df, id_key=id_key)
+            data_df = self.read_data(data, ids_df, id_key=id_key, error_missing_ids=error_missing_ids)
             data_df["id"] = data_df[id_key]
-
+            ids = set(data_df["id"].values.tolist())
             # pass data
             for metric_name, metric in metrics.items():
                 try:
