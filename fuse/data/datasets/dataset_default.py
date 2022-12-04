@@ -189,7 +189,7 @@ class DatasetDefault(DatasetBase):
             sample_id = item
             if sample_id >= self._final_sample_ids:
                 raise IndexError
-                
+
         elif not isinstance(item, (int, np.integer)):
             sample_id = item
         else:

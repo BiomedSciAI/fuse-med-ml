@@ -84,7 +84,7 @@ class ModelWrapSeqToDict(torch.nn.Module):
                 batch_dict[output_name] = model_output[i]
 
         return batch_dict
-    
+
     def __getattr__(self, name):
         try:
             return super().__getattr__(name)
