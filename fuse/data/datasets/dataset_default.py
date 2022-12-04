@@ -185,7 +185,12 @@ class DatasetDefault(DatasetBase):
             raise Exception("you must first call create()")
 
         # get sample id
-        if not isinstance(item, (int, np.integer)) or not self._explicit_sample_ids_mode:
+        if not self._explicit_sample_ids_mode:
+            sample_id = item
+            if sample_id >= self._final_sample_ids:
+                raise IndexError
+                
+        elif not isinstance(item, (int, np.integer)):
             sample_id = item
         else:
             sample_id = self._final_sample_ids[item]
