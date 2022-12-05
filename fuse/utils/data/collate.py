@@ -66,7 +66,7 @@ class CollateToBatchList(Callable):
 
             try:
                 # collect values into a list
-                collected_values, has_error = self._collect_values_to_list(samples, key)
+                collected_values, _, _ = self._collect_values_to_list(samples, key)
                 batch_dict[key] = collected_values
             except:
                 print(f"Error: Failed to collect key {key}")
