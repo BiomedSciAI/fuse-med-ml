@@ -108,8 +108,12 @@ class CollateToBatchList(Callable):
                     value = None
             else:
                 value = sample[key]
-                if (isinstance(value, float) and math.isnan(value)) or value in self._missing_values:
+                if isinstance(value, float) and math.isnan(value):
                     has_missing_values = True
+                for missing_value in self._missing_values:
+                    if type(missing_value) is type(value) and value == missing_value:
+                        has_missing_values = True
+                        break
 
             collected_values.append(value)
         return collected_values, has_error, has_missing_values
