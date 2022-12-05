@@ -26,6 +26,7 @@ import numpy as np
 
 import math
 
+
 class CollateToBatchList(Callable):
     """
     Collate list of dictionaries to a batch dictionary, each value in dict will be a list of values collected from all samples.
@@ -35,7 +36,7 @@ class CollateToBatchList(Callable):
         self,
         skip_keys: Sequence[str] = tuple(),
         raise_error_key_missing: bool = True,
-        missing_values: Sequence[str] = (None, "N/A")
+        missing_values: Sequence[str] = (None, "N/A"),
     ):
         """
         :param skip_keys: do not collect the listed keys
@@ -109,7 +110,7 @@ class CollateToBatchList(Callable):
                 value = sample[key]
                 if (isinstance(value, float) and math.isnan(value)) or value in self._missing_values:
                     has_missing_values = True
-            
+
             collected_values.append(value)
         return collected_values, has_error, has_missing_values
 

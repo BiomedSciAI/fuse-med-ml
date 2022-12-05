@@ -71,7 +71,7 @@ class ModelWrapSeqToDict(torch.nn.Module):
             model_input = self.pre_forward_processing_function(model_input)
 
         # run the model
-        model_output = self.model.forward(*model_input, *args, **kwargs)
+        model_output = self.model(*model_input, *args, **kwargs)
 
         # convert output of model to Fuse expected output
         if self.post_forward_processing_function is not None:
