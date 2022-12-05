@@ -24,6 +24,7 @@ from fuse.utils import NDict
 import torch
 import numpy as np
 
+import math
 
 class CollateToBatchList(Callable):
     """
@@ -34,6 +35,7 @@ class CollateToBatchList(Callable):
         self,
         skip_keys: Sequence[str] = tuple(),
         raise_error_key_missing: bool = True,
+        missing_values: Sequence[str] = (None, "N/A")
     ):
         """
         :param skip_keys: do not collect the listed keys
@@ -41,6 +43,7 @@ class CollateToBatchList(Callable):
         """
         self._skip_keys = skip_keys
         self._raise_error_key_missing = raise_error_key_missing
+        self._missing_values = missing_values
 
     def __call__(self, samples: List[Dict]) -> Dict:
         """
@@ -91,19 +94,24 @@ class CollateToBatchList(Callable):
         :return: list of values
         """
         has_error = False
+        has_missing_values = False
         collected_values = []
         for index, sample in enumerate(samples):
             sample = NDict(sample)
             if key not in sample:
                 has_error = True
+                has_missing_values = True
                 if self._raise_error_key_missing:
                     raise Exception(f"Error: key {key} does not exist in sample {index}: {sample}")
                 else:
                     value = None
             else:
                 value = sample[key]
+                if (isinstance(value, float) and math.isnan(value)) or value in self._missing_values:
+                    has_missing_values = True
+            
             collected_values.append(value)
-        return collected_values, has_error
+        return collected_values, has_error, has_missing_values
 
 
 def uncollate(batch: Dict) -> List[Dict]:
