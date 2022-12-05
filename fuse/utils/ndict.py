@@ -332,6 +332,8 @@ class NestedKeyError(KeyError):
                 options = str([f"{partial_key}.{k}" for k in partial_ndict.keypaths()])
                 error_str = f"Error: key {key} does not exist\n. Possible keys on the same branch are: {options}. All keys {d.keypaths()}"
             else:
-                error_str = f"Error: key {key} does not exist\n. Closest key is: {partial_key}. All keys: {d.keypaths()}"
+                error_str = (
+                    f"Error: key {key} does not exist\n. Closest key is: {partial_key}. All keys: {d.keypaths()}"
+                )
         print(error_str)
         super().__init__(error_str)
