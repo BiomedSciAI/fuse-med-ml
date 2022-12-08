@@ -26,6 +26,7 @@ from collections import OrderedDict
 
 import pandas as pd
 import numpy as np
+from fuse.eval.metrics.survival.metrics_survival import MetricCIndex
 
 from fuse.utils import set_seed
 
@@ -51,6 +52,7 @@ from fuse.eval.metrics.classification.metrics_calibration_common import (
     MetricFindTemperature,
     MetricApplyTemperature,
 )
+from fuse.eval.metrics.classification.metrics_ensembling_common import MetricEnsemble
 from fuse.eval.evaluator import EvaluatorDefault
 
 
@@ -705,5 +707,146 @@ def example_13() -> Dict:
     results = evaluator.eval(
         ids=None, data=data, metrics=metrics
     )  # ids == None -> run evaluation on all available samples
+
+    return results
+
+
+def example_14() -> Dict[str, Any]:
+    """
+    Model ensemble example
+    """
+    # path to prediction and target files
+    dir_path = pathlib.Path(__file__).parent.resolve()
+    inference_file_name = "test_set_infer.gz"
+    model_dirs = [
+        os.path.join(dir_path, "inputs/ensemble/mnist/test_dir", str(i), inference_file_name) for i in range(5)
+    ]
+    output_file = "ensemble_output.gz"
+    # define data
+    data = {str(k): model_dirs[k] for k in range(len(model_dirs))}
+
+    # list of metrics
+    metrics = OrderedDict(
+        [
+            (
+                "ensemble",
+                MetricEnsemble(
+                    pred_keys=[
+                        "0.model.output.classification",
+                        "1.model.output.classification",
+                        "2.model.output.classification",
+                        "3.model.output.classification",
+                        "4.model.output.classification",
+                    ],
+                    target="0.data.label",
+                    output_file=output_file,
+                ),
+            ),
+            (
+                "apply_thresh",
+                MetricApplyThresholds(pred="results:metrics.ensemble.preds", operation_point=None),
+            ),
+            (
+                "accuracy",
+                MetricAccuracy(
+                    pred="results:metrics.apply_thresh.cls_pred",
+                    target="0.data.label",
+                ),
+            ),
+        ]
+    )
+
+    evaluator = EvaluatorDefault()
+    results = evaluator.eval(ids=None, data=data, metrics=metrics)
+
+    return results
+
+
+def example_15():
+    """
+    General group analysis example - compute the AUC for each group separately.
+    In this case the grouping is done according to gender
+    """
+    data = {
+        "pred": [0.1, 0.2, 0.6, 0.7, 0.8, 0.3, 0.6, 0.2, 0.7, 0.9],
+        "event_times": [0, 0, 1, 1, 1, 0, 0, 1, 1, 1],
+        "id": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+        "gender": ["female", "female", "female", "female", "female", "male", "male", "male", "male", "male"],
+    }
+    data = pd.DataFrame(data)
+
+    metrics = OrderedDict(
+        [("cindex_per_group", GroupAnalysis(MetricCIndex(pred="pred", event_times="event_times"), group="gender"))]
+    )
+
+    evaluator = EvaluatorDefault()
+    results = evaluator.eval(ids=None, data=data, metrics=metrics)
+
+    return results
+
+
+def example_16():
+    """
+    General group analysis example - compute the AUC for each group separately.
+    In this case the grouping is done according to gender
+    """
+    data = {
+        "pred": [0.1, 0.2, 0.6, 0.7, 0.8, 0.3, 0.6, 0.2, 0.7, 0.9],
+        "event_observed": 1 - np.asarray([0, 0, 1, 1, 1, 0, 0, 1, 1, 1]),
+        "event_times": [1] * 10,
+        "id": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+        "gender": ["female", "female", "female", "female", "female", "male", "male", "male", "male", "male"],
+    }
+    data = pd.DataFrame(data)
+
+    metrics = OrderedDict(
+        [
+            (
+                "cindex_per_group",
+                GroupAnalysis(
+                    MetricCIndex(pred="pred", event_times="event_times", event_observed="event_observed"),
+                    group="gender",
+                ),
+            )
+        ]
+    )
+
+    evaluator = EvaluatorDefault()
+    results = evaluator.eval(ids=None, data=data, metrics=metrics)
+
+    return results
+
+
+def example_17() -> Dict:
+    """
+    Test of C-Index test implementation
+    """
+
+    # Toy example:
+
+    # An indicator whether the event was observed [optional: if not supplied all events are assumed to be observed]
+    toy_data = dict(
+        id=list(range(10)),
+        pred=[0.1, 0.2, 0.3, 0.4, 0.5] + [0.2, 0.1, 0.4, 0.3, 0.7],
+        event_observed=[0, 0, 0, 0, 0] + [1, 1, 1, 1, 1],
+        event_times=[1, 2, 3, 4, 5] + [1, 2, 3, 4, 5],  # event time / censor time
+    )
+    # convert to dataframes:
+    df = pd.DataFrame(data=toy_data)
+
+    data = {"data": df}
+
+    # list of metrics
+    metrics = OrderedDict(
+        [
+            (
+                "c_index_test",
+                MetricCIndex(pred="data.pred", event_times="data.event_times", event_observed="data.event_observed"),
+            ),
+        ]
+    )
+
+    evaluator = EvaluatorDefault()
+    results = evaluator.eval(ids=None, data=data, metrics=metrics)
 
     return results

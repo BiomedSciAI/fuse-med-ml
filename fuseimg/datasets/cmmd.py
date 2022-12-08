@@ -68,8 +68,8 @@ class CMMD:
                 (OpLoadImage(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", format="dcm")),
                 (OpFlipBrightSideOnLeft2D(), dict(key="data.input.img")),
                 (OpFindBiggestNonEmptyBbox2D(), dict(key="data.input.img")),
-                (OpNormalizeAgainstSelf(), dict(key="data.input.img")),
                 (OpToNumpy(), dict(key="data.input.img", dtype=np.float32)),
+                (OpNormalizeAgainstSelf(), dict(key="data.input.img")),
                 (OpResizeAndPad2D(), dict(key="data.input.img", resize_to=(2200, 1200), padding=(60, 60))),
                 (
                     OpReadDataframe(

@@ -32,6 +32,7 @@ from typing import Dict, Optional, Any, List
 from termcolor import colored
 
 from fuse.utils.file_io.file_io import create_dir, create_or_reset_dir
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 
 class ProcessSafeHandler(logging.StreamHandler):
@@ -84,6 +85,7 @@ class ConsoleFormatter(logging.Formatter):
         return formatter.format(record)
 
 
+@rank_zero_only  # in ddp should start the logger once - on the main process
 def fuse_logger_start(
     output_path: Optional[str] = None,
     console_verbose_level: int = logging.INFO,
@@ -127,7 +129,6 @@ def fuse_logger_start(
         log_output_path = os.path.join(output_path, "logs")
         # Create log dir
         create_dir(log_output_path)
-
         # file info
         file_handler = logging.FileHandler(os.path.join(log_output_path, f"fuse_{timestr}.log"))
         file_handler.setLevel(logging.INFO)

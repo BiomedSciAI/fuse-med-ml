@@ -42,6 +42,7 @@ class SamplesCacher:
         restart_cache: bool = False,
         workers: int = 0,
         verbose=1,
+        use_pipeline_hash: Optional[bool] = True,
         **audit_kwargs: dict,
     ) -> None:
         """
@@ -59,6 +60,7 @@ class SamplesCacher:
         Should be used every time that any of the OPs participating in the "static cache" part changed in any way
         (for example, code change)
         :param workers: number of multiprocessing workers used when building the cache. Default value is 0 (no multiprocessing)
+        :param use_pipeline_hash [Optional]: indicates whether to use a hash of given pipeline for naming its cache dir. Default=True
         :param **audit_kwargs: optional custom kwargs to pass to SampleCachingAudit instance.
             auditing cached samples (usually periodically) is very important, in order to avoid "stale" cached samples.
             To disable pass audit_first_sample=False, audit_rate=None,
@@ -83,8 +85,13 @@ class SamplesCacher:
             self._read_dirs_logic = custom_read_dirs_callable
 
         self._pipeline = pipeline
+        self._use_pipeline_hash = use_pipeline_hash
+
         self._pipeline_desc_text = str(pipeline)
-        self._pipeline_desc_hash = "hash_" + hashlib.md5(self._pipeline_desc_text.encode("utf-8")).hexdigest()
+        if use_pipeline_hash:
+            self._pipeline_desc_hash = "hash_" + hashlib.md5(self._pipeline_desc_text.encode("utf-8")).hexdigest()
+        else:
+            self._pipeline_desc_hash = "hash_fixed"
 
         self._verbose = verbose
 
@@ -118,7 +125,8 @@ class SamplesCacher:
                     raise Exception(
                         f"Found samples cache for pipeline hash {os.path.basename(found_dir)} which is different from the current loaded pipeline hash {self._pipeline_desc_hash} !!\n"
                         "This is not allowed, you may only use a single pipeline per uniquely named cache.\n"
-                        'You can use "restart_cache=True" to rebuild the cache or delete the different cache manually.\n'
+                        "You can use 'restart_cache=True' to rebuild the cache or delete the different cache manually.\n"
+                        f"Cache full path {os.path.abspath(d)}"
                     )
 
     def delete_cache(self) -> None:
@@ -137,12 +145,8 @@ class SamplesCacher:
         print("---- list end ----")
         print("deleting ... ")
         for del_dir in dirs_to_delete:
-            print(f"deleting {del_dir} ...")
-            all_found = glob(os.path.join(del_dir, "hash_*"))
-            for found in all_found:
-                if not os.path.isdir(found):
-                    continue
-                delete_directory_tree(found)
+            print(f"deleting {os.path.abspath(del_dir)} ...")
+            delete_directory_tree(del_dir)
 
     def _get_write_dir(self):
         ans = self._write_dir_logic(self._cache_dirs)
@@ -175,7 +179,7 @@ class SamplesCacher:
         for curr_read_dir in read_dirs:
             fullpath_filename = os.path.join(curr_read_dir, "full_sets_info", hash_filename)
             if os.path.isfile(fullpath_filename):
-                print(f"entire samples set {hash_filename} already cached. Found {fullpath_filename}")
+                print(f"entire samples set {hash_filename} already cached. Found {os.path.abspath(fullpath_filename)}")
                 return load_pickle(fullpath_filename)
 
         orig_sid_to_final = OrderedDict()
@@ -186,6 +190,7 @@ class SamplesCacher:
             workers=self._workers,
             copy_to_global_storage=for_global_storage,
             verbose=1,
+            desc="caching",
         )
 
         for initial_sample_id, output_sample_ids in zip(orig_sample_ids, all_ans):

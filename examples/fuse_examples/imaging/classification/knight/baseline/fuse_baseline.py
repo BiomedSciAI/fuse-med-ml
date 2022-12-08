@@ -7,7 +7,7 @@ import yaml
 import pandas as pd
 from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
-from fuse.dl.models.heads.heads_3D import Head3DClassifier
+from fuse.dl.models.heads.heads_3D import Head3D
 from fuseimg.datasets.knight import KNIGHT
 import torch.nn.functional as F
 import torch.nn as nn
@@ -51,11 +51,12 @@ def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_d
         conv_inputs=(("data.input.img", 1),),
         backbone=backbone,
         heads=[
-            Head3DClassifier(
+            Head3D(
                 head_name="head_0",
+                mode="classification",
                 conv_inputs=conv_inputs,
                 dropout_rate=imaging_dropout,
-                num_classes=num_classes,
+                num_outputs=num_classes,
                 append_features=append_features,
                 append_layers_description=(256, 128),
                 fused_dropout_rate=fused_dropout,

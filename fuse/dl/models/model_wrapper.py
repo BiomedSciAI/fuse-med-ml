@@ -62,7 +62,7 @@ class ModelWrapSeqToDict(torch.nn.Module):
         self.post_forward_processing_function = post_forward_processing_function
         self.model_outputs = model_outputs
 
-    def forward(self, batch_dict: NDict) -> Dict:
+    def forward(self, batch_dict: NDict, *args, **kwargs) -> Dict:
         # convert input to the model's expected input
         model_input = [batch_dict[conv_input] for conv_input in self.model_inputs]
 
@@ -71,7 +71,7 @@ class ModelWrapSeqToDict(torch.nn.Module):
             model_input = self.pre_forward_processing_function(model_input)
 
         # run the model
-        model_output = self.model.forward(*model_input)
+        model_output = self.model(*model_input, *args, **kwargs)
 
         # convert output of model to Fuse expected output
         if self.post_forward_processing_function is not None:
@@ -84,6 +84,12 @@ class ModelWrapSeqToDict(torch.nn.Module):
                 batch_dict[output_name] = model_output[i]
 
         return batch_dict
+
+    def __getattr__(self, name):
+        try:
+            return super().__getattr__(name)
+        except:
+            return self.model.__getattribute__(name)
 
 
 class ModelWrapDictToSeq(torch.nn.Module):

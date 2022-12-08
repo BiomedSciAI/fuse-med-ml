@@ -30,7 +30,7 @@ Note - if you installed fuse using the recommended way
 ```bash
 $ pip install -e .[all]
 ```
-you should have the libraries already installed, however, if you want to manually install those libs see [requirements_dev.txt](./fuse/utils/requirements_dev.txt) 
+you should have the libraries already installed, however, if you want to manually install those libs see [requirements_dev.txt](./fuse/utils/requirements_dev.txt)
 
 ### Formatter `black`
 

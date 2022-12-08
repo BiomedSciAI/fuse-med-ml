@@ -101,4 +101,5 @@ class SampleCachingAudit:
                 "Gladly, the Audit feature caught this stale cache state! :)\n"
                 f"sample id in which this staleness was caught: {get_sample_id(fresh_sample)}\n"
                 'NOTE: if small changes between the saved cached and the live-loaded/processed sample are ok for your use case, you can set a tolerance epsilon like this: audit_diff_kwargs={"math_epsilon":1e-9}'
+                f"diff = {diff}"
             )

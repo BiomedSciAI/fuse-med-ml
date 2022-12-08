@@ -76,14 +76,14 @@ class OpReadDataframe(OpBase):
 
         # rename columns
         if self._rename_columns is not None:
-            df.rename(self._rename_columns, axis=1, inplace=True)
+            df = df.rename(self._rename_columns, axis=1)
 
         # convert to dictionary: {index -> {column -> value}}
         if self._key_column is not None:
             df = df.set_index(self._key_column)
         self._data = df.to_dict(orient="index")
 
-    def __call__(self, sample_dict: NDict, prefix: Optional[str] = None, **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, prefix: Optional[str] = None) -> Union[None, dict, List[dict]]:
         """
         See base class
 

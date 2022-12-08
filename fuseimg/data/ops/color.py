@@ -1,7 +1,6 @@
 from typing import Tuple, Union
 import numpy as np
 import torch
-import skimage
 from fuse.utils.ndict import NDict
 
 from fuse.data.ops.op_base import OpBase
@@ -62,8 +61,9 @@ class OpNormalizeAgainstSelf(OpBase):
         super().__init__(**kwargs)
 
     def __call__(self, sample_dict: NDict, key: str):
-        img = sample_dict[key]
-        img = skimage.img_as_float(img)
+        img = sample_dict[key].astype(np.float32)
+        img -= img.min()
+        img /= img.max()
         sample_dict[key] = img
 
         return sample_dict

@@ -18,76 +18,6 @@ Typically, you'd only need to call get_from_global_storage from your worker_func
 _multiprocess_global_storage = {}
 
 
-def __orig__run_multiprocessed(
-    worker_func,
-    args_list,
-    workers=0,
-    verbose=0,
-    copy_to_global_storage: Optional[dict] = None,
-    keep_results_order: bool = True,
-) -> List[Any]:
-    """
-    Args:
-        worker_func: a worker function, must accept only a single positional argument and no optional args.
-            For example:
-            def some_worker(args):
-                speed, height, banana = args
-                ...
-                return ans
-        args_list: a list in which each element is the input to func
-        workers: number of processes to use. Use 0 for no spawning of processes (helpful when debugging)
-        copy_to_global_storage: Optional - to optimize the running time - the provided dict will be stored in a way that is accesible to worker_func.
-         calling get_from_global_storage(...) will allow access to it from within any worker_func
-        This allows to create a significant speedup in certain cases, and the main idea is that it allows to drastically reduce the amount of data
-         that gets (automatically) pickled by python's multiprocessing library.
-        Instead of copying it for each worker_func invocation, it will be copied once, upon worker process initialization.
-    Returns:
-        List of results from calling func, in the same order as args_list
-    """
-    if "DEBUG_SINGLE_PROCESS" in os.environ and os.environ["DEBUG_SINGLE_PROCESS"] in ["T", "t", "True", "true", 1]:
-        workers = None
-        cprint(
-            "Due to the env variable DEBUG_SINGLE_PROCESS being set, run_multiprocessed is not using multiprocessing",
-            "red",
-        )
-    assert callable(worker_func)
-
-    if verbose < 1:
-        tqdm_func = lambda x: x
-    else:
-        tqdm_func = tqdm
-
-    if copy_to_global_storage is None:
-        copy_to_global_storage = {}
-
-    all_res = []
-    if workers is None or workers <= 1:
-        _store_in_global_storage(copy_to_global_storage)
-        for i in tqdm_func(range(len(args_list))):
-            curr_ans = worker_func(args_list[i])
-            all_res.append(curr_ans)
-        _remove_from_global_storage(list(copy_to_global_storage.keys()))
-    else:
-        assert isinstance(workers, int)
-        assert workers >= 0
-
-        with mp.Pool(
-            processes=workers,
-            initializer=_store_in_global_storage,
-            initargs=(copy_to_global_storage,),
-            maxtasksperchild=400,
-        ) as pool:
-            if verbose > 0:
-                cprint(f"multiprocess pool created with {workers} workers.", "cyan")
-            map_func = pool.imap if keep_results_order else pool.imap_unordered
-            for curr_ans in tqdm_func(
-                map_func(worker_func, args_list), total=len(args_list), smoothing=0.1, disable=verbose < 1
-            ):
-                all_res.append(curr_ans)
-
-    return all_res
-
-
 def run_multiprocessed(
     worker_func,
     args_list,
@@ -97,6 +27,7 @@ def run_multiprocessed(
     keep_results_order: bool = True,
     as_iterator=False,
     mp_context: Optional[str] = None,
+    desc: Optional[str] = None,
 ) -> List[Any]:
     """
     Args:
@@ -132,6 +63,7 @@ def run_multiprocessed(
         copy_to_global_storage=copy_to_global_storage,
         keep_results_order=keep_results_order,
         mp_context=mp_context,
+        desc=desc,
     )
 
     if as_iterator:
@@ -149,6 +81,7 @@ def _run_multiprocessed_as_iterator_impl(
     copy_to_global_storage: Optional[dict] = None,
     keep_results_order: bool = True,
     mp_context: Optional[str] = None,
+    desc: Optional[str] = None,
 ) -> List[Any]:
     """
     an iterator version of run_multiprocessed - useful when the accumulated answer is too large to fit in memory
@@ -187,7 +120,7 @@ def _run_multiprocessed_as_iterator_impl(
     if verbose < 1:
         tqdm_func = lambda x: x
     else:
-        tqdm_func = tqdm
+        tqdm_func = functools.partial(tqdm, desc=desc)
 
     if copy_to_global_storage is None:
         copy_to_global_storage = {}

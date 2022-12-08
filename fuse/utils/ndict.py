@@ -17,7 +17,7 @@ Created on June 30, 2021
 
 """
 from __future__ import annotations
-from _collections_abc import dict_items
+from _collections_abc import dict_items, dict_keys
 
 import copy
 import types
@@ -129,7 +129,10 @@ class NDict(dict):
         """
         return list(self.flatten().keys())
 
-    def keys(self) -> dict_items:
+    def keys(self) -> dict_keys:
+        """
+        returns the top-level keys of the dictionary
+        """
         return self._stored.keys()
 
     def values(self) -> dict_items:
@@ -321,14 +324,16 @@ class NestedKeyError(KeyError):
     def __init__(self, key: str, d: NDict) -> None:
         partial_key = d.get_closest_key(key)
         if partial_key == "":
-            partial_ndict = d
+            error_str = f"Error: key {key} does not exist\n. All keys: {d.keypaths()}"
         else:
             partial_ndict = d[partial_key]
 
-        if isinstance(partial_ndict, NDict):
-            options = str([f"{partial_key}.{k}" for k in partial_ndict.keypaths()])
-            error_str = f"Error: key {key} does not exist\n. Possible keys on the same branch are: {options}. All keys {d.keypaths()}"
-        else:
-            error_str = f"Error: key {key} does not exist\n. Closest key is: {partial_key}. All keys: {d.keypaths()}"
+            if isinstance(partial_ndict, NDict):
+                options = str([f"{partial_key}.{k}" for k in partial_ndict.keypaths()])
+                error_str = f"Error: key {key} does not exist\n. Possible keys on the same branch are: {options}. All keys {d.keypaths()}"
+            else:
+                error_str = (
+                    f"Error: key {key} does not exist\n. Closest key is: {partial_key}. All keys: {d.keypaths()}"
+                )
         print(error_str)
         super().__init__(error_str)

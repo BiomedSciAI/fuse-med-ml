@@ -2,12 +2,12 @@
 max-line-length = 120
 
 # Errors to ignore   - TODO: Double check
-ignore = 
+ignore =
     # Line too long
     E501,
     # whitespace before ','
     E203,
-    # block comment should start with ‘# ‘ 
+    # block comment should start with ‘# ‘
     E265,
     # too many leading ‘#’ for block comment
     E266,
@@ -26,11 +26,12 @@ ignore =
 
 # Files to exclude:
 exclude =
-    # ignore all tests
-    test_*
-    # ignore local examples source files
+    # local private runs
     _examples
-    
+
+    # TEMP - ignore all tests
+    test_*
+
     ## General Excludes (TEMP, double check)
     # .py files
     __init__.py

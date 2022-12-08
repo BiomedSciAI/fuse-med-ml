@@ -23,6 +23,8 @@ from fuse.utils.misc.misc import get_pretty_dataframe
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
+
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 import torch
 import pandas as pd
 
@@ -71,12 +73,16 @@ class ModelEpochSummary(Callback):
         self._monitor = monitor
         self._mode = mode
         self._dirpath = dirpath
-        self._filename = filename if filename is not None else f"epoch_summary_{self._monitor}.txt"
+        self._filename = filename if filename is not None else f"epoch_summary_{self._monitor.replace('/', '.')}.txt"
         self._best_epoch_metrics = None
         self._best_epoch_index = None
 
-    def print_epoch_summary_table(self, epoch_metircs: dict, epoch_source_index: int) -> None:
-        """Generate, print and log the table"""
+    @rank_zero_only
+    def print_epoch_summary_table(self, epoch_metrics: dict, epoch_source_index: int) -> None:
+        """
+        Generate, print and log the epoch summary table.
+        Decorator makes sure it runs only once in a DDP strategy.
+        """
 
         def get_value_as_float_str(dict, key):
             val_as_str = "N/A"
@@ -92,9 +98,9 @@ class ModelEpochSummary(Callback):
         )
         idx = 0
 
-        eval_keys = sorted(epoch_metircs.keys())
+        eval_keys = sorted(epoch_metrics.keys())
         for evaluator_name in eval_keys:
-            current_str = get_value_as_float_str(epoch_metircs, evaluator_name)
+            current_str = get_value_as_float_str(epoch_metrics, evaluator_name)
             best_so_far_str = get_value_as_float_str(self._best_epoch_metrics, evaluator_name)
 
             stats_table.loc[idx] = [f"{evaluator_name}", best_so_far_str, current_str]

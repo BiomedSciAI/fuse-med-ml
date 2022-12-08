@@ -36,6 +36,7 @@ from fuse.eval.examples.examples import (
     example_11,
     example_12,
     example_13,
+    example_14,
 )
 
 from fuse.eval.examples.examples_segmentation import (
@@ -127,6 +128,11 @@ class TestEval(unittest.TestCase):
         results = example_12()
         self.assertAlmostEqual(results["metrics.acc"], 0.615, places=2)
 
+    def test_eval_example_14(self):
+        results = example_14()
+        self.assertAlmostEqual(results["metrics.cindex_per_group.male"], 0.66, places=2)
+        self.assertAlmostEqual(results["metrics.cindex_per_group.female"], 1.0, places=2)
+
     def test_eval_example_seg_0(self):
         results = example_seg_0()
         self.assertAlmostEqual(results["metrics.dice_label_1.1"], 0.8740, places=3)
@@ -178,6 +184,10 @@ class TestEval(unittest.TestCase):
         self.assertAlmostEqual(results["metrics.ece_calibrated"]["mce"], 0.300, places=2)
         self.assertAlmostEqual(results["metrics.reliability_calibrated"]["avg_accuracy"], 0.566, places=2)
         self.assertAlmostEqual(results["metrics.reliability_calibrated"]["avg_confidence"], 0.485, places=2)
+
+    def test_eval_example_14(self):
+        results = example_14()
+        self.assertGreater(results["metrics.accuracy"], 0.9)
 
 
 if __name__ == "__main__":

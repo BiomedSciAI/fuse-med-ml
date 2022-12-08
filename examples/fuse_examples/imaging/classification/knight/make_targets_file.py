@@ -43,21 +43,23 @@ def make_targets_file(data_path: str, split: Union[str, dict], output_filename: 
     # Data
     # read train/val splits file.
     # use validation set if split specified, otherwise assume testset
-    if isinstance(split, str):
+    if split is not None:
         is_validation_set = True
     else:
         assert split is None, f"Error: unexpected split format {split}"
         is_validation_set = False
 
     if is_validation_set:
-        split = pd.read_pickle(split)
+        if isinstance(split, str):
+            split = pd.read_pickle(split)
         if isinstance(split, list):
             # For this example, we use split 0 out of the the available cross validation splits
             split = split[0]
 
-            json_labels_filepath = os.path.join(data_path, "knight.json")
-            labels = pd.read_json(json_labels_filepath)
-            labels = pd.DataFrame({"target": labels["aua_risk_group"].values})
+        json_labels_filepath = os.path.join(data_path, "knight.json")
+        labels = pd.read_json(json_labels_filepath)
+        labels = labels[labels["case_id"].isin(split["val"])]
+        labels = pd.DataFrame({"target": labels["aua_risk_group"].values})
 
     else:  # test mode
         # if this function is ran in test mode, then presumably the user has the test labels
