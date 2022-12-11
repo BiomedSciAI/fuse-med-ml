@@ -510,8 +510,10 @@ class OpCond(OpBase):
         else:
             return sample_dict
 
+
 class OpSet(OpBase):
     """Add/override key-value pair into sample_dict"""
+
     def __call__(self, sample_dict: NDict, key: str, value: Any) -> Union[None, dict, List[dict]]:
         """
         :param key: where to store the value
@@ -519,4 +521,3 @@ class OpSet(OpBase):
         """
         sample_dict[key] = value
         return sample_dict
-
