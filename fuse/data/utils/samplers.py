@@ -19,7 +19,7 @@ Created on June 30, 2021
 
 import math
 import numpy as np
-from typing import Any, List, Optional, Union, Sequence
+from typing import Any, List, Optional, Union, Sequence, Dict
 from torch.utils.data.sampler import Sampler, BatchSampler
 from fuse.data.datasets.dataset_base import DatasetBase
 
@@ -37,7 +37,7 @@ class BatchSamplerDefault(BatchSampler):
         sampler: Optional[Sampler] = None,
         batch_size: Optional[int] = None,
         mode: str = "exact",
-        balanced_class_weights: Union[List[int], List[float], None] = None,
+        balanced_class_weights: Union[List[int], List[float], Dict[Any, int], Dict[Any, float], None] = None,
         num_batches: Optional[int] = None,
         verbose: bool = False,
         **dataset_get_multi_kwargs,
@@ -45,18 +45,18 @@ class BatchSamplerDefault(BatchSampler):
         """
         :param dataset: dataset used to extract the balanced class from each sample
         :param balanced_class_name:  the name of balanced class to extract from dataset
-        :param num_balanced_classes: number of classes to balance between
+        :param num_balanced_classes: Not used. the number of classes inferred automatically. Keeping for backward compatibility.
         :param sampler: Optional - pytorch sampler for collecting the data.
                         In use in DDP strategy, when PL trainer re-instantiate a custom batch_sampler with a DistributedSampler.
         :param batch_size: batch_size.
                         - In "exact" mode
-                            If balanced_class_weights is None, must be set and divided by num_balanced_classes. Otherwise keep None.
+                            If balanced_class_weights is None, must be set and divided by number of classes. Otherwise keep None.
                         - In "approx" mode
                           Must be set
         :param mode: either 'exact' or 'approx'. if 'exact each element in balanced_class_weights will specify the exact number of samples from this class.
                         if 'approx' - each element will specify the a probability that a sample will be from this class
         :param balanced_class_weights: Optional, integer/float per balanced class.
-                                        If it's a list, the expected length is num_balanced_classes and the classes expected to be sequential integers.
+                                        If it's a list, the expected length is number of classes and the classes expected to be sequential integers.
                                         If it's a dictionary: expected to include <key = balanced class value: value: weight> and classes could be any value - for example  strings.
                                         In mode 'exact' the weights should be integers that sums up to batch size.
                                         In mode 'approx' the weights should be floats that sums up to ~1
@@ -70,7 +70,6 @@ class BatchSamplerDefault(BatchSampler):
         # store input
         self._dataset = dataset
         self._balanced_class_name = balanced_class_name
-        self._num_balanced_classes = num_balanced_classes
         self._sampler = sampler
         self._batch_size = batch_size
         self._mode = mode
@@ -111,9 +110,6 @@ class BatchSamplerDefault(BatchSampler):
                 self._balanced_class_weights.get(value, 0) for value in self._balanced_class_values
             ]
 
-        if self._num_balanced_classes is not None:
-            self._num_balanced_classes = len(self._balanced_class_values)
-
         # validate input
         # modes
         if self._mode not in ["exact", "approx"]:
@@ -152,30 +148,24 @@ class BatchSamplerDefault(BatchSampler):
                         f"Error: in mode 'exact', expecting balanced_class_weight to sum up to almost one, got {balanced_class_weights}"
                     )
 
-        if self._mode == "exact":
-            if self._batch_size < self._num_balanced_classes:
-                raise Exception(
-                    f"Error: batch_size ({self._batch_size}) should be greater than or equal to num_balanced_class ({self._num_balanced_classes})."
-                )
-
         # if weights not specified, set weights to equally balance per batch
         if self._balanced_class_weights_list is None:
             if self._mode == "exact":
-                if self._batch_size % self._num_balanced_classes:
-                    raise Exception(
-                        f"Error: num_balanced_class ({self._num_balanced_classes}) should divide batch_size ({self._batch_size}) in exact mode."
-                    )
-
                 self._balanced_class_weights = {
-                    cls_i: self._batch_size // self._num_balanced_classes for cls_i in self._balanced_class_values
+                    cls_i: self._batch_size // len(self._balanced_class_values) for cls_i in self._balanced_class_values
                 }
             elif self._mode == "approx":
                 self._balanced_class_weights = {
-                    cls_i: 1.0 / self._num_balanced_classes for cls_i in self._balanced_class_values
+                    cls_i: 1.0 / len(self._balanced_class_values) for cls_i in self._balanced_class_values
                 }
                 self._balanced_class_weights_list = [
                     self._balanced_class_weights[cls_i] for cls_i in self._balanced_class_values
                 ]
+        else:
+            if self._batch_size < sum(self._balanced_class_weights_list):
+                raise Exception(
+                    f"Error: batch_size ({self._batch_size}) should be greater than or equal to number of samples specified in balanced_class_weights."
+                )
 
         # split samples to groups
         self._balanced_class_indices = {
