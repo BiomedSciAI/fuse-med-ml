@@ -304,12 +304,15 @@ class NDict(dict):
         """
         static-method to print the inner structure of a dict in a tree-like structure.
         """
-        if type(data_dict) == dict:
-            keys = data_dict.keys()
-            level += 1
-            for key in keys:
+        keys = data_dict.keys()
+        level += 1
+        for key in keys:
+            if type(data_dict[key]) == dict:
                 print("---" * level, key)
                 NDict._print_tree_static(data_dict[key], level)
+            else:
+                print("---" * level, key, "->", data_dict[key])
+        
 
     def describe(self) -> None:
         for k in self.keypaths():

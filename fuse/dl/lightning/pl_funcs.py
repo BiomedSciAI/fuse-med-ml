@@ -56,7 +56,7 @@ def start_clearml_logger(
     deferred_init: bool = False,
 ) -> TaskInstance:
     """
-    Just a fuse function to quickly start the clearml logger. It sets up patches to pytorch lightning logging hooks so it doesnt need to be passed to any lightning logger.
+    Just a fuse function to quickly start the clearml logger. It sets up patches to pytorch lightning logging hooks so it doesn't need to be passed to any lightning logger.
     For information on all the arguments please see: https://clear.ml/docs/latest/docs/references/sdk/task/ or https://github.com/allegroai/clearml/blob/master/clearml/task.py
 
     General Clearml instructions:
@@ -65,7 +65,7 @@ def start_clearml_logger(
     Otherwise, offline mode instructions can be found here: https://clear.ml/docs/latest/docs/guides/set_offline/
 
     Example usage:
-    from dl.lightning.pl_funcs import start_clearml_logger
+    from fuse.dl.lightning.pl_funcs import start_clearml_logger
     start_clearml_logger(project_name="my_project_name", task_name="test_01")
     """
     task = Task.init(
