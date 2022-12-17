@@ -125,7 +125,8 @@ class SamplesCacher:
                     raise Exception(
                         f"Found samples cache for pipeline hash {os.path.basename(found_dir)} which is different from the current loaded pipeline hash {self._pipeline_desc_hash} !!\n"
                         "This is not allowed, you may only use a single pipeline per uniquely named cache.\n"
-                        'You can use "restart_cache=True" to rebuild the cache or delete the different cache manually.\n'
+                        "You can use 'restart_cache=True' to rebuild the cache or delete the different cache manually.\n"
+                        f"Cache full path {os.path.abspath(d)}"
                     )
 
     def delete_cache(self) -> None:

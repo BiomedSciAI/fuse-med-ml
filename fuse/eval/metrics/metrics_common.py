@@ -531,7 +531,7 @@ class Filter(MetricWithCollectorBase):
             ids = self._collector.get_ids()
         if not ids:
             raise Exception(
-                "Error: group analysis is supported only when a unique identifier is specified. Add key 'id' to your data"
+                "Error: filtering is supported only when a unique identifier is specified. Add key 'id' to your data"
             )
         ids = np.array(ids)
 

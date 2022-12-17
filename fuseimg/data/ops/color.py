@@ -61,7 +61,7 @@ class OpNormalizeAgainstSelf(OpBase):
         super().__init__(**kwargs)
 
     def __call__(self, sample_dict: NDict, key: str):
-        img = sample_dict[key]
+        img = sample_dict[key].astype(np.float32)
         img -= img.min()
         img = img / img.max()
         sample_dict[key] = img
