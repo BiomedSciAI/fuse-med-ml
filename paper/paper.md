@@ -51,6 +51,11 @@ FuseMedML was designed with the goal of alleviating these challenges.
 Before open sourcing it, we used *fuse* internally in multiple research projects [@raboh2022context], [@rabinovici2022early], [@rabinovici2022multimodal], [@jubran2021glimpse], [@tlusty2021pre], [@golts2022ensemble], [@radiology] and experienced significant improvement in development time, reusability and collaboration. 
 We were also able to meaningfully measure our progress and statistical significance of our results with off-the-shelf *fuse.eval* components that facilitate metrics' confidence interval calculation and model comparison. These tools have enabled us to organize two challenges as part of the 2022 International Symposium on Biomedical Imaging (ISBI) [@knight], [@bright].
 
+# State of the field
+FuseMedML is a comprehensive ML library with an emphasis on the biomedical domain. It provides a broad set of tools spanning the whole development pipeline, from data preparation, through model training to evaluation. It is built on top of leading ML frameworks such as PyTorch [@NEURIPS2019_bdbca288] and PyTorch Lightning [@Falcon_PyTorch_Lightning_2019], and attempts to complement them where needed, as well as introduce domain specific layers.  
+One way in which *fuse* is unique is in it's flexible design concept of storing data in a specialized nested dictionary. This is a key driver of flexibility, allowing minimal code modifications when moving building blocks between different projects.  
+There are existing PyTorch-based ML libraries that similarly to *fuse* cater to researchers in the biomedical domain. Two such prominent libraries are MONAI [@Cardoso_MONAI_An_open-source_2022] and PyHealth [@DBLP:journals/corr/abs-2101-04209]. One aspect in which *fuse* may complement MONAI is in the availability of tools for comparing between models as well as analyzing statistical significance of metric results. In PyHealth, unlike *fuse* the main focus appears to be on health records data, with not enough emphasis on medical imaging data and models. 
+
 # Packages
 
 ## *fuse.data*
