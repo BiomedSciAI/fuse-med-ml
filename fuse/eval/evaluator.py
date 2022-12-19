@@ -21,6 +21,7 @@ import os
 from typing import Dict, Hashable, Iterable, List, Optional, OrderedDict, Sequence, Union
 import pickle
 import pandas as pd
+import numpy as np
 
 from fuse.utils import read_dataframe
 from fuse.utils import NDict
@@ -213,13 +214,29 @@ class EvaluatorDefault:
                 df_list.append(data_elem_df)
 
             # make sure ids exists in all dataframes
-            for data_elem_df in df_list:
+            for i_df, data_elem_df in enumerate(df_list):
                 missing_ids = all_ids - set(data_elem_df.index)
                 if len(missing_ids) > 0:
-                    raise Exception(
-                        f"Error: ids {missing_ids} are missing in data['{data_elem_df.keys()[0].split('.')[0]}']"
-                    )
+                    if error_missing_ids:
+                        raise Exception(
+                            f"Error: ids {missing_ids} are missing in data['{data_elem_df.keys()[0].split('.')[0]}']"
+                        )
+                    else:
+                        n = len(missing_ids)
+                        
+                        missing_df = pd.DataFrame(index=list(missing_ids))
+                        for i_col, col in enumerate(data_elem_df.columns):
+                            x = data_elem_df.iloc[0][i_col]
 
+                            if isinstance(x, np.ndarray):
+                                missing_df[col] = [np.NaN*np.ones_like(x)] * n
+                            elif np.isreal(x):
+                                missing_df[col] = np.NaN 
+                            else:
+                                missing_df[col] = None
+
+                        df_list[i_df] = pd.concat((data_elem_df, missing_df), axis=0)
+      
             result_data = pd.concat(df_list, axis=1, join="inner")
             result_data[id_key] = result_data.index
 

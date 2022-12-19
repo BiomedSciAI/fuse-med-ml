@@ -22,6 +22,9 @@ class PerSampleData:
             # convert required ids to permutation
             original_ids = self._ids
             required_ids = ids
-            permutation = [original_ids.index(sample_id) for sample_id in required_ids]
+            #permutation = [original_ids.index(sample_id) for sample_id in required_ids]
+            original_ids_pos = {s : i  for (i,s) in enumerate(original_ids)}
+            permutation = [original_ids_pos[sample_id] for sample_id in required_ids] 
+
 
             return [self._data[i] for i in permutation]
