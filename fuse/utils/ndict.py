@@ -293,14 +293,14 @@ class NDict(dict):
 
         return ans
 
-    def print_tree(self) -> None:
+    def print_tree(self, print_keys=False) -> None:
         """
         print the inner structure of the nested dict with a tree-like structure.
         """
-        self._print_tree_static(self._stored)
+        self._print_tree_static(self._stored, print_keys=print_keys)
 
     @staticmethod
-    def _print_tree_static(data_dict: dict, level: int = 0) -> None:
+    def _print_tree_static(data_dict: dict, level: int = 0, print_keys=False) -> None:
         """
         static-method to print the inner structure of a dict in a tree-like structure.
         """
@@ -309,8 +309,8 @@ class NDict(dict):
         for key in keys:
             if type(data_dict[key]) == dict:
                 print("---" * level, key)
-                NDict._print_tree_static(data_dict[key], level)
-            else:
+                NDict._print_tree_static(data_dict[key], level, print_keys=print_keys)
+            elif print_keys:
                 print("---" * level, key, "->", data_dict[key])
 
     def describe(self) -> None:
