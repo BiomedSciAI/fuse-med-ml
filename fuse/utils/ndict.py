@@ -312,7 +312,6 @@ class NDict(dict):
                 NDict._print_tree_static(data_dict[key], level)
             else:
                 print("---" * level, key, "->", data_dict[key])
-        
 
     def describe(self) -> None:
         for k in self.keypaths():

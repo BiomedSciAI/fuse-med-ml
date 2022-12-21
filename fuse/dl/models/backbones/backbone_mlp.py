@@ -17,7 +17,7 @@ Created on June 30, 2021
 
 """
 
-from typing import Dict, List
+from typing import List
 
 import torch
 import torch.nn as nn
