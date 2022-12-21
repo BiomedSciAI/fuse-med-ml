@@ -310,8 +310,11 @@ class NDict(dict):
             if type(data_dict[key]) == dict:
                 print("---" * level, key)
                 NDict._print_tree_static(data_dict[key], level, print_keys=print_keys)
-            elif print_keys:
-                print("---" * level, key, "->", data_dict[key])
+            else:
+                if print_keys:
+                    print("---" * level, key, "->", data_dict[key])
+                else:
+                    print("---" * level, key)
 
     def describe(self) -> None:
         for k in self.keypaths():
