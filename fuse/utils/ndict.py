@@ -293,25 +293,50 @@ class NDict(dict):
 
         return ans
 
-    def print_tree(self, print_keys: bool = False) -> None:
+    def print_tree(self, print_values: bool = False) -> None:
         """
         print the inner structure of the nested dict with a tree-like structure.
+
+        :param print_values: set to True in order to also print ndict's stored values
+
+
+        Example:
+
+            >>> ndict = NDict()
+            >>> ndict["data.input.drug"] = "this_is_a_drug_seq"
+            >>> ndict["data.input.target"] = "this_is_a_target_seq"
+            >>>
+            >>> ndict.print_tree()
+            --- data
+            ------ input
+            --------- drug
+            --------- target
+            >>>
+            >>> ndict.print_tree(print_values=True)
+            --- data
+            ------ input
+            --------- drug -> this_is_a_drug_seq
+            --------- target -> this_is_a_target_seq
+
         """
-        self._print_tree_static(self._stored, print_keys=print_keys)
+        self._print_tree_static(self._stored, print_values=print_values)
 
     @staticmethod
-    def _print_tree_static(data_dict: dict, level: int = 0, print_keys: bool = False) -> None:
+    def _print_tree_static(data_dict: dict, level: int = 0, print_values: bool = False) -> None:
         """
         static-method to print the inner structure of a dict in a tree-like structure.
+
+        :param level: current recursive level inside the ndict
+        :param print_values: set to True in order to also print ndict's stored values
         """
         keys = data_dict.keys()
         level += 1
         for key in keys:
             if type(data_dict[key]) == dict:
                 print("---" * level, key)
-                NDict._print_tree_static(data_dict[key], level, print_keys=print_keys)
+                NDict._print_tree_static(data_dict[key], level, print_values=print_values)
             else:
-                if print_keys:
+                if print_values:
                     print("---" * level, key, "->", data_dict[key])
                 else:
                     print("---" * level, key)
