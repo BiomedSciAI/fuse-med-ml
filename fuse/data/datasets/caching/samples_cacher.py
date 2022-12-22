@@ -122,6 +122,16 @@ class SamplesCacher:
                 if not os.path.isdir(found_dir):
                     continue
                 if os.path.basename(found_dir) != self._pipeline_desc_hash:
+                    pipeline_desc_file = os.path.join(found_dir, f'pipeline_{os.path.basename(found_dir)}_desc.txt')
+                    if os.path.exists(pipeline_desc_file):
+                        print("*** Old pipeline description", new_file)
+                        new_desc = self._pipeline_desc_text
+                        new_file = os.path.join(found_dir, f'pipeline_{self._pipeline_desc_hash}_desc.txt')
+                        with open(new_file, 'wt') as f:
+                            f.write(new_desc)
+
+                        print("*** New pipeline description", new_file)
+
                     raise Exception(
                         f"Found samples cache for pipeline hash {os.path.basename(found_dir)} which is different from the current loaded pipeline hash {self._pipeline_desc_hash} !!\n"
                         "This is not allowed, you may only use a single pipeline per uniquely named cache.\n"
@@ -197,6 +207,12 @@ class SamplesCacher:
             orig_sid_to_final[initial_sample_id] = output_sample_ids
 
         write_dir = self._get_write_dir()
+        pipeline_desc_file = os.path.join(write_dir, f'pipeline_{self._pipeline_desc_hash}_desc.txt')
+        if not os.path.exists(pipeline_desc_file):
+            with open(pipeline_desc_file, 'wt') as f:
+                f.write(self._pipeline_desc_text)
+            print("======== wrote", pipeline_desc_file)
+
         set_info_dir = os.path.join(write_dir, "full_sets_info")
         os.makedirs(set_info_dir, exist_ok=True)
         fullpath_filename = os.path.join(set_info_dir, hash_filename)
