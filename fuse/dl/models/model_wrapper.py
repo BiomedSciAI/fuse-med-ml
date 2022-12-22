@@ -62,7 +62,7 @@ class ModelWrapSeqToDict(torch.nn.Module):
         self.post_forward_processing_function = post_forward_processing_function
         self.model_outputs = model_outputs
         if isinstance(self.model_inputs, str) or isinstance(self.model_outputs, str):
-            raise Exception("Model Inputs and Outputs should be a Sequence. Not str.")
+            raise Exception("Model Inputs and Outputs should be a Sequence of keys to data in a batch NDict. Not str. See fuse.data for more info.")
 
     def forward(self, batch_dict: NDict, *args, **kwargs) -> Dict:
         # convert input to the model's expected input
