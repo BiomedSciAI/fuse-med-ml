@@ -23,9 +23,10 @@ import torch.nn as nn
 from torch import Tensor
 from torch.hub import load_state_dict_from_url
 from torchvision.models.video.resnet import VideoResNet, BasicBlock, Conv3DSimple, BasicStem, model_urls
+from torchvision.models.video import mc3_18, r3d_18
 
 
-class BackboneResnet3D(VideoResNet):
+class BackboneResnet3D(nn.Module):
     """
     3D model classifier (ResNet architecture"
     """
@@ -37,48 +38,23 @@ class BackboneResnet3D(VideoResNet):
         :param in_channels: number of input channels
         :param name: model name. currently only 'r3d_18' is supported
         """
-        # init parameters per required backbone
-        init_parameters = {
-            "r3d_18": {
-                "block": BasicBlock,
-                "conv_makers": [Conv3DSimple] * 4,
-                "layers": [2, 2, 2, 2],
-                "stem": BasicStem,
-            },
-        }[name]
         # init original model
-        super().__init__(**init_parameters)
+        super().__init__()
+        if name == "r3d_18":
+            self.model = r3d_18(pretrained=pretrained)
+        elif name == "mc3_18":
+            self.model = mc3_18(pretrained=pretrained)
 
-        # load pretrained parameters if required
-        if pretrained:
-            state_dict = load_state_dict_from_url(model_urls[name])
-            self.load_state_dict(state_dict)
+        
 
-        # save input parameters
-        self.pretrained = pretrained
-        self.in_channels = in_channels
-
-        if self.in_channels != 3:
+        if in_channels != 3:
             # override the first convolution layer to support any number of input channels
-            self.stem = nn.Sequential(
-                nn.Conv3d(self.in_channels, 64, kernel_size=(3, 7, 7), stride=(1, 2, 2), padding=(1, 3, 3), bias=False),
+            self.model.stem = nn.Sequential(
+                nn.Conv3d(in_channels, 64, kernel_size=(3, 7, 7), stride=(1, 2, 2), padding=(1, 3, 3), bias=False),
                 nn.BatchNorm3d(64),
                 nn.ReLU(inplace=True),
             )
-
-    def features(self, x: Tensor) -> Any:
-        """
-        Extract spatial features - given a 3D tensor
-        :param x: Input tensor - shape: [batch_size, channels, z, y, x]
-        :return: spatial features - shape [batch_size, n_features, z', y', x']
-        """
-        x = self.stem(x)
-
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
-        return x
+        self.model = nn.Sequential(self.model.stem, self.model.layer1,self.model.layer2, self.model.layer3, self.model.layer4)
 
     def forward(self, x: Tensor) -> Tuple[Tensor, None, None, None]:  # type: ignore
         """
@@ -86,5 +62,5 @@ class BackboneResnet3D(VideoResNet):
         :param x: Input volume. shape: [batch_size, channels, z, y, x]
         :return: logits for global classification. shape: [batch_size, n_classes].
         """
-        x = self.features(x)
+        x = self.model(x)
         return x
