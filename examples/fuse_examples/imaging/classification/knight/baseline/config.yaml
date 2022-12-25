@@ -1,17 +1,19 @@
-exp_name : "delete"
-experiment_num : 2
+exp_name : "testing-pretrained-med3d"
+experiment_num : 0 # 0 - self-norm | 2 - regular
 task_num : task_1 # task_1 or task_2 
 num_gpus : 1
 use_data : {"imaging": True, "clinical": True} 
-batch_size : 2
+batch_size : 3
 resize_to : [70, 256, 256]
-num_epochs : 70
+num_epochs : 120
 learning_rate : 0.00005
 imaging_dropout : 0.5
 fused_dropout : 0.5
-pretrained : False
-regression_head : True
+pretrained : True
+regression_head : False
 two_dim : False
+reset_cache : True
+gpus : [3]
 testing : False # for testing\continous integration
 
 task_1:

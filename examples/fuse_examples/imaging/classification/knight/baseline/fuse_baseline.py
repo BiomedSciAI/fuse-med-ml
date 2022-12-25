@@ -103,7 +103,8 @@ def main(cfg_path):
     rand_gen = Seed.set_seed(1234, deterministic_mode=True)
 
     # select gpus
-    GPU.choose_and_enable_multiple_gpus(cfg["num_gpus"], force_gpus=None)
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(cfg["gpus"][0])
+    GPU.choose_and_enable_multiple_gpus(1, force_gpus=cfg["gpus"])
 
     ## Model definition
     ##############################################################################
