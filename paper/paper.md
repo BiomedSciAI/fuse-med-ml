@@ -35,24 +35,23 @@ bibliography: paper.bib
 
 # Summary
 
-Machine Learning is at the forefront of scientific progress in Healthcare and Medicine. To accelerate scientific discovery, it is important to have tools that allow progress iterations to be collaborative, reproducible, reusable and easily built upon without "reinventing the wheel".  
+Machine Learning is at the forefront of scientific progress in Healthcare and Medicine. To accelerate scientific discovery, it is important to have tools that allow progress iterations to be collaborative, reproducible, reusable and easily built upon without "reinventing the wheel" for each task.  
 FuseMedML, or *fuse*, is a Python framework designed for accelerated Machine Learning (ML) based discovery in the medical domain. It is highly flexible and designed for easy collaboration, encouraging code reuse. Flexibility is enabled by a generic data object design where data is kept in a nested (hierarchical) Python dictionary (NDict), allowing to efficiently process and fuse information from multiple modalities. Functional components allow to specify input and output keys, to be read from and written to the nested dictionary.  
 Easy code reuse is enabled through key components implemented as standalone packages under the main *fuse* repo using the same design principles. These include *fuse.data* - a flexible data processing pipeline, *fuse.dl* - reusable Deep Learning (DL) model architecture components and loss functions, and *fuse.eval* - a library for evaluating ML models.  
 
 # Statement of need
-Medical related research projects span multiple modalities (e.g., imaging, clinical data, biochemical representations) and tasks (e.g., classification, segmentation, clinical conditions prediction).
-Through experience with many such projects we found three key challenges:
-1. Launching or implementing a new baseline model can take more time than it should. This is true even when very similar projects have already been done in the past by the same lab. 
-2. Porting individual components across projects is often painful, resulting in researchers “reinventing the wheel” time after time.
-3. Collaboration between projects across modalities as well as across domains such as imaging and molecules is very challenging.  
+Medical research often involves multiple modalities (e.g., imaging, clinical data, biochemical representations) and tasks (e.g., classification, segmentation, clinical condition prediction). In our experience working on numerous such projects, we have identified three key challenges:
+1. Setting up or implementing a new baseline model can be time-consuming, even when similar projects have already been completed by the same lab.
+2. Transferring individual components across projects can be difficult, leading to researchers frequently "reinventing the wheel."
+3. Collaborating between projects across modalities and domains, such as imaging and molecules, is often challenging.  
 
-FuseMedML was designed with the goal of alleviating these challenges.  
+To address these challenges, FuseMedML was developed with the goal of simplifying and streamlining medical research projects.  
 
 Before open sourcing it, we used *fuse* internally in multiple research projects [@raboh2022context], [@rabinovici2022early], [@rabinovici2022multimodal], [@jubran2021glimpse], [@tlusty2021pre], [@golts2022ensemble], [@radiology] and experienced significant improvement in development time, reusability and collaboration. 
 We were also able to meaningfully measure our progress and statistical significance of our results with off-the-shelf *fuse.eval* components that facilitate metrics' confidence interval calculation and model comparison. These tools have enabled us to organize two challenges as part of the 2022 International Symposium on Biomedical Imaging (ISBI) [@knight], [@bright].
 
 # State of the field
-FuseMedML is a comprehensive ML library with an emphasis on the biomedical domain. It provides a broad set of tools spanning the whole development pipeline, from data preparation, through model training to evaluation. It is built on top of leading ML frameworks such as PyTorch [@NEURIPS2019_bdbca288] and PyTorch Lightning [@Falcon_PyTorch_Lightning_2019] and complements them with additional flexible capabilities including domain specific ones.  
+FuseMedML is a comprehensive machine learning library that focuses on the biomedical domain. It offers a range of tools covering the entire development process, including data preparation, model training, and evaluation. Built on top of popular machine learning frameworks such as PyTorch [@NEURIPS2019_bdbca288] and PyTorch Lightning [@Falcon_PyTorch_Lightning_2019], FuseMedML also includes flexible domain-specific capabilities to complement these frameworks. Overall, FuseMedML aims to facilitate machine learning discoveries within the healthcare and life science sectors.
 One way in which *fuse* can complement PyTorch is through its generic design concept of storing arbitrary types of data in a specialized nested dictionary. This is a key driver of flexibility, allowing minimal code modifications when moving building blocks between different projects. Concretely, *fuse* has a dataset class that extends the PyTorch dataset, and a model wrapper class that enables PyTorch models to operate on `batch_dict`s rather than tensors.  
 In the case of PyTorch Lightning, *fuse* integrates with it directly as it builds upon its comprehensive trainer class, also allowing users to define their models and data modules in PyTorch Lightning style, with flexible levels of customizability.
 
@@ -81,11 +80,11 @@ FuseMedML's DL package works with PyTorch models, only modifying them to interac
 ![In this example a model architecture is defined using the `ModelMultiHead` class. It contains of a 3D ResNet backbone represented by the `BackboneResnet3D` class and a 3D classification head represented by the `Head3D` class. Note the user can define a list of heads, to support a multi task use case. The inputs to the backbone and classification heads are defined in the *fuse* style described earlier, using the `batch_dict` key names with the relevant data. This enables easy reuse of similar model architectures between projects.\label{fig:model_multi_head}](figures/model_multi_head.png){width=100%}
 
 ## *fuse.eval*
-The evaluation package of fuse is a standalone library for evaluating ML models for various performance metrics and comparing between models. It comes with advanced capabilities such as generic confidence interval wrapper for any metric, generic one vs. all extension for any binary metric to a multi-class scenario, metrics for model comparison taking into account statistical significance, model calibration tools, pipelining for combining a sequence of metrics with possible dependencies, automatic per-fold evaluation and sub-group analysis, automaric handling of massive data through batching and multiprocessing, and more. See \autoref{fig:metric_pipeline} for an example of an evaluation metric pipeline that can be reused across projects.  
+FuseMedML's evaluation package is a standalone library for evaluating machine learning models using various performance metrics and comparing the results between models. It offers advanced capabilities such as a generic confidence interval wrapper for any metric, a generic one-versus-all extension for converting any binary metric to a multi-class scenario, and metrics for comparing models while considering statistical significance. The package also includes model calibration tools and a pipeline for combining a sequence of metrics with possible dependencies. In addition, the evaluation package supports automatic per-fold evaluation and subgroup analysis, and can handle large data sets through batching and multiprocessing. See \autoref{fig:metric_pipeline} for an example of an evaluation metric pipeline that can be reused across projects.  
 
 ![In this example a pipeline of evaluation metric components is shown. It consists of two metrics: the Area Under the receiver operating characteristic Curve and the Area Under the Precision-Recall Curve. Both metrics are wrapped with a Confidence Interval (CI) metric, resulting in a lower and upper bound for each metric. \label{fig:metric_pipeline}](figures/metric_pipeline.png){width=100%}
 
 # Extensions
-The core technology of *fuse* and its component packages is general. More specific functionality which involves domain expertise is contained within extensions. One such extension, *fuse-imaging* is currently published. It extends the *fuse.data* package with *ops* useful for medical imaging, as well as public medical dataset implementations.  
+The core technology of FuseMedML and its component packages is general, while domain-specific functionality is contained within extensions. One such extension, *fuse-imaging*, is currently available and extends the FuseMedML data package with operations useful for medical imaging, as well as implementations of public medical datasets.  
 
 # References
