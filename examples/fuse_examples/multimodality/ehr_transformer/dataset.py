@@ -11,6 +11,7 @@ from fuse.data import DatasetDefault, PipelineDefault, OpBase
 from fuse.data.ops.ops_read import OpReadDataframe
 #from fuse.data.ops.ops_common import OpCond, OpSet
 from fuse.data.utils.split import dataset_balanced_division_to_folds
+from ops_read_cinc import OpReadDataframeCinC
 
 
 SOURCE = r'C:/D_Drive/Projects/EHR_Transformer/PhysioNet/predicting-mortality-of-icu-patients-the-physionetcomputing-in-cardiology-challenge-2012-1.0.0/predicting-mortality-of-icu-patients-the-physionet-computing-in-cardiology-challenge-2012-1.0.0'
@@ -20,15 +21,22 @@ VALID_TESTS_ABOVE_ZERO = ['pH', 'Weight', 'Height', 'DiasABP', 'HR', 'NIMAP', 'M
 STATIC_FIELDS = ['Age','Gender','Height','ICUType','Weight']
 
 
-class OpProcessTargetActivities(OpBase):
+class OpAddBMI(OpBase):
     def __call__(self, sample_dict) -> Any:
 
-        sample_dict["activity.label"] = -1  # unknown
+        sample_dict["BMI"] = np.nan
 
+        if ("Height" in sample_dict.keys()) & ("Weight" in sample_dict.keys()):
+            height = sample_dict["Height"]
+            weight = sample_dict["Weight"]
+            if ~np.isnan(height) & ~np.isnan(weight):
+                sample_dict["BMI"] = 10000 * weight / (height*height)
+
+        print(sample_dict["BMI"])
         return sample_dict
 
 
-class OpProcessTargetActivities2(OpBase):
+class OpCorrectErrors(OpBase):
     def __call__(self, sample_dict) -> Any:
 
         sample_dict["activity.value"] = 1  # unknown
@@ -38,10 +46,11 @@ class OpProcessTargetActivities2(OpBase):
 class PhysioNetCinC:
 
     @staticmethod
-    def _read_raw_data(raw_data_path):
+    def _read_raw_data(raw_data_path:str)-> Tuple[pd.DataFrame,pd.DataFrame]:
+        #read patients info & tests
         df = pd.DataFrame(columns=["PatientId", "Time", "Parameter", "Value"])
-        sub_sets = ["set-a", "set-b"]
-        for s in sub_sets:
+        data_sub_sets = ["set-a", "set-b"]
+        for s in data_sub_sets:
             csv_files = glob.glob(os.path.join(raw_data_path + '/' + s, "*.txt"))
             for f in csv_files[0:5]:  #reducung the list temporarely for debugging
                 patient_id = os.path.splitext(os.path.basename(f))[0]
@@ -49,9 +58,18 @@ class PhysioNetCinC:
                 df_file = df_file.drop(df_file[(df_file['Parameter'] == 'RecordID')].index).reset_index(drop=True)
                 df_file["PatientId"] = patient_id
                 df = df.append(df_file)
+        df.reset_index(inplace=True, drop=True)
 
-        df.reset_index(inplace=True,drop=True)
-        return df
+        # read outcomes
+        df_outcomes = pd.DataFrame(columns=["RecordID", "In-hospital_death"])
+        outcomes = ['Outcomes-a.txt', 'Outcomes-b.txt']
+        for o in outcomes:
+            o_file = os.path.join(raw_data_path + '/' + o)
+            df_outcomes = df_outcomes.append(pd.read_csv(o_file)[["RecordID", "In-hospital_death"]]).reset_index(drop=True)
+        df_outcomes['RecordID'] = df_outcomes['RecordID'].astype(str)
+        df_outcomes.rename(columns={'RecordID': 'PatientId'}, inplace=True)
+
+        return df, df_outcomes
 
     @staticmethod
     def _drop_errors(df: pd.DataFrame) -> pd.DataFrame:
@@ -100,10 +118,10 @@ class PhysioNetCinC:
         return d_percentile
 
     @staticmethod
-    def _convert_to_patients_df(df: pd.DataFrame) -> pd.DataFrame:
+    def _convert_to_patients_df(df: pd.DataFrame, df_outcomes: pd.DataFrame) -> Tuple[pd.DataFrame, dict]:
         # dict of patients
 
-        statis_fields = ['Age', 'Height', 'Weight', 'Gender', 'ICUType']
+        statis_fields = ['Age', 'Height', 'Weight', 'Gender', 'ICUType', 'In-hospital_death']
         df_patients = pd.DataFrame(columns=['PatientId', 'BMI']+statis_fields)
         dict_patients_time_events = dict()
         idx = 0
@@ -115,16 +133,20 @@ class PhysioNetCinC:
                 if not rec.empty:
                     df_patients.loc[idx, f] = rec[0]
 
-
-            if ~np.isnan(df_patients.loc[idx, 'Height']) & ~np.isnan(df_patients.loc[idx,'Weight']):
-                df_patients.loc[idx, 'BMI'] = 10000 * df_patients.loc[idx, 'Weight'] / (df_patients.loc[idx, 'Height'] * df_patients.loc[idx, 'Height'])
-
+            # keep time events in dictionary
+            # TODO: should be converted to ordered dict by visit for better further managements of visit (by datetime)
             pat_records = pat_records.drop(pat_records[pat_records['Time'] == '00:00'].index).reset_index(drop=True)
             dict_patients_time_events[pat_id] = {time: tests.groupby('Parameter')['Value'].apply(list).to_dict()
                                                          for time, tests in pat_records[['DateTime', 'Parameter', 'Value']].groupby('DateTime')}
+
+            # add outcome
+            outcome = df_outcomes[df_outcomes['PatientId'] == pat_id]['In-hospital_death'].reset_index(drop=True)
+            if not outcome.empty:
+                df_patients.loc[idx, 'In-hospital_death'] = outcome[0]
+
             idx = idx + 1
 
-        return df_patients
+        return df_patients, dict_patients_time_events
         #
         #     dict_patients_df = {k: v.drop('PatientId', axis=1).reset_index(drop=True) for k, v in
         #                     df.groupby('PatientId')}
@@ -134,40 +156,42 @@ class PhysioNetCinC:
         #     for k, f in df.groupby('PatientId')}
         # df_patients.loc[idx, 'TimeEvents'] = {time: tests.groupby('Parameter')['Value'].apply(list).to_dict()
         #                                                   for time, tests in pat_records[['DateTime','Parameter','Value']].groupby('DateTime')}
+        # df.groupby('PatientId').apply(lambda x: x.set_index('DateTime').groupby('DateTime').apply( lambda y: y.to_numpy().tolist()).to_dict())
 
     @staticmethod
-    def _load_and_process_df(raw_data_path: str, num_percentiles: int) -> Tuple[pd.DataFrame,dict]:
-        df = PhysioNetCinC._read_raw_data(raw_data_path)
+    def _load_and_process_df(raw_data_path: str, num_percentiles: int) -> Tuple[pd.DataFrame,pd.DataFrame, dict, dict]:
+        df_raw_data, df_outcomes = PhysioNetCinC._read_raw_data(raw_data_path)
 
         # drop records with invalid tests results
-        df = PhysioNetCinC._drop_errors(df)
+        df_raw_data = PhysioNetCinC._drop_errors(df_raw_data)
 
         # fix time to datetime
-        df = PhysioNetCinC._convert_time_to_datetime(df)
+        df_raw_data = PhysioNetCinC._convert_time_to_datetime(df_raw_data).reset_index()
 
         # define dictionary of percentiles
-        percentiles_dict = PhysioNetCinC._generate_percentiles(df, num_percentiles)
-
-        # reset index to reenumerate the samples
-        df = df.reset_index()
+        dict_percentiles = PhysioNetCinC._generate_percentiles(df_raw_data, num_percentiles)
 
         # build data frame of patients (one record per patient)
-        df_patients = PhysioNetCinC._convert_to_patients_df(df)
+        df_patients, dict_patient_time_events = PhysioNetCinC._convert_to_patients_df(df_raw_data, df_outcomes)
 
-        #add bmi
+        #df_raw_data = df_raw_data[['PatientId', 'DateTime', 'Parameter', 'Value']]
 
-
-        return df_patients, percentiles_dict
-
-
+        return df_raw_data, df_patients, dict_percentiles, dict_patient_time_events
 
     @staticmethod
-    def _process_pipeline():
+    def _process_static_pipeline():
         return [
-            (OpProcessTargetActivities(), dict()),
+            (OpAddBMI(), dict()),
+            #(OpCorrectErrors(), dict())
 
         ]
 
+    @staticmethod
+    def _process_dynamic_pipeline():
+        return [
+            (OpAddBMI(), dict()),
+            #(OpCorrectErrors(), dict())
+        ]
     @staticmethod
     def dataset(
             raw_data_path: str,
@@ -182,16 +206,26 @@ class PhysioNetCinC:
     ) -> DatasetDefault:
         assert raw_data_path is not None
 
-        df = PhysioNetCinC._load_and_process_df(raw_data_path, num_percentiles)
-        dynamic_pipeline = [
-            (OpReadDataframe(df, key_column="PatientId"), {}),
-            *PhysioNetCinC._process_pipeline()
+        df_records, df_patients, dict_percentiles, dict_patient_time_events = PhysioNetCinC._load_and_process_df(raw_data_path, num_percentiles)
+        static_pipeline = [
+             # (OpReadDataframe(df_patients, key_column=None), {}),
+              (OpReadDataframeCinC(df_records, outcomes=df_patients[['PatientId', 'In-hospital_death']], key_column=None),
+             {}),
+              *PhysioNetCinC._process_static_pipeline()
         ]
-        dynamic_pipeline = PipelineDefault("cinc", dynamic_pipeline)
+        static_pipeline = PipelineDefault("cinc_static", static_pipeline)
 
-        dataset_all = DatasetDefault(len(df), dynamic_pipeline)
+        dynamic_pipeline = [
+              (OpReadDataframeCinC(df_records, outcomes=df_patients[['PatientId', 'In-hospital_death']], key_column=None), dict()),
+              *PhysioNetCinC._process_dynamic_pipeline()
+         ]
+        dynamic_pipeline = PipelineDefault("cinc_dynamic", dynamic_pipeline)
+
+        ids = [*range(0, len(df_patients))]
+        print(ids)
+        dataset_all = DatasetDefault(ids,  static_pipeline)
         dataset_all.create()
-
+        print("before balancing")
         folds = dataset_balanced_division_to_folds(
             dataset=dataset_all,
             output_split_filename=split_filename,
@@ -200,17 +234,18 @@ class PhysioNetCinC:
             seed=seed,
             reset_split=reset_split,
         )
-
+        print("before dataset train")
         train_sample_ids = []
         for fold in train_folds:
-            train_sample_ids += folds[fold]
-        dataset_train = DatasetDefault(train_sample_ids, dynamic_pipeline)
+             train_sample_ids += folds[fold]
+        dataset_train = DatasetDefault(train_sample_ids, static_pipeline)
         dataset_train.create()
 
+        print("before dataset val")
         validation_sample_ids = []
         for fold in validation_folds:
             validation_sample_ids += folds[fold]
-        dataset_validation = DatasetDefault(validation_sample_ids, dynamic_pipeline)
+        dataset_validation = DatasetDefault(validation_sample_ids, static_pipeline)
         dataset_validation.create()
 
         test_sample_ids = []
