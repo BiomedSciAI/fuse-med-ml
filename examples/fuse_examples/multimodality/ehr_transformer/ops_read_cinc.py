@@ -98,7 +98,7 @@ class OpReadDataframeCinC(OpBase):
             df_pat_dynamic_exams = df_pat_records[~static_info_ind]
             dict_patient = dict(zip(df_pat_static.Parameter, df_pat_static.Value))
             dict_patient['Visits'] = df_pat_dynamic_exams.copy()
-            # old
+            # old - dict creation for lab results
             # dict_patient['Visits'] = {time: tests.groupby('Parameter')['Value'].apply(list).to_dict()
             #                           for time, tests in
             #                           pat_records[['DateTime', 'Parameter', 'Value']].groupby('DateTime')}
