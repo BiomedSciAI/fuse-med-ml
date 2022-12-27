@@ -83,45 +83,35 @@ class OpReadDataframeCinC(OpBase):
         if self._rename_columns is not None:
             df.rename(self._rename_columns, axis=1, inplace=True)
 
+        # TODO : check with Moshico regarding usage of _key_column for grouping
         # convert to dictionary: {index -> {column -> value}}
-        if self._key_column is not None:
-            df = df.set_index(self._key_column)
+        # if self._key_column is not None:
+        #     df = df.set_index(self._key_column)
+        # self._data = df.to_dict(orient="index")
 
         dict_data = dict()
-        key = 0
         statis_fields = ['Age', 'Height', 'Weight', 'Gender', 'ICUType']
-        for pat_id, pat_records in df.groupby('PatientId'):
-            dict_patient = dict()
-            dict_patient['PatientId'] = pat_id
-            df_static = pat_records[pat_records['Time'] == '00:00']
-            for f in statis_fields:
-                rec = df_static['Value'][(df_static['Parameter'] == f) & (df_static['Value'] >= 0)].reset_index(
-                    drop=True)
-                if not rec.empty:
-                    dict_patient[f] = rec[0]
+        for pat_id, df_pat_records in df.groupby('PatientId'):
+        #for pat_id, pat_records in df.groupby(self._key_column):
+            static_info_ind = df_pat_records['Time'] == '00:00'
+            df_pat_static = df_pat_records[static_info_ind]
+            df_pat_dynamic_exams = df_pat_records[~static_info_ind]
+            dict_patient = dict(zip(df_pat_static.Parameter, df_pat_static.Value))
+            dict_patient['Visits'] = df_pat_dynamic_exams.copy()
+            # old
+            # dict_patient['Visits'] = {time: tests.groupby('Parameter')['Value'].apply(list).to_dict()
+            #                           for time, tests in
+            #                           pat_records[['DateTime', 'Parameter', 'Value']].groupby('DateTime')}
 
-            # keep time events in dictionary
-            # TODO: should be converted to ordered dict by visit for better further managements of visit (by datetime)
-            pat_records = pat_records.drop(pat_records[pat_records['Time'] == '00:00'].index).reset_index(drop=True)
-            dict_patient['Visits'] = {time: tests.groupby('Parameter')['Value'].apply(list).to_dict()
-                                      for time, tests in
-                                      pat_records[['DateTime', 'Parameter', 'Value']].groupby('DateTime')}
+            dict_patient['In-hospital_death'] = df_outcomes[df_outcomes['PatientId'] == pat_id]['In-hospital_death'].values[0]
 
-            # add outcome
-            dict_patient['In-hospital_death'] = np.nan
-            outcome = df_outcomes[df_outcomes['PatientId'] == pat_id]['In-hospital_death'].reset_index(drop=True)
-            if not outcome.empty:
-                dict_patient['In-hospital_death'] = outcome[0]
-
+            key = pat_id
             dict_data[key] = dict_patient
-            print(dict_data[key]['PatientId'])
             print(dict_data[key]['Age'])
-            key = key + 1
 
         self._data = dict_data
-        # self._data = df.to_dict(orient="index")
-        # self._data = {time: tests.groupby('Parameter')['Value'].apply(list).to_dict()
-        #                                                 for time, tests in df[['DateTime', 'Parameter', 'Value']].groupby('DateTime')}
+
+
 
     def __call__(self, sample_dict: NDict, prefix: Optional[str] = None) -> Union[None, dict, List[dict]]:
         """

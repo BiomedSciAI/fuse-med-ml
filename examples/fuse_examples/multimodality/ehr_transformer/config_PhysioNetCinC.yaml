@@ -1,5 +1,6 @@
 dataset:
   raw_data_path: 'C:/D_Drive/Projects/EHR_Transformer/PhysioNet/predicting-mortality-of-icu-patients-the-physionetcomputing-in-cardiology-challenge-2012-1.0.0/predicting-mortality-of-icu-patients-the-physionet-computing-in-cardiology-challenge-2012-1.0.0'
+  #raw_data_pickle: 'raw_data.pkl'
   split_filename: None
   num_folds: 5
   train_folds: [ 0, 1, 2 ]

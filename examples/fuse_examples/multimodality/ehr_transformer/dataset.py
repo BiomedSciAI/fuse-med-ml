@@ -1,3 +1,4 @@
+import pickle
 from typing import Sequence, Any
 import re
 import glob
@@ -12,6 +13,7 @@ from fuse.data.ops.ops_read import OpReadDataframe
 #from fuse.data.ops.ops_common import OpCond, OpSet
 from fuse.data.utils.split import dataset_balanced_division_to_folds
 from ops_read_cinc import OpReadDataframeCinC
+from fuse.data.utils.export import ExportDataset
 
 
 SOURCE = r'C:/D_Drive/Projects/EHR_Transformer/PhysioNet/predicting-mortality-of-icu-patients-the-physionetcomputing-in-cardiology-challenge-2012-1.0.0/predicting-mortality-of-icu-patients-the-physionet-computing-in-cardiology-challenge-2012-1.0.0'
@@ -33,14 +35,22 @@ class OpAddBMI(OpBase):
                 sample_dict["BMI"] = 10000 * weight / (height*height)
 
         print(sample_dict["BMI"])
+        print(sample_dict['Visits'].shape)
         return sample_dict
 
 
-class OpCorrectErrors(OpBase):
-    def __call__(self, sample_dict) -> Any:
+class OpCollectExamsStatistics(OpBase):
+    def __call__(self, sample_dict, percentiles:dict) -> Any:
 
-        sample_dict["activity.value"] = 1  # unknown
+        percentiles[sample_dict['PatientId']] = sample_dict['Age']
 
+        return sample_dict
+
+class OpMapToCategorical(OpBase):
+    def __call__(self, sample_dict, percentiles: dict) -> Any:
+
+        print(percentiles['HR'])
+        #print(percentiles.keys())
         return sample_dict
 
 class PhysioNetCinC:
@@ -59,6 +69,7 @@ class PhysioNetCinC:
                 df_file["PatientId"] = patient_id
                 df = df.append(df_file)
         df.reset_index(inplace=True, drop=True)
+        patient_ids = np.unique(df['PatientId'].values)
 
         # read outcomes
         df_outcomes = pd.DataFrame(columns=["RecordID", "In-hospital_death"])
@@ -69,7 +80,10 @@ class PhysioNetCinC:
         df_outcomes['RecordID'] = df_outcomes['RecordID'].astype(str)
         df_outcomes.rename(columns={'RecordID': 'PatientId'}, inplace=True)
 
-        return df, df_outcomes
+        #synchronize with patients data
+        df_outcomes = df_outcomes[df_outcomes['PatientId'].isin(patient_ids)]
+
+        return df, df_outcomes, patient_ids
 
     @staticmethod
     def _drop_errors(df: pd.DataFrame) -> pd.DataFrame:
@@ -116,37 +130,36 @@ class PhysioNetCinC:
             d_percentile[k] = np.percentile(d_values[k], percentiles)
 
         return d_percentile
-
-    @staticmethod
-    def _convert_to_patients_df(df: pd.DataFrame, df_outcomes: pd.DataFrame) -> Tuple[pd.DataFrame, dict]:
-        # dict of patients
-
-        statis_fields = ['Age', 'Height', 'Weight', 'Gender', 'ICUType', 'In-hospital_death']
-        df_patients = pd.DataFrame(columns=['PatientId', 'BMI']+statis_fields)
-        dict_patients_time_events = dict()
-        idx = 0
-        for pat_id, pat_records in df.groupby('PatientId'):
-            df_patients.loc[idx, 'PatientId'] = pat_id
-            df_static = pat_records[pat_records['Time'] == '00:00']
-            for f in statis_fields:
-                rec = df_static['Value'][(df_static['Parameter'] == f) & (df_static['Value'] >= 0)].reset_index(drop=True)
-                if not rec.empty:
-                    df_patients.loc[idx, f] = rec[0]
-
-            # keep time events in dictionary
-            # TODO: should be converted to ordered dict by visit for better further managements of visit (by datetime)
-            pat_records = pat_records.drop(pat_records[pat_records['Time'] == '00:00'].index).reset_index(drop=True)
-            dict_patients_time_events[pat_id] = {time: tests.groupby('Parameter')['Value'].apply(list).to_dict()
-                                                         for time, tests in pat_records[['DateTime', 'Parameter', 'Value']].groupby('DateTime')}
-
-            # add outcome
-            outcome = df_outcomes[df_outcomes['PatientId'] == pat_id]['In-hospital_death'].reset_index(drop=True)
-            if not outcome.empty:
-                df_patients.loc[idx, 'In-hospital_death'] = outcome[0]
-
-            idx = idx + 1
-
-        return df_patients, dict_patients_time_events
+    #
+    # @staticmethod
+    # def _convert_to_patients_df(df: pd.DataFrame, df_outcomes: pd.DataFrame) -> Tuple[pd.DataFrame, dict]:
+    #     # dict of patients
+    #
+    #     statis_fields = ['Age', 'Height', 'Weight', 'Gender', 'ICUType', 'In-hospital_death']
+    #     df_patients = pd.DataFrame(columns=['PatientId', 'BMI']+statis_fields)
+    #     dict_patients_time_events = dict()
+    #     idx = 0
+    #     for pat_id, pat_records in df.groupby('PatientId'):
+    #         df_patients.loc[idx, 'PatientId'] = pat_id
+    #         df_static = pat_records[pat_records['Time'] == '00:00']
+    #         for f in statis_fields:
+    #             rec = df_static['Value'][(df_static['Parameter'] == f) & (df_static['Value'] >= 0)].reset_index(drop=True)
+    #             if not rec.empty:
+    #                 df_patients.loc[idx, f] = rec[0]
+    #
+    #         # keep time events in dictionary    #
+    #         pat_records = pat_records.drop(pat_records[pat_records['Time'] == '00:00'].index).reset_index(drop=True)
+    #         dict_patients_time_events[pat_id] = {time: tests.groupby('Parameter')['Value'].apply(list).to_dict()
+    #                                                      for time, tests in pat_records[['DateTime', 'Parameter', 'Value']].groupby('DateTime')}
+    #
+    #         # add outcome
+    #         outcome = df_outcomes[df_outcomes['PatientId'] == pat_id]['In-hospital_death'].reset_index(drop=True)
+    #         if not outcome.empty:
+    #             df_patients.loc[idx, 'In-hospital_death'] = outcome[0]
+    #
+    #         idx = idx + 1
+    #
+    #     return df_patients, dict_patients_time_events
         #
         #     dict_patients_df = {k: v.drop('PatientId', axis=1).reset_index(drop=True) for k, v in
         #                     df.groupby('PatientId')}
@@ -158,39 +171,48 @@ class PhysioNetCinC:
         #                                                   for time, tests in pat_records[['DateTime','Parameter','Value']].groupby('DateTime')}
         # df.groupby('PatientId').apply(lambda x: x.set_index('DateTime').groupby('DateTime').apply( lambda y: y.to_numpy().tolist()).to_dict())
 
+    # TODO: Save results of function in pcl, add information in configuration about the path
     @staticmethod
     def _load_and_process_df(raw_data_path: str, num_percentiles: int) -> Tuple[pd.DataFrame,pd.DataFrame, dict, dict]:
-        df_raw_data, df_outcomes = PhysioNetCinC._read_raw_data(raw_data_path)
+        # if pickle avaialable
+        try:
+            df_raw_data, df_outcomes, patient_ids = pickle.load(open(os.path.join(raw_data_path + '/' + 'raw_data.pkl'),"rb"))
+            #with open(os.path.join(raw_data_path + '/' + 'raw_data.pkl'), "rb") as f:
+            #     return pickle.load(f)
+        except:
+            df_raw_data, df_outcomes, patient_ids = PhysioNetCinC._read_raw_data(raw_data_path)
 
         # drop records with invalid tests results
-        df_raw_data = PhysioNetCinC._drop_errors(df_raw_data)
+            df_raw_data = PhysioNetCinC._drop_errors(df_raw_data)
 
         # fix time to datetime
-        df_raw_data = PhysioNetCinC._convert_time_to_datetime(df_raw_data).reset_index()
+            df_raw_data = PhysioNetCinC._convert_time_to_datetime(df_raw_data).reset_index()
 
         # define dictionary of percentiles
-        dict_percentiles = PhysioNetCinC._generate_percentiles(df_raw_data, num_percentiles)
+        #dict_percentiles = PhysioNetCinC._generate_percentiles(df_raw_data, num_percentiles)
 
         # build data frame of patients (one record per patient)
-        df_patients, dict_patient_time_events = PhysioNetCinC._convert_to_patients_df(df_raw_data, df_outcomes)
+        #df_patients, dict_patient_time_events = PhysioNetCinC._convert_to_patients_df(df_raw_data, df_outcomes)
 
         #df_raw_data = df_raw_data[['PatientId', 'DateTime', 'Parameter', 'Value']]
+            with open(os.path.join(raw_data_path + '/' + 'raw_data.pkl'), "wb") as f:
+                pickle.dump([df_raw_data, df_outcomes, patient_ids], f)
 
-        return df_raw_data, df_patients, dict_percentiles, dict_patient_time_events
+        return df_raw_data, df_outcomes, patient_ids#, dict_percentiles, dict_patient_time_events
 
     @staticmethod
-    def _process_static_pipeline():
+    def _process_static_pipeline(dict_percentiles):
         return [
             (OpAddBMI(), dict()),
-            #(OpCorrectErrors(), dict())
+            #(OpCollectExamsStatistics(), dict(percentiles=dict_percentiles)),
 
         ]
 
     @staticmethod
-    def _process_dynamic_pipeline():
+    def _process_dynamic_pipeline(dict_percentiles):
         return [
             (OpAddBMI(), dict()),
-            #(OpCorrectErrors(), dict())
+            (OpMapToCategorical(), dict(percentiles=dict_percentiles))
         ]
     @staticmethod
     def dataset(
@@ -206,46 +228,64 @@ class PhysioNetCinC:
     ) -> DatasetDefault:
         assert raw_data_path is not None
 
-        df_records, df_patients, dict_percentiles, dict_patient_time_events = PhysioNetCinC._load_and_process_df(raw_data_path, num_percentiles)
-        static_pipeline = [
-             # (OpReadDataframe(df_patients, key_column=None), {}),
-              (OpReadDataframeCinC(df_records, outcomes=df_patients[['PatientId', 'In-hospital_death']], key_column=None),
-             {}),
-              *PhysioNetCinC._process_static_pipeline()
+
+        df_records, df_outcomes, patient_ids = PhysioNetCinC._load_and_process_df(raw_data_path, num_percentiles)
+        test_dict = dict()
+
+        #TODO since we don't use caching have only dynamic piplene
+        dynamic_pipeline_ops = [
+               (OpReadDataframeCinC(df_records, outcomes=df_outcomes[['PatientId', 'In-hospital_death']], key_column='PatientId'), {}),
+              # *PhysioNetCinC._process_static_pipeline(test_dict)
         ]
-        static_pipeline = PipelineDefault("cinc_static", static_pipeline)
+        dynamic_pipeline = PipelineDefault("cinc_static", dynamic_pipeline_ops)
 
-        dynamic_pipeline = [
-              (OpReadDataframeCinC(df_records, outcomes=df_patients[['PatientId', 'In-hospital_death']], key_column=None), dict()),
-              *PhysioNetCinC._process_dynamic_pipeline()
-         ]
-        dynamic_pipeline = PipelineDefault("cinc_dynamic", dynamic_pipeline)
-
-        ids = [*range(0, len(df_patients))]
-        print(ids)
-        dataset_all = DatasetDefault(ids,  static_pipeline)
+        # TODO: here use only static piplilene for splitting (or didn't use at all) ?
+        # TODO: try list of patient ids
+        dataset_all = DatasetDefault(patient_ids,  dynamic_pipeline)
         dataset_all.create()
         print("before balancing")
         folds = dataset_balanced_division_to_folds(
             dataset=dataset_all,
             output_split_filename=split_filename,
-            keys_to_balance=[],  # ["data.gt.probSevere"],
+            keys_to_balance=['In-hospital_death'],  # ["data.gt.probSevere"], #TODO add key of outcome
             nfolds=num_folds,
             seed=seed,
             reset_split=reset_split,
+            workers=1
         )
+
         print("before dataset train")
         train_sample_ids = []
         for fold in train_folds:
-             train_sample_ids += folds[fold]
-        dataset_train = DatasetDefault(train_sample_ids, static_pipeline)
+            train_sample_ids += folds[fold]
+        dataset_train = DatasetDefault(train_sample_ids, dynamic_pipeline)
         dataset_train.create()
+
+        # TODO: calculate statistics using export of data frame from dataset and sending here and then run the dynamic since
+        # we need to calculate it only on train dataset and then add it to dynamic dataset
+        #dict_percentiles = PhysioNetCinC._generate_percentiles(extracted_dataset, num_percentiles)
+        #df_train = ExportDataset.export_to_dataframe(dataset_train, keys=dataset_train.getitem(0).keypaths())
+        df_train_visits = ExportDataset.export_to_dataframe(dataset_train, keys=['Visits'])
+        df_train_visits_combined = df_train_visits['Visits'][0]
+        for v in range(1, df_train_visits.shape[0]):
+            df_train_visits_combined.append(df_train_visits['Visits'][v])
+        df_train_visits_combined.reset_index(drop=True)
+
+        dict_percentiles = PhysioNetCinC._generate_percentiles(df_train_visits_combined, num_percentiles)
+
+        dynamic_pipeline_ops = dynamic_pipeline_ops + [
+            *PhysioNetCinC._process_dynamic_pipeline(dict_percentiles)
+        ]
+        dynamic_pipeline = PipelineDefault("cinc_dynamic", dynamic_pipeline_ops)
+        dataset_train._dynamic_pipeline = dynamic_pipeline
+        for f in train_sample_ids:
+            x = dataset_train[0]
 
         print("before dataset val")
         validation_sample_ids = []
         for fold in validation_folds:
             validation_sample_ids += folds[fold]
-        dataset_validation = DatasetDefault(validation_sample_ids, static_pipeline)
+        dataset_validation = DatasetDefault(validation_sample_ids, dynamic_pipeline)
         dataset_validation.create()
 
         test_sample_ids = []
