@@ -80,10 +80,10 @@ class CollateDefault(CollateToBatchList):
 
             try:
                 # collect values into a list
-                collected_values, has_error = self._collect_values_to_list(samples, key)
+                collected_values, has_error, has_missing_values = self._collect_values_to_list(samples, key)
 
                 # batch values
-                self._batch_dispatch(batch_dict, samples, key, has_error, collected_values)
+                self._batch_dispatch(batch_dict, samples, key, has_error or has_missing_values, collected_values)
             except:
                 print(f"Error: Failed to collect key {key}")
                 raise

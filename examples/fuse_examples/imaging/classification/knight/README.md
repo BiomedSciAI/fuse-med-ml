@@ -21,7 +21,7 @@ These groups can be divided into two classes based on the follow-up treatment.
 The challenge consists of three tasks: (1) binary patient classification as per the follow-up treatment, (2) fine-grained classification into five risk groups and (3) discovery of prognostic biomarkers.
 
 ## Data
-Kidney Classification (KiC) dataset. Details can be found in [challenge website](https://research.ibm.com/haifa/Workshops/KNIGHT)
+Kidney Classification (KiC) dataset. Details can be found in [challenge website](https://research.ibm.com/haifa/Workshops/KNIGHT). You can also get the dataset by running `download_data.sh` in the location where you want the data to be stored locally.
 
 ## Evaluation
 The participants should submit a .csv file per task containing a row with class scores for each patient in the test set. The rows must adhere to the following scheme:
