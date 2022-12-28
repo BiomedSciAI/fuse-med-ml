@@ -56,7 +56,7 @@ class MetricsLibClass:
             return metrics.roc_auc_score(y_score=pred, y_true=target, sample_weight=sample_weight, max_fpr=max_fpr)
 
         # multiclass classification
-        assert np.allclose(pred.sum(axis=1), 1), 'the prediction must be post-softmax'
+        assert np.allclose(pred.sum(axis=1), 1), "the prediction must be post-softmax"
         y_score = pred[:, pos_class_index]
 
         return metrics.roc_auc_score(
