@@ -20,6 +20,7 @@ class MetricEnsemble(MetricDefault):
         output_pred_key: Optional[str] = "preds",
         output_target_key: Optional[str] = "target",
         rename_in_output: Optional[Dict[str, str]] = None,
+        scores_normalize_func = None,
         **kwargs,
     ):
         """
@@ -35,6 +36,7 @@ class MetricEnsemble(MetricDefault):
         :param output_pred_key: output key name for the predictions
         :param output_target_key: output key name for the target
         :param rename_in_output: renaming keys in the output
+        :param scores_normalize_func: applied to each set of predictions / scores
         """
         ensemble = partial(
             self._ensemble,
@@ -43,7 +45,8 @@ class MetricEnsemble(MetricDefault):
             output_pred_key=output_pred_key,
             output_target_key=output_target_key,
             keys_for_output=list(kwargs.keys()),
-            rename_in_output=rename_in_output
+            rename_in_output=rename_in_output,
+            scores_normalize_func=scores_normalize_func,
         )
         for i, key in enumerate(pred_keys):
             kwargs["pred" + str(i)] = key
@@ -59,9 +62,12 @@ class MetricEnsemble(MetricDefault):
         output_target_key: Optional[str] = "target",
         keys_for_output: Optional[List[str]] =None,
         rename_in_output:  Optional[Dict[str, str]] = None,
+        scores_normalize_func = None,
         **kwargs,
     ):
         preds = [np.asarray(kwargs[k]) for k in kwargs if k.startswith("pred")]
+        if scores_normalize_func is not None:
+            preds = [scores_normalize_func(x) for x in preds]
         preds = list(np.stack(preds, axis=1))
         ensemble_preds = Ensembling.ensemble(preds=preds, method=method)
         # make sure to return the per-sample metric result for the relevant sample ids:
