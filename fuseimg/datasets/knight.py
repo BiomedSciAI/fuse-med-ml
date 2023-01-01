@@ -23,8 +23,8 @@ import pandas as pd
 
 
 class OpNormalizeAgainstSelf(OpBase):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self):
+        super().__init__()
 
     def __call__(self, sample_dict: NDict, key: str) -> NDict:
         img = sample_dict[key]
