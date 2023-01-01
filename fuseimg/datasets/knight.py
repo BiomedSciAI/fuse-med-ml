@@ -26,7 +26,7 @@ class OpNormalizeAgainstSelf(OpBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def __call__(self, sample_dict: NDict, key: str):
+    def __call__(self, sample_dict: NDict, key: str) -> NDict:
         img = sample_dict[key]
         img = np.clip(
             img, *(np.percentile(img, [5, 95]))
