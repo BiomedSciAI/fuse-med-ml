@@ -35,7 +35,10 @@ class MetricEnsemble(MetricDefault):
         :param output_file: Optional output filename
         :param output_pred_key: output key name for the predictions
         :param output_target_key: output key name for the target
-        :param rename_in_output: renaming keys in the output
+        :param rename_in_output: renaming keys in the output (similar to output_pred_key and output_target that rename the columns in output file correspongin to pred and target keys).
+                                  All additional keys (provided in **kwargs) will be added as columns to the output file. 
+                                  This optional param allows specifying for each additional input key the name of the corresponding column in the output file. 
+                                  It is similar to output_pred_key, and output_target_key which specify column names for pred and targte keys. 
         :param scores_normalize_func: applied to each set of predictions / scores
         """
         ensemble = partial(

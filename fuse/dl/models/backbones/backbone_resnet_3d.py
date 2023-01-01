@@ -67,8 +67,6 @@ class BackboneResnet3D(VideoResNet):
             )
         self.pool = pool
         self.gmp = nn.AdaptiveMaxPool3d(output_size=1)
-        self.pool = pool
-        self.gmp = nn.AdaptiveMaxPool3d(output_size=1)
 
     def features(self, x: Tensor) -> Any:
         """

@@ -83,7 +83,11 @@ class EvaluatorDefault:
                                               A batch will be automatically created from batch_size samples
         :param output_dir: Optional - dump results to directory
         :param silent: print results if false
-        :param error_missing_ids: allow missing ids in data
+        :param error_missing_ids: whether to raise an exception if (a) input ids (if not None) are not fully contained in the input data, 
+                                  or if (b) the input list of dataframe don't share the same ids
+                                If False, then in (a) the evalation will be computed on the intersection of input ids and input data; 
+                                and in (b) dataframe will be extended to have the same set of ids, with new rows having NaN values in their numeric fields
+                                   
         :return: dictionary that holds all the results.
         """
         self.silent = silent
@@ -199,6 +203,7 @@ class EvaluatorDefault:
             result_data = pd.concat(data_lst)
 
         elif isinstance(data, dict):  # data is dictionary of dataframes
+            # iteration on entries to (1) read all dataframes and (2) compute the union of the ids in all the dataframes 
             df_list = []
             all_ids = set()
             for key, data_elem in data.items():
@@ -213,7 +218,7 @@ class EvaluatorDefault:
                 data_elem_df = data_elem_df.add_prefix(key + ".")
                 df_list.append(data_elem_df)
 
-            # make sure ids exists in all dataframes
+            # make sure ids exists in all dataframes. Note that each id appear in at least one dataframe
             for i_df, data_elem_df in enumerate(df_list):
                 missing_ids = all_ids - set(data_elem_df.index)
                 if len(missing_ids) > 0:
