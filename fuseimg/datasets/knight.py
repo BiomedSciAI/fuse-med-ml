@@ -23,7 +23,6 @@ import pandas as pd
 
 
 class OpNormalizeAgainstSelf(OpBase):
-
     def __call__(self, sample_dict: NDict, key: str) -> NDict:
         img = sample_dict[key]
         img = np.clip(
