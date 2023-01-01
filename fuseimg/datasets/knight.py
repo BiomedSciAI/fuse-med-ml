@@ -218,6 +218,13 @@ class KNIGHT:
                 (OpClip(), dict(key="data.input.img", clip=(-62, 301))),
                 (OpZScoreNorm(), dict(key="data.input.img", mean=104.0, std=75.3)),  # kits normalization
                 (OpPrepareClinical(), dict()),  # process clinical data
+                # transposing so the depth channel will be first
+                (
+                    OpLambda(partial(np.moveaxis, source=-1, destination=0)),
+                    dict(key="data.input.img"),
+                ),  # convert image from shape [H, W, D] to shape [D, H, W]
+                (OpResizeTo(channels_first=False), dict(key="data.input.img", output_shape=resize_to)),
+
             ],
         )
         return static_pipeline
@@ -250,7 +257,7 @@ class KNIGHT:
                         translate=(RandInt(-15, 15), RandInt(-15, 15)),
                     ),
                 ),
-                (OpAugGaussian(), dict(key="data.input.img", std=0.01)),
+                # (OpAugGaussian(), dict(key="data.input.img", std=0.01)),
                 # add channel dimension -> [C=1, D, H, W]
                 (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")),
             ],
