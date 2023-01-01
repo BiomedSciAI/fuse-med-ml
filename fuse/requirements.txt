@@ -1,6 +1,5 @@
 # All requirements
 # python>=3.7
-protobuf>=3.20.2,==3.20.*  # https://github.com/protocolbuffers/protobuf/issues/10051, https://nvd.nist.gov/vuln/detail/CVE-2022-1941
 numpy>=1.18.5
 pandas>=1.2
 tqdm>=4.52.0
@@ -29,3 +28,4 @@ omegaconf
 nibabel
 vit-pytorch
 lifelines
+clearml

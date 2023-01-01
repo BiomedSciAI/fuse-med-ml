@@ -89,7 +89,11 @@ class OpPrintShapes(OpDebugBase):
     ```
     """
 
-    def call_debug(self, sample_dict: NDict) -> None:
+    def call_debug(self, sample_dict: NDict, include_strings: bool = False) -> None:
+        """
+        :param include_strings: set to True if you want to see strings lengths.
+                                useful when dealing with sequences such as SMILES.
+        """
         print(f"Sample {get_sample_id(sample_dict)} shapes:")
         for key in sample_dict.keypaths():
             value = sample_dict[key]
@@ -99,6 +103,8 @@ class OpPrintShapes(OpDebugBase):
                 print(f"\t{key} is numpy array with shape: {value.shape}")
             elif not isinstance(value, str) and isinstance(value, Sequence):
                 print(f"\t{key} is sequence with length: {len(value)}")
+            elif isinstance(value, str) and include_strings:
+                print(f"\t{key} is string with length: {len(value)}")
 
 
 class OpPrintTypes(OpDebugBase):

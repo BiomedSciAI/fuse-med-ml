@@ -293,23 +293,53 @@ class NDict(dict):
 
         return ans
 
-    def print_tree(self) -> None:
+    def print_tree(self, print_values: bool = False) -> None:
         """
         print the inner structure of the nested dict with a tree-like structure.
+
+        :param print_values: set to True in order to also print ndict's stored values
+
+
+        Example:
+
+            >>> ndict = NDict()
+            >>> ndict["data.input.drug"] = "this_is_a_drug_seq"
+            >>> ndict["data.input.target"] = "this_is_a_target_seq"
+            >>>
+            >>> ndict.print_tree()
+            --- data
+            ------ input
+            --------- drug
+            --------- target
+            >>>
+            >>> ndict.print_tree(print_values=True)
+            --- data
+            ------ input
+            --------- drug -> this_is_a_drug_seq
+            --------- target -> this_is_a_target_seq
+
         """
-        self._print_tree_static(self._stored)
+        self._print_tree_static(self._stored, print_values=print_values)
 
     @staticmethod
-    def _print_tree_static(data_dict: dict, level: int = 0) -> None:
+    def _print_tree_static(data_dict: dict, level: int = 0, print_values: bool = False) -> None:
         """
         static-method to print the inner structure of a dict in a tree-like structure.
+
+        :param level: current recursive level inside the ndict
+        :param print_values: set to True in order to also print ndict's stored values
         """
-        if type(data_dict) == dict:
-            keys = data_dict.keys()
-            level += 1
-            for key in keys:
+        keys = data_dict.keys()
+        level += 1
+        for key in keys:
+            if type(data_dict[key]) == dict:
                 print("---" * level, key)
-                NDict._print_tree_static(data_dict[key], level)
+                NDict._print_tree_static(data_dict[key], level, print_values=print_values)
+            else:
+                if print_values:
+                    print("---" * level, key, "->", data_dict[key])
+                else:
+                    print("---" * level, key)
 
     def describe(self) -> None:
         for k in self.keypaths():
@@ -324,14 +354,16 @@ class NestedKeyError(KeyError):
     def __init__(self, key: str, d: NDict) -> None:
         partial_key = d.get_closest_key(key)
         if partial_key == "":
-            partial_ndict = d
+            error_str = f"Error: key {key} does not exist\n. All keys: {d.keypaths()}"
         else:
             partial_ndict = d[partial_key]
 
-        if isinstance(partial_ndict, NDict):
-            options = str([f"{partial_key}.{k}" for k in partial_ndict.keypaths()])
-            error_str = f"Error: key {key} does not exist\n. Possible keys on the same branch are: {options}. All keys {d.keypaths()}"
-        else:
-            error_str = f"Error: key {key} does not exist\n. Closest key is: {partial_key}. All keys: {d.keypaths()}"
+            if isinstance(partial_ndict, NDict):
+                options = str([f"{partial_key}.{k}" for k in partial_ndict.keypaths()])
+                error_str = f"Error: key {key} does not exist\n. Possible keys on the same branch are: {options}. All keys {d.keypaths()}"
+            else:
+                error_str = (
+                    f"Error: key {key} does not exist\n. Closest key is: {partial_key}. All keys: {d.keypaths()}"
+                )
         print(error_str)
         super().__init__(error_str)
