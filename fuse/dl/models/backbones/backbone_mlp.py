@@ -17,7 +17,7 @@ Created on June 30, 2021
 
 """
 
-from typing import Dict, List
+from typing import List
 
 import torch
 import torch.nn as nn
@@ -46,7 +46,8 @@ class BackboneMultilayerPerceptron(torch.nn.Module):
 
         self.mlp = nn.ModuleList(mlp_layers)
 
-    def forward(self, input_tensor: Dict) -> Dict:
+    def forward(self, input_tensor: torch.Tensor) -> torch.Tensor:
+
         for layer in self.mlp:
             input_tensor = layer(input_tensor)
         return input_tensor

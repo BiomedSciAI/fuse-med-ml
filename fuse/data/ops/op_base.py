@@ -21,6 +21,7 @@ from abc import abstractmethod
 from fuse.data.utils.sample import get_sample_id
 from fuse.utils.ndict import NDict
 from fuse.data.ops.hashable_class import HashableClass
+import inspect
 
 
 class OpBase(HashableClass):
@@ -93,11 +94,26 @@ class OpReversibleBase(OpBase):
 
 
 def op_call(op: OpBase, sample_dict: NDict, op_id: str, **kwargs):
+
+    if inspect.isclass(op):
+        raise Exception(
+            f"Error: expected an instance object, not a class object for {op}\n"
+            "When creating a pipeline, such error can happen when you provide the following ops list description:\n"
+            "[SomeOp, {}]\n"
+            "instead of \n"
+            "[SomeOp(), {}]\n"
+        )
+
     try:
         if isinstance(op, OpReversibleBase):
             return op(sample_dict, op_id=op_id, **kwargs)
-        else:  # OpBase but note reversible
+        elif isinstance(op, OpBase):  # OpBase but not reversible
             return op(sample_dict, **kwargs)
+        else:
+            raise Exception(
+                f"Ops are expected to be instances of classes or subclasses of OpBase. The following op is not: {op}"
+            )
+
     except:
         # error messages are cryptic without this. For example, you can get "TypeError: __call__() got an unexpected keyword argument 'key_out_input'" , without any reference to the relevant op!
         print(

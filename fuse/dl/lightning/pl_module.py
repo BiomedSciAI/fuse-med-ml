@@ -31,7 +31,7 @@ class LightningModuleDefault(pl.LightningModule):
     def __init__(
         self,
         model_dir: str,
-        model: Optional[torch.nn.Module] = None,
+        model: torch.nn.Module,
         losses: Optional[Dict[str, LossBase]] = None,
         train_metrics: Optional[OrderedDict[str, MetricBase]] = None,
         validation_metrics: Optional[OrderedDict[str, MetricBase]] = None,
@@ -85,6 +85,8 @@ class LightningModuleDefault(pl.LightningModule):
 
     ## Step
     def training_step(self, batch_dict: NDict, batch_idx: int) -> dict:
+        # add step number to batch_dict
+        batch_dict["global_step"] = self.global_step
         # run forward function and store the outputs in batch_dict["model"]
         batch_dict = self.forward(batch_dict)
         # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss and save losses values in batch_dict["losses"]
@@ -95,6 +97,8 @@ class LightningModuleDefault(pl.LightningModule):
         return {"loss": total_loss, "losses": batch_dict["losses"]}
 
     def validation_step(self, batch_dict: NDict, batch_idx: int) -> dict:
+        # add step number to batch_dict
+        batch_dict["global_step"] = self.global_step
         # run forward function and store the outputs in batch_dict["model"]
         batch_dict = self.forward(batch_dict)
         # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss (ignored) and save losses values in batch_dict["losses"]
@@ -106,6 +110,8 @@ class LightningModuleDefault(pl.LightningModule):
         return {"losses": batch_dict["losses"]}
 
     def test_step(self, batch_dict: NDict, batch_idx: int) -> dict:
+        # add step number to batch_dict
+        batch_dict["global_step"] = self.global_step
         # run forward function and store the outputs in batch_dict["model"]
         batch_dict = self.forward(batch_dict)
         # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss (ignored) and save losses values in batch_dict["losses"]
