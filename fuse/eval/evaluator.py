@@ -83,11 +83,11 @@ class EvaluatorDefault:
                                               A batch will be automatically created from batch_size samples
         :param output_dir: Optional - dump results to directory
         :param silent: print results if false
-        :param error_missing_ids: whether to raise an exception if (a) input ids (if not None) are not fully contained in the input data, 
+        :param error_missing_ids: whether to raise an exception if (a) input ids (if not None) are not fully contained in the input data,
                                   or if (b) the input list of dataframe don't share the same ids
-                                If False, then in (a) the evalation will be computed on the intersection of input ids and input data; 
+                                If False, then in (a) the evalation will be computed on the intersection of input ids and input data;
                                 and in (b) dataframe will be extended to have the same set of ids, with new rows having NaN values in their numeric fields
-                                   
+
         :return: dictionary that holds all the results.
         """
         self.silent = silent
@@ -203,7 +203,7 @@ class EvaluatorDefault:
             result_data = pd.concat(data_lst)
 
         elif isinstance(data, dict):  # data is dictionary of dataframes
-            # iteration on entries to (1) read all dataframes and (2) compute the union of the ids in all the dataframes 
+            # iteration on entries to (1) read all dataframes and (2) compute the union of the ids in all the dataframes
             df_list = []
             all_ids = set()
             for key, data_elem in data.items():
@@ -228,20 +228,20 @@ class EvaluatorDefault:
                         )
                     else:
                         n = len(missing_ids)
-                        
+
                         missing_df = pd.DataFrame(index=list(missing_ids))
                         for i_col, col in enumerate(data_elem_df.columns):
                             x = data_elem_df.iloc[0][i_col]
 
                             if isinstance(x, np.ndarray):
-                                missing_df[col] = [np.NaN*np.ones_like(x)] * n
+                                missing_df[col] = [np.NaN * np.ones_like(x)] * n
                             elif np.isreal(x):
-                                missing_df[col] = np.NaN 
+                                missing_df[col] = np.NaN
                             else:
                                 missing_df[col] = None
 
                         df_list[i_df] = pd.concat((data_elem_df, missing_df), axis=0)
-      
+
             result_data = pd.concat(df_list, axis=1, join="inner")
             result_data[id_key] = result_data.index
 

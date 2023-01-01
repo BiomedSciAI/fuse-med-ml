@@ -20,7 +20,7 @@ class MetricEnsemble(MetricDefault):
         output_pred_key: Optional[str] = "preds",
         output_target_key: Optional[str] = "target",
         rename_in_output: Optional[Dict[str, str]] = None,
-        scores_normalize_func = None,
+        scores_normalize_func=None,
         **kwargs,
     ):
         """
@@ -36,9 +36,9 @@ class MetricEnsemble(MetricDefault):
         :param output_pred_key: output key name for the predictions
         :param output_target_key: output key name for the target
         :param rename_in_output: renaming keys in the output (similar to output_pred_key and output_target that rename the columns in output file correspongin to pred and target keys).
-                                  All additional keys (provided in **kwargs) will be added as columns to the output file. 
-                                  This optional param allows specifying for each additional input key the name of the corresponding column in the output file. 
-                                  It is similar to output_pred_key, and output_target_key which specify column names for pred and targte keys. 
+                                  All additional keys (provided in **kwargs) will be added as columns to the output file.
+                                  This optional param allows specifying for each additional input key the name of the corresponding column in the output file.
+                                  It is similar to output_pred_key, and output_target_key which specify column names for pred and targte keys.
         :param scores_normalize_func: applied to each set of predictions / scores
         """
         ensemble = partial(
@@ -63,9 +63,9 @@ class MetricEnsemble(MetricDefault):
         output_file: Optional[str] = None,
         output_pred_key: Optional[str] = "preds",
         output_target_key: Optional[str] = "target",
-        keys_for_output: Optional[List[str]] =None,
-        rename_in_output:  Optional[Dict[str, str]] = None,
-        scores_normalize_func = None,
+        keys_for_output: Optional[List[str]] = None,
+        rename_in_output: Optional[Dict[str, str]] = None,
+        scores_normalize_func=None,
         **kwargs,
     ):
         preds = [np.asarray(kwargs[k]) for k in kwargs if k.startswith("pred")]
@@ -79,15 +79,15 @@ class MetricEnsemble(MetricDefault):
         if target is not None:
             res[output_target_key] = PerSampleData(data=target, ids=ids)
         if keys_for_output is not None:
-                for key in keys_for_output:
-                    key2 = rename_in_output.get(key, key)
-                    res[key2] = PerSampleData(data=kwargs[key], ids=ids)
+            for key in keys_for_output:
+                key2 = rename_in_output.get(key, key)
+                res[key2] = PerSampleData(data=kwargs[key], ids=ids)
         if output_file is not None:
-            ids_list = list(ids) # to fix the order of ids
-            file_data = {'id':ids_list}
+            ids_list = list(ids)  # to fix the order of ids
+            file_data = {"id": ids_list}
             for k, per_sample_data in res.items():
                 file_data[k] = per_sample_data(ids_list)
             df = pd.DataFrame(file_data)
-            
+
             df.to_pickle(output_file, compression="gzip")
         return res

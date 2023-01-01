@@ -28,8 +28,10 @@ class MetricsSurvival:
         if time_followup is not None:
             event_observed = np.array(event_observed)
             event_times = np.array(event_times)
-            print(f"C-index time_follow_up={time_followup}: ignored events ={event_observed[event_times>time_followup].sum()} remaining_events={event_observed[event_times<=time_followup].sum()}")
-            event_observed[event_times>time_followup] = 0
+            print(
+                f"C-index time_follow_up={time_followup}: ignored events ={event_observed[event_times>time_followup].sum()} remaining_events={event_observed[event_times<=time_followup].sum()}"
+            )
+            event_observed[event_times > time_followup] = 0
 
         return concordance_index(event_times, -pred, event_observed)
 

@@ -123,11 +123,11 @@ class SamplesCacher:
                     continue
                 if os.path.basename(found_dir) != self._pipeline_desc_hash:
                     new_desc = self._pipeline_desc_text
-                    new_file = os.path.join(found_dir, f'pipeline_{self._pipeline_desc_hash}_desc.txt')
-                    with open(new_file, 'wt') as f:
+                    new_file = os.path.join(found_dir, f"pipeline_{self._pipeline_desc_hash}_desc.txt")
+                    with open(new_file, "wt") as f:
                         f.write(new_desc)
 
-                    pipeline_desc_file = os.path.join(found_dir, f'pipeline_{os.path.basename(found_dir)}_desc.txt')
+                    pipeline_desc_file = os.path.join(found_dir, f"pipeline_{os.path.basename(found_dir)}_desc.txt")
                     if os.path.exists(pipeline_desc_file):
                         print("*** Old pipeline description:", pipeline_desc_file)
                         print("*** New pipeline description (does not match old pipeline):", new_file)
@@ -207,9 +207,9 @@ class SamplesCacher:
             orig_sid_to_final[initial_sample_id] = output_sample_ids
 
         write_dir = self._get_write_dir()
-        pipeline_desc_file = os.path.join(write_dir, f'pipeline_{self._pipeline_desc_hash}_desc.txt')
+        pipeline_desc_file = os.path.join(write_dir, f"pipeline_{self._pipeline_desc_hash}_desc.txt")
         if not os.path.exists(pipeline_desc_file):
-            with open(pipeline_desc_file, 'wt') as f:
+            with open(pipeline_desc_file, "wt") as f:
                 f.write(self._pipeline_desc_text)
             print("======== wrote", pipeline_desc_file)
 
