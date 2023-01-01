@@ -39,7 +39,7 @@ import pytorch_lightning as pl
 def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_dropout: float):
     if use_data["imaging"]:
         backbone = BackboneResnet3D(in_channels=1, pretrained=False)
-        conv_inputs = [("model.backbone_features",512)]
+        conv_inputs = [("model.backbone_features", 512)]
     else:
         backbone = nn.Identity()
         conv_inputs = None
