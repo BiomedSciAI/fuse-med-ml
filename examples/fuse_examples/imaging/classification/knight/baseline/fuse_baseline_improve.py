@@ -9,7 +9,7 @@ from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
 # from fuse.dl.models.heads.heads_3D import Head3D
 from fuse.dl.models.heads.heads_3D import Head3DClassifier
-from fuse.dl.models.heads.head_1D_classifier import Head1DClassifier
+from fuse.dl.models.heads.heads_3D import Head3DRegression
 
 from fuseimg.datasets.knight import KNIGHT
 import torch.nn.functional as F
@@ -30,13 +30,13 @@ import copy
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 import pytorch_lightning as pl
-from nnunet.network_architecture.generic_UNet import Generic_UNet
-from nnunet.network_architecture.initialization import InitWeights_He
+# from nnunet.network_architecture.generic_UNet import Generic_UNet
+# from nnunet.network_architecture.initialization import InitWeights_He
 # from torchvision.models import resnet50
 
-from resnet import resnet34, resnet18, resnet50
+# from resnet import resnet34, resnet18, resnet50
 
-# from fuse.dl.models.heads.heads_1D import Head1D
+from fuse.dl.models.heads.heads_1D import Head1D
 ## Parameters:
 ##############################################################################
 # Data sources to use in model. Set {'imaging': True, 'clinical': False} for imaging only setting,
@@ -54,29 +54,29 @@ def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_d
             conv_inputs = [("model.backbone_features", 2048)]
         elif not pretrained:
             backbone = BackboneResnet3D(in_channels=1)
-            state_dict = torch.load(open("/projects/msieve_dev3/usr/il018850/new_age_classification/base_all_resized/last.ckpt", "rb"))["state_dict"]
-            state_dict = {".".join(k.split(".")[2:]) : v for k, v in state_dict.items() if k.startswith("_model.backbone.")}
-            backbone.load_state_dict(state_dict)
+            # state_dict = torch.load(open("/projects/msieve_dev3/usr/il018850/new_age_classification/base_resized/last.ckpt", "rb"))["state_dict"]
+            # state_dict = {".".join(k.split(".")[2:]) : v for k, v in state_dict.items() if k.startswith("_model.backbone.")}
+            # backbone.load_state_dict(state_dict)
             conv_inputs = [("model.backbone_features", 512)]
         else:
-            unet_path = "/data/usr/liam/nnUNet/3d_fullres/Task135_KiTS2021/nnUNetTrainerV2__nnUNetPlansv2.1/fold_0/model_final_checkpoint.model"
-            norm_op_kwargs = {'eps': 1e-05, 'affine': True}
-            dropout_op_kwargs = {'p': 0, 'inplace': True}
-            net_nonlin_kwargs = {'negative_slope': 0.01, 'inplace': True}
-            backbone = Generic_UNet(1, 32, 4, 5, 2, 2, nn.Conv3d, nn.InstanceNorm3d, norm_op_kwargs, nn.Dropout3d,dropout_op_kwargs,
-                        nn.LeakyReLU, net_nonlin_kwargs, True, False, None, InitWeights_He(1e-2),
-                        [[2, 2, 2], [2, 2, 2], [2, 2, 2], [2, 2, 2], [2, 2, 2]],
-                        [[3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]] 
-                        , True, True, True)
-            loaded_state_dict = torch.load(unet_path)["state_dict"]
-            backbone.load_state_dict(state_dict=loaded_state_dict)
-            backbone.inference_apply_nonlin = None
-            conv_inputs = [('model.backbone_features', 320)]
-            # state_dict = torch.load(open("/data/usr/liam/age_classification/pretrain/resnet_50_23dataset.pth", "rb"))["state_dict"]
-            # state_dict = {k[7:]:v for k,v in state_dict.items()}
-            # backbone = resnet50()#(shortcut_type='A')
-            # backbone.load_state_dict(state_dict=state_dict)
-            # conv_inputs = [("model.backbone_features", 2048)]
+            # unet_path = "/data/usr/liam/nnUNet/3d_fullres/Task135_KiTS2021/nnUNetTrainerV2__nnUNetPlansv2.1/fold_0/model_final_checkpoint.model"
+            # norm_op_kwargs = {'eps': 1e-05, 'affine': True}
+            # dropout_op_kwargs = {'p': 0, 'inplace': True}
+            # net_nonlin_kwargs = {'negative_slope': 0.01, 'inplace': True}
+            # backbone = Generic_UNet(1, 32, 4, 5, 2, 2, nn.Conv3d, nn.InstanceNorm3d, norm_op_kwargs, nn.Dropout3d,dropout_op_kwargs,
+            #             nn.LeakyReLU, net_nonlin_kwargs, True, False, None, InitWeights_He(1e-2),
+            #             [[2, 2, 2], [2, 2, 2], [2, 2, 2], [2, 2, 2], [2, 2, 2]],
+            #             [[3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]] 
+            #             , True, True, True)
+            # loaded_state_dict = torch.load(unet_path)["state_dict"]
+            # backbone.load_state_dict(state_dict=loaded_state_dict)
+            # backbone.inference_apply_nonlin = None
+            # conv_inputs = [('model.backbone_features', 320)]
+            state_dict = torch.load(open("/data/usr/liam/age_classification/pretrain/resnet_50_23dataset.pth", "rb"))["state_dict"]
+            state_dict = {k[7:]:v for k,v in state_dict.items()}
+            backbone = resnet50()#(shortcut_type='A')
+            backbone.load_state_dict(state_dict=state_dict)
+            conv_inputs = [("model.backbone_features", 2048)]
     else:
         backbone = nn.Identity()
         conv_inputs = None
@@ -87,13 +87,12 @@ def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_d
 
     if two_dim:
         heads = [
-            Head1DClassifier(
+            Head1D(
                 head_name="head_0",
-                # mode = "classification",
+                mode = "classification",
                 conv_inputs=conv_inputs,
                 dropout_rate=imaging_dropout,
-                # num_outputs=num_classes,
-                num_classes=num_classes,
+                num_outputs=num_classes,
                 append_features=append_features,
                 append_layers_description=(256, 128),
             ),
@@ -112,27 +111,27 @@ def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_d
                     fused_dropout_rate=fused_dropout,
                 ),
             ]
-    # if regression_head:
-    #     if two_dim:
-    #         heads.append(Head1D(
-    #             head_name="head_1",
-    #             mode="regression",
-    #             conv_inputs=conv_inputs,
-    #             dropout_rate=imaging_dropout,
-    #             append_features=None,
-    #             append_layers_description=(256, 128),
-    #             num_outputs=1
-    #             ))
-    #     else:
-    #         heads.append(Head3D(
-    #             head_name="head_1",
-    #             mode="regression",
-    #             conv_inputs=conv_inputs,
-    #             dropout_rate=imaging_dropout,
-    #             append_features=None,
-    #             append_layers_description=(256, 128),
-    #             num_outputs=1
-    #             ))
+    if regression_head:
+        if two_dim:
+            heads.append(Head1D(
+                head_name="head_1",
+                mode="regression",
+                conv_inputs=conv_inputs,
+                dropout_rate=imaging_dropout,
+                append_features=None,
+                append_layers_description=(256, 128),
+                num_outputs=1
+                ))
+        else:
+            heads.append(Head3DRegression(
+                head_name="head_1",
+                # mode="regression",
+                conv_inputs=conv_inputs,
+                dropout_rate=imaging_dropout,
+                append_features=None,
+                append_layers_description=(256, 128),
+                num_outputs=1
+                ))
     model = ModelMultiHead(
         conv_inputs=(("data.input.img", 1),),
         backbone=backbone,
