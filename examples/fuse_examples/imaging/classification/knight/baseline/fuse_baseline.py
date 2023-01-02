@@ -73,7 +73,7 @@ def main(cfg_path):
     task_num = cfg["task_num"]
     num_classes = cfg[task_num]["num_classes"]
     target_name = cfg[task_num]["target_name"]
-    class_names = None if cfg[task_num]["class_names"] == "None" else cfg[task_num]["class_names"]
+    class_names = None if not cfg[task_num]["class_names"] else cfg[task_num]["class_names"]
     if cfg["num_gpus"] == 0:
         use_gpu = False
     else:

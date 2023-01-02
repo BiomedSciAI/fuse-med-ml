@@ -92,20 +92,14 @@ class SampleCachingAudit:
         diff = DeepDiff(cached_sample, fresh_sample, **self._audit_diff_kwargs)
         self._audited_so_far += 1
         if len(diff) > 0:
-            raise Exception(
-                f"Error! During AUDIT found a mismatch between cached_sample and loaded sample.\n"
+            msg = f"""Error! During AUDIT found a mismatch between cached_sample and loaded sample.\n"
                 "Please reset your cache.\n"
                 "Note - this can happen if a change in your (static) pipeline Ops is not expressed in the calculated hash function.\n"
                 "There are several reasons that can cause this, for example, you are calling, from within your op external code.\n"
                 "This is perfectly fine to do, just make sure you reset your cache after such change.\n"
                 "Gladly, the Audit feature caught this stale cache state! :)\n"
                 f"sample id in which this staleness was caught: {get_sample_id(fresh_sample)}\n"
-                'NOTE: if small changes between the saved cached and the live-loaded/processed sample are ok for your use case, you can set a tolerance epsilon like this: audit_diff_kwargs={"math_epsilon":1e-9}'
-                f"diff = {diff}"
-                f"Error! During AUDIT found a mismatch between cached_sample and loaded sample.\n"
-                "Please reset your cache.\n"
-                "Note - this can happen if a change in your (static) pipeline Ops is not expressed in the calculated hash function.\n"
-                "There are several reasons that can cause this, for example, you are calling, from within your op external code.\n"
-                "This is perfectly fine to do, just make sure you reset your cache after such change.\n"
-                "Gladly, the Audit feature caught this stale cache state! :)\n"
+                'NOTE: if small changes between the saved cached and the live-loaded/processed sample are ok for your use case, you can set a tolerance epsilon like this: audit_diff_kwargs={"math_epsilon":1e-9}'"""
+            raise Exception(
+                msg + f"diff = {diff}" + msg
             )

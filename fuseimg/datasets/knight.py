@@ -22,19 +22,6 @@ import torch
 import pandas as pd
 
 
-class OpNormalizeAgainstSelf(OpBase):
-    def __call__(self, sample_dict: NDict, key: str) -> NDict:
-        img = sample_dict[key]
-        img = np.clip(
-            img, *(np.percentile(img, [5, 95]))
-        )  # truncate the intensities to the range of 0.5 to 99.5 percentiles
-
-        img = (img - img.mean()) / img.std()
-        sample_dict[key] = img
-
-        return sample_dict
-
-
 class OpKnightSampleIDDecode(OpBase):
     """
     decodes sample id into image and segmentation filename
@@ -200,7 +187,6 @@ class KNIGHT:
                 # loading data
                 (OpLoadImage(data_path), dict(key_in="data.input.img_path", key_out="data.input.img", format="nib")),
                 # fixed image normalization
-                # (OpNormalizeAgainstSelf(), dict(key="data.input.img")),
                 (OpClip(), dict(key="data.input.img", clip=(-62, 301))),
                 (OpZScoreNorm(), dict(key="data.input.img", mean=104.0, std=75.3)),  # kits normalization
                 # transposing so the depth channel will be first
