@@ -21,6 +21,7 @@ class MetricEnsemble(MetricDefault):
         output_target_key: Optional[str] = "target",
         rename_in_output: Optional[Dict[str, str]] = None,
         scores_normalize_func=None,
+        dropna=False,
         **kwargs,
     ):
         """
@@ -40,6 +41,7 @@ class MetricEnsemble(MetricDefault):
                                   This optional param allows specifying for each additional input key the name of the corresponding column in the output file.
                                   It is similar to output_pred_key, and output_target_key which specify column names for pred and targte keys.
         :param scores_normalize_func: applied to each set of predictions / scores
+        :param dropna: whether to drop samples with mising predictions
         """
         ensemble = partial(
             self._ensemble,
@@ -50,6 +52,7 @@ class MetricEnsemble(MetricDefault):
             keys_for_output=list(kwargs.keys()),
             rename_in_output=rename_in_output,
             scores_normalize_func=scores_normalize_func,
+            dropna=dropna,
         )
         for i, key in enumerate(pred_keys):
             kwargs["pred" + str(i)] = key
@@ -66,9 +69,16 @@ class MetricEnsemble(MetricDefault):
         keys_for_output: Optional[List[str]] = None,
         rename_in_output: Optional[Dict[str, str]] = None,
         scores_normalize_func=None,
+        dropna=False,
         **kwargs,
     ):
         preds = [np.asarray(kwargs[k]) for k in kwargs if k.startswith("pred")]
+        if dropna:
+            nan_mat = np.isnan(np.concatenate(preds, axis=1))
+            has_nan_arr = np.sum(nan_mat, axis=1)  > 0
+            ids = [id for (id, has_nan) in zip(ids, has_nan_arr) if not has_nan]
+            preds = [pred[~has_nan_arr] for pred in preds]
+    
         if scores_normalize_func is not None:
             preds = [scores_normalize_func(x) for x in preds]
         preds = list(np.stack(preds, axis=1))

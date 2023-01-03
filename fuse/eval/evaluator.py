@@ -100,7 +100,7 @@ class EvaluatorDefault:
         if batch_size is None:
             data_df = self.read_data(data, ids_df, id_key=id_key, error_missing_ids=error_missing_ids)
             data_df["id"] = data_df[id_key]
-            ids = set(data_df["id"].values.tolist())
+            ids = data_df["id"].values.tolist()
             # pass data
             for metric_name, metric in metrics.items():
                 try:
