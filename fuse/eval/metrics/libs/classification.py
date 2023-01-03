@@ -48,19 +48,17 @@ class MetricsLibClass:
                         If not ``None``, the standardized partial AUC over the range [0, max_fpr] is returned.
         :return auc Receiver operating characteristic score
         """
-        pred = np.array(pred).squeeze()
-        target = np.array(target)
-
-        if len(pred.shape) == 1:
-            # binary classification
-            return metrics.roc_auc_score(y_score=pred, y_true=target, sample_weight=sample_weight, max_fpr=max_fpr)
-
-        # multiclass classification
-        assert np.allclose(pred.sum(axis=1), 1), "the prediction must be post-softmax"
-        y_score = pred[:, pos_class_index]
+        if not isinstance(pred[0], np.ndarray):
+            pred = [np.array(p) for p in pred]
+            pos_class_index = 1
+            y_score = np.asarray(pred)
+        else:
+            if pos_class_index < 0:
+                pos_class_index = pred[0].shape[0] - 1
+            y_score = np.asarray(pred)[:, pos_class_index]
 
         return metrics.roc_auc_score(
-            y_score=y_score, y_true=target == pos_class_index, sample_weight=sample_weight, max_fpr=max_fpr
+            y_score=y_score, y_true=np.asarray(target) == pos_class_index, sample_weight=sample_weight, max_fpr=max_fpr
         )
 
     @staticmethod
