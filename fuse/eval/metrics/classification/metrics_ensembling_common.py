@@ -75,10 +75,10 @@ class MetricEnsemble(MetricDefault):
         preds = [np.asarray(kwargs[k]) for k in kwargs if k.startswith("pred")]
         if dropna:
             nan_mat = np.isnan(np.concatenate(preds, axis=1))
-            has_nan_arr = np.sum(nan_mat, axis=1)  > 0
+            has_nan_arr = np.sum(nan_mat, axis=1) > 0
             ids = [id for (id, has_nan) in zip(ids, has_nan_arr) if not has_nan]
             preds = [pred[~has_nan_arr] for pred in preds]
-    
+
         if scores_normalize_func is not None:
             preds = [scores_normalize_func(x) for x in preds]
         preds = list(np.stack(preds, axis=1))
