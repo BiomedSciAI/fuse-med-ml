@@ -32,8 +32,8 @@ class LightningModuleDefault(pl.LightningModule):
 
     def __init__(
         self,
-        model_dir: str,
-        model: torch.nn.Module,
+        model_dir: str = None,
+        model: torch.nn.Module = None,
         losses: Optional[Dict[str, LossBase]] = None,
         train_metrics: Optional[OrderedDict[str, MetricBase]] = None,
         validation_metrics: Optional[OrderedDict[str, MetricBase]] = None,
@@ -171,33 +171,3 @@ class LightningModuleDefault(pl.LightningModule):
     def set_predictions_keys(self, keys: List[str]) -> None:
         """Define which keys to extract from batch_dict on prediction mode"""
         self._prediction_keys = keys
-
-
-class FuseModule(LightningModuleDefault, ModelWrapSeqToDict):
-
-    def __init__(
-        self,
-        # mutual args
-        model: torch.nn.Module = None,
-
-        # ModelWrapSeqToDict args
-        *,  # preventing positional args
-        model_inputs: Sequence[str] = None,
-        model_outputs: Sequence[str] = None,
-        pre_forward_processing_function: Callable = None,
-        post_forward_processing_function: Callable = None,
-        
-        # LightningModuleDefault args
-        model_dir: str,
-        losses: Optional[Dict[str, LossBase]] = None,
-        train_metrics: Optional[OrderedDict[str, MetricBase]] = None,
-        validation_metrics: Optional[OrderedDict[str, MetricBase]] = None,
-        test_metrics: Optional[OrderedDict[str, MetricBase]] = None,
-        optimizers_and_lr_schs: Any = None,
-        callbacks: Optional[Sequence[pl.Callback]] = None,
-        best_epoch_source: Optional[Union[Dict, List[Dict]]] = None,
-        save_hyperparameters: Optional[List[str]] = None,
-        tensorboard_sep: str = ".",
-        **kwargs: dict,
-    ) -> None:
-        pass

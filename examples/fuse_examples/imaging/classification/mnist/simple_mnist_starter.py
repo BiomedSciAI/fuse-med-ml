@@ -18,27 +18,23 @@ Created on June 30, 2021
 ===============================
 
 The most minimal MNIST classifier implementation that demonstrate end to end training using Fuse that we could make.
-There is a lot more that one could do on top of this, including inference, evaluation, model checkpointing, etc. But 
-the goal of this script is simply to train a classifier and show how to wrap a regular pytorch model so it can be 
-trained "fuse" style. Meaning it accesses data using keys to a batch_dict. It also demonstrates how easy it is to 
+There is a lot more that one could do on top of this, including inference, evaluation, model checkpointing, etc. But
+the goal of this script is simply to train a classifier and show how to wrap a regular pytorch model so it can be
+trained "fuse" style. Meaning it accesses data using keys to a batch_dict. It also demonstrates how easy it is to
 load datasets from fuse.
 """
 
 import copy
-import logging
 import os
-from typing import OrderedDict, Tuple
-from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
+from typing import OrderedDict
 
-import torch
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
 import pytorch_lightning as pl
 
-from fuse.eval.evaluator import EvaluatorDefault
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
-from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
+from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy
 
 from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.collates import CollateDefault
@@ -47,17 +43,8 @@ from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 
-from fuse.utils.utils_debug import FuseDebug
-from fuse.utils.utils_logger import fuse_logger_start
-from fuse.utils.file_io.file_io import create_dir, save_dataframe
-import fuse.utils.gpu as GPU
-
 from fuseimg.datasets.mnist import MNIST
-from fuse.data.datasets.dataset_default import DatasetDefault
 from examples.fuse_examples.imaging.classification.mnist import lenet
-
-mode = "default"  # Options: 'default', 'debug'. See details in FuseDebug
-debug = FuseDebug(mode)
 
 ROOT = "_examples/mnist"  # TODO: fill path here
 model_dir = os.path.join(ROOT, "model_dir")
@@ -71,7 +58,7 @@ train_params = {
     "data.batch_size": 100,
     "data.train_num_workers": 8,
     "data.validation_num_workers": 8,
-    "trainer.num_epochs": 2,
+    "trainer.num_epochs": 12,
     "trainer.num_devices": 1,
     "trainer.accelerator": "gpu",
     "trainer.strategy": "dp",
@@ -81,47 +68,40 @@ train_params = {
 }
 
 
-def perform_softmax(logits: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-    cls_preds = F.softmax(logits, dim=1)
-    return logits, cls_preds
+class FuseLitLenet(LightningModuleDefault):
+    def __init__(self):
+        super().__init__()
+        # wrap basic torch model to automatically read inputs from batch_dict and save its outputs to batch_dict
+        self._model = ModelWrapSeqToDict(
+            model=lenet.LeNet(),
+            model_inputs=["data.image"],
+            post_forward_processing_function=lambda logits: (logits, F.softmax(logits, dim=1)),
+            model_outputs=["model.logits.classification", "model.output.classification"],
+        )
+        self._losses = {
+            "cls_loss": LossDefault(
+                pred="model.logits.classification", target="data.label", callable=F.cross_entropy, weight=1.0
+            ),
+        }
+        self._train_metrics = OrderedDict(
+            [
+                ("operation_point", MetricApplyThresholds(pred="model.output.classification")),  # will apply argmax
+                ("accuracy", MetricAccuracy(pred="results:metrics.operation_point.cls_pred", target="data.label")),
+            ]
+        )
+        self._validation_metrics = copy.deepcopy(self._train_metrics)
+        optimizer = optim.Adam(
+            self._model.parameters(), lr=train_params["opt.lr"], weight_decay=train_params["opt.weight_decay"]
+        )
+        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+        lr_sch_config = dict(scheduler=lr_scheduler, monitor="validation.losses.total_loss")
+        self._optimizers_and_lr_schs = dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
 
 
-def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault, paths: dict, train_params: dict):
-    fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
-
-    losses = {
-        "cls_loss": LossDefault(
-            pred="model.logits.classification", target="data.label", callable=F.cross_entropy, weight=1.0
-        ),
-    }
-
-    metrics = OrderedDict(
-        [
-            ("operation_point", MetricApplyThresholds(pred="model.output.classification")),  # will apply argmax
-            ("accuracy", MetricAccuracy(pred="results:metrics.operation_point.cls_pred", target="data.label")),
-        ]
-    )
-
-    # wrap basic torch model to automatically read inputs from batch_dict and save its outputs to batch_dict
-    torch_model = lenet.LeNet()
-    model = ModelWrapSeqToDict(
-        model=torch_model,
-        model_inputs=["data.image"],
-        post_forward_processing_function=perform_softmax,
-        model_outputs=["model.logits.classification", "model.output.classification"],
-    )
-    optimizer = optim.Adam(model.parameters(), lr=train_params["opt.lr"], weight_decay=train_params["opt.weight_decay"])
-    lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
-    lr_sch_config = dict(scheduler=lr_scheduler, monitor="validation.losses.total_loss")
-    optimizers_and_lr_schs = dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
-    pl_module = LightningModuleDefault(
-        model_dir=paths["model_dir"],
-        model=model,
-        losses=losses,
-        train_metrics=metrics,
-        validation_metrics=copy.deepcopy(metrics),
-        optimizers_and_lr_schs=optimizers_and_lr_schs,
-    )
+def run_train(paths: dict, train_params: dict):
+    train_dataset = MNIST.dataset(PATHS["cache_dir"], train=True)
+    validation_dataset = MNIST.dataset(PATHS["cache_dir"], train=False)
+    model = FuseLitLenet()
 
     sampler = BatchSamplerDefault(
         dataset=train_dataset,
@@ -155,15 +135,8 @@ def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault,
     )
 
     # train
-    pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=train_params["trainer.ckpt_path"])
+    pl_trainer.fit(model, train_dataloader, validation_dataloader, ckpt_path=train_params["trainer.ckpt_path"])
 
 
 if __name__ == "__main__":
-    train_dataset = MNIST.dataset(PATHS["cache_dir"], train=True)
-    validation_dataset = MNIST.dataset(PATHS["cache_dir"], train=False)
-    run_train(
-        train_dataset=train_dataset,
-        validation_dataset=validation_dataset,
-        paths=PATHS,
-        train_params=train_params,
-    )
+    run_train(paths=PATHS, train_params=train_params)
