@@ -26,16 +26,17 @@ STATIC_FIELDS = ['Age', 'Gender', 'Height', 'ICUType', 'Weight']
 class OpAddBMI(OpBase):
     def __call__(self, sample_dict) -> Any:
 
-        sample_dict["BMI"] = np.nan
+        d_static = sample_dict['StaticDetails']
+        d_static["BMI"] = np.nan
 
-        if ("Height" in sample_dict.keys()) & ("Weight" in sample_dict.keys()):
-            height = sample_dict["Height"]
-            weight = sample_dict["Weight"]
+        if ("Height" in d_static.keys()) & ("Weight" in d_static.keys()):
+            height = d_static["Height"]
+            weight = d_static["Weight"]
             if ~np.isnan(height) & ~np.isnan(weight):
-                sample_dict["BMI"] = 10000 * weight / (height * height)
+                d_static["BMI"] = 10000 * weight / (height * height)
 
-        print(sample_dict["BMI"])
-        print(sample_dict['Visits'].shape)
+        print(d_static["BMI"])
+        sample_dict['StaticDetails'] = d_static
         return sample_dict
 
 
@@ -48,53 +49,21 @@ class OpAddBMI(OpBase):
 
 class OpMapToCategorical(OpBase):
     @staticmethod
-    def _digitize(sample_dict, percentiles):
-        #  sample_dict_mapped = np.deepcopy(sample_dict)
-        #
-        #  categorical_static = ['Gender', 'ICUType']
-        #  #fix categorical in dictionary not in handling
-        #  percentiles['Gender'] = [0,1]
-        #  percentiles['MechVent'] = [0, 1]
-        #
-        #
-        #  # mapping static clinical characteristics
-        #  for k in sample_dict.keys():
-        #      if k in categorical:
-        #          sample_dict_mapped[k] = k + '_' + sample_dict[k]
-        #      else: sample_dict_mapped[k] = np.digitize(sample_dict[k], percentiles[k])
-        #
-        #  df_visits = sample_dict['Visits']
-        #
-        #
-        #     list_remaining = [x for x in list_params if x not in special_handling]
-        #     for p in list_remaining:
-        #         new_values = np.digitize(d_values[p], d_percentiles[p])
-        #         new_deltas = np.digitize(d_delta[p], d_percentiles_deltas[p])
-        #         mapped_values = [p + '_' + str(x) for x in new_values]
-        #         mapped_deltas = [p + '_D_' + str(x) for x in new_deltas]
-        #         df_mapped.loc[d_values[p].index, 'MappedValue'] = mapped_values
-        #         df_mapped.loc[d_values[p].index, 'MappedDelta'] = mapped_deltas
-        #
-        #     if USE_DELTAS_FOR_MEASUREMETS:
-        #         df_mapped['FinalMappedValue'] = np.where(df_mapped['FirstIndicator'], df_mapped['MappedValue'],
-        #                                                  df_mapped['MappedDelta'])
-        #     else:
-        #         df_mapped['FinalMappedValue'] = df_mapped['MappedValue']
-        #
-        #     # remove records with patient ID
-        #     df_mapped = df_mapped.drop(df_mapped[(df_mapped['Parameter'] == 'RecordID')].index).reset_index(drop=True)
-        #
-        #     with open(RESULTS + 'mapped_data.pkl', 'bw') as f:
-        #         pickle.dump(df_mapped, f)
-        # else:
-        #     with open(RESULTS + 'mapped_data.pkl', 'rb') as f:
-        #         df_mapped = pickle.load(f)
+    def _digitize_values(sample_dict, percentiles):
+        # mapping static clinical characteristics
+        for k in sample_dict['StaticDetails'].keys():
+            sample_dict['StaticDetails'][k] = k + '_' + \
+                                              str(np.digitize(sample_dict['StaticDetails'][k], percentiles[k]))
+
+        sample_dict['Visits']['Value'] = sample_dict['Visits'].\
+            apply(lambda row: row['Parameter'] + '_' + str(np.digitize(row['Value'],percentiles[row['Parameter']])),\
+                  axis=1)
 
         return sample_dict
 
     def __call__(self, sample_dict, percentiles: dict) -> Any:
         print(percentiles['HR'])
-        sample_dict = OpMapToCategorical._digitize(sample_dict, percentiles)
+        sample_dict = OpMapToCategorical._digitize_values(sample_dict, percentiles)
         # print(percentiles.keys())
         return sample_dict
 
@@ -165,36 +134,37 @@ class PhysioNetCinC:
     @staticmethod
     def _generate_percentiles(dataset: DatasetDefault, num_percentiles: int) -> dict:
 
-        # calculate statistics of train set only and generate dictionary of percentiles for mapping
-        # lab results to categorical for train, validation and test
-        df = ExportDataset.export_to_dataframe(dataset, keys=['StaticDetails', 'Visits'])
+        # TODO use debug mode and remove worker parameter
+        df = ExportDataset.export_to_dataframe(dataset, keys=['StaticDetails', 'Visits'], workers=1)
 
+        # Extracting static and dynamic parts of the dataset
         df_static = pd.DataFrame(df['StaticDetails'].to_list())
-        d_static = df_static.to_dict('list')
-
-        # df_train_visits = ExportDataset.export_to_dataframe(dataset, keys=['Visits'])
-
-        # combine data frames of all patients together and calculate statistics and percentiles
-        # df = pd.concat(df_train_visits['Visits'].values)
         df_visits = pd.concat(df['Visits'].values)
 
-        #list_params = np.unique(df_visits[['Parameter']])
-
-        # dictionary of values of each lab/vital test with percentiles
+        # generation dictionaries of values for static and dynamic variables of dataset patients
+        d_static = df_static.to_dict('list')
         d_visits = dict.fromkeys(np.unique(df_visits[['Parameter']]), [])
-
         for k in d_visits.keys():
             d_visits[k] = df_visits[df_visits['Parameter'] == k]['Value']
 
         d_all_values = d_visits
         d_all_values.update(d_static)
 
+        # calculate percentiles
+        # for categorical parameters (Gender, etc) update percentiles according to categories
         d_percentile = dict()
         percentiles = range(0, 100 + int(100 / num_percentiles), int(100 / num_percentiles))
         for k in d_all_values.keys():
             values = np.array(d_all_values[k])
             values = values[~np.isnan(values)]
-            d_percentile[k] = np.percentile(values, percentiles)
+            # check number of unique values
+            unique_values = set(values)
+            if len(unique_values) < 5:
+                # categorical value
+                d_percentile[k] = sorted(unique_values)
+                print("Categorical: " + k)
+            else:
+                d_percentile[k] = np.percentile(values, percentiles)
 
         return d_percentile
 
@@ -256,13 +226,6 @@ class PhysioNetCinC:
             # fix time to datetime
             df_raw_data = PhysioNetCinC._convert_time_to_datetime(df_raw_data).reset_index()
 
-            # define dictionary of percentiles
-            # dict_percentiles = PhysioNetCinC._generate_percentiles(df_raw_data, num_percentiles)
-
-            # build data frame of patients (one record per patient)
-            # df_patients, dict_patient_time_events = PhysioNetCinC._convert_to_patients_df(df_raw_data, df_outcomes)
-
-            # df_raw_data = df_raw_data[['PatientId', 'DateTime', 'Parameter', 'Value']]
             with open(os.path.join(raw_data_path + '/' + 'raw_data.pkl'), "wb") as f:
                 pickle.dump([df_raw_data, df_outcomes, patient_ids], f)
 
@@ -279,7 +242,7 @@ class PhysioNetCinC:
     @staticmethod
     def _process_dynamic_pipeline(dict_percentiles):
         return [
-            (OpAddBMI(), dict()),
+            # (OpAddBMI(), dict()),
             (OpMapToCategorical(), dict(percentiles=dict_percentiles))
         ]
 
@@ -303,6 +266,7 @@ class PhysioNetCinC:
         dynamic_pipeline_ops = [
             (OpReadDataframeCinC(df_records, outcomes=df_outcomes[['PatientId', 'In-hospital_death']],
                                  key_column='PatientId'), {}),
+            (OpAddBMI(), dict())
         ]
         dynamic_pipeline = PipelineDefault("cinc_dynamic", dynamic_pipeline_ops)
 
@@ -326,15 +290,8 @@ class PhysioNetCinC:
         dataset_train = DatasetDefault(train_sample_ids, dynamic_pipeline)
         dataset_train.create()
 
-        # df_train_static = ExportDataset.export_to_dataframe(dataset_train, keys=['Visits'])
         # calculate statistics of train set only and generate dictionary of percentiles for mapping
         # lab results to categorical for train, validation and test
-        # df_train_visits = ExportDataset.export_to_dataframe(dataset_train, keys=['Visits'])
-
-        # combine data frames of all patients together and calculate statistics and percentiles
-        # df_train_visits_combined = df = pd.concat(df_train_visits['Visits'].values)
-        # dict_percentiles = PhysioNetCinC._generate_percentiles(pd.concat(df_train_visits['Visits'].values),
-        #                                                      num_percentiles)
         dict_percentiles = PhysioNetCinC._generate_percentiles(dataset_train, num_percentiles)
 
         # update pypline with Op using calculated percentiles
@@ -344,7 +301,7 @@ class PhysioNetCinC:
         dynamic_pipeline = PipelineDefault("cinc_dynamic", dynamic_pipeline_ops)
         dataset_train._dynamic_pipeline = dynamic_pipeline
         for f in train_sample_ids:
-            x = dataset_train[0]
+            x = dataset_train[f]
 
         print("before dataset val")
         validation_sample_ids = []

@@ -97,6 +97,7 @@ class OpReadDataframeCinC(OpBase):
             static_info_ind = df_pat_records['Time'] == '00:00'
             df_pat_static = df_pat_records[static_info_ind]
             df_pat_dynamic_exams = df_pat_records[~static_info_ind]
+
             dict_patient['StaticDetails'] = dict(zip(df_pat_static.Parameter, df_pat_static.Value))
             dict_patient['Visits'] = df_pat_dynamic_exams
             # old - dict creation for lab results
