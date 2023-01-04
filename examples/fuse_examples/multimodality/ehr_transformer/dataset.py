@@ -39,16 +39,62 @@ class OpAddBMI(OpBase):
         return sample_dict
 
 
-class OpCollectExamsStatistics(OpBase):
-    def __call__(self, sample_dict, percentiles: dict) -> Any:
-        percentiles[sample_dict['PatientId']] = sample_dict['Age']
-
-        return sample_dict
+# class OpCollectExamsStatistics(OpBase):
+#     def __call__(self, sample_dict, percentiles: dict) -> Any:
+#         percentiles[sample_dict['PatientId']] = sample_dict['Age']
+#
+#         return sample_dict
 
 
 class OpMapToCategorical(OpBase):
+    @staticmethod
+    def _digitize(sample_dict, percentiles):
+        #  sample_dict_mapped = np.deepcopy(sample_dict)
+        #
+        #  categorical_static = ['Gender', 'ICUType']
+        #  #fix categorical in dictionary not in handling
+        #  percentiles['Gender'] = [0,1]
+        #  percentiles['MechVent'] = [0, 1]
+        #
+        #
+        #  # mapping static clinical characteristics
+        #  for k in sample_dict.keys():
+        #      if k in categorical:
+        #          sample_dict_mapped[k] = k + '_' + sample_dict[k]
+        #      else: sample_dict_mapped[k] = np.digitize(sample_dict[k], percentiles[k])
+        #
+        #  df_visits = sample_dict['Visits']
+        #
+        #
+        #     list_remaining = [x for x in list_params if x not in special_handling]
+        #     for p in list_remaining:
+        #         new_values = np.digitize(d_values[p], d_percentiles[p])
+        #         new_deltas = np.digitize(d_delta[p], d_percentiles_deltas[p])
+        #         mapped_values = [p + '_' + str(x) for x in new_values]
+        #         mapped_deltas = [p + '_D_' + str(x) for x in new_deltas]
+        #         df_mapped.loc[d_values[p].index, 'MappedValue'] = mapped_values
+        #         df_mapped.loc[d_values[p].index, 'MappedDelta'] = mapped_deltas
+        #
+        #     if USE_DELTAS_FOR_MEASUREMETS:
+        #         df_mapped['FinalMappedValue'] = np.where(df_mapped['FirstIndicator'], df_mapped['MappedValue'],
+        #                                                  df_mapped['MappedDelta'])
+        #     else:
+        #         df_mapped['FinalMappedValue'] = df_mapped['MappedValue']
+        #
+        #     # remove records with patient ID
+        #     df_mapped = df_mapped.drop(df_mapped[(df_mapped['Parameter'] == 'RecordID')].index).reset_index(drop=True)
+        #
+        #     with open(RESULTS + 'mapped_data.pkl', 'bw') as f:
+        #         pickle.dump(df_mapped, f)
+        # else:
+        #     with open(RESULTS + 'mapped_data.pkl', 'rb') as f:
+        #         df_mapped = pickle.load(f)
+
+        return sample_dict
+
     def __call__(self, sample_dict, percentiles: dict) -> Any:
         print(percentiles['HR'])
+        sample_dict = OpMapToCategorical._digitize(sample_dict, percentiles)
         # print(percentiles.keys())
         return sample_dict
 
@@ -117,18 +163,38 @@ class PhysioNetCinC:
         return df
 
     @staticmethod
-    def _generate_percentiles(df: pd.DataFrame, num_percentiles: int) -> dict:
-        percentiles = range(0, 100 + int(100 / num_percentiles), int(100 / num_percentiles))
+    def _generate_percentiles(dataset: DatasetDefault, num_percentiles: int) -> dict:
 
-        list_params = np.unique(df[['Parameter']])
+        # calculate statistics of train set only and generate dictionary of percentiles for mapping
+        # lab results to categorical for train, validation and test
+        df = ExportDataset.export_to_dataframe(dataset, keys=['StaticDetails', 'Visits'])
+
+        df_static = pd.DataFrame(df['StaticDetails'].to_list())
+        d_static = df_static.to_dict('list')
+
+        # df_train_visits = ExportDataset.export_to_dataframe(dataset, keys=['Visits'])
+
+        # combine data frames of all patients together and calculate statistics and percentiles
+        # df = pd.concat(df_train_visits['Visits'].values)
+        df_visits = pd.concat(df['Visits'].values)
+
+        #list_params = np.unique(df_visits[['Parameter']])
 
         # dictionary of values of each lab/vital test with percentiles
-        d_values = dict.fromkeys(list_params, [])
-        d_percentile = dict.fromkeys(list_params, [])
+        d_visits = dict.fromkeys(np.unique(df_visits[['Parameter']]), [])
 
-        for k in d_values.keys():
-            d_values[k] = df[df['Parameter'] == k]['Value']
-            d_percentile[k] = np.percentile(d_values[k], percentiles)
+        for k in d_visits.keys():
+            d_visits[k] = df_visits[df_visits['Parameter'] == k]['Value']
+
+        d_all_values = d_visits
+        d_all_values.update(d_static)
+
+        d_percentile = dict()
+        percentiles = range(0, 100 + int(100 / num_percentiles), int(100 / num_percentiles))
+        for k in d_all_values.keys():
+            values = np.array(d_all_values[k])
+            values = values[~np.isnan(values)]
+            d_percentile[k] = np.percentile(values, percentiles)
 
         return d_percentile
 
@@ -172,7 +238,6 @@ class PhysioNetCinC:
     # df_patients.loc[idx, 'TimeEvents'] = {time: tests.groupby('Parameter')['Value'].apply(list).to_dict()
     #                                                   for time, tests in pat_records[['DateTime','Parameter','Value']].groupby('DateTime')}
     # df.groupby('PatientId').apply(lambda x: x.set_index('DateTime').groupby('DateTime').apply( lambda y: y.to_numpy().tolist()).to_dict())
-
 
     @staticmethod
     def _load_and_process_df(raw_data_path: str, num_percentiles: int) -> Tuple[pd.DataFrame, pd.DataFrame, dict, dict]:
@@ -234,11 +299,12 @@ class PhysioNetCinC:
 
         df_records, df_outcomes, patient_ids = PhysioNetCinC._load_and_process_df(raw_data_path, num_percentiles)
 
+        # TODO: could we do data frame read w/o pipeline, verify with Moshico for rebuilding dynamic pipeline?
         dynamic_pipeline_ops = [
             (OpReadDataframeCinC(df_records, outcomes=df_outcomes[['PatientId', 'In-hospital_death']],
                                  key_column='PatientId'), {}),
         ]
-        dynamic_pipeline = PipelineDefault("cinc_static", dynamic_pipeline_ops)
+        dynamic_pipeline = PipelineDefault("cinc_dynamic", dynamic_pipeline_ops)
 
         dataset_all = DatasetDefault(patient_ids, dynamic_pipeline)
         dataset_all.create()
@@ -246,7 +312,7 @@ class PhysioNetCinC:
         folds = dataset_balanced_division_to_folds(
             dataset=dataset_all,
             output_split_filename=split_filename,
-            keys_to_balance=['In-hospital_death'],  # ["data.gt.probSevere"],
+            keys_to_balance=['Target'],  # ["data.gt.probSevere"],
             nfolds=num_folds,
             seed=seed,
             reset_split=reset_split,
@@ -260,14 +326,16 @@ class PhysioNetCinC:
         dataset_train = DatasetDefault(train_sample_ids, dynamic_pipeline)
         dataset_train.create()
 
+        # df_train_static = ExportDataset.export_to_dataframe(dataset_train, keys=['Visits'])
         # calculate statistics of train set only and generate dictionary of percentiles for mapping
         # lab results to categorical for train, validation and test
-        df_train_visits = ExportDataset.export_to_dataframe(dataset_train, keys=['Visits'])
+        # df_train_visits = ExportDataset.export_to_dataframe(dataset_train, keys=['Visits'])
 
         # combine data frames of all patients together and calculate statistics and percentiles
-        df_train_visits_combined = df = pd.concat(df_train_visits['Visits'].values)
-        dict_percentiles = PhysioNetCinC._generate_percentiles(pd.concat(df_train_visits['Visits'].values),
-                                                               num_percentiles)
+        # df_train_visits_combined = df = pd.concat(df_train_visits['Visits'].values)
+        # dict_percentiles = PhysioNetCinC._generate_percentiles(pd.concat(df_train_visits['Visits'].values),
+        #                                                      num_percentiles)
+        dict_percentiles = PhysioNetCinC._generate_percentiles(dataset_train, num_percentiles)
 
         # update pypline with Op using calculated percentiles
         dynamic_pipeline_ops = dynamic_pipeline_ops + [

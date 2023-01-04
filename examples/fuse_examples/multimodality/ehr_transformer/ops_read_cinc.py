@@ -90,24 +90,25 @@ class OpReadDataframeCinC(OpBase):
         # self._data = df.to_dict(orient="index")
 
         dict_data = dict()
+        dict_patient = dict()
         statis_fields = ['Age', 'Height', 'Weight', 'Gender', 'ICUType']
         for pat_id, df_pat_records in df.groupby('PatientId'):
         #for pat_id, pat_records in df.groupby(self._key_column):
             static_info_ind = df_pat_records['Time'] == '00:00'
             df_pat_static = df_pat_records[static_info_ind]
             df_pat_dynamic_exams = df_pat_records[~static_info_ind]
-            dict_patient = dict(zip(df_pat_static.Parameter, df_pat_static.Value))
-            dict_patient['Visits'] = df_pat_dynamic_exams.copy()
+            dict_patient['StaticDetails'] = dict(zip(df_pat_static.Parameter, df_pat_static.Value))
+            dict_patient['Visits'] = df_pat_dynamic_exams
             # old - dict creation for lab results
             # dict_patient['Visits'] = {time: tests.groupby('Parameter')['Value'].apply(list).to_dict()
             #                           for time, tests in
             #                           pat_records[['DateTime', 'Parameter', 'Value']].groupby('DateTime')}
 
-            dict_patient['In-hospital_death'] = df_outcomes[df_outcomes['PatientId'] == pat_id]['In-hospital_death'].values[0]
+            dict_patient['Target'] = df_outcomes[df_outcomes['PatientId'] == pat_id]['In-hospital_death'].values[0]
 
             key = pat_id
-            dict_data[key] = dict_patient
-            print(dict_data[key]['Age'])
+            dict_data[key] = dict_patient.copy()
+            print(dict_data[key]['StaticDetails']['Age'])
 
         self._data = dict_data
 
