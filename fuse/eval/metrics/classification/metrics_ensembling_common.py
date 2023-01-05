@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Hashable
+from typing import Optional, Sequence, Hashable, List, Dict
 from fuse.eval.metrics.libs.ensembling import Ensembling
 from fuse.eval.metrics.utils import PerSampleData
 
@@ -19,6 +19,9 @@ class MetricEnsemble(MetricDefault):
         output_file: Optional[str] = None,
         output_pred_key: Optional[str] = "preds",
         output_target_key: Optional[str] = "target",
+        rename_in_output: Optional[Dict[str, str]] = None,
+        scores_normalize_func=None,
+        dropna=False,
         **kwargs,
     ):
         """
@@ -33,6 +36,12 @@ class MetricEnsemble(MetricDefault):
         :param output_file: Optional output filename
         :param output_pred_key: output key name for the predictions
         :param output_target_key: output key name for the target
+        :param rename_in_output: renaming keys in the output (similar to output_pred_key and output_target that rename the columns in output file correspongin to pred and target keys).
+                                  All additional keys (provided in **kwargs) will be added as columns to the output file.
+                                  This optional param allows specifying for each additional input key the name of the corresponding column in the output file.
+                                  It is similar to output_pred_key, and output_target_key which specify column names for pred and targte keys.
+        :param scores_normalize_func: applied to each set of predictions / scores
+        :param dropna: whether to drop samples with mising predictions
         """
         ensemble = partial(
             self._ensemble,
@@ -40,6 +49,10 @@ class MetricEnsemble(MetricDefault):
             output_file=output_file,
             output_pred_key=output_pred_key,
             output_target_key=output_target_key,
+            keys_for_output=list(kwargs.keys()),
+            rename_in_output=rename_in_output,
+            scores_normalize_func=scores_normalize_func,
+            dropna=dropna,
         )
         for i, key in enumerate(pred_keys):
             kwargs["pred" + str(i)] = key
@@ -53,20 +66,38 @@ class MetricEnsemble(MetricDefault):
         output_file: Optional[str] = None,
         output_pred_key: Optional[str] = "preds",
         output_target_key: Optional[str] = "target",
+        keys_for_output: Optional[List[str]] = None,
+        rename_in_output: Optional[Dict[str, str]] = None,
+        scores_normalize_func=None,
+        dropna=False,
         **kwargs,
     ):
-        preds = [kwargs[k] for k in kwargs if k.startswith("pred")]
+        preds = [np.asarray(kwargs[k]) for k in kwargs if k.startswith("pred")]
+        if dropna:
+            nan_mat = np.isnan(np.concatenate(preds, axis=1))
+            has_nan_arr = np.sum(nan_mat, axis=1) > 0
+            ids = [id for (id, has_nan) in zip(ids, has_nan_arr) if not has_nan]
+            preds = [pred[~has_nan_arr] for pred in preds]
+
+        if scores_normalize_func is not None:
+            preds = [scores_normalize_func(x) for x in preds]
         preds = list(np.stack(preds, axis=1))
         ensemble_preds = Ensembling.ensemble(preds=preds, method=method)
         # make sure to return the per-sample metric result for the relevant sample ids:
         per_sample_data = PerSampleData(data=ensemble_preds, ids=ids)
+        res = {output_pred_key: per_sample_data}
         if target is not None:
-            per_sample_target = PerSampleData(data=target, ids=ids)
+            res[output_target_key] = PerSampleData(data=target, ids=ids)
+        if keys_for_output is not None:
+            for key in keys_for_output:
+                key2 = rename_in_output.get(key, key)
+                res[key2] = PerSampleData(data=kwargs[key], ids=ids)
         if output_file is not None:
-            df = pd.DataFrame()
-            df["id"] = ids
-            df[output_pred_key] = per_sample_data(ids)
-            if target is not None:
-                df[output_target_key] = per_sample_target(ids)
+            ids_list = list(ids)  # to fix the order of ids
+            file_data = {"id": ids_list}
+            for k, per_sample_data in res.items():
+                file_data[k] = per_sample_data(ids_list)
+            df = pd.DataFrame(file_data)
+
             df.to_pickle(output_file, compression="gzip")
-        return {output_pred_key: per_sample_data, output_target_key: target}
+        return res

@@ -21,7 +21,7 @@ class Ensembling:
 
         # ensemble
         if method.lower() in ("average", "mean"):
-            preds_ensembled = np.mean(preds, 1)
+            preds_ensembled = np.nanmean(preds, 1)
         elif method.lower() in ("vote", "voting"):
             assert len(preds.shape) == 2 or (len(preds.shape) == 3 and preds.shape[2] == 1)
             if len(preds.shape) == 3:

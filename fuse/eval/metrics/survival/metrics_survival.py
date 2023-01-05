@@ -35,6 +35,7 @@ class MetricCIndex(MetricDefault):
         event_times: str,
         event_observed: str,
         time_unit: Optional[int] = 1,
+        time_followup: Optional[int] = None,
         **kwargs,
     ):
         """
@@ -49,6 +50,7 @@ class MetricCIndex(MetricDefault):
             event_times=event_times,
             event_observed=event_observed,
             time_unit=time_unit,
+            time_followup=time_followup,
             metric_func=MetricsSurvival.c_index,
             **kwargs,
         )
