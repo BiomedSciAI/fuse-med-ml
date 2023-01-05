@@ -1,4 +1,6 @@
 import pickle
+from collections import OrderedDict
+from random import randrange
 from typing import Sequence, Any
 import re
 import glob
@@ -37,6 +39,72 @@ class OpAddBMI(OpBase):
         sample_dict['StaticDetails'] = d_static
         return sample_dict
 
+class OpConvertVisitToSentense(OpBase):
+    def __call__(self, sample_dict, visit_to_embed_static_variables,static_variables_to_embed) -> Any:
+
+        df_static = sample_dict['StaticDetails']
+        df_visits = sample_dict['Visits']
+        # convert statis details for embedding to list
+        static_embeddings = []
+        if visit_to_embed_static_variables is not None:
+            for k in df_static.keys():
+                if k in static_variables_to_embed:
+                    static_embeddings += [df_static[k]]
+
+        d_visit_sentences = OrderedDict()
+        first_visit_embedded = False
+
+        for visit_time, df_visit in df_visits.groupby('DateTime', sort=True):
+
+            d_visit_sentences[visit_time] = []
+
+            if visit_to_embed_static_variables == 'FIRST':
+                if not first_visit_embedded:
+                    d_visit_sentences[visit_time].extend(static_embeddings)
+                    first_visit_embedded = True
+            else:
+                if visit_to_embed_static_variables == 'ALL':
+                    d_visit_sentences[visit_time].extend(static_embeddings)
+
+            d_visit_sentences[visit_time].extend(df_visit['Value'].to_list())
+            d_visit_sentences[visit_time].extend(['SEP'])
+
+        sample_dict['VisitSentences'] = d_visit_sentences
+
+        return sample_dict
+
+class OpGenerateRandomTrajectoryOfVisits(OpBase):
+    def __call__(self, sample_dict) -> Any:
+
+        d_visits_sentences = sample_dict['VisitSentences']
+        n_visits = len(d_visits_sentences)
+        # TODO add filtering patients with small number of visits
+        if n_visits < 10:
+            return sample_dict
+
+        # get random first and last visit for generating random trajectory
+        # we use n_visits- 1 to keep the last visit for outcome in classifier
+        # TODO: "3" should be configured
+        # TODO: add embeddings sentence here as we can cut out the first one
+        start_visit = randrange(int((n_visits-1) / 3))
+        stop_visit = n_visits - randrange(int((n_visits-1) / 3)) - 1
+        keys = list(d_visits_sentences.keys())
+        trajectory_keys = keys[start_visit:stop_visit]
+        next_visit = keys[stop_visit]
+
+        # Build trajectory
+        trajectory_sentences = []
+        for k in keys:
+            trajectory_sentences.extend(d_visits_sentences[k])
+
+        # TODO add CLS and PAD words before and after the trajectory
+        sample_dict['Trajectory'] = trajectory_sentences
+        sample_dict['NextVisit'] = d_visits_sentences[next_visit]
+
+
+
+
+        return sample_dict
 
 # class OpCollectExamsStatistics(OpBase):
 #     def __call__(self, sample_dict, percentiles: dict) -> Any:
@@ -62,6 +130,11 @@ class OpMapToCategorical(OpBase):
 
         return sample_dict
 
+# class OpConvertVisitToSentense(OpBase):
+#
+#     def __call__(self, sample_dict) -> Any:
+#         print("test")
+#         return sample_dict
 
 class PhysioNetCinC:
 
@@ -72,7 +145,7 @@ class PhysioNetCinC:
         data_sub_sets = ["set-a", "set-b"]
         for s in data_sub_sets:
             csv_files = glob.glob(os.path.join(raw_data_path + '/' + s, "*.txt"))
-            for f in csv_files:  # reducung the list temporarely for debugging
+            for f in csv_files[1:10]: # reducing the list temporarily for debugging
                 patient_id = os.path.splitext(os.path.basename(f))[0]
                 df_file = pd.read_csv(f)
                 df_file = df_file.drop(df_file[(df_file['Parameter'] == 'RecordID')].index).reset_index(drop=True)
@@ -240,7 +313,6 @@ class PhysioNetCinC:
             # fix time to datetime
             df_raw_data = PhysioNetCinC._convert_time_to_datetime(df_raw_data).reset_index()
 
-
             with open(os.path.join(raw_data_path + '/' + 'raw_data.pkl'), "wb") as f:
                 pickle.dump([df_raw_data, df_outcomes, patient_ids], f)
 
@@ -255,10 +327,16 @@ class PhysioNetCinC:
     #     ]
 
     @staticmethod
-    def _process_dynamic_pipeline(dict_percentiles):
+    def _process_dynamic_pipeline(dict_percentiles,visit_to_embed_static_variables,
+                                                        static_variables_to_embed):
         return [
             # (OpAddBMI(), dict()),
-            (OpMapToCategorical(), dict(percentiles=dict_percentiles))
+            (OpMapToCategorical(), dict(percentiles=dict_percentiles)),
+            (OpConvertVisitToSentense(), dict(visit_to_embed_static_variables=visit_to_embed_static_variables, \
+                                              static_variables_to_embed = static_variables_to_embed)),
+            (OpGenerateRandomTrajectoryOfVisits(),dict())
+
+            #(OpConvertVisitToSentense, dict())
         ]
 
     @staticmethod
@@ -273,7 +351,9 @@ class PhysioNetCinC:
             test_folds: Sequence[int],
             num_percentiles: int,
             categorical_max_num_of_values: int,
-            min_hours_in_hospital: int
+            min_hours_in_hospital: int,
+            visit_to_embed_static_variables: str,
+            static_variables_to_embed: Sequence[str],
     ) -> DatasetDefault:
         assert raw_data_path is not None
 
@@ -314,7 +394,8 @@ class PhysioNetCinC:
 
         # update pypline with Op using calculated percentiles
         dynamic_pipeline_ops = dynamic_pipeline_ops + [
-            *PhysioNetCinC._process_dynamic_pipeline(dict_percentiles)
+            *PhysioNetCinC._process_dynamic_pipeline(dict_percentiles,visit_to_embed_static_variables,
+                                                        static_variables_to_embed)
         ]
         dynamic_pipeline = PipelineDefault("cinc_dynamic", dynamic_pipeline_ops)
         dataset_train._dynamic_pipeline = dynamic_pipeline

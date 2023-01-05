@@ -11,6 +11,8 @@ dataset:
   num_percentiles : 4 #number of bins (percentiles) for converting floating lab/vital measurements to categorical values
   categorical_max_num_of_values : 5 #max number of uniq values for categorical variable for not to be digitized
   min_hours_in_hospital: 46
+  visit_to_embed_static_variables: FIRST #embed to first (FIRST) or to all visits (ALL) or null (not to embed)
+  static_variables_to_embed: ['Age','ICUType','Height','Weight','BMI',]
 
 data:
   #### Test/Val set defs
