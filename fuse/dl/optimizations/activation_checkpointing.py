@@ -379,6 +379,7 @@ if __name__ == '__main__' :
     import torch
     from torch import nn
     from torchvision import models
+    from typing import Optional
     
     # class DummyLayer(nn.Module):
     #     def __init__(self):
@@ -396,11 +397,8 @@ if __name__ == '__main__' :
 
             #self.dummy_layer = DummyLayer()
 
-        def forward(self, x, block_num:int):
-            #x = self.dummy_layer(x)   
-            #x = checkpoint(self.features, x)
+        def forward_block(self, x, block_num:int):
             print('block_num=', block_num)
-
             if block_num==len(self.blocks):
                 x = x.view(x.size(0), -1)
                 x = self.fc1(x)
@@ -409,16 +407,51 @@ if __name__ == '__main__' :
             b = self.blocks[block_num]
             x = b(x)
             return x
-            
+
+
+        def forward(self, x, block_num:Optional[int] = None):
+            #x = self.dummy_layer(x)   
+            #x = checkpoint(self.features, x)
+
+            if block_num is None:
+                for i in range(6):
+                    x = self.forward_block(x, block_num=i)
+                return x
+
+            return self.forward_block(x, block_num)
+
 
     model = MyModel().cuda()
+    model.train()
+    torch.manual_seed(1337)
+
     input = torch.randn(1, 3, 224, 224).cuda()
+
+    print('method a:')
     x = input
-    #output = model(x)
-    for i in range(6):
-        x = model(x, block_num=i)
+    x = model(x)
     x.mean().backward()
-    print(model.blocks[0].weight.grad)
+    
+    print(model.blocks[0].weight.grad.max())
+    model.zero_grad()
+    print(model.blocks[0].weight.grad.max())
+    
+    #### zero grads manually
+
+    #for block in model.blocks
+    #model.blocks[0].weight.grad.zero_()
+
+    #model.blocks[-1][0].conv1.weight.grad.max()
+
+    print('method b:')
+    x = input
+    
+    for i in range(6):
+       x = model(x, block_num=i)
+    
+    x.mean().backward()
+    
+    print(model.blocks[0].weight.grad.max())
 
 
 
