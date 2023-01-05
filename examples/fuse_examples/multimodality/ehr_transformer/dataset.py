@@ -27,7 +27,6 @@ class OpAddBMI(OpBase):
     def __call__(self, sample_dict) -> Any:
 
         d_static = sample_dict['StaticDetails']
-        d_static["BMI"] = np.nan
 
         if ("Height" in d_static.keys()) & ("Weight" in d_static.keys()):
             height = d_static["Height"]
@@ -35,7 +34,6 @@ class OpAddBMI(OpBase):
             if ~np.isnan(height) & ~np.isnan(weight):
                 d_static["BMI"] = 10000 * weight / (height * height)
 
-        print(d_static["BMI"])
         sample_dict['StaticDetails'] = d_static
         return sample_dict
 
@@ -48,23 +46,20 @@ class OpAddBMI(OpBase):
 
 
 class OpMapToCategorical(OpBase):
-    @staticmethod
-    def _digitize_values(sample_dict, percentiles):
+
+    def __call__(self, sample_dict, percentiles: dict) -> Any:
+
         # mapping static clinical characteristics
         for k in sample_dict['StaticDetails'].keys():
             sample_dict['StaticDetails'][k] = k + '_' + \
                                               str(np.digitize(sample_dict['StaticDetails'][k], percentiles[k]))
 
-        sample_dict['Visits']['Value'] = sample_dict['Visits'].\
-            apply(lambda row: row['Parameter'] + '_' + str(np.digitize(row['Value'],percentiles[row['Parameter']])),\
-                  axis=1)
+        if not sample_dict['Visits'].empty:
+            sample_dict['Visits']['Value'] = sample_dict['Visits']. \
+                apply(
+                lambda row: row['Parameter'] + '_' + str(np.digitize(row['Value'], percentiles[row['Parameter']])), \
+                axis=1)
 
-        return sample_dict
-
-    def __call__(self, sample_dict, percentiles: dict) -> Any:
-        print(percentiles['HR'])
-        sample_dict = OpMapToCategorical._digitize_values(sample_dict, percentiles)
-        # print(percentiles.keys())
         return sample_dict
 
 
@@ -77,7 +72,7 @@ class PhysioNetCinC:
         data_sub_sets = ["set-a", "set-b"]
         for s in data_sub_sets:
             csv_files = glob.glob(os.path.join(raw_data_path + '/' + s, "*.txt"))
-            for f in csv_files[0:5]:  # reducung the list temporarely for debugging
+            for f in csv_files:  # reducung the list temporarely for debugging
                 patient_id = os.path.splitext(os.path.basename(f))[0]
                 df_file = pd.read_csv(f)
                 df_file = df_file.drop(df_file[(df_file['Parameter'] == 'RecordID')].index).reset_index(drop=True)
@@ -99,10 +94,10 @@ class PhysioNetCinC:
         # synchronize with patients data
         df_outcomes = df_outcomes[df_outcomes['PatientId'].isin(patient_ids)]
 
-        return df, df_outcomes, patient_ids
+        return df, df_outcomes
 
     @staticmethod
-    def _drop_errors(df: pd.DataFrame) -> pd.DataFrame:
+    def _drop_records_with_errors(df: pd.DataFrame) -> pd.DataFrame:
         # drop records with measurements below or equal to zero for tests with only positive values
         for v in VALID_TESTS_ABOVE_ZERO:
             df = df.drop(df[(df['Parameter'] == v) & (df['Value'] <= 0)].index).reset_index(drop=True)
@@ -114,6 +109,18 @@ class PhysioNetCinC:
         df = df.drop(df[(df['Parameter'] == 'Weight') & (df['Value'] < 20)].index).reset_index(drop=True)
         df = df.drop(df[(df['Parameter'] == 'Height') & (df['Value'] < 100)].index).reset_index(drop=True)
         return df
+
+    @staticmethod
+    def _drop_short_time_patients(df: pd.DataFrame, min_hours: int) -> pd.DataFrame:
+        df_fixed = df.copy()
+        count_dropped = 0
+        for pat_id, df_pat_records in df.groupby('PatientId'):
+            hours = df_pat_records['Time'].str.split(':', 1, True)[0].values
+            if max(hours.astype(int)) < min_hours:
+                df_fixed.drop(df_pat_records.index, inplace=True)
+                count_dropped += 1
+        print("Dropped " + str(count_dropped) + "short time patients")
+        return df_fixed
 
     @staticmethod
     def _convert_time_to_datetime(df: pd.DataFrame) -> pd.DataFrame:
@@ -132,7 +139,8 @@ class PhysioNetCinC:
         return df
 
     @staticmethod
-    def _generate_percentiles(dataset: DatasetDefault, num_percentiles: int) -> dict:
+    def _generate_percentiles(dataset: DatasetDefault, num_percentiles: int,
+                              categorical_max_num_of_values: int) -> dict:
 
         # TODO use debug mode and remove worker parameter
         df = ExportDataset.export_to_dataframe(dataset, keys=['StaticDetails', 'Visits'], workers=1)
@@ -159,8 +167,12 @@ class PhysioNetCinC:
             values = values[~np.isnan(values)]
             # check number of unique values
             unique_values = set(values)
-            if len(unique_values) < 5:
+            if len(unique_values) < categorical_max_num_of_values:
                 # categorical value
+                unique_values = sorted(unique_values)
+                # incrementing in 1 is needed for getting bin number corresponding to the variable value
+                # e.g. gender values will remain the same
+                unique_values = [x + 1 for x in unique_values]
                 d_percentile[k] = sorted(unique_values)
                 print("Categorical: " + k)
             else:
@@ -210,21 +222,24 @@ class PhysioNetCinC:
     # df.groupby('PatientId').apply(lambda x: x.set_index('DateTime').groupby('DateTime').apply( lambda y: y.to_numpy().tolist()).to_dict())
 
     @staticmethod
-    def _load_and_process_df(raw_data_path: str, num_percentiles: int) -> Tuple[pd.DataFrame, pd.DataFrame, dict, dict]:
+    def _load_and_process_df(raw_data_path: str, num_percentiles: int, min_hours_in_hospital: int) -> Tuple[pd.DataFrame, pd.DataFrame, dict, dict]:
         # if pickle avaialable
         try:
             df_raw_data, df_outcomes, patient_ids = pickle.load(
                 open(os.path.join(raw_data_path + '/' + 'raw_data.pkl'), "rb"))
-            # with open(os.path.join(raw_data_path + '/' + 'raw_data.pkl'), "rb") as f:
-            #     return pickle.load(f)
         except:
-            df_raw_data, df_outcomes, patient_ids = PhysioNetCinC._read_raw_data(raw_data_path)
+            df_raw_data, df_outcomes = PhysioNetCinC._read_raw_data(raw_data_path)
 
             # drop records with invalid tests results
-            df_raw_data = PhysioNetCinC._drop_errors(df_raw_data)
+            df_raw_data = PhysioNetCinC._drop_records_with_errors(df_raw_data)
+
+            # drop patients with less than MIN_HOURS hours in hospital
+            df_raw_data = PhysioNetCinC._drop_short_time_patients(df_raw_data, min_hours_in_hospital)
+            patient_ids = np.unique(df_raw_data['PatientId'].values)
 
             # fix time to datetime
             df_raw_data = PhysioNetCinC._convert_time_to_datetime(df_raw_data).reset_index()
+
 
             with open(os.path.join(raw_data_path + '/' + 'raw_data.pkl'), "wb") as f:
                 pickle.dump([df_raw_data, df_outcomes, patient_ids], f)
@@ -256,11 +271,13 @@ class PhysioNetCinC:
             train_folds: Sequence[int],
             validation_folds: Sequence[int],
             test_folds: Sequence[int],
-            num_percentiles: int
+            num_percentiles: int,
+            categorical_max_num_of_values: int,
+            min_hours_in_hospital: int
     ) -> DatasetDefault:
         assert raw_data_path is not None
 
-        df_records, df_outcomes, patient_ids = PhysioNetCinC._load_and_process_df(raw_data_path, num_percentiles)
+        df_records, df_outcomes, patient_ids = PhysioNetCinC._load_and_process_df(raw_data_path, num_percentiles, min_hours_in_hospital)
 
         # TODO: could we do data frame read w/o pipeline, verify with Moshico for rebuilding dynamic pipeline?
         dynamic_pipeline_ops = [
@@ -292,7 +309,8 @@ class PhysioNetCinC:
 
         # calculate statistics of train set only and generate dictionary of percentiles for mapping
         # lab results to categorical for train, validation and test
-        dict_percentiles = PhysioNetCinC._generate_percentiles(dataset_train, num_percentiles)
+        dict_percentiles = PhysioNetCinC._generate_percentiles(dataset_train, num_percentiles,
+                                                               categorical_max_num_of_values)
 
         # update pypline with Op using calculated percentiles
         dynamic_pipeline_ops = dynamic_pipeline_ops + [
@@ -309,12 +327,19 @@ class PhysioNetCinC:
             validation_sample_ids += folds[fold]
         dataset_validation = DatasetDefault(validation_sample_ids, dynamic_pipeline)
         dataset_validation.create()
+        for f in validation_sample_ids:
+            #print(f)
+            x = dataset_validation[f]
 
+        print("before dataset test")
         test_sample_ids = []
         for fold in test_folds:
             test_sample_ids += folds[fold]
         dataset_test = DatasetDefault(test_sample_ids, dynamic_pipeline)
         dataset_test.create()
+        for f in test_sample_ids:
+            #print(f)
+            x = dataset_test[f]
 
         return dataset_train, dataset_validation, dataset_test
 

@@ -42,7 +42,7 @@ class OpReadDataframeCinC(OpBase):
             columns_to_extract: Optional[List[str]] = None,
             rename_columns: Optional[Dict[str, str]] = None,
             key_name: str = "data.sample_id",
-            key_column: str = "sample_id",
+            key_column: str = "sample_id"
     ):
         """
         :param data:  input DataFrame
@@ -88,15 +88,26 @@ class OpReadDataframeCinC(OpBase):
         # if self._key_column is not None:
         #     df = df.set_index(self._key_column)
         # self._data = df.to_dict(orient="index")
-
         dict_data = dict()
-        dict_patient = dict()
-        statis_fields = ['Age', 'Height', 'Weight', 'Gender', 'ICUType']
+        static_fields = ['Age', 'Height', 'Weight', 'Gender', 'ICUType']
+        #count_dropped = 0
         for pat_id, df_pat_records in df.groupby('PatientId'):
-        #for pat_id, pat_records in df.groupby(self._key_column):
-            static_info_ind = df_pat_records['Time'] == '00:00'
+            dict_patient = dict()
+            dict_patient['Target'] = df_outcomes[df_outcomes['PatientId'] == pat_id]['In-hospital_death'].values[0]
+
+            static_info_ind = (df_pat_records['Time'] == '00:00') & (df_pat_records['Parameter'].isin(static_fields))
             df_pat_static = df_pat_records[static_info_ind]
             df_pat_dynamic_exams = df_pat_records[~static_info_ind]
+
+            # verify 48 hours in hospital
+            # if df_pat_dynamic_exams.empty:
+            #     continue
+            # else:
+            #     hours = df_pat_records['Time'].str.split(':', 1, True)[0].values
+            #     if max(hours.astype(int)) < 45:
+            #         print("Drop Short Patient:"+pat_id+" Target:" + str(dict_patient['Target']))
+            #         count_dropped += 1
+            #         continue
 
             dict_patient['StaticDetails'] = dict(zip(df_pat_static.Parameter, df_pat_static.Value))
             dict_patient['Visits'] = df_pat_dynamic_exams
@@ -109,8 +120,8 @@ class OpReadDataframeCinC(OpBase):
 
             key = pat_id
             dict_data[key] = dict_patient.copy()
-            print(dict_data[key]['StaticDetails']['Age'])
 
+        #print("Number Dropped Short Patient: " + str(count_dropped))
         self._data = dict_data
 
 
