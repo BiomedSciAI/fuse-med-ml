@@ -23,6 +23,7 @@ from fuse.utils.rand.seed import Seed
 import logging
 import time
 import copy
+import shutil
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 import pytorch_lightning as pl
@@ -37,7 +38,7 @@ import pytorch_lightning as pl
 
 def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_dropout: float):
     if use_data["imaging"]:
-        backbone = BackboneResnet3D(in_channels=1)
+        backbone = BackboneResnet3D(in_channels=1, pretrained=False)
         conv_inputs = [("model.backbone_features", 512)]
     else:
         backbone = nn.Identity()
@@ -72,7 +73,7 @@ def main(cfg_path):
     task_num = cfg["task_num"]
     num_classes = cfg[task_num]["num_classes"]
     target_name = cfg[task_num]["target_name"]
-
+    class_names = None if not cfg[task_num]["class_names"] else cfg[task_num]["class_names"]
     if cfg["num_gpus"] == 0:
         use_gpu = False
     else:
@@ -85,8 +86,8 @@ def main(cfg_path):
     # For this example, we use split 0 out of the 5 available cross validation splits
     split = splits[0]
     if cfg["testing"]:
-        split["train"] = split["train"][:5]
-        split["val"] = split["val"][:5]
+        split["train"] = split["train"][:10]
+        split["val"] = split["val"][:10]
     # read environment variables for data, cache and results locations
     data_path = os.environ["KNIGHT_DATA"]
     cache_path = os.path.join(os.environ["KNIGHT_CACHE"], str(cfg["experiment_num"]))
@@ -100,7 +101,7 @@ def main(cfg_path):
     model_dir = os.path.join(results_path, timestr)
     if not os.path.isdir(model_dir):
         os.makedirs(model_dir)
-
+    shutil.copy(cfg_path, model_dir)
     # start logger
     fuse_logger_start(output_path=model_dir, console_verbose_level=logging.INFO)
     print("Done")
@@ -125,7 +126,7 @@ def main(cfg_path):
         data_path=data_path,
         cache_dir=cache_path,
         split=split,
-        reset_cache=False,
+        reset_cache=cfg["reset_cache"],
         resize_to=cfg["resize_to"],
     )
 
@@ -171,7 +172,7 @@ def main(cfg_path):
     train_metrics = OrderedDict(
         [
             ("op", MetricApplyThresholds(pred="model.output.head_0")),  # will apply argmax
-            ("auc", MetricAUCROC(pred="model.output.head_0", target=target_name)),
+            ("auc", MetricAUCROC(pred="model.output.head_0", target=target_name, class_names=class_names)),
             ("accuracy", MetricAccuracy(pred="results:metrics.op.cls_pred", target=target_name)),
             (
                 "sensitivity",
@@ -218,6 +219,7 @@ def main(cfg_path):
         strategy=None,
         auto_select_gpus=True if use_gpu else False,
         num_sanity_val_steps=-1,
+        auto_scale_batch_size="binsearch",
     )
 
     # train
