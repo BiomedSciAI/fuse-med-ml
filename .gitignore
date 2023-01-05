@@ -3,6 +3,7 @@ test-reports/
 !paper/figures/diagram.png
 !paper/figures/metric_pipeline.png
 !paper/figures/model_multi_head.png
+!paper/figures/fuse_design.png
 *.py[cod]
 **.snapshots
 **/*.snapshots
