@@ -15,7 +15,7 @@ To this end, a large annotated cohort of WSIs, which includes Noncancerous (Path
 The Challenge includes two tasks: (1) WSI classification into three classes as per cancer risk, and (b) WSI classification into six fine-grained lesion subtypes.
 
 ## Data
-BReAst Carcinoma Subtyping (BRACS) dataset , a cohort of H&E-stained breast tissue biopsies.. Details can be found in [challenge website]()
+BReAst Carcinoma Subtyping (BRACS) dataset , a cohort of H&E-stained breast tissue biopsies.. Details can be found in [challenge website](https://research.ibm.com/haifa/Workshops/BRIGHT)
 
 ## Evaluation
 The participants should submit a .csv file per task containing a row with a final class predictions and per-class score for each patient in the test set. The rows must adhere (including header row) to the following scheme:

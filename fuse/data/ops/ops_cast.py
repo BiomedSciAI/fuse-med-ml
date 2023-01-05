@@ -57,6 +57,8 @@ class Cast:
             pass  # do nothing
         elif isinstance(value, (torch.Tensor, int, float, list, np.ndarray)):
             value = np.array(value, dtype=dtype)
+        elif isinstance(value, bytes):
+            value = np.array([e for e in value], dtype=dtype)
         else:
             raise Exception(f"Unsupported type {type(value)} - add here support for this type")
 
@@ -187,6 +189,9 @@ class OpToTensor(OpCast):
 class OpToNumpy(OpCast):
     """
     Convert many types to numpy
+
+    Example:
+        (OpToNumpy(), dict(key="data.input.img", dtype=np.float32)),
     """
 
     def _cast(self, value: Any, dtype: Optional[np.dtype] = None) -> np.ndarray:
