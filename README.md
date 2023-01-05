@@ -101,16 +101,16 @@ class OpPad(OpBase):
         key_out:Optional[str]=None,
         ):
 
-        #we extract the element in the defined key location (for example 'input.xray_img')
+        # we extract the element in the defined key location (for example 'input.xray_img')
         img = sample_dict[key_in]
         assert isinstance(img, np.ndarray), f'Expected np.ndarray but got {type(img)}'
         processed_img = np.pad(img, pad_width=padding, mode=mode, constant_values=fill)
 
-        #store the result in the requested output key (or in key_in if no key_out is provided)
+        # store the result in the requested output key (or in key_in if no key_out is provided)
         key_out = key_in if key_out is None
         sample_dict[key_out] = processed_img
 
-        #returned the modified nested dict
+        # returned the modified nested dict
         return sample_dict
 ```
 
