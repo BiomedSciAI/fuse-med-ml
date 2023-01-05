@@ -1,12 +1,12 @@
 exp_name : base-40slices
-experiment_num : 1 # 0 - [70, 256, 256] 1 - [40, 256, 256]
+experiment_num : 1 # 0 - [70, 256, 256] 1 - [40, 256, 256] 2 - [20, 256, 256]
 task_num : task_1 # task_1 or task_2 
 num_gpus : 1
 use_data : {"imaging": True, "clinical": True}
 batch_size : 8
 resize_to : [40, 256, 256]
 num_epochs : 100
-learning_rate : 0.0004
+learning_rate : 0.0003
 imaging_dropout : 0.5
 fused_dropout : 0.5
 pretrained : False
@@ -14,7 +14,7 @@ regression_head : False
 two_dim : False
 reset_cache : False
 gpus : [0]
-testing : True # for testing\continous integration
+debug : False # for debugging\continous integration
 
 task_1:
   num_classes : 2

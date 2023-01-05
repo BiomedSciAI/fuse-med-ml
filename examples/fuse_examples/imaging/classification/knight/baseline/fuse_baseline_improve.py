@@ -30,6 +30,9 @@ import copy
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 import pytorch_lightning as pl
+from pytorch_lightning.loggers import MLFlowLogger
+from mlflow import log_param, log_artifacts
+
 # from nnunet.network_architecture.generic_UNet import Generic_UNet
 # from nnunet.network_architecture.initialization import InitWeights_He
 # from torchvision.models import resnet50
@@ -166,6 +169,14 @@ def main(cfg_path):
     if not os.path.isdir(model_dir):
         os.makedirs(model_dir)
 
+    # log_artifacts(cfg_path)
+    for k,v in cfg.items():
+        if isinstance(v, dict) and task_num == k:
+            for kk, vv in v.items():
+                log_param(kk,vv)
+        else:        
+            log_param(k, v)
+
     # start logger
     fuse_logger_start(output_path=model_dir, console_verbose_level=logging.INFO)
     print("Done")
@@ -268,7 +279,7 @@ def main(cfg_path):
 
     ## Training
     ##############################################################################
-
+    mlf_logger = MLFlowLogger(experiment_name="lightning_logs", tracking_uri=f"file:{model_dir}")
     # create instance of PL module - FuseMedML generic version
     pl_module = LightningModuleDefault(
         model_dir=model_dir,
@@ -288,6 +299,7 @@ def main(cfg_path):
         strategy=None,
         auto_select_gpus=True,
         num_sanity_val_steps=-1,
+        logger=mlf_logger
     )
 
     # train
