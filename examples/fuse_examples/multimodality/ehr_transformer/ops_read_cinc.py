@@ -35,14 +35,14 @@ class OpReadDataframeCinC(OpBase):
     """
 
     def __init__(
-        self,
-        data: Optional[pd.DataFrame] = None,
-        outcomes: Optional[pd.DataFrame] = None,
-        data_filename: Optional[str] = None,
-        columns_to_extract: Optional[List[str]] = None,
-        rename_columns: Optional[Dict[str, str]] = None,
-        key_name: str = "data.sample_id",
-        key_column: str = "sample_id",
+            self,
+            data: Optional[pd.DataFrame] = None,
+            outcomes: Optional[pd.DataFrame] = None,
+            data_filename: Optional[str] = None,
+            columns_to_extract: Optional[List[str]] = None,
+            rename_columns: Optional[Dict[str, str]] = None,
+            key_name: str = "data.sample_id",
+            key_column: str = "sample_id"
     ):
         """
         :param data:  input DataFrame
@@ -89,13 +89,13 @@ class OpReadDataframeCinC(OpBase):
         #     df = df.set_index(self._key_column)
         # self._data = df.to_dict(orient="index")
         dict_data = dict()
-        static_fields = ["Age", "Height", "Weight", "Gender", "ICUType"]
-        # count_dropped = 0
-        for pat_id, df_pat_records in df.groupby("PatientId"):
+        static_fields = ['Age', 'Height', 'Weight', 'Gender', 'ICUType']
+        #count_dropped = 0
+        for pat_id, df_pat_records in df.groupby('PatientId'):
             dict_patient = dict()
-            dict_patient["Target"] = df_outcomes[df_outcomes["PatientId"] == pat_id]["In-hospital_death"].values[0]
+            dict_patient['Target'] = df_outcomes[df_outcomes['PatientId'] == pat_id]['In-hospital_death'].values[0]
 
-            static_info_ind = (df_pat_records["Time"] == "00:00") & (df_pat_records["Parameter"].isin(static_fields))
+            static_info_ind = (df_pat_records['Time'] == '00:00') & (df_pat_records['Parameter'].isin(static_fields))
             df_pat_static = df_pat_records[static_info_ind]
             df_pat_dynamic_exams = df_pat_records[~static_info_ind]
 
@@ -109,20 +109,22 @@ class OpReadDataframeCinC(OpBase):
             #         count_dropped += 1
             #         continue
 
-            dict_patient["StaticDetails"] = dict(zip(df_pat_static.Parameter, df_pat_static.Value))
-            dict_patient["Visits"] = df_pat_dynamic_exams
+            dict_patient['StaticDetails'] = dict(zip(df_pat_static.Parameter, df_pat_static.Value))
+            dict_patient['Visits'] = df_pat_dynamic_exams
             # old - dict creation for lab results
             # dict_patient['Visits'] = {time: tests.groupby('Parameter')['Value'].apply(list).to_dict()
             #                           for time, tests in
             #                           pat_records[['DateTime', 'Parameter', 'Value']].groupby('DateTime')}
 
-            dict_patient["Target"] = df_outcomes[df_outcomes["PatientId"] == pat_id]["In-hospital_death"].values[0]
+            dict_patient['Target'] = df_outcomes[df_outcomes['PatientId'] == pat_id]['In-hospital_death'].values[0]
 
             key = pat_id
             dict_data[key] = dict_patient.copy()
 
-        # print("Number Dropped Short Patient: " + str(count_dropped))
+        #print("Number Dropped Short Patient: " + str(count_dropped))
         self._data = dict_data
+
+
 
     def __call__(self, sample_dict: NDict, prefix: Optional[str] = None) -> Union[None, dict, List[dict]]:
         """

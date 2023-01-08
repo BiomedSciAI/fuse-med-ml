@@ -17,6 +17,6 @@ Created on June 30, 2021
 
 """
 
-model_type = "BertOrig"
-if model_type == "BertOrig":
+model_type = 'BertOrig'
+if model_type ==  'BertOrig':
     from ehrtransformers.model.OrigBertFuse import BertBackbone, BertConfig, BertForMultiLabelPredictionHead

@@ -60,19 +60,19 @@ def create_output_df(df_out, df_input, naming_conventions):
     :return:
     """
     df_res = df_out.copy(deep=True)
-    patid_key = "patid"
-    patid_key_in_db = naming_conventions["patient_id_key"]
-    date_key_in_db = naming_conventions["date_key"]
-    age_key = naming_conventions["age_key"]
-    gender_key = naming_conventions["gender_key"]
-    disease_key = naming_conventions["outcome_key"]
-    vis_date_key = "ADMDATE"
-    encoding_key = "encodings"
-    date_format_string = "%Y%m%d"
+    patid_key = 'patid'
+    patid_key_in_db = naming_conventions['patient_id_key']
+    date_key_in_db = naming_conventions['date_key']
+    age_key = naming_conventions['age_key']
+    gender_key = naming_conventions['gender_key']
+    disease_key = naming_conventions['outcome_key']
+    vis_date_key = 'ADMDATE'
+    encoding_key = 'encodings'
+    date_format_string = '%Y%m%d'
     rename_dict = {
-        "data.patid": patid_key,
-        "data.vis_date": vis_date_key,
-        "model.backbone_features": encoding_key,
+        'data.patid': patid_key,
+        'data.vis_date': vis_date_key,
+        'model.backbone_features': encoding_key,
     }
     df_res.rename(columns=rename_dict, inplace=True)
     df_res[patid_key] = df_res[patid_key].apply(lambda x: x[0])
@@ -85,11 +85,10 @@ def create_output_df(df_out, df_input, naming_conventions):
     tmp.rename(columns=rename_dict, inplace=True)
     if isinstance(tmp[vis_date_key][0], datetime):
         tmp[vis_date_key] = tmp[vis_date_key].apply(lambda x: x.date())
-    df_res = df_res.merge(tmp, how="inner", on=[patid_key, vis_date_key])
+    df_res = df_res.merge(tmp, how='inner', on=[patid_key, vis_date_key])
     df_res[age_key] = df_res[age_key].apply(lambda x: x[-1])
     # df_res.drop('descriptor', inplace=True)
     return df_res
-
 
 def save_translated_outputs(global_params, file_config, fnames, naming_conventions, index=0):
     """
@@ -128,27 +127,26 @@ def save_translated_outputs(global_params, file_config, fnames, naming_conventio
     :return:
     """
     main_output_dir = get_output_dir(global_params, index=index)
-    infer_model_dir = os.path.join(main_output_dir, "infer_dir")
+    infer_model_dir = os.path.join(main_output_dir, 'infer_dir')
 
     for fname in fnames:
-        fpath = os.path.join(infer_model_dir, fname + ".gz")
-        dset = "val"
-        if "train" in fname:
-            dset = "train"
-        if "test" in fname:
-            dset = "test"
+        fpath = os.path.join(infer_model_dir, fname + '.gz')
+        dset = 'val'
+        if 'train' in fname:
+            dset = 'train'
+        if 'test' in fname:
+            dset = 'test'
         if os.path.exists(fpath):
-            out_fpath = os.path.join(infer_model_dir, fname + "_translated.gz")
-            with gzip.open(fpath, "rb") as f:
+            out_fpath = os.path.join(infer_model_dir, fname + '_translated.gz')
+            with gzip.open(fpath, 'rb') as f:
                 df_out = pickle.load(f)
-            with open(file_config[dset] + ".pkl", "rb") as f_val:
+            with open(file_config[dset] + '.pkl', 'rb') as f_val:
                 data_val = pickle.load(f_val)
-                df_input = data_val["data_df"]
+                df_input = data_val['data_df']
             out_df = create_output_df(df_out, df_input, naming_conventions)
-            with gzip.open(out_fpath, "wb") as f_out:
+            with gzip.open(out_fpath, 'wb') as f_out:
                 pickle.dump(out_df, f_out)
-            out_df.to_csv(out_fpath.replace(".gz", ".csv"), index=False)
-
+            out_df.to_csv(out_fpath.replace('.gz', '.csv'), index=False)    
 
 if __name__ == "__main__":
     if len(argv) > 1:
@@ -156,10 +154,16 @@ if __name__ == "__main__":
     else:
         config_file_path = None
 
-    (global_params, file_config, model_config, optim_config, data_config, naming_conventions,) = get_config(
-        config_file_path
-    )
+    (
+        global_params,
+        file_config,
+        model_config,
+        optim_config,
+        data_config,
+        naming_conventions,
+    ) = get_config(config_file_path)
 
-    fnames = ["validation_set_infer_best", "validation_set_infer_last", "train_set_infer_best", "train_set_infer_last"]
+    fnames = ['validation_set_infer_best', 'validation_set_infer_last', 'train_set_infer_best', 'train_set_infer_last']
 
     save_translated_outputs(global_params, file_config, fnames=fnames, index=133)
+

@@ -17,8 +17,8 @@ Created on June 30, 2021
 
 """
 
-padding_token = "PAD"
-unknown_token = "UNK"
-separator_token = "SEP"
-cls_token = "CLS"
-mask_token = "MASK"
+padding_token = 'PAD'
+unknown_token = 'UNK'
+separator_token = 'SEP'
+cls_token = 'CLS'
+mask_token = 'MASK'

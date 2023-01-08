@@ -23,14 +23,13 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 
+def parse_tb_output(event_path:str, verbose:int = 0):
+  event_acc = EventAccumulator(event_path)
+  event_acc.Reload()
 
-def parse_tb_output(event_path: str, verbose: int = 0):
-    event_acc = EventAccumulator(event_path)
-    event_acc.Reload()
-
-    if verbose > 0:
-        print(event_acc.Tags())
-    """
+  if verbose>0:
+    print(event_acc.Tags())
+  """
   'losses.event_loss', 
   'losses.treatment_event_loss', 
   'losses.next_vis_loss', 
@@ -44,37 +43,39 @@ def parse_tb_output(event_path: str, verbose: int = 0):
   'learning_rate'
   """
 
-    all_tags = event_acc.Tags()["scalars"]
-    AUC_tags = [t for t in all_tags if "metrics.AUC" in t]
-    df_events = None
-    for t in AUC_tags:
-        steps = [e.step for e in event_acc.Scalars(t)]
-        vals = [e.value for e in event_acc.Scalars(t)]
-        if df_events is None:
-            df_events = pd.DataFrame(list(zip(steps, vals)), columns=["step", t])
-        else:
-            tmp = pd.DataFrame(list(zip(steps, vals)), columns=["step", t])
-            df_events = df_events.merge(tmp, how="outer", on="step")
+  all_tags = event_acc.Tags()['scalars']
+  AUC_tags = [t for t in all_tags if 'metrics.AUC' in t]
+  df_events = None
+  for t in AUC_tags:
+    steps = [e.step for e in event_acc.Scalars(t)]
+    vals = [e.value for e in event_acc.Scalars(t)]
+    if df_events is None:
+      df_events = pd.DataFrame(list(zip(steps, vals)), columns=['step', t])
+    else:
+      tmp = pd.DataFrame(list(zip(steps, vals)), columns=['step', t])
+      df_events = df_events.merge(tmp, how='outer', on='step')
 
-    return df_events
-
+  return df_events
 
 def plot_tb_summary(df_events, out_path):
-    plt.clf()
-    for col in df_events.columns:
-        if col != "step":
-            plt.plot(df_events["step"], df_events[col], label=col)
-    plt.legend()
-    plt.grid(True)
-    plt.xlabel("epochs")
-    plt.ylabel("AUC")
-    plt.savefig(os.path.join(out_path, "AUC_curves.png"))
+  plt.clf()
+  for col in df_events.columns:
+    if col != 'step':
+      plt.plot(df_events['step'], df_events[col], label=col)
+  plt.legend()
+  plt.grid(True)
+  plt.xlabel("epochs")
+  plt.ylabel("AUC")
+  plt.savefig(os.path.join(out_path, 'AUC_curves.png'))
 
-    a = 1
+  a=1
+
+if __name__ == '__main__':
+  for event_path in event_paths:
+    df_events = parse_tb_output(event_path=event_path, verbose=1)
+    plot_tb_summary(df_events, event_path)
+  a=1
 
 
-if __name__ == "__main__":
-    for event_path in event_paths:
-        df_events = parse_tb_output(event_path=event_path, verbose=1)
-        plot_tb_summary(df_events, event_path)
-    a = 1
+
+

@@ -19,7 +19,6 @@ Created on June 30, 2021
 
 import ehrtransformers.configs.naming as naming
 
-
 def age_vocab(max_age, mon=1, symbol=None):
     age2idx = {}
     idx2age = {}
@@ -43,7 +42,6 @@ def age_vocab(max_age, mon=1, symbol=None):
         idx2age = None
     return age2idx, idx2age
 
-
 def cluster_vocab(cluster_inds, symbol=None):
     clust2idx = {}
     idx2clust = {}
@@ -57,11 +55,10 @@ def cluster_vocab(cluster_inds, symbol=None):
             cluster_inds.remove(symbol[i])
 
     for i, cl_ind in enumerate(cluster_inds):
-        clust2idx[cl_ind] = len(symbol) + i
-        idx2clust[len(symbol) + i] = cl_ind
+            clust2idx[cl_ind] = len(symbol) + i
+            idx2clust[len(symbol) + i] = cl_ind
 
     return clust2idx, idx2clust
-
 
 import pickle
 import tqdm
@@ -78,16 +75,8 @@ class TorchVocab(object):
         itos: A list of token strings indexed by their numerical identifiers.
     """
 
-    def __init__(
-        self,
-        counter,
-        max_size=None,
-        min_freq=1,
-        specials=["<pad>", "<oov>"],
-        vectors=None,
-        unk_init=None,
-        vectors_cache=None,
-    ):
+    def __init__(self, counter, max_size=None, min_freq=1, specials=['<pad>', '<oov>'],
+                 vectors=None, unk_init=None, vectors_cache=None):
         """Create a Vocab object from a collections.Counter.
         Arguments:
             counter: collections.Counter object holding the frequencies of
@@ -169,18 +158,8 @@ class Vocab(TorchVocab):
         self.eos_index = 2
         self.sos_index = 3
         self.mask_index = 4
-        super().__init__(
-            counter,
-            specials=[
-                naming.padding_token,
-                naming.separator_token,
-                naming.unknown_token,
-                naming.cls_token,
-                naming.mask_token,
-            ],
-            max_size=max_size,
-            min_freq=min_freq,
-        )
+        super().__init__(counter, specials=[naming.padding_token, naming.separator_token, naming.unknown_token, naming.cls_token, naming.mask_token],
+                         max_size=max_size, min_freq=min_freq)
 
     def to_seq(self, sentece, seq_len, with_eos=False, with_sos=False) -> list:
         pass
@@ -189,7 +168,7 @@ class Vocab(TorchVocab):
         pass
 
     @staticmethod
-    def load_vocab(vocab_path: str) -> "Vocab":
+    def load_vocab(vocab_path: str) -> 'Vocab':
         with open(vocab_path, "rb") as f:
             return pickle.load(f)
 
@@ -236,11 +215,11 @@ class WordVocab(Vocab):
         return (seq, origin_seq_len) if with_len else seq
 
     def from_seq(self, seq, join=False, with_pad=False):
-        words = [
-            self.itos[idx] if idx < len(self.itos) else "<%d>" % idx
-            for idx in seq
-            if not with_pad or idx != self.pad_index
-        ]
+        words = [self.itos[idx]
+                 if idx < len(self.itos)
+                 else "<%d>" % idx
+                 for idx in seq
+                 if not with_pad or idx != self.pad_index]
 
         return " ".join(words) if join else words
 
@@ -251,7 +230,7 @@ class WordVocab(Vocab):
         return self.itos
 
     @staticmethod
-    def load_vocab(vocab_path: str) -> "WordVocab":
+    def load_vocab(vocab_path: str) -> 'WordVocab':
         with open(vocab_path, "rb") as f:
             return pickle.load(f)
 
