@@ -54,9 +54,9 @@ class ModelMultiHead(torch.nn.Module):
             raise Exception(
                 "Neither conv_inputs nor backbone_args are None. One must be set (conv_inputs soon to be deprecated)"
             )
-        # we don't use the number of input channels. 
+        # we don't use the number of input channels.
         # it's just kept for backward compatibility
-        if isinstance(self.conv_inputs[0], Tuple):  
+        if isinstance(self.conv_inputs[0], Tuple):
             self.conv_inputs = [conv_input[0] for conv_input in self.conv_inputs]
         if isinstance(self.backbone_args[0], Tuple):  # no number of input channels specified
             self.backbone_args = [backbone_arg[0] for backbone_arg in self.backbone_args]
