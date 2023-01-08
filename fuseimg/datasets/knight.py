@@ -337,9 +337,7 @@ class KNIGHT:
 
             ## Create dataset
             test_dataset = DatasetDefault(
-                sample_ids=split["test"],
-                static_pipeline=static_pipeline,
-                dynamic_pipeline=val_dynamic_pipeline,
+                sample_ids=split["test"], static_pipeline=static_pipeline, dynamic_pipeline=val_dynamic_pipeline,
             )
 
             print("- Load and cache data:")

@@ -184,11 +184,7 @@ def example_seg_2() -> Dict[str, Any]:
             yield sample_dict
 
     # list of metrics
-    metrics = OrderedDict(
-        [
-            ("dice", MetricDice(pred="pred.array", target="label.array")),
-        ]
-    )
+    metrics = OrderedDict([("dice", MetricDice(pred="pred.array", target="label.array")),])
 
     evaluator = EvaluatorDefault()
     results = evaluator.eval(ids=None, data=data_iter(), batch_size=1, metrics=metrics)

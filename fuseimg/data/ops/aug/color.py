@@ -103,7 +103,7 @@ class OpAugColor(OpBase):
         :param gamma: gamma factor
         :return: None
         """
-        input_tensor = (aug_input**gamma) * gain
+        input_tensor = (aug_input ** gamma) * gain
         input_tensor = OpClip.clip(input_tensor, clip=(0.0, 1.0))
         return input_tensor
 

@@ -30,12 +30,7 @@ class TestPipelineCaching(unittest.TestCase):
         cacher = SamplesCacher("fuseimg_ops_testing_cache", static_pipeline, cache_dirs)
 
         sample_ids = [f"case_{_:05}" for _ in cases]
-        ds = DatasetDefault(
-            sample_ids,
-            static_pipeline,
-            dynamic_pipeline=dynamic_pipeline,
-            cacher=cacher,
-        )
+        ds = DatasetDefault(sample_ids, static_pipeline, dynamic_pipeline=dynamic_pipeline, cacher=cacher,)
 
         ds.create()
 

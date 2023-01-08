@@ -64,6 +64,4 @@ if __name__ == "__main__":
     lgr = logging.getLogger("Fuse")
     lgr.setLevel(logging.INFO)
 
-    test_results = xmlrunner.XMLTestRunner(output=output, verbosity=2, stream=sys.stdout).run(
-        suite,
-    )
+    test_results = xmlrunner.XMLTestRunner(output=output, verbosity=2, stream=sys.stdout).run(suite,)

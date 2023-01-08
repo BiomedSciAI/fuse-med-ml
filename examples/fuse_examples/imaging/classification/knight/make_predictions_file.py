@@ -94,19 +94,12 @@ def make_predictions_file(
         collate_fn=CollateDefault(),
     )
 
-    pl_module = LightningModuleDefault(
-        model_dir=model_dir,
-        model=model,
-    )
+    pl_module = LightningModuleDefault(model_dir=model_dir, model=model,)
 
     pl_module.set_predictions_keys([predictions_key_name])
 
     pl_trainer = pl.Trainer(
-        default_root_dir=model_dir,
-        accelerator="gpu",
-        devices=1,
-        strategy=None,
-        auto_select_gpus=auto_select_gpus,
+        default_root_dir=model_dir, accelerator="gpu", devices=1, strategy=None, auto_select_gpus=auto_select_gpus,
     )
 
     predictions = pl_trainer.predict(pl_module, dl, ckpt_path=checkpoint)

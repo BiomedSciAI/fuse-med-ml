@@ -339,9 +339,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
 
     # create optimizer
     optimizer = optim.Adam(
-        model.parameters(),
-        lr=train_common_params["opt.lr"],
-        weight_decay=train_common_params["opt.weight_decay"],
+        model.parameters(), lr=train_common_params["opt.lr"], weight_decay=train_common_params["opt.weight_decay"],
     )
 
     # create scheduler

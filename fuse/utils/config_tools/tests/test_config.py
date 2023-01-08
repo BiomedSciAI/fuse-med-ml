@@ -31,15 +31,11 @@ class TestConfig(unittest.TestCase):
 
         conf = Config()
         z_no_py_ext__internal_include = conf.load(
-            {"test": 14},
-            os.path.join(_curr_dir, "some_conf_internal_include"),
-            {"test": 240},
+            {"test": 14}, os.path.join(_curr_dir, "some_conf_internal_include"), {"test": 240},
         )
 
         z_with_ext__internal_include = conf.load(
-            {"test": 14},
-            os.path.join(_curr_dir, "some_conf_internal_include.py"),
-            {"test": 240},
+            {"test": 14}, os.path.join(_curr_dir, "some_conf_internal_include.py"), {"test": 240},
         )
 
         z_with_ext__external_include = conf.load(
@@ -50,9 +46,7 @@ class TestConfig(unittest.TestCase):
         )
 
         z_with_ext__no_include = conf.load(
-            {"test": 14},
-            os.path.join(_curr_dir, "some_conf_no_include.py"),
-            {"test": 240},
+            {"test": 14}, os.path.join(_curr_dir, "some_conf_no_include.py"), {"test": 240},
         )
 
         self.assertEqual(z_no_py_ext__internal_include, _reference_ans)

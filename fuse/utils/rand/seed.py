@@ -39,5 +39,5 @@ class Seed:
         """
         Function to provide to torch dataloader to set a seed per worker
         """
-        worker_seed = torch.initial_seed() % 2**32
+        worker_seed = torch.initial_seed() % 2 ** 32
         Seed.set_seed(worker_seed)

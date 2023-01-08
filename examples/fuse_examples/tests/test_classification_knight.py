@@ -60,8 +60,7 @@ class KnightTestTestCase(unittest.TestCase):
         cache_path = os.path.join(self.root, "cache")
         output_filename = os.path.join(self.root, "output/validation_targets.csv")
         wget.download(
-            "https://raw.github.com/neheller/KNIGHT/main/knight/data/knight.json",
-            data_path,
+            "https://raw.github.com/neheller/KNIGHT/main/knight/data/knight.json", data_path,
         )
         split = os.path.join(dir_path, "../imaging/classification/knight/baseline/splits_final.pkl")
         create_dir(os.path.dirname(output_filename))

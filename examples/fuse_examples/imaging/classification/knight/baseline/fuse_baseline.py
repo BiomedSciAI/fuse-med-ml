@@ -121,11 +121,7 @@ def main(cfg_path):
     ##############################################################################
 
     train_ds, valid_ds = KNIGHT.dataset(
-        data_path=data_path,
-        cache_dir=cache_path,
-        split=split,
-        reset_cache=False,
-        resize_to=cfg["resize_to"],
+        data_path=data_path, cache_dir=cache_path, split=split, reset_cache=False, resize_to=cfg["resize_to"],
     )
 
     ## Create dataloader

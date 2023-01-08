@@ -164,10 +164,7 @@ class LightningModuleMnist(pl.LightningModule):
 
     def configure_callbacks(self) -> Sequence[pl.Callback]:
         """Create callbacks to monitor the metrics and print epoch summary"""
-        best_epoch_source = dict(
-            monitor="validation.metrics.accuracy",
-            mode="max",
-        )
+        best_epoch_source = dict(monitor="validation.metrics.accuracy", mode="max",)
         return fuse_pl.model_checkpoint_callbacks(self._model_dir, best_epoch_source)
 
     def configure_optimizers(self) -> Any:
