@@ -192,7 +192,10 @@ def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault,
     validation_metrics = copy.deepcopy(train_metrics)  # use the same metrics in validation as well
 
     # either a dict with arguments to pass to ModelCheckpoint or list dicts for multiple ModelCheckpoint callbacks (to monitor and save checkpoints for more then one metric).
-    best_epoch_source = dict(monitor="validation.metrics.accuracy", mode="max",)
+    best_epoch_source = dict(
+        monitor="validation.metrics.accuracy",
+        mode="max",
+    )
 
     # ====================================================================================
     # Training components

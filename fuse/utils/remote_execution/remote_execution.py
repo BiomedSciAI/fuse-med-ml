@@ -18,7 +18,12 @@ RemoteCommand = namedtuple("RemoteCommand", "machine command")
 
 class RemoteExecution:
     def __init__(
-        self, conda_env: str, password: str, user: Optional[str] = None, allow_manual_password_typing=True, verbose=0,
+        self,
+        conda_env: str,
+        password: str,
+        user: Optional[str] = None,
+        allow_manual_password_typing=True,
+        verbose=0,
     ):
         self._conda_env = conda_env
 

@@ -252,7 +252,10 @@ class STOIC21:
         )
 
         my_dataset = DatasetDefault(
-            sample_ids=sample_ids, static_pipeline=static_pipeline, dynamic_pipeline=dynamic_pipeline, cacher=cacher,
+            sample_ids=sample_ids,
+            static_pipeline=static_pipeline,
+            dynamic_pipeline=dynamic_pipeline,
+            cacher=cacher,
         )
         my_dataset.create()
         return my_dataset

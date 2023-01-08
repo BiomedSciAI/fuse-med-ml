@@ -62,7 +62,10 @@ class ClassifierLinear(nn.Module):
 
 class LinearLayers(nn.Module):
     def __init__(
-        self, in_ch: Sequence[int] = (256,), layers_description: Sequence[int] = (256,), dropout_rate: float = 0.1,
+        self,
+        in_ch: Sequence[int] = (256,),
+        layers_description: Sequence[int] = (256,),
+        dropout_rate: float = 0.1,
     ):
 
         super(LinearLayers, self).__init__()

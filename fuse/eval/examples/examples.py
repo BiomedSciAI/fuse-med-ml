@@ -65,7 +65,11 @@ def example_0() -> Dict[str, Any]:
     input_filename = os.path.join(dir_path, "inputs/example0.pickle")
 
     # list of metrics
-    metrics = OrderedDict([("auc", MetricAUCROC(pred="pred", target="target")),])
+    metrics = OrderedDict(
+        [
+            ("auc", MetricAUCROC(pred="pred", target="target")),
+        ]
+    )
 
     # read files
     data = input_filename
@@ -335,7 +339,9 @@ def example_7() -> Dict:
 
     # list of metrics
     metrics = OrderedDict(
-        [("delongs_test", MetricDelongsTest(target="target.target", pred1="pred1.output", pred2="pred2.output")),]
+        [
+            ("delongs_test", MetricDelongsTest(target="target.target", pred1="pred1.output", pred2="pred2.output")),
+        ]
     )
 
     evaluator = EvaluatorDefault()
@@ -735,8 +741,17 @@ def example_14() -> Dict[str, Any]:
                     output_file=output_file,
                 ),
             ),
-            ("apply_thresh", MetricApplyThresholds(pred="results:metrics.ensemble.preds", operation_point=None),),
-            ("accuracy", MetricAccuracy(pred="results:metrics.apply_thresh.cls_pred", target="0.data.label",),),
+            (
+                "apply_thresh",
+                MetricApplyThresholds(pred="results:metrics.ensemble.preds", operation_point=None),
+            ),
+            (
+                "accuracy",
+                MetricAccuracy(
+                    pred="results:metrics.apply_thresh.cls_pred",
+                    target="0.data.label",
+                ),
+            ),
         ]
     )
 

@@ -56,6 +56,8 @@ class HashableClass:
 
         if not hasattr(self, "_stored_init_str_representation"):
             raise Exception(HashableClass._MISSING_SUPER_INIT_ERR_MSG)
-        call_repr = get_function_call_str(self.__call__,)
+        call_repr = get_function_call_str(
+            self.__call__,
+        )
 
         return f"init_{self._stored_init_str_representation}@call_{call_repr}"

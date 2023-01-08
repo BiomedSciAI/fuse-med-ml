@@ -104,8 +104,14 @@ class TestDatasetDefault(unittest.TestCase):
             (OpPrintContents(), {}),
         ]
 
-        static_pl = PipelineDefault("static_pipeline", static_pipeline_desc,)
-        dynamic_pl = PipelineDefault("dynamic_pipeline", dynamic_pipeline_desc,)
+        static_pl = PipelineDefault(
+            "static_pipeline",
+            static_pipeline_desc,
+        )
+        dynamic_pl = PipelineDefault(
+            "dynamic_pipeline",
+            dynamic_pipeline_desc,
+        )
 
         orig_sample_ids = ["case_1", "case_2"]
         ################ cached + no sample morphing
@@ -118,7 +124,12 @@ class TestDatasetDefault(unittest.TestCase):
             audit_units="samples",
         )
 
-        ds_cached = DatasetDefault(orig_sample_ids, static_pl, dynamic_pipeline=dynamic_pl, cacher=cacher,)
+        ds_cached = DatasetDefault(
+            orig_sample_ids,
+            static_pl,
+            dynamic_pipeline=dynamic_pl,
+            cacher=cacher,
+        )
 
         ds_cached.create(num_workers=0)
         cached_final_sample_ids = ds_cached.get_all_sample_ids()
@@ -152,7 +163,12 @@ class TestDatasetDefault(unittest.TestCase):
             audit_rate=None,
         )
 
-        ds_cached = DatasetDefault(orig_sample_ids, static_pl, dynamic_pipeline=dynamic_pl, cacher=cacher,)
+        ds_cached = DatasetDefault(
+            orig_sample_ids,
+            static_pl,
+            dynamic_pipeline=dynamic_pl,
+            cacher=cacher,
+        )
 
         ds_cached.create(num_workers=0)
 
@@ -176,7 +192,12 @@ class TestDatasetDefault(unittest.TestCase):
             audit_rate=None,
         )
 
-        ds_cached = DatasetDefault(orig_sample_ids, static_pl, dynamic_pipeline=dynamic_pl, cacher=cacher,)
+        ds_cached = DatasetDefault(
+            orig_sample_ids,
+            static_pl,
+            dynamic_pipeline=dynamic_pl,
+            cacher=cacher,
+        )
 
         ds_cached.create(num_workers=0)
 

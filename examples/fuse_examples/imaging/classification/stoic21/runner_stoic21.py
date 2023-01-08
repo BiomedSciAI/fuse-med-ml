@@ -203,13 +203,18 @@ def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault,
     # Metrics
     # ====================================================================================
     train_metrics = OrderedDict(
-        [("auc", MetricAUCROC(pred="model.output.classification", target="data.gt.probSevere")),]
+        [
+            ("auc", MetricAUCROC(pred="model.output.classification", target="data.gt.probSevere")),
+        ]
     )
 
     validation_metrics = copy.deepcopy(train_metrics)  # use the same metrics in validation as well
 
     # either a dict with arguments to pass to ModelCheckpoint or list dicts for multiple ModelCheckpoint callbacks (to monitor and save checkpoints for more then one metric).
-    best_epoch_source = dict(monitor="validation.metrics.auc", mode="max",)
+    best_epoch_source = dict(
+        monitor="validation.metrics.auc",
+        mode="max",
+    )
 
     # ====================================================================================
     # Training components

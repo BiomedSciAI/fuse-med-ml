@@ -31,7 +31,9 @@ class CollateToBatchList(Callable):
     """
 
     def __init__(
-        self, skip_keys: Sequence[str] = tuple(), raise_error_key_missing: bool = True,
+        self,
+        skip_keys: Sequence[str] = tuple(),
+        raise_error_key_missing: bool = True,
     ):
         """
         :param skip_keys: do not collect the listed keys

@@ -206,7 +206,10 @@ def save_hdf5_safe(filename: str, use_blosc: bool = True, **kwarrays):
 #      which supports something like: x = load_hdf5('blah'); x['a.b'][:2,10:20:3,...]
 
 
-def load_hdf5(filename: str, custom_extract: Optional[Dict[str, Union[int, List, Tuple]]] = None,) -> dict:
+def load_hdf5(
+    filename: str,
+    custom_extract: Optional[Dict[str, Union[int, List, Tuple]]] = None,
+) -> dict:
     """
 
     :param filename:

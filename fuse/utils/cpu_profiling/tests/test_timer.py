@@ -9,7 +9,7 @@ class TestTimer(unittest.TestCase):
 
         def foo(x):
             with Timer("banana"):
-                for _ in range(10 ** 5):
+                for _ in range(10**5):
                     x = x * 2
 
         foo(20)

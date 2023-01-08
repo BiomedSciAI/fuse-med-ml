@@ -236,7 +236,10 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     validation_metrics = copy.deepcopy(train_metrics)  # use the same metrics in validation as well
 
     # either a dict with arguments to pass to ModelCheckpoint or list dicts for multiple ModelCheckpoint callbacks (to monitor and save checkpoints for more then one metric).
-    best_epoch_source = dict(monitor="validation.metrics.auc.macro_avg", mode="max",)
+    best_epoch_source = dict(
+        monitor="validation.metrics.auc.macro_avg",
+        mode="max",
+    )
 
     # =====================================================================================
     #  Manager - Train

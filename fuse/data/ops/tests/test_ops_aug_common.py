@@ -89,7 +89,12 @@ class TestOpsAugCommon(unittest.TestCase):
 
         Seed.set_seed(1337)
         sample_2 = create_initial_sample(0)
-        op = OpRepeat(OpSample(OpBasicSetter(),), [dict(key="data.input.img"), dict(key="data.gt.seg")],)
+        op = OpRepeat(
+            OpSample(
+                OpBasicSetter(),
+            ),
+            [dict(key="data.input.img"), dict(key="data.gt.seg")],
+        )
         sample_2 = op_call(op, sample_2, op_id="testing_sample_and_repeat", set_key_to_val=Uniform(3.0, 6.0))
 
         self.assertEqual(sample_1["data.input.img"], sample_2["data.input.img"])

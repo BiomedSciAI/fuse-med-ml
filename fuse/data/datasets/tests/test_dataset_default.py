@@ -98,14 +98,25 @@ class TestDatasetDefault(unittest.TestCase):
             (OpPrintContents(), {}),
         ]
 
-        static_pl = PipelineDefault("static_pipeline", static_pipeline_desc,)
-        dynamic_pl = PipelineDefault("dynamic_pipeline", dynamic_pipeline_desc,)
+        static_pl = PipelineDefault(
+            "static_pipeline",
+            static_pipeline_desc,
+        )
+        dynamic_pl = PipelineDefault(
+            "dynamic_pipeline",
+            dynamic_pipeline_desc,
+        )
 
         orig_sample_ids = ["case_1", "case_2", "case_3", "case_4"]
         ################ cached + sample morphing
         cacher = SamplesCacher("dataset_test_cache", static_pl, cache_dirs, restart_cache=True)
 
-        ds_cached = DatasetDefault(orig_sample_ids, static_pl, dynamic_pipeline=dynamic_pl, cacher=cacher,)
+        ds_cached = DatasetDefault(
+            orig_sample_ids,
+            static_pl,
+            dynamic_pipeline=dynamic_pl,
+            cacher=cacher,
+        )
 
         ds_cached.create(num_workers=0)
         cached_final_sample_ids = ds_cached.get_all_sample_ids()
@@ -113,13 +124,18 @@ class TestDatasetDefault(unittest.TestCase):
         ############### not cached + sample morphing
 
         ds_not_cached = DatasetDefault(
-            orig_sample_ids, static_pl, dynamic_pipeline=dynamic_pl, cacher=None, allow_uncached_sample_morphing=True,
+            orig_sample_ids,
+            static_pl,
+            dynamic_pipeline=dynamic_pl,
+            cacher=None,
+            allow_uncached_sample_morphing=True,
         )
         ds_not_cached.create(num_workers=0)
         not_cached_final_sample_ids = ds_not_cached.get_all_sample_ids()
 
         self.assertEqual(
-            sorted(cached_final_sample_ids), sorted(not_cached_final_sample_ids),
+            sorted(cached_final_sample_ids),
+            sorted(not_cached_final_sample_ids),
         )
 
         sample_from_cached = ds_cached[3]
@@ -147,14 +163,25 @@ class TestDatasetDefault(unittest.TestCase):
             (OpPrintContents(), {}),
         ]
 
-        static_pl = PipelineDefault("static_pipeline", static_pipeline_desc,)
-        dynamic_pl = PipelineDefault("dynamic_pipeline", dynamic_pipeline_desc,)
+        static_pl = PipelineDefault(
+            "static_pipeline",
+            static_pipeline_desc,
+        )
+        dynamic_pl = PipelineDefault(
+            "dynamic_pipeline",
+            dynamic_pipeline_desc,
+        )
 
         orig_sample_ids = ["case_1", "case_2"]
         ################ cached + no sample morphing
         cacher = SamplesCacher("dataset_test_cache", static_pl, cache_dirs, restart_cache=True)
 
-        ds_cached = DatasetDefault(orig_sample_ids, static_pl, dynamic_pipeline=dynamic_pl, cacher=cacher,)
+        ds_cached = DatasetDefault(
+            orig_sample_ids,
+            static_pl,
+            dynamic_pipeline=dynamic_pl,
+            cacher=cacher,
+        )
 
         ds_cached.create(num_workers=0)
         cached_final_sample_ids = ds_cached.get_all_sample_ids()
@@ -172,7 +199,8 @@ class TestDatasetDefault(unittest.TestCase):
         not_cached_final_sample_ids = ds_not_cached.get_all_sample_ids()
 
         self.assertEqual(
-            sorted(cached_final_sample_ids), sorted(not_cached_final_sample_ids),
+            sorted(cached_final_sample_ids),
+            sorted(not_cached_final_sample_ids),
         )
 
         sample_from_cached = ds_cached[1]

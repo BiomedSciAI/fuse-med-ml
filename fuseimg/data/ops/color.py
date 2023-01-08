@@ -18,7 +18,10 @@ class OpClip(OpBase):
         super().__init__(**kwargs)
 
     def __call__(
-        self, sample_dict: NDict, key: str, clip=(0.0, 1.0),
+        self,
+        sample_dict: NDict,
+        key: str,
+        clip=(0.0, 1.0),
     ):
         """
         Clip  values
@@ -78,7 +81,9 @@ class OpToIntImageSpace(OpBase):
         super().__init__(**kwargs)
 
     def __call__(
-        self, sample_dict: NDict, key: str,
+        self,
+        sample_dict: NDict,
+        key: str,
     ):
         img = sample_dict[key]
         img -= img.min()
@@ -99,7 +104,11 @@ class OpToRange(OpBase):
     """
 
     def __call__(
-        self, sample_dict: NDict, key: str, from_range: Tuple[float, float], to_range: Tuple[float, float],
+        self,
+        sample_dict: NDict,
+        key: str,
+        from_range: Tuple[float, float],
+        to_range: Tuple[float, float],
     ):
 
         from_range_start = from_range[0]
