@@ -53,8 +53,6 @@ MODEL_DIR = os.path.join(ROOT, "model_dir")
 PATHS = {
     "model_dir": MODEL_DIR,
     "cache_dir": os.path.join(ROOT, "cache_dir"),
-    "inference_dir": os.path.join(MODEL_DIR, "infer_dir"),
-    "eval_dir": os.path.join(MODEL_DIR, "eval_dir"),
 }
 TRAIN_PARAMS = {
     "data.batch_size": 100,
@@ -72,7 +70,15 @@ TRAIN_PARAMS = {
 
 ## Model Definition #####################################################
 class FuseLitLenet(LightningModuleDefault):
-    def __init__(self, paths, train_params):
+    def __init__(self, model_dir: str, lr: float, weight_decay: float):  # paths, train_params):
+        """
+        Initialize the model. We inheret from LightningModuleDefault to get functions necessary for lightning trainer.
+        We also wrap the torch model so that it can train using keys from the fuse NDict batch dict.
+
+        :param model_dir: location for checkpoints and logs.
+        :param lr: learning rate for optimizer
+        :param weight_decay: weight decay for Adam optimizer. This is a form of regularization that penalizes for learning large weights.
+        """
 
         # wrap basic torch model to automatically read inputs from batch_dict and save its outputs to batch_dict
         model = ModelWrapSeqToDict(
@@ -97,16 +103,14 @@ class FuseLitLenet(LightningModuleDefault):
         validation_metrics = copy.deepcopy(train_metrics)  # same as train metrics
 
         # optimizer and learning rate scheduler
-        optimizer = optim.Adam(
-            model.parameters(), lr=train_params["opt.lr"], weight_decay=train_params["opt.weight_decay"]
-        )
+        optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
         lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
         lr_sch_config = dict(scheduler=lr_scheduler, monitor="validation.losses.total_loss")
         optimizers_and_lr_schs = dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
 
         # initialize LightningModuleDefault with our module, losses, etc so that we can use the functions of LightningModuleDefault
         super().__init__(
-            model_dir=paths["model_dir"],
+            model_dir=model_dir,
             model=model,
             losses=losses,
             train_metrics=train_metrics,
@@ -119,7 +123,9 @@ class FuseLitLenet(LightningModuleDefault):
 def run_train(paths: dict, train_params: dict):
 
     # initialize model
-    model = FuseLitLenet(paths, train_params)
+    model = FuseLitLenet(
+        model_dir=paths["model_dir"], lr=train_params["opt.lr"], weight_decay=train_params["opt.weight_decay"]
+    )
 
     # make datasets
     train_dataset = MNIST.dataset(paths["cache_dir"], train=True)
