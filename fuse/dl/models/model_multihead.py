@@ -64,8 +64,8 @@ class ModelMultiHead(torch.nn.Module):
         self.add_module("heads", self.heads)
 
     def forward(self, batch_dict: NDict) -> Dict:
-        if isinstance(self.conv_input, str):  # no number of input channels specified
-            self.conv_input = (self.conv_input,)
+        if isinstance(self.conv_inputs, str):  # no number of input channels specified
+            self.conv_inputs = (self.conv_inputs,)
         if isinstance(self.backbone_args, str):  # no number of input channels specified
             self.backbone_args = (self.backbone_args,)
         if self.conv_inputs is not None:
