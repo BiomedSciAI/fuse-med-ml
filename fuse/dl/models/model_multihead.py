@@ -54,10 +54,12 @@ class ModelMultiHead(torch.nn.Module):
             raise Exception(
                 "Neither conv_inputs nor backbone_args are None. One must be set (conv_inputs soon to be deprecated)"
             )
-        if isinstance(self.conv_inputs[0], str):  # no number of input channels specified
-            self.conv_inputs[0] = (self.conv_inputs[0],)
-        if isinstance(self.backbone_args[0], str):  # no number of input channels specified
-            self.backbone_args[0] = (self.backbone_args[0],)
+        # we don't use the number of input channels. 
+        # it's just kept for backward compatibility
+        if isinstance(self.conv_inputs[0], Tuple):  
+            self.conv_inputs = [conv_input[0] for conv_input in self.conv_inputs]
+        if isinstance(self.backbone_args[0], Tuple):  # no number of input channels specified
+            self.backbone_args = [backbone_arg[0] for backbone_arg in self.backbone_args]
 
         self.conv_inputs = conv_inputs
         self.backbone_args = backbone_args
@@ -69,10 +71,10 @@ class ModelMultiHead(torch.nn.Module):
 
     def forward(self, batch_dict: NDict) -> Dict:
         if self.conv_inputs is not None:
-            conv_input = torch.cat([batch_dict[conv_input[0]] for conv_input in self.conv_inputs], 1)
+            conv_input = torch.cat([batch_dict[conv_input] for conv_input in self.conv_inputs], 1)
             backbone_features = self.backbone.forward(conv_input)
         else:
-            backbone_args = [batch_dict[inp[0]] for inp in self.backbone_args]
+            backbone_args = [batch_dict[inp] for inp in self.backbone_args]
             backbone_features = self.backbone.forward(*backbone_args)
 
         batch_dict[self.key_out_features] = backbone_features
