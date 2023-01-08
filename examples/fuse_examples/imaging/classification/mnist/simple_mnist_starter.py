@@ -33,6 +33,7 @@ import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
 import pytorch_lightning as pl
 
+
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy
 
@@ -46,19 +47,20 @@ from fuse.dl.lightning.pl_module import LightningModuleDefault
 from fuseimg.datasets.mnist import MNIST
 from examples.fuse_examples.imaging.classification.mnist import lenet
 
+## Paths and Hyperparameters ############################################
 ROOT = "_examples/mnist"  # TODO: fill path here
-model_dir = os.path.join(ROOT, "model_dir")
+MODEL_DIR = os.path.join(ROOT, "model_dir")
 PATHS = {
-    "model_dir": model_dir,
+    "model_dir": MODEL_DIR,
     "cache_dir": os.path.join(ROOT, "cache_dir"),
-    "inference_dir": os.path.join(model_dir, "infer_dir"),
-    "eval_dir": os.path.join(model_dir, "eval_dir"),
+    "inference_dir": os.path.join(MODEL_DIR, "infer_dir"),
+    "eval_dir": os.path.join(MODEL_DIR, "eval_dir"),
 }
-train_params = {
+TRAIN_PARAMS = {
     "data.batch_size": 100,
     "data.train_num_workers": 8,
     "data.validation_num_workers": 8,
-    "trainer.num_epochs": 12,
+    "trainer.num_epochs": 2,
     "trainer.num_devices": 1,
     "trainer.accelerator": "gpu",
     "trainer.strategy": "dp",
@@ -67,42 +69,61 @@ train_params = {
     "opt.weight_decay": 0.001,
 }
 
-
+## Model Definition #####################################################
 class FuseLitLenet(LightningModuleDefault):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, paths, train_params):
+
         # wrap basic torch model to automatically read inputs from batch_dict and save its outputs to batch_dict
-        self._model = ModelWrapSeqToDict(
+        model = ModelWrapSeqToDict(
             model=lenet.LeNet(),
             model_inputs=["data.image"],
             post_forward_processing_function=lambda logits: (logits, F.softmax(logits, dim=1)),
             model_outputs=["model.logits.classification", "model.output.classification"],
         )
-        self._losses = {
+
+        # losses and metrics to track
+        losses = {
             "cls_loss": LossDefault(
                 pred="model.logits.classification", target="data.label", callable=F.cross_entropy, weight=1.0
             ),
         }
-        self._train_metrics = OrderedDict(
+        train_metrics = OrderedDict(
             [
                 ("operation_point", MetricApplyThresholds(pred="model.output.classification")),  # will apply argmax
                 ("accuracy", MetricAccuracy(pred="results:metrics.operation_point.cls_pred", target="data.label")),
             ]
         )
-        self._validation_metrics = copy.deepcopy(self._train_metrics)
+        validation_metrics = copy.deepcopy(train_metrics) # same as train metrics
+
+        # optimizer and learning rate scheduler
         optimizer = optim.Adam(
-            self._model.parameters(), lr=train_params["opt.lr"], weight_decay=train_params["opt.weight_decay"]
+            model.parameters(), lr=train_params["opt.lr"], weight_decay=train_params["opt.weight_decay"]
         )
         lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
         lr_sch_config = dict(scheduler=lr_scheduler, monitor="validation.losses.total_loss")
-        self._optimizers_and_lr_schs = dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
+        optimizers_and_lr_schs = dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
 
+        # initialize LightningModuleDefault with our module, losses, etc so that we can use the functions of LightningModuleDefault
+        super().__init__(
+            model_dir = paths["model_dir"],
+            model=model,
+            losses=losses,
+            train_metrics=train_metrics,
+            validation_metrics=validation_metrics,
+            optimizers_and_lr_schs=optimizers_and_lr_schs,
+        )
 
+## Training #############################################################
 def run_train(paths: dict, train_params: dict):
-    train_dataset = MNIST.dataset(PATHS["cache_dir"], train=True)
-    validation_dataset = MNIST.dataset(PATHS["cache_dir"], train=False)
-    model = FuseLitLenet()
 
+    # initialize model
+    model = FuseLitLenet(paths, train_params)
+
+    # make datasets
+    train_dataset = MNIST.dataset(paths["cache_dir"], train=True)
+    validation_dataset = MNIST.dataset(paths["cache_dir"], train=False)
+
+    # make sampler
     sampler = BatchSamplerDefault(
         dataset=train_dataset,
         balanced_class_name="data.label",
@@ -111,13 +132,13 @@ def run_train(paths: dict, train_params: dict):
         balanced_class_weights=None,
     )
 
+    # train/val dataloaders
     train_dataloader = DataLoader(
         dataset=train_dataset,
         batch_sampler=sampler,
         collate_fn=CollateDefault(),
         num_workers=train_params["data.train_num_workers"],
     )
-
     validation_dataloader = DataLoader(
         dataset=validation_dataset,
         batch_size=train_params["data.batch_size"],
@@ -125,6 +146,7 @@ def run_train(paths: dict, train_params: dict):
         num_workers=train_params["data.validation_num_workers"],
     )
 
+    # create pl trainer
     pl_trainer = pl.Trainer(
         default_root_dir=paths["model_dir"],
         max_epochs=train_params["trainer.num_epochs"],
@@ -134,9 +156,9 @@ def run_train(paths: dict, train_params: dict):
         auto_select_gpus=True,
     )
 
-    # train
+    # train model
     pl_trainer.fit(model, train_dataloader, validation_dataloader, ckpt_path=train_params["trainer.ckpt_path"])
 
 
 if __name__ == "__main__":
-    run_train(paths=PATHS, train_params=train_params)
+    run_train(paths=PATHS, train_params=TRAIN_PARAMS)

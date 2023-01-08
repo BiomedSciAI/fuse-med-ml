@@ -31,8 +31,8 @@ class LightningModuleDefault(pl.LightningModule):
 
     def __init__(
         self,
-        model_dir: str = None,
-        model: torch.nn.Module = None,
+        model_dir: str,
+        model: torch.nn.Module,
         losses: Optional[Dict[str, LossBase]] = None,
         train_metrics: Optional[OrderedDict[str, MetricBase]] = None,
         validation_metrics: Optional[OrderedDict[str, MetricBase]] = None,
