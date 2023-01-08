@@ -69,6 +69,7 @@ TRAIN_PARAMS = {
     "opt.weight_decay": 0.001,
 }
 
+
 ## Model Definition #####################################################
 class FuseLitLenet(LightningModuleDefault):
     def __init__(self, paths, train_params):
@@ -93,7 +94,7 @@ class FuseLitLenet(LightningModuleDefault):
                 ("accuracy", MetricAccuracy(pred="results:metrics.operation_point.cls_pred", target="data.label")),
             ]
         )
-        validation_metrics = copy.deepcopy(train_metrics) # same as train metrics
+        validation_metrics = copy.deepcopy(train_metrics)  # same as train metrics
 
         # optimizer and learning rate scheduler
         optimizer = optim.Adam(
@@ -105,13 +106,14 @@ class FuseLitLenet(LightningModuleDefault):
 
         # initialize LightningModuleDefault with our module, losses, etc so that we can use the functions of LightningModuleDefault
         super().__init__(
-            model_dir = paths["model_dir"],
+            model_dir=paths["model_dir"],
             model=model,
             losses=losses,
             train_metrics=train_metrics,
             validation_metrics=validation_metrics,
             optimizers_and_lr_schs=optimizers_and_lr_schs,
         )
+
 
 ## Training #############################################################
 def run_train(paths: dict, train_params: dict):
