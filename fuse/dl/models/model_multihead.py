@@ -23,6 +23,7 @@ import torch
 
 from fuse.utils.ndict import NDict
 
+
 class ModelMultiHead(torch.nn.Module):
     """
     Default Fuse model - convolutional neural network with multiple heads
