@@ -15,7 +15,6 @@ limitations under the License.
 
 Created on June 30, 2021
 """
-from typing import Sequence, Dict
 
 import pytorch_lightning as pl
 from typing import Optional
