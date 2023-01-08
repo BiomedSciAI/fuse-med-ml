@@ -81,12 +81,18 @@ def load_outcome_data(
 
     data_dict = load_pkl(file_name)
     data_df = rename_columns_for_behrt(
-        data_dict["data_df"], naming_conf=naming_conventions, age_month_resolution=age_month_resolution,
+        data_dict["data_df"],
+        naming_conf=naming_conventions,
+        age_month_resolution=age_month_resolution,
     )
     # add relevant external GT:
     data_df = head_config.add_external_gt_to_df(data_df, [dset_name])
 
-    stats_inst_tst = StatsAnalyzer(data_dict["data_df"], naming_conventions, title=dset_name,)
+    stats_inst_tst = StatsAnalyzer(
+        data_dict["data_df"],
+        naming_conventions,
+        title=dset_name,
+    )
     stats_inst_tst.print_stats()
     Dset = Outcome(
         head_config=head_config,
@@ -155,7 +161,13 @@ def int2date(date_YMD_int):
 
 class Outcome(Dataset):
     def __init__(
-        self, head_config, token2idx, age2idx, dataframe, max_len, reverse_inputs=False,
+        self,
+        head_config,
+        token2idx,
+        age2idx,
+        dataframe,
+        max_len,
+        reverse_inputs=False,
     ):
         """
         :param head_config: Head configuration class, as defined in ehrtransformers/configs/head_config.py

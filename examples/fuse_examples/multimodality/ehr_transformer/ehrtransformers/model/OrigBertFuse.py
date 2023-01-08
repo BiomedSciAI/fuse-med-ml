@@ -80,7 +80,11 @@ class BertModel(Bert.modeling.BertPreTrainedModel):
         self.apply(self.init_bert_weights)
 
     def forward(
-        self, input_ids, position_ids=None, attention_mask=None, output_all_encoded_layers=True,
+        self,
+        input_ids,
+        position_ids=None,
+        attention_mask=None,
+        output_all_encoded_layers=True,
     ):
         if attention_mask is None:
             attention_mask = torch.ones_like(input_ids)
@@ -92,7 +96,9 @@ class BertModel(Bert.modeling.BertPreTrainedModel):
 
         embedding_output = self.embeddings(input_ids=input_ids, position_ids=position_ids)  # embedding vectors of Bert
         encoded_layers = self.encoder(
-            embedding_output, extended_attention_mask, output_all_encoded_layers=output_all_encoded_layers,
+            embedding_output,
+            extended_attention_mask,
+            output_all_encoded_layers=output_all_encoded_layers,
         )
         sequence_output = encoded_layers[-1]  # this is the embedding of all tokens
         pooled_output = self.pooler(sequence_output)  # "'pooling' is simply taking the embedding of the first token
@@ -110,9 +116,17 @@ class BertBackbone(Bert.modeling.BertPreTrainedModel):
         self.apply(self.init_bert_weights)
 
     def forward(
-        self, input_ids, position_ids=None, attention_mask=None,
+        self,
+        input_ids,
+        position_ids=None,
+        attention_mask=None,
     ):
-        _, pooled_output = self.bert(input_ids, position_ids, attention_mask, output_all_encoded_layers=False,)
+        _, pooled_output = self.bert(
+            input_ids,
+            position_ids,
+            attention_mask,
+            output_all_encoded_layers=False,
+        )
         return pooled_output
 
 

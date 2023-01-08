@@ -156,9 +156,14 @@ if __name__ == "__main__":
     else:
         config_file_path = None
 
-    (global_params, file_config, model_config, optim_config, data_config, naming_conventions,) = get_config(
-        config_file_path
-    )
+    (
+        global_params,
+        file_config,
+        model_config,
+        optim_config,
+        data_config,
+        naming_conventions,
+    ) = get_config(config_file_path)
 
     fnames = ["validation_set_infer_best", "validation_set_infer_last", "train_set_infer_best", "train_set_infer_last"]
 

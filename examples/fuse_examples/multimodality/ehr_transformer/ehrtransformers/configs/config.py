@@ -24,7 +24,9 @@ from os import environ
 from .configmodels import EHRTransformerConfigSettings
 
 
-def get_config(fname: Optional[str] = None,):
+def get_config(
+    fname: Optional[str] = None,
+):
     if fname is None:
         config = EHRTransformerConfigSettings()
     else:

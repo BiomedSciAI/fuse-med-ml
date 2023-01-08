@@ -26,12 +26,12 @@ import ehrtransformers.configs.naming as naming
 
 def seq_translate(tokens, translate_dict, mask_token=None):
     """
-        returns a list of tokens translated using translate_dict
-        :param tokens:
-        :param translate_dict:
-        :param mask_token: special token that is always translated to 'UNK'
-        :return:
-        """
+    returns a list of tokens translated using translate_dict
+    :param tokens:
+    :param translate_dict:
+    :param mask_token: special token that is always translated to 'UNK'
+    :return:
+    """
     return (
         tokens,
         [
@@ -91,13 +91,13 @@ def reduce_vocab(token2idx: dict, token_map: dict) -> dict:
 
 def detector_idx(tokens, symbol=naming.separator_token):
     """
-        Given a sequence of codes divided into groups (visits) by symbol ('SEP') tokens, returns a sequence of the same
-        size of binary visit indicators, so that codes from a single visit get the same indicator, and adjacent visits -
-        different indicators.
-        :param tokens:
-        :param symbol:
-        :return:
-        """
+    Given a sequence of codes divided into groups (visits) by symbol ('SEP') tokens, returns a sequence of the same
+    size of binary visit indicators, so that codes from a single visit get the same indicator, and adjacent visits -
+    different indicators.
+    :param tokens:
+    :param symbol:
+    :return:
+    """
     flag = 0
     detector = []
 
@@ -294,7 +294,10 @@ class DataAdder:
 
         # merge source and target df's:
         out_df = main_df.merge(
-            right=comb_df_source, how="left", left_on=self.target_on_keys, right_on=self.source_on_keys,  #'inner',
+            right=comb_df_source,
+            how="left",
+            left_on=self.target_on_keys,
+            right_on=self.source_on_keys,  #'inner',
         )
         if self.val_fillna != None:
             if len(self.source_keys) > 1:

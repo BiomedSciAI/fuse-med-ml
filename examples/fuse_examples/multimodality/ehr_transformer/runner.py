@@ -153,9 +153,14 @@ def train_fuse(config_file: str):
     else:
         config_file_path = None
 
-    (global_params, file_config, model_config, optim_config, data_config, naming_conventions,) = get_config(
-        config_file_path
-    )
+    (
+        global_params,
+        file_config,
+        model_config,
+        optim_config,
+        data_config,
+        naming_conventions,
+    ) = get_config(config_file_path)
 
     do_train = True  # True #False
     do_infer = True  # True #False
@@ -203,7 +208,9 @@ def train_fuse(config_file: str):
     if True:
         BertVocab = load_pkl(file_config["vocab"])
         ageVocab, _ = age_vocab(
-            max_age=global_params["max_age"], mon=global_params["month"], symbol=global_params["age_symbol"],
+            max_age=global_params["max_age"],
+            mon=global_params["month"],
+            symbol=global_params["age_symbol"],
         )
 
         model_config["age_vocab_size"] = len(ageVocab.keys())
