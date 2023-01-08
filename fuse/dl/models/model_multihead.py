@@ -17,12 +17,11 @@ Created on June 30, 2021
 
 """
 
-from typing import Sequence, Dict, Tuple
+from typing import Sequence, Dict, Tuple, Union
 
 import torch
 
 from fuse.utils.ndict import NDict
-
 
 class ModelMultiHead(torch.nn.Module):
     """
@@ -33,8 +32,8 @@ class ModelMultiHead(torch.nn.Module):
         self,
         backbone: torch.nn.Module,
         heads: Sequence[torch.nn.Module],
-        conv_inputs: Tuple[Tuple[str, int], str] = None,
-        backbone_args: Tuple[Tuple[str, int], str] = None,
+        conv_inputs: Union[Sequence[str], Sequence[Tuple[str, int]]] = None,
+        backbone_args: Union[Sequence[str], Sequence[Tuple[str, int]]] = None,
         key_out_features: str = "model.backbone_features",
     ) -> None:
         """
@@ -54,6 +53,10 @@ class ModelMultiHead(torch.nn.Module):
             raise Exception(
                 "Neither conv_inputs nor backbone_args are None. One must be set (conv_inputs soon to be deprecated)"
             )
+        if isinstance(self.conv_inputs[0], str):  # no number of input channels specified
+            self.conv_inputs[0] = (self.conv_inputs[0],)
+        if isinstance(self.backbone_args[0], str):  # no number of input channels specified
+            self.backbone_args[0] = (self.backbone_args[0],)
 
         self.conv_inputs = conv_inputs
         self.backbone_args = backbone_args
@@ -64,10 +67,6 @@ class ModelMultiHead(torch.nn.Module):
         self.add_module("heads", self.heads)
 
     def forward(self, batch_dict: NDict) -> Dict:
-        if isinstance(self.conv_inputs, str):  # no number of input channels specified
-            self.conv_inputs = (self.conv_inputs,)
-        if isinstance(self.backbone_args, str):  # no number of input channels specified
-            self.backbone_args = (self.backbone_args,)
         if self.conv_inputs is not None:
             conv_input = torch.cat([batch_dict[conv_input[0]] for conv_input in self.conv_inputs], 1)
             backbone_features = self.backbone.forward(conv_input)
