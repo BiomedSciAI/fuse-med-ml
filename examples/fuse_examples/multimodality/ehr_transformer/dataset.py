@@ -39,8 +39,9 @@ class OpAddBMI(OpBase):
         sample_dict['StaticDetails'] = d_static
         return sample_dict
 
+
 class OpConvertVisitToSentense(OpBase):
-    def __call__(self, sample_dict, visit_to_embed_static_variables,static_variables_to_embed) -> Any:
+    def __call__(self, sample_dict, visit_to_embed_static_variables, static_variables_to_embed) -> Any:
 
         df_static = sample_dict['StaticDetails']
         df_visits = sample_dict['Visits']
@@ -73,21 +74,23 @@ class OpConvertVisitToSentense(OpBase):
 
         return sample_dict
 
+
 class OpGenerateRandomTrajectoryOfVisits(OpBase):
     def __call__(self, sample_dict) -> Any:
 
         d_visits_sentences = sample_dict['VisitSentences']
         n_visits = len(d_visits_sentences)
-        # TODO add filtering patients with small number of visits
+        # TODO add filtering patients with small number of visits - add to configuration
         if n_visits < 10:
             return sample_dict
 
         # get random first and last visit for generating random trajectory
         # we use n_visits- 1 to keep the last visit for outcome in classifier
         # TODO: "3" should be configured
-        # TODO: add embeddings sentence here as we can cut out the first one
-        start_visit = randrange(int((n_visits-1) / 3))
-        stop_visit = n_visits - randrange(int((n_visits-1) / 3)) - 1
+        # TODO: for case with embedding od static info in first sentence only,
+        #  add embeddings sentence here as we can cut out the first one
+        start_visit = randrange(int((n_visits - 1) / 3))
+        stop_visit = n_visits - randrange(int((n_visits - 1) / 3)) - 1
         keys = list(d_visits_sentences.keys())
         trajectory_keys = keys[start_visit:stop_visit]
         next_visit = keys[stop_visit]
@@ -101,51 +104,39 @@ class OpGenerateRandomTrajectoryOfVisits(OpBase):
         sample_dict['Trajectory'] = trajectory_sentences
         sample_dict['NextVisit'] = d_visits_sentences[next_visit]
 
-
-
-
         return sample_dict
-
-# class OpCollectExamsStatistics(OpBase):
-#     def __call__(self, sample_dict, percentiles: dict) -> Any:
-#         percentiles[sample_dict['PatientId']] = sample_dict['Age']
-#
-#         return sample_dict
 
 
 class OpMapToCategorical(OpBase):
 
     def __call__(self, sample_dict, percentiles: dict) -> Any:
 
-        # mapping static clinical characteristics
+        # convert continuous measurements to categorical ones based on defined percentiles
+
+        # mapping static clinical characteristics (Age, Gender, ICU type, Height, etc)
         for k in sample_dict['StaticDetails'].keys():
             sample_dict['StaticDetails'][k] = k + '_' + \
                                               str(np.digitize(sample_dict['StaticDetails'][k], percentiles[k]))
-
+        # mapping labs exams and clinical characteristics captured during patients' stay in ICU
         if not sample_dict['Visits'].empty:
             sample_dict['Visits']['Value'] = sample_dict['Visits']. \
                 apply(
-                lambda row: row['Parameter'] + '_' + str(np.digitize(row['Value'], percentiles[row['Parameter']])), \
+                lambda row: row['Parameter'] + '_' + str(np.digitize(row['Value'], percentiles[row['Parameter']])),
                 axis=1)
 
         return sample_dict
 
-# class OpConvertVisitToSentense(OpBase):
-#
-#     def __call__(self, sample_dict) -> Any:
-#         print("test")
-#         return sample_dict
 
 class PhysioNetCinC:
 
     @staticmethod
     def _read_raw_data(raw_data_path: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        # read patients info & tests
+        # read patients info and lab exams
         df = pd.DataFrame(columns=["PatientId", "Time", "Parameter", "Value"])
         data_sub_sets = ["set-a", "set-b"]
         for s in data_sub_sets:
             csv_files = glob.glob(os.path.join(raw_data_path + '/' + s, "*.txt"))
-            for f in csv_files[1:10]: # reducing the list temporarily for debugging
+            for f in csv_files[1:10]:  # reducing the list temporarily for debugging
                 patient_id = os.path.splitext(os.path.basename(f))[0]
                 df_file = pd.read_csv(f)
                 df_file = df_file.drop(df_file[(df_file['Parameter'] == 'RecordID')].index).reset_index(drop=True)
@@ -185,6 +176,7 @@ class PhysioNetCinC:
 
     @staticmethod
     def _drop_short_time_patients(df: pd.DataFrame, min_hours: int) -> pd.DataFrame:
+        # remove patients that have the less than min_hours reported in ICU
         df_fixed = df.copy()
         count_dropped = 0
         for pat_id, df_pat_records in df.groupby('PatientId'):
@@ -196,6 +188,7 @@ class PhysioNetCinC:
         return df_fixed
 
     @staticmethod
+    # TODO meanwhile didn't use this DATETIME - need to see if needed for the example
     def _convert_time_to_datetime(df: pd.DataFrame) -> pd.DataFrame:
         # dummy date is added for converting time to date time format
         split = df['Time'].str.split(':', 1, True)
@@ -215,7 +208,7 @@ class PhysioNetCinC:
     def _generate_percentiles(dataset: DatasetDefault, num_percentiles: int,
                               categorical_max_num_of_values: int) -> dict:
 
-        # TODO use debug mode and remove worker parameter
+        # TODO use debug mode and remove worker parameter when debugging is needed
         df = ExportDataset.export_to_dataframe(dataset, keys=['StaticDetails', 'Visits'], workers=1)
 
         # Extracting static and dynamic parts of the dataset
@@ -253,50 +246,10 @@ class PhysioNetCinC:
 
         return d_percentile
 
-    #
-    # @staticmethod
-    # def _convert_to_patients_df(df: pd.DataFrame, df_outcomes: pd.DataFrame) -> Tuple[pd.DataFrame, dict]:
-    #     # dict of patients
-    #
-    #     statis_fields = ['Age', 'Height', 'Weight', 'Gender', 'ICUType', 'In-hospital_death']
-    #     df_patients = pd.DataFrame(columns=['PatientId', 'BMI']+statis_fields)
-    #     dict_patients_time_events = dict()
-    #     idx = 0
-    #     for pat_id, pat_records in df.groupby('PatientId'):
-    #         df_patients.loc[idx, 'PatientId'] = pat_id
-    #         df_static = pat_records[pat_records['Time'] == '00:00']
-    #         for f in statis_fields:
-    #             rec = df_static['Value'][(df_static['Parameter'] == f) & (df_static['Value'] >= 0)].reset_index(drop=True)
-    #             if not rec.empty:
-    #                 df_patients.loc[idx, f] = rec[0]
-    #
-    #         # keep time events in dictionary    #
-    #         pat_records = pat_records.drop(pat_records[pat_records['Time'] == '00:00'].index).reset_index(drop=True)
-    #         dict_patients_time_events[pat_id] = {time: tests.groupby('Parameter')['Value'].apply(list).to_dict()
-    #                                                      for time, tests in pat_records[['DateTime', 'Parameter', 'Value']].groupby('DateTime')}
-    #
-    #         # add outcome
-    #         outcome = df_outcomes[df_outcomes['PatientId'] == pat_id]['In-hospital_death'].reset_index(drop=True)
-    #         if not outcome.empty:
-    #             df_patients.loc[idx, 'In-hospital_death'] = outcome[0]
-    #
-    #         idx = idx + 1
-    #
-    #     return df_patients, dict_patients_time_events
-    #
-    #     dict_patients_df = {k: v.drop('PatientId', axis=1).reset_index(drop=True) for k, v in
-    #                     df.groupby('PatientId')}
-    #
-    # dict_patients_nested = {
-    #     k: {t: tt.groupby('Parameter')['Value'].apply(list).to_dict() for t, tt in f.groupby('Time')}
-    #     for k, f in df.groupby('PatientId')}
-    # df_patients.loc[idx, 'TimeEvents'] = {time: tests.groupby('Parameter')['Value'].apply(list).to_dict()
-    #                                                   for time, tests in pat_records[['DateTime','Parameter','Value']].groupby('DateTime')}
-    # df.groupby('PatientId').apply(lambda x: x.set_index('DateTime').groupby('DateTime').apply( lambda y: y.to_numpy().tolist()).to_dict())
-
     @staticmethod
-    def _load_and_process_df(raw_data_path: str, num_percentiles: int, min_hours_in_hospital: int) -> Tuple[pd.DataFrame, pd.DataFrame, dict, dict]:
-        # if pickle avaialable
+    def _load_and_process_df(raw_data_path: str, num_percentiles: int, min_hours_in_hospital: int) -> Tuple[
+        pd.DataFrame, pd.DataFrame, dict, dict]:
+        # if pickle available
         try:
             df_raw_data, df_outcomes, patient_ids = pickle.load(
                 open(os.path.join(raw_data_path + '/' + 'raw_data.pkl'), "rb"))
@@ -318,25 +271,14 @@ class PhysioNetCinC:
 
         return df_raw_data, df_outcomes, patient_ids  # , dict_percentiles, dict_patient_time_events
 
-    # @staticmethod
-    # def _process_static_pipeline(dict_percentiles):
-    #     return [
-    #         (OpAddBMI(), dict()),
-    #
-    #
-    #     ]
-
     @staticmethod
-    def _process_dynamic_pipeline(dict_percentiles,visit_to_embed_static_variables,
-                                                        static_variables_to_embed):
+    def _process_dynamic_pipeline(dict_percentiles, visit_to_embed_static_variables,
+                                  static_variables_to_embed):
         return [
-            # (OpAddBMI(), dict()),
             (OpMapToCategorical(), dict(percentiles=dict_percentiles)),
             (OpConvertVisitToSentense(), dict(visit_to_embed_static_variables=visit_to_embed_static_variables, \
-                                              static_variables_to_embed = static_variables_to_embed)),
-            (OpGenerateRandomTrajectoryOfVisits(),dict())
-
-            #(OpConvertVisitToSentense, dict())
+                                              static_variables_to_embed=static_variables_to_embed)),
+            (OpGenerateRandomTrajectoryOfVisits(), dict())
         ]
 
     @staticmethod
@@ -357,9 +299,10 @@ class PhysioNetCinC:
     ) -> DatasetDefault:
         assert raw_data_path is not None
 
-        df_records, df_outcomes, patient_ids = PhysioNetCinC._load_and_process_df(raw_data_path, num_percentiles, min_hours_in_hospital)
+        df_records, df_outcomes, patient_ids = PhysioNetCinC._load_and_process_df(raw_data_path, num_percentiles,
+                                                                                  min_hours_in_hospital)
 
-        # TODO: could we do data frame read w/o pipeline, verify with Moshico for rebuilding dynamic pipeline?
+        # first step of the pipline is to read data and add additional fatures (e.g. BMI)
         dynamic_pipeline_ops = [
             (OpReadDataframeCinC(df_records, outcomes=df_outcomes[['PatientId', 'In-hospital_death']],
                                  key_column='PatientId'), {}),
@@ -391,13 +334,16 @@ class PhysioNetCinC:
         # lab results to categorical for train, validation and test
         dict_percentiles = PhysioNetCinC._generate_percentiles(dataset_train, num_percentiles,
                                                                categorical_max_num_of_values)
+        # TODO build vocabulary here based on defined percentiles + special words
 
         # update pypline with Op using calculated percentiles
         dynamic_pipeline_ops = dynamic_pipeline_ops + [
-            *PhysioNetCinC._process_dynamic_pipeline(dict_percentiles,visit_to_embed_static_variables,
-                                                        static_variables_to_embed)
+            *PhysioNetCinC._process_dynamic_pipeline(dict_percentiles, visit_to_embed_static_variables,
+                                                     static_variables_to_embed)
         ]
         dynamic_pipeline = PipelineDefault("cinc_dynamic", dynamic_pipeline_ops)
+
+        # update dynamic pipeline after calculating general statistics and percentiles based on train dataset
         dataset_train._dynamic_pipeline = dynamic_pipeline
         for f in train_sample_ids:
             x = dataset_train[f]
@@ -409,7 +355,6 @@ class PhysioNetCinC:
         dataset_validation = DatasetDefault(validation_sample_ids, dynamic_pipeline)
         dataset_validation.create()
         for f in validation_sample_ids:
-            #print(f)
             x = dataset_validation[f]
 
         print("before dataset test")
@@ -419,7 +364,6 @@ class PhysioNetCinC:
         dataset_test = DatasetDefault(test_sample_ids, dynamic_pipeline)
         dataset_test.create()
         for f in test_sample_ids:
-            #print(f)
             x = dataset_test[f]
 
         return dataset_train, dataset_validation, dataset_test
