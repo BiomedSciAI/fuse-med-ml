@@ -247,6 +247,26 @@ class PhysioNetCinC:
         return d_percentile
 
     @staticmethod
+    def _build_corpus_of_words(dict_percentiles: dict) ->list:
+        corpus = []
+        padding_token = 'PAD'
+        unknown_token = 'UNK'
+        separator_token = 'SEP'
+        cls_token = 'CLS'
+        #mask_token = 'MASK' (not clear when it is neeeded)
+
+        corpus += [padding_token, cls_token, separator_token, unknown_token]
+
+        for k in dict_percentiles.keys():
+            num_bins = len(dict_percentiles[k])
+            # Create words for all possible bins in percentile
+            for b in range(0, num_bins + 1):
+                word = k + '_' + str(b)
+                corpus += [word]
+
+        return corpus
+
+    @staticmethod
     def _load_and_process_df(raw_data_path: str, num_percentiles: int, min_hours_in_hospital: int) -> Tuple[
         pd.DataFrame, pd.DataFrame, dict, dict]:
         # if pickle available
@@ -335,6 +355,7 @@ class PhysioNetCinC:
         dict_percentiles = PhysioNetCinC._generate_percentiles(dataset_train, num_percentiles,
                                                                categorical_max_num_of_values)
         # TODO build vocabulary here based on defined percentiles + special words
+        corpus = PhysioNetCinC._build_corpus_of_words(dict_percentiles)
 
         # update pypline with Op using calculated percentiles
         dynamic_pipeline_ops = dynamic_pipeline_ops + [
@@ -366,7 +387,9 @@ class PhysioNetCinC:
         for f in test_sample_ids:
             x = dataset_test[f]
 
-        return dataset_train, dataset_validation, dataset_test
+        return corpus, dataset_train, dataset_validation, dataset_test
+
+
 
 
 if __name__ == "__main__":
