@@ -10,7 +10,7 @@ def main(cfg: DictConfig):
 
     cfg = hydra.utils.instantiate(cfg)
 
-    ds_train, ds_valid, _ = PhysioNetCinC.dataset(**cfg.dataset)
+    corpus, ds_train, ds_valid, _ = PhysioNetCinC.dataset(**cfg.dataset)
 
 
 if __name__ == "__main__":
