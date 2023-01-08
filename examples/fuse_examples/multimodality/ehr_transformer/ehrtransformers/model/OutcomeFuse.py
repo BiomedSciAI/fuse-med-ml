@@ -44,6 +44,7 @@ from fuse.data.utils.collates import CollateDefault
 
 # Set logs/outputs dirs, and save source code relevant to this run
 
+
 def load_outcome_data(
     file_name,
     dset_name,
@@ -56,10 +57,9 @@ def load_outcome_data(
     max_sequence_len,
     batch_size,
     shuffle,
-    reverse_inputs = False,
-    num_workers = 3,
-    do_contrastive_sampling = False,
-
+    reverse_inputs=False,
+    num_workers=3,
+    do_contrastive_sampling=False,
 ):
     """
 
@@ -81,18 +81,12 @@ def load_outcome_data(
 
     data_dict = load_pkl(file_name)
     data_df = rename_columns_for_behrt(
-        data_dict["data_df"],
-        naming_conf=naming_conventions,
-        age_month_resolution=age_month_resolution,
+        data_dict["data_df"], naming_conf=naming_conventions, age_month_resolution=age_month_resolution,
     )
-    #add relevant external GT:
+    # add relevant external GT:
     data_df = head_config.add_external_gt_to_df(data_df, [dset_name])
 
-    stats_inst_tst = StatsAnalyzer(
-        data_dict["data_df"],
-        naming_conventions,
-        title=dset_name,
-    )
+    stats_inst_tst = StatsAnalyzer(data_dict["data_df"], naming_conventions, title=dset_name,)
     stats_inst_tst.print_stats()
     Dset = Outcome(
         head_config=head_config,
@@ -103,27 +97,38 @@ def load_outcome_data(
         reverse_inputs=reverse_inputs,
     )
 
-    out_mapping = ['data.age', 'data.code', 'data.position', 'data.segment', 'data.mask',  'data.patid', 'data.vis_date'] #base output mapping (without heads)
-    out_mapping += ['data.'+key for key in head_config.get_head_names(only_with_outputs=True)]
+    out_mapping = [
+        "data.age",
+        "data.code",
+        "data.position",
+        "data.segment",
+        "data.mask",
+        "data.patid",
+        "data.vis_date",
+    ]  # base output mapping (without heads)
+    out_mapping += ["data." + key for key in head_config.get_head_names(only_with_outputs=True)]
 
     fuse_wrapped_dset = DatasetWrapSeqToDict(name=dset_name, dataset=Dset, sample_keys=out_mapping)
     fuse_wrapped_dset.create()
-    
-    if dset_name == 'train':
-        sampler = BatchSamplerDefault(dataset=fuse_wrapped_dset, balanced_class_name='data.disease_prediction', num_balanced_classes=2, 
-                                        batch_size=batch_size, mode="approx", balanced_class_weights=model_config['sampler_weights'], workers=0)
-        fuse_dataloader = DataLoader(dataset=fuse_wrapped_dset,
-                                        batch_sampler=sampler,
-                                        num_workers=num_workers,
-                                        collate_fn=CollateDefault()
-                                        )
+
+    if dset_name == "train":
+        sampler = BatchSamplerDefault(
+            dataset=fuse_wrapped_dset,
+            balanced_class_name="data.disease_prediction",
+            num_balanced_classes=2,
+            batch_size=batch_size,
+            mode="approx",
+            balanced_class_weights=model_config["sampler_weights"],
+            workers=0,
+        )
+        fuse_dataloader = DataLoader(
+            dataset=fuse_wrapped_dset, batch_sampler=sampler, num_workers=num_workers, collate_fn=CollateDefault()
+        )
     else:
-        fuse_dataloader = DataLoader(dataset=fuse_wrapped_dset,
-                                        batch_size=batch_size,
-                                        num_workers=num_workers,
-                                        collate_fn=CollateDefault()
-                                        )
-    return data_df, fuse_dataloader #data_df, dataloader
+        fuse_dataloader = DataLoader(
+            dataset=fuse_wrapped_dset, batch_size=batch_size, num_workers=num_workers, collate_fn=CollateDefault()
+        )
+    return data_df, fuse_dataloader  # data_df, dataloader
 
 
 def cleanup_vocab(token2idx):
@@ -137,24 +142,20 @@ def cleanup_vocab(token2idx):
     keys_to_delete = [naming.padding_token, naming.separator_token, naming.cls_token, naming.mask_token]
     for k in keys_to_delete:
         del token2idx[k]
-    return {x : i for i, x in enumerate(list(token2idx.keys()))}
+    return {x: i for i, x in enumerate(list(token2idx.keys()))}
 
 
 def date2int(date_YMD):
     return int(date_YMD.strftime("%Y%m%d"))
 
+
 def int2date(date_YMD_int):
     return datetime.strptime(str(date_YMD_int), "%Y%m%d")
 
+
 class Outcome(Dataset):
     def __init__(
-        self,
-        head_config,
-        token2idx,
-        age2idx,
-        dataframe,
-        max_len,
-        reverse_inputs=False,
+        self, head_config, token2idx, age2idx, dataframe, max_len, reverse_inputs=False,
     ):
         """
         :param head_config: Head configuration class, as defined in ehrtransformers/configs/head_config.py
@@ -189,9 +190,9 @@ class Outcome(Dataset):
             code = code[1:] + [sep_code]
 
         # get the first self.max_len inputs (code+age), set the first input to be 'CLS'
-        age = age[(-self.max_len + 1):]
-        code = code[(-self.max_len + 1):]
-        if (code[0] != naming.separator_token) and (len(code)<self.max_len):
+        age = age[(-self.max_len + 1) :]
+        code = code[(-self.max_len + 1) :]
+        if (code[0] != naming.separator_token) and (len(code) < self.max_len):
             code = np.append(np.array([naming.cls_token]), code)
             age = np.append(np.array(age[0]), age)
         else:
@@ -199,7 +200,7 @@ class Outcome(Dataset):
 
         # mask
         mask = np.ones(self.max_len)
-        mask[len(code):] = 0
+        mask[len(code) :] = 0
 
         tokens, code = seq_translate(code, self.vocab)
 
@@ -226,21 +227,23 @@ class Outcome(Dataset):
 
         code, age, position, segment, mask = self.get_inputs_and_aux_encodings(index)
         # Ground Truth:
-        output_values = {head_name:self.head_inputs[head_name][index] for head_name in self.head_inputs}
+        output_values = {head_name: self.head_inputs[head_name][index] for head_name in self.head_inputs}
         try:
-            translated_output_values = tuple(self.head_config.translate_input_value(head_name, output_values[head_name]) for head_name in output_values)
+            translated_output_values = tuple(
+                self.head_config.translate_input_value(head_name, output_values[head_name])
+                for head_name in output_values
+            )
         except Exception as e:
             raise e
 
         return_tuple = (
-            torch.LongTensor(age), #len max_len_seq
-            torch.LongTensor(code), #len max_len_seq
-            torch.LongTensor(position), #len max_len_seq
-            torch.LongTensor(segment), #len max_len_seq
-            torch.LongTensor(mask), #len max_len_seq
-            torch.LongTensor([int(patid)]), #len 1
-            torch.LongTensor([date2int(vis_date)]), #len 1
-
+            torch.LongTensor(age),  # len max_len_seq
+            torch.LongTensor(code),  # len max_len_seq
+            torch.LongTensor(position),  # len max_len_seq
+            torch.LongTensor(segment),  # len max_len_seq
+            torch.LongTensor(mask),  # len max_len_seq
+            torch.LongTensor([int(patid)]),  # len 1
+            torch.LongTensor([date2int(vis_date)]),  # len 1
         )
 
         return return_tuple + translated_output_values
@@ -287,7 +290,7 @@ def rename_columns_for_behrt(df, naming_conf, age_month_resolution):
     gender_key_in = naming_conf["gender_key"]
     gender_key_out = "gender"
 
-    next_visit_key_in = naming_conf['next_visit_key']
+    next_visit_key_in = naming_conf["next_visit_key"]
     next_visit_key_out = "next_visit"
 
     date_key_in = naming_conf["date_key"]
@@ -298,9 +301,7 @@ def rename_columns_for_behrt(df, naming_conf, age_month_resolution):
         age_key_in = "AGE"
     else:
         raise Exception(
-            "Unexpected age month resolution (should be 1/12 for months/years) {}".format(
-                age_month_resolution
-            )
+            "Unexpected age month resolution (should be 1/12 for months/years) {}".format(age_month_resolution)
         )
     age_key_out = "age"
     data_column_renames = {

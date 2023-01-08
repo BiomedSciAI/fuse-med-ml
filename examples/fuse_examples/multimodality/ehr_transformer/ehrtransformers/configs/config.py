@@ -32,9 +32,7 @@ def get_config(fname: Optional[str] = None,):
             yaml_config = safe_load(file)
         config = EHRTransformerConfigSettings(**yaml_config)
 
-    global_dict = make_global_dict(
-        config.data.dict(), config.global_settings.dict(), config.learning.dict()
-    )
+    global_dict = make_global_dict(config.data.dict(), config.global_settings.dict(), config.learning.dict())
     base_path = global_dict["base_path"]
     return (
         global_dict,
@@ -83,9 +81,7 @@ def get_config_raw(fname: str) -> List[Dict[str, Any]]:
 def make_global_dict(data_dict, global_dict, learning_dict):
     global_update_dict = _get_global_update_dict(**data_dict, **global_dict)
 
-    global_update_dict.update(
-        {k: v for k, v in learning_dict.items() if not k == "optimization"}
-    )
+    global_update_dict.update({k: v for k, v in learning_dict.items() if not k == "optimization"})
     return {**global_dict, **global_update_dict}
 
 
@@ -151,9 +147,7 @@ def _get_global_update_dict(
         task_subdir += "_with_procedures"
 
     base_path = join(uber_base_path, task_subdir, out_type)
-    output_dir_main = join(
-        base_path, "models", task, "_".join([task_type, output_name])
-    )
+    output_dir_main = join(base_path, "models", task, "_".join([task_type, output_name]))
     best_name = "_".join([task_type, output_name, "best"])
     last_name = "_".join([task_type, output_name, "last"])
     global_update_dict = {
@@ -187,5 +181,6 @@ def make_file_config_dict(base_path: str, task: str) -> Dict[str, str]:
         "val": join(base_path, "val", task),
     }
 
-def get_vocab_path(root_vocab_path: str,event_type_identifier: str = ''):
-    return root_vocab_path+event_type_identifier
+
+def get_vocab_path(root_vocab_path: str, event_type_identifier: str = ""):
+    return root_vocab_path + event_type_identifier

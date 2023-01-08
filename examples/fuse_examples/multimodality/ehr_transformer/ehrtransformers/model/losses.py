@@ -37,6 +37,7 @@ import torch.nn as nn
 class SupConLoss(nn.Module):
     """Supervised Contrastive Learning: https://arxiv.org/pdf/2004.11362.pdf.
     It also supports the unsupervised contrastive loss in SimCLR"""
+
     """
     Author: Yonglong Tian (yonglong@mit.edu)
     Date: May 07, 2020
@@ -45,8 +46,8 @@ class SupConLoss(nn.Module):
     
     The loss function SupConLoss in losses.py takes features (L2 normalized) and labels as input, and return the loss. If labels is None or not passed to the loss, it degenerates to SimCLR.
     """
-    def __init__(self, n_features=2, temperature=0.07, contrast_mode='all',
-                 base_temperature=0.07):
+
+    def __init__(self, n_features=2, temperature=0.07, contrast_mode="all", base_temperature=0.07):
         """
 
         :param n_features: number of features that are to be similar per entity
@@ -73,65 +74,57 @@ class SupConLoss(nn.Module):
             A loss scalar.
         """
         labels = None
-        device = (torch.device('cuda')
-                  if features.is_cuda
-                  else torch.device('cpu'))
-
+        device = torch.device("cuda") if features.is_cuda else torch.device("cpu")
 
         if len(features.shape) > 3:
             features = features.view(features.shape[0], features.shape[1], -1)
 
         if len(features.shape) == 2:
-            rem = features.shape[0]%self.n_features
+            rem = features.shape[0] % self.n_features
             if rem == 0:
-                features = features.reshape(features.shape[0]//self.n_features, -1, features.shape[1])
+                features = features.reshape(features.shape[0] // self.n_features, -1, features.shape[1])
             else:
-                #This means the minibatch is not divisible by n_features (i.e. it does not contain whole groups
+                # This means the minibatch is not divisible by n_features (i.e. it does not contain whole groups
                 # of similar entities). It cannot happen during training, when a minibatch is generated so that every
                 # entity is duplicated n_features times, but it can happen during validation/test, when the original
                 # order of a set is preserved
                 if features.shape[0] > rem:
-                    features = features[:-rem,:]
+                    features = features[:-rem, :]
                     features = features.reshape(features.shape[0] // self.n_features, -1, features.shape[1])
                 else:
                     return 0.0
                 # raise ValueError('`batch size must be divisible by number of instances of the same entity (n_features) used for contrastive loss')
         if len(features.shape) < 2:
-            raise ValueError('`features` needs to be [bsz, n_views, ...],'
-                             'at least 3 dimensions are required')
+            raise ValueError("`features` needs to be [bsz, n_views, ...]," "at least 3 dimensions are required")
 
         features = F.normalize(features, dim=2, p=2)
 
-
-
         batch_size = features.shape[0]
         if labels is not None and mask is not None:
-            raise ValueError('Cannot define both `labels` and `mask`')
+            raise ValueError("Cannot define both `labels` and `mask`")
         elif labels is None and mask is None:
             mask = torch.eye(batch_size, dtype=torch.float32).to(device)
         elif labels is not None:
             labels = labels.contiguous().view(-1, 1)
             if labels.shape[0] != batch_size:
-                raise ValueError('Num of labels does not match num of features')
+                raise ValueError("Num of labels does not match num of features")
             mask = torch.eq(labels, labels.T).float().to(device)
         else:
             mask = mask.float().to(device)
 
         contrast_count = features.shape[1]
         contrast_feature = torch.cat(torch.unbind(features, dim=1), dim=0)
-        if self.contrast_mode == 'one':
+        if self.contrast_mode == "one":
             anchor_feature = features[:, 0]
             anchor_count = 1
-        elif self.contrast_mode == 'all':
+        elif self.contrast_mode == "all":
             anchor_feature = contrast_feature
             anchor_count = contrast_count
         else:
-            raise ValueError('Unknown mode: {}'.format(self.contrast_mode))
+            raise ValueError("Unknown mode: {}".format(self.contrast_mode))
 
         # compute logits
-        anchor_dot_contrast = torch.div(
-            torch.matmul(anchor_feature, contrast_feature.T),
-            self.temperature)
+        anchor_dot_contrast = torch.div(torch.matmul(anchor_feature, contrast_feature.T), self.temperature)
         # for numerical stability
         logits_max, _ = torch.max(anchor_dot_contrast, dim=1, keepdim=True)
         logits = anchor_dot_contrast - logits_max.detach()
@@ -140,10 +133,7 @@ class SupConLoss(nn.Module):
         mask = mask.repeat(anchor_count, contrast_count)
         # mask-out self-contrast cases
         logits_mask = torch.scatter(
-            torch.ones_like(mask),
-            1,
-            torch.arange(batch_size * anchor_count).view(-1, 1).to(device),
-            0
+            torch.ones_like(mask), 1, torch.arange(batch_size * anchor_count).view(-1, 1).to(device), 0
         )
         mask = mask * logits_mask
 
@@ -155,7 +145,7 @@ class SupConLoss(nn.Module):
         mean_log_prob_pos = (mask * log_prob).sum(1) / mask.sum(1)
 
         # loss
-        loss = - (self.temperature / self.base_temperature) * mean_log_prob_pos
+        loss = -(self.temperature / self.base_temperature) * mean_log_prob_pos
         loss = loss.view(anchor_count, batch_size).mean()
 
         return loss
@@ -203,10 +193,10 @@ class ContrastivePositiveLoss(_Loss):
         - Target: :math:`(N)` or :math:`()`.
         - Output: If :attr:`reduction` is ``'none'``, then :math:`(N)`, otherwise scalar.
     """
-    __constants__ = ['margin', 'reduction']
+    __constants__ = ["margin", "reduction"]
     margin: float
 
-    def __init__(self, margin: float = 0., size_average=None, reduce=None, reduction: str = 'mean') -> None:
+    def __init__(self, margin: float = 0.0, size_average=None, reduce=None, reduction: str = "mean") -> None:
         super(ContrastivePositiveLoss, self).__init__(size_average, reduce, reduction)
         self.margin = margin
 

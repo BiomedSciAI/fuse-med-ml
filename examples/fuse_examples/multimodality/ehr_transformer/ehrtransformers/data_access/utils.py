@@ -23,6 +23,7 @@ import json
 import pandas as pd
 import ehrtransformers.configs.naming as naming
 
+
 def seq_translate(tokens, translate_dict, mask_token=None):
     """
         returns a list of tokens translated using translate_dict
@@ -31,7 +32,16 @@ def seq_translate(tokens, translate_dict, mask_token=None):
         :param mask_token: special token that is always translated to 'UNK'
         :return:
         """
-    return tokens, [translate_dict.get(token, translate_dict[naming.unknown_token]) if token != mask_token else translate_dict[naming.unknown_token] for token in tokens]
+    return (
+        tokens,
+        [
+            translate_dict.get(token, translate_dict[naming.unknown_token])
+            if token != mask_token
+            else translate_dict[naming.unknown_token]
+            for token in tokens
+        ],
+    )
+
 
 def load_icd_to_ccs() -> dict:
     """Load the icd to ccs mapping supplied by the package.
@@ -94,7 +104,7 @@ def detector_idx(tokens, symbol=naming.separator_token):
     for token in tokens:
         detector.append(flag)
         if token == symbol:
-            flag = 1-flag
+            flag = 1 - flag
     return detector
 
 
@@ -114,6 +124,7 @@ def position_idx(tokens, symbol=naming.separator_token):
             flag += 1
     return group_inds
 
+
 def seq_pad(tokens, max_len, symbol=naming.padding_token):
     """
     Returns a list of tokens padded by symbol to length max_len.
@@ -125,20 +136,29 @@ def seq_pad(tokens, max_len, symbol=naming.padding_token):
     """
     token_len = len(tokens)
     if token_len < max_len:
-        return list(tokens) + [symbol] * (max_len-token_len)
+        return list(tokens) + [symbol] * (max_len - token_len)
 
     else:
         return tokens[:max_len]
 
-class DataAdder():
+
+class DataAdder:
     source_keys = None
     target_key = None
     mult_comb_mode = None
     source_on_keys = None
     target_on_keys = None
 
-    def __init__(self, source_data_dict, source_keys, target_key, source_on_keys, target_on_keys,
-                 mult_source_comb_mode=None, val_fillna=None):
+    def __init__(
+        self,
+        source_data_dict,
+        source_keys,
+        target_key,
+        source_on_keys,
+        target_on_keys,
+        mult_source_comb_mode=None,
+        val_fillna=None,
+    ):
         """
 
         :param source_data_dict: dictionary of set:path:
@@ -157,12 +177,12 @@ class DataAdder():
         if isinstance(source_keys, list):
             self.source_keys = source_keys
         elif isinstance(source_keys, str):
-            if source_keys == 'all':
-                self.source_keys = 'all'
+            if source_keys == "all":
+                self.source_keys = "all"
             else:
                 self.source_keys = [source_keys]
         else:
-            raise Exception('unexpected source_keys')
+            raise Exception("unexpected source_keys")
         self.target_key = target_key
         self.mult_comb_mode = mult_source_comb_mode
         self.source_on_keys = source_on_keys
@@ -173,20 +193,20 @@ class DataAdder():
     def get_num_classes(self):
         if isinstance(self.source_keys, list):
             return len(self.source_keys)
-        elif self.source_keys == 'all':
+        elif self.source_keys == "all":
             all_keys = set([])
             set_paths = []
             for set_name in self.source_data_dict:
                 set_name = set_name.lower()
-                if 'val' in set_name:
-                    if self.source_data_dict['val'] is not None:
-                        set_paths.append(self.source_data_dict['val'])
-                elif 'tr' in set_name:
-                    if self.source_data_dict['train'] is not None:
-                        set_paths.append(self.source_data_dict['train'])
-                elif 'st' in set_name:
-                    if self.source_data_dict['test'] is not None:
-                        set_paths.append(self.source_data_dict['test'])
+                if "val" in set_name:
+                    if self.source_data_dict["val"] is not None:
+                        set_paths.append(self.source_data_dict["val"])
+                elif "tr" in set_name:
+                    if self.source_data_dict["train"] is not None:
+                        set_paths.append(self.source_data_dict["train"])
+                elif "st" in set_name:
+                    if self.source_data_dict["test"] is not None:
+                        set_paths.append(self.source_data_dict["test"])
 
             set_paths = list(set(set_paths))  # remove duplicate paths
 
@@ -194,18 +214,17 @@ class DataAdder():
             source_df_list = []
             for set_fname in set_paths:
                 if isinstance(set_fname, str):
-                    if set_fname.endswith('.csv'):
+                    if set_fname.endswith(".csv"):
                         temp_df = pd.read_csv(set_fname)
                     else:
-                        raise Exception('not implemented for non-csv tables')
+                        raise Exception("not implemented for non-csv tables")
                 else:
-                    raise Exception('not implemented for non-pathnames')
+                    raise Exception("not implemented for non-pathnames")
                 all_keys = all_keys.union(set(temp_df.columns))
             for k in self.source_on_keys:
                 if k in all_keys:
                     all_keys.remove(k)
             return len(all_keys)
-
 
     def combine(self, main_df, set_names):
         """
@@ -218,20 +237,20 @@ class DataAdder():
         if isinstance(set_names, str):
             set_names = [set_names]
         if set_names is None:
-            set_names = ['train', 'val', 'test']
+            set_names = ["train", "val", "test"]
         set_paths = []
         all_keys = set([])
         for i, set_name in enumerate(set_names):
             set_name = set_name.lower()
-            if 'val' in set_name:
-                if self.source_data_dict['val'] is not None:
-                    set_paths.append(self.source_data_dict['val'])
-            elif 'tr' in set_name:
-                if self.source_data_dict['train'] is not None:
-                    set_paths.append(self.source_data_dict['train'])
-            elif 'st' in set_name:
-                if self.source_data_dict['test'] is not None:
-                    set_paths.append(self.source_data_dict['test'])
+            if "val" in set_name:
+                if self.source_data_dict["val"] is not None:
+                    set_paths.append(self.source_data_dict["val"])
+            elif "tr" in set_name:
+                if self.source_data_dict["train"] is not None:
+                    set_paths.append(self.source_data_dict["train"])
+            elif "st" in set_name:
+                if self.source_data_dict["test"] is not None:
+                    set_paths.append(self.source_data_dict["test"])
 
         set_paths = list(set(set_paths))  # remove duplicate paths
 
@@ -239,12 +258,12 @@ class DataAdder():
         source_df_list = []
         for set_fname in set_paths:
             if isinstance(set_fname, str):
-                if set_fname.endswith('.csv'):
+                if set_fname.endswith(".csv"):
                     temp_df = pd.read_csv(set_fname)
                 else:
-                    raise Exception('not implemented for non-csv tables')
+                    raise Exception("not implemented for non-csv tables")
             else:
-                raise Exception('not implemented for non-pathnames')
+                raise Exception("not implemented for non-pathnames")
             source_df_list.append(temp_df)
             all_keys = all_keys.union(set(temp_df.columns))
 
@@ -254,13 +273,13 @@ class DataAdder():
         comb_df_source = pd.concat(source_df_list, axis=0).drop_duplicates().reset_index(drop=True)
         # combine source columns into a single column:
         if isinstance(self.source_keys, str):
-            if self.source_keys.lower() == 'all':
+            if self.source_keys.lower() == "all":
                 for k in self.source_on_keys:
                     if k in all_keys:
                         all_keys.remove(k)
                 self.source_keys = list(all_keys)
             else:
-                raise Exception('Unexpected source keys')
+                raise Exception("Unexpected source keys")
 
         if len(self.source_keys) > 1:
             # If there are multiple keys - the new target_key column will contain a list of their values
@@ -269,18 +288,19 @@ class DataAdder():
             comb_df_source[self.target_key] = comb_df_source[self.source_keys[0]]
 
         # leave only source_on_keys and target_key:
-        comb_df_source = comb_df_source.loc[:,
-                         comb_df_source.columns.intersection(self.source_on_keys + [self.target_key])]
+        comb_df_source = comb_df_source.loc[
+            :, comb_df_source.columns.intersection(self.source_on_keys + [self.target_key])
+        ]
 
         # merge source and target df's:
-        out_df = main_df.merge(right=comb_df_source,
-                             how='left', #'inner',
-                             left_on=self.target_on_keys,
-                             right_on=self.source_on_keys,
-                             )
+        out_df = main_df.merge(
+            right=comb_df_source, how="left", left_on=self.target_on_keys, right_on=self.source_on_keys,  #'inner',
+        )
         if self.val_fillna != None:
             if len(self.source_keys) > 1:
-                out_df[self.target_key] = out_df[self.target_key].apply(lambda x: x if isinstance(x, list) else [self.val_fillna]*len(self.source_keys))
+                out_df[self.target_key] = out_df[self.target_key].apply(
+                    lambda x: x if isinstance(x, list) else [self.val_fillna] * len(self.source_keys)
+                )
             else:
                 out_df = out_df.fillna({self.target_key: self.val_fillna})
         return out_df
