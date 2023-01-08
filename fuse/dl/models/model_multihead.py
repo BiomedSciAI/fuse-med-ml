@@ -33,7 +33,7 @@ class ModelMultiHead(torch.nn.Module):
         self,
         backbone: torch.nn.Module,
         heads: Sequence[torch.nn.Module],
-        conv_inputs: Tuple[Tuple[str, int], ...] = None,
+        conv_inputs: Tuple[Tuple[str, int], str] = None,
         backbone_args: Tuple[Tuple[str, int], ...] = None,
         key_out_features: str = "model.backbone_features",
     ) -> None:
@@ -64,6 +64,8 @@ class ModelMultiHead(torch.nn.Module):
         self.add_module("heads", self.heads)
 
     def forward(self, batch_dict: NDict) -> Dict:
+        if isinstance(self.conv_input, str): # no number of input channels specified
+            self.conv_input = (conv_input,)
         if self.conv_inputs is not None:
             conv_input = torch.cat([batch_dict[conv_input[0]] for conv_input in self.conv_inputs], 1)
             backbone_features = self.backbone.forward(conv_input)
