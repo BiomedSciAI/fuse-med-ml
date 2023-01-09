@@ -1,6 +1,7 @@
 dataset:
-  raw_data_path: 'C:/D_Drive/Projects/EHR_Transformer/PhysioNet/predicting-mortality-of-icu-patients-the-physionetcomputing-in-cardiology-challenge-2012-1.0.0/predicting-mortality-of-icu-patients-the-physionet-computing-in-cardiology-challenge-2012-1.0.0'
+  #raw_data_path: 'C:/D_Drive/Projects/EHR_Transformer/PhysioNet/predicting-mortality-of-icu-patients-the-physionetcomputing-in-cardiology-challenge-2012-1.0.0/predicting-mortality-of-icu-patients-the-physionet-computing-in-cardiology-challenge-2012-1.0.0'
   #raw_data_pickle: 'raw_data.pkl'
+  raw_data_path: ${oc.env:CINC_DATA_PATH}
   split_filename: None
   num_folds: 5
   train_folds: [ 0, 1, 2 ]
@@ -11,20 +12,21 @@ dataset:
   num_percentiles : 4 #number of bins (percentiles) for converting floating lab/vital measurements to categorical values
   categorical_max_num_of_values : 5 #max number of uniq values for categorical variable for not to be digitized
   min_hours_in_hospital: 46
+  min_number_of_visits: 10
   visit_to_embed_static_variables: FIRST #embed to first (FIRST) or to all visits (ALL) or null (not to embed)
   static_variables_to_embed: ['Age','ICUType','Height','Weight','BMI',]
 
 data:
   #### Test/Val set defs
-  days_to_inddate: 60  #90 #None #180 #only visits before days_to_ind to index date (or after index date, if negative) are considered for test/val
-  days_to_inddate_start: null #only the visits between ind_date-days_to_inddate_start and ind_date-days_to_inddate are considered for test/val
-  event_prediction_window_days: null  #90
-  treatment_event_prediction_window_days: null  #60
-  #### Train set defs
-  # in case of train we take all visits (we want to train on as much data as we can), so days_to_inddate_tr and days_to_inddate_start_tr should be both null
-  days_to_inddate_tr: 60  #90 #None #180 #only visits before days_to_ind to index date (or after index date, if negative) are considered for train
-  days_to_inddate_start_tr: null #only the visits between days_to_inddate_start and days_to_inddate are considered for train
-  event_prediction_window_days_tr: null  #90
+#  days_to_inddate: 60  #90 #None #180 #only visits before days_to_ind to index date (or after index date, if negative) are considered for test/val
+#  days_to_inddate_start: null #only the visits between ind_date-days_to_inddate_start and ind_date-days_to_inddate are considered for test/val
+#  event_prediction_window_days: null  #90
+#  treatment_event_prediction_window_days: null  #60
+#  #### Train set defs
+#  # in case of train we take all visits (we want to train on as much data as we can), so days_to_inddate_tr and days_to_inddate_start_tr should be both null
+#  days_to_inddate_tr: 60  #90 #None #180 #only visits before days_to_ind to index date (or after index date, if negative) are considered for train
+#  days_to_inddate_start_tr: null #only the visits between days_to_inddate_start and days_to_inddate are considered for train
+#  event_prediction_window_days_tr: null  #90
 
   visit_days_resolution: 10 #consecutive visits that are less than visit_days_resolution days apart are merged into one visit.
     #Note that merging stops only when number of days between consecutive visits is more than visit_days_resolution, so
@@ -85,14 +87,6 @@ model:
   max_position_embedding: 100 # maximum number of tokens
   num_attention_heads: 24 # number of attention heads
   num_hidden_layers: 6 # number of multi-head attention layers required
-#  pretrain_model: /data/usr/vadim/EHR/PD_ALL_SERV_270_after_ind_90_to_event_tr_90_to_event_merge_5_days/EVENT/models/PD/outcome_admdate_visit/run_139/Logs/model_dir/checkpoint_last_epoch.pth # pretrained model path, None if not to continue from pretrained
-#  pretrain_model: /data/usr/vadim/EHR/PD_ALL_SERV_270_after_ind_90_to_event_tr_90_to_event_merge_5_days/EVENT/models/PD/outcome_admdate_visit/run_136/Logs/model_dir/checkpoint_last_epoch.pth # pretrained model path, None if not to continue from pretrained
-#  pretrain_model: /data/usr/vadim/EHR/PD_ALL_SERV_270_after_ind_90_to_event_tr_90_to_event_merge_10_days/EVENT/models/PD/outcome_admdate_visit/run_104/Logs/model_dir/checkpoint_last_epoch.pth # pretrained model path, None if not to continue from pretrained
-#  pretrain_model: /data/usr/vadim/EHR/PD_ALL_SERV_270_after_ind_90_to_event_tr_90_to_event_merge_10_days_with_procedures/EVENT/models/PD/outcome_admdate_visit/run_113/Logs/model_dir/checkpoint_last_epoch.pth # pretrained model path, None if not to continue from pretrained
-#  pretrain_model: /data/usr/vadim/EHR/PD_ALL_SERV_270_after_ind_90_to_event_tr_90_to_event_merge_5_days_with_procedures/EVENT/models/PD/outcome_admdate_visit/run_105/Logs/model_dir/checkpoint_last_epoch.pth
-#  pretrain_model: /data/usr/vadim/EHR/RC_ALL_SERV_90_to_ind_tr_90_to_ind_90_to_event_tr_90_to_event_merge_10_days/EVENT/models/RC/outcome_admdate_visit/run_129/Logs/model_dir/checkpoint_last_epoch.pth
-#  pretrain_model: /home/simona/Dev/EHR_experiments/ckd5/CKD_ALL_SERV_60_to_ind_tr_60_to_ind_merge_10_days/EVENT/models/CKD/outcome_admdate_visit/run_101/Logs/model_dir/checkpoint_last_epoch.pth
-#  pretrain_model: /home/simona/Dev/EHR_experiments/ckd5/CKD_ALL_SERV_60_to_ind_tr_60_to_ind_merge_10_days/EVENT/models/CKD/outcome_admdate_visit/run_177/Logs/model_dir/last.ckpt
   pretrain_model: null
   seg_vocab_size: null # number of vocab for seg embedding
   train_epochs: 2
