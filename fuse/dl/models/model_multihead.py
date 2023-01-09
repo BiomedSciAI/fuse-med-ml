@@ -56,10 +56,11 @@ class ModelMultiHead(torch.nn.Module):
             )
         # we don't use the number of input channels.
         # it's just kept for backward compatibility
-        if isinstance(conv_inputs[0], Tuple):
-            self.conv_inputs = [conv_input[0] for conv_input in self.conv_inputs]
-        if isinstance(backbone_args[0], Tuple):  # no number of input channels specified
-            self.backbone_args = [backbone_arg[0] for backbone_arg in self.backbone_args]
+        if conv_inputs is not None:
+            self.conv_inputs = [inp[0] if isinstance(inp, Tuple) else inp for inp in conv_inputs]
+        if backbone_args is not None:
+            self.backbone_args = [inp[0] if isinstance(inp, Tuple) else inp for inp in backbone_args]
+
 
         self.conv_inputs = conv_inputs
         self.backbone_args = backbone_args
