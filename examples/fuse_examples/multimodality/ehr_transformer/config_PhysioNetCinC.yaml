@@ -13,7 +13,7 @@ dataset:
   categorical_max_num_of_values : 5 #max number of uniq values for categorical variable for not to be digitized
   min_hours_in_hospital: 46
   min_number_of_visits: 10
-  visit_to_embed_static_variables: FIRST #embed to first (FIRST) or to all visits (ALL) or null (not to embed)
+  max_len_seq: 350 # maximal number of tokens in the trajectory
   static_variables_to_embed: ['Age','ICUType','Height','Weight','BMI',]
 
 data:
@@ -71,7 +71,8 @@ global:
   debug_mode: true #if false, outputs to a log file instead of the main output
   global_stat_file: global_stats.csv
   max_age: 110
-  max_len_seq: 100 #How many visits in a BEHRT input vector
+
+  #max_len_seq: 350 #max number of tokens - moved to dataset group
   max_label_len: 10 #How many classes in the multiclass task TODO: remove, this is no longer used
   min_visit: 5 #Visit trajectories with fewer visits are ignored
   month: 1 # choice whether to use months for age (=1) or years (=12)

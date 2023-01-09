@@ -4,7 +4,7 @@ from random import randrange
 from typing import Sequence, Any
 
 import glob
-
+import os
 import numpy as np
 import pandas as pd
 from typing import Tuple
@@ -14,6 +14,8 @@ from fuse.data.ops.ops_read import OpReadDataframe
 
 from fuse.data.utils.split import dataset_balanced_division_to_folds
 from fuse.data.utils.export import ExportDataset
+from utils import seq_translate, position_idx, special_tokens, seq_pad
+from ehrtransformers.model.utils import WordVocab
 
 VALID_TESTS_ABOVE_ZERO = [
     "pH",
@@ -66,31 +68,30 @@ class OpAddBMI(OpBase):
 
 
 class OpConvertVisitToSentense(OpBase):
-    def __call__(self, sample_dict, visit_to_embed_static_variables, static_variables_to_embed) -> Any:
+    def __init__(self, static_variables_to_embed: list):
+
+        super().__init__()
+        self._static_variables_to_embed = static_variables_to_embed
+
+    def __call__(self, sample_dict) -> Any:
 
         df_static = sample_dict["StaticDetails"]
         df_visits = sample_dict["Visits"]
+
         # convert statis details for embedding to list
         static_embeddings = []
-        if visit_to_embed_static_variables is not None:
+        if len(self._static_variables_to_embed) > 0:
             for k in df_static.keys():
-                if k in static_variables_to_embed:
+                if k in self._static_variables_to_embed:
                     static_embeddings += [df_static[k]]
 
         d_visit_sentences = OrderedDict()
-        first_visit_embedded = False
 
         for visit_time, df_visit in df_visits.groupby("DateTime", sort=True):
 
             d_visit_sentences[visit_time] = []
-
-            if visit_to_embed_static_variables == "FIRST":
-                if not first_visit_embedded:
-                    d_visit_sentences[visit_time].extend(static_embeddings)
-                    first_visit_embedded = True
-            else:
-                if visit_to_embed_static_variables == "ALL":
-                    d_visit_sentences[visit_time].extend(static_embeddings)
+            if len(static_embeddings) > 0:
+                d_visit_sentences[visit_time] = static_embeddings.copy()
 
             d_visit_sentences[visit_time].extend(df_visit["Value"].to_list())
             d_visit_sentences[visit_time].extend(["SEP"])
@@ -101,6 +102,12 @@ class OpConvertVisitToSentense(OpBase):
 
 
 class OpGenerateRandomTrajectoryOfVisits(OpBase):
+    def __init__(self, max_len: int, vocab: dict):
+
+        super().__init__()
+        self._max_len = max_len
+        self._vocab = vocab
+
     def __call__(self, sample_dict) -> Any:
 
         d_visits_sentences = sample_dict["VisitSentences"]
@@ -108,27 +115,32 @@ class OpGenerateRandomTrajectoryOfVisits(OpBase):
 
         # get random first and last visit for generating random trajectory
         # we use n_visits- 1 to keep the last visit for outcome in classifier
-        # TODO: "3" should be configured
-        # TODO: for case with embedding of static info in first sentence only,
-        #  add embeddings sentence here as we can cut out the first one
+        # TODO: "2" should be configured
         #  other option to drop randomly X visits in random places
-        #  verify that the resulted trajectory is less than max_len (need to check in Vadim's code)
-        start_visit = randrange(int((n_visits - 1) / 3))
-        stop_visit = n_visits - randrange(int((n_visits - 1) / 3)) - 1
+        start_visit = randrange(int((n_visits - 1) / 2))
+        stop_visit = n_visits - randrange(int((n_visits - 1) / 2)) - 1
         keys = list(d_visits_sentences.keys())
         trajectory_keys = keys[start_visit:stop_visit]
         next_visit = keys[stop_visit]
 
-        # Build trajectory
-        trajectory_sentences = []
-        for k in keys:
-            trajectory_sentences.extend(d_visits_sentences[k])
+        # Build trajectory of visits
+        # appends sentences in the reverse order from stop to start in order to get X last sentences than less
+        # than max_len
+        tokens = ["CLS"]
+        for k in reversed(trajectory_keys):
+            visit_sentence = d_visits_sentences[k]
+            if (len(tokens) + len(visit_sentence)) < self._max_len:
+                tokens = d_visits_sentences[k] + tokens
+            else:
+                break
 
-        # TODO: add CLS and PAD words before and after the trajectory based on max len of tokens array
-        #       - limit tokens list by max_len configuration and then add PAD
-        #       - add positional embeddings as additional key, val in sample_dict
-        #       - verify where unknown patter is used
-        sample_dict["Trajectory"] = trajectory_sentences
+        tokens = seq_pad(tokens, self._max_len)
+        positions = position_idx(tokens)
+        indexes = seq_translate(tokens, self._vocab)
+
+        sample_dict["Tokens"] = tokens
+        sample_dict["Positions"] = positions
+        sample_dict["Indexes"] = indexes
         sample_dict["NextVisit"] = d_visits_sentences[next_visit]
 
         return sample_dict
@@ -138,7 +150,6 @@ class OpMapToCategorical(OpBase):
     def __call__(self, sample_dict, percentiles: dict) -> Any:
 
         # convert continuous measurements to categorical ones based on defined percentiles
-
         # mapping static clinical characteristics (Age, Gender, ICU type, Height, etc)
         for k in sample_dict["StaticDetails"]:
             sample_dict["StaticDetails"][k] = (
@@ -365,17 +376,14 @@ class PhysioNetCinC:
         return df_patients, patient_ids  # , dict_percentiles, dict_patient_time_events
 
     @staticmethod
-    def _process_dynamic_pipeline(dict_percentiles, visit_to_embed_static_variables, static_variables_to_embed):
+    def _process_dynamic_pipeline(dict_percentiles, static_variables_to_embed, token2idx, max_len):
         return [
             (OpMapToCategorical(), dict(percentiles=dict_percentiles)),
             (
-                OpConvertVisitToSentense(),
-                dict(
-                    visit_to_embed_static_variables=visit_to_embed_static_variables,
-                    static_variables_to_embed=static_variables_to_embed,
-                ),
+                OpConvertVisitToSentense(static_variables_to_embed),
+                dict(),
             ),
-            (OpGenerateRandomTrajectoryOfVisits(), dict()),
+            (OpGenerateRandomTrajectoryOfVisits(max_len, token2idx), dict()),
         ]
 
     @staticmethod
@@ -392,8 +400,8 @@ class PhysioNetCinC:
         categorical_max_num_of_values: int,
         min_hours_in_hospital: int,
         min_number_of_visits: int,
-        visit_to_embed_static_variables: str,
         static_variables_to_embed: Sequence[str],
+        max_len_seq: int,
     ) -> DatasetDefault:
         assert raw_data_path is not None
 
@@ -441,11 +449,11 @@ class PhysioNetCinC:
         )
         # TODO build vocabulary here based on defined percentiles + special words
         corpus = PhysioNetCinC._build_corpus_of_words(dict_percentiles)
-
+        token2idx = WordVocab(corpus, max_size=None, min_freq=1).get_stoi()
         # update pypline with Op using calculated percentiles
         dynamic_pipeline_ops = dynamic_pipeline_ops + [
             *PhysioNetCinC._process_dynamic_pipeline(
-                dict_percentiles, visit_to_embed_static_variables, static_variables_to_embed
+                dict_percentiles, static_variables_to_embed, token2idx, max_len_seq
             )
         ]
         dynamic_pipeline = PipelineDefault("cinc_dynamic", dynamic_pipeline_ops)
@@ -476,7 +484,7 @@ class PhysioNetCinC:
         for f in test_sample_ids:
             x = dataset_test[f]
 
-        return corpus, dataset_train, dataset_validation, dataset_test
+        return token2idx, dataset_train, dataset_validation, dataset_test
 
 
 if __name__ == "__main__":
