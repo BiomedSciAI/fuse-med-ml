@@ -126,7 +126,7 @@ class OpGenerateRandomTrajectoryOfVisits(OpBase):
         # Build trajectory of visits
         # appends sentences in the reverse order from stop to start in order to get X last sentences than less
         # than max_len
-        tokens = ["CLS"]
+        tokens = [special_tokens["separator"]]
         for k in reversed(trajectory_keys):
             visit_sentence = d_visits_sentences[k]
             if (len(tokens) + len(visit_sentence)) < self._max_len:
@@ -328,13 +328,8 @@ class PhysioNetCinC:
 
     @staticmethod
     def _build_corpus_of_words(dict_percentiles: dict) -> list:
-        corpus = []
-        padding_token = "PAD"
-        unknown_token = "UNK"
-        separator_token = "SEP"
-        cls_token = "CLS"
 
-        corpus += [padding_token, cls_token, separator_token, unknown_token]
+        corpus = list(special_tokens.values())
 
         for k in dict_percentiles.keys():
             num_bins = len(dict_percentiles[k])
@@ -450,6 +445,7 @@ class PhysioNetCinC:
         # TODO build vocabulary here based on defined percentiles + special words
         corpus = PhysioNetCinC._build_corpus_of_words(dict_percentiles)
         token2idx = WordVocab(corpus, max_size=None, min_freq=1).get_stoi()
+
         # update pypline with Op using calculated percentiles
         dynamic_pipeline_ops = dynamic_pipeline_ops + [
             *PhysioNetCinC._process_dynamic_pipeline(
@@ -464,7 +460,6 @@ class PhysioNetCinC:
         for f in train_sample_ids:
             x = dataset_train[f]
 
-        print("before dataset val")
         validation_sample_ids = []
         for fold in validation_folds:
             validation_sample_ids += folds[fold]
@@ -474,7 +469,6 @@ class PhysioNetCinC:
         for f in validation_sample_ids:
             x = dataset_validation[f]
 
-        print("before dataset test")
         test_sample_ids = []
         for fold in test_folds:
             test_sample_ids += folds[fold]
