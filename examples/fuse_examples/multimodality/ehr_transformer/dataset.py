@@ -134,7 +134,7 @@ class OpGenerateRandomTrajectoryOfVisits(OpBase):
             else:
                 break
 
-        tokens = [special_tokens['cls']] + tokens
+        tokens = [special_tokens["cls"]] + tokens
         tokens = seq_pad(tokens, self._max_len)
         positions = position_idx(tokens)
         indexes = seq_translate(tokens, self._vocab)
@@ -142,8 +142,15 @@ class OpGenerateRandomTrajectoryOfVisits(OpBase):
         sample_dict["Tokens"] = tokens
         sample_dict["Positions"] = positions
         sample_dict["Indexes"] = indexes
+
+        # outcomes of next visit prediction
+        # TODO - add to configuration, discussion should be discussed
         sample_dict["NextVisitTokens"] = d_visits_sentences[next_visit]
         sample_dict["NextVisitIndexes"] = seq_translate(sample_dict["NextVisitTokens"], self._vocab)
+
+        # TODO - need to handle in configuration the details of other heads (to discuss with Moshiko):
+        #    predicting mortality - outcome in sample_dict['Target']
+        #    predicting gender - outcome in sample_dict['StaticDetails.Gender']
 
         return sample_dict
 
@@ -487,4 +494,18 @@ class PhysioNetCinC:
 if __name__ == "__main__":
 
     token2idx, ds_train, ds_valid, ds_test = PhysioNetCinC.dataset(
-        os.environ["CINC_DATA_PATH"], 5, 'None', 1234, True, [0, 1, 2], [3], [4],4,5,46,10,['Age','Gender','BMI'],350)
+        os.environ["CINC_DATA_PATH"],
+        5,
+        "None",
+        1234,
+        True,
+        [0, 1, 2],
+        [3],
+        [4],
+        4,
+        5,
+        46,
+        10,
+        ["Age", "Gender", "BMI"],
+        350,
+    )
