@@ -382,7 +382,7 @@ class PhysioNetCinC:
     @staticmethod
     def _process_dynamic_pipeline(dict_percentiles, static_variables_to_embed, token2idx, max_len):
         return [
-            (OpMapToCategorical(), dict(percentiles=dict_percentiles)),
+            (OpMapToCategorical(), dict(bins=dict_percentiles)),
             (
                 OpConvertVisitToSentence(static_variables_to_embed),
                 dict(),
