@@ -156,7 +156,7 @@ class OpGenerateRandomTrajectoryOfVisits(OpBase):
 
 
 class OpMapToCategorical(OpBase):
-    def __call__(self, sample_dict, percentiles: dict) -> Any:
+    def __call__(self, sample_dict, percentiles: dict) -> Any:       
 
         # convert continuous measurements to categorical ones based on defined percentiles
         # mapping static clinical characteristics (Age, Gender, ICU type, Height, etc)
@@ -167,7 +167,8 @@ class OpMapToCategorical(OpBase):
         # mapping labs exams and clinical characteristics captured during patients' stay in ICU
         if not sample_dict["Visits"].empty:
             sample_dict["Visits"]["Value"] = sample_dict["Visits"].apply(
-                lambda row: row["Parameter"] + "_" + str(np.digitize(row["Value"], percentiles[row["Parameter"]])),
+                lambda row: row["Parameter"] + "_" + str(np.digitize(row["Value"], percentiles[row["Parameter"]])) \
+                    if  row["Parameter"] in percentiles else special_tokens["unknown"], 
                 axis=1,
             )
 
@@ -182,7 +183,7 @@ class PhysioNetCinC:
         data_sub_sets = ["set-a", "set-b"]
         for s in data_sub_sets:
             csv_files = glob.glob(os.path.join(raw_data_path + "/" + s, "*.txt"))
-            for f in csv_files[1:10]:  # reducing the list temporarily for debugging
+            for f in csv_files:  # reducing the list temporarily for debugging
                 patient_id = os.path.splitext(os.path.basename(f))[0]
                 df_file = pd.read_csv(f)
                 df_file = df_file.drop(df_file[(df_file["Parameter"] == "RecordID")].index).reset_index(drop=True)
@@ -406,7 +407,7 @@ class PhysioNetCinC:
         min_number_of_visits: int,
         static_variables_to_embed: Sequence[str],
         max_len_seq: int,
-    ) -> tuple[Any, DatasetDefault, DatasetDefault, DatasetDefault]:
+    )  -> Tuple[Any, DatasetDefault, DatasetDefault, DatasetDefault]:
         assert raw_data_path is not None
 
         df_patients, patient_ids = PhysioNetCinC._load_and_process_df(
