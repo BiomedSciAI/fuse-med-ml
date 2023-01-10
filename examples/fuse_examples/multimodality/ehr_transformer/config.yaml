@@ -1,0 +1,105 @@
+name: ehr_transformer_basic_single_head
+root: "."
+target_key: "Target"
+max_len_seq: 350 # maximal number of tokens in the trajectory
+
+data: 
+  dataset_cfg:
+    raw_data_pkl: ${oc.env:CINC_DATA_PKL}
+    raw_data_path: ${oc.env:CINC_DATA_PATH}
+    split_filename: None
+    num_folds: 5
+    train_folds: [ 0, 1, 2 ]
+    validation_folds: [ 3 ]
+    test_folds: [ 4 ]
+    seed: 2580
+    reset_split: True
+    num_percentiles : 4 #number of bins (percentiles) for converting floating lab/vital measurements to categorical values
+    categorical_max_num_of_values : 5 #max number of uniq values for categorical variable for not to be digitized
+    min_hours_in_hospital: 46
+    min_number_of_visits: 10
+    max_len_seq: ${max_len_seq} 
+    static_variables_to_embed: ['Age','ICUType','Height','Weight','BMI',]
+  
+ 
+  batch_size: 256
+  target_key: ${target_key}
+  
+  data_loader_train: # Dataloader constructor parameters
+    num_workers: 8
+  
+  data_loader_valid: # Dataloader constructor parameters
+    num_workers: 8
+    batch_size: ${data.batch_size}
+
+
+model:
+  transformer_encoder:
+    num_tokens: ${max_len_seq} 
+    token_dim: ${model.embed.emb_dim}
+    depth: 2
+    heads: 10
+    mlp_dim: 50
+    dropout: 0.1
+    emb_dropout: 0.1
+    num_cls_tokens: 1
+  
+  embed:
+    emb_dim: 80
+
+  classifier_head:
+    num_outputs: 2
+    layers_description: [256]
+  
+  z_dim: 80
+
+# train
+train: # arguments for train() in classifiers_main_train.py
+  model_dir: ${root}/${name}
+  target_key: ${target_key}
+  track_clearml:
+    project_name: "pdes"
+    task_name: ${name}
+    tags: "classifiers"
+    reuse_last_task_id: True
+    continue_last_task: False
+
+  opt:
+    _partial_: true
+    # unmask to use SGD instead
+    _target_: torch.optim.SGD
+    momentum: 0.99
+    nesterov: True
+    lr: 1e-3
+    # weight_decay: 0.1
+
+    # Adam
+    # _target_: torch.optim.Adam
+    # lr: 1e-3
+  # lr_scheduler:
+  #   _partial_: true
+
+  #   # _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+    
+  #   _target_: torch.optim.lr_scheduler.CosineAnnealingLR
+  #   T_max: ${train.trainer_kwargs.max_epochs}
+  #   eta_min: 1e-7 
+  #   last_epoch: -1
+
+  trainer_kwargs:
+    default_root_dir: ${train.model_dir}
+    max_epochs: 2000
+    accelerator: "gpu"
+    devices: 1
+    strategy: null
+    auto_select_gpus: True
+    num_sanity_val_steps: 0
+
+
+
+
+hydra:
+  run:
+    dir: ${root}/${name} 
+  job:
+    chdir: False 

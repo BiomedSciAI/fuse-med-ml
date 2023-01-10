@@ -14,7 +14,8 @@ from fuse.data.ops.ops_read import OpReadDataframe
 
 from fuse.data.utils.split import dataset_balanced_division_to_folds
 from fuse.data.utils.export import ExportDataset
-from utils import seq_translate, position_idx, special_tokens, seq_pad, WordVocab
+
+from fuse_examples.multimodality.ehr_transformer.utils import seq_translate, position_idx, special_tokens, seq_pad, WordVocab
 
 # from ehrtransformers.model.utils import WordVocab
 
@@ -142,7 +143,9 @@ class OpGenerateRandomTrajectoryOfVisits(OpBase):
 
         sample_dict["Tokens"] = tokens
         sample_dict["Positions"] = positions
-        sample_dict["Indexes"] = token_ids
+
+        sample_dict["Indexes"] = np.array(token_ids).squeeze(0)
+
 
         # outcomes of next visit prediction
         # TODO - add to configuration, discussion should be discussed
@@ -467,27 +470,19 @@ class PhysioNetCinC:
 
         # update dynamic pipeline after calculating general statistics and percentiles based on train dataset
         dataset_train._dynamic_pipeline = dynamic_pipeline
-        # TODO remove 2 below lines before completion (used for debugging)
-        for f in train_sample_ids:
-            x = dataset_train[f]
 
         validation_sample_ids = []
         for fold in validation_folds:
             validation_sample_ids += folds[fold]
         dataset_validation = DatasetDefault(validation_sample_ids, dynamic_pipeline)
         dataset_validation.create()
-        # TODO remove 2 below lines before completion (used for debugging)
-        for f in validation_sample_ids:
-            x = dataset_validation[f]
+
 
         test_sample_ids = []
         for fold in test_folds:
             test_sample_ids += folds[fold]
         dataset_test = DatasetDefault(test_sample_ids, dynamic_pipeline)
         dataset_test.create()
-        # TODO remove 2 below lines before completion (used for debugging)
-        for f in test_sample_ids:
-            x = dataset_test[f]
 
         return token2idx, dataset_train, dataset_validation, dataset_test
 
