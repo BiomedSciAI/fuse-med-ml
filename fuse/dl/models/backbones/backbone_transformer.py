@@ -74,7 +74,7 @@ class CrossAttentionTransformer(nn.Module):
     ):
         """
         TODO:
-        [ ] receive params as tuples? 
+        [ ] receive params as tuples?
         [ ] support output_dim parameter
         [ ] clean and document
         [ ] supports two different emb_dim: for each sequence
@@ -115,7 +115,7 @@ class CrossAttentionTransformer(nn.Module):
 
         self.last_linear = nn.Linear(emb_dim, output_dim)
 
-    def forward(self, xa, xb):
+    def forward(self, xa: torch.Tensor, xb: torch.Tensor) -> torch.Tensor:
         enc_xa = self.enc_a(xa, return_embeddings=True)
         enc_xb = self.enc_b(xb, return_embeddings=True)
 
