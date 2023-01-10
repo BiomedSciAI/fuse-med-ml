@@ -105,9 +105,6 @@ class Head1D(nn.Module):
             batch_dict["model.output." + self.head_name] = prediction
         else:
             logits = self.head_module(global_features)  # --> res.shape = [batch_size, 2, 1, 1]
-            if len(logits.shape) > 2:
-                logits = logits.squeeze(dim=3)  # --> res.shape = [batch_size, 2, 1]
-                logits = logits.squeeze(dim=2)  # --> res.shape = [batch_size, 2]
 
             cls_preds = F.softmax(logits, dim=1)
 
