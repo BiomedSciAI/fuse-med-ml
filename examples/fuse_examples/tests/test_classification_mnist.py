@@ -29,36 +29,18 @@ from fuseimg.datasets.mnist import MNIST
 
 from fuse.utils.rand.seed import Seed
 
-from fuse_examples.imaging.classification.mnist.run_mnist import (
-    EVAL_COMMON_PARAMS,
-    INFER_COMMON_PARAMS,
-    TRAIN_COMMON_PARAMS,
+from fuse_examples.imaging.classification.mnist.simple_mnist_starter import (
+    ROOT,
+    MODEL_DIR,
+    PATHS,
+    TRAIN_PARAMS,
     run_train,
-    run_infer,
-    run_eval,
 )
 
 
 def run_mnist(root: str) -> None:
-    model_dir = os.path.join(root, "model_dir")
-    paths = {
-        "model_dir": model_dir,
-        "force_reset_model_dir": True,  # If True will reset model dir automatically - otherwise will prompt 'are you sure' message.
-        "cache_dir": os.path.join(root, "cache_dir"),
-        "inference_dir": os.path.join(model_dir, "infer_dir"),
-        "eval_dir": os.path.join(model_dir, "eval_dir"),
-    }
-
-    train_common_params = TRAIN_COMMON_PARAMS
-
-    infer_common_params = INFER_COMMON_PARAMS
-
-    eval_common_params = EVAL_COMMON_PARAMS
     Seed.set_seed(0, False)  # previous test (in the pipeline) changed the deterministic behavior to True
-    train_dataset = MNIST.dataset(paths["cache_dir"], train=True)
-    validation_dataset = MNIST.dataset(paths["cache_dir"], train=False)
     run_train(train_dataset, validation_dataset, paths, train_common_params)
-    run_infer(validation_dataset, paths, infer_common_params)
     results = run_eval(paths, eval_common_params)
     assert results["metrics.auc.macro_avg"] >= 0.95, "Error: expecting higher performence"
 
