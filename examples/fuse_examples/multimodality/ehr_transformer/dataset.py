@@ -1,7 +1,7 @@
 import pickle
 from collections import OrderedDict
 from random import randrange
-from typing import Sequence, Any
+from typing import Sequence, Any, Tuple
 
 import glob
 import os
@@ -126,7 +126,7 @@ class OpGenerateRandomTrajectoryOfVisits(OpBase):
         # Build trajectory of visits
         # appends sentences in the reverse order from stop to start in order to get X last sentences than less
         # than max_len
-        tokens = [special_tokens["separator"]]
+        tokens = []
         for k in reversed(trajectory_keys):
             visit_sentence = d_visits_sentences[k]
             if (len(tokens) + len(visit_sentence)) < self._max_len:
@@ -134,6 +134,7 @@ class OpGenerateRandomTrajectoryOfVisits(OpBase):
             else:
                 break
 
+        tokens = [special_tokens['cls']] + tokens
         tokens = seq_pad(tokens, self._max_len)
         positions = position_idx(tokens)
         indexes = seq_translate(tokens, self._vocab)
@@ -141,7 +142,8 @@ class OpGenerateRandomTrajectoryOfVisits(OpBase):
         sample_dict["Tokens"] = tokens
         sample_dict["Positions"] = positions
         sample_dict["Indexes"] = indexes
-        sample_dict["NextVisit"] = d_visits_sentences[next_visit]
+        sample_dict["NextVisitTokens"] = d_visits_sentences[next_visit]
+        sample_dict["NextVisitIndexes"] = seq_translate(sample_dict["NextVisitTokens"], self._vocab)
 
         return sample_dict
 
@@ -343,7 +345,7 @@ class PhysioNetCinC:
     @staticmethod
     def _load_and_process_df(
         raw_data_path: str, min_hours_in_hospital: int, min_number_of_visits: int
-    ) -> Tuple[pd.DataFrame, pd.DataFrame, dict, dict]:
+    ) -> Tuple[pd.DataFrame, list]:
         # if pickle available
         try:
             df_patients, patient_ids = pickle.load(open(os.path.join(raw_data_path + "/" + "raw_data.pkl"), "rb"))
@@ -397,7 +399,7 @@ class PhysioNetCinC:
         min_number_of_visits: int,
         static_variables_to_embed: Sequence[str],
         max_len_seq: int,
-    ) -> DatasetDefault:
+    ) -> tuple[Any, DatasetDefault, DatasetDefault, DatasetDefault]:
         assert raw_data_path is not None
 
         df_patients, patient_ids = PhysioNetCinC._load_and_process_df(
@@ -442,7 +444,8 @@ class PhysioNetCinC:
         dict_percentiles = PhysioNetCinC._generate_percentiles(
             dataset_train, num_percentiles, categorical_max_num_of_values
         )
-        # TODO build vocabulary here based on defined percentiles + special words
+
+        # generation corpus and tokenizer
         corpus = PhysioNetCinC._build_corpus_of_words(dict_percentiles)
         token2idx = WordVocab(corpus, max_size=None, min_freq=1).get_stoi()
 
@@ -482,8 +485,6 @@ class PhysioNetCinC:
 
 
 if __name__ == "__main__":
-    import os
 
-    ds_train, ds_valid, ds_test = PhysioNetCinC.dataset(
-        os.environ["CINC_DATA_PATH"], 5, None, 1234, True, [0, 1, 2], [3], [4]
-    )
+    token2idx, ds_train, ds_valid, ds_test = PhysioNetCinC.dataset(
+        os.environ["CINC_DATA_PATH"], 5, 'None', 1234, True, [0, 1, 2], [3], [4],4,5,46,10,['Age','Gender','BMI'],350)
