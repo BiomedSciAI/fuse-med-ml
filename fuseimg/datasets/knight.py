@@ -263,7 +263,7 @@ class KNIGHT:
         """
         Get cached dataset
         :param data_path: path to store the original data
-        :param cache_dir: path to store the cache
+        :param cache_dir: path to store the cache (make None to turn off caching altogether)
         :param split: dictionary including sample ids for (train and validation) or test.
         :param sample_ids: dataset including the specified sample_ids. sample_id is case_{id:05d} (for example case_00001 or case_00100).
         either split or sample_ids is not None. there is no need in both of them.
@@ -274,28 +274,41 @@ class KNIGHT:
         train_dynamic_pipeline = KNIGHT.train_dynamic_pipeline()
         val_dynamic_pipeline = KNIGHT.val_dynamic_pipeline()
 
+        # turn caching off if cache_dir is None
+        if cache_dir:
+            print("👍 Caching is ON")
+            use_caching = True
+        else:
+            print("✋ Caching is OFF")
+            cacher = None
+            val_cacher = None
+            train_cacher = None
+            use_caching = False
+
         # Create dataset
         if sample_ids is not None:
             static_pipeline = KNIGHT.static_pipeline(data_path, resize_to=resize_to, test=test)
-            cacher = SamplesCacher(
-                "cache", static_pipeline, cache_dirs=[f"{cache_dir}/data"], restart_cache=reset_cache, workers=num_workers
-            )
+            if use_caching:
+                cacher = SamplesCacher(
+                    "cache", static_pipeline, cache_dirs=[f"{cache_dir}/data"], restart_cache=reset_cache, workers=num_workers
+                )
             dataset = DatasetDefault(
                 sample_ids=sample_ids,
                 static_pipeline=static_pipeline,
                 dynamic_pipeline=val_dynamic_pipeline if test else train_dynamic_pipeline,
                 cacher=cacher,
             )
-            print("- Load and cache data:")
+            print("- Load data:")
             dataset.create()
-            print("- Load and cache data: Done")
+            print("- Load data: Done")
             return dataset
 
         static_pipeline = KNIGHT.static_pipeline(data_path, resize_to=resize_to, test=("test" in split))
         if "train" in split:
-            train_cacher = SamplesCacher(
-                "train_cache", static_pipeline, cache_dirs=[f"{cache_dir}/train"], restart_cache=reset_cache, workers=num_workers
-            )
+            if use_caching:
+                train_cacher = SamplesCacher(
+                    "train_cache", static_pipeline, cache_dirs=[f"{cache_dir}/train"], restart_cache=reset_cache, workers=num_workers
+                )
 
             train_dataset = DatasetDefault(
                 sample_ids=split["train"],
@@ -304,19 +317,20 @@ class KNIGHT:
                 cacher=train_cacher,
             )
 
-            print("- Load and cache data:")
+            print("- Load data:")
             train_dataset.create()
 
-            print("- Load and cache data: Done")
+            print("- Load data: Done")
 
             print("Train Data: Done", {"attrs": "bold"})
 
             #### Validation data
             print("Validation Data:", {"attrs": "bold"})
 
-            val_cacher = SamplesCacher(
-                "val_cache", static_pipeline, cache_dirs=[f"{cache_dir}/val"], restart_cache=reset_cache, workers=num_workers
-            )
+            if use_caching:
+                val_cacher = SamplesCacher(
+                    "val_cache", static_pipeline, cache_dirs=[f"{cache_dir}/val"], restart_cache=reset_cache, workers=num_workers
+                )
             ## Create dataset
             validation_dataset = DatasetDefault(
                 sample_ids=split["val"],
