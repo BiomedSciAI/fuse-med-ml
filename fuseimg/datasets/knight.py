@@ -258,7 +258,7 @@ class KNIGHT:
         test: bool = False,
         reset_cache: bool = False,
         resize_to: Tuple = (70, 256, 256),
-        num_workers=8,
+        num_workers: int = 8,
     ) -> DatasetDefault:
         """
         Get cached dataset
