@@ -43,6 +43,7 @@ class SamplesCacher:
         workers: int = 0,
         verbose=1,
         use_pipeline_hash: Optional[bool] = True,
+        max_allowed_used_space = 0.95,
         **audit_kwargs: dict,
     ) -> None:
         """
@@ -68,6 +69,8 @@ class SamplesCacher:
             which only tests the first loaded sample for staleness.
             To learn more read SampleCachingAudit doc
         """
+        self.max_allowed_used_space = max_allowed_used_space
+
         if not isinstance(cache_dirs, list):
             cache_dirs = [cache_dirs]
         self._cache_dirs = [os.path.join(x, unique_name) for x in cache_dirs]
@@ -149,7 +152,7 @@ class SamplesCacher:
             delete_directory_tree(del_dir)
 
     def _get_write_dir(self):
-        ans = self._write_dir_logic(self._cache_dirs)
+        ans = self._write_dir_logic(self._cache_dirs, max_allowed_used_space=self.max_allowed_used_space)
         ans = os.path.join(ans, self._pipeline_desc_hash)
         return ans
 
@@ -347,7 +350,7 @@ class SamplesCacher:
         return output_info
 
 
-def _get_available_write_location(cache_dirs: List[str], max_allowed_used_space=0.95):
+def _get_available_write_location(cache_dirs: List[str], max_allowed_used_space):
     """
     :param cache_dirs: write directories. Directories are checked in order that they are provided.
     :param max_allowed_used_space: set to a value between 0.0 to 1.0.
