@@ -7,7 +7,8 @@ from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 
 from fuseimg.datasets.kits21 import KITS21
-
+from fuseimg.datasets.isic import ISIC
+from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS
 
 class TestPipelineCaching(unittest.TestCase):
     def test_basic_1(self):
@@ -15,12 +16,9 @@ class TestPipelineCaching(unittest.TestCase):
         Test basic imaging ops
         """
         tmpdir = tempfile.mkdtemp()
-        kits_dir = os.path.join(tmpdir, "kits21")
-        cases = [100, 150, 200]
-        KITS21.download(kits_dir, cases)
+        isic_dir = os.environ["ISIC19_DATA_PATH"]
 
-        static_pipeline = KITS21.static_pipeline(kits_dir)
-        dynamic_pipeline = KITS21.dynamic_pipeline()
+        static_pipeline = ISIC.static_pipeline(isic_dir)
 
         cache_dirs = [
             os.path.join(tmpdir, "cache_a"),
@@ -29,11 +27,10 @@ class TestPipelineCaching(unittest.TestCase):
 
         cacher = SamplesCacher("fuseimg_ops_testing_cache", static_pipeline, cache_dirs)
 
-        sample_ids = [f"case_{_:05}" for _ in cases]
+        sample_ids = FULL_GOLDEN_MEMBERS
         ds = DatasetDefault(
             sample_ids,
             static_pipeline,
-            dynamic_pipeline=dynamic_pipeline,
             cacher=cacher,
         )
 
