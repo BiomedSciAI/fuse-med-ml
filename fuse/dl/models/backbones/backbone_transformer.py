@@ -73,7 +73,13 @@ class CrossAttentionTransformer(nn.Module):
         context: str = "seq_b",
     ):
         """
-        TODO receive params as tuples? 
+        TODO:
+        [ ] receive params as tuples? 
+        [ ] support output_dim parameter
+        [ ] clean and document
+        [ ] supports two different emb_dim: for each sequence
+        [ ] remove head (return features with size 'output_dim')
+
         :param emb_dim: model dimension
         :param context:
 
