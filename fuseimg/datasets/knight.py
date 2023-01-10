@@ -258,6 +258,7 @@ class KNIGHT:
         test: bool = False,
         reset_cache: bool = False,
         resize_to: Tuple = (70, 256, 256),
+        num_workers=8,
     ) -> DatasetDefault:
         """
         Get cached dataset
@@ -277,7 +278,7 @@ class KNIGHT:
         if sample_ids is not None:
             static_pipeline = KNIGHT.static_pipeline(data_path, resize_to=resize_to, test=test)
             cacher = SamplesCacher(
-                "cache", static_pipeline, cache_dirs=[f"{cache_dir}/data"], restart_cache=reset_cache, workers=8
+                "cache", static_pipeline, cache_dirs=[f"{cache_dir}/data"], restart_cache=reset_cache, workers=num_workers
             )
             dataset = DatasetDefault(
                 sample_ids=sample_ids,
@@ -293,7 +294,7 @@ class KNIGHT:
         static_pipeline = KNIGHT.static_pipeline(data_path, resize_to=resize_to, test=("test" in split))
         if "train" in split:
             train_cacher = SamplesCacher(
-                "train_cache", static_pipeline, cache_dirs=[f"{cache_dir}/train"], restart_cache=reset_cache, workers=8
+                "train_cache", static_pipeline, cache_dirs=[f"{cache_dir}/train"], restart_cache=reset_cache, workers=num_workers
             )
 
             train_dataset = DatasetDefault(
@@ -314,7 +315,7 @@ class KNIGHT:
             print("Validation Data:", {"attrs": "bold"})
 
             val_cacher = SamplesCacher(
-                "val_cache", static_pipeline, cache_dirs=[f"{cache_dir}/val"], restart_cache=reset_cache, workers=8
+                "val_cache", static_pipeline, cache_dirs=[f"{cache_dir}/val"], restart_cache=reset_cache, workers=num_workers
             )
             ## Create dataset
             validation_dataset = DatasetDefault(
