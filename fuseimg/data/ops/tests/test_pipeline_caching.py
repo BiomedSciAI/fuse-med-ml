@@ -10,6 +10,7 @@ from fuseimg.datasets.kits21 import KITS21
 from fuseimg.datasets.isic import ISIC
 from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS
 
+
 class TestPipelineCaching(unittest.TestCase):
     def test_basic_1(self):
         """
