@@ -183,7 +183,7 @@ class PhysioNetCinC:
         data_sub_sets = ["set-a", "set-b"]
         for s in data_sub_sets:
             csv_files = glob.glob(os.path.join(raw_data_path + "/" + s, "*.txt"))
-            for f in csv_files[1:10]:  # reducing the list temporarily for debugging
+            for f in csv_files:
                 patient_id = os.path.splitext(os.path.basename(f))[0]
                 df_file = pd.read_csv(f)
                 df_file = df_file.drop(df_file[(df_file["Parameter"] == "RecordID")].index).reset_index(drop=True)
