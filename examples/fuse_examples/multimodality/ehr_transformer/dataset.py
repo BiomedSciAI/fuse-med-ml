@@ -67,7 +67,7 @@ class OpAddBMI(OpBase):
         return sample_dict
 
 
-class OpConvertVisitToSentense(OpBase):
+class OpConvertVisitToSentence(OpBase):
     def __init__(self, static_variables_to_embed: list):
 
         super().__init__()
@@ -384,7 +384,7 @@ class PhysioNetCinC:
         return [
             (OpMapToCategorical(), dict(percentiles=dict_percentiles)),
             (
-                OpConvertVisitToSentense(static_variables_to_embed),
+                OpConvertVisitToSentence(static_variables_to_embed),
                 dict(),
             ),
             (OpGenerateRandomTrajectoryOfVisits(max_len, token2idx), dict()),
