@@ -170,7 +170,7 @@ class KNIGHT:
         get all the sample ids in train-set
         sample_id is directory file named case_xxxxx found in the specified path
         """
-        files = [f for f in glob(os.path.join(path, "data/case_*"))]
+        files = [os.path.basename(f) for f in glob(os.path.join(path, "case_*"))]
         return files
 
     @staticmethod
@@ -228,7 +228,7 @@ class KNIGHT:
                         translate=(RandInt(-15, 15), RandInt(-15, 15)),
                     ),
                 ),
-                (OpAugGaussian(), dict(key="data.input.img", std=0.01)),
+                (OpRandApply(OpAugGaussian(), 0.3), dict(key="data.input.img", std=0.01)),
                 # add channel dimension -> [C=1, D, H, W]
                 (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")),
             ],

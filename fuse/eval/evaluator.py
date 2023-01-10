@@ -21,6 +21,7 @@ import os
 from typing import Dict, Hashable, Iterable, List, Optional, OrderedDict, Sequence, Union
 import pickle
 import pandas as pd
+import numpy as np
 
 from fuse.utils import read_dataframe
 from fuse.utils import NDict
@@ -54,6 +55,8 @@ class EvaluatorDefault:
         id_key: str = "id",
         batch_size: Optional[int] = None,
         output_dir: Optional[str] = None,
+        silent: bool = True,
+        error_missing_ids: bool = True,
     ) -> NDict:
         """
         evaluate, return, print and optionally dump results to a file
@@ -79,8 +82,15 @@ class EvaluatorDefault:
                                               data must be an iterator of samples.
                                               A batch will be automatically created from batch_size samples
         :param output_dir: Optional - dump results to directory
+        :param silent: print results if false
+        :param error_missing_ids: whether to raise an exception if (a) input ids (if not None) are not fully contained in the input data,
+                                  or if (b) the input list of dataframe don't share the same ids
+                                If False, then in (a) the evalation will be computed on the intersection of input ids and input data;
+                                and in (b) dataframe will be extended to have the same set of ids, with new rows having NaN values in their numeric fields
+
         :return: dictionary that holds all the results.
         """
+        self.silent = silent
 
         if ids is not None:
             ids_df = pd.DataFrame(ids, columns=[id_key]).set_index(id_key)  # use the specified samples
@@ -88,9 +98,9 @@ class EvaluatorDefault:
             ids_df = None  # use all samples
 
         if batch_size is None:
-            data_df = self.read_data(data, ids_df, id_key=id_key)
+            data_df = self.read_data(data, ids_df, id_key=id_key, error_missing_ids=error_missing_ids)
             data_df["id"] = data_df[id_key]
-
+            ids = data_df["id"].values.tolist()
             # pass data
             for metric_name, metric in metrics.items():
                 try:
@@ -193,6 +203,7 @@ class EvaluatorDefault:
             result_data = pd.concat(data_lst)
 
         elif isinstance(data, dict):  # data is dictionary of dataframes
+            # iteration on entries to (1) read all dataframes and (2) compute the union of the ids in all the dataframes
             df_list = []
             all_ids = set()
             for key, data_elem in data.items():
@@ -207,13 +218,29 @@ class EvaluatorDefault:
                 data_elem_df = data_elem_df.add_prefix(key + ".")
                 df_list.append(data_elem_df)
 
-            # make sure ids exists in all dataframes
-            for data_elem_df in df_list:
+            # make sure ids exists in all dataframes. Note that each id appear in at least one dataframe
+            for i_df, data_elem_df in enumerate(df_list):
                 missing_ids = all_ids - set(data_elem_df.index)
                 if len(missing_ids) > 0:
-                    raise Exception(
-                        f"Error: ids {missing_ids} are missing in data['{data_elem_df.keys()[0].split('.')[0]}']"
-                    )
+                    if error_missing_ids:
+                        raise Exception(
+                            f"Error: ids {missing_ids} are missing in data['{data_elem_df.keys()[0].split('.')[0]}']"
+                        )
+                    else:
+                        n = len(missing_ids)
+
+                        missing_df = pd.DataFrame(index=list(missing_ids))
+                        for i_col, col in enumerate(data_elem_df.columns):
+                            x = data_elem_df.iloc[0][i_col]
+
+                            if isinstance(x, np.ndarray):
+                                missing_df[col] = [np.NaN * np.ones_like(x)] * n
+                            elif np.isreal(x):
+                                missing_df[col] = np.NaN
+                            else:
+                                missing_df[col] = None
+
+                        df_list[i_df] = pd.concat((data_elem_df, missing_df), axis=0)
 
             result_data = pd.concat(df_list, axis=1, join="inner")
             result_data[id_key] = result_data.index
@@ -276,7 +303,8 @@ class EvaluatorDefault:
                 results += f"{metric_result}\n"
 
         # print to screen
-        print(results)
+        if not self.silent:
+            print(results)
 
         # make sure the output folder exist
         if output_dir is not None:

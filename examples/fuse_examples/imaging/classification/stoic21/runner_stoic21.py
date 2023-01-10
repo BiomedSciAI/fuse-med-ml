@@ -28,6 +28,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
 import pytorch_lightning as pl
+from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
 
 from fuse.eval.evaluator import EvaluatorDefault
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
@@ -40,7 +41,7 @@ from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
 from fuse.dl.models import ModelMultiHead
-from fuse.dl.models.heads.heads_3D import Head3DClassifier
+from fuse.dl.models.heads.heads_3D import Head3D
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 
 from fuse.utils.utils_debug import FuseDebug
@@ -116,19 +117,20 @@ TRAIN_COMMON_PARAMS["opt.weight_decay"] = 0.005
 def create_model(imaging_dropout: float, clinical_dropout: float, fused_dropout: float) -> torch.nn.Module:
     """
     creates the model
-    See Head3DClassifier for details about imaging_dropout, clinical_dropout, fused_dropout
+    See Head3D for details about imaging_dropout, clinical_dropout, fused_dropout
     """
     model = ModelMultiHead(
         conv_inputs=(("data.input.img", 1),),
         backbone=BackboneResnet3D(in_channels=1),
         heads=[
-            Head3DClassifier(
+            Head3D(
                 head_name="classification",
+                mode="classification",
                 conv_inputs=[("model.backbone_features", 512)],
                 dropout_rate=imaging_dropout,
                 append_dropout_rate=clinical_dropout,
                 fused_dropout_rate=fused_dropout,
-                num_classes=2,
+                num_outputs=2,
                 append_features=[("data.input.clinical", 8)],
                 append_layers_description=(256, 128),
             ),
@@ -145,6 +147,8 @@ def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault,
     # Logger
     # ==============================================================================
     fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
+    lightning_csv_logger = CSVLogger(save_dir=paths["model_dir"], name="lightning_csv_logs")
+    lightning_tb_logger = TensorBoardLogger(save_dir=paths["model_dir"], name="lightning_tb_logs")
     lgr = logging.getLogger("Fuse")
     lgr.info("Fuse Train", {"attrs": ["bold", "underline"]})
 
@@ -259,6 +263,7 @@ def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault,
         devices=train_params["trainer.num_devices"],
         strategy=train_params["trainer.strategy"],
         auto_select_gpus=train_params["trainer.auto_select_gpus"],
+        logger=[lightning_csv_logger, lightning_tb_logger],
     )
 
     # train
@@ -315,6 +320,7 @@ def run_infer(dataset: DatasetDefault, paths: dict, infer_params: dict):
         devices=infer_params["trainer.num_devices"],
         strategy=infer_params["trainer.strategy"],
         auto_select_gpus=infer_params["trainer.auto_select_gpus"],
+        logger=None,
     )
     predictions = pl_trainer.predict(pl_module, infer_dataloader, return_predictions=True)
 

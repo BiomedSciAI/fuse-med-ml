@@ -9,8 +9,7 @@ unset DISPLAY
 source $(dirname $(dirname $(which conda)))/etc/profile.d/conda.sh
 conda activate $2
 
-CUDA_VISIBLE_DEVICES=$1 PYTHONPATH=$3:$PYTHONPATH python "${@:4}" 
-#PYTHONPATH=$2:$PYTHONPATH python -u -m ipdb "${@:4}" 
-#PYTHONPATH=$2:$PYTHONPATH python -u  "${@:4}" 
+CUDA_VISIBLE_DEVICES=$1 PYTHONPATH=$3:$PYTHONPATH python "${@:4}"
+#PYTHONPATH=$2:$PYTHONPATH python -u -m ipdb "${@:4}"
+#PYTHONPATH=$2:$PYTHONPATH python -u  "${@:4}"
 #PYTHONPATH=$2:$PYTHONPATH python -u --version
-

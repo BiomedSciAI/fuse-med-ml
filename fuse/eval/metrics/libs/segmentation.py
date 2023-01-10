@@ -1,11 +1,9 @@
-from typing import Any, Dict, Optional, Sequence, Tuple, Union
+from typing import Dict, Optional
 
 import numpy as np
 
 from scipy.spatial import distance
 from scipy.spatial.distance import directed_hausdorff
-
-import matplotlib.pyplot as plt
 
 
 class MetricsSegmentation:

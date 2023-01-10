@@ -98,10 +98,12 @@ def balanced_division(
     # the partition goes as following : for each id level labels we shuffle the ID's and split equally ( as possible) to nfolds
     for y_value in y_values:
         patients_w_value = list(df_samples[no_mixture_id][df_samples["y_class"] == y_value])
-        patients_w_value_shuffled = shuffle(patients_w_value, random_state=seed)
-        splitted_array = np.array_split(patients_w_value_shuffled, nfolds)
+        raw_indices = np.array(range(len(patients_w_value)))
+        raw_indices_shuffled = shuffle(raw_indices, random_state=seed)
+        splitted_raw_indices = np.array_split(raw_indices_shuffled, nfolds)
         for f in range(nfolds):
-            db_samples["data_fold" + str(f)] = db_samples["data_fold" + str(f)] + list(splitted_array[f])
+            fold = [patients_w_value[i] for i in splitted_raw_indices[f]]
+            db_samples["data_fold" + str(f)] = db_samples["data_fold" + str(f)] + fold
 
     # creates a dictionary of dataframes, each dataframes holds all records for the fold
     # each ID appears only in one fold
@@ -146,7 +148,7 @@ def dataset_balanced_division_to_folds(
     :param mp_context : multiprocessing context: "fork", "spawn", etc.
     :param kwargs: more arguments controlling the split. See function balanced_division() for details
     """
-    if os.path.exists(output_split_filename) and not reset_split:
+    if output_split_filename is not None and os.path.exists(output_split_filename) and not reset_split:
         return load_pickle(output_split_filename)
     else:
         if id == get_sample_id_key():
@@ -161,5 +163,6 @@ def dataset_balanced_division_to_folds(
         folds = {}
         for fold in range(nfolds):
             folds[fold] = list(df_folds[df_folds["fold"] == fold][get_sample_id_key()])
-        save_pickle(folds, output_split_filename)
+        if output_split_filename is not None:
+            save_pickle(folds, output_split_filename)
         return folds

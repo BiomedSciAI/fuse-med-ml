@@ -38,7 +38,7 @@ A sequence of operators loading, pre-processing, and augmenting a sample. We spl
 
 static_pipeline = PipelineDefault("static", [
     # decoding sample ID
-    (OpKits21SampleIDDecode(), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path" 
+    (OpKits21SampleIDDecode(), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path"
 
     # loading data
     (OpLoadImage(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", format="nib")),
@@ -53,7 +53,7 @@ sample_ids= list(range(10))
 my_dataset = DatasetDefault(sample_ids=sample_ids,
     static_pipeline=static_pipeline,
     dynamic_pipeline=None,
-    cacher=None,          
+    cacher=None,
 )
 my_dataset.create()
 
@@ -72,7 +72,7 @@ Finally, OpClip() and OpToRange() pre-process the image.
 ```python
 
 static_pipeline = PipelineDefault("static", [
-    (OpKits21SampleIDDecode(), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path" 
+    (OpKits21SampleIDDecode(), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path"
     (OpLoadImage(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", format="nib")),
     (OpLoadImage(data_dir), dict(key_in="data.gt.seg_path", key_out="data.gt.seg", format="nib")),
     (OpClip(), dict(key="data.input.img", clip=(-500, 500))),
@@ -82,13 +82,13 @@ static_pipeline = PipelineDefault("static", [
 
 cacher = SamplesCacher(unique_cacher_name,
     static_pipeline,
-    cache_dirs=cache_dir) #it can just one path for the cache ot list of paths which will be tried in order, moving the next when available space is exausted.           
+    cache_dirs=cache_dir) #it can just one path for the cache ot list of paths which will be tried in order, moving the next when available space is exausted.
 
 sample_ids= list(range(10))
 my_dataset = DatasetDefault(sample_ids=sample_ids,
     static_pipeline=static_pipeline,
     dynamic_pipeline=None,
-    cacher=cacher,          
+    cacher=cacher,
 )
 my_dataset.create()
 
@@ -104,7 +104,7 @@ The cached data will be at [cache_dir]/[unique_cacher_name].
 ```python
 
 static_pipeline = PipelineDefault("static", [
-    (OpKits21SampleIDDecode(), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path" 
+    (OpKits21SampleIDDecode(), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path"
     (OpLoadImage(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", format="nib")),
     (OpLoadImage(data_dir), dict(key_in="data.gt.seg_path", key_out="data.gt.seg", format="nib")),
 ])
@@ -117,15 +117,15 @@ dynamic_pipeline = PipelineDefault("dynamic", [
 ])
 
 
-cacher = SamplesCacher(unique_cacher_name, 
+cacher = SamplesCacher(unique_cacher_name,
     static_pipeline,
-    cache_dirs=cache_dir)             
+    cache_dirs=cache_dir)
 
 sample_ids=list(range(10))
 my_dataset = DatasetDefault(sample_ids=sample_ids,
     static_pipeline=static_pipeline,
     dynamic_pipeline=dynamic_pipeline,
-    cacher=cacher,          
+    cacher=cacher,
 )
 my_dataset.create()
 
@@ -140,7 +140,7 @@ A basic example that includes both dynamic pipeline and static pipeline. Dynamic
 ```python
 repeat_for = [dict(key="data.input.img"), dict(key="data.gt.seg")]
 static_pipeline = PipelineDefault("static", [
-    (OpKits21SampleIDDecode(), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path" 
+    (OpKits21SampleIDDecode(), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path"
     (OpLoadImage(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", format="nib")),
     (OpLoadImage(data_dir), dict(key_in="data.gt.seg_path", key_out="data.gt.seg", format="nib")),
 ])
@@ -153,13 +153,13 @@ dynamic_pipeline = PipelineDefault("dynamic", [
 
 cacher = SamplesCacher(unique_cacher_name,
     static_pipeline,
-    cache_dirs=cache_dir)             
+    cache_dirs=cache_dir)
 
 sample_ids=list(range(10))
 my_dataset = DatasetDefault(sample_ids=sample_ids,
     static_pipeline=static_pipeline,
     dynamic_pipeline=dynamic_pipeline,
-    cacher=cacher,          
+    cacher=cacher,
 )
 my_dataset.create()
 
@@ -176,7 +176,7 @@ The example above is the simplest. We use OpRepeat to repeat OpToTensor twice, o
 
 repeat_for = [dict(key="data.input.img"), dict(key="data.gt.seg")]
 static_pipeline = PipelineDefault("static", [
-    (OpKits21SampleIDDecode(), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path" 
+    (OpKits21SampleIDDecode(), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path"
     (OpLoadImage(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", format="nib")),
     (OpLoadImage(data_dir), dict(key_in="data.gt.seg_path", key_out="data.gt.seg", format="nib")),
 ])
@@ -186,7 +186,7 @@ dynamic_pipeline = PipelineDefault("dynamic", [
     (OpToRange(), dict(key="data.input.img", from_range=(-500, 500), to_range=(0, 1))),
     (OpRepeat(OpToTensor(), kwargs_per_step_to_add=repeat_for), dict(dtype=torch.float32)),
     (OpSampleAndRepeat(OpAffineTransform2D(do_image_reverse=True), kwargs_per_step_to_add=repeat_for), dict(
-                rotate=Uniform(-180.0,180.0),        
+                rotate=Uniform(-180.0,180.0),
                 scale=Uniform(0.8, 1.2),
                 flip=(RandBool(0.5), RandBool(0.5)),
                 translate=(RandInt(-15, 15), RandInt(-15, 15))
@@ -195,19 +195,19 @@ dynamic_pipeline = PipelineDefault("dynamic", [
 
 cacher = SamplesCacher(unique_cacher_name,
     static_pipeline,
-    cache_dirs=cache_dir)             
+    cache_dirs=cache_dir)
 
 sample_ids= list(range(10))
 my_dataset = DatasetDefault(sample_ids=sample_ids,
     static_pipeline=static_pipeline,
     dynamic_pipeline=dynamic_pipeline,
-    cacher=cacher,          
+    cacher=cacher,
 )
 my_dataset.create()
 
 ```
 
-FuseMedML comes with a collection of pre-implemented augmentation ops. Augmentation ops are expected to be included in the dynamic_pipeline to avoid caching and to be called with different random numbers drawn from the specified distribution. In this example, we've added identical affine transformation for the image and segmentation map. OpSampleAndRepeat() will first draw the random numbers from the random arguments and then repeat OpAffineTransform2D for both the image and segmentation map with the same arguments.  
+FuseMedML comes with a collection of pre-implemented augmentation ops. Augmentation ops are expected to be included in the dynamic_pipeline to avoid caching and to be called with different random numbers drawn from the specified distribution. In this example, we've added identical affine transformation for the image and segmentation map. OpSampleAndRepeat() will first draw the random numbers from the random arguments and then repeat OpAffineTransform2D for both the image and segmentation map with the same arguments.
 
 ## Using custom functions directly (OpFunc and OpLambda)
 
@@ -222,7 +222,7 @@ static_pipeline = PipelineDefault("static", [
     (OpRepeat(OpLambda(func=lambda x: np.reshape(x,(x.shape[0], 4, 256, 256))), repeat_for), dict())
 ])
 my_dataset = DatasetDefault(sample_ids=sample_ids,
-    static_pipeline=static_pipeline,        
+    static_pipeline=static_pipeline,
 )
 my_dataset.create()
 
@@ -238,7 +238,7 @@ Pre-processing a dataset many times involves heuristics and custom functions. Op
 
 repeat_for = [dict(key="data.input.img"), dict(key="data.gt.seg")]
 static_pipeline = PipelineDefault("static", [
-    (OpKits21SampleIDDecode(), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path" 
+    (OpKits21SampleIDDecode(), dict()), # will save image and seg path to "data.input.img_path", "data.gt.seg_path"
     (OpLoadImage(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", format="nib")),
     (OpLoadImage(data_dir), dict(key_in="data.gt.seg_path", key_out="data.gt.seg", format="nib")),
 ])
@@ -248,7 +248,7 @@ dynamic_pipeline = PipelineDefault("dynamic", [
     (OpToRange(), dict(key="data.input.img", from_range=(-500, 500), to_range=(0, 1))),
     (OpRepeat(OpToTensor(), kwargs_per_step_to_add=repeat_for), dict(dtype=torch.float32)),
     (OpSampleAndRepeat(OpAffineTransform2D(do_image_reverse=True), kwargs_per_step_to_add=repeat_for), dict(
-                rotate=Uniform(-180.0,180.0),        
+                rotate=Uniform(-180.0,180.0),
                 scale=Uniform(0.8, 1.2),
                 flip=(RandBool(0.5), RandBool(0.5)),
                 translate=(RandInt(-15, 15), RandInt(-15, 15))
@@ -257,13 +257,13 @@ dynamic_pipeline = PipelineDefault("dynamic", [
 
 cacher = SamplesCacher(unique_cacher_name,
     static_pipeline,
-    cache_dirs=cache_dir)             
+    cache_dirs=cache_dir)
 
 sample_ids= list(range(10))
 my_dataset = DatasetDefault(sample_ids=sample_ids,
     static_pipeline=static_pipeline,
     dynamic_pipeline=dynamic_pipeline,
-    cacher=cacher,          
+    cacher=cacher,
 )
 my_dataset.create()
 

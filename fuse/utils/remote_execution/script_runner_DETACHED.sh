@@ -12,7 +12,6 @@ source $(dirname $(dirname $(which conda)))/etc/profile.d/conda.sh
 conda activate $2
 
 CUDA_VISIBLE_DEVICES=$1 PYTHONPATH=$3:$PYTHONPATH nohup python -u "${@:5}" > $4 2>&1   &    ###ORIG
-#PYTHONPATH=$2:$PYTHONPATH python -u -m ipdb "${@:4}" 
-#PYTHONPATH=$2:$PYTHONPATH python -u  "${@:4}" 
+#PYTHONPATH=$2:$PYTHONPATH python -u -m ipdb "${@:4}"
+#PYTHONPATH=$2:$PYTHONPATH python -u  "${@:4}"
 #PYTHONPATH=$2:$PYTHONPATH python -u --version
-

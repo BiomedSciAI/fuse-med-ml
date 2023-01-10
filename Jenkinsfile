@@ -8,7 +8,7 @@ pipeline {
                 checkout scm
             }
         }
-        
+
         stage('Unit Test') {
             steps {
                 sh '''
@@ -22,7 +22,7 @@ pipeline {
         }
 
     }
-    
+
     post {
         always {
             junit 'test-reports/TEST-*.xml'
