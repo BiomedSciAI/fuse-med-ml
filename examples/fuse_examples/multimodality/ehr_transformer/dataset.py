@@ -14,8 +14,9 @@ from fuse.data.ops.ops_read import OpReadDataframe
 
 from fuse.data.utils.split import dataset_balanced_division_to_folds
 from fuse.data.utils.export import ExportDataset
-from utils import seq_translate, position_idx, special_tokens, seq_pad
-from ehrtransformers.model.utils import WordVocab
+from utils import seq_translate, position_idx, special_tokens, seq_pad, WordVocab
+
+# from ehrtransformers.model.utils import WordVocab
 
 VALID_TESTS_ABOVE_ZERO = [
     "pH",
@@ -137,16 +138,16 @@ class OpGenerateRandomTrajectoryOfVisits(OpBase):
         tokens = [special_tokens["cls"]] + tokens
         tokens = seq_pad(tokens, self._max_len)
         positions = position_idx(tokens)
-        indexes = seq_translate(tokens, self._vocab)
+        token_ids = seq_translate(tokens, self._vocab)
 
         sample_dict["Tokens"] = tokens
         sample_dict["Positions"] = positions
-        sample_dict["Indexes"] = indexes
+        sample_dict["Indexes"] = token_ids
 
         # outcomes of next visit prediction
         # TODO - add to configuration, discussion should be discussed
         sample_dict["NextVisitTokens"] = d_visits_sentences[next_visit]
-        sample_dict["NextVisitIndexes"] = seq_translate(sample_dict["NextVisitTokens"], self._vocab)
+        sample_dict["NextVisitTokenIds"] = seq_translate(sample_dict["NextVisitTokens"], self._vocab)
 
         # TODO - need to handle in configuration the details of other heads (to discuss with Moshiko):
         #    predicting mortality - outcome in sample_dict['Target']
@@ -156,19 +157,18 @@ class OpGenerateRandomTrajectoryOfVisits(OpBase):
 
 
 class OpMapToCategorical(OpBase):
-    def __call__(self, sample_dict, percentiles: dict) -> Any:       
+    def __call__(self, sample_dict, bins: dict) -> Any:
 
-        # convert continuous measurements to categorical ones based on defined percentiles
+        # convert continuous measurements to categorical ones based on defined bins
         # mapping static clinical characteristics (Age, Gender, ICU type, Height, etc)
         for k in sample_dict["StaticDetails"]:
-            sample_dict["StaticDetails"][k] = (
-                k + "_" + str(np.digitize(sample_dict["StaticDetails"][k], percentiles[k]))
-            )
+            sample_dict["StaticDetails"][k] = k + "_" + str(np.digitize(sample_dict["StaticDetails"][k], bins[k]))
         # mapping labs exams and clinical characteristics captured during patients' stay in ICU
         if not sample_dict["Visits"].empty:
             sample_dict["Visits"]["Value"] = sample_dict["Visits"].apply(
-                lambda row: row["Parameter"] + "_" + str(np.digitize(row["Value"], percentiles[row["Parameter"]])) \
-                    if  row["Parameter"] in percentiles else special_tokens["unknown"], 
+                lambda row: row["Parameter"] + "_" + str(np.digitize(row["Value"], bins[row["Parameter"]]))
+                if row["Parameter"] in bins
+                else special_tokens["unknown"],
                 axis=1,
             )
 
@@ -183,13 +183,12 @@ class PhysioNetCinC:
         data_sub_sets = ["set-a", "set-b"]
         for s in data_sub_sets:
             csv_files = glob.glob(os.path.join(raw_data_path + "/" + s, "*.txt"))
-            for f in csv_files:  # reducing the list temporarily for debugging
+            for f in csv_files[1:10]:  # reducing the list temporarily for debugging
                 patient_id = os.path.splitext(os.path.basename(f))[0]
                 df_file = pd.read_csv(f)
                 df_file = df_file.drop(df_file[(df_file["Parameter"] == "RecordID")].index).reset_index(drop=True)
                 df_file["PatientId"] = patient_id
-                # TODO replace by concat (soon deprecated)
-                df = df.append(df_file)
+                df = pd.concat([df, df_file], axis=0)
         df.reset_index(inplace=True, drop=True)
         patient_ids = np.unique(df["PatientId"].values)
 
@@ -352,11 +351,11 @@ class PhysioNetCinC:
 
     @staticmethod
     def _load_and_process_df(
-        raw_data_path: str, min_hours_in_hospital: int, min_number_of_visits: int
+        raw_data_path: str, raw_data_pkl: str, min_hours_in_hospital: int, min_number_of_visits: int
     ) -> Tuple[pd.DataFrame, list]:
         # if pickle available
         try:
-            df_patients, patient_ids = pickle.load(open(os.path.join(raw_data_path + "/" + "raw_data.pkl"), "rb"))
+            df_patients, patient_ids = pickle.load(open(raw_data_pkl, "rb"))
         except:
             df_raw_data, df_outcomes = PhysioNetCinC._read_raw_data(raw_data_path)
 
@@ -374,8 +373,8 @@ class PhysioNetCinC:
 
             df_patients = PhysioNetCinC._combine_data_by_patients(df_raw_data, df_outcomes)
 
-            with open(os.path.join(raw_data_path + "/" + "raw_data.pkl"), "wb") as f:
-                # pickle.dump([df_raw_data, df_outcomes, patient_ids], f)
+            # with open(os.path.join(raw_data_path + "/" + "raw_data.pkl"), "wb") as f:
+            with open(raw_data_pkl, "wb") as f:
                 pickle.dump([df_patients, patient_ids], f)
 
         return df_patients, patient_ids  # , dict_percentiles, dict_patient_time_events
@@ -394,6 +393,7 @@ class PhysioNetCinC:
     @staticmethod
     def dataset(
         raw_data_path: str,
+        raw_data_pkl: str,
         num_folds: int,
         split_filename: str,
         seed: int,
@@ -407,11 +407,11 @@ class PhysioNetCinC:
         min_number_of_visits: int,
         static_variables_to_embed: Sequence[str],
         max_len_seq: int,
-    )  -> Tuple[Any, DatasetDefault, DatasetDefault, DatasetDefault]:
+    ) -> Tuple[Any, DatasetDefault, DatasetDefault, DatasetDefault]:
         assert raw_data_path is not None
 
         df_patients, patient_ids = PhysioNetCinC._load_and_process_df(
-            raw_data_path, min_hours_in_hospital, min_number_of_visits
+            raw_data_path, raw_data_pkl, min_hours_in_hospital, min_number_of_visits
         )
 
         # first step of the pipline is to read data and add additional fatures (e.g. BMI)
@@ -493,7 +493,6 @@ class PhysioNetCinC:
 
 
 if __name__ == "__main__":
-
     token2idx, ds_train, ds_valid, ds_test = PhysioNetCinC.dataset(
         os.environ["CINC_DATA_PATH"],
         5,
