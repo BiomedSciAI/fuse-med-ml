@@ -6,9 +6,7 @@ import tempfile
 from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 
-from fuseimg.datasets.kits21 import KITS21
 from fuseimg.datasets.isic import ISIC
-from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS
 
 
 class TestPipelineCaching(unittest.TestCase):
@@ -28,7 +26,8 @@ class TestPipelineCaching(unittest.TestCase):
 
         cacher = SamplesCacher("fuseimg_ops_testing_cache", static_pipeline, cache_dirs)
 
-        sample_ids = FULL_GOLDEN_MEMBERS
+        sample_ids = ["ISIC_0072637", "ISIC_0072638", "ISIC_0072639"]
+
         ds = DatasetDefault(
             sample_ids,
             static_pipeline,
