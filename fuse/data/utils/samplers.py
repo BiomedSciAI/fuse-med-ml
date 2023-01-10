@@ -61,7 +61,7 @@ class BatchSamplerDefault(BatchSampler):
                                         In mode 'exact' the weights should be integers that sums up to batch size.
                                         In mode 'approx' the weights should be floats that sums up to ~1
                                         If not specified, equal number of samples from each class will be used.
-        :param num_batches: optional - if set to an int will force num_batches, 
+        :param num_batches: optional - if set to an int will force num_batches,
                                        if set to None or "over_sample"  - num_batches will be automatically to go over each sample at least once (exactly or approximately).
                                        if set to "down_sample"  - num_batches will be automatically to go over each sample in one of the classes (exactly or approximately) and the rest will be down sampled.
         :param verbose:
@@ -146,9 +146,7 @@ class BatchSamplerDefault(BatchSampler):
             if self._balanced_class_weights_list is not None:
                 for weight in self._balanced_class_weights_list:
                     if weight > 1.0:
-                        raise Exception(
-                            f"Error: in mode 'exact', expecting probabilities, got {weight}"
-                        )
+                        raise Exception(f"Error: in mode 'exact', expecting probabilities, got {weight}")
                 if not math.isclose(sum(self._balanced_class_weights_list), 1.0):
                     raise Exception(
                         f"Error: in mode 'exact', expecting balanced_class_weight to sum up to almost one, got {balanced_class_weights}"
@@ -218,11 +216,10 @@ class BatchSamplerDefault(BatchSampler):
             ]
             if self._num_batches == "down_sample":
                 balanced_class_weighted_size = min(balanced_class_weighted_sizes)
-            else: # over sample
+            else:  # over sample
                 balanced_class_weighted_size = max(balanced_class_weighted_sizes)
-            
-            self._num_batches = int(balanced_class_weighted_size)
 
+            self._num_batches = int(balanced_class_weighted_size)
 
         # pointers per class
         self._cls_pointers = {cls_i: 0 for cls_i in self._balanced_class_values}
