@@ -290,7 +290,11 @@ class KNIGHT:
             static_pipeline = KNIGHT.static_pipeline(data_path, resize_to=resize_to, test=test)
             if use_caching:
                 cacher = SamplesCacher(
-                    "cache", static_pipeline, cache_dirs=[f"{cache_dir}/data"], restart_cache=reset_cache, workers=num_workers
+                    "cache",
+                    static_pipeline,
+                    cache_dirs=[f"{cache_dir}/data"],
+                    restart_cache=reset_cache,
+                    workers=num_workers,
                 )
             dataset = DatasetDefault(
                 sample_ids=sample_ids,
@@ -307,7 +311,11 @@ class KNIGHT:
         if "train" in split:
             if use_caching:
                 train_cacher = SamplesCacher(
-                    "train_cache", static_pipeline, cache_dirs=[f"{cache_dir}/train"], restart_cache=reset_cache, workers=num_workers
+                    "train_cache",
+                    static_pipeline,
+                    cache_dirs=[f"{cache_dir}/train"],
+                    restart_cache=reset_cache,
+                    workers=num_workers,
                 )
 
             train_dataset = DatasetDefault(
@@ -329,7 +337,11 @@ class KNIGHT:
 
             if use_caching:
                 val_cacher = SamplesCacher(
-                    "val_cache", static_pipeline, cache_dirs=[f"{cache_dir}/val"], restart_cache=reset_cache, workers=num_workers
+                    "val_cache",
+                    static_pipeline,
+                    cache_dirs=[f"{cache_dir}/val"],
+                    restart_cache=reset_cache,
+                    workers=num_workers,
                 )
             ## Create dataset
             validation_dataset = DatasetDefault(
