@@ -20,6 +20,7 @@ data:
     min_number_of_visits: 10
     max_len_seq: ${max_len_seq} 
     static_variables_to_embed: ['Age','ICUType','Height','Weight','BMI',]
+    embed_static_in_all_visits: 0
   
  
   batch_size: 256

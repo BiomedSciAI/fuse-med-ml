@@ -15,7 +15,8 @@ from fuse.data.ops.ops_read import OpReadDataframe
 from fuse.data.utils.split import dataset_balanced_division_to_folds
 from fuse.data.utils.export import ExportDataset
 
-from fuse_examples.multimodality.ehr_transformer.utils import seq_translate, position_idx, special_tokens, seq_pad, WordVocab
+# from examples.fuse_examples.multimodality.ehr_transformer.utils import seq_translate, position_idx, special_tokens, seq_pad, WordVocab
+from utils import seq_translate, position_idx, special_tokens, seq_pad, WordVocab
 
 # from ehrtransformers.model.utils import WordVocab
 
@@ -70,30 +71,31 @@ class OpAddBMI(OpBase):
 
 
 class OpConvertVisitToSentence(OpBase):
-    def __init__(self, static_variables_to_embed: list):
+    def __init__(self):
 
         super().__init__()
-        self._static_variables_to_embed = static_variables_to_embed
+        #self._static_variables_to_embed = static_variables_to_embed
 
     def __call__(self, sample_dict) -> Any:
 
-        df_static = sample_dict["StaticDetails"]
+        #df_static = sample_dict["StaticDetails"]
         df_visits = sample_dict["Visits"]
 
-        # convert statis details for embedding to list
-        static_embeddings = []
-        if len(self._static_variables_to_embed) > 0:
-            for k in df_static.keys():
-                if k in self._static_variables_to_embed:
-                    static_embeddings += [df_static[k]]
+        # # convert statis details for embedding to list
+        # static_embeddings = []
+        # if len(self._static_variables_to_embed) > 0:
+        #     for k in df_static.keys():
+        #         if k in self._static_variables_to_embed:
+        #             static_embeddings += [df_static[k]]
 
         d_visit_sentences = OrderedDict()
 
-        for visit_time, df_visit in df_visits.groupby("DateTime", sort=True):
+       # for visit_time, df_visit in df_visits.groupby("DateTime", sort=True):
+        for visit_time, df_visit in df_visits.groupby("Time", sort=True):
 
             d_visit_sentences[visit_time] = []
-            if len(static_embeddings) > 0:
-                d_visit_sentences[visit_time] = static_embeddings.copy()
+            # if len(static_embeddings) > 0:
+            #     d_visit_sentences[visit_time] = static_embeddings.copy()
 
             d_visit_sentences[visit_time].extend(df_visit["Value"].to_list())
             d_visit_sentences[visit_time].extend(["SEP"])
@@ -104,11 +106,13 @@ class OpConvertVisitToSentence(OpBase):
 
 
 class OpGenerateRandomTrajectoryOfVisits(OpBase):
-    def __init__(self, max_len: int, vocab: dict):
+    def __init__(self, max_len: int, vocab: dict, embed_static_in_all_visits: int, static_variables_to_embed: list):
 
         super().__init__()
         self._max_len = max_len
         self._vocab = vocab
+        self._static_variables_to_embed = static_variables_to_embed
+        self._embed_static_in_all_visits = embed_static_in_all_visits
 
     def __call__(self, sample_dict) -> Any:
 
@@ -125,18 +129,37 @@ class OpGenerateRandomTrajectoryOfVisits(OpBase):
         trajectory_keys = keys[start_visit:stop_visit]
         next_visit = keys[stop_visit]
 
+        # add static variables as a first special visit
+        df_static = sample_dict["StaticDetails"]
+        static_embeddings = []
+        if len(self._static_variables_to_embed) > 0:
+            for k in df_static.keys():
+                if k in self._static_variables_to_embed:
+                    static_embeddings += [df_static[k]]
+
         # Build trajectory of visits
         # appends sentences in the reverse order from stop to start in order to get X last sentences than less
         # than max_len
-        tokens = []
+        trajectory_tokens = []
         for k in reversed(trajectory_keys):
             visit_sentence = d_visits_sentences[k]
-            if (len(tokens) + len(visit_sentence)) < self._max_len:
-                tokens = d_visits_sentences[k] + tokens
+
+            if self._embed_static_in_all_visits: # add static details to every visit
+                visit_sentence = static_embeddings + visit_sentence
+
+            if (len(trajectory_tokens ) + len(visit_sentence)) < self._max_len:
+                trajectory_tokens = visit_sentence + trajectory_tokens
             else:
                 break
 
-        tokens = [special_tokens["cls"]] + tokens
+        # create final sequence of tokens
+        tokens = [special_tokens["cls"]]
+        if not self._embed_static_in_all_visits:
+            static_embeddings += [special_tokens["separator_static"]]
+            tokens += static_embeddings
+        tokens += trajectory_tokens
+
+       #tokens = [special_tokens["cls"]] + static_embeddings + trajectory_tokens
         tokens = seq_pad(tokens, self._max_len)
         positions = position_idx(tokens)
         token_ids = seq_translate(tokens, self._vocab)
@@ -145,7 +168,6 @@ class OpGenerateRandomTrajectoryOfVisits(OpBase):
         sample_dict["Positions"] = positions
 
         sample_dict["Indexes"] = np.array(token_ids).squeeze(0)
-
 
         # outcomes of next visit prediction
         # TODO - add to configuration, discussion should be discussed
@@ -297,7 +319,7 @@ class PhysioNetCinC:
 
     @staticmethod
     def _generate_percentiles(
-        dataset: DatasetDefault, num_percentiles: int, categorical_max_num_of_values: int
+            dataset: DatasetDefault, num_percentiles: int, categorical_max_num_of_values: int
     ) -> dict:
 
         # TODO use debug mode and remove worker parameter when debugging is needed
@@ -354,7 +376,7 @@ class PhysioNetCinC:
 
     @staticmethod
     def _load_and_process_df(
-        raw_data_path: str, raw_data_pkl: str, min_hours_in_hospital: int, min_number_of_visits: int
+            raw_data_path: str, raw_data_pkl: str, min_hours_in_hospital: int, min_number_of_visits: int
     ) -> Tuple[pd.DataFrame, list]:
         # if pickle available
         try:
@@ -383,33 +405,33 @@ class PhysioNetCinC:
         return df_patients, patient_ids  # , dict_percentiles, dict_patient_time_events
 
     @staticmethod
-    def _process_dynamic_pipeline(dict_percentiles, static_variables_to_embed, token2idx, max_len):
+    def _process_dynamic_pipeline(dict_percentiles, static_variables_to_embed, embed_static_in_all_visits,
+                                  token2idx, max_len):
         return [
             (OpMapToCategorical(), dict(bins=dict_percentiles)),
-            (
-                OpConvertVisitToSentence(static_variables_to_embed),
-                dict(),
-            ),
-            (OpGenerateRandomTrajectoryOfVisits(max_len, token2idx), dict()),
+            (OpConvertVisitToSentence(),dict()),
+            (OpGenerateRandomTrajectoryOfVisits(max_len, token2idx, embed_static_in_all_visits, static_variables_to_embed),
+             dict()),
         ]
 
     @staticmethod
     def dataset(
-        raw_data_path: str,
-        raw_data_pkl: str,
-        num_folds: int,
-        split_filename: str,
-        seed: int,
-        reset_split: bool,
-        train_folds: Sequence[int],
-        validation_folds: Sequence[int],
-        test_folds: Sequence[int],
-        num_percentiles: int,
-        categorical_max_num_of_values: int,
-        min_hours_in_hospital: int,
-        min_number_of_visits: int,
-        static_variables_to_embed: Sequence[str],
-        max_len_seq: int,
+            raw_data_path: str,
+            raw_data_pkl: str,
+            num_folds: int,
+            split_filename: str,
+            seed: int,
+            reset_split: bool,
+            train_folds: Sequence[int],
+            validation_folds: Sequence[int],
+            test_folds: Sequence[int],
+            num_percentiles: int,
+            categorical_max_num_of_values: int,
+            min_hours_in_hospital: int,
+            min_number_of_visits: int,
+            static_variables_to_embed: Sequence[str],
+            embed_static_in_all_visits: int,
+            max_len_seq: int,
     ) -> Tuple[Any, DatasetDefault, DatasetDefault, DatasetDefault]:
         assert raw_data_path is not None
 
@@ -422,9 +444,6 @@ class PhysioNetCinC:
             (
                 OpReadDataframe(df_patients, key_column="PatientId"),
                 {}
-                # OpReadDataframeCinC(
-                #     df_records, outcomes=df_outcomes[["PatientId", "In-hospital_death"]], key_column="PatientId"
-                # ),
             ),
             (OpAddBMI(key_in_height="Height", key_in_weight="Weight", key_out_bmi="BMI"), dict()),
         ]
@@ -463,20 +482,20 @@ class PhysioNetCinC:
         # update pypline with Op using calculated percentiles
         dynamic_pipeline_ops = dynamic_pipeline_ops + [
             *PhysioNetCinC._process_dynamic_pipeline(
-                dict_percentiles, static_variables_to_embed, token2idx, max_len_seq
+                dict_percentiles, static_variables_to_embed, embed_static_in_all_visits, token2idx, max_len_seq
             )
         ]
         dynamic_pipeline = PipelineDefault("cinc_dynamic", dynamic_pipeline_ops)
 
         # update dynamic pipeline after calculating general statistics and percentiles based on train dataset
         dataset_train._dynamic_pipeline = dynamic_pipeline
+        x = dataset_train[0]
 
         validation_sample_ids = []
         for fold in validation_folds:
             validation_sample_ids += folds[fold]
         dataset_validation = DatasetDefault(validation_sample_ids, dynamic_pipeline)
         dataset_validation.create()
-
 
         test_sample_ids = []
         for fold in test_folds:
@@ -490,8 +509,9 @@ class PhysioNetCinC:
 if __name__ == "__main__":
     token2idx, ds_train, ds_valid, ds_test = PhysioNetCinC.dataset(
         os.environ["CINC_DATA_PATH"],
+        os.environ["CINC_DATA_PKL"],
         5,
-        "None",
+        None,
         1234,
         True,
         [0, 1, 2],
@@ -502,5 +522,6 @@ if __name__ == "__main__":
         46,
         10,
         ["Age", "Gender", "BMI"],
+        1,
         350,
     )

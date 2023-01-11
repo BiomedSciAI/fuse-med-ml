@@ -21,7 +21,7 @@ import pickle
 import tqdm
 from collections import Counter
 
-special_tokens = {"padding": "PAD", "unknown": "UNK", "separator": "SEP", "cls": "CLS"}
+special_tokens = {"padding": "PAD", "unknown": "UNK", "separator": "SEP", "cls": "CLS", "separator_static": 'SEP_STATIC'}
 
 
 def seq_translate(tokens, translate_dict):

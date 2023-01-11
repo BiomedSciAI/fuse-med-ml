@@ -22,7 +22,7 @@ from fuse.utils import NDict
 from fuse.data import DatasetDefault
 
 
-from fuse_examples.multimodality.ehr_transformer.model import Embed, TransformerEncoder
+from examples.fuse_examples.multimodality.ehr_transformer.model import Embed, TransformerEncoder
 
 
 def data(
