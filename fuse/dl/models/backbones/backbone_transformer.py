@@ -75,10 +75,10 @@ class CrossAttentionTransformer(nn.Module):
         """
         TODO:
         [ ] receive params as tuples?
-        [ ] support output_dim parameter
+        [x] support output_dim parameter
+        [x] remove head (return features with size 'output_dim')
         [ ] clean and document
         [ ] supports two different emb_dim: for each sequence
-        [ ] remove head (return features with size 'output_dim')
 
         :param emb_dim: model dimension
         :param context:

@@ -28,9 +28,9 @@ from fuse.dl.models.heads.common import ClassifierMLP
 class Head1D(nn.Module):
     def __init__(
         self,
+        mode: str,  # "classification" or "regression"
+        conv_inputs: Sequence[Tuple[str, int]],
         head_name: str = "head_0",
-        mode: str = None,  # "classification" or "regression"
-        conv_inputs: Sequence[Tuple[str, int]] = None,
         num_outputs: int = 2,  # num classes in case of classification
         append_features: Optional[Sequence[Tuple[str, int]]] = None,
         layers_description: Sequence[int] = (256,),
@@ -61,7 +61,6 @@ class Head1D(nn.Module):
 
         self.head_name = head_name
         self.mode = mode
-        assert conv_inputs is not None, "conv_inputs must be provided"
         self.conv_inputs = conv_inputs
         self.append_features = append_features
 

@@ -24,6 +24,9 @@ from fuse.dl.models.backbones.backbone_transformer import CrossAttentionTransfor
 
 class TestCrossAttentionTransformer(unittest.TestCase):
     def test_basic(self) -> None:
+        """
+        TODO elab ?
+        """
         model_params = {
             "emb_dim": 128,
             "num_tokens_a": 10000,
