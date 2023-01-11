@@ -26,10 +26,9 @@ from examples.fuse_examples.multimodality.ehr_transformer.model import Embed, Tr
 
 
 def data(
-    dataset_cfg: dict, target_key: str, batch_size: int, 
-    data_loader_train: dict, data_loader_valid: dict
+    dataset_cfg: dict, target_key: str, batch_size: int, data_loader_train: dict, data_loader_valid: dict
 ) -> Tuple[DatasetDefault, DataLoader, DataLoader]:
-    
+
     token2idx, ds_train, ds_valid, _ = PhysioNetCinC.dataset(**dataset_cfg)
 
     ds_train[0].print_tree()
@@ -52,6 +51,7 @@ def data(
 
     return token2idx, ds_train, dl_train, dl_valid
 
+
 def model(
     embed: dict,
     classifier_head: dict,
@@ -59,9 +59,7 @@ def model(
     transformer_encoder: dict,
     vocab_size: int,
 ):
-    embed = Embed(
-        key_in="Indexes", key_out="model.embedding", n_vocab=vocab_size, **embed
-    )
+    embed = Embed(key_in="Indexes", key_out="model.embedding", n_vocab=vocab_size, **embed)
 
     encoder_model = TransformerEncoder(**transformer_encoder)
 
@@ -76,7 +74,6 @@ def model(
     )
 
     return model
-
 
 
 def train(
@@ -158,7 +155,7 @@ def main(cfg: DictConfig):
     token2idx, ds_train, dl_train, dl_valid = data(**cfg.data)
 
     # model
-    nn_model = model(vocab_size=len(token2idx),**cfg.model)
+    nn_model = model(vocab_size=len(token2idx), **cfg.model)
 
     train(model=nn_model, dl_train=dl_train, dl_valid=dl_valid, **cfg.train)
 

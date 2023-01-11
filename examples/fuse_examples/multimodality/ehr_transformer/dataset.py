@@ -7,7 +7,6 @@ import glob
 import os
 import numpy as np
 import pandas as pd
-from typing import Tuple
 
 from fuse.data import DatasetDefault, PipelineDefault, OpBase
 from fuse.data.ops.ops_read import OpReadDataframe
@@ -15,10 +14,8 @@ from fuse.data.ops.ops_read import OpReadDataframe
 from fuse.data.utils.split import dataset_balanced_division_to_folds
 from fuse.data.utils.export import ExportDataset
 
-# from examples.fuse_examples.multimodality.ehr_transformer.utils import seq_translate, position_idx, special_tokens, seq_pad, WordVocab
 from utils import seq_translate, position_idx, special_tokens, seq_pad, WordVocab
 
-# from ehrtransformers.model.utils import WordVocab
 
 VALID_TESTS_ABOVE_ZERO = [
     "pH",
@@ -42,9 +39,10 @@ STATIC_FIELDS = ["Age", "Gender", "Height", "ICUType", "Weight"]
 
 
 class OpAddBMI(OpBase):
+
     """
-    Apply BMI calculation using static patient's fields. Names of the fields are provided as parameters as well as
-    output field name.
+    Apply BMI calculation using static patient's fields. Names of the fields
+    are provided as parameters as well as output field name.
     Height expected to be in centimetres
     Weight expected to be in kilograms
 
@@ -71,31 +69,22 @@ class OpAddBMI(OpBase):
 
 
 class OpConvertVisitToSentence(OpBase):
-    def __init__(self):
+    """
+    Converts the observations presented in data frame
+     to sentence by visit time. Sentence will be presented as list of values
+     per visit (converted to categorical strings) and separator at the end of the sentence
 
-        super().__init__()
-        #self._static_variables_to_embed = static_variables_to_embed
+    """
 
     def __call__(self, sample_dict) -> Any:
 
-        #df_static = sample_dict["StaticDetails"]
         df_visits = sample_dict["Visits"]
-
-        # # convert statis details for embedding to list
-        # static_embeddings = []
-        # if len(self._static_variables_to_embed) > 0:
-        #     for k in df_static.keys():
-        #         if k in self._static_variables_to_embed:
-        #             static_embeddings += [df_static[k]]
 
         d_visit_sentences = OrderedDict()
 
-       # for visit_time, df_visit in df_visits.groupby("DateTime", sort=True):
         for visit_time, df_visit in df_visits.groupby("Time", sort=True):
 
             d_visit_sentences[visit_time] = []
-            # if len(static_embeddings) > 0:
-            #     d_visit_sentences[visit_time] = static_embeddings.copy()
 
             d_visit_sentences[visit_time].extend(df_visit["Value"].to_list())
             d_visit_sentences[visit_time].extend(["SEP"])
@@ -105,7 +94,17 @@ class OpConvertVisitToSentence(OpBase):
         return sample_dict
 
 
-class OpGenerateRandomTrajectoryOfVisits(OpBase):
+class OpGenerateFinalTrajectoryOfVisits(OpBase):
+    """
+    Generates final trajectory of visits before training including:
+        - random extraction of sub-trajectory (as augmentation procedure)
+        - limitation its size by configured max_len of a sequence
+        - embedding static features, according to defined configuration
+        - adding special tokens of classifier and padding to the final sequence
+        - translating tokens to indexes
+        - computation of positional indexes of sentences for further embedding
+    """
+
     def __init__(self, max_len: int, vocab: dict, embed_static_in_all_visits: int, static_variables_to_embed: list):
 
         super().__init__()
@@ -119,10 +118,8 @@ class OpGenerateRandomTrajectoryOfVisits(OpBase):
         d_visits_sentences = sample_dict["VisitSentences"]
         n_visits = len(d_visits_sentences)
 
-        # get random first and last visit for generating random trajectory
+        # extract sub-set of trajectory by random selection of start and stop keys
         # we use n_visits- 1 to keep the last visit for outcome in classifier
-        # TODO: "2" should be configured
-        #  other option to drop randomly X visits in random places
         start_visit = randrange(int((n_visits - 1) / 2))
         stop_visit = n_visits - randrange(int((n_visits - 1) / 2)) - 1
         keys = list(d_visits_sentences.keys())
@@ -144,10 +141,10 @@ class OpGenerateRandomTrajectoryOfVisits(OpBase):
         for k in reversed(trajectory_keys):
             visit_sentence = d_visits_sentences[k]
 
-            if self._embed_static_in_all_visits: # add static details to every visit
+            if self._embed_static_in_all_visits:  # add static details to every visit
                 visit_sentence = static_embeddings + visit_sentence
 
-            if (len(trajectory_tokens ) + len(visit_sentence)) < self._max_len:
+            if (len(trajectory_tokens) + len(visit_sentence)) < self._max_len:
                 trajectory_tokens = visit_sentence + trajectory_tokens
             else:
                 break
@@ -159,29 +156,28 @@ class OpGenerateRandomTrajectoryOfVisits(OpBase):
             tokens += static_embeddings
         tokens += trajectory_tokens
 
-       #tokens = [special_tokens["cls"]] + static_embeddings + trajectory_tokens
         tokens = seq_pad(tokens, self._max_len)
         positions = position_idx(tokens)
         token_ids = seq_translate(tokens, self._vocab)
 
         sample_dict["Tokens"] = tokens
         sample_dict["Positions"] = positions
-
         sample_dict["Indexes"] = np.array(token_ids).squeeze(0)
 
         # outcomes of next visit prediction
-        # TODO - add to configuration, discussion should be discussed
         sample_dict["NextVisitTokens"] = d_visits_sentences[next_visit]
         sample_dict["NextVisitTokenIds"] = seq_translate(sample_dict["NextVisitTokens"], self._vocab)
-
-        # TODO - need to handle in configuration the details of other heads (to discuss with Moshiko):
-        #    predicting mortality - outcome in sample_dict['Target']
-        #    predicting gender - outcome in sample_dict['StaticDetails.Gender']
 
         return sample_dict
 
 
 class OpMapToCategorical(OpBase):
+    """
+    Converts continuous values of observations to the category based on calculated "bins"
+         each pair of name + value will be converted to the word "Name_binN"
+         Example: Age = 80 will be converted to "Age_3" (third bin in calculated distribution)
+    """
+
     def __call__(self, sample_dict, bins: dict) -> Any:
 
         # convert continuous measurements to categorical ones based on defined bins
@@ -203,12 +199,19 @@ class OpMapToCategorical(OpBase):
 class PhysioNetCinC:
     @staticmethod
     def _read_raw_data(raw_data_path: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        """
+        Loads raw data from the provided directory path.
+         It includes clinical patients data and outcomes
+        :param raw_data_path: path to folder with raw data
+        :return: data frame of patients observation records (record per observation)
+         and data frame of outcomes (record per patient)
+        """
         # read patients info and lab exams
         df = pd.DataFrame(columns=["PatientId", "Time", "Parameter", "Value"])
         data_sub_sets = ["set-a", "set-b"]
         for s in data_sub_sets:
             csv_files = glob.glob(os.path.join(raw_data_path + "/" + s, "*.txt"))
-            for f in csv_files:
+            for f in csv_files[1:10]:
                 patient_id = os.path.splitext(os.path.basename(f))[0]
                 df_file = pd.read_csv(f)
                 df_file = df_file.drop(df_file[(df_file["Parameter"] == "RecordID")].index).reset_index(drop=True)
@@ -235,6 +238,11 @@ class PhysioNetCinC:
 
     @staticmethod
     def _drop_records_with_errors(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Drop records with illegal values of observations
+        :param df: data frame with observational records
+        :return: updated data frame of patients' observations
+        """
         # drop records with measurements below or equal to zero for tests with only positive values
         for v in VALID_TESTS_ABOVE_ZERO:
             df = df.drop(df[(df["Parameter"] == v) & (df["Value"] <= 0)].index).reset_index(drop=True)
@@ -249,8 +257,15 @@ class PhysioNetCinC:
 
     @staticmethod
     def _drop_bad_patients(df: pd.DataFrame, min_hours: int, min_num_of_visits: int) -> pd.DataFrame:
-        # remove patients that have the less than min_hours reported in ICU and
-        # patient that have less than minimum number of visits
+        """
+        Drop records of patients that have the less than min_hours reported in ICU and
+        patient that have less than minimum number of visits
+        :param df:
+        :param min_hours: minimum number of hours of taken observations
+        :param min_num_of_visits: minimum number of visits (observations taking events)
+        :return: updated data frame of patients' observation records
+        """
+
         df_fixed = df.copy()
         count_dropped_short_time = 0
         count_dropped_min_visits = 0
@@ -272,24 +287,13 @@ class PhysioNetCinC:
         return df_fixed
 
     @staticmethod
-    # TODO meanwhile didn't use this DATETIME - need to see if needed for the example
-    def _convert_time_to_datetime(df: pd.DataFrame) -> pd.DataFrame:
-        # dummy date is added for converting time to date time format
-        split = df["Time"].str.split(":", 1, True)
-        df["Year"] = "2020"
-        df["Month"] = "01"
-        hour = split[0].astype(int)
-        df["Day"] = np.where(hour >= 24, "02", "01")
-        df["Hour"] = np.where(hour >= 24, hour - 24, hour)
-        df["minute"] = split[1].astype(int)
-        df["second"] = 0
-        df["DateTime"] = pd.to_datetime(df[["Year", "Month", "Day", "Hour", "minute", "second"]])
-        df.drop(columns=["Year", "Month", "Day", "Hour", "minute", "second"], inplace=True)
-
-        return df
-
-    @staticmethod
     def _combine_data_by_patients(df_records: pd.DataFrame, df_outcomes: pd.DataFrame) -> pd.DataFrame:
+        """
+        Combine all available information : static details, visits and target outcome in one data frame of patients
+        :param df_records: data frame of observation records
+        :param df_outcomes: date frame of patients' outcomes
+        :return: combined data frame of patients
+        """
 
         static_fields = ["Age", "Height", "Weight", "Gender", "ICUType"]
 
@@ -319,10 +323,17 @@ class PhysioNetCinC:
 
     @staticmethod
     def _generate_percentiles(
-            dataset: DatasetDefault, num_percentiles: int, categorical_max_num_of_values: int
+        dataset: DatasetDefault, num_percentiles: int, categorical_max_num_of_values: int
     ) -> dict:
+        """
 
-        # TODO use debug mode and remove worker parameter when debugging is needed
+        :param dataset: data frame of observational records
+        :param num_percentiles: number of bins to digitize the continuous observations
+        :param categorical_max_num_of_values: which observations can be counted as categorical based on number
+        of unique values.
+        :return: dictionary of calculated percentiles (bins)
+        """
+
         df = ExportDataset.export_to_dataframe(dataset, keys=["StaticDetails", "Visits"], workers=1)
 
         # Extracting static and dynamic parts of the dataset
@@ -362,6 +373,12 @@ class PhysioNetCinC:
 
     @staticmethod
     def _build_corpus_of_words(dict_percentiles: dict) -> list:
+        """
+        Generates a list of possible words that will be generated by mapping to bins.
+        This list will define a corpus to the final vocabulary
+        :param dict_percentiles: dictionary with calculated percentiles (bins) for each observation type
+        :return: corpus of words
+        """
 
         corpus = list(special_tokens.values())
 
@@ -376,12 +393,22 @@ class PhysioNetCinC:
 
     @staticmethod
     def _load_and_process_df(
-            raw_data_path: str, raw_data_pkl: str, min_hours_in_hospital: int, min_number_of_visits: int
+        raw_data_path: str, raw_data_pkl: str, min_hours_in_hospital: int, min_number_of_visits: int
     ) -> Tuple[pd.DataFrame, list]:
+        """
+        Applies all stages for generation patients' data frame. Manages generated data frame in pickle file.
+
+        :param raw_data_path: path to the raw data folder
+        :param raw_data_pkl: path to the pickle file with generated patients data frame
+        :param min_hours_in_hospital: used for filtering illegal patients
+        :param min_number_of_visits: used for filtering illegal patients
+        :return: data frame of patients and list of patient ids
+        """
         # if pickle available
         try:
             df_patients, patient_ids = pickle.load(open(raw_data_pkl, "rb"))
-        except:
+
+        except Exception:
             df_raw_data, df_outcomes = PhysioNetCinC._read_raw_data(raw_data_path)
 
             # drop records with invalid tests results
@@ -391,47 +418,46 @@ class PhysioNetCinC:
             df_raw_data = PhysioNetCinC._drop_bad_patients(df_raw_data, min_hours_in_hospital, min_number_of_visits)
             patient_ids = np.unique(df_raw_data["PatientId"].values)
 
-            # fix time to datetime
-            # TODO: not clear if it is needed , we can stay only with 'Time'
-            # TODO: add exception handling in calls after dropping patients
-            df_raw_data = PhysioNetCinC._convert_time_to_datetime(df_raw_data).reset_index()
-
             df_patients = PhysioNetCinC._combine_data_by_patients(df_raw_data, df_outcomes)
 
-            # with open(os.path.join(raw_data_path + "/" + "raw_data.pkl"), "wb") as f:
             with open(raw_data_pkl, "wb") as f:
                 pickle.dump([df_patients, patient_ids], f)
 
-        return df_patients, patient_ids  # , dict_percentiles, dict_patient_time_events
+        return df_patients, patient_ids
 
     @staticmethod
-    def _process_dynamic_pipeline(dict_percentiles, static_variables_to_embed, embed_static_in_all_visits,
-                                  token2idx, max_len):
+    def _process_dynamic_pipeline(
+        dict_percentiles, static_variables_to_embed, embed_static_in_all_visits, token2idx, max_len
+    ):
         return [
             (OpMapToCategorical(), dict(bins=dict_percentiles)),
-            (OpConvertVisitToSentence(),dict()),
-            (OpGenerateRandomTrajectoryOfVisits(max_len, token2idx, embed_static_in_all_visits, static_variables_to_embed),
-             dict()),
+            (OpConvertVisitToSentence(), dict()),
+            (
+                OpGenerateFinalTrajectoryOfVisits(
+                    max_len, token2idx, embed_static_in_all_visits, static_variables_to_embed
+                ),
+                dict(),
+            ),
         ]
 
     @staticmethod
     def dataset(
-            raw_data_path: str,
-            raw_data_pkl: str,
-            num_folds: int,
-            split_filename: str,
-            seed: int,
-            reset_split: bool,
-            train_folds: Sequence[int],
-            validation_folds: Sequence[int],
-            test_folds: Sequence[int],
-            num_percentiles: int,
-            categorical_max_num_of_values: int,
-            min_hours_in_hospital: int,
-            min_number_of_visits: int,
-            static_variables_to_embed: Sequence[str],
-            embed_static_in_all_visits: int,
-            max_len_seq: int,
+        raw_data_path: str,
+        raw_data_pkl: str,
+        num_folds: int,
+        split_filename: str,
+        seed: int,
+        reset_split: bool,
+        train_folds: Sequence[int],
+        validation_folds: Sequence[int],
+        test_folds: Sequence[int],
+        num_percentiles: int,
+        categorical_max_num_of_values: int,
+        min_hours_in_hospital: int,
+        min_number_of_visits: int,
+        static_variables_to_embed: Sequence[str],
+        embed_static_in_all_visits: int,
+        max_len_seq: int,
     ) -> Tuple[Any, DatasetDefault, DatasetDefault, DatasetDefault]:
         assert raw_data_path is not None
 
@@ -441,10 +467,7 @@ class PhysioNetCinC:
 
         # first step of the pipline is to read data and add additional fatures (e.g. BMI)
         dynamic_pipeline_ops = [
-            (
-                OpReadDataframe(df_patients, key_column="PatientId"),
-                {}
-            ),
+            (OpReadDataframe(df_patients, key_column="PatientId"), {}),
             (OpAddBMI(key_in_height="Height", key_in_weight="Weight", key_out_bmi="BMI"), dict()),
         ]
         dynamic_pipeline = PipelineDefault("cinc_dynamic", dynamic_pipeline_ops)
@@ -496,12 +519,14 @@ class PhysioNetCinC:
             validation_sample_ids += folds[fold]
         dataset_validation = DatasetDefault(validation_sample_ids, dynamic_pipeline)
         dataset_validation.create()
+        x = dataset_validation[0]
 
         test_sample_ids = []
         for fold in test_folds:
             test_sample_ids += folds[fold]
         dataset_test = DatasetDefault(test_sample_ids, dynamic_pipeline)
         dataset_test.create()
+        x = dataset_test[0]
 
         return token2idx, dataset_train, dataset_validation, dataset_test
 
@@ -522,6 +547,6 @@ if __name__ == "__main__":
         46,
         10,
         ["Age", "Gender", "BMI"],
-        1,
+        0,
         350,
     )
