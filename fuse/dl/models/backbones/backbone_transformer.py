@@ -28,6 +28,7 @@ class Transformer(nn.Module):
         num_cls_tokens: int = 1
     ):
         super().__init__()
+        self.num_cls_tokens = num_cls_tokens
         self.pos_embedding = nn.Parameter(torch.randn(1, num_tokens + num_cls_tokens, token_dim))
         self.cls_token = nn.Parameter(torch.randn(1, num_cls_tokens, token_dim))
         self.dropout = nn.Dropout(emb_dropout)
