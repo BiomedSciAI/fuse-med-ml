@@ -25,8 +25,10 @@ from fuse.dl.models.backbones.backbone_transformer import CrossAttentionTransfor
 class TestCrossAttentionTransformer(unittest.TestCase):
     def test_basic(self) -> None:
         """
-        TODO elab ?
+        Basic testing for the CrossAttentionTransformer model
         """
+
+        # model parameters
         model_params = {
             "emb_dim": 128,
             "num_tokens_a": 10000,
@@ -36,13 +38,18 @@ class TestCrossAttentionTransformer(unittest.TestCase):
             "output_dim": 256,
         }
 
+        # init model
         model = CrossAttentionTransformer(**model_params)
 
+        # init random sequences that don't exceed max sequences length
         s1 = torch.randint(0, model_params["num_tokens_a"], (1, 400))
         s2 = torch.randint(0, model_params["num_tokens_b"], (1, 1000))
 
+        # processing sample
         output = model(s1, s2)
 
+        # validation
+        assert output.shape[0] == 1
         if output.shape[1] != model_params["output_dim"]:
             raise Exception(f"Expected output dimension to be {model_params['output_dim']}, but got: {output.shape[1]}")
 

@@ -51,9 +51,22 @@ class Transformer(nn.Module):
 
 class CrossAttentionTransformer(nn.Module):
     """
+    CrossAttentionTransformer backbone model based on x-transformers library.
 
-    "a" := first modality
-    "b" := second modality
+    Input:
+        two sequences 'seq_a, seq_b' with shapes [batch_size, len(seq_a)], [batch_size, len(seq_b)] respectively.
+    Output:
+        features tensor with shape [batch_size, output_dim]
+
+
+
+        TODO:
+        [x] receive params as tuples? (NO)
+        [x] support output_dim parameter
+        [x] remove head (return features with size 'output_dim')
+        [ ] clean and document
+        [ ] supports two different emb_dim - one for each sequence
+        [ ] attach example (dti in fuse drugs)
 
     """
 
@@ -73,18 +86,18 @@ class CrossAttentionTransformer(nn.Module):
         context: str = "seq_b",
     ):
         """
-        TODO:
-        [ ] receive params as tuples?
-        [x] support output_dim parameter
-        [x] remove head (return features with size 'output_dim')
-        [ ] clean and document
-        [ ] supports two different emb_dim: for each sequence
-
         :param emb_dim: model dimension
+        :param num_tokens_a:
+        :param num_tokens_b:
+        :param max_seq_len_a:
+        :param max_seq_len_b:
+        :param depth_a:
+        :param depth_b:
+        :param depth_cross_attn:
+        :param heads_a:
+        :param heads_b:
+        :param output_dim: (optional) model's output dimension. if not give the emb dim will be used as default.
         :param context:
-
-        drug -> a
-        target -> b
         """
         super().__init__()
 
@@ -94,6 +107,7 @@ class CrossAttentionTransformer(nn.Module):
         assert context in ["seq_a", "seq_b", "both"]
         self._context = context
 
+        # init sequences' encoders
         self.enc_a = TransformerWrapper(
             num_tokens=num_tokens_a,
             max_seq_len=max_seq_len_a,
@@ -105,6 +119,7 @@ class CrossAttentionTransformer(nn.Module):
             attn_layers=Encoder(dim=emb_dim, depth=depth_b, heads=heads_b),
         )
 
+        # cross attention module(s)
         if self._context in ["seq_a", "seq_b"]:
             self.cross_attn = CrossAttender(dim=emb_dim, depth=depth_cross_attn)
 
@@ -134,15 +149,4 @@ class CrossAttentionTransformer(nn.Module):
             x = self.ff(x)
 
         x = self.last_linear(x)
-        # ---
-        # request output dim
-        # two diff emb dim
-
-        # TODO delete
-        # x = self.head(x)
-        # logits = x
-
-        # cls_preds = F.softmax(logits, dim=1)
-        # return logits, cls_preds
-
         return x
