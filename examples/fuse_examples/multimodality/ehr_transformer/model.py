@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 
 from fuse.dl.models.backbones.backbone_transformer import Transformer
-
+from transformers.models.bert.modeling_bert import BertEncoder, BertPooler, BertConfig
 
 class Embed(nn.Module):
     def __init__(self, n_vocab: int, emb_dim: int, key_in: str, key_out: str, **embedding_kwargs):
@@ -74,3 +74,17 @@ class TransformerEncoder(Transformer):
             return out[:, 0], out[:, 1:]
         else:
             return [out[:, i] for i in range(self.num_cls_tokens)] + [out[:, self.num_cls_tokens :]]
+
+
+class Bert(torch.nn.Module):
+    def __init__(self, config: BertConfig):
+        super().__init__()
+        self.encoder = BertEncoder(config)
+        self.pooler = BertPooler(config)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        encoded_layers = self.encoder(x)
+        sequence_output = encoded_layers[0]  # this is the embedding of all tokens
+        pooled_output = self.pooler(sequence_output)
+
+        return pooled_output

@@ -20,12 +20,14 @@ from fuse.eval.metrics.metrics_common import Filter
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC
 from fuse.dl.losses import LossDefault
 from fuse.utils import NDict
-from fuse.data import DatasetDefault
 
 
-from examples.fuse_examples.multimodality.ehr_transformer.model import Embed, TransformerEncoder
+from examples.fuse_examples.multimodality.ehr_transformer.model import Embed, TransformerEncoder, Bert, BertConfig
 
 def filter_gender_label_unknown_for_loss(batch_dict: NDict) -> NDict:
+    """
+    Ignore unlabeled (gender) when computing gender classification loss
+    """
     # filter out samples
     keep_indices = batch_dict["Gender"] != -1
     batch_dict = batch_dict.indices(
@@ -35,13 +37,23 @@ def filter_gender_label_unknown_for_loss(batch_dict: NDict) -> NDict:
 
 
 def filter_gender_label_unknown_for_metric(sample_dict: NDict) -> NDict:
+    """
+    Ignore unlabeled (gender) when computing gender classification metrics (AUC)
+    """
     # filter out samples
     sample_dict["filter"] = sample_dict["Gender"] == -1
     return sample_dict
 
 def data(
     dataset_cfg: dict, target_key: str, batch_size: int, data_loader_train: dict, data_loader_valid: dict
-) -> Tuple[DatasetDefault, DataLoader, DataLoader]:
+) -> Tuple[Any, DataLoader, DataLoader]:
+    """
+    return token to index mapper and train and validation dataloaders for MIMICC II
+    :param dataset_cfg: PhysioNetCinC.dataset arguments
+    :param target_key: will be used to balance the training dataset
+    :param data_loader_train: arguments for train dataloader
+    :param data_loader_train: arguments for validation dataloader 
+    """
 
     token2idx, ds_train, ds_valid, _ = PhysioNetCinC.dataset(**dataset_cfg)
 
@@ -61,14 +73,16 @@ def data(
         ds_valid, collate_fn=CollateDefault(keep_keys=["data.sample_id", "Target", "Indexes", "Gender", "NextVisitLabels"]), **data_loader_valid
     )
 
-    return token2idx, ds_train, dl_train, dl_valid
+    return token2idx, dl_train, dl_valid
 
 
 def model(
     embed: dict,
     classifier_head: dict,
     z_dim: int,
+    encoder_type: str,
     transformer_encoder: dict,
+    bert_config_kwargs: dict,
     vocab_size: int,
     aux_gender_classification: bool,
     classifier_gender_head: dict,
@@ -77,15 +91,26 @@ def model(
 ):
     embed = Embed(key_in="Indexes", key_out="model.embedding", n_vocab=vocab_size, **embed)
 
-    encoder_model = TransformerEncoder(**transformer_encoder)
+    if encoder_type == "transformer":
+        encoder_model = ModelWrapSeqToDict(
+            model=TransformerEncoder(**transformer_encoder),
+            model_inputs=["model.embedding"],
+            model_outputs=["model.z", None],
+        )
+    elif encoder_type == "bert":
+        bert_config = BertConfig(vocab_size_or_config_json_file=vocab_size, **bert_config_kwargs)
+
+        encoder_model = ModelWrapSeqToDict(
+                model=Bert(config=bert_config),
+                model_inputs=["model.embedding"],
+                model_outputs=["model.z"],
+            )
+    else:
+        raise Exception(f"Error: unknown encoder_type {encoder_type}")
 
     models_sequence = [
         embed,
-        ModelWrapSeqToDict(
-            model=encoder_model,
-            model_inputs=["model.embedding"],
-            model_outputs=["model.z", None],
-        ),
+        encoder_model,
         Head1D(head_name="cls", conv_inputs=[("model.z", z_dim)], **classifier_head),
     ]
 
@@ -202,16 +227,18 @@ def main(cfg: DictConfig):
 
     cfg = hydra.utils.instantiate(cfg)
 
-    token2idx, ds_train, dl_train, dl_valid = data(**cfg.data)
+    # get data
+    token2idx, dl_train, dl_valid = data(**cfg.data)
 
-    # model
+    # create model
     nn_model = model(vocab_size=len(token2idx), **cfg.model)
 
+    # train the model
     train(model=nn_model, dl_train=dl_train, dl_valid=dl_valid, **cfg.train)
 
 
 if __name__ == "__main__":
-    # TODO: delete
-    # export CINC_DATA_PKL="/dccstor/mm_hcls/datasets/PhysioNet_CINC_2012/data.pkl"
-    # export CINC_DATA_PATH="/dccstor/mm_hcls/datasets/PhysioNet_CINC_2012/"
+    """
+    See README for instructions
+    """
     main()
