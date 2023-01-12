@@ -6,6 +6,7 @@ import torch.nn as nn
 from fuse.dl.models.backbones.backbone_transformer import Transformer
 from transformers.models.bert.modeling_bert import BertEncoder, BertPooler, BertConfig
 
+
 class Embed(nn.Module):
     def __init__(self, n_vocab: int, emb_dim: int, key_in: str, key_out: str, **embedding_kwargs):
         super().__init__()

@@ -24,6 +24,7 @@ from fuse.utils import NDict
 
 from examples.fuse_examples.multimodality.ehr_transformer.model import Embed, TransformerEncoder, Bert, BertConfig
 
+
 def filter_gender_label_unknown_for_loss(batch_dict: NDict) -> NDict:
     """
     Ignore unlabeled (gender) when computing gender classification loss
@@ -44,6 +45,7 @@ def filter_gender_label_unknown_for_metric(sample_dict: NDict) -> NDict:
     sample_dict["filter"] = sample_dict["Gender"] == -1
     return sample_dict
 
+
 def data(
     dataset_cfg: dict, target_key: str, batch_size: int, data_loader_train: dict, data_loader_valid: dict
 ) -> Tuple[Any, DataLoader, DataLoader]:
@@ -52,7 +54,7 @@ def data(
     :param dataset_cfg: PhysioNetCinC.dataset arguments
     :param target_key: will be used to balance the training dataset
     :param data_loader_train: arguments for train dataloader
-    :param data_loader_train: arguments for validation dataloader 
+    :param data_loader_train: arguments for validation dataloader
     """
 
     token2idx, ds_train, ds_valid, _ = PhysioNetCinC.dataset(**dataset_cfg)
@@ -70,7 +72,9 @@ def data(
         **data_loader_train,
     )
     dl_valid = DataLoader(
-        ds_valid, collate_fn=CollateDefault(keep_keys=["data.sample_id", "Target", "Indexes", "Gender", "NextVisitLabels"]), **data_loader_valid
+        ds_valid,
+        collate_fn=CollateDefault(keep_keys=["data.sample_id", "Target", "Indexes", "Gender", "NextVisitLabels"]),
+        **data_loader_valid,
     )
 
     return token2idx, dl_train, dl_valid
@@ -87,7 +91,7 @@ def model(
     aux_gender_classification: bool,
     classifier_gender_head: dict,
     aux_next_vis_classification: bool,
-    classifier_next_vis_head: dict
+    classifier_next_vis_head: dict,
 ):
     embed = Embed(key_in="Indexes", key_out="model.embedding", n_vocab=vocab_size, **embed)
 
@@ -101,10 +105,10 @@ def model(
         bert_config = BertConfig(vocab_size_or_config_json_file=vocab_size, **bert_config_kwargs)
 
         encoder_model = ModelWrapSeqToDict(
-                model=Bert(config=bert_config),
-                model_inputs=["model.embedding"],
-                model_outputs=["model.z"],
-            )
+            model=Bert(config=bert_config),
+            model_inputs=["model.embedding"],
+            model_outputs=["model.z"],
+        )
     else:
         raise Exception(f"Error: unknown encoder_type {encoder_type}")
 
@@ -114,12 +118,19 @@ def model(
         Head1D(head_name="cls", conv_inputs=[("model.z", z_dim)], **classifier_head),
     ]
 
-    # append auxiliary head for gender 
+    # append auxiliary head for gender
     if aux_gender_classification:
         models_sequence.append(Head1D(head_name="gender", conv_inputs=[("model.z", z_dim)], **classifier_gender_head))
 
     if aux_next_vis_classification:
-        models_sequence.append(Head1D(head_name="next_vis", conv_inputs=[("model.z", z_dim)], num_outputs=vocab_size, **classifier_next_vis_head))
+        models_sequence.append(
+            Head1D(
+                head_name="next_vis",
+                conv_inputs=[("model.z", z_dim)],
+                num_outputs=vocab_size,
+                **classifier_next_vis_head,
+            )
+        )
 
     model = torch.nn.Sequential(*models_sequence)
     return model
@@ -144,47 +155,46 @@ def train(
 
     if track_clearml is not None:
         from fuse.dl.lightning.pl_funcs import start_clearml_logger
+
         start_clearml_logger(**track_clearml)
 
     #  Loss
     losses = {
         "ce": LossDefault(
-            pred="model.logits.cls",
-            target=target_key,
-            callable=F.cross_entropy,
-            weight=target_loss_weight
+            pred="model.logits.cls", target=target_key, callable=F.cross_entropy, weight=target_loss_weight
         ),
     }
-    
+
     # Metrics
     train_metrics = {
         "auc": MetricAUCROC(pred="model.output.cls", target=target_key),
     }
 
-    # auxiliary gender loss and metric 
+    # auxiliary gender loss and metric
     if aux_gender_classification:
         losses["gender_ce"] = LossDefault(
             pred="model.logits.gender",
             target="Gender",
             callable=F.cross_entropy,
             preprocess_func=filter_gender_label_unknown_for_loss,
-            weight=gender_loss_weight
-
+            weight=gender_loss_weight,
         )
 
-        train_metrics["gender_auc"] =  Filter(MetricAUCROC(pred="model.output.gender", target="Gender"), "filter", pre_collect_process_func=filter_gender_label_unknown_for_metric)
-        
+        train_metrics["gender_auc"] = Filter(
+            MetricAUCROC(pred="model.output.gender", target="Gender"),
+            "filter",
+            pre_collect_process_func=filter_gender_label_unknown_for_metric,
+        )
 
-    # auxiliary gender loss and metric 
+    # auxiliary gender loss and metric
     if aux_next_vis_classification:
         losses["next_vis_ce"] = LossDefault(
             pred="model.logits.next_vis",
             target="NextVisitLabels",
-            callable=torch.nn.BCEWithLogitsLoss(), # multi binary labels loss
-            weight=next_vis_loss_weight
+            callable=torch.nn.BCEWithLogitsLoss(),  # multi binary labels loss
+            weight=next_vis_loss_weight,
         )
 
-        
     validation_metrics = deepcopy(train_metrics)
     # either a dict with arguments to pass to ModelCheckpoint or list dicts for multiple ModelCheckpoint callbacks (to monitor and save checkpoints for more then one metric).
     best_epoch_source = dict(

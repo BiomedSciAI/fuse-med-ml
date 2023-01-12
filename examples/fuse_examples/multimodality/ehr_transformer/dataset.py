@@ -10,7 +10,7 @@ import pandas as pd
 
 from fuse.data import DatasetDefault, PipelineDefault, OpBase
 from fuse.data.ops.ops_read import OpReadDataframe
-from fuse.data.ops.ops_common import OpLookup, OpSetIfNotExist 
+from fuse.data.ops.ops_common import OpLookup, OpSetIfNotExist
 
 from fuse.data.utils.split import dataset_balanced_division_to_folds
 from fuse.data.utils.export import ExportDataset
@@ -474,7 +474,10 @@ class PhysioNetCinC:
                 dict(),
             ),
             (OpSetIfNotExist(), dict(key="StaticDetails.Gender", value=-1)),
-            (OpLookup(map={"Gender_0": 0, "Gender_1": 1, -1:-1}), dict(key_in="StaticDetails.Gender", key_out="Gender"))
+            (
+                OpLookup(map={"Gender_0": 0, "Gender_1": 1, -1: -1}),
+                dict(key_in="StaticDetails.Gender", key_out="Gender"),
+            ),
         ]
 
     @staticmethod
