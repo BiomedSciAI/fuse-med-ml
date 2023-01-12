@@ -8,7 +8,8 @@ aux_next_vis_classification: True
 
 data: 
   dataset_cfg:
-    raw_data_pkl: ${oc.env:CINC_DATA_PKL}
+    raw_data_pkl: null # in case we want to use pickle for managing raw data use ${oc.env:CINC_DATA_PKL} to define the
+    #path to the pickle file
     raw_data_path: ${oc.env:CINC_DATA_PATH}
     split_filename: None
     num_folds: 5

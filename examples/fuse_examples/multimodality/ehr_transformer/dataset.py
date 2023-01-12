@@ -333,7 +333,6 @@ class PhysioNetCinC:
 
         list_of_tuples = list(zip(patient_ids, static_details, visits, target))
         df_patients = pd.DataFrame(list_of_tuples, columns=["PatientId", "StaticDetails", "Visits", "Target"])
-        print(df_patients.shape)
 
         return df_patients
 
@@ -385,7 +384,6 @@ class PhysioNetCinC:
                 # e.g. gender values will remain the same
                 unique_values = [x + 1 for x in unique_values]
                 d_percentile[k] = sorted(unique_values)
-                print("Categorical: " + k)
             else:
                 d_percentile[k] = np.percentile(values, percentiles)
 
@@ -445,8 +443,9 @@ class PhysioNetCinC:
 
             df_patients = PhysioNetCinC._combine_data_by_patients(df_raw_data, df_outcomes)
 
-            with open(raw_data_pkl, "wb") as f:
-                pickle.dump([df_patients, patient_ids], f)
+            if raw_data_pkl is not None:
+                with open(raw_data_pkl, "wb") as f:
+                    pickle.dump([df_patients, patient_ids], f)
 
         return df_patients, patient_ids
 
@@ -554,7 +553,7 @@ class PhysioNetCinC:
 
         dataset_all = DatasetDefault(patient_ids, dynamic_pipeline)
         dataset_all.create()
-        print("before balancing")
+
         folds = dataset_balanced_division_to_folds(
             dataset=dataset_all,
             output_split_filename=split_filename,
@@ -565,7 +564,6 @@ class PhysioNetCinC:
             workers=1,
         )
 
-        print("before dataset train")
         train_sample_ids = []
         for fold in train_folds:
             train_sample_ids += folds[fold]
@@ -613,7 +611,7 @@ class PhysioNetCinC:
 if __name__ == "__main__":
     token2idx, ds_train, ds_valid, ds_test = PhysioNetCinC.dataset(
         os.environ["CINC_DATA_PATH"],
-        os.environ["CINC_DATA_PKL"],
+        None,
         5,
         None,
         1234,
