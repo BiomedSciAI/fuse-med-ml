@@ -55,11 +55,11 @@ model:
     hidden_size: ${model.z_dim}  # word embedding and seg embedding hidden size (needs to be a multiple of attention heads)
     num_hidden_layers: 6 # number of multi-head attention layers required
     num_attention_heads: 24 # number of attention heads
-    intermediate_size: 50 # the size of the "intermediate" layer in the transformer encoder
-    hidden_act: relu # activation function ("gelu", 'relu', 'swish')
-    hidden_dropout_prob: 0.0 # dropout rate
-    attention_probs_dropout_prob: 0.0 # multi-head attention dropout rate
-    initializer_range: null # parameter weight initializer range
+    intermediate_size: 512 # the size of the "intermediate" layer in the transformer encoder
+    hidden_act: gelu # activation function ("gelu", 'relu', 'swish')
+    hidden_dropout_prob: 0.2 # dropout rate
+    attention_probs_dropout_prob: 0.22 # multi-head attention dropout rate
+    initializer_range: 0.02 # parameter weight initializer range
     
   embed: # Embed constructor arguments
     emb_dim: ${model.z_dim}
@@ -99,27 +99,27 @@ train: # arguments for train() in classifiers_main_train.py
   #   continue_last_task: False
 
   
-  # SGD
-  opt:
-    _partial_: true
-    _target_: torch.optim.SGD
-    momentum: 0.99
-    nesterov: True
-    lr: 0.001
+  # uncomment for SGD
+  # opt:
+  #   _partial_: true
+  #   _target_: torch.optim.SGD
+  #   momentum: 0.99
+  #   nesterov: True
+  #   lr: 0.001
   #   # weight_decay: 1e-5
 
-  # uncomment for AdamW
-  # op`t:
-  #   _partial_: true
-  #   _target_: torch.optim.AdamW
-  #   lr: 1e-3
+  # AdamW
+  op`t:
+    _partial_: true
+    _target_: torch.optim.AdamW
+    lr: 1e-3
   
-  # uncomment for linear_schedule_with_warmup
-  # lr_scheduler:
-  #   _partial_: True
-  #   _target_: transformers.get_linear_schedule_with_warmup
-  #   num_warmup_steps: 500
-  #   num_training_steps: 50000
+  # linear_schedule_with_warmup
+  lr_scheduler:
+    _partial_: True
+    _target_: transformers.get_linear_schedule_with_warmup
+    num_warmup_steps: 500
+    num_training_steps: 50000
 
   # uncomment for lr sch ReduceLROnPlateau
   # lr_scheduler:
