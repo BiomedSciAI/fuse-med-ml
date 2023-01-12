@@ -1,5 +1,5 @@
 from dataset import PhysioNetCinC
-from typing import Any, Optional, List, Tuple
+from typing import Any, Optional, Tuple
 import hydra
 from omegaconf import DictConfig
 from copy import deepcopy
