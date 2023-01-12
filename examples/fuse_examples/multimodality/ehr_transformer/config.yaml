@@ -1,7 +1,10 @@
-name: ehr_transformer_basic_single_head
+name: ehr_transformer_basic_with_aux
 root: "."
+
 target_key: "Target"
 max_len_seq: 350 # maximal number of tokens in the trajectory
+aux_gender_classification: True
+aux_next_vis_classification: True
 
 data: 
   dataset_cfg:
@@ -38,11 +41,11 @@ model:
   transformer_encoder:
     num_tokens: ${max_len_seq} 
     token_dim: ${model.embed.emb_dim}
-    depth: 2
+    depth: 4
     heads: 10
     mlp_dim: 50
-    dropout: 0.1
-    emb_dropout: 0.1
+    dropout: 0.0
+    emb_dropout: 0.0
     num_cls_tokens: 1
   
   embed:
@@ -51,6 +54,16 @@ model:
   classifier_head:
     num_outputs: 2
     layers_description: [256]
+
+  classifier_gender_head:
+    num_outputs: 2
+    layers_description: [256]
+
+  classifier_next_vis_head:
+    layers_description: [256]
+
+  aux_gender_classification: ${aux_gender_classification}
+  aux_next_vis_classification: ${aux_next_vis_classification}
   
   z_dim: 80
 
@@ -58,6 +71,12 @@ model:
 train: # arguments for train() in classifiers_main_train.py
   model_dir: ${root}/${name}
   target_key: ${target_key}
+  target_loss_weight: 0.0006
+  aux_gender_classification: ${aux_gender_classification}
+  gender_loss_weight:  0.0002
+  aux_next_vis_classification: ${aux_next_vis_classification}
+  next_vis_loss_weight: 1.0
+
   track_clearml:
     project_name: "pdes"
     task_name: ${name}
@@ -71,16 +90,16 @@ train: # arguments for train() in classifiers_main_train.py
     _target_: torch.optim.SGD
     momentum: 0.99
     nesterov: True
-    lr: 1e-3
-    # weight_decay: 0.1
+    lr: 0.001
+    # weight_decay: 1e-5
 
     # Adam
     # _target_: torch.optim.Adam
     # lr: 1e-3
-  # lr_scheduler:
-  #   _partial_: true
 
-  #   # _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+  lr_scheduler:
+    _partial_: true
+    _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
     
   #   _target_: torch.optim.lr_scheduler.CosineAnnealingLR
   #   T_max: ${train.trainer_kwargs.max_epochs}
