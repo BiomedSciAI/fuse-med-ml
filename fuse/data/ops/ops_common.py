@@ -524,7 +524,7 @@ class OpSet(OpBase):
 
 
 class OpSetIfNotExist(OpBase):
-    """Add/override key-value pair into sample_dict inly if the key does't already exist"""
+    """Add key-value pair into sample_dict only if the key doesn't already exist"""
 
     def __call__(self, sample_dict: NDict, key: str, value: Any) -> Union[None, dict, List[dict]]:
         """

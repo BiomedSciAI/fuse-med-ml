@@ -32,7 +32,6 @@ class Transformer(nn.Module):
         self.transformer = _Transformer(
             dim=token_dim, depth=depth, heads=heads, dim_head=dim_head, mlp_dim=mlp_dim, dropout=dropout
         )
-        self.num_cls_tokens = num_cls_tokens
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
