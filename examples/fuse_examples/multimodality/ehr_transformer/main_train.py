@@ -93,8 +93,21 @@ def model(
     aux_next_vis_classification: bool,
     classifier_next_vis_head: dict,
 ):
-    embed = Embed(key_in="Indexes", key_out="model.embedding", n_vocab=vocab_size, **embed)
 
+    """
+    Create transformer based model with 3 classification heads
+    :param embed: arguments for Embed constructor
+    :param classifier_head: arguments for Head1D for main classification task
+    :param z_dim: the output size of the transformer model (cls token)
+    :param encoder_type: either "transformer" or "bert"
+    :param transformer_encoder: arguments for TransformerEncoder - used when encoder_type is "transformer"
+    :param bert_config_kwargs: arguments for BertConfig - used with encoder_type is "bert"
+    :param vocab_size: vocabulary size
+    :param  aux_gender_classification: enable gender auxiliary classification head
+    :param classifier_gender_head: arguments for Head1D for gender classification task
+    :param  aux_next_vis_classification: enable next visit auxiliary classification head
+    :param classifier_next_vis_head: arguments for Head1D for next visit classification task
+    """
     if encoder_type == "transformer":
         encoder_model = ModelWrapSeqToDict(
             model=TransformerEncoder(**transformer_encoder),
@@ -113,7 +126,7 @@ def model(
         raise Exception(f"Error: unknown encoder_type {encoder_type}")
 
     models_sequence = [
-        embed,
+        Embed(key_in="Indexes", key_out="model.embedding", n_vocab=vocab_size, **embed),
         encoder_model,
         Head1D(head_name="cls", conv_inputs=[("model.z", z_dim)], **classifier_head),
     ]
@@ -152,6 +165,23 @@ def train(
     lr_scheduler: callable = None,
     track_clearml: Optional[dict] = None,
 ):
+    """
+    Run training process
+    :param model: the model to train
+    :param dl_train: train set dataloader
+    :param dl_valid: validation set dataloader
+    :param model_dir: path to store the training process outputs
+    :param opt: callable that give model parameters will return torch optimizer
+    :param trainer_kwargs: parameters to pl.Trainer
+    :param target_key: key that points to main task labels
+    :param target_loss_weight: weight for main task loss
+    :param aux_gender_classification: enable gender auxiliary classification head
+    :param gender_loss_weight: weight for gender classification task loss
+    :param aux_next_vis_classification: enable next visit auxiliary classification head
+    :param next_vis_loss_weight: weight for next visit classification task loss
+    :param lr_scheduler: callable that given optimizer returns torch lr scheduler
+    :param track_clearml: optional - to track with clearml provide arguments to start_clearml_logger()
+    """
 
     if track_clearml is not None:
         from fuse.dl.lightning.pl_funcs import start_clearml_logger

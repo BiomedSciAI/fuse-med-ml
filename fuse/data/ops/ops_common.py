@@ -522,6 +522,7 @@ class OpSet(OpBase):
         sample_dict[key] = value
         return sample_dict
 
+
 class OpSetIfNotExist(OpBase):
     """Add/override key-value pair into sample_dict inly if the key does't already exist"""
 
