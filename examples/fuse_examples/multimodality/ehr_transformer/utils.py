@@ -21,6 +21,8 @@ import pickle
 import tqdm
 from collections import Counter
 
+# dictionary of special tokens that will be used in a generation of
+# patients trajectory sequence
 special_tokens = {
     "padding": "PAD",
     "unknown": "UNK",
@@ -42,8 +44,9 @@ def seq_translate(tokens, translate_dict):
 
 def position_idx(tokens, symbol=special_tokens["separator"]):
     """
-    Given a sequence of codes divided into groups (visits) by symbol ('SEP') tokens, returns a sequence of the same
-    size of visit indices.
+    Given a sequence of codes divided into groups (visits)
+     by symbol ('SEP') tokens, returns a sequence of the same
+     size of visit indices.
     :param tokens:
     :param symbol:
     :return:
@@ -107,18 +110,19 @@ class TorchVocab(object):
             vectors: One of either the available pretrained vectors
                 or custom pretrained vectors (see Vocab.load_vectors);
                 or a list of aforementioned vectors
-            unk_init (callback): by default, initialize out-of-vocabulary word vectors
-                to zero vectors; can be any function that takes in a Tensor and
-                returns a Tensor of the same size. Default: torch.Tensor.zero_
-            vectors_cache: directory for cached vectors. Default: '.vector_cache'
+            unk_init (callback): by default, initialize out-of-vocabulary
+                word vectors to zero vectors; can be any function that takes
+                in a Tensor and returns a Tensor of the same size.
+                Default: torch.Tensor.zero_vectors_cache: directory for cached
+                vectors. Default: '.vector_cache'
         """
         self.freqs = counter
         counter = counter.copy()
         min_freq = max(min_freq, 1)
 
         self.itos = list(specials)
-        # frequencies of special tokens are not counted when building vocabulary
-        # in frequency order
+        # frequencies of special tokens are not counted when
+        # building vocabulary in frequency order
         for tok in specials:
             del counter[tok]
 
