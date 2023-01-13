@@ -521,3 +521,16 @@ class OpSet(OpBase):
         """
         sample_dict[key] = value
         return sample_dict
+
+
+class OpSetIfNotExist(OpBase):
+    """Add key-value pair into sample_dict only if the key doesn't already exist"""
+
+    def __call__(self, sample_dict: NDict, key: str, value: Any) -> Union[None, dict, List[dict]]:
+        """
+        :param key: where to store the value
+        :param value: the value to store
+        """
+        if key not in sample_dict:
+            sample_dict[key] = value
+        return sample_dict
