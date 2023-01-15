@@ -228,7 +228,7 @@ class KNIGHT:
                         translate=(RandInt(-15, 15), RandInt(-15, 15)),
                     ),
                 ),
-                (OpAugGaussian(), dict(key="data.input.img", std=0.01)),
+                (OpRandApply(OpAugGaussian(), 0.3), dict(key="data.input.img", std=0.01)),
                 # add channel dimension -> [C=1, D, H, W]
                 (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")),
             ],
