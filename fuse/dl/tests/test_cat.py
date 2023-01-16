@@ -61,10 +61,11 @@ class TestCrossAttentionTransformer(unittest.TestCase):
 
         # processing sample
         output = model(s1, s2)
+        print(output.shape)
 
         # validation
         assert output.shape[0] == 1
-        if output.shape[1] != model_params["output_dim"]:
+        if output[:, 0].shape[1] != model_params["output_dim"]:
             raise Exception(
                 f"Expected output dimension to be {model_params['output_dim']}, but got: {output.shape[1]}. used model parameters: {model_params}."
             )

@@ -58,17 +58,18 @@ class CrossAttentionTransformer(nn.Module):
     Output:
         features tensor with shape [batch_size, output_dim]
 
-
-
-        TODO's:
-        [x] support output_dim parameter
-        [x] remove head (return features with size 'output_dim')
-        [ ] receive params as tuples? (NO)
-        [ ] clean and document
-        [ ] add cls tokens - see the above model for ref (?)
-        [ ] pass parameters to wrappers
-        [ ] supports two different emb_dim - one for each sequence
-        [ ] attach example (dti in fuse drugs)
+    ##################
+    TODO's:
+    [x] support output_dim parameter
+    [x] remove head (return features with size 'output_dim')
+    [x] clean and document
+    [ ] attach example (Waiting for PR in fuse drugs)
+    future ideas:
+        [ ] receive params as tuples?
+        [ ] add cls tokens? - see the above model for ref
+        [ ] pass parameters to wrappers? diff params for each seq?
+        [ ] supports two different emb_dim? one for each sequence (maybe three for the cross_attn?)
+    ##################
 
     """
 
@@ -131,9 +132,7 @@ class CrossAttentionTransformer(nn.Module):
         else:  # both
             self.cross_attn_a_as_context = CrossAttender(dim=emb_dim, depth=depth_cross_attn)
             self.cross_attn_b_as_context = CrossAttender(dim=emb_dim, depth=depth_cross_attn)
-            self.ff = nn.Linear(emb_dim * 2, emb_dim)
 
-        # linear layer to match output dimension
         self.last_linear = nn.Linear(emb_dim, output_dim)
 
     def forward(self, xa: torch.Tensor, xb: torch.Tensor) -> torch.Tensor:
@@ -143,22 +142,23 @@ class CrossAttentionTransformer(nn.Module):
         :param xa: tensor with shape [batch_size, seq_len_a]
         :param xb: tensor with shape [batch_size, seq_len_b]
         """
-        enc_xa = self.enc_a(xa, return_embeddings=True)
-        enc_xb = self.enc_b(xb, return_embeddings=True)
+        enc_xa = self.enc_a(xa, return_embeddings=True)  # enc_xa.shape -> [batch_size, seq_len_a, emb_size]
+        enc_xb = self.enc_b(xb, return_embeddings=True)  # enc_xb.shape -> [batch_size, seq_len_b, emb_size]
 
         if self._context == "seq_a":
-            x = self.cross_attn(enc_xb, context=enc_xa)
-            x = x[:, 0]
+            x = self.cross_attn(enc_xb, context=enc_xa)  # x_bca.shape -> [batch_size, seq_len_a, emb_size]
 
         if self._context == "seq_b":
-            x = self.cross_attn(enc_xa, context=enc_xb)
-            x = x[:, 0]
+            x = self.cross_attn(enc_xa, context=enc_xb)  # x.shape -> [batch_size, seq_len_b, emb_size]
 
         if self._context == "both":
-            x_acb = self.cross_attn_b_as_context(enc_xa, context=enc_xb)
-            x_bca = self.cross_attn_a_as_context(enc_xb, context=enc_xa)
-            x = torch.cat((x_acb[:, 0], x_bca[:, 0]), dim=1)
-            x = self.ff(x)
+            x_acb = self.cross_attn_b_as_context(
+                enc_xa, context=enc_xb
+            )  # x_acb.shape -> [batch_size, seq_len_a, emb_size]
+            x_bca = self.cross_attn_a_as_context(
+                enc_xb, context=enc_xa
+            )  # x_bca.shape -> [batch_size, seq_len_b, emb_size]
+            x = torch.cat((x_acb, x_bca), dim=1)  # x_bca.shape -> [batch_size, seq_len_a+seq_len_b, emb_size]
 
-        x = self.last_linear(x)
+        x = self.last_linear(x)  # x_bca.shape -> [batch_size, seq_len_a+seq_len_b, output_dim]
         return x
