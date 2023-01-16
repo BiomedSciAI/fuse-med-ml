@@ -28,10 +28,10 @@ from fuse.dl.models.heads.common import ClassifierMLP
 class Head1D(nn.Module):
     def __init__(
         self,
-        mode: str,  # "classification" or "regression"
+        mode: str,
         conv_inputs: Sequence[Tuple[str, int]],
         head_name: str = "head_0",
-        num_outputs: int = 2,  # num classes in case of classification
+        num_outputs: int = 2,
         append_features: Optional[Sequence[Tuple[str, int]]] = None,
         layers_description: Sequence[int] = (256,),
         append_layers_description: Sequence[int] = tuple(),
