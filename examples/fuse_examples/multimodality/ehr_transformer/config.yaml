@@ -109,7 +109,7 @@ train: # arguments for train() in classifiers_main_train.py
   #   # weight_decay: 1e-5
 
   # AdamW
-  op`t:
+  opt:
     _partial_: true
     _target_: torch.optim.AdamW
     lr: 1e-3
