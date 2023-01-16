@@ -60,11 +60,13 @@ class CrossAttentionTransformer(nn.Module):
 
 
 
-        TODO:
-        [x] receive params as tuples? (NO)
+        TODO's:
         [x] support output_dim parameter
         [x] remove head (return features with size 'output_dim')
+        [ ] receive params as tuples? (NO)
         [ ] clean and document
+        [ ] add cls tokens - see the above model for ref (?)
+        [ ] pass parameters to wrappers
         [ ] supports two different emb_dim - one for each sequence
         [ ] attach example (dti in fuse drugs)
 
@@ -86,18 +88,21 @@ class CrossAttentionTransformer(nn.Module):
         context: str = "seq_b",
     ):
         """
-        :param emb_dim: model dimension
-        :param num_tokens_a:
-        :param num_tokens_b:
-        :param max_seq_len_a:
-        :param max_seq_len_b:
-        :param depth_a:
-        :param depth_b:
-        :param depth_cross_attn:
-        :param heads_a:
-        :param heads_b:
+        :param emb_dim: inner model dimension
+        :param num_tokens_a: number of tokens of the first sequence
+        :param num_tokens_b: number of tokens of the second sequence
+        :param max_seq_len_a: the maximum length of the first sequence
+        :param max_seq_len_b: the maximum length of the second sequence
+        :param depth_a: first sequence encoder's depth
+        :param depth_b: second sequence encoder's depth
+        :param depth_cross_attn: cross attender(s)' length
+        :param heads_a: number of attention heads for the first sequence's encoder
+        :param heads_b: number of attention heads for the second sequence's encoder
         :param output_dim: (optional) model's output dimension. if not give the emb dim will be used as default.
-        :param context:
+        :param context: which sequence will be used as context in the cross attention module:
+                        "seq_a": the first sequence will be used as a context
+                        "seq_b": the second sequence will be used as a context
+                        "both": will use two cross attention modules to take each one of the sequences as a context to the other one.
         """
         super().__init__()
 
@@ -132,6 +137,12 @@ class CrossAttentionTransformer(nn.Module):
         self.last_linear = nn.Linear(emb_dim, output_dim)
 
     def forward(self, xa: torch.Tensor, xb: torch.Tensor) -> torch.Tensor:
+        """
+        assume input sequences are already tokenized
+
+        :param xa: tensor with shape [batch_size, seq_len_a]
+        :param xb: tensor with shape [batch_size, seq_len_b]
+        """
         enc_xa = self.enc_a(xa, return_embeddings=True)
         enc_xb = self.enc_b(xb, return_embeddings=True)
 
