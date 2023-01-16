@@ -128,6 +128,7 @@ class CrossAttentionTransformer(nn.Module):
             self.cross_attn_b_as_context = CrossAttender(dim=emb_dim, depth=depth_cross_attn)
             self.ff = nn.Linear(emb_dim * 2, emb_dim)
 
+        # linear layer to match output dimension
         self.last_linear = nn.Linear(emb_dim, output_dim)
 
     def forward(self, xa: torch.Tensor, xb: torch.Tensor) -> torch.Tensor:
