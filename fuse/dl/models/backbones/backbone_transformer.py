@@ -58,17 +58,18 @@ class CrossAttentionTransformer(nn.Module):
     Output:
         features tensor with shape [batch_size, output_dim]
 
-
-
-        TODO's:
-        [x] support output_dim parameter
-        [x] remove head (return features with size 'output_dim')
-        [ ] receive params as tuples? (NO)
-        [ ] clean and document
-        [ ] add cls tokens - see the above model for ref (?)
-        [ ] pass parameters to wrappers
-        [ ] supports two different emb_dim - one for each sequence
-        [ ] attach example (dti in fuse drugs)
+    ##################
+    TODO's:
+    [x] support output_dim parameter
+    [x] remove head (return features with size 'output_dim')
+    [x] clean and document
+    [ ] attach example (Waiting for PR in fuse drugs)
+    future ideas:
+        [ ] receive params as tuples?
+        [ ] add cls tokens? - see the above model for ref
+        [ ] pass parameters to wrappers? diff params for each seq?
+        [ ] supports two different emb_dim? one for each sequence (maybe three for the cross_attn?)
+    ##################
 
     """
 
