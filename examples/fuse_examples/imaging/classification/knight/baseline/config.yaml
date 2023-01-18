@@ -1,16 +1,18 @@
-exp_name : base-40slices
-experiment_num : 1 # 0 - [70, 256, 256] 1 - [40, 256, 256] 2 - [20, 256, 256]
+experiment : imcl_regression(rad_size)_pt(age)_upres
+cache_name : 3 # 0 - [70, 256, 256] 1 - [40, 256, 256] 2 - [20, 256, 256] 3 - [40, 512, 512]
+
+
 task_num : task_1 # task_1 or task_2 
 num_gpus : 1
 use_data : {"imaging": True, "clinical": True}
-batch_size : 8
-resize_to : [40, 256, 256]
-num_epochs : 100
-learning_rate : 0.0003
+batch_size : 2
+resize_to : [40, 512, 512]
+num_epochs : 140
+learning_rate : 0.0001
 imaging_dropout : 0.5
 fused_dropout : 0.5
-pretrained : False
-regression_head : False
+pretrained : True
+regression_head : True
 two_dim : False
 reset_cache : False
 gpus : [0]
@@ -24,4 +26,4 @@ task_1:
 task_2:
   num_classes : 5
   target_name : "data.gt.gt_global.task_2_label"
-  target_metric : "validation.metrics.auc" #.macro_avg"
+  target_metric : "validation.metrics.auc.macro_avg"

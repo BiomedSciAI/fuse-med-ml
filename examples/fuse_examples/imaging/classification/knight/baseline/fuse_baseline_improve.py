@@ -10,6 +10,7 @@ from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
 # from fuse.dl.models.heads.heads_3D import Head3D
 from fuse.dl.models.heads.heads_3D import Head3DClassifier
 from fuse.dl.models.heads.heads_3D import Head3DRegression
+# from fuse.dl.models.backbone
 
 from fuseimg.datasets.knight import KNIGHT
 import torch.nn.functional as F
@@ -30,8 +31,6 @@ import copy
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 import pytorch_lightning as pl
-from pytorch_lightning.loggers import MLFlowLogger
-from mlflow import log_param, log_artifacts
 
 # from nnunet.network_architecture.generic_UNet import Generic_UNet
 # from nnunet.network_architecture.initialization import InitWeights_He
@@ -40,6 +39,8 @@ from mlflow import log_param, log_artifacts
 # from resnet import resnet34, resnet18, resnet50
 
 from fuse.dl.models.heads.heads_1D import Head1D
+from clearml import Task
+
 ## Parameters:
 ##############################################################################
 # Data sources to use in model. Set {'imaging': True, 'clinical': False} for imaging only setting,
@@ -56,7 +57,7 @@ def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_d
             backbone.fc = nn.Identity()
             conv_inputs = [("model.backbone_features", 2048)]
         elif not pretrained:
-            backbone = BackboneResnet3D(in_channels=1)
+            backbone = BackboneResnet3D(True, in_channels=1)
             # state_dict = torch.load(open("/projects/msieve_dev3/usr/il018850/new_age_classification/base_resized/last.ckpt", "rb"))["state_dict"]
             # state_dict = {".".join(k.split(".")[2:]) : v for k, v in state_dict.items() if k.startswith("_model.backbone.")}
             # backbone.load_state_dict(state_dict)
@@ -75,11 +76,19 @@ def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_d
             # backbone.load_state_dict(state_dict=loaded_state_dict)
             # backbone.inference_apply_nonlin = None
             # conv_inputs = [('model.backbone_features', 320)]
-            state_dict = torch.load(open("/data/usr/liam/age_classification/pretrain/resnet_50_23dataset.pth", "rb"))["state_dict"]
-            state_dict = {k[7:]:v for k,v in state_dict.items()}
-            backbone = resnet50()#(shortcut_type='A')
+
+            # state_dict = torch.load(open("/data/usr/liam/age_classification/pretrain/resnet_50_23dataset.pth", "rb"))["state_dict"]
+            # state_dict = {k[7:]:v for k,v in state_dict.items()}
+            # backbone = resnet50()#(shortcut_type='A')
+            # backbone.load_state_dict(state_dict=state_dict)
+            # conv_inputs = [("model.backbone_features", 2048)]
+
+            backbone = BackboneResnet3D(True, in_channels=1)
+            state_dict = torch.load(open("/dccstor/mm_hcls/usr/liam/dino/pretrained/last.ckpt", "rb"), map_location=torch.device('cpu'))["state_dict"]
+            state_dict = {k[1:7] + k.replace("stem", "layer0")[21:]:v for k,v in state_dict.items() if ("fc" not in k and "classifier" not in k)}
             backbone.load_state_dict(state_dict=state_dict)
-            conv_inputs = [("model.backbone_features", 2048)]
+            conv_inputs = [("model.backbone_features", 512)]
+
     else:
         backbone = nn.Identity()
         conv_inputs = None
@@ -144,8 +153,11 @@ def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_d
 
 
 def main(cfg_path):
+    
     # read config params
     cfg = yaml.safe_load(open(cfg_path))
+    task = Task.init(project_name="Liam/KNIGHT", task_name=cfg["experiment"])
+    task.connect(cfg)
     task_num = cfg['task_num']
     num_classes = cfg[task_num]["num_classes"]
     target_name = cfg[task_num]["target_name"]
@@ -158,24 +170,23 @@ def main(cfg_path):
 
     # read environment variables for data, cache and results locations
     data_path = os.environ["KNIGHT_DATA"]
-    cache_path = os.path.join(os.environ["KNIGHT_CACHE"], str(cfg["experiment_num"]))
+    cache_path = os.path.join(os.environ["KNIGHT_CACHE"], str(cfg["cache_name"]))
     results_path = os.environ["KNIGHT_RESULTS"]
 
     ## Basic settings:
     ##############################################################################
     # create model results dir:
     # we use a time stamp in model directory name, to prevent re-writing
-    model_dir = os.path.join(results_path, cfg["exp_name"])
+    model_dir = os.path.join(results_path, cfg["experiment"])
     if not os.path.isdir(model_dir):
         os.makedirs(model_dir)
 
-    # log_artifacts(cfg_path)
-    for k,v in cfg.items():
-        if isinstance(v, dict) and task_num == k:
-            for kk, vv in v.items():
-                log_param(kk,vv)
-        else:        
-            log_param(k, v)
+    
+    fuse_logger_start(output_path=model_dir, console_verbose_level=logging.INFO)
+
+    lgr = logging.getLogger("Fuse")
+    lgr.info("Fuse Train", {"attrs": ["bold", "underline"]})
+
 
     # start logger
     fuse_logger_start(output_path=model_dir, console_verbose_level=logging.INFO)
@@ -195,6 +206,8 @@ def main(cfg_path):
     model = make_model(cfg["use_data"], num_classes, cfg["imaging_dropout"],
      cfg["fused_dropout"], pretrained=cfg["pretrained"],
       regression_head=cfg["regression_head"], two_dim=cfg["two_dim"])
+
+    
 
     ## FuseMedML dataset preparation
     ##############################################################################
@@ -279,7 +292,6 @@ def main(cfg_path):
 
     ## Training
     ##############################################################################
-    mlf_logger = MLFlowLogger(experiment_name="lightning_logs", tracking_uri=f"file:{model_dir}")
     # create instance of PL module - FuseMedML generic version
     pl_module = LightningModuleDefault(
         model_dir=model_dir,
@@ -299,7 +311,6 @@ def main(cfg_path):
         strategy=None,
         auto_select_gpus=True,
         num_sanity_val_steps=-1,
-        logger=mlf_logger
     )
 
     # train

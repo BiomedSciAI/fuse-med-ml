@@ -40,3 +40,4 @@ fuse_examples/imaging/hello_world/examples/
 .vscode/
 examples/fuse_examples/imaging/classification/knight/baseline/sandbox.ipynb
 run_script.py
+mlruns
