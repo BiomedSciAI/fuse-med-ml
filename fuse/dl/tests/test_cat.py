@@ -26,7 +26,7 @@ from fuse.dl.models.backbones.backbone_transformer import CrossAttentionTransfor
 class TestCrossAttentionTransformer(unittest.TestCase):
     def test_all_contexts(self) -> None:
         """
-        test each of the three options for context: "seq_a", "seq_b" and "both using the helper function
+        test cross attention transformer for each of the three context options: "seq_a", "seq_b" and "both"
         """
 
         # model parameters

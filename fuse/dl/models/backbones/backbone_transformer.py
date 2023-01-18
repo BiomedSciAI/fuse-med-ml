@@ -29,7 +29,7 @@ class Transformer(nn.Module):
         super().__init__()
         self.num_cls_tokens = num_cls_tokens
         self.pos_embedding = nn.Parameter(torch.randn(1, num_tokens + num_cls_tokens, token_dim))
-        self.cls_token = nn.Parameter(torch.randn(1, num_cls_tokens, token_dim))
+        self.cls_tokens = nn.Parameter(torch.randn(1, num_cls_tokens, token_dim))
         self.dropout = nn.Dropout(emb_dropout)
         self.transformer = _Transformer(
             dim=token_dim, depth=depth, heads=heads, dim_head=dim_head, mlp_dim=mlp_dim, dropout=dropout
@@ -41,7 +41,7 @@ class Transformer(nn.Module):
         :return: [batch_size, num_tokens + num_cls_tokens, token_dim] shaped tensor, where the first tokens are the CLS tokens
         """
         b, n, _ = x.shape
-        cls_tokens = repeat(self.cls_token, "1 a d -> b a d", b=b)
+        cls_tokens = repeat(self.cls_tokens, "1 a d -> b a d", b=b)
         x = torch.cat((cls_tokens, x), dim=1)
         x += self.pos_embedding
         x = self.dropout(x)
@@ -65,10 +65,10 @@ class CrossAttentionTransformer(nn.Module):
     [x] clean and document
     [ ] attach example (Waiting for PR in fuse drugs)
     future ideas:
-        [ ] receive params as tuples?
-        [ ] add cls tokens? - see the above model for ref
-        [ ] pass parameters to wrappers? diff params for each seq?
-        [ ] supports two different emb_dim? one for each sequence (maybe three for the cross_attn?)
+        [x] receive params as tuples? NO
+        [x] add cls tokens? - see the above model for ref
+        [ ] pass parameters to wrappers? diff params for each seq? TODO
+        [x] supports two different emb_dim? one for each sequence (maybe three for the cross_attn?)  NO
     ##################
 
     """
@@ -86,6 +86,7 @@ class CrossAttentionTransformer(nn.Module):
         heads_a: int = 9,
         heads_b: int = 9,
         output_dim: Optional[int] = None,
+        num_cls_tokens: int = 1,
         context: str = "seq_b",
     ):
         """
@@ -100,6 +101,7 @@ class CrossAttentionTransformer(nn.Module):
         :param heads_a: number of attention heads for the first sequence's encoder
         :param heads_b: number of attention heads for the second sequence's encoder
         :param output_dim: (optional) model's output dimension. if not give the emb dim will be used as default.
+        :param num_cls_tokens: TODO
         :param context: which sequence will be used as context in the cross attention module:
                         "seq_a": the first sequence will be used as a context
                         "seq_b": the second sequence will be used as a context
@@ -112,6 +114,8 @@ class CrossAttentionTransformer(nn.Module):
 
         assert context in ["seq_a", "seq_b", "both"]
         self._context = context
+        self._num_cls_tokens = num_cls_tokens
+        self._high_cls_token = min(num_tokens_a, num_tokens_b)
 
         # init sequences' encoders
         self.enc_a = TransformerWrapper(
@@ -142,23 +146,33 @@ class CrossAttentionTransformer(nn.Module):
         :param xa: tensor with shape [batch_size, seq_len_a]
         :param xb: tensor with shape [batch_size, seq_len_b]
         """
-        enc_xa = self.enc_a(xa, return_embeddings=True)  # enc_xa.shape -> [batch_size, seq_len_a, emb_size]
-        enc_xb = self.enc_b(xb, return_embeddings=True)  # enc_xb.shape -> [batch_size, seq_len_b, emb_size]
+        # create random classification tokens
+        b, _ = xa.shape
+        cls_tokens = torch.randint(self._high_cls_token, (b, self._num_cls_tokens))
 
+        # concat the cls tokens with respect to which seq is the context
+        if self._context in ["seq_b", "both"]:
+            xa = torch.cat((cls_tokens, xa), dim=1)
+
+        else:
+            xb = torch.cat((cls_tokens, xb), dim=1)
+
+        # encoding stage
+        enc_xa = self.enc_a(xa, return_embeddings=True)
+        enc_xb = self.enc_b(xb, return_embeddings=True)
+
+        # cross attention stage
         if self._context == "seq_a":
-            x = self.cross_attn(enc_xb, context=enc_xa)  # x_bca.shape -> [batch_size, seq_len_a, emb_size]
+            x = self.cross_attn(enc_xb, context=enc_xa)
 
         if self._context == "seq_b":
-            x = self.cross_attn(enc_xa, context=enc_xb)  # x.shape -> [batch_size, seq_len_b, emb_size]
+            x = self.cross_attn(enc_xa, context=enc_xb)
 
         if self._context == "both":
-            x_acb = self.cross_attn_b_as_context(
-                enc_xa, context=enc_xb
-            )  # x_acb.shape -> [batch_size, seq_len_a, emb_size]
-            x_bca = self.cross_attn_a_as_context(
-                enc_xb, context=enc_xa
-            )  # x_bca.shape -> [batch_size, seq_len_b, emb_size]
-            x = torch.cat((x_acb, x_bca), dim=1)  # x_bca.shape -> [batch_size, seq_len_a+seq_len_b, emb_size]
+            x_acb = self.cross_attn_b_as_context(enc_xa, context=enc_xb)
+            x_bca = self.cross_attn_a_as_context(enc_xb, context=enc_xa)
+            x = torch.cat((x_acb, x_bca), dim=1)
 
-        x = self.last_linear(x)  # x_bca.shape -> [batch_size, seq_len_a+seq_len_b, output_dim]
+        # linear layer
+        x = self.last_linear(x)
         return x
