@@ -112,11 +112,7 @@ train: # arguments for train() in classifiers_main_train.py
   opt:
     _partial_: true
     _target_: torch.optim.AdamW
-<<<<<<< HEAD
     lr: 1.0e-3
-=======
-    lr: 1e-3
->>>>>>> a86e706094d3dfbce51cc090f65055d386a5730c
   
   # linear_schedule_with_warmup
   lr_scheduler:
