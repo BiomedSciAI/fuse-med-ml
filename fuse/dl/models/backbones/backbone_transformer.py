@@ -75,7 +75,6 @@ class CrossAttentionTransformer(nn.Module):
         heads_a: int = 9,
         heads_b: int = 9,
         output_dim: Optional[int] = None,
-        num_cls_tokens: int = 1,
         context: str = "seq_b",
     ):
         """
@@ -103,8 +102,6 @@ class CrossAttentionTransformer(nn.Module):
 
         assert context in ["seq_a", "seq_b", "both"]
         self._context = context
-        self._num_cls_tokens = num_cls_tokens
-        self._high_cls_token = min(num_tokens_a, num_tokens_b)
 
         # init sequences' encoders
         self.enc_a = TransformerWrapper(
@@ -135,17 +132,6 @@ class CrossAttentionTransformer(nn.Module):
         :param xa: tensor with shape [batch_size, seq_len_a]
         :param xb: tensor with shape [batch_size, seq_len_b]
         """
-        # create random class tokens
-        b, _ = xa.shape
-        cls_tokens = torch.randint(self._high_cls_token, (b, self._num_cls_tokens))
-
-        # concat the cls tokens with respect to which seq is the context
-        if self._context in ["seq_b", "both"]:
-            xa = torch.cat((cls_tokens, xa), dim=1)
-
-        else:
-            xb = torch.cat((cls_tokens, xb), dim=1)
-
         # encoding stage
         enc_xa = self.enc_a(xa, return_embeddings=True)
         enc_xb = self.enc_b(xb, return_embeddings=True)
