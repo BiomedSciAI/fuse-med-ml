@@ -15,7 +15,8 @@ from fuse.data.ops.ops_common import OpLookup, OpSetIfNotExist
 from fuse.data.utils.split import dataset_balanced_division_to_folds
 from fuse.data.utils.export import ExportDataset
 
-from utils import seq_translate, position_idx, special_tokens, seq_pad, WordVocab
+from examples.fuse_examples.multimodality.ehr_transformer.utils import seq_translate,\
+     position_idx, special_tokens, seq_pad, WordVocab
 
 
 VALID_TESTS_ABOVE_ZERO = [
@@ -444,6 +445,7 @@ class PhysioNetCinC:
             df_patients = PhysioNetCinC._combine_data_by_patients(df_raw_data, df_outcomes)
 
             if raw_data_pkl is not None:
+                print("Create pickle")
                 with open(raw_data_pkl, "wb") as f:
                     pickle.dump([df_patients, patient_ids], f)
 
