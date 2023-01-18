@@ -87,7 +87,7 @@ class CrossAttentionTransformer(nn.Module):
         :param heads_a: number of attention heads for the first sequence's encoder
         :param heads_b: number of attention heads for the second sequence's encoder
         :param output_dim: (optional) model's output dimension. if not give the emb dim will be used as default.
-        :param num_cls_tokens: TODO
+        :param num_cls_tokens: number of class tokens to add to the input seq(s)
         :param context: which sequence will be used as context in the cross attention module:
                         "seq_a": the first sequence will be used as a context
                         "seq_b": the second sequence will be used as a context
@@ -132,7 +132,7 @@ class CrossAttentionTransformer(nn.Module):
         :param xa: tensor with shape [batch_size, seq_len_a]
         :param xb: tensor with shape [batch_size, seq_len_b]
         """
-        # create random classification tokens
+        # create random class tokens
         b, _ = xa.shape
         cls_tokens = torch.randint(self._high_cls_token, (b, self._num_cls_tokens))
 
@@ -151,10 +151,10 @@ class CrossAttentionTransformer(nn.Module):
         if self._context == "seq_a":
             x = self.cross_attn(enc_xb, context=enc_xa)
 
-        if self._context == "seq_b":
+        elif self._context == "seq_b":
             x = self.cross_attn(enc_xa, context=enc_xb)
 
-        if self._context == "both":
+        else:
             x_acb = self.cross_attn_b_as_context(enc_xa, context=enc_xb)
             x_bca = self.cross_attn_a_as_context(enc_xb, context=enc_xa)
             x = torch.cat((x_acb, x_bca), dim=1)
