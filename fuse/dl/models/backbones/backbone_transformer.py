@@ -57,6 +57,9 @@ class CrossAttentionTransformer(nn.Module):
         two sequences 'seq_a, seq_b' with shapes [batch_size, len(seq_a)], [batch_size, len(seq_b)] respectively.
     Output:
         features tensor with shape [batch_size, output_dim]
+
+    see the following blog post for more info regarding cross attention in transformers:
+        https://vaclavkosar.com/ml/cross-attention-in-transformer-architecture
     """
 
     def __init__(
