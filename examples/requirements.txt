@@ -3,3 +3,4 @@
 pydicom
 scikit-image
 medpy
+transformers
