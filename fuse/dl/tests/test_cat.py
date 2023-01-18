@@ -56,15 +56,15 @@ class TestCrossAttentionTransformer(unittest.TestCase):
         # init random sequences that don't exceed max sequences length
         seq_a_len = random.randint(0, model_params["max_seq_len_a"])
         seq_b_len = random.randint(0, model_params["max_seq_len_b"])
-        s1 = torch.randint(0, model_params["num_tokens_a"], (1, seq_a_len))
-        s2 = torch.randint(0, model_params["num_tokens_b"], (1, seq_b_len))
+        batch_size = random.randint(1, 10)
+        s1 = torch.randint(0, model_params["num_tokens_a"], (batch_size, seq_a_len))
+        s2 = torch.randint(0, model_params["num_tokens_b"], (batch_size, seq_b_len))
 
         # processing sample
         output = model(s1, s2)
-        print(output.shape)
 
         # validation
-        assert output.shape[0] == 1
+        assert output.shape[0] == batch_size
         if output[:, 0].shape[1] != model_params["output_dim"]:
             raise Exception(
                 f"Expected output dimension to be {model_params['output_dim']}, but got: {output.shape[1]}. used model parameters: {model_params}."
