@@ -28,56 +28,58 @@ import yaml
 from examples.fuse_examples.multimodality.ehr_transformer.main_train import main as main_train
 
 
-if "CINC_TEST_DATA_PATH" in os.environ:    
+if "CINC_TEST_DATA_PATH" in os.environ:
     TEST_PARAMS = {
-        'CONFIG_PATH' : os.path.dirname(__file__) +'/../multimodality/ehr_transformer/config.yaml',
-        'TEST_DATA_DIR' : os.environ["CINC_TEST_DATA_PATH"], 
-        'TEST_DATA_PICKL' : None,
-        'ROOT' : os.environ["CINC_TEST_DATA_PATH"],
-        'NAME' : 'ehr_transformer_test',
-        'BATCH_SIZE' : 30,
-        'NUM_EPOCHS' : 2,
+        "CONFIG_PATH": os.path.dirname(__file__) + "/../multimodality/ehr_transformer/config.yaml",
+        "TEST_DATA_DIR": os.environ["CINC_TEST_DATA_PATH"],
+        "TEST_DATA_PICKL": None,
+        "ROOT": os.environ["CINC_TEST_DATA_PATH"],
+        "NAME": "ehr_transformer_test",
+        "BATCH_SIZE": 30,
+        "NUM_EPOCHS": 2,
     }
+
 
 def init_test_environment() -> DictConfig:
 
-    with open(TEST_PARAMS['CONFIG_PATH'], 'r') as file:
-            cfg = yaml.safe_load(file)
-        
-    #update confifuration relevant to the unitest TEST DATA folder 
-    cfg['root'] = TEST_PARAMS['ROOT']
-    cfg['name'] = TEST_PARAMS['NAME']
-    cfg['data']['batch_size'] = TEST_PARAMS['BATCH_SIZE']
-    cfg['data']['dataset_cfg']['raw_data_path'] = TEST_PARAMS['TEST_DATA_DIR']  
-    cfg['data']['dataset_cfg']['raw_data_pkl'] = TEST_PARAMS['TEST_DATA_PICKL']
-    cfg['train']['trainer_kwargs']['max_epochs'] = TEST_PARAMS['NUM_EPOCHS']
+    with open(TEST_PARAMS["CONFIG_PATH"], "r") as file:
+        cfg = yaml.safe_load(file)
+
+    # update confifuration relevant to the unitest TEST DATA folder
+    cfg["root"] = TEST_PARAMS["ROOT"]
+    cfg["name"] = TEST_PARAMS["NAME"]
+    cfg["data"]["batch_size"] = TEST_PARAMS["BATCH_SIZE"]
+    cfg["data"]["dataset_cfg"]["raw_data_path"] = TEST_PARAMS["TEST_DATA_DIR"]
+    cfg["data"]["dataset_cfg"]["raw_data_pkl"] = TEST_PARAMS["TEST_DATA_PICKL"]
+    cfg["train"]["trainer_kwargs"]["max_epochs"] = TEST_PARAMS["NUM_EPOCHS"]
 
     return cfg
 
-def remove_test_folder(cfg: DictConfig) -> None:    
-    shutil.rmtree(cfg['root']+'/'+cfg['name'])
+
+def remove_test_folder(cfg: DictConfig) -> None:
+    shutil.rmtree(cfg["root"] + "/" + cfg["name"])
 
 
 def run_ehr_transformer(cfg: DictConfig) -> None:
 
-    try:             
+    try:
         main_train(cfg)
 
     except:
-            raise Exception("Training EHR Transformer Failed.")
+        raise Exception("Training EHR Transformer Failed.")
 
 
-@unittest.skipIf("CINC_TEST_DATA_PATH" not in os.environ, "define environment variable 'CINC_TEST_DATA_PATH' to run this test")
+@unittest.skipIf(
+    "CINC_TEST_DATA_PATH" not in os.environ, "define environment variable 'CINC_TEST_DATA_PATH' to run this test"
+)
 class EHRTransformerTestCase(unittest.TestCase):
     def setUp(self):
-         #self.root = tempfile.mkdtemp()
-         self.cfg = init_test_environment()
+        self.cfg = init_test_environment()
 
     def test_template(self):
-        run_in_subprocess(run_ehr_transformer,self.cfg)
+        run_in_subprocess(run_ehr_transformer, self.cfg)
 
     def tearDown(self):
-    #    # Delete temporary directories
         remove_test_folder(self.cfg)
 
 
