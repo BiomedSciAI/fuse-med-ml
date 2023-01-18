@@ -57,20 +57,6 @@ class CrossAttentionTransformer(nn.Module):
         two sequences 'seq_a, seq_b' with shapes [batch_size, len(seq_a)], [batch_size, len(seq_b)] respectively.
     Output:
         features tensor with shape [batch_size, output_dim]
-
-    ##################
-    TODO's:
-    [x] support output_dim parameter
-    [x] remove head (return features with size 'output_dim')
-    [x] clean and document
-    [ ] attach example (Waiting for PR in fuse drugs)
-    future ideas:
-        [x] receive params as tuples? NO
-        [x] add cls tokens? - see the above model for ref
-        [ ] pass parameters to wrappers? diff params for each seq? TODO
-        [x] supports two different emb_dim? one for each sequence (maybe three for the cross_attn?)  NO
-    ##################
-
     """
 
     def __init__(
