@@ -102,7 +102,7 @@ class BackboneResnet3D(nn.Module):
         self,
         *,
         in_channels: int = 3,
-        pool: bool = True,
+        pool: bool = False,
         layers: List[int] = [2, 2, 2, 2],
         first_channel_dim: int = 64,
         first_stride: int = 1,
