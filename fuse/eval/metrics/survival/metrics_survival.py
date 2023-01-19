@@ -22,7 +22,7 @@ from typing import Optional
 
 from fuse.eval.metrics.libs.survival import MetricsSurvival
 from fuse.eval.metrics.metrics_common import MetricDefault
-
+from functools import partial
 
 class MetricCIndex(MetricDefault):
     """
@@ -66,6 +66,8 @@ class MetricExpectedCIndex(MetricDefault):
         pred: str,
         event_times: str,
         event_observed: str,
+        time_unit: Optional[int] = 1,
+        time_followup: Optional[int] = None,
         **kwargs,
     ):
         """
@@ -79,6 +81,6 @@ class MetricExpectedCIndex(MetricDefault):
             target=None,
             event_times=event_times,
             event_observed=event_observed,
-            metric_func=MetricsSurvival.expected_cindex,
+            metric_func=partial(MetricsSurvival.expected_cindex, time_unit=time_unit,time_followup=time_followup),
             **kwargs,
         )

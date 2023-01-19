@@ -40,6 +40,7 @@ class MetricsSurvival:
         pred: np.ndarray,
         event_times: np.ndarray,
         event_observed: np.ndarray,
+        **kwargs
     ) -> float:
         """
         Compute expected c-index (concordance index) score when given a survival distribution
@@ -56,4 +57,5 @@ class MetricsSurvival:
         # [1,...,0] - highest risk
         # [0,...,1] - lowest risk
         expected_event_time = (pred * np.arange(num_bins)).sum(axis=1)
-        return concordance_index(event_times, expected_event_time, event_observed)
+        pred = -expected_event_time  #larger expected_event_time ==> smaller risk/predicion_score
+        return MetricsSurvival.c_index(event_times=event_times, pred=pred, event_observed=event_observed, **kwargs)
