@@ -19,6 +19,7 @@ Created on June 30, 2021
 
 import shutil
 import unittest
+import tempfile
 import os
 
 from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
@@ -33,20 +34,19 @@ if "CINC_TEST_DATA_PATH" in os.environ:
         "CONFIG_PATH": os.path.dirname(__file__) + "/../multimodality/ehr_transformer/config.yaml",
         "TEST_DATA_DIR": os.environ["CINC_TEST_DATA_PATH"],
         "TEST_DATA_PICKL": None,
-        "ROOT": os.environ["CINC_TEST_DATA_PATH"],
         "NAME": "ehr_transformer_test",
         "BATCH_SIZE": 30,
         "NUM_EPOCHS": 2,
     }
 
 
-def init_test_environment() -> DictConfig:
+def init_test_environment(root: str) -> DictConfig:
 
     with open(TEST_PARAMS["CONFIG_PATH"], "r") as file:
         cfg = yaml.safe_load(file)
 
     # update confifuration relevant to the unitest TEST DATA folder
-    cfg["root"] = TEST_PARAMS["ROOT"]
+    cfg["root"] = root
     cfg["name"] = TEST_PARAMS["NAME"]
     cfg["data"]["batch_size"] = TEST_PARAMS["BATCH_SIZE"]
     cfg["data"]["dataset_cfg"]["raw_data_path"] = TEST_PARAMS["TEST_DATA_DIR"]
@@ -54,10 +54,6 @@ def init_test_environment() -> DictConfig:
     cfg["train"]["trainer_kwargs"]["max_epochs"] = TEST_PARAMS["NUM_EPOCHS"]
 
     return cfg
-
-
-def remove_test_folder(cfg: DictConfig) -> None:
-    shutil.rmtree(cfg["root"] + "/" + cfg["name"])
 
 
 def run_ehr_transformer(cfg: DictConfig) -> None:
@@ -74,13 +70,14 @@ def run_ehr_transformer(cfg: DictConfig) -> None:
 )
 class EHRTransformerTestCase(unittest.TestCase):
     def setUp(self):
-        self.cfg = init_test_environment()
+        self.root = tempfile.mkdtemp()
+        self.cfg = init_test_environment(self.root)
 
     def test_template(self):
         run_in_subprocess(run_ehr_transformer, self.cfg)
 
     def tearDown(self):
-        remove_test_folder(self.cfg)
+        shutil.rmtree(self.root)
 
 
 if __name__ == "__main__":
