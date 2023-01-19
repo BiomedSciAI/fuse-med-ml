@@ -111,6 +111,20 @@ class BackboneResnet3D(nn.Module):
         pretrained: bool = False,
         name: str = "r3d_18",
     ) -> None:
+        """
+        :param in_channels: number of channels in the image
+        :param pool: whether to use global average pooling to reduce the spacial dimensions after the convolutional layers
+
+        :param layers: number of resnet blocks in every layer
+        :param first_channel_dim: number of channels in the first layer. Every layer increases the channels by x2.
+        :param first_stride: the stride in the first layer. using 2 will downsample the image by x2 in every spatial axis.
+
+        :param stem_kernel_size: kernel size for the stem (first convolution)
+        :param stem_stride: stride of the stem in every axis.
+
+        :param pretrained: if True loads the pretrained video resnet model.
+        :param name: name of the model to load, relevant only if pretrained=True
+        """
         super().__init__()
         self.inplanes = first_channel_dim
         self.stem = BasicStem(in_channels, first_channel_dim, kernel_size=stem_kernel_size, stride=stem_stride)
@@ -122,6 +136,7 @@ class BackboneResnet3D(nn.Module):
         self.out_dim = first_channel_dim * 8
         self.avgpool = nn.AdaptiveAvgPool3d((1, 1, 1))
         self._pool = pool
+        self._pretrained = pretrained
 
         if pretrained:
             state_dict = load_state_dict_from_url(model_urls[name])
@@ -176,4 +191,11 @@ class BackboneResnet3D(nn.Module):
         return x
 
     def forward(self, x: Tensor) -> Tensor:
+        """
+        Forward pass. 3D global classification given a volume
+        :param x: Input volume. shape: [batch_size, channels, z, y, x]
+        :return: if pool is True:  feature vector per sample. shape: [batch_size, first_channel_dim * 8].
+                 if pool is False: a 5D tensor of shape [batch_size, first_channel_dim * 8, z, y, x]
+                                   where z,y,x are x8 or x16 smaller than the original dim (depends on the strides used)
+        """
         return self.features(x)
