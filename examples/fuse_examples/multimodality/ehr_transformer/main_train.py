@@ -1,4 +1,3 @@
-from dataset import PhysioNetCinC
 from typing import Any, Optional, Tuple
 import hydra
 from omegaconf import DictConfig
@@ -21,8 +20,8 @@ from fuse.eval.metrics.classification.metrics_classification_common import Metri
 from fuse.dl.losses import LossDefault
 from fuse.utils import NDict
 
-
 from examples.fuse_examples.multimodality.ehr_transformer.model import Embed, TransformerEncoder, Bert, BertConfig
+from examples.fuse_examples.multimodality.ehr_transformer.dataset import PhysioNetCinC
 
 
 def filter_gender_label_unknown_for_loss(batch_dict: NDict) -> NDict:
