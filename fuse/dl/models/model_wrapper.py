@@ -85,6 +85,8 @@ class ModelWrapSeqToDict(torch.nn.Module):
             batch_dict[self.model_outputs[0]] = model_output
         else:
             for i, output_name in enumerate(self.model_outputs):
+                if output_name is None:
+                    continue
                 batch_dict[output_name] = model_output[i]
 
         return batch_dict
