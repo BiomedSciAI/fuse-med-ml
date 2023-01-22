@@ -47,3 +47,4 @@ examples/fuse_examples/imaging/classification/mnist/_examples/
 examples/fuse_examples/imaging/classification/stoic21/_examples/
 examples/fuse_examples/imaging/ml_pipelines/stoic21/results/
 _examples
+run_script.py

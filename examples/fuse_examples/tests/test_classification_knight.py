@@ -83,9 +83,11 @@ class KnightTestTestCase(unittest.TestCase):
         imaging_dropout : 0.5
         fused_dropout : 0.5
         testing : True
+        reset_cache : False
 
         task_1:
             num_classes : 2
+            class_names: False
             target_name : "data.gt.gt_global.task_1_label"
             target_metric : "validation.metrics.auc"
         """

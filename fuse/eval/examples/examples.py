@@ -26,6 +26,7 @@ from collections import OrderedDict
 
 import pandas as pd
 import numpy as np
+from fuse.eval.metrics.survival.metrics_survival import MetricCIndex
 
 from fuse.utils import set_seed
 
@@ -751,6 +752,96 @@ def example_14() -> Dict[str, Any]:
                     pred="results:metrics.apply_thresh.cls_pred",
                     target="0.data.label",
                 ),
+            ),
+        ]
+    )
+
+    evaluator = EvaluatorDefault()
+    results = evaluator.eval(ids=None, data=data, metrics=metrics)
+
+    return results
+
+
+def example_15():
+    """
+    General group analysis example - compute the AUC for each group separately.
+    In this case the grouping is done according to gender
+    """
+    data = {
+        "pred": [0.1, 0.2, 0.6, 0.7, 0.8, 0.3, 0.6, 0.2, 0.7, 0.9],
+        "event_times": [0, 0, 1, 1, 1, 0, 0, 1, 1, 1],
+        "id": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+        "gender": ["female", "female", "female", "female", "female", "male", "male", "male", "male", "male"],
+    }
+    data = pd.DataFrame(data)
+
+    metrics = OrderedDict(
+        [("cindex_per_group", GroupAnalysis(MetricCIndex(pred="pred", event_times="event_times"), group="gender"))]
+    )
+
+    evaluator = EvaluatorDefault()
+    results = evaluator.eval(ids=None, data=data, metrics=metrics)
+
+    return results
+
+
+def example_16():
+    """
+    General group analysis example - compute the AUC for each group separately.
+    In this case the grouping is done according to gender
+    """
+    data = {
+        "pred": [0.1, 0.2, 0.6, 0.7, 0.8, 0.3, 0.6, 0.2, 0.7, 0.9],
+        "event_observed": 1 - np.asarray([0, 0, 1, 1, 1, 0, 0, 1, 1, 1]),
+        "event_times": [1] * 10,
+        "id": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+        "gender": ["female", "female", "female", "female", "female", "male", "male", "male", "male", "male"],
+    }
+    data = pd.DataFrame(data)
+
+    metrics = OrderedDict(
+        [
+            (
+                "cindex_per_group",
+                GroupAnalysis(
+                    MetricCIndex(pred="pred", event_times="event_times", event_observed="event_observed"),
+                    group="gender",
+                ),
+            )
+        ]
+    )
+
+    evaluator = EvaluatorDefault()
+    results = evaluator.eval(ids=None, data=data, metrics=metrics)
+
+    return results
+
+
+def example_17() -> Dict:
+    """
+    Test of C-Index test implementation
+    """
+
+    # Toy example:
+
+    # An indicator whether the event was observed [optional: if not supplied all events are assumed to be observed]
+    toy_data = dict(
+        id=list(range(10)),
+        pred=[0.1, 0.2, 0.3, 0.4, 0.5] + [0.2, 0.1, 0.4, 0.3, 0.7],
+        event_observed=[0, 0, 0, 0, 0] + [1, 1, 1, 1, 1],
+        event_times=[1, 2, 3, 4, 5] + [1, 2, 3, 4, 5],  # event time / censor time
+    )
+    # convert to dataframes:
+    df = pd.DataFrame(data=toy_data)
+
+    data = {"data": df}
+
+    # list of metrics
+    metrics = OrderedDict(
+        [
+            (
+                "c_index_test",
+                MetricCIndex(pred="data.pred", event_times="data.event_times", event_observed="data.event_observed"),
             ),
         ]
     )

@@ -31,7 +31,7 @@ class LightningModuleDefault(pl.LightningModule):
     def __init__(
         self,
         model_dir: str,
-        model: Optional[torch.nn.Module] = None,
+        model: torch.nn.Module,
         losses: Optional[Dict[str, LossBase]] = None,
         train_metrics: Optional[OrderedDict[str, MetricBase]] = None,
         validation_metrics: Optional[OrderedDict[str, MetricBase]] = None,
@@ -40,6 +40,7 @@ class LightningModuleDefault(pl.LightningModule):
         callbacks: Optional[Sequence[pl.Callback]] = None,
         best_epoch_source: Optional[Union[Dict, List[Dict]]] = None,
         save_hyperparameters: Optional[List[str]] = None,
+        tensorboard_sep: str = ".",
         **kwargs: dict,
     ):
         """
@@ -55,6 +56,7 @@ class LightningModuleDefault(pl.LightningModule):
         :param best_epoch_source: Create list of pl.callbacks that saves checkpoints using (pl.callbacks.ModelCheckpoint) and print per epoch summary (fuse.dl.lightning.pl_epoch_summary.ModelEpochSummary).
                                   Either a dict with arguments to pass to ModelCheckpoint or list dicts for multiple ModelCheckpoint callbacks (to monitor and save checkpoints for more then one metric).
         :param save_hyperparameters: specify which hyperparameters you would like to save. Default None.  See pl.LightningModule.save_hyperparameters() for more details.
+        :param tensorboard_sep: use "/" for cleaner tensorboard. "." is for backward compatibility.
         """
         super().__init__(**kwargs)
         if save_hyperparameters is not None:
@@ -75,6 +77,7 @@ class LightningModuleDefault(pl.LightningModule):
 
         # init state
         self._prediction_keys = None
+        self._sep = tensorboard_sep
 
     ## forward
     def forward(self, batch_dict: NDict) -> NDict:
@@ -82,6 +85,8 @@ class LightningModuleDefault(pl.LightningModule):
 
     ## Step
     def training_step(self, batch_dict: NDict, batch_idx: int) -> dict:
+        # add step number to batch_dict
+        batch_dict["global_step"] = self.global_step
         # run forward function and store the outputs in batch_dict["model"]
         batch_dict = self.forward(batch_dict)
         # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss and save losses values in batch_dict["losses"]
@@ -92,6 +97,8 @@ class LightningModuleDefault(pl.LightningModule):
         return {"loss": total_loss, "losses": batch_dict["losses"]}
 
     def validation_step(self, batch_dict: NDict, batch_idx: int) -> dict:
+        # add step number to batch_dict
+        batch_dict["global_step"] = self.global_step
         # run forward function and store the outputs in batch_dict["model"]
         batch_dict = self.forward(batch_dict)
         # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss (ignored) and save losses values in batch_dict["losses"]
@@ -103,6 +110,8 @@ class LightningModuleDefault(pl.LightningModule):
         return {"losses": batch_dict["losses"]}
 
     def test_step(self, batch_dict: NDict, batch_idx: int) -> dict:
+        # add step number to batch_dict
+        batch_dict["global_step"] = self.global_step
         # run forward function and store the outputs in batch_dict["model"]
         batch_dict = self.forward(batch_dict)
         # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss (ignored) and save losses values in batch_dict["losses"]
@@ -128,25 +137,25 @@ class LightningModuleDefault(pl.LightningModule):
         # for the logs to be at each epoch, not each step
         self.log("step", float(self.current_epoch), on_epoch=True, sync_dist=True)
         # calc average epoch loss and log it
-        epoch_end_compute_and_log_losses(self, "train", [e["losses"] for e in step_outputs])
+        epoch_end_compute_and_log_losses(self, "train", [e["losses"] for e in step_outputs], sep=self._sep)
         # evaluate  and log it
-        epoch_end_compute_and_log_metrics(self, "train", self._train_metrics)
+        epoch_end_compute_and_log_metrics(self, "train", self._train_metrics, sep=self._sep)
 
     def validation_epoch_end(self, step_outputs: List[dict]) -> None:
         # for the logs to be at each epoch, not each step
         self.log("step", float(self.current_epoch), on_epoch=True, sync_dist=True)
         # calc average epoch loss and log it
-        epoch_end_compute_and_log_losses(self, "validation", [e["losses"] for e in step_outputs])
+        epoch_end_compute_and_log_losses(self, "validation", [e["losses"] for e in step_outputs], sep=self._sep)
         # evaluate  and log it
-        epoch_end_compute_and_log_metrics(self, "validation", self._validation_metrics)
+        epoch_end_compute_and_log_metrics(self, "validation", self._validation_metrics, sep=self._sep)
 
     def test_epoch_end(self, step_outputs: List[dict]) -> None:
         # for the logs to be at each epoch, not each step
         self.log("step", self.current_epoch, on_epoch=True, sync_dist=True)
         # calc average epoch loss and log it
-        epoch_end_compute_and_log_losses(self, "test", [e["losses"] for e in step_outputs])
+        epoch_end_compute_and_log_losses(self, "test", [e["losses"] for e in step_outputs], sep=self._sep)
         # evaluate  and log it
-        epoch_end_compute_and_log_metrics(self, "test", self._test_metrics)
+        epoch_end_compute_and_log_metrics(self, "test", self._test_metrics, sep=self._sep)
 
     # configuration
     def configure_callbacks(self) -> Sequence[pl.Callback]:

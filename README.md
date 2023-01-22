@@ -101,16 +101,16 @@ class OpPad(OpBase):
         key_out:Optional[str]=None,
         ):
 
-        #we extract the element in the defined key location (for example 'input.xray_img')
+        # we extract the element in the defined key location (for example 'input.xray_img')
         img = sample_dict[key_in]
         assert isinstance(img, np.ndarray), f'Expected np.ndarray but got {type(img)}'
         processed_img = np.pad(img, pad_width=padding, mode=mode, constant_values=fill)
 
-        #store the result in the requested output key (or in key_in if no key_out is provided)
+        # store the result in the requested output key (or in key_in if no key_out is provided)
         key_out = key_in if key_out is None
         sample_dict[key_out] = processed_img
 
-        #returned the modified nested dict
+        # returned the modified nested dict
         return sample_dict
 ```
 
@@ -213,12 +213,12 @@ $ pip install fuse-med-ml[all]
     * [**MNIST**](./examples/fuse_examples/imaging/classification/mnist/)  - a simple example, including training, inference and evaluation over [MNIST dataset](http://yann.lecun.com/exdb/mnist/)
     * [**STOIC**](./examples/fuse_examples/imaging/classification/stoic21/) - severe COVID-19 classifier baseline given a Computed-Tomography (CT), age group and gender. [Challenge description](https://stoic2021.grand-challenge.org/)
 
-
     * [**KNIGHT Challenge**](./examples/fuse_examples/imaging/classification/knight) - preoperative prediction of risk class for patients with renal masses identified in clinical Computed Tomography (CT) imaging of the kidneys. Including data pre-processing, baseline implementation and evaluation pipeline for the challenge.
     * [**Multimodality tutorial**](https://colab.research.google.com/github/BiomedSciAI/fuse-med-ml/blob/master/examples/fuse_examples/multimodality/image_clinical/multimodality_image_clinical.ipynb) - demonstration of two popular simple methods integrating imaging and clinical data (tabular) using FuseMedML
     * [**Skin Lesion**](./examples/fuse_examples/imaging/classification/isic/) - skin lesion classification , including training, inference and evaluation over the public dataset introduced in [ISIC challenge](https://challenge.isic-archive.com/landing/2019)
     * [**Breast Cancer Lesion Classification**](./examples/fuse_examples/imaging/classification/cmmd) - lesions classification of tumor ( benign, malignant) in breast mammography over the public dataset introduced in [The Chinese Mammography Database (CMMD)](https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508)
-
+    * [**Mortality prediction for ICU patients**](./examples/fuse_examples/multimodality/ehr_transformer) - Example of EHR transformer applied to the data of Intensive Care Units patients for in-hospital mortality prediction. The dataset is from [PhysioNet Computing in Cardiology Challenge (2012)](https://physionet.org/content/challenge-2012/1.0.0/)
+    
 ## Walkthrough template
 * [**Walkthrough Template**](./fuse/dl/templates/walkthrough_template.py) - includes several TODO notes, marking the minimal scope of code required to get your pipeline up and running. The template also includes useful explanations and tips.
 

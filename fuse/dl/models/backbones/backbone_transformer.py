@@ -21,11 +21,13 @@ class Transformer(nn.Module):
         mlp_dim: int,
         dim_head: int = 64,
         dropout: float = 0.0,
-        emb_dropout: float = 0.0
+        emb_dropout: float = 0.0,
+        num_cls_tokens: int = 1
     ):
         super().__init__()
-        self.pos_embedding = nn.Parameter(torch.randn(1, num_tokens + 1, token_dim))
-        self.cls_token = nn.Parameter(torch.randn(1, 1, token_dim))
+        self.num_cls_tokens = num_cls_tokens
+        self.pos_embedding = nn.Parameter(torch.randn(1, num_tokens + num_cls_tokens, token_dim))
+        self.cls_token = nn.Parameter(torch.randn(1, num_cls_tokens, token_dim))
         self.dropout = nn.Dropout(emb_dropout)
         self.transformer = _Transformer(
             dim=token_dim, depth=depth, heads=heads, dim_head=dim_head, mlp_dim=mlp_dim, dropout=dropout
@@ -37,7 +39,7 @@ class Transformer(nn.Module):
         :return: [batch_size, num_tokens + 1, token_dim] shaped tensor, where the first token is the CLS token
         """
         b, n, _ = x.shape
-        cls_tokens = repeat(self.cls_token, "1 1 d -> b 1 d", b=b)
+        cls_tokens = repeat(self.cls_token, "1 a d -> b a d", b=b)
         x = torch.cat((cls_tokens, x), dim=1)
         x += self.pos_embedding
         x = self.dropout(x)

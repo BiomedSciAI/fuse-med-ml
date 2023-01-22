@@ -228,7 +228,10 @@ class MetricCollector(MetricBase):
             # convert required ids to permutation
             original_ids = self._collected_ids
             required_ids = ids
-            permutation = [original_ids.index(sample_id) for sample_id in required_ids]
+            original_ids_pos = {s: i for (i, s) in enumerate(original_ids)}
+
+            # permutation_old = [original_ids.index(sample_id) for sample_id in required_ids]  #16.399551391601562
+            permutation = [original_ids_pos[sample_id] for sample_id in required_ids]  # 0.008132457733154297 seconds
 
             # create the permuted dictionary
             data = {}
@@ -531,7 +534,7 @@ class Filter(MetricWithCollectorBase):
             ids = self._collector.get_ids()
         if not ids:
             raise Exception(
-                "Error: group analysis is supported only when a unique identifier is specified. Add key 'id' to your data"
+                "Error: filtering is supported only when a unique identifier is specified. Add key 'id' to your data"
             )
         ids = np.array(ids)
 

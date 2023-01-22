@@ -148,7 +148,7 @@ def dataset_balanced_division_to_folds(
     :param mp_context : multiprocessing context: "fork", "spawn", etc.
     :param kwargs: more arguments controlling the split. See function balanced_division() for details
     """
-    if os.path.exists(output_split_filename) and not reset_split:
+    if output_split_filename is not None and os.path.exists(output_split_filename) and not reset_split:
         return load_pickle(output_split_filename)
     else:
         if id == get_sample_id_key():
@@ -163,5 +163,6 @@ def dataset_balanced_division_to_folds(
         folds = {}
         for fold in range(nfolds):
             folds[fold] = list(df_folds[df_folds["fold"] == fold][get_sample_id_key()])
-        save_pickle(folds, output_split_filename)
+        if output_split_filename is not None:
+            save_pickle(folds, output_split_filename)
         return folds
