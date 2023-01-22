@@ -17,13 +17,14 @@ class ProjectPatchesTokenizer(nn.Module):
     batch_size, num_tokens, token_dim
     """
 
-    def __init__(self, *, image_shape: Sequence[int], patch_shape: Sequence[int], channels: int, token_dim: int):
+    def __init__(self, *, image_shape: Sequence[int], patch_shape: Sequence[int], channels: int, token_dim: int, strict: bool = True):
         super().__init__()
         assert len(image_shape) == len(patch_shape), "patch and image must have identical dimensions"
-        image_shape = np.array(image_shape)
-        patch_shape = np.array(patch_shape)
-        assert (image_shape % patch_shape == 0).all(), "Image dimensions must be divisible by the patch size."
-        self.num_tokens = int(np.prod(image_shape // patch_shape))
+        np_image_shape = np.array(image_shape)
+        np_patch_shape = np.array(patch_shape)
+        if strict:
+            assert (np_image_shape % np_patch_shape == 0).all(), "Image dimensions must be divisible by the patch size."
+        self.num_tokens = int(np.prod(np_image_shape // np_patch_shape))
         patch_shape = tuple(patch_shape)
         self.image_dim = len(image_shape)
         if self.image_dim == 1:
