@@ -30,6 +30,9 @@ class ProjectPatchesTokenizer(nn.Module):
         assert len(image_shape) == len(patch_shape), "patch and image must have identical dimensions"
         np_image_shape = np.array(image_shape)
         np_patch_shape = np.array(patch_shape)
+
+        # when shapes not divisable and strict=False, handaling is similar to pytorch strided convolution
+        # see here: https://pytorch.org/docs/stable/generated/torch.nn.Conv1d.html#torch.nn.Conv1d
         if strict:
             assert (np_image_shape % np_patch_shape == 0).all(), "Image dimensions must be divisible by the patch size."
         self.num_tokens = int(np.prod(np_image_shape // np_patch_shape))
