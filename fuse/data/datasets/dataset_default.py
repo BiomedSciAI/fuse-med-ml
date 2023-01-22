@@ -187,7 +187,7 @@ class DatasetDefault(DatasetBase):
         # get sample id
         if not self._explicit_sample_ids_mode:
             sample_id = item
-            if isinstance(sample_id, (int, np.integer)): # allow using non int sample_ids
+            if isinstance(sample_id, (int, np.integer)):  # allow using non int sample_ids
                 if sample_id >= self._final_sample_ids:
                     raise IndexError
 
