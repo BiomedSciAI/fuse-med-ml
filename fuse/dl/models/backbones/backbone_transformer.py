@@ -49,9 +49,9 @@ class Transformer(nn.Module):
         return x
 
 
-class CrossAttentionTransformer(nn.Module):
+class CrossAttentionTransformerEncoder(nn.Module):
     """
-    CrossAttentionTransformer backbone model based on x-transformers library.
+    CrossAttentionTransformerEncoder backbone model based on x-transformers library.
 
     Input:
         two sequences 'seq_a, seq_b' with shapes [batch_size, len(seq_a)], [batch_size, len(seq_b)] respectively.
@@ -131,6 +131,7 @@ class CrossAttentionTransformer(nn.Module):
 
         :param xa: tensor with shape [batch_size, seq_len_a]
         :param xb: tensor with shape [batch_size, seq_len_b]
+        :return: raw embeddings
         """
         # encoding stage
         enc_xa = self.enc_a(xa, return_embeddings=True)

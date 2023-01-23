@@ -20,10 +20,10 @@ Created on Jan 11, 2023
 import torch
 import unittest
 import random
-from fuse.dl.models.backbones.backbone_transformer import CrossAttentionTransformer
+from fuse.dl.models.backbones.backbone_transformer import CrossAttentionTransformerEncoder
 
 
-class TestCrossAttentionTransformer(unittest.TestCase):
+class TestCrossAttentionTransformerEncoder(unittest.TestCase):
     def test_all_contexts(self) -> None:
         """
         test cross attention transformer for each of the three context options: "seq_a", "seq_b" and "both"
@@ -39,19 +39,20 @@ class TestCrossAttentionTransformer(unittest.TestCase):
             "output_dim": 256,
         }
 
+        # test for each context case
         for context in ["seq_a", "seq_b", "both"]:
             model_params["context"] = context
             self.validate_model_with_params(model_params)
 
     def validate_model_with_params(self, model_params: dict) -> None:
         """
-        Basic validation for the CrossAttentionTransformer model
+        Basic validation for the CrossAttentionTransformerEncoder model
 
         :param model_params: A dictionary of the model's parameters to validate
         """
 
         # init model
-        model = CrossAttentionTransformer(**model_params)
+        model = CrossAttentionTransformerEncoder(**model_params)
 
         # init random sequences that don't exceed max sequences length
         seq_a_len = random.randint(0, model_params["max_seq_len_a"])
