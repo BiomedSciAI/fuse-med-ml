@@ -71,11 +71,11 @@ class DatasetDefault(DatasetBase):
                 )
             if cacher is not None:
                 raise Exception("providing a cacher is not allowed when providing sample_ids=an integer value")
-            self._explicit_sample_ids_mode = "running_int"
+            self._sample_ids_mode = "running_int"
         elif sample_ids is None:
-            self._explicit_sample_ids_mode = None
+            self._sample_ids_mode = "external"
         else:
-            self._explicit_sample_ids_mode = "explicit"
+            self._sample_ids_mode = "explicit"
 
         # self._orig_sample_ids = sample_ids
         self._allow_uncached_sample_morphing = allow_uncached_sample_morphing
@@ -161,7 +161,7 @@ class DatasetDefault(DatasetBase):
         if not self._created:
             raise Exception("you must first call create()")
 
-        if self._explicit_sample_ids_mode != "explicit":
+        if self._sample_ids_mode != "explicit":
             raise Exception("get_all_sample_ids is not supported when constructed with non explicit sample_ids")
 
         return copy.deepcopy(self._final_sample_ids)
@@ -191,9 +191,9 @@ class DatasetDefault(DatasetBase):
             raise Exception("you must first call create()")
 
         # get sample id
-        if self._explicit_sample_ids_mode != "explicit":
+        if self._sample_ids_mode != "explicit":
             sample_id = item
-            if isinstance(sample_id, (int, np.integer)):  # allow using non int sample_ids
+            if self._sample_ids_mode == "running_int":  # allow using non int sample_ids
                 if sample_id >= self._final_sample_ids:
                     raise IndexError
 
@@ -287,9 +287,9 @@ class DatasetDefault(DatasetBase):
         if not self._created:
             raise Exception("you must first call create()")
 
-        if self._explicit_sample_ids_mode == "running_int":
+        if self._sample_ids_mode == "running_int":
             return self._final_sample_ids
-        elif self._explicit_sample_ids_mode is None:
+        elif self._sample_ids_mode == "external":
             raise Exception("__len__ is not defined where explicit sample_ids or an interer len are not provided.")
 
         return len(self._final_sample_ids)
