@@ -61,8 +61,6 @@ class ModelMultiHead(torch.nn.Module):
         if backbone_args is not None:
             self.backbone_args = [inp[0] if isinstance(inp, Tuple) else inp for inp in backbone_args]
 
-        self.conv_inputs = conv_inputs
-        self.backbone_args = backbone_args
         self.backbone = backbone
         self.key_out_features = key_out_features
         self.add_module("backbone", self.backbone)
