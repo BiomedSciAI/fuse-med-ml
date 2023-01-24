@@ -120,7 +120,7 @@ def create_model(imaging_dropout: float, clinical_dropout: float, fused_dropout:
     See Head3D for details about imaging_dropout, clinical_dropout, fused_dropout
     """
     model = ModelMultiHead(
-        conv_inputs=(("data.input.img", 1),),
+        conv_inputs=("data.input.img",),
         backbone=BackboneResnet3D(in_channels=1),
         heads=[
             Head3D(
