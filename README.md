@@ -3,7 +3,7 @@
 [![Python version](https://img.shields.io/pypi/pyversions/fuse-med-ml)](https://pypi.org/project/fuse-med-ml/)
 [![Slack channel](https://img.shields.io/badge/support-slack-slack.svg?logo=slack)](https://join.slack.com/t/fusemedml/shared_invite/zt-xr1jaj29-h7IMsSc0Lq4qpVNxW97Phw)
 [![Downloads](https://pepy.tech/badge/fuse-med-ml)](https://pepy.tech/project/fuse-med-ml)
-
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.04943/status.svg)](https://doi.org/10.21105/joss.04943)
 
 <img src="fuse/doc/FuseMedML-logo.png" alt="drawing" width="30%"/>
 
@@ -228,15 +228,18 @@ $ pip install fuse-med-ml[all]
 * [Github Discussions](https://github.com/BiomedSciAI/fuse-med-ml/discussions)
 
 # Citation
-If you use FuseMedML in scientific context, please consider citing us:
+If you use FuseMedML in scientific context, please consider citing our [JOSS paper](https://joss.theoj.org/papers/10.21105/joss.04943#):
 ```bibtex
-@misc{https://doi.org/10.5281/zenodo.5146491,
-  doi = {10.5281/ZENODO.5146491},
-  url = {https://zenodo.org/record/5146491},
-  author = {IBM Research,  Haifa},
-  title = {FuseMedML: https://github.com/BiomedSciAI/fuse-med-ml},
-  publisher = {Zenodo},
-  year = {2021},
-  copyright = {Apache License 2.0}
+@article{Golts2023, 
+        doi = {10.21105/joss.04943}, 
+        url = {https://doi.org/10.21105/joss.04943}, 
+        year = {2023}, 
+        publisher = {The Open Journal}, 
+        volume = {8}, 
+        number = {81}, 
+        pages = {4943}, 
+        author = {Alex Golts and Moshe Raboh and Yoel Shoshan and Sagi Polaczek and Simona Rabinovici-Cohen and Efrat Hexter}, 
+        title = {FuseMedML: a framework for accelerated discovery in machine learning based biomedicine}, 
+        journal = {Journal of Open Source Software} 
 }
 ```
