@@ -57,6 +57,9 @@ class PipelineDefault(OpReversibleBase):
         self._verbose = verbose
 
     def copy(self):
+        """
+        This is a shallow copy of the pipeline: the two pipelines will point to the same operation instances.
+        """
         self_copy = copy.copy(self)
         self_copy._ops_and_kwargs = copy.copy(self_copy._ops_and_kwargs)
         self_copy._op_ids = copy.copy(self_copy._op_ids)
