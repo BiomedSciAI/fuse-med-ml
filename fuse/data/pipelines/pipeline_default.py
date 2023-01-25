@@ -22,6 +22,8 @@ from fuse.utils.misc.context import DummyContext
 from fuse.utils.ndict import NDict
 from fuse.utils.cpu_profiling.timer import Timer
 
+import copy
+
 
 class PipelineDefault(OpReversibleBase):
     """
@@ -53,6 +55,15 @@ class PipelineDefault(OpReversibleBase):
             assert len(set(op_ids)) == len(op_ids), "Expecting unique op id for every op."
             self._op_ids = op_ids
         self._verbose = verbose
+
+    def copy(self):
+        """
+        This is a shallow copy of the pipeline: the two pipelines will point to the same operation instances.
+        """
+        self_copy = copy.copy(self)
+        self_copy._ops_and_kwargs = copy.copy(self_copy._ops_and_kwargs)
+        self_copy._op_ids = copy.copy(self_copy._op_ids)
+        return self_copy
 
     def extend(self, ops_and_kwargs: List[Tuple[OpBase, dict]], op_ids: Optional[List[str]] = None):
         """
