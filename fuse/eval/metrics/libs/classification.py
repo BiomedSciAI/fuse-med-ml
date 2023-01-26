@@ -48,7 +48,7 @@ class MetricsLibClass:
                         If not ``None``, the standardized partial AUC over the range [0, max_fpr] is returned.
         :return auc Receiver operating characteristic score
         """
-        if not isinstance(pred[0], np.ndarray):
+        if not isinstance(pred[0], np.ndarray) or len(pred[0].shape) == 0:
             pred = [np.array(p) for p in pred]
             pos_class_index = 1
             y_score = np.asarray(pred)
@@ -118,7 +118,7 @@ class MetricsLibClass:
         :param pos_class_index: the class to compute the metrics in one vs rest manner - set to 1 in binary classification
         :return auc precision recall score
         """
-        if not isinstance(pred[0], np.ndarray):
+        if not isinstance(pred[0], np.ndarray) or len(pred[0].shape) == 0:
             pred = [np.array(p) for p in pred]
             pos_class_index = 1
             y_score = np.asarray(pred)
