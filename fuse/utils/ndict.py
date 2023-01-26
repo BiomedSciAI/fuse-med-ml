@@ -23,7 +23,7 @@ import copy
 import types
 import numpy
 import torch
-from typing import Any, Callable, Iterator, Optional, Sequence, Union, List
+from typing import Any, Callable, Iterator, Optional, Sequence, Union, List, MutableMapping
 
 
 class NDict(dict):
@@ -73,7 +73,7 @@ class NDict(dict):
         elif isinstance(dict_like, NDict):
             self._stored = dict_like._stored
         else:
-            if not isinstance(dict_like, dict):
+            if not isinstance(dict_like, MutableMapping):
                 dict_like = dict(dict_like)
             for k, d in dict_like.items():
                 self[k] = d
@@ -114,7 +114,7 @@ class NDict(dict):
 
         all_keys = {}
         for key in self._stored:
-            if isinstance(self._stored[key], dict):
+            if isinstance(self._stored[key], MutableMapping):
                 all_sub_keys = NDict(self[key]).flatten()
                 keys_to_add = {f"{key}.{sub_key}": all_sub_keys[sub_key] for sub_key in all_sub_keys}
                 all_keys.update(keys_to_add)
@@ -163,7 +163,7 @@ class NDict(dict):
 
         value = self._stored
         for sub_key in nested_key:
-            if isinstance(value, dict) and sub_key in value:
+            if isinstance(value, MutableMapping) and sub_key in value:
                 value = value.get(sub_key)
             else:
                 raise NestedKeyError(key, self)
@@ -177,7 +177,7 @@ class NDict(dict):
         :param value: value to set
         """
         # if value is dictionary add to self key by key to avoid from keys with delimeter "."
-        if isinstance(value, dict):
+        if isinstance(value, MutableMapping):
             for sub_key in value:
                 self[f"{key}.{sub_key}"] = value[sub_key]
             return
@@ -211,7 +211,7 @@ class NDict(dict):
         partial_ndict = self._stored
         parts = key.split(".")
         for k in parts:
-            if isinstance(partial_ndict, dict) and k in partial_ndict:
+            if isinstance(partial_ndict, MutableMapping) and k in partial_ndict:
                 partial_key.append(k)
                 partial_ndict = partial_ndict[k]
             else:
