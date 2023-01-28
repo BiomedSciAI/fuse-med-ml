@@ -207,14 +207,16 @@ class SamplesCacher:
             orig_sid_to_final[initial_sample_id] = output_sample_ids
 
         write_dir = self._get_write_dir()
+
+        set_info_dir = os.path.join(write_dir, "full_sets_info")
+        os.makedirs(set_info_dir, exist_ok=True)
+
         pipeline_desc_file = os.path.join(write_dir, f"pipeline_{self._pipeline_desc_hash}_desc.txt")
         if not os.path.exists(pipeline_desc_file):
             with open(pipeline_desc_file, "wt") as f:
                 f.write(self._pipeline_desc_text)
             print("======== wrote", pipeline_desc_file)
 
-        set_info_dir = os.path.join(write_dir, "full_sets_info")
-        os.makedirs(set_info_dir, exist_ok=True)
         fullpath_filename = os.path.join(set_info_dir, hash_filename)
         save_pickle_safe(orig_sid_to_final, fullpath_filename, compress=True)
 
