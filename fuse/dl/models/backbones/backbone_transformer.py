@@ -89,7 +89,6 @@ class CrossAttentionTransformerEncoder(nn.Module):
         :param heads_a: number of attention heads for the first sequence's encoder
         :param heads_b: number of attention heads for the second sequence's encoder
         :param output_dim: (optional) model's output dimension. if not give the emb dim will be used as default.
-        :param num_cls_tokens: number of class tokens to add to the input seq(s)
         :param context: which sequence will be used as context in the cross attention module:
                         "seq_a": the first sequence will be used as a context
                         "seq_b": the second sequence will be used as a context
@@ -127,7 +126,7 @@ class CrossAttentionTransformerEncoder(nn.Module):
 
     def forward(self, xa: torch.Tensor, xb: torch.Tensor) -> torch.Tensor:
         """
-        assume input sequences are already tokenized
+        assumes input sequences are already tokenized
 
         :param xa: tensor with shape [batch_size, seq_len_a]
         :param xb: tensor with shape [batch_size, seq_len_b]
