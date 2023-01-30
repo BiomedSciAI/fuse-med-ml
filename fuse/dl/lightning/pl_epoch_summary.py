@@ -22,7 +22,7 @@ from typing import Optional
 from fuse.utils.misc.misc import get_pretty_dataframe
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning import Callback
 
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 import torch
