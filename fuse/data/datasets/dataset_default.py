@@ -113,6 +113,14 @@ class DatasetDefault(DatasetBase):
 
         self._created = False
 
+    @property
+    def static_pipeline(self):
+        return self._static_pipeline
+
+    @property
+    def dynamic_pipeline(self):
+        return self._dynamic_pipeline
+
     def create(self, num_workers: int = 0, mp_context: Optional[str] = None) -> None:
         """
         Create the data set, including caching
