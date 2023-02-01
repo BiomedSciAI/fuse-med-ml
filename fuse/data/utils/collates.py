@@ -68,9 +68,11 @@ class CollateDefault(CollateToBatchList):
         batch_dict = NDict()
 
         # collect all keys
-        keys = self._collect_all_keys(samples)
         if self._keep_keys:
-            keys = [k for k in keys if k in self._keep_keys]
+            keys = self._keep_keys
+        else:
+            keys = self._collect_all_keys(samples)
+
         # collect values
         for key in keys:
 
