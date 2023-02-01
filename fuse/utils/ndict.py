@@ -135,7 +135,7 @@ class NDict(dict):
 
     @staticmethod
     def _keypaths_static(item: Union[dict, Any], prefix: str) -> List[str]:
-        if isinstance(item, dict):
+        if isinstance(item, MutableMapping):
             keys = []
             for key, value in item.items():
                 if prefix is None:
