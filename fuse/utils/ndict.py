@@ -246,7 +246,7 @@ class NDict(dict):
         del self[key]
         return res
 
-    def indices(self, indices: Optional[numpy.ndarray]) -> dict:
+    def indices(self, indices: numpy.ndarray) -> dict:
         """
         Extract the specified indices from each element in the dictionary (if possible)
         :param nested_dict: input dict
