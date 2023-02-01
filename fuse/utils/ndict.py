@@ -111,23 +111,41 @@ class NDict(dict):
         #you can use it to get a list of the flat keys:
         print(nx.flatten().keys())
         """
+        flat_dict = {}
+        NDict._flatten_static(self._stored, None, flat_dict)
+        return flat_dict
 
-        all_keys = {}
-        for key in self._stored:
-            if isinstance(self._stored[key], MutableMapping):
-                all_sub_keys = NDict(self[key]).flatten()
-                keys_to_add = {f"{key}.{sub_key}": all_sub_keys[sub_key] for sub_key in all_sub_keys}
-                all_keys.update(keys_to_add)
-            else:
-                all_keys[key] = self._stored[key]
-
-        return all_keys
+    @staticmethod
+    def _flatten_static(item: Union[dict, Any], prefix: str, flat_dict: dict) -> None:
+        if isinstance(item, MutableMapping):
+            for key, value in item.items():
+                if prefix is None:
+                    cur_prefix = key
+                else:
+                    cur_prefix = f"{prefix}.{key}"
+                NDict._flatten_static(value, cur_prefix, flat_dict)
+        else:
+            flat_dict[prefix] = item
 
     def keypaths(self) -> List[str]:
         """
         returns a list of keypaths (i.e. "a.b.c.d") to all values in the nested dict
         """
-        return list(self.flatten().keys())
+        return NDict._keypaths_static(self._stored, None)
+
+    @staticmethod
+    def _keypaths_static(item: Union[dict, Any], prefix: str) -> List[str]:
+        if isinstance(item, MutableMapping):
+            keys = []
+            for key, value in item.items():
+                if prefix is None:
+                    cur_prefix = key
+                else:
+                    cur_prefix = f"{prefix}.{key}"
+                keys += NDict._keypaths_static(value, cur_prefix)
+            return keys
+        else:
+            return [prefix]
 
     def keys(self) -> dict_keys:
         """
@@ -228,7 +246,7 @@ class NDict(dict):
         del self[key]
         return res
 
-    def indices(self, indices: Union[torch.Tensor, numpy.ndarray]) -> dict:
+    def indices(self, indices: numpy.ndarray) -> dict:
         """
         Extract the specified indices from each element in the dictionary (if possible)
         :param nested_dict: input dict
@@ -240,7 +258,7 @@ class NDict(dict):
         for key in all_keys:
             try:
                 value = self[key]
-                if isinstance(value, numpy.ndarray) or isinstance(value, torch.Tensor):
+                if isinstance(value, (numpy.ndarray, torch.Tensor)):
                     new_value = value[indices]
                 elif isinstance(value, Sequence):
                     new_value = [item for i, item in enumerate(value) if indices[i]]
