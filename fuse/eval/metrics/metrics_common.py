@@ -132,7 +132,7 @@ class MetricCollector(MetricBase):
                     sample = self._pre_collect_process_func(sample)
 
                 sample = NDict(sample)
-                
+
                 sample_to_collect = {}
                 for name, key in self._keys_to_collect.items():
                     value = sample[key]
