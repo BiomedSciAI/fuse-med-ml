@@ -46,7 +46,7 @@ class CollateDefault(CollateToBatchList):
     ):
         """
         :param skip_keys: do not collect the listed keys
-        :param keep_keys: specifies a list of keys to collect. missing keep_keys are skipped.
+        :param keep_keys: specifies a list of keys to collect. See raise_error_key_missing argument (dealing with missing keys).
         :param special_handlers_keys: per key specify a callable which gets as an input list of values and convert it to a batch.
                                       The rest of the keys will be converted to batch using PyTorch default collate_fn()
                                       Example of such Callable can be seen in the CollateDefault.pad_all_tensors_to_same_size.
