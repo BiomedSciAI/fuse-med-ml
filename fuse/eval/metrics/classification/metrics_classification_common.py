@@ -145,6 +145,28 @@ class MetricAUCROC(MetricMultiClassDefault):
         super().__init__(pred, target, metric_func=auc_roc, class_names=class_names, **kwargs)
 
 
+class MetricAUCROCmultLabel(MetricMultiClassDefault):
+    """
+    Compute auc roc (Receiver operating characteristic) score using sklearn (one vs rest)
+    """
+
+    def __init__(
+        self,
+        pred: str,
+        target: str,
+        class_names: Optional[Sequence[str]] = None,
+        max_fpr: Optional[float] = None,
+        **kwargs,
+    ):
+        """
+        See MetricMultiClassDefault for the missing params
+        :param max_fpr: float > 0 and <= 1, default=None
+                        If not ``None``, the standardized partial AUC over the range [0, max_fpr] is returned.
+        """
+        auc_roc = partial(MetricsLibClass.auc_roc_mult_label, max_fpr=max_fpr)
+        super().__init__(pred, target, metric_func=auc_roc, class_names=class_names, **kwargs)
+
+
 class MetricROCCurve(MetricDefault):
     """
     Output the roc curve (Multi class version - one vs rest)
