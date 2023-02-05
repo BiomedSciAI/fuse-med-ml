@@ -877,8 +877,12 @@ def example_18():
     metrics = OrderedDict(
         [
             (
-                "multi_label_auc", 
-                MetricAUCROC(pred="pred.pred", target="target.target"),
+                "multi_label_auc_micro", 
+                MetricAUCROCmultLabel(pred="pred.pred", target="target.target", average='micro'),
+            ),
+            (
+                "multi_label_auc_macro", 
+                MetricAUCROCmultLabel(pred="pred.pred", target="target.target", average='macro'),
             ),
         ]
     )
@@ -887,7 +891,3 @@ def example_18():
     results = evaluator.eval(ids=None, data=data, metrics=metrics)
 
     return results
-
-if __name__ == "__main__":
-    results = example_18()
-    print(results)

@@ -155,6 +155,7 @@ class MetricAUCROCmultLabel(MetricMultiClassDefault):
         pred: str,
         target: str,
         max_fpr: Optional[float] = None,
+        average: str = 'micro',
         **kwargs,
     ):
         """
@@ -162,7 +163,7 @@ class MetricAUCROCmultLabel(MetricMultiClassDefault):
         :param max_fpr: float > 0 and <= 1, default=None
                         If not ``None``, the standardized partial AUC over the range [0, max_fpr] is returned.
         """
-        auc_roc = partial(MetricsLibClass.auc_roc_mult_binary_label, max_fpr=max_fpr)
+        auc_roc = partial(MetricsLibClass.auc_roc_mult_binary_label, average=average, max_fpr=max_fpr)
         super().__init__(pred, target, metric_func=auc_roc, **kwargs)
 
 

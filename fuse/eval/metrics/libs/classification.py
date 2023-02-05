@@ -80,25 +80,11 @@ class MetricsLibClass:
         """
         y_score = np.asarray(pred)
         y_true = np.asarray(target)
-        if average == "macro":
-            # compute the roc for each class (column in y_score/y_true) and average
-            n_class = y_score.shape[1]
-            all_auc = []
-            for i in range(n_class):
-                if sum(y_true[:,i]) > 0:
-                    auc = metrics.roc_auc_score(
-                        y_score=y_score[:, i], y_true=y_true[:, i], sample_weight=sample_weight, max_fpr=max_fpr
-                    )
-                    all_auc.append(auc)
-            return np.mean(all_auc) 
-
-        elif average == "micro":  # micro average
-            # aggregates the contributions from all the classes (using np.ravel)
-            y_score = y_score.ravel()
-            y_true = y_true.ravel()
-            return metrics.roc_auc_score(y_score=y_score, y_true=y_true, sample_weight=sample_weight, max_fpr=max_fpr)
-        else:
-            raise Exception("Error - unknown average option (micro or macro)")
+        return metrics.roc_auc_score(y_score=y_score, 
+                                     y_true=y_true, 
+                                     sample_weight=sample_weight, 
+                                     max_fpr=max_fpr,
+                                     average=average)
 
     @staticmethod
     def roc_curve(
