@@ -877,12 +877,12 @@ def example_18():
     metrics = OrderedDict(
         [
             (
-                "multi_label_auc_micro", 
-                MetricAUCROCmultLabel(pred="pred.pred", target="target.target", average='micro'),
+                "multi_label_auc_micro",
+                MetricAUCROCmultLabel(pred="pred.pred", target="target.target", average="micro"),
             ),
             (
-                "multi_label_auc_macro", 
-                MetricAUCROCmultLabel(pred="pred.pred", target="target.target", average='macro'),
+                "multi_label_auc_macro",
+                MetricAUCROCmultLabel(pred="pred.pred", target="target.target", average="macro"),
             ),
         ]
     )
