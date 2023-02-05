@@ -80,11 +80,9 @@ class MetricsLibClass:
         """
         y_score = np.asarray(pred)
         y_true = np.asarray(target)
-        return metrics.roc_auc_score(y_score=y_score, 
-                                     y_true=y_true, 
-                                     sample_weight=sample_weight, 
-                                     max_fpr=max_fpr,
-                                     average=average)
+        return metrics.roc_auc_score(
+            y_score=y_score, y_true=y_true, sample_weight=sample_weight, max_fpr=max_fpr, average=average
+        )
 
     @staticmethod
     def roc_curve(

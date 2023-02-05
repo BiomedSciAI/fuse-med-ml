@@ -155,7 +155,7 @@ class MetricAUCROCmultLabel(MetricMultiClassDefault):
         pred: str,
         target: str,
         max_fpr: Optional[float] = None,
-        average: str = 'micro',
+        average: str = "micro",
         **kwargs,
     ):
         """
