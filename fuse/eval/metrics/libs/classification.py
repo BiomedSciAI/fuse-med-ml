@@ -62,7 +62,7 @@ class MetricsLibClass:
         )
 
     @staticmethod
-    def auc_roc_mult_label(
+    def auc_roc_mult_binary_label(
         pred: Sequence[Union[np.ndarray, float]],
         target: Sequence[Union[np.ndarray, int]],
         sample_weight: Optional[Sequence[Union[np.ndarray, float]]] = None,
@@ -74,7 +74,6 @@ class MetricsLibClass:
         :param pred: prediction array per sample. Each element shape [num_classes]
         :param target: target per sample. Each element shape [num_classes] with 0 and 1 only.
         :param sample_weight: Optional - weight per sample for a weighted auc. Each element is  float in range [0-1]
-        :param pos_class_index: the class to compute the metrics in one vs rest manner - set to 1 in binary classification
         :param max_fpr: float > 0 and <= 1, default=None
                         If not ``None``, the standardized partial AUC over the range [0, max_fpr] is returned.
         :return auc Receiver operating characteristic score
@@ -86,10 +85,12 @@ class MetricsLibClass:
             n_class = y_score.shape[1]
             all_auc = []
             for i in range(n_class):
-                auc = metrics.roc_auc_score(
-                    y_score=y_score[:, i], y_true=y_true[:, i], sample_weight=sample_weight, max_fpr=max_fpr
-                )
-                all_auc.append(auc)
+                if sum(y_true[:,i]) > 0:
+                    auc = metrics.roc_auc_score(
+                        y_score=y_score[:, i], y_true=y_true[:, i], sample_weight=sample_weight, max_fpr=max_fpr
+                    )
+                    all_auc.append(auc)
+            return np.mean(all_auc) 
 
         elif average == "micro":  # micro average
             # aggregates the contributions from all the classes (using np.ravel)

@@ -154,7 +154,6 @@ class MetricAUCROCmultLabel(MetricMultiClassDefault):
         self,
         pred: str,
         target: str,
-        class_names: Optional[Sequence[str]] = None,
         max_fpr: Optional[float] = None,
         **kwargs,
     ):
@@ -163,8 +162,8 @@ class MetricAUCROCmultLabel(MetricMultiClassDefault):
         :param max_fpr: float > 0 and <= 1, default=None
                         If not ``None``, the standardized partial AUC over the range [0, max_fpr] is returned.
         """
-        auc_roc = partial(MetricsLibClass.auc_roc_mult_label, max_fpr=max_fpr)
-        super().__init__(pred, target, metric_func=auc_roc, class_names=class_names, **kwargs)
+        auc_roc = partial(MetricsLibClass.auc_roc_mult_binary_label, max_fpr=max_fpr)
+        super().__init__(pred, target, metric_func=auc_roc, **kwargs)
 
 
 class MetricROCCurve(MetricDefault):
