@@ -99,6 +99,11 @@ class CrossAttentionTransformerEncoder(nn.Module):
         heads_b: int = 9,
         output_dim: Optional[int] = None,
         context: str = "seq_b",
+        kwargs_wrapper_a: Optional[dict] = None,
+        kwargs_wrapper_b: Optional[dict] = None,
+        kwargs_encoder_a: Optional[dict] = None,
+        kwargs_encoder_b: Optional[dict] = None,
+        kwargs_cross_attn: Optional[dict] = None,
     ):
         """
         :param emb_dim: inner model dimension
@@ -129,21 +134,23 @@ class CrossAttentionTransformerEncoder(nn.Module):
         self.enc_a = TransformerWrapper(
             num_tokens=num_tokens_a,
             max_seq_len=max_seq_len_a,
-            attn_layers=Encoder(dim=emb_dim, depth=depth_a, heads=heads_a),
+            **kwargs_wrapper_a,
+            attn_layers=Encoder(dim=emb_dim, depth=depth_a, heads=heads_a, **kwargs_encoder_a),
         )
         self.enc_b = TransformerWrapper(
             num_tokens=num_tokens_b,
             max_seq_len=max_seq_len_b,
-            attn_layers=Encoder(dim=emb_dim, depth=depth_b, heads=heads_b),
+            **kwargs_wrapper_b,
+            attn_layers=Encoder(dim=emb_dim, depth=depth_b, heads=heads_b, **kwargs_encoder_b),
         )
 
         # cross attention module(s)
         if self._context in ["seq_a", "seq_b"]:
-            self.cross_attn = CrossAttender(dim=emb_dim, depth=depth_cross_attn)
+            self.cross_attn = CrossAttender(dim=emb_dim, depth=depth_cross_attn, **kwargs_cross_attn)
 
         else:  # both
-            self.cross_attn_a_as_context = CrossAttender(dim=emb_dim, depth=depth_cross_attn)
-            self.cross_attn_b_as_context = CrossAttender(dim=emb_dim, depth=depth_cross_attn)
+            self.cross_attn_a_as_context = CrossAttender(dim=emb_dim, depth=depth_cross_attn, **kwargs_cross_attn)
+            self.cross_attn_b_as_context = CrossAttender(dim=emb_dim, depth=depth_cross_attn, **kwargs_cross_attn)
 
         self.last_linear = nn.Linear(emb_dim, output_dim)
 

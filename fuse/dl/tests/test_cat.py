@@ -37,6 +37,11 @@ class TestCrossAttentionTransformerEncoder(unittest.TestCase):
             "max_seq_len_a": 512,
             "max_seq_len_b": 1024,
             "output_dim": 256,
+            "kwargs_wrapper_a": dict(emb_dropout=0.1),
+            "kwargs_wrapper_b": dict(emb_dropout=0.1),
+            "kwargs_encoder_a": dict(layer_dropout=0.1),
+            "kwargs_encoder_b": dict(layer_dropout=0.1),
+            "kwargs_cross_attn": dict(cross_attn_tokens_dropout=0.1),
         }
 
         # test for each context case
