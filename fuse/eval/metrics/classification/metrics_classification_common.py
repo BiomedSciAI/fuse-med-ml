@@ -145,7 +145,7 @@ class MetricAUCROC(MetricMultiClassDefault):
         super().__init__(pred, target, metric_func=auc_roc, class_names=class_names, **kwargs)
 
 
-class MetricAUCROCmultLabel(MetricMultiClassDefault):
+class MetricAUCROCMultLabel(MetricDefault):
     """
     Compute auc roc (Receiver operating characteristic) score using sklearn (one vs rest)
     """
@@ -164,7 +164,7 @@ class MetricAUCROCmultLabel(MetricMultiClassDefault):
                         If not ``None``, the standardized partial AUC over the range [0, max_fpr] is returned.
         """
         auc_roc = partial(MetricsLibClass.auc_roc_mult_binary_label, average=average, max_fpr=max_fpr)
-        super().__init__(pred, target, metric_func=auc_roc, **kwargs)
+        super().__init__(pred=pred, target=target, metric_func=auc_roc, **kwargs)
 
 
 class MetricROCCurve(MetricDefault):

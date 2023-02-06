@@ -40,7 +40,7 @@ from fuse.eval.metrics.classification.metrics_classification_common import (
     MetricConfusionMatrix,
     MetricBSS,
     MetricROCCurve,
-    MetricAUCROCmultLabel,
+    MetricAUCROCMultLabel,
 )
 from fuse.eval.metrics.classification.metrics_model_comparison_common import (
     MetricDelongsTest,
@@ -878,11 +878,11 @@ def example_18():
         [
             (
                 "multi_label_auc_micro",
-                MetricAUCROCmultLabel(pred="pred.pred", target="target.target", average="micro"),
+                MetricAUCROCMultLabel(pred="pred.pred", target="target.target", average="micro"),
             ),
             (
                 "multi_label_auc_macro",
-                MetricAUCROCmultLabel(pred="pred.pred", target="target.target", average="macro"),
+                MetricAUCROCMultLabel(pred="pred.pred", target="target.target", average="macro"),
             ),
         ]
     )
