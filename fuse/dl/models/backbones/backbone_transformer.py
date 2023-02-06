@@ -58,7 +58,30 @@ class CrossAttentionTransformerEncoder(nn.Module):
     Output:
         features tensor with shape [batch_size, output_dim]
 
-    see the following blog post for more info regarding cross attention in transformers:
+
+    Architecture:
+        The model consist of the following blocks:
+            * Two encoding layers - one for each sequence
+            * One or two cross attention (1) layers - depends on the user's request
+            * One linear layer
+
+    Forward Pass:
+        -> Receive two sequences as inputs, assuming both of them are already tokenized.
+        -> Pass each of the sequences through it's own encoder (extracting features)
+        -> Performs cross attention with the two encoded features using one of the sequences as context
+                (also supports using both as sequence:
+                    * performs two times cross attention, each time using a different sequence as the context
+                    * concat both outputs into one vector)
+        -> Apply linear layer on the last encoded vector
+
+    Building Blocks:
+        In this architecture we use three components from "x-transformers" library.
+        Here is a short summary - for more information consider check source code.
+        * TransformerWrapper - wraps an attention layer (in our case the Encoder) and applies token & positional embedding.
+        * Encoder - self attention layers. In our case it gets the embedding from the wrapper.
+        * CrossAttender - cross attention layers. In our case it gets the embedding from the encoders.
+
+    (1) see the following blog post for more info regarding cross attention in transformers:
         https://vaclavkosar.com/ml/cross-attention-in-transformer-architecture
     """
 
