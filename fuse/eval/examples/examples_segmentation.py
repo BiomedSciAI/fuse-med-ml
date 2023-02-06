@@ -19,7 +19,7 @@ from collections import OrderedDict
 from pycocotools.coco import COCO
 import numpy as np
 import nibabel as nib
-from fuse.utils import set_seed
+from fuse.utils import set_seed, NDict
 
 from fuse.eval.metrics.segmentation.metrics_segmentation_common import (
     MetricDice,
@@ -209,7 +209,7 @@ def example_seg_3() -> Dict[str, Any]:
         sample_dict["pred.array"] = np.array([(1.0, 0.0), (0.0, 1.0), (1.0, 0.0), (0.0, 1.0)])
         sample_dict["label.array"] = np.array([(1.0, 1.0), (1.0, 1.0), (1.0, 1.0), (1.0, 1.0)])
         sample_dict["pixel_weight"] = {"1": np.array([(0.125, 0.125), (0.125, 0.125), (0.125, 0.125), (0.125, 0.125)])}
-        yield sample_dict
+        yield NDict(sample_dict)
 
     # list of metrics
     metrics = OrderedDict(

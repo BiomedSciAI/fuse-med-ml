@@ -124,7 +124,11 @@ def convert_predictions_to_dataframe(predictions: List[NDict]) -> pd.DataFrame:
     predictions_per_sample = []
     for elem in predictions:
         predictions_per_sample += uncollate(elem)
-    keys = predictions_per_sample[0].keypaths()
+    if isinstance(predictions_per_sample[0], NDict):
+        keys = predictions_per_sample[0].keypaths()
+    else:  # dict
+        keys = predictions_per_sample[0].keys()
+
     for key in keys:
         values[key] = [elem[key] for elem in predictions_per_sample]
 
