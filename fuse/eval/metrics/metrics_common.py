@@ -82,19 +82,23 @@ class MetricCollector(MetricBase):
         self,
         pre_collect_process_func: Optional[Callable] = None,
         post_collect_process_func: Optional[Callable] = None,
+        batch_pre_collect_process_func: Optional[Callable] = None,
         **keys_to_collect: Dict[str, str],
     ):
         """
-        :param pre_collect_process_func: Optional callable - the callable will get as an input a sample_dict and can preprocess it if required
-        :param post_collect_process_func: Optional callable - custom process func that convert the fields to be collected to the values that will actually be collected
-                                          the callable will get as an input the collected values of a single sample
-                                          and can return either a single value or dictionary. The returned values will be collected under the name "post_args"
+        :param pre_collect_process_func: Optional callable - the callable will get as an input a sample_dict and can preprocess it if required before collection.
+                                         Consider using batch_pre_collect_process_func instead to optimize the running time when working with large batch size.
+        :param post_collect_process_func: Optional callable - custom process func - used to evaluate in a sample level and keep only the result.
+                                          Typically used in methods such as segmentation to avoid from storing all the images until the end of the epoch.
+                                          Can return either a single value or dictionary. The returned values will be collected under the name "post_args"
+        :param batch_pre_collect_process_func: Optional callable - the callable will get as an input a batch_dict and can preprocess it if required before collection.
         :param keys_to_collect: specify the keys you want to collect from the source data
         """
         super().__init__()
         # store input
         self._pre_collect_process_func = pre_collect_process_func
         self._post_collect_process_func = post_collect_process_func
+        self._batch_pre_collect_process_func = batch_pre_collect_process_func
         self._keys_to_collect = copy.copy(keys_to_collect)
         self._id_keys = MetricCollector.DEFAULT_ID_KEYS
 
@@ -108,39 +112,54 @@ class MetricCollector(MetricBase):
         if not isinstance(batch, NDict):
             batch = NDict(batch)
 
-        samples = uncollate(batch)
-
         # If in distributed mode (multi gpu training) we shall gather the result from all the machine to evaluate with respect to the entire batch.
         if dist.is_initialized():
             world_size = dist.get_world_size()  # num of gpus
             samples_gather = [None for rank in range(world_size)]
             # samples_gather[i] will have the 'samples' value of the i's GPU
-            dist.all_gather_object(samples_gather, samples)
+            dist.all_gather_object(samples_gather, batch)
 
             # union all the GPU's samples into one samples list
             samples = []
             for rank in range(world_size):
                 samples += samples_gather[rank]
 
-        for sample in samples:
-            sample_to_collect = {}
+        if self._pre_collect_process_func is not None or self._post_collect_process_func is not None:
+            samples = uncollate(batch)
+            for sample in samples:
 
-            if self._pre_collect_process_func is not None:
-                sample = NDict(self._pre_collect_process_func(sample))
+                if self._pre_collect_process_func is not None:
+                    sample = self._pre_collect_process_func(sample)
 
+                sample = NDict(sample)
+
+                sample_to_collect = {}
+                for name, key in self._keys_to_collect.items():
+                    value = sample[key]
+                    if isinstance(value, torch.Tensor):
+                        value = value.detach().cpu().numpy()
+
+                    sample_to_collect[name] = value
+
+                if self._post_collect_process_func is not None:
+                    sample_to_collect = {"post_args": self._post_collect_process_func(**sample_to_collect)}
+
+                # store it - assumes batch dimension? What about single sample?
+                for name in sample_to_collect:
+                    self._collected_data[name].append(sample_to_collect[name])
+        else:  # work in a batch level - optimized for large batch size
+            if self._batch_pre_collect_process_func is not None:
+                batch = self._batch_pre_collect_process_func(batch)
+            batch_to_collect = {}
             for name, key in self._keys_to_collect.items():
-                value = sample[key]
+                value = batch[key]
                 if isinstance(value, torch.Tensor):
                     value = value.detach().cpu().numpy()
 
-                sample_to_collect[name] = value
+                batch_to_collect[name] = value
 
-            if self._post_collect_process_func is not None:
-                sample_to_collect = {"post_args": self._post_collect_process_func(**sample_to_collect)}
-
-            # store it - assumes batch dimension? What about single sample?
-            for name in sample_to_collect:
-                self._collected_data[name].append(sample_to_collect[name])
+            for name in batch_to_collect:
+                self._collected_data[name].extend(batch_to_collect[name])
 
         # extract ids and store it in self._collected_ids
         ids = None
@@ -257,6 +276,7 @@ class MetricWithCollectorBase(MetricBase):
         self,
         pre_collect_process_func: Optional[Callable] = None,
         post_collect_process_func: Optional[Callable] = None,
+        batch_pre_collect_process_func: Optional[Callable] = None,
         external_data_collector: Optional[MetricCollector] = None,
         extract_ids: bool = False,
         **kwargs,
@@ -276,7 +296,12 @@ class MetricWithCollectorBase(MetricBase):
         }
         self._value_args = {n: k for n, k in kwargs.items() if k is not None and not isinstance(k, str)}
         self._collector = (
-            MetricCollector(pre_collect_process_func, post_collect_process_func, **self._keys_to_collect)
+            MetricCollector(
+                pre_collect_process_func,
+                post_collect_process_func,
+                batch_pre_collect_process_func,
+                **self._keys_to_collect,
+            )
             if external_data_collector is None
             else external_data_collector
         )
