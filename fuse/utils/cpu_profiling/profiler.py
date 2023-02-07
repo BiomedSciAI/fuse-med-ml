@@ -1,6 +1,7 @@
 import cProfile
 import pstats
 from io import StringIO
+from typing import Any
 
 
 class Profiler:
@@ -69,7 +70,7 @@ class Profiler:
         self.pr = cProfile.Profile()
         self.pr.enable()
 
-    def __exit__(self, *args: dict) -> None:
+    def __exit__(self, *args: Any) -> None:
         self.pr.disable()
         print(f"profiling results for {self.txt} :")
         self.s = StringIO()

@@ -37,7 +37,7 @@ class TestNDict(unittest.TestCase):
         self.assertEqual(self.nested_dict["a"], 1)
         self.assertEqual(self.nested_dict["b.c"], 2)
         self.assertEqual(self.nested_dict["c"], 4)
-        self.assertDictEqual(self.nested_dict["b"], {"c": 2, "d": 3})
+        self.assertDictEqual(self.nested_dict["b"].to_dict(), {"c": 2, "d": 3})
 
     def test_set(self) -> None:
         self.nested_dict["a"] = 7
@@ -71,6 +71,11 @@ class TestNDict(unittest.TestCase):
         all_keys = self.nested_dict.keypaths()
         self.assertSetEqual(set(all_keys), {"a", "b.c", "b.d", "c"})
 
+        ndict = NDict()
+        ndict["a.b.c"] = "d"
+        ndict["a.b.c.d"] = "e"
+        self.assertSetEqual(set(ndict.keypaths()), {"a.b.c", "a.b.c.d"})
+
     def test_is_in(self) -> None:
         self.assertTrue("a" in self.nested_dict)
         self.assertTrue("b.c" in self.nested_dict)
@@ -78,6 +83,9 @@ class TestNDict(unittest.TestCase):
         self.assertTrue("c" in self.nested_dict)
         self.assertFalse("d" in self.nested_dict)
         self.assertFalse("e" in self.nested_dict)
+
+        ndict = NDict({"a": 1, "b.c": 2})
+        self.assertFalse("c" in ndict)
 
     def test_apply_on_all(self) -> None:
         nested_dict_copy = self.nested_dict.clone()
@@ -119,6 +127,36 @@ class TestNDict(unittest.TestCase):
         self.assertTrue((nested_dict_indices["b.c"] == torch.tensor([[10, 11, 12], [16, 17, 18]])).all())
         self.assertTrue((nested_dict_indices["b.d"] == [0, 2]))
         self.assertTrue((nested_dict_indices["b.f"] == 4))
+
+    def test_is_prefix(self) -> None:
+        # set ndict
+        ndict = NDict()
+        ndict["a.b.c.d.e"] = "f"
+
+        # verify true
+        self.assertTrue(ndict.is_prefix("a"))
+        self.assertTrue(ndict.is_prefix("a.b.c"))
+        self.assertTrue(ndict.is_prefix("a.b.c.d"))
+        # verify false
+        self.assertFalse(ndict.is_prefix("a.b.c.d.e"))
+        self.assertFalse(ndict.is_prefix("a.b.c.d.e.f"))
+        self.assertFalse(ndict.is_prefix("a.e"))
+        self.assertFalse(ndict.is_prefix("e"))
+
+        ndict = NDict({"a": 1, "b.c": 2})
+        self.assertFalse(ndict.is_prefix("c"))
+
+    def test_get_sub_dict(self) -> None:
+        # set ndict
+        ndict = NDict()
+        ndict["a.b.c.c1"] = "x1"
+        ndict["a.b.c.c2"] = "x2"
+        ndict["a.b.c.c3"] = "x3"
+
+        self.assertDictEqual(ndict.get_sub_dict("a").to_dict(), {"b.c.c1": "x1", "b.c.c2": "x2", "b.c.c3": "x3"})
+        self.assertDictEqual(ndict.get_sub_dict("a.b").to_dict(), {"c.c1": "x1", "c.c2": "x2", "c.c3": "x3"})
+        self.assertDictEqual(ndict.get_sub_dict("a.b.c").to_dict(), {"c1": "x1", "c2": "x2", "c3": "x3"})
+        self.assertDictEqual(ndict.get_sub_dict("a.b.c.c1").to_dict(), {})
 
     def tearDown(self) -> None:
         delattr(self, "nested_dict")

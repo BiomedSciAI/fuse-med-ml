@@ -197,9 +197,26 @@ class NDict(dict):
         if key in self:
             return self._stored[key]
 
+        if self.is_prefix(key):  # TODO can be more optimized. we pass here once and in the "get_sub_dict" once again
+            # collect "sub-dict"
+            return self.get_sub_dict(key)
+
+        raise NestedKeyError(key, self)
+
     def is_prefix(self, key: str) -> bool:
         """
-        return True iff the key is a prefix of another key(s) in the NDict
+        return True iff the key is a *strictly* prefix of another key(s) in the NDict.
+        :param key:
+
+        Example:
+            >>> ndict = NDict()
+            >>> ndict["a.b.c"] = "d"
+            >>> ndict.is_prefix("a")
+            True
+            >>> ndict.is_prefix("a.b")
+            True
+            >>> ndict.is_prefix("a.b.c")
+            False
         """
         # iterate over all keys and looking for a match
         for kk in self.keypaths():
@@ -208,6 +225,27 @@ class NDict(dict):
 
         # a match wasn't found
         return False
+
+    def get_sub_dict(self, key: str) -> NDict:
+        """
+        TODO
+
+        Example:
+            >>> ndict = NDict()
+            >>> ndict["a.b.c"] = "x"
+            >>> ndict["a.b.d"] = "y"
+            >>> ndict["a.b.e"] = "z"
+            >>> ndict.get_sub_dict("a.b")
+            {'c': 'x', 'd': 'y', 'e': 'z'}
+        """
+        res = dict()  # TODO maybe return it as NDict ?
+        key = key + "."
+        for kk in self.keypaths():
+            if kk.startswith(key):
+                sub_key = kk.replace(key, "", 1)
+                res[sub_key] = self[kk]
+
+        return NDict(res)
 
     def __setitem__(self, key: str, value: Any) -> None:
         """
@@ -243,8 +281,15 @@ class NDict(dict):
         #         value = value[sep_key]
         #     else:  # last step
         #         del value[sep_key]
+        if key in self:
+            del self._stored[key]
+            return  # TODO maybe delete ??
 
-        del self._stored[key]  # what if the user want to delete an entire branch?
+        # delete entire branch
+        if self.is_prefix(key):
+            for kk in list(self.keypaths()):
+                if kk.startswith(f"{key}."):
+                    del self[kk]
 
     def get_closest_key(self, key: str) -> str:
         """
