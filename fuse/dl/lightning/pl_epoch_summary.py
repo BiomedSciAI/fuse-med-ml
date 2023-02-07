@@ -37,7 +37,7 @@ class ModelEpochSummary(Callback):
         Automatically display (print to screen and log to a file) best vs current epoch metircs and losses.
 
         Example:
-    Stats for epoch: 9 (best tpoch is 7 for source validation.metrics.accuracy!)
+    Stats for epoch: 9 (best epoch is 7 for source validation.metrics.accuracy!)
     ------------------------------------------------------------------------------------------
     |                             | Best Epoch (7)              | Current Epoch (9)           |
     ------------------------------------------------------------------------------------------
