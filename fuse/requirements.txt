@@ -9,8 +9,6 @@ scikit-learn>=0.23.2
 termcolor>=1.1.0
 pycocotools>=2.0.1
 pytorch_lightning>=1.6
-torch
-torchvision>=0.14
 tensorboard
 wget
 ipython
