@@ -40,6 +40,7 @@ from fuse.eval.metrics.classification.metrics_classification_common import (
     MetricConfusionMatrix,
     MetricBSS,
     MetricROCCurve,
+    MetricAUCROCMultLabel,
 )
 from fuse.eval.metrics.classification.metrics_model_comparison_common import (
     MetricDelongsTest,
@@ -842,6 +843,46 @@ def example_17() -> Dict:
             (
                 "c_index_test",
                 MetricCIndex(pred="data.pred", event_times="data.event_times", event_observed="data.event_observed"),
+            ),
+        ]
+    )
+
+    evaluator = EvaluatorDefault()
+    results = evaluator.eval(ids=None, data=data, metrics=metrics)
+
+    return results
+
+
+def example_18():
+    """
+    Compute the AUC in case of a multi-label classification problem (each sample has more than one possible label).
+    """
+    np.random.seed(42)
+
+    targets = np.random.randint(0, 2, size=(100, 4))
+    index = np.arange(0, len(targets))
+
+    target_df = pd.DataFrame(columns=["target", "id"])
+    target_df["target"] = targets.tolist()
+    target_df["id"] = index
+
+    preds = np.random.rand(100, 4)
+
+    pred_df = pd.DataFrame(columns=["pred", "id"])
+    pred_df["pred"] = preds.tolist()
+    pred_df["id"] = index
+
+    data = {"pred": pred_df, "target": target_df}
+
+    metrics = OrderedDict(
+        [
+            (
+                "multi_label_auc_micro",
+                MetricAUCROCMultLabel(pred="pred.pred", target="target.target", average="micro"),
+            ),
+            (
+                "multi_label_auc_macro",
+                MetricAUCROCMultLabel(pred="pred.pred", target="target.target", average="macro"),
             ),
         ]
     )
