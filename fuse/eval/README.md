@@ -20,6 +20,7 @@ Besides having implemented a rich library of evaluation metrics and helper funct
 ## Implemented low-level metrics:
 ### Classification:
 * Area under ROC curve
+* Multi-label area under ROC curve
 * Area under Precision-Recall curve
 * Accuracy
 * Confusion matrix and resulting metrics: sensitivity (=recall=TPR), specificity (=selectivity), precision (=PPV), f1-score
