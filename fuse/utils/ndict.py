@@ -130,7 +130,10 @@ class NDict(dict):
         returns a list of keypaths (i.e. "a.b.c.d") to all values in the nested dict
         """
         # return NDict._keypaths_static(self._stored, None)
-        return self._stored.keys()
+
+        # list( ) to prevent:
+        # RuntimeError: dictionary changed size during iteration (caused by "for key in sample_dict.keypaths():")
+        return list(self._stored.keys())
 
     # @staticmethod
     # def _keypaths_static(item: Union[dict, Any], prefix: str) -> List[str]:
@@ -287,7 +290,7 @@ class NDict(dict):
 
         # delete entire branch
         if self.is_prefix(key):
-            for kk in list(self.keypaths()):
+            for kk in self.keypaths():
                 if kk.startswith(f"{key}."):
                     del self[kk]
 
