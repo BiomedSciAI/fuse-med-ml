@@ -40,7 +40,6 @@ class TestCrossAttentionTransformerEncoder(unittest.TestCase):
             "kwargs_wrapper_a": dict(emb_dropout=0.1),
             "kwargs_wrapper_b": dict(emb_dropout=0.1),
             "kwargs_encoder_a": dict(layer_dropout=0.1),
-            "kwargs_encoder_b": dict(layer_dropout=0.1),
             "kwargs_cross_attn": dict(cross_attn_tokens_dropout=0.1),
         }
 

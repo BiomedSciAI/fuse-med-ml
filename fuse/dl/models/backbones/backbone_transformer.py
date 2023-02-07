@@ -99,11 +99,11 @@ class CrossAttentionTransformerEncoder(nn.Module):
         heads_b: int = 9,
         output_dim: Optional[int] = None,
         context: str = "seq_b",
-        kwargs_wrapper_a: Optional[dict] = None,
-        kwargs_wrapper_b: Optional[dict] = None,
-        kwargs_encoder_a: Optional[dict] = None,
-        kwargs_encoder_b: Optional[dict] = None,
-        kwargs_cross_attn: Optional[dict] = None,
+        kwargs_wrapper_a: dict = dict(),
+        kwargs_wrapper_b: dict = dict(),
+        kwargs_encoder_a: dict = dict(),
+        kwargs_encoder_b: dict = dict(),
+        kwargs_cross_attn: dict = dict(),
     ):
         """
         :param emb_dim: inner model dimension
@@ -121,6 +121,11 @@ class CrossAttentionTransformerEncoder(nn.Module):
                         "seq_a": the first sequence will be used as a context
                         "seq_b": the second sequence will be used as a context
                         "both": will use two cross attention modules to take each one of the sequences as a context to the other one.
+        :param kwargs_wrapper_a: optional - additional arguments for sequence a's TransformerWrapper object
+        :param kwargs_wrapper_b: optional - additional arguments for sequence b's TransformerWrapper object
+        :param kwargs_encoder_a: optional - additional arguments for sequence a's Encoder object
+        :param kwargs_encoder_b: optional - additional arguments for sequence b's Encoder object
+        :param kwargs_cross_attn: optional - additional arguments for the CrossAttender object(s)
         """
         super().__init__()
 
