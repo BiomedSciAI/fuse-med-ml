@@ -1,14 +1,14 @@
 # All requirements
 # python>=3.7
 numpy>=1.18.5
-pandas>1.2.5
+pandas>=1.2
 tqdm>=4.52.0
 scipy>=1.5.4
 matplotlib>=3.3.3
 scikit-learn>=0.23.2
 termcolor>=1.1.0
 pycocotools>=2.0.1
-pytorch_lightning>=1.6
+pytorch_lightning>=1.7
 tensorboard
 wget
 ipython
