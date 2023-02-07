@@ -1,144 +1,51 @@
-import torch
-import torch.nn as nn
+from torch import nn
+from monai.networks.nets import UNet as UNetBase
+from fuse.utils.ndict import NDict
 import torch.nn.functional as F
-
-from fuse.dl.models.heads.common import ClassifierFCN
-"""
-implementation of Unet based on - 
-U-Net: Convolutional Networks for Biomedical Image Segmentation
-https://arxiv.org/abs/1505.04597
-Code from - https://github.com/milesial/Pytorch-UNet
-"""
-
-class DoubleConv(nn.Module):
-    """(convolution => [BN] => ReLU) * 2"""
-
-    def __init__(self, in_channels, out_channels, mid_channels=None):
-        super().__init__()
-        if not mid_channels:
-            mid_channels = out_channels
-        self.double_conv = nn.Sequential(
-            nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1),
-            nn.BatchNorm2d(mid_channels),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True)
-        )
-
-    def forward(self, x):
-        return self.double_conv(x)
-
-
-class Down(nn.Module):
-    """Downscaling with maxpool then double conv"""
-
-    def __init__(self, in_channels, out_channels):
-        super().__init__()
-        self.maxpool_conv = nn.Sequential(
-            nn.MaxPool2d(2),
-            DoubleConv(in_channels, out_channels)
-        )
-
-    def forward(self, x):
-        return self.maxpool_conv(x)
-
-
-class Up(nn.Module):
-    """Upscaling then double conv"""
-
-    def __init__(self, in_channels, out_channels, bilinear=True):
-        super().__init__()
-
-        # if bilinear, use the normal convolutions to reduce the number of channels
-        if bilinear:
-            self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-            self.conv = DoubleConv(in_channels, out_channels, in_channels // 2)
-        else:
-            self.up = nn.ConvTranspose2d(in_channels , in_channels // 2, kernel_size=2, stride=2)
-            self.conv = DoubleConv(in_channels, out_channels)
-
-
-    def forward(self, x1, x2):
-        x1 = self.up(x1)
-        # input is CHW
-        diffY = x2.size()[2] - x1.size()[2]
-        diffX = x2.size()[3] - x1.size()[3]
-
-        x1 = F.pad(x1, [diffX // 2, diffX - diffX // 2,
-                        diffY // 2, diffY - diffY // 2])
-        # if you have padding issues, see
-        # https://github.com/HaiyongJiang/U-Net-Pytorch-Unstructured-Buggy/commit/0e854509c2cea854e247a9c615f175f76fbb2e3a
-        # https://github.com/xiaopeng-liao/Pytorch-UNet/commit/8ebac70e633bac59fc22bb5195e513d5832fb3bd
-        x = torch.cat([x2, x1], dim=1)
-        return self.conv(x)
-
-
-class OutConv(nn.Module):
-    def __init__(self, in_channels, out_channels):
-        super(OutConv, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1)
-        self.sig = nn.Sigmoid()
-
-    def forward(self, x):
-        return self.sig(self.conv(x))
-
-
-class ClsHead(nn.Module):
-    def __init__(self, in_channels, kernel_size, num_classes=2, dropout_rate=0.1):
-        super(ClsHead, self).__init__()
-        # TODO - check alternatively with global pooling
-        self.conv = nn.Conv2d(in_channels, in_channels, kernel_size=kernel_size)
-
-        layers_description = (512,)
-        self.classifier_head_module = ClassifierFCN(
-            in_ch=in_channels,
-            num_classes=num_classes,
-            layers_description=layers_description,
-            dropout_rate=dropout_rate,
-        )
-
-    def forward(self, x):
-        return self.classifier_head_module(self.conv(x))
 
 
 class UNet(nn.Module):
-    def __init__(self, n_channels, n_classes, bilinear=True, dropout_rate=0.1):
-        super(UNet, self).__init__()
-        self.n_channels = n_channels
-        self.n_classes = n_classes
-        self.bilinear = bilinear
+    def __init__(
+        self, input_name: str, seg_name: str, pre_softmax: str, post_softmax: str, out_features: int, unet_kwargs: dict
+    ):
+        super().__init__()
+        self.input_name = input_name
+        self.seg_name = seg_name
+        self.pre_softmax = pre_softmax
+        self.post_softmax = post_softmax
 
-        self.inc = DoubleConv(n_channels, 64)
-        self.down1 = Down(64, 128)
-        self.down2 = Down(128, 256)
-        self.down3 = Down(256, 512)
-        factor = 2 if bilinear else 1
-        self.down4 = Down(512, 1024 // factor)
-        self.up1 = Up(1024, 512 // factor, bilinear)
-        self.up2 = Up(512, 256 // factor, bilinear)
-        self.up3 = Up(256, 128 // factor, bilinear)
-        self.up4 = Up(128, 64, bilinear)
-        self.outc = OutConv(64, n_classes)
+        self.unet = UNetBase(**unet_kwargs)
+        self.avgpool = nn.AdaptiveAvgPool3d((1, 1, 1))
+        self.linear = nn.Linear(in_features=unet_kwargs["channels"][-1], out_features=out_features)
+        # extract bottom activation
+        self.activations = {}
 
-        # # TODO - add image-size as input to set the kernel size param
-        # self.head = ClsHead(1024, 
-        #                        kernel_size=20, 
-        #                        num_classes=n_classes,
-        #                        dropout_rate=dropout_rate)
+        def get_activation(name):
+            def hook(model, input, output):
+                self.activations[name] = output.detach()
 
-    def forward(self, x):
-        x1 = self.inc(x)
-        x2 = self.down1(x1)
-        x3 = self.down2(x2)
-        x4 = self.down3(x3)
-        x5 = self.down4(x4)
-        x = self.up1(x5, x4)
-        x = self.up2(x, x3)
-        x = self.up3(x, x2)
-        x = self.up4(x, x1)
-        logits = self.outc(x)
-        
-        # cls = self.head(x5)
+            return hook
 
-        return logits
+        bottom_module = self.get_bottom_module()
+        # register last convolution module in the encoder
+        bottom_module.register_forward_hook(get_activation("bottom_layer"))
+
+    def get_bottom_module(self):
+        # specific code for the monai unet model, extract the last convolution of the encoder
+        cur = self.unet.model
+        for i in range(len(self.unet.strides)):
+            cur = cur[1].submodule
+        cur = cur.conv
+        return cur
+
+    def forward(self, batch_dict: NDict):
+        x = batch_dict[self.input_name]
+        seg_output = self.unet(x)
+        bottom_output = self.activations["bottom_layer"]
+        batch_dict[self.seg_name] = seg_output
+        x = self.avgpool(bottom_output)
+        x = x.flatten(1)
+        batch_dict[self.pre_softmax] = x
+        x = self.linear(x)
+        batch_dict[self.post_softmax] = F.softmax(x, dim=1)
+        return batch_dict

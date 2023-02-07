@@ -66,20 +66,6 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 from monai.losses import DiceFocalLoss
 
-class DiceCELoss(nn.Module):
-    """Dice and Xentropy loss"""
-
-    def __init__(self):
-        super().__init__()
-        self.dice = monai.losses.DiceFocalLoss(to_onehot_y=True, softmax=True)
-        self.cross_entropy = nn.CrossEntropyLoss()
-
-    def forward(self, y_pred, y_true):
-        dice = self.dice(torch.unsqueeze(y_pred[:,1,:,:,:],axis=1), y_true)
-        # CrossEntropyLoss target needs to have shape (B, D, H, W)
-        # Target from pipeline has shape (B, 1, D, H, W)
-        #cross_entropy = self.cross_entropy(y_pred[:,1,:,:,:], torch.squeeze(y_true, dim=1))
-        return dice #+ cross_entropy
 # assert (
 #     "PICAI_DATA_PATH" in os.environ
 # ), "Expecting environment variable CMMD_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
@@ -100,149 +86,20 @@ def print_struct(d, level=0):
         if hasattr(d, 'shape'):
             print(d.shape)
 
-def pre_proc_batch(in_batch): # [N, C, D, H, W]
-    out_batch = []
-    for batch in in_batch:
-        if len(batch.shape) > 4:
-            # reshape
-            shape = batch.shape
-            batch = batch.transpose(1,2)
-            batch = batch.view(-1, shape[1], shape[-2], shape[-1])
-        out_batch.append(batch)
 
-    return out_batch # [N * D, C, H, W]
-
-
-def post_proc_batch(out_model): # [N * D, C, H, W]
-    # return torch.unsqueeze(out_model,dim=0).transpose(1,2) # [N, C, D, H, W]
-    softmax_values =F.softmax(out_model,dim=1)
-    return softmax_values
-    
-
-class Val_collate(CollateDefault):
-
-    def __init__(
-        self,
-        skip_keys: Sequence[str] = tuple(),
-        keep_keys: Sequence[str] = tuple(),
-        raise_error_key_missing: bool = True,
-        special_handlers_keys: Dict[str, Callable] = None,
-    ):
-        """
-        :param skip_keys: do not collect the listed keys
-        :param keep_keys: specifies a list of keys to collect. missing keep_keys are skipped.
-        :param special_handlers_keys: per key specify a callable which gets as an input list of values and convert it to a batch.
-                                      The rest of the keys will be converted to batch using PyTorch default collate_fn()
-                                      Example of such Callable can be seen in the CollateDefault.pad_all_tensors_to_same_size.
-        :param raise_error_key_missing: if False, will not raise an error if there are keys that do not exist in some of the samples. Instead will set those values to None.
-        """
-        super().__init__(skip_keys, raise_error_key_missing)
-        self._special_handlers_keys = {}
-        if special_handlers_keys is not None:
-            self._special_handlers_keys.update(special_handlers_keys)
-        self._special_handlers_keys[get_sample_id_key()] = CollateDefault.just_collect_to_list
-        self._keep_keys = keep_keys
-
-    def __call__(self, samples: List[Dict]) -> Dict:
-        """
-        collate list of samples into batch_dict
-        :param samples: list of samples
-        :return: batch_dict
-        """
-        batch_dict = NDict()
-
-        # collect all keys
-        keys = self._collect_all_keys(samples)
-
-        # collect values
-        for key in keys:
-            try:
-                # collect values into a list
-                collected_values, has_error = self._collect_values_to_list(samples, key)
-
-                # batch values
-                if isinstance(collected_values[0], (torch.Tensor, np.ndarray)) and \
-                                        len(collected_values[0].shape) > 1 :
-                    collected_values = [cv.transpose(0,1) for cv in collected_values]
-                    batch_dict[key] = torch.cat(collected_values, axis=0)
-                else:
-                    self._batch_dispatch(batch_dict, samples, key, has_error, collected_values)
-            except:
-                print(f"Error: Failed to collect key {key}")
-                raise
-
-        return batch_dict
-
-
-def create_model(target) -> torch.nn.Module:
+def create_model(unet_kwargs) -> torch.nn.Module:
     """
     creates the model
-    See HeadGlobalPoolingClassifier for details
     """
-    # if train["target"] == "classification":
-    #     gt_label = "data.gt.classification"
-    #     skip_keys = ["data.gt.subtype"]
-    #     class_names = ["Benign", "Malignant"]
-    #     model = ModelMultiHead(
-    #         conv_inputs=(('data.input.img_t2w', 1),),
-    #         backbone=BackboneResnet3D(in_channels=1),
-    #         heads=[
-    #             Head3D(head_name='head_0',
-    #                             conv_inputs=[("model.backbone_features", 512)],
-    #                             #  dropout_rate=train_params['imaging_dropout'],
-    #                             #  append_dropout_rate=train_params['clinical_dropout'],
-    #                             #  fused_dropout_rate=train_params['fused_dropout'],
-    #                             num_outputs=num_classes,
-    #                             #  append_features=[("data.input.clinical", 8)],
-    #                             #  append_layers_description=(256,128),
-    #                             ),
-    #         ])
-    # elif train["target"] == "subtype":
-    #     num_classes = 4
-    #     gt_label = "data.gt.subtype"
-    #     skip_keys = ["data.gt.classification"]
-    #     class_names = ["Luminal A", "Luminal B", "HER2-enriched", "triple negative"]
-    if target == 'segmentation':
-        torch_model = UNet(n_channels=1, n_classes=1, bilinear=False)
-
-        model = ModelWrapSeqToDict(model=torch_model,
-                                model_inputs=['data.input.img_t2w'],
-                                model_outputs=['model.logits.segmentation'],
-                                pre_forward_processing_function=pre_proc_batch,
-                                post_forward_processing_function=post_proc_batch
-                                )
-
-    elif target == 'seg3d':
-
-        # define the model specifications used for initialization at train-time
-        # note: if the default hyperparam listed in picai_baseline was used,
-        # passing arguments 'image_shape', 'num_channels', 'num_classes' and
-        # 'model_type' via function 'get_default_hyperparams' is enough.
-        # otherwise arguments 'model_strides' and 'model_features' must also
-        # be explicitly passed directly to function 'neural_network_for_run'
-        # define input data specs [image shape, spatial res, num channels, num classes]
-        img_spec = {
-            'image_shape': [20, 256, 256],
-            'spacing': [3.0, 0.5, 0.5],
-            'num_channels': 1,
-            'num_classes': 2,
-        }
-        args = get_default_hyperparams({
-            'model_type': 'unet',
-            **img_spec
-        })
-        device="cuda:0"
-        torch_model = neural_network_for_run(args=args, device=device)
-
-        model = ModelWrapSeqToDict(model=torch_model,
-                                model_inputs=['data.input.img_t2w'],
-                                model_outputs=['model.logits.segmentation'],
-                                # pre_forward_processing_function=pre_proc_batch,
-                                #post_forward_processing_function=post_proc_batch
-                                )
-
-    else:
-        raise ("unsuported target!!")
+    unet_kwargs["in_channels"] = 1
+    model = UNet(
+        input_name="data.input.img_t2w",
+        seg_name="model.seg",
+        pre_softmax="model.logits.all_pred_target",
+        post_softmax="model.outputs.all_pred_target",
+        out_features=2,
+        unet_kwargs=unet_kwargs,
+    )
 
     return model
 
@@ -263,7 +120,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     # ==============================================================================
     lgr.info("Model:", {"attrs": "bold"})
 
-    model = create_model(train["target"])
+    model = create_model(train["unet_kwargs"])
     lgr.info("Model: Done", {"attrs": "bold"})
 
     lgr.info("\nFuse Train", {"attrs": ["bold", "underline"]})
@@ -339,18 +196,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     lgr.info("Validation Data:", {"attrs": "bold"})
 
     ## Create dataloader
-    if train["target"] == "segmentation":
-        validation_dataloader = DataLoader(
-            dataset=validation_dataset,
-            shuffle=False,
-            drop_last=False,
-            batch_sampler=None,
-            batch_size=1, # TODO - set a validation batch_size parameter instead of - train["batch_size"],
-            num_workers=train["num_workers"],
-            collate_fn=Val_collate(), #CollateDefault(skip_keys=skip_keys),
-        )
-    elif train["target"] == "seg3d":
-        validation_dataloader = DataLoader(
+    validation_dataloader = DataLoader(
             dataset=validation_dataset,
             shuffle=False,
             drop_last=False,
@@ -358,9 +204,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
             batch_size=train["batch_size"], # TODO - set a validation batch_size parameter instead of - train["batch_size"],
             num_workers=train["num_workers"],
             collate_fn=CollateDefault()
-        )
-    else:
-        raise ("unsuported target!!")
+    )
     lgr.info("Validation Data: Done", {"attrs": "bold"})
 
     # for x in train_dataloader:
@@ -373,25 +217,20 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     #  Loss and metrics
     # ====================================================================================
     # TODO - add a classification loss - add head to the bottom of the unet
-    if train["target"] == "seg3d":
-        losses = {
-            "dice_focal_monai_loss": LossDefault(pred="model.logits.segmentation", target='data.gt.seg', callable=DiceCELoss(), weight=1.0)
-        }
-
-        train_metrics =OrderedDict(
-            # [
-            #     ("picai_metric", MetricDetectionPICAI(pred='model.logits.segmentation', 
-            #                          target='data.gt.seg',threshold=0.5, num_workers= train["num_workers"])),  # will apply argmax
-            # ]
-        )
-    elif train["target"] == "segmentation":
-        losses = {
-            'dice_amir_loss': DiceLoss(pred_name='model.logits.segmentation', target_name='data.gt.seg')
-        }
-
-        train_metrics =OrderedDict()
-    else:
-        raise ("unsuported target!!")
+    losses = {}
+    losses["segmentation"] = LossDefault(
+            pred="model.seg",
+            target="data.gt.seg",
+            callable=monai.losses.DiceFocalLoss(to_onehot_y=True, softmax=True),
+            weight=train["loss_config.segmentation_lambda"])
+    losses['classification'] = LossDefault(pred='model.logits.all_pred_target', target='data.gt.classification', callable=F.cross_entropy, weight=train["loss_config.classification_lamba"])
+    train_metrics = OrderedDict(
+        [
+            ("op", MetricApplyThresholds(pred="model.outputs.all_pred_target")),  # will apply argmax
+            ("auc", MetricAUCROC(pred="model.outputs.all_pred_target", target='data.gt.classification', class_names=['Healthy','Cancer'])),
+            ("accuracy", MetricAccuracy(pred="results:metrics.op.cls_pred", target='data.gt.classification')),
+        ]
+    )
 
     validation_metrics = copy.deepcopy(train_metrics)  # use the same metrics in validation as well
 
@@ -483,7 +322,7 @@ def run_infer(infer: NDict, paths: NDict):
         drop_last=False,
         batch_sampler=None,
         batch_size=1, # TODO - set a validation batch_size parameter instead of - train["batch_size"],
-        collate_fn=Val_collate(), #CollateDefault(skip_keys=skip_keys),
+        collate_fn=CollateDefault(),
         num_workers=infer["num_workers"],
     )
     # load python lightning module
@@ -561,15 +400,15 @@ def main(cfg: DictConfig) -> None:
 
     # train
     if "train" in cfg["run.running_modes"]:
-        run_train(cfg["paths"], cfg["train"])
+        run_train(NDict(cfg["paths"]), NDict(cfg["train"]))
 
     # infer
     if "infer" in cfg["run.running_modes"]:
-        run_infer(cfg["infer"], cfg["paths"])
+        run_infer(NDict(cfg["infer"]), NDict(cfg["paths"]))
     #
     # analyze
     if "eval" in cfg["run.running_modes"]:
-        run_eval(cfg["paths"], cfg["infer"])
+        run_eval(NDict(cfg["paths"]), NDict(cfg["infer"]))
 
 
 if __name__ == "__main__":
