@@ -23,7 +23,6 @@ import unittest
 from fuse.utils.ndict import NDict
 import numpy
 import torch
-import copy
 
 
 class TestNDict(unittest.TestCase):
@@ -31,16 +30,16 @@ class TestNDict(unittest.TestCase):
     Test NDict class
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.nested_dict = NDict({"a": 1, "b": {"c": 2, "d": 3}, "c": 4})
 
-    def test_get(self):
+    def test_get(self) -> None:
         self.assertEqual(self.nested_dict["a"], 1)
         self.assertEqual(self.nested_dict["b.c"], 2)
         self.assertEqual(self.nested_dict["c"], 4)
         self.assertDictEqual(self.nested_dict["b"], {"c": 2, "d": 3})
 
-    def test_set(self):
+    def test_set(self) -> None:
         self.nested_dict["a"] = 7
         self.assertEqual(self.nested_dict["a"], 7)
         self.nested_dict["a"] = 1
@@ -55,7 +54,7 @@ class TestNDict(unittest.TestCase):
         self.assertEqual(self.nested_dict["b"]["e"]["f"]["g"], 9)
         del self.nested_dict["b"]["e"]
 
-    def test_pop(self):
+    def test_pop(self) -> None:
         self.nested_dict.pop("b.d")
         all_keys = self.nested_dict.keypaths()
         self.assertSetEqual(set(all_keys), {"a", "b.c", "c"})
@@ -68,11 +67,11 @@ class TestNDict(unittest.TestCase):
         with self.assertRaises(KeyError):
             self.nested_dict.pop("lala")
 
-    def test_keypaths(self):
+    def test_keypaths(self) -> None:
         all_keys = self.nested_dict.keypaths()
         self.assertSetEqual(set(all_keys), {"a", "b.c", "b.d", "c"})
 
-    def test_is_in(self):
+    def test_is_in(self) -> None:
         self.assertTrue("a" in self.nested_dict)
         self.assertTrue("b.c" in self.nested_dict)
         self.assertTrue("b.d" in self.nested_dict)
@@ -80,7 +79,7 @@ class TestNDict(unittest.TestCase):
         self.assertFalse("d" in self.nested_dict)
         self.assertFalse("e" in self.nested_dict)
 
-    def test_apply_on_all(self):
+    def test_apply_on_all(self) -> None:
         nested_dict_copy = self.nested_dict.clone()
 
         def plus_one(val: int) -> int:
@@ -95,7 +94,7 @@ class TestNDict(unittest.TestCase):
         for key in all_keys:
             self.assertEqual(self.nested_dict[key] + 1, nested_dict_copy[key])
 
-    def test_flatten(self):
+    def test_flatten(self) -> None:
         flat_dict = self.nested_dict.flatten()
 
         # verify
@@ -105,7 +104,7 @@ class TestNDict(unittest.TestCase):
         for key in flat_keys:
             self.assertEqual(self.nested_dict[key], flat_dict[key])
 
-    def test_indices(self):
+    def test_indices(self) -> None:
         nested_dict = NDict(
             {
                 "a": numpy.array([[0, 1, 2], [3, 4, 5], [6, 7, 8]]),
@@ -121,7 +120,7 @@ class TestNDict(unittest.TestCase):
         self.assertTrue((nested_dict_indices["b.d"] == [0, 2]))
         self.assertTrue((nested_dict_indices["b.f"] == 4))
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         delattr(self, "nested_dict")
 
 
