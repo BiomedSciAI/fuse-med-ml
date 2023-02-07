@@ -56,7 +56,7 @@ create_env() {
 
         nvidia-smi
 
-        if false ; then
+        if find_in_conda_env $ENV_NAME ; then
             echo "Environment exist: $env"
         else
             echo "Mode=$mode"
