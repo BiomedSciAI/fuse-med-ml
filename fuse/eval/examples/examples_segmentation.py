@@ -168,6 +168,7 @@ def example_seg_2() -> Dict[str, Any]:
     Simple evaluation example for dice score for multiclass semantic segmentation
     Inputs are 4 pairs of segmentation files: one including predictions and one targets
     """
+
     # define iterator
     def data_iter():
         dir_path = pathlib.Path(__file__).parent.resolve()
