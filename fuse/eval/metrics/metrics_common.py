@@ -127,7 +127,6 @@ class MetricCollector(MetricBase):
         if self._pre_collect_process_func is not None or self._post_collect_process_func is not None:
             samples = uncollate(batch)
             for sample in samples:
-
                 if self._pre_collect_process_func is not None:
                     sample = self._pre_collect_process_func(sample)
 
