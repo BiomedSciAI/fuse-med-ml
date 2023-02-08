@@ -22,7 +22,7 @@ from typing import Optional
 from fuse.utils.misc.misc import get_pretty_dataframe
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning import Callback
 
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 import torch
@@ -37,7 +37,7 @@ class ModelEpochSummary(Callback):
         Automatically display (print to screen and log to a file) best vs current epoch metircs and losses.
 
         Example:
-    Stats for epoch: 9 (best tpoch is 7 for source validation.metrics.accuracy!)
+    Stats for epoch: 9 (best epoch is 7 for source validation.metrics.accuracy!)
     ------------------------------------------------------------------------------------------
     |                             | Best Epoch (7)              | Current Epoch (9)           |
     ------------------------------------------------------------------------------------------
