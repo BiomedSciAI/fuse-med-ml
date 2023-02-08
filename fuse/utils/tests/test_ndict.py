@@ -171,6 +171,19 @@ class TestNDict(unittest.TestCase):
         self.assertEqual(ndict.get_closest_key("a.b.c"), "a.b.c")
         self.assertEqual(ndict.get_closest_key("a.b.cc"), "a.b")
 
+    def test_merge(self) -> None:
+        # set ndicts
+        ndict1 = NDict()
+        ndict1["a.b.c"] = None
+        ndict2 = NDict()
+        ndict2["a.b.d"] = None
+
+        ndict = ndict1.merge(ndict2)
+        sub_dict = ndict.get_sub_dict("a.b")
+
+        self.assertTrue(len(ndict) == 2)
+        self.assertDictEqual(sub_dict.to_dict(), {"c": None, "d": None})
+
     def tearDown(self) -> None:
         delattr(self, "nested_dict")
 

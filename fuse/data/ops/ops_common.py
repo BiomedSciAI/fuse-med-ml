@@ -416,9 +416,6 @@ class OpLookup(OpBase):
         :param key_out: key to store the converted value
         """
         value = sample_dict[key_in]
-        import pdb
-
-        pdb.set_trace()
         if value in self._map:
             sample_dict[key_out] = self._map[value]
         elif self._not_exist_error:

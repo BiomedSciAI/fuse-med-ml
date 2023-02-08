@@ -153,7 +153,7 @@ class NDict(dict):
         """
         returns the top-level keys of the dictionary
         """
-        return self._stored.keys()
+        return list(self._stored.keys())
 
     def values(self) -> dict_items:
         return self._stored.values()
@@ -169,7 +169,7 @@ class NDict(dict):
         for k, v in other_flat.items():
             self[k] = v
 
-        return
+        return self
 
     def __getitem__(self, key: str) -> Any:
         """
