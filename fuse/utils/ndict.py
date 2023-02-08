@@ -197,9 +197,11 @@ class NDict(dict):
 
         # return value
 
-        if key in self:
+        # the key is a full key for a value
+        if key in self._stored:
             return self._stored[key]
 
+        # the key is a prefix for other value(s)
         if self.is_prefix(key):  # TODO can be more optimized. we pass here once and in the "get_sub_dict" once again
             # collect "sub-dict"
             return self.get_sub_dict(key)
@@ -284,7 +286,7 @@ class NDict(dict):
         #         value = value[sep_key]
         #     else:  # last step
         #         del value[sep_key]
-        if key in self:
+        if key in self._stored:
             del self._stored[key]
             return  # TODO maybe delete ??
 
@@ -299,16 +301,28 @@ class NDict(dict):
         For a given keypath, returns the longest valid keypath in the current nested dict
         :param key: a full keypath with dot delimiter
         """
-        partial_key = []
-        partial_ndict = self._stored
-        parts = key.split(".")
-        for k in parts:
-            if isinstance(partial_ndict, MutableMapping) and k in partial_ndict:
-                partial_key.append(k)
-                partial_ndict = partial_ndict[k]
-            else:
-                break
-        return ".".join(partial_key)
+        # partial_key = []
+        # partial_ndict = self._stored
+        # parts = key.split(".")
+        # for k in parts:
+        #     if isinstance(partial_ndict, MutableMapping) and k in partial_ndict:
+        #         partial_key.append(k)
+        #         partial_ndict = partial_ndict[k]
+        #     else:
+        #         break
+        # return ".".join(partial_key)
+
+        # the full key is in the ndict
+        if key in self._stored:
+            return key
+
+        key_parts = key.split(".")
+        for i in range(len(key_parts)):
+            if self.is_prefix(key):
+                return key
+            key = ".".join(key_parts[:-i])
+
+        return ""  # should not get here, double check
 
     def pop(self, key: str) -> Any:  # OPT
         """
@@ -366,7 +380,8 @@ class NDict(dict):
         return repr(self._stored)
 
     def __contains__(self, o: str) -> bool:  # OPT
-        return o in self._stored
+        return o == self.get_closest_key(o)
+        # return o in self._stored
 
     def get(self, key: str, default_value: Any = None) -> Any:
         if key not in self:

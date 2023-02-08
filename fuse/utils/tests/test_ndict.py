@@ -85,7 +85,11 @@ class TestNDict(unittest.TestCase):
         self.assertFalse("e" in self.nested_dict)
 
         ndict = NDict({"a": 1, "b.c": 2})
+        self.assertTrue("a" in ndict)
+        self.assertTrue("b" in ndict)
+        self.assertTrue("b.c" in ndict)
         self.assertFalse("c" in ndict)
+        self.assertFalse("42" in ndict)
 
     def test_apply_on_all(self) -> None:
         nested_dict_copy = self.nested_dict.clone()
@@ -157,6 +161,15 @@ class TestNDict(unittest.TestCase):
         self.assertDictEqual(ndict.get_sub_dict("a.b").to_dict(), {"c.c1": "x1", "c.c2": "x2", "c.c3": "x3"})
         self.assertDictEqual(ndict.get_sub_dict("a.b.c").to_dict(), {"c1": "x1", "c2": "x2", "c3": "x3"})
         self.assertDictEqual(ndict.get_sub_dict("a.b.c.c1").to_dict(), {})
+
+    def test_get_closest_key(self) -> None:
+        # set ndict
+        ndict = NDict()
+        ndict["a.b.c"] = None
+
+        self.assertEqual(ndict.get_closest_key("a"), "a")
+        self.assertEqual(ndict.get_closest_key("a.b.c"), "a.b.c")
+        self.assertEqual(ndict.get_closest_key("a.b.cc"), "a.b")
 
     def tearDown(self) -> None:
         delattr(self, "nested_dict")
