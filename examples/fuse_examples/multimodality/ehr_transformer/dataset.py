@@ -201,7 +201,7 @@ class OpMapToCategorical(OpBase):
         # on defined bins mapping static clinical characteristics
         # (Age, Gender, ICU type, Height, etc)
         for k in sample_dict["StaticDetails"]:
-            sample_dict["StaticDetails"][k] = k + "_" + str(np.digitize(sample_dict["StaticDetails"][k], bins[k]))
+            sample_dict[f"StaticDetails.{k}"] = k + "_" + str(np.digitize(sample_dict["StaticDetails"][k], bins[k]))
 
         # mapping labs exams and clinical characteristics captured
         # during patients' stay in ICU
