@@ -29,3 +29,4 @@ nibabel
 vit-pytorch
 lifelines
 clearml
+x-transformers

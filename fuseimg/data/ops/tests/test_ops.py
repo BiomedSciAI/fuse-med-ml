@@ -22,7 +22,6 @@ class TestOps(unittest.TestCase):
         pipeline = PipelineDefault(
             "test_pipeline",
             [
-                # (op_normalize_against_self, {} ),
                 (OpClip(), dict(key="data.input.img", clip=(-0.5, 3.0))),
                 (OpToRange(), dict(key="data.input.img", from_range=(-0.5, 3.0), to_range=(-3.5, 3.5))),
             ],
