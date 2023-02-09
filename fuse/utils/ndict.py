@@ -111,7 +111,7 @@ class NDict(dict):
         print(nx.flatten().keys())
         """
 
-        return self._stored  # OPT store it flat
+        return self._stored
 
     # @staticmethod
     # def _flatten_static(item: Union[dict, Any], prefix: str, flat_dict: dict) -> None:
@@ -165,8 +165,9 @@ class NDict(dict):
         """
         inplace merge between self and other.
         """
-        other_flat = NDict(other).flatten()
-        for k, v in other_flat.items():
+        # other_flat = NDict(other).flatten()
+        # for k, v in other_flat.items():
+        for k, v in other.items():
             self[k] = v
 
         return self
@@ -221,7 +222,7 @@ class NDict(dict):
             >>> ndict.is_prefix("a.b")
             True
             >>> ndict.is_prefix("a.b.c")
-            False
+            False    # STRICTLY !
         """
         # iterate over all keys and looking for a match
         for kk in self.keypaths():
