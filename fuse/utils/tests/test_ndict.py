@@ -171,6 +171,19 @@ class TestNDict(unittest.TestCase):
         self.assertEqual(ndict.get_closest_key("a.b.c"), "a.b.c")
         self.assertEqual(ndict.get_closest_key("a.b.cc"), "a.b")
 
+    def test_delete(self) -> None:
+        # set ndict
+        ndict = NDict()
+        ndict["a.b"] = None
+        ndict["a.c"] = None
+
+        del ndict["a.b"]
+
+        with self.assertRaises(KeyError):
+            del ndict["not.exists"]
+
+        self.assertDictEqual(ndict.to_dict(), {"a.c": None})
+
     def test_merge(self) -> None:
         # set ndicts
         ndict1 = NDict()
@@ -183,6 +196,63 @@ class TestNDict(unittest.TestCase):
 
         self.assertTrue(len(ndict) == 2)
         self.assertDictEqual(sub_dict.to_dict(), {"c": None, "d": None})
+
+    def test_timing(self) -> None:  # TODO delete once done
+
+        print("Start Timing test")
+
+        import random
+        import string
+        import time
+
+        def get_random_string(length: int) -> str:
+            # choose from all lowercase letter
+            letters = string.ascii_lowercase
+            return "".join(random.choice(letters) for i in range(length))
+
+        def get_random_key(n_dots: int, sep_len: int) -> str:
+
+            res = ""
+
+            for i in range(n_dots):
+                if i > 0:
+                    res += "."
+                res += get_random_string(sep_len)
+
+            return res
+
+        WARM_UP = 1_000
+        REAL = 100_000
+
+        real_keys = [get_random_key(n_dots=random.randint(1, 6), sep_len=10) for i in range(REAL)]
+        ndict = NDict()
+
+        # records start time
+        start = time.perf_counter()
+
+        # EXECUTE
+        # inserts
+        for key in real_keys:
+            ndict[key] = [0]
+
+        random.shuffle(real_keys)
+
+        # gets
+        for key in real_keys:
+            val = ndict[key]
+
+        random.shuffle(real_keys)
+
+        # deletes
+        for key in real_keys:
+            del ndict[key]
+
+        # record end time
+        end = time.perf_counter()
+
+        # find elapsed time in seconds
+        ms = (end - start) * 10**6
+        print(f"Elapsed {ms:.03f} micro secs.")
 
     def tearDown(self) -> None:
         delattr(self, "nested_dict")

@@ -203,11 +203,12 @@ class NDict(dict):
             return self._stored[key]
 
         # the key is a prefix for other value(s)
-        if self.is_prefix(key):  # TODO can be more optimized. we pass here once and in the "get_sub_dict" once again
+        elif self.is_prefix(key):  # TODO can be more optimized. we pass here once and in the "get_sub_dict" once again
             # collect "sub-dict"
             return self.get_sub_dict(key)
 
-        raise NestedKeyError(key, self)
+        else:
+            raise NestedKeyError(key, self)
 
     def is_prefix(self, key: str) -> bool:
         """
@@ -292,10 +293,13 @@ class NDict(dict):
             return  # TODO maybe delete ??
 
         # delete entire branch
-        if self.is_prefix(key):
+        elif self.is_prefix(key):
             for kk in self.keypaths():
                 if kk.startswith(f"{key}."):
                     del self[kk]
+
+        else:
+            raise NestedKeyError(key, self)
 
     def get_closest_key(self, key: str) -> str:
         """
