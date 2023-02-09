@@ -595,7 +595,7 @@ class PhysioNetCinC:
         corpus = PhysioNetCinC._build_corpus_of_words(dict_percentiles)
         token2idx = WordVocab(corpus, max_size=None, min_freq=1).get_stoi()
 
-        # update pypline with Op using calculated percentiles
+        # update pipeline with Op using calculated percentiles
         dynamic_pipeline_ops = dynamic_pipeline_ops + [
             *PhysioNetCinC._process_dynamic_pipeline(
                 dict_percentiles, static_variables_to_embed, embed_static_in_all_visits, token2idx, max_len_seq
