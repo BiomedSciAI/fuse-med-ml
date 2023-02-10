@@ -2,6 +2,23 @@ from torch import nn
 #from torch.utils.checkpoint import checkpoint
 import torch
 
+
+
+# class ActivationCheckpointer:
+#     """
+#     Assumes that the model forward function returns a dictionary which contains 'losses' which points to a list of 
+#     torch tensors that we can do backward on
+#     """
+#     def __init__(self):
+#         pass
+
+#     def forward(self, func, **func_kwargs):
+
+
+
+
+
+
 def custom_forward_and_backward(config, model, x, targets, regularization_terms,
                                         do_backward=False,
                                         use_cpu_ram_paging=False,
@@ -379,79 +396,117 @@ if __name__ == '__main__' :
     import torch
     from torch import nn
     from torchvision import models
-    from typing import Optional
+    from typing import Optional, Any
+    from tqdm import trange
+    import tempfile
+    import os
+    from fuse.utils.file_io import save_hdf5_safe, load_hdf5
+    import uuid
     
-    # class DummyLayer(nn.Module):
-    #     def __init__(self):
-    #         super().__init__()
-    #         self.dummy = nn.Parameter(torch.ones(1, dtype=torch.float32))
-    #     def forward(self,x):
-    #         return x + self.dummy - self.dummy #(also tried x+self.dummy)
-    
+
     class MyModel(nn.Module):
-        def __init__(self):
+        def __init__(self, *, layers_num:int, filters_num:int, shared_params:bool):
             super(MyModel, self).__init__()
-            #self.features = nn.Sequential(*list(models.resnet18(pretrained=False).children())[:5])
-            self.blocks = nn.ModuleList(list(models.resnet18(pretrained=False).children())[:5])
-            self.fc1 = nn.Linear(200704, 2)
+            print('layers_num=',layers_num)
+            print('filters_num=',filters_num)
+            print('shared_params=',shared_params)
+            self.initial_conv = nn.Conv2d(3, filters_num, 1)
+            
+            if shared_params:
+                self.conv = nn.Conv2d(filters_num, filters_num, 1)
+            else:
+                self.convs = nn.ModuleList([
+                    nn.Conv2d(filters_num, filters_num, 3) for _ in range(layers_num)
+                ])
 
-            #self.dummy_layer = DummyLayer()
+            self.shared_params = shared_params
+            self.layers_num = layers_num
 
-        def forward_block(self, x, block_num:int):
-            print('block_num=', block_num)
-            if block_num==len(self.blocks):
-                x = x.view(x.size(0), -1)
-                x = self.fc1(x)
-                return x
-                
-            b = self.blocks[block_num]
-            x = b(x)
+        
+        def forward(self, x):
+            x = self.initial_conv(x)
+            for step in range(self.layers_num):
+                if self.shared_params:
+                    conv = self.conv
+                else:
+                    conv = self.convs[step]
+                x = conv(x)
+                #print(x.shape)
+                #print('step=',step)
+            
             return x
 
+    
+    #if True:
 
-        def forward(self, x, block_num:Optional[int] = None):
-            #x = self.dummy_layer(x)   
-            #x = checkpoint(self.features, x)
-
-            if block_num is None:
-                for i in range(6):
-                    x = self.forward_block(x, block_num=i)
-                return x
-
-            return self.forward_block(x, block_num)
-
-
-    model = MyModel().cuda()
+    model = MyModel(layers_num=60, filters_num=4096, shared_params=True).cuda()
     model.train()
     torch.manual_seed(1337)
+    opt = torch.optim.SGD(model.parameters(), lr=0.01)
 
-    input = torch.randn(1, 3, 224, 224).cuda()
 
-    print('method a:')
-    x = input
-    x = model(x)
-    x.mean().backward()
-    
-    print(model.blocks[0].weight.grad.max())
-    model.zero_grad()
-    print(model.blocks[0].weight.grad.max())
-    
-    #### zero grads manually
+    #### offload to CPU
 
-    #for block in model.blocks
-    #model.blocks[0].weight.grad.zero_()
+    def pack_hook_to_cpu(tensor: torch.Tensor):
+        address = tensor.data_ptr()
+        #print(f'pack_hook_to_cpu ({address})')
+        return dict(
+            orig_device = tensor.device,
+            cpu_tensor = tensor.to('cpu'),
+            address = address,
+        )
 
-    #model.blocks[-1][0].conv1.weight.grad.max()
+    def unpack_hook_from_cpu(packed:Any):
+        #print(f'unpack_hook_from_cpu ({packed["address"]})')
+        tens = packed['cpu_tensor'].to(packed['orig_device'])
+        return tens
 
-    print('method b:')
-    x = input
-    
-    for i in range(6):
-       x = model(x, block_num=i)
-    
-    x.mean().backward()
-    
-    print(model.blocks[0].weight.grad.max())
+    #### offload to disk
+    #see https://pytorch.org/docs/stable/notes/autograd.html#hooks-for-saved-tensors
+    class SelfDeletingTempFile():
+        def __init__(self):
+            #tmp_dir = os.path.join(tempfile.gettempdir(), 'checkpointed_activations')
+
+            #tmp_dir = os.path.join(os.path.realpath('~/'), 'temp/checkpointed_activations')
+            tmp_dir = '/dccstor/fmm/users/yoels/temp/checkpointed_activations'
+
+            os.makedirs(tmp_dir, exist_ok=True)
+            self.name = os.path.join(tmp_dir, str(uuid.uuid4()))
+
+        def __del__(self):
+            os.remove(self.name)
+
+    def pack_hook_to_disk(tensor):
+        temp_file = SelfDeletingTempFile()
+        #torch.save(tensor, temp_file.name)
+        save_hdf5_safe(temp_file.name, use_blosc=False, tensor=tensor.cpu().numpy())
+        return temp_file
+
+    def unpack_hook_from_disk(temp_file):
+        loaded = load_hdf5(temp_file.name)
+        tensor = loaded['tensor']
+        tensor = torch.from_numpy(tensor).cuda()
+        return tensor
+        
+        #return torch.load(temp_file.name)
+
+
+    for i in trange(100_000):
+        x = torch.randn(1, 3, 224, 224).cuda()
+        print('forward:')
+        with torch.autograd.graph.saved_tensors_hooks(pack_hook_to_disk, unpack_hook_from_disk):
+        #with torch.autograd.graph.saved_tensors_hooks(pack_hook_to_cpu, unpack_hook_from_cpu):
+        #with torch.autograd.graph.save_on_cpu(pin_memory=True):
+        #with torch.autograd.graph.save_on_cpu(pin_memory=False):
+        #if True:
+            x = model(x)
+        print('backward:')
+        x.mean().backward()
+        
+        #print(model.convs[0].weight.grad.max())
+        opt.step()
+        opt.zero_grad()
+
 
 
 
