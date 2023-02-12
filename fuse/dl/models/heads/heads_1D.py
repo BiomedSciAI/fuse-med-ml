@@ -96,7 +96,7 @@ class Head1D(nn.Module):
         if self.append_features is not None:
             features = torch.cat([batch_dict[append_feature[0]] for append_feature in self.append_features])
             features = self.append_features_module(features)
-            features = features.reshape(features.shape + (1, 1, 1))
+            # features = features.reshape(features.shape + (1, 1, 1))
             if self.conv_inputs is not None:
                 global_features = torch.cat((global_features, features), dim=1)
             else:

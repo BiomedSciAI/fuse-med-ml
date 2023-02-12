@@ -1,20 +1,20 @@
-experiment : imcl_regression(rad_size)_pt(age)_upres
-cache_name : 3 # 0 - [70, 256, 256] 1 - [40, 256, 256] 2 - [20, 256, 256] 3 - [40, 512, 512]
+experiment : im_pretrained(dino)
+cache_name : 1 # 0 - [70, 256, 256] 1 - [40, 256, 256] 2 - [20, 256, 256] 3 - [40, 512, 512]
 
 
 task_num : task_1 # task_1 or task_2 
 num_gpus : 1
-use_data : {"imaging": True, "clinical": True}
-batch_size : 2
-resize_to : [40, 512, 512]
+use_data : {"imaging": True, "clinical": False}
+batch_size : 24
+resize_to : [40, 256, 256]
 num_epochs : 140
-learning_rate : 0.0001
+learning_rate : 0.0002
 imaging_dropout : 0.5
 fused_dropout : 0.5
 pretrained : True
-regression_head : True
+regression_head : False
 two_dim : False
-reset_cache : False
+reset_cache : True
 gpus : [0]
 debug : False # for debugging\continous integration
 

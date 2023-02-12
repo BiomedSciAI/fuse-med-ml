@@ -7,10 +7,10 @@ import yaml
 import pandas as pd
 from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
-# from fuse.dl.models.heads.heads_3D import Head3D
-from fuse.dl.models.heads.heads_3D import Head3DClassifier
+from fuse.dl.models.heads.heads_3D import Head3D
+# from fuse.dl.models.heads.heads_3D import Head3DClassifier
 from fuse.dl.models.heads.heads_3D import Head3DRegression
-# from fuse.dl.models.backbone
+from fuse.dl.models.backbones.backbone_vit import vit_base, vit_small
 
 from fuseimg.datasets.knight import KNIGHT
 import torch.nn.functional as F
@@ -26,7 +26,6 @@ import torch.optim as optim
 import fuse.utils.gpu as GPU
 from fuse.utils.rand.seed import Seed
 import logging
-import time
 import copy
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.lightning.pl_module import LightningModuleDefault
@@ -50,18 +49,18 @@ from clearml import Task
 
 
 def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_dropout: float,
- pretrained:bool = False, regression_head: bool = False, two_dim: bool = False):
+ pretrained:bool = False, regression_head: bool = False, two_dim: bool = False, image_shape=(16,16,16)):
     if use_data["imaging"]:
         if two_dim:
             backbone = resnet50(True).float()
             backbone.fc = nn.Identity()
             conv_inputs = [("model.backbone_features", 2048)]
         elif not pretrained:
-            backbone = BackboneResnet3D(True, in_channels=1)
-            # state_dict = torch.load(open("/projects/msieve_dev3/usr/il018850/new_age_classification/base_resized/last.ckpt", "rb"))["state_dict"]
-            # state_dict = {".".join(k.split(".")[2:]) : v for k, v in state_dict.items() if k.startswith("_model.backbone.")}
-            # backbone.load_state_dict(state_dict)
-            conv_inputs = [("model.backbone_features", 512)]
+            # backbone = BackboneResnet3D(True, in_channels=1)
+            # conv_inputs = [("model.backbone_features", 512)]
+            backbone = vit_small(image_shape=image_shape, patch_shape=(4,16,16), channels=1)
+            conv_inputs = [("model.backbone_features", 384)]
+
         else:
             # unet_path = "/data/usr/liam/nnUNet/3d_fullres/Task135_KiTS2021/nnUNetTrainerV2__nnUNetPlansv2.1/fold_0/model_final_checkpoint.model"
             # norm_op_kwargs = {'eps': 1e-05, 'affine': True}
@@ -83,10 +82,11 @@ def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_d
             # backbone.load_state_dict(state_dict=state_dict)
             # conv_inputs = [("model.backbone_features", 2048)]
 
-            backbone = BackboneResnet3D(True, in_channels=1)
-            state_dict = torch.load(open("/dccstor/mm_hcls/usr/liam/dino/pretrained/last.ckpt", "rb"), map_location=torch.device('cpu'))["state_dict"]
-            state_dict = {k[1:7] + k.replace("stem", "layer0")[21:]:v for k,v in state_dict.items() if ("fc" not in k and "classifier" not in k)}
-            backbone.load_state_dict(state_dict=state_dict)
+            backbone = BackboneResnet3D(in_channels=1)
+            state_dict = torch.load(open("/dccstor/mm_hcls/usr/liam/dino/basic/lightning_logs/version_3/checkpoints/epoch=12-step=21463.ckpt", "rb"), map_location=torch.device('cpu'))["state_dict"]
+            # state_dict = {k[1:7] + k.replace("stem", "layer0")[21:]:v for k,v in state_dict.items() if ("fc" not in k and "classifier" not in k)}
+            state_dict = {k.replace("stem","layer0").replace("student.new_head.backbone.layer","model.") :v for k,v in state_dict.items() if "student.new_head.backbone" in k and ".fc." not in k}
+            backbone.load_state_dict(state_dict=state_dict, )
             conv_inputs = [("model.backbone_features", 512)]
 
     else:
@@ -111,16 +111,25 @@ def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_d
         ]
     else:
         heads=[
-                Head3DClassifier(
-                    head_name="head_0",
-                    # mode = "classification",
-                    conv_inputs=conv_inputs,
-                    dropout_rate=imaging_dropout,
-                    # num_outputs=num_classes,
-                    num_classes=num_classes,
-                    append_features=append_features,
-                    append_layers_description=(256, 128),
-                    fused_dropout_rate=fused_dropout,
+                # Head3DClassifier(
+                #     head_name="head_0",
+                #     # mode = "classification",
+                #     conv_inputs=conv_inputs,
+                #     dropout_rate=imaging_dropout,
+                #     # num_outputs=num_classes,
+                #     num_classes=num_classes,
+                #     append_features=append_features,
+                #     append_layers_description=(256, 128),
+                #     fused_dropout_rate=fused_dropout,
+                # ),
+                Head1D(
+                head_name="head_0",
+                mode="classification",
+                conv_inputs=conv_inputs,
+                dropout_rate=imaging_dropout,
+                append_features=append_features,
+                append_layers_description=(256, 128),
+                num_outputs=num_classes
                 ),
             ]
     if regression_head:
@@ -197,15 +206,15 @@ def main(cfg_path):
     rand_gen = Seed.set_seed(1234, deterministic_mode=True)
 
     # select gpus
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(cfg["gpus"][0])
-    GPU.choose_and_enable_multiple_gpus(1, force_gpus=cfg["gpus"])
+    # os.environ["CUDA_VISIBLE_DEVICES"] = str(cfg["gpus"][0])
+    # GPU.choose_and_enable_multiple_gpus(1, force_gpus=cfg["gpus"])
 
     ## Model definition
     ##############################################################################
 
     model = make_model(cfg["use_data"], num_classes, cfg["imaging_dropout"],
      cfg["fused_dropout"], pretrained=cfg["pretrained"],
-      regression_head=cfg["regression_head"], two_dim=cfg["two_dim"])
+      regression_head=cfg["regression_head"], two_dim=cfg["two_dim"], image_shape=cfg["resize_to"])
 
     
 
@@ -307,7 +316,7 @@ def main(cfg_path):
         default_root_dir=model_dir,
         max_epochs=cfg["num_epochs"],
         accelerator="gpu",
-        devices=cfg["num_gpus"],
+        # devices=cfg["num_gpus"],
         strategy=None,
         auto_select_gpus=True,
         num_sanity_val_steps=-1,
