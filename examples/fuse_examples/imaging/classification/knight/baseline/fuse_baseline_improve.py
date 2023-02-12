@@ -9,7 +9,7 @@ from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
 from fuse.dl.models.heads.heads_3D import Head3D
 # from fuse.dl.models.heads.heads_3D import Head3DClassifier
-from fuse.dl.models.heads.heads_3D import Head3DRegression
+# from fuse.dl.models.heads.heads_3D import Head3DRegression
 from fuse.dl.models.backbones.backbone_vit import vit_base, vit_small
 
 from fuseimg.datasets.knight import KNIGHT
@@ -85,7 +85,9 @@ def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_d
             backbone = BackboneResnet3D(in_channels=1)
             state_dict = torch.load(open("/dccstor/mm_hcls/usr/liam/dino/basic/lightning_logs/version_3/checkpoints/epoch=12-step=21463.ckpt", "rb"), map_location=torch.device('cpu'))["state_dict"]
             # state_dict = {k[1:7] + k.replace("stem", "layer0")[21:]:v for k,v in state_dict.items() if ("fc" not in k and "classifier" not in k)}
-            state_dict = {k.replace("stem","layer0").replace("student.new_head.backbone.layer","model.") :v for k,v in state_dict.items() if "student.new_head.backbone" in k and ".fc." not in k}
+            # state_dict = {k.replace("stem","layer0").replace("student.new_head.backbone.layer","model.") :v for k,v in state_dict.items() if "student.new_head.backbone" in k and ".fc." not in k}
+            state_dict = {k.replace("student.new_head.backbone.","") :v for k,v in state_dict.items() if "student.new_head.backbone" in k}
+
             backbone.load_state_dict(state_dict=state_dict, )
             conv_inputs = [("model.backbone_features", 512)]
 
@@ -111,26 +113,26 @@ def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_d
         ]
     else:
         heads=[
-                # Head3DClassifier(
-                #     head_name="head_0",
-                #     # mode = "classification",
-                #     conv_inputs=conv_inputs,
-                #     dropout_rate=imaging_dropout,
-                #     # num_outputs=num_classes,
-                #     num_classes=num_classes,
-                #     append_features=append_features,
-                #     append_layers_description=(256, 128),
-                #     fused_dropout_rate=fused_dropout,
-                # ),
-                Head1D(
-                head_name="head_0",
-                mode="classification",
-                conv_inputs=conv_inputs,
-                dropout_rate=imaging_dropout,
-                append_features=append_features,
-                append_layers_description=(256, 128),
-                num_outputs=num_classes
+                Head3D(#Classifier(
+                    head_name="head_0",
+                    mode = "classification",
+                    conv_inputs=conv_inputs,
+                    dropout_rate=imaging_dropout,
+                    num_outputs=num_classes,
+                    # num_classes=num_classes,
+                    append_features=append_features,
+                    append_layers_description=(256, 128),
+                    fused_dropout_rate=fused_dropout,
                 ),
+                # Head1D(
+                # head_name="head_0",
+                # mode="classification",
+                # conv_inputs=conv_inputs,
+                # dropout_rate=imaging_dropout,
+                # append_features=append_features,
+                # append_layers_description=(256, 128),
+                # num_outputs=num_classes
+                # ),
             ]
     if regression_head:
         if two_dim:
