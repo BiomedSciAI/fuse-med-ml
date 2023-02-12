@@ -170,6 +170,7 @@ class TestNDict(unittest.TestCase):
         self.assertEqual(ndict.get_closest_key("a"), "a")
         self.assertEqual(ndict.get_closest_key("a.b.c"), "a.b.c")
         self.assertEqual(ndict.get_closest_key("a.b.cc"), "a.b")
+        self.assertEqual(ndict.get_closest_key("a.b.cc.d"), "a.b")
 
     def test_delete(self) -> None:
         # set ndict

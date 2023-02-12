@@ -27,7 +27,8 @@ from typing import Any, Callable, Iterator, Optional, Sequence, Union, List, Mut
 
 
 class NDict(dict):
-    """N(ested)Dict - wraps a python dict, and allows to access nested elements via '.' separated key desc
+    """
+    (Lazy) N(ested)Dict - wraps a python dict, and allows to access "nested" elements via '.' separated key desc
 
     NOTE: assumes that all keys (including nested) are:
         1. strings
@@ -35,29 +36,12 @@ class NDict(dict):
 
     For example:
 
-    x = dict(
-        a = dict(
-            b = 10,
-            c = 12,
-            d = dict(
-                zz = 'abc',
-            )
-        ),
-        c = 100,
-    )
-
     nx = NDict(x)
     nx['a.b'] = 14
     assert nx['a.b'] == 14
 
     if the result is a non-leaf, you will get a NDict instance, for example
     assert nx['a']['d.zz'] == 'abc'
-
-    In addition to standard python dict methods, implements:
-    * flatten
-    * to_dict
-    * combine
-
     """
 
     def __init__(
@@ -98,6 +82,7 @@ class NDict(dict):
         """
         does a deep or a shallow copy, shallow copy means only top level keys are copied and the values are only referenced
         in deep copy, all values are copied recursively
+
         :param deepcopy: if true, does deep copy, otherwise does a shallow copy
         """
         if not deepcopy:
@@ -143,30 +128,12 @@ class NDict(dict):
 
     def __getitem__(self, key: str) -> Any:
         """
-        traverses the nested dict by the path extracted from splitting the key on '.', if key not found,
-        optionally shows the possible closest options
+        "traverses" the nested dict by the path extracted from splitting the key on '.', if key not found,
+        optionally shows the possible closest options.
+        if a prefix is given (the key exists but it is not a leaf), returns the corresponding sub dictionary
+
         :param key: dot delimited keypath into the nested dict
-
-
-        # OPT:
-            if the key exists, return it's value.
-            if it doesn't, check if it is a prefix of other keys.
-                if it is, return them as dict.
-                if not, raise an error
         """
-        # nested_key = key.split(".")
-        # if not nested_key[0] in self._stored:
-        #     raise NestedKeyError(key, self)
-
-        # value = self._stored
-        # for sub_key in nested_key:
-        #     if isinstance(value, MutableMapping) and sub_key in value:
-        #         value = value.get(sub_key)
-        #     else:
-        #         raise NestedKeyError(key, self)
-
-        # return value
-
         # the key is a full key for a value
         if key in self._stored:
             return self._stored[key]
@@ -192,7 +159,7 @@ class NDict(dict):
             >>> ndict.is_prefix("a.b")
             True
             >>> ndict.is_prefix("a.b.c")
-            False    # STRICTLY !
+            False    # STRICTLY PREFIX!
         """
         # iterate over all keys and looking for a match
         for kk in self.keypaths():
@@ -214,7 +181,7 @@ class NDict(dict):
             >>> ndict.get_sub_dict("a.b")
             {'c': 'x', 'd': 'y', 'e': 'z'}
         """
-        res = NDict()  # TODO maybe return it as NDict ?
+        res = NDict()
         key = key + "."
         for kk in self.keypaths():
             if kk.startswith(key):
@@ -273,6 +240,7 @@ class NDict(dict):
     def pop(self, key: str) -> Any:  # OPT
         """
         return the value nested_dict[key] and remove the key from the dict.
+
         :param nested_dict: the dictionary
         :param key: the key to return and remove
         """
@@ -283,6 +251,7 @@ class NDict(dict):
     def indices(self, indices: numpy.ndarray) -> dict:
         """
         Extract the specified indices from each element in the dictionary (if possible)
+
         :param nested_dict: input dict
         :param indices: indices to extract. Either list of indices or boolean numpy array
         :return: NDict with only the required indices
@@ -305,6 +274,12 @@ class NDict(dict):
         return new_dict
 
     def apply_on_all(self, apply_func: Callable, *args: Any) -> None:
+        """
+        Inplace apply specified function on all the dictionary's values
+
+        :param apply_func: function to apply
+        :param args: custom arguments for the 'apply_func' function
+        """
         all_keys = self.keypaths()
         for key in all_keys:
             new_value = apply_func(self[key], *args)
@@ -325,9 +300,8 @@ class NDict(dict):
     def __repr__(self) -> str:
         return repr(self._stored)
 
-    def __contains__(self, o: str) -> bool:  # OPT
+    def __contains__(self, o: str) -> bool:
         return o == self.get_closest_key(o)
-        # return o in self._stored
 
     def get(self, key: str, default_value: Any = None) -> Any:
         if key not in self:
@@ -335,6 +309,11 @@ class NDict(dict):
         return self[key]
 
     def get_multi(self, keys: Optional[List[str]] = None) -> NDict:
+        """
+        get multiple
+
+        :param keys:
+        """
         if keys is None:
             keys = self.keypaths()  # take all keys
 
