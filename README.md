@@ -30,7 +30,7 @@ Analyzing **many** ML research projects we discovered that
 
 ## 1. A simple yet super effective design concept
 ### Data is kept in a nested (hierarchical) dictionary
-This is a key aspect in FuseMedML (shortly named as "fuse"). It's a key driver of flexiblity, and allows to easily deal with multi modality information.
+This is a key aspect in FuseMedML (shortly named as "fuse"). It's a key driver of flexibility, and allows to easily deal with multi modality information.
 ```python
 from fuse.utils import NDict
 
@@ -151,7 +151,7 @@ See [Simple FuseMedML + PytorchLightning Example](./examples/fuse_examples/imagi
 fuse-med-ml, the core library, is completely domain agnostic!
 Domain extensions are optionally installable packages that deal with specific (sub) domains. For example:
 
-* **[fuseimg](./fuseimg)** which was battletested in many medical imaging related projects (different organs, imaging modalities, tasks, etc.)
+* **[fuseimg](./fuseimg)** which was battle-tested in many medical imaging related projects (different organs, imaging modalities, tasks, etc.)
 * **fusedrug (to be released soon)** which focuses on molecular biology and chemistry - prediction, generation and more
 
 Domain extensions contain concrete implementation of components and components parts within the relevant domain, for example:
@@ -183,6 +183,12 @@ Create a conda environment using the following command (you can replace FUSEMEDM
 ```bash
 conda create -n FUSEMEDML python=3.7
 conda activate FUSEMEDML
+```
+
+Now one shall install PyTorch and it's corresponding cudatoolkit. See [here](https://pytorch.org/get-started/locally/) for the exact command that will suit your local environment. 
+For example:
+```
+conda install pytorch torchvision torchaudio pytorch-cuda=11.6 -c pytorch -c nvidia
 ```
 
 and then do Option 1 or Option 2 below inside the activated conda env
