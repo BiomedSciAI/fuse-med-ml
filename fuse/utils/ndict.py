@@ -60,25 +60,34 @@ class NDict(dict):
 
     """
 
-    def __init__(self, dict_like: Union[dict, tuple, types.GeneratorType, NDict, None] = None):
+    def __init__(
+        self, dict_like: Union[dict, tuple, types.GeneratorType, NDict, None] = None, already_flat: bool = False
+    ):
         """
         :param dict_like: the data with which to populate the nested dictionary, in case of NDict it acts as view constructor,
             otherwise we just set all the keys and values using the setitem function
+        :param already_flat: optimization option. set to True only if you are sure that the input "dict_like" is a dict without nested
         """
 
-        self._stored = dict()
-
         if dict_like is None:
-            self._stored = {}
+            self._stored = dict()
+
         elif isinstance(dict_like, NDict):
             self._stored = dict_like._stored
-        else:
+
+        elif isinstance(dict_like, dict) and already_flat:
+            self._stored = dict_like
+
+        elif dict_like is not None:
+            self._stored = dict()
             if not isinstance(dict_like, MutableMapping):
                 dict_like = dict(dict_like)
             for k, d in dict_like.items():
                 self[k] = d
 
-    # NDict custom methods
+        else:
+            raise Exception(f"Not supported dict_like type: {type(dict_like)}")
+
     def to_dict(self) -> dict:  # OPT
         """
         converts to standard python dict
@@ -89,7 +98,7 @@ class NDict(dict):
         """
         does a deep or a shallow copy, shallow copy means only top level keys are copied and the values are only referenced
         in deep copy, all values are copied recursively
-        :param deepcopy: if true, does deep copy, otherwise does shallow copy
+        :param deepcopy: if true, does deep copy, otherwise does a shallow copy
         """
         if not deepcopy:
             return NDict(copy.copy(self._stored))
@@ -98,56 +107,16 @@ class NDict(dict):
 
     def flatten(self) -> dict:  # OPT
         """
-        flattens the dictionary
-        :returns dict
-
-        For example:
-
-        nx = NDict({'a': {'b': 14, 'c': 12}, 'c': 100, 'z': {'foo': {'boo': 111}}})
-        print(nx.flatten())
-        {'a.b': 14, 'a.c': 12, 'c': 100, 'z.foo.boo': 111}
-
-        #you can use it to get a list of the flat keys:
-        print(nx.flatten().keys())
+        Legacy from previous implementation of NDict where we store the data with nested dictionaries.
+        currently we store the data with one flat dictionary
         """
-
         return self._stored
-
-    # @staticmethod
-    # def _flatten_static(item: Union[dict, Any], prefix: str, flat_dict: dict) -> None:
-    #     if isinstance(item, MutableMapping):
-    #         for key, value in item.items():
-    #             if prefix is None:
-    #                 cur_prefix = key
-    #             else:
-    #                 cur_prefix = f"{prefix}.{key}"
-    #             NDict._flatten_static(value, cur_prefix, flat_dict)
-    #     else:
-    #         flat_dict[prefix] = item
 
     def keypaths(self) -> List[str]:
         """
-        returns a list of keypaths (i.e. "a.b.c.d") to all values in the nested dict
+        :return: a list of keypaths (i.e. "a.b.c.d") to all values in the nested dict
         """
-        # return NDict._keypaths_static(self._stored, None)
-
-        # list( ) to prevent:
-        # RuntimeError: dictionary changed size during iteration (caused by "for key in sample_dict.keypaths():")
         return list(self._stored.keys())
-
-    # @staticmethod
-    # def _keypaths_static(item: Union[dict, Any], prefix: str) -> List[str]:
-    #     if isinstance(item, MutableMapping):
-    #         keys = []
-    #         for key, value in item.items():
-    #             if prefix is None:
-    #                 cur_prefix = key
-    #             else:
-    #                 cur_prefix = f"{prefix}.{key}"
-    #             keys += NDict._keypaths_static(value, cur_prefix)
-    #         return keys
-    #     else:
-    #         return [prefix]
 
     def keys(self) -> dict_keys:
         """
@@ -164,9 +133,9 @@ class NDict(dict):
     def merge(self, other: dict) -> NDict:
         """
         inplace merge between self and other.
+
+        :param other: the dic
         """
-        # other_flat = NDict(other).flatten()
-        # for k, v in other_flat.items():
         for k, v in other.items():
             self[k] = v
 
@@ -245,14 +214,14 @@ class NDict(dict):
             >>> ndict.get_sub_dict("a.b")
             {'c': 'x', 'd': 'y', 'e': 'z'}
         """
-        res = dict()  # TODO maybe return it as NDict ?
+        res = NDict()  # TODO maybe return it as NDict ?
         key = key + "."
         for kk in self.keypaths():
             if kk.startswith(key):
                 sub_key = kk.replace(key, "", 1)
                 res[sub_key] = self[kk]
 
-        return NDict(res)
+        return res
 
     def __setitem__(self, key: str, value: Any) -> None:
         """
@@ -265,32 +234,16 @@ class NDict(dict):
             for sub_key in value:
                 self[f"{key}.{sub_key}"] = value[sub_key]
             return
-
-        # nested_key = key.split(".")
-        # element = self._stored
-        # for key in nested_key[:-1]:
-        #     if key not in element:
-        #         element[key] = {}
-        #     element = element[key]
-
-        # # set the value
-        # element[nested_key[-1]] = value
-
-        # store it "flat" (d["a.b.c"] = v, will have only one key)
         self._stored[key] = value
 
     def __delitem__(self, key: str) -> None:  # OPT
-        # nested_key = key.split(".")
-        # steps = len(nested_key)
-        # value = self._stored
-        # for step_idx, sep_key in enumerate(nested_key):
-        #     if step_idx < steps - 1:
-        #         value = value[sep_key]
-        #     else:  # last step
-        #         del value[sep_key]
+        """
+        :param key:
+        TODO should we delete both value and prefix ?
+        """
+        # delete specific (key, value)
         if key in self._stored:
             del self._stored[key]
-            return  # TODO maybe delete ??
 
         # delete entire branch
         elif self.is_prefix(key):
@@ -306,18 +259,6 @@ class NDict(dict):
         For a given keypath, returns the longest valid keypath in the current nested dict
         :param key: a full keypath with dot delimiter
         """
-        # partial_key = []
-        # partial_ndict = self._stored
-        # parts = key.split(".")
-        # for k in parts:
-        #     if isinstance(partial_ndict, MutableMapping) and k in partial_ndict:
-        #         partial_key.append(k)
-        #         partial_ndict = partial_ndict[k]
-        #     else:
-        #         break
-        # return ".".join(partial_key)
-
-        # the full key is in the ndict
         if key in self._stored:
             return key
 
@@ -327,7 +268,7 @@ class NDict(dict):
                 return key
             key = ".".join(key_parts[:-i])
 
-        return ""  # should not get here, double check
+        return ""
 
     def pop(self, key: str) -> Any:  # OPT
         """

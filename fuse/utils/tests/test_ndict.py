@@ -185,10 +185,10 @@ class TestNDict(unittest.TestCase):
         self.assertDictEqual(ndict.to_dict(), {"a.c": None})
 
     def test_merge(self) -> None:
-        # set ndicts
+        # set ndict
         ndict1 = NDict()
-        ndict1["a.b.c"] = None
         ndict2 = NDict()
+        ndict1["a.b.c"] = None
         ndict2["a.b.d"] = None
 
         ndict = ndict1.merge(ndict2)
@@ -196,6 +196,16 @@ class TestNDict(unittest.TestCase):
 
         self.assertTrue(len(ndict) == 2)
         self.assertDictEqual(sub_dict.to_dict(), {"c": None, "d": None})
+
+    def test_nested(self) -> None:
+        """
+        tests the case when we give the constructor a nested dictionary as dict_like input
+        """
+
+        nested_dict = {"a": {"b": {"c": 42}}}
+        ndict = NDict(nested_dict)
+
+        self.assertEqual(ndict["a.b.c"], 42)
 
     def test_timing(self) -> None:  # TODO delete once done
 
