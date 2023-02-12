@@ -210,7 +210,7 @@ def epoch_end_compute_and_log_losses(
             else:
                 losses.append(elem[key])
         loss = mean(losses)
-        pl.log(f"{mode}{sep}losses.{key}", loss, on_epoch=True, sync_dist=True)
+        pl.log(f"{mode}{sep}losses.{key}", loss, on_epoch=True, sync_dist=True, rank_zero_only=True)
 
 
 def epoch_end_compute_and_log_metrics(
@@ -241,4 +241,4 @@ def epoch_end_compute_and_log_metrics(
     # log metrics
     for key in epoch_results.keypaths():
         if epoch_results[key] is not None and not isinstance(epoch_results[key], (PerSampleData)):
-            pl.log(f"{mode}{sep}{key}", epoch_results[key], on_epoch=True, sync_dist=True)
+            pl.log(f"{mode}{sep}{key}", epoch_results[key], on_epoch=True, sync_dist=True, rank_zero_only=True)
