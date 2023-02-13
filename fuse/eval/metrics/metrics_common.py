@@ -168,12 +168,16 @@ class MetricCollector(MetricBase):
             self._collected_ids.extend(ids)
 
     @staticmethod
-    def sync_tensor_data_and_concat(data):
+    def sync_tensor_data_and_concat(data: torch.Tensor) -> torch.Tensor:
         """
         Collect the arg data (which is a tensor) into a list, concat along the batch dim (assumed first dim) and return
 
         :param data: value to collect accross gpus
         """
+        assert isinstance(
+            data, torch.Tensor
+        ), f"ERROR, Fuse Metrics only supports gathering of torch.Tensor at this time. You tried gathering {type(data)}"
+
         # if data is 1d, torch.vstack will add another dimension which we do not want
         if len(data.shape) == 1:
             data = data[:, None]  # add dim to the end
@@ -189,7 +193,7 @@ class MetricCollector(MetricBase):
         return stacked_data
 
     @staticmethod
-    def sync_ids(ids: List[Tuple[str, int]]):
+    def sync_ids(ids: List[Tuple[str, int]]) -> List[Any]:
         """
         Collect the arg ids into a list, flatten this list and return
 
@@ -313,7 +317,7 @@ class MetricWithCollectorBase(MetricBase):
         batch_pre_collect_process_func: Optional[Callable] = None,
         external_data_collector: Optional[MetricCollector] = None,
         extract_ids: bool = False,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """
         :param pre_collect_process_func: Optional callable - the callable will get as an input a batch_dict or a dataframe and can preprocess it if required
@@ -406,7 +410,7 @@ class MetricDefault(MetricWithCollectorBase):
     Can be used for any metric getting as an input list of prediction, list of targets and optionally additional parameters
     """
 
-    def __init__(self, metric_func: Callable, pred: Optional[str] = None, target: Optional[str] = None, **kwargs):
+    def __init__(self, metric_func: Callable, pred: Optional[str] = None, target: Optional[str] = None, **kwargs: Any):
         """
         :param pred: prediction key to collect
         :param target: target key to collect
@@ -444,7 +448,7 @@ class MetricPerSampleDefault(MetricWithCollectorBase):
     """
 
     def __init__(
-        self, pred: str, target: str, metric_per_sample_func: Callable, result_aggregate_func: Callable, **kwargs
+        self, pred: str, target: str, metric_per_sample_func: Callable, result_aggregate_func: Callable, **kwargs: Any
     ):
         """
         :param pred: prediction key to collect
@@ -477,7 +481,7 @@ class GroupAnalysis(MetricWithCollectorBase):
     {'mean': <>, 'std': <>, 'median': <>, <group 0>: <>, <group 1>: <>, ...}
     """
 
-    def __init__(self, metric: MetricBase, group: str, **super_kwargs) -> None:
+    def __init__(self, metric: MetricBase, group: str, **super_kwargs: Any) -> None:
         """
         :param metric: metric to analyze
         :param group: key to extract the group from
@@ -559,7 +563,7 @@ class Filter(MetricWithCollectorBase):
     Evaluate a sub-group of data. This utility will filter non relevant samples and will call to the given metric.
     """
 
-    def __init__(self, metric: MetricBase, filter: str, **super_kwargs) -> None:
+    def __init__(self, metric: MetricBase, filter: str, **super_kwargs: Any) -> None:
         """
         :param metric: metric to filter samples for
         :param group: key to extract filter
@@ -618,7 +622,7 @@ class CI(MetricWithCollectorBase):
         rnd_seed: int = 1234,
         conf_interval: float = 95,
         ci_method: str = "PERCENTILE",
-        **super_kwargs,
+        **super_kwargs: Any,
     ) -> None:
         """
         :param metric: metric to compute the confidence interval for
