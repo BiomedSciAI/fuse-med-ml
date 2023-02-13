@@ -19,6 +19,7 @@ Created on June 30, 2021
 
 Collection of useful functions to implement FuseMedML pytorch lightning based module and train loop
 """
+import os
 import traceback
 from typing import Any, Dict, List, OrderedDict, Sequence, Union, Mapping, TypeVar
 from statistics import mean
@@ -57,6 +58,7 @@ def start_clearml_logger(
 ) -> TaskInstance:
     """
     Just a fuse function to quickly start the clearml logger. It sets up patches to pytorch lightning logging hooks so it doesn't need to be passed to any lightning logger.
+    This function also checks if the NODE_RANK and LOCAL_RANK env variables have been set. In which case clearml will only be initialized on global rank 0.
     For information on all the arguments please see: https://clear.ml/docs/latest/docs/references/sdk/task/ or https://github.com/allegroai/clearml/blob/master/clearml/task.py
 
     General Clearml instructions:
@@ -68,19 +70,34 @@ def start_clearml_logger(
     from fuse.dl.lightning.pl_funcs import start_clearml_logger
     start_clearml_logger(project_name="my_project_name", task_name="test_01")
     """
-    task = Task.init(
-        project_name=project_name,
-        task_name=task_name,
-        tags=tags,
-        reuse_last_task_id=reuse_last_task_id,
-        continue_last_task=continue_last_task,
-        output_uri=output_uri,
-        auto_connect_arg_parser=auto_connect_arg_parser,
-        auto_connect_frameworks=auto_connect_frameworks,
-        auto_resource_monitoring=auto_resource_monitoring,
-        auto_connect_streams=auto_connect_streams,
-        deferred_init=deferred_init,
-    )
+    bool_start_logger = False
+    task = None
+
+    # check if we are in a distributed setting (if we are, must check that we are also on global rank 0)
+    distributed = ("NODE_RANK" in os.environ) and ("LOCAL_RANK" in os.environ)
+    if distributed:
+        node_rank = int(os.environ["NODE_RANK"])
+        local_rank = int(os.environ["LOCAL_RANK"])
+        if (node_rank == 0) and (local_rank == 0):
+            bool_start_logger = True
+    else:
+        # if not in a distributed setting, we can just start logger
+        bool_start_logger = True
+
+    if bool_start_logger:
+        task = Task.init(
+            project_name=project_name,
+            task_name=task_name,
+            tags=tags,
+            reuse_last_task_id=reuse_last_task_id,
+            continue_last_task=continue_last_task,
+            output_uri=output_uri,
+            auto_connect_arg_parser=auto_connect_arg_parser,
+            auto_connect_frameworks=auto_connect_frameworks,
+            auto_resource_monitoring=auto_resource_monitoring,
+            auto_connect_streams=auto_connect_streams,
+            deferred_init=deferred_init,
+        )
     return task
 
 
