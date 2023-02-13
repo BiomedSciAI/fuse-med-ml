@@ -78,11 +78,12 @@ class TestNDict(unittest.TestCase):
 
     def test_keys(self) -> None:
         ndict = NDict()
-        ndict["a.b.c"] = "d"
-        ndict["e.f"] = "g"
-        ndict["h.i.j"] = "k"
+        ndict["a.b.c"] = 11
+        ndict["a.d"] = 13
+        ndict["e.f"] = 17
+        ndict["g.h.i"] = 19
 
-        self.assertSetEqual(set(ndict.keys()), {"a", "e", "h"})
+        self.assertSetEqual(set(ndict.keys()), {"a", "e", "g"})
 
     def test_is_in(self) -> None:
         self.assertTrue("a" in self.nested_dict)
@@ -173,7 +174,7 @@ class TestNDict(unittest.TestCase):
     def test_get_closest_key(self) -> None:
         # set ndict
         ndict = NDict()
-        ndict["a.b.c"] = None
+        ndict["a.b.c"] = 42
 
         self.assertEqual(ndict.get_closest_key("a"), "a")
         self.assertEqual(ndict.get_closest_key("a.b.c"), "a.b.c")
@@ -183,15 +184,15 @@ class TestNDict(unittest.TestCase):
     def test_delete(self) -> None:
         # set ndict
         ndict = NDict()
-        ndict["a.b"] = None
-        ndict["a.c"] = None
+        ndict["a.b"] = 42
+        ndict["a.c"] = 42
 
         del ndict["a.b"]
 
         with self.assertRaises(KeyError):
-            del ndict["not.exists"]
+            del ndict["a.b"]
 
-        self.assertDictEqual(ndict.to_dict(), {"a.c": None})
+        self.assertDictEqual(ndict.to_dict(), {"a.c": 42})
 
     def test_merge(self) -> None:
         # set ndict
@@ -208,7 +209,7 @@ class TestNDict(unittest.TestCase):
 
     def test_nested(self) -> None:
         """
-        tests the case when we give the constructor a nested dictionary as dict_like input
+        basic test that tests the case when we give the constructor a nested dictionary as dict_like input
         """
 
         nested_dict = {"a": {"b": {"c": 42}}}
@@ -216,62 +217,17 @@ class TestNDict(unittest.TestCase):
 
         self.assertEqual(ndict["a.b.c"], 42)
 
-    def test_timing(self) -> None:  # TODO delete once done
+    def test_print_tree(self) -> None:
+        """
+        basic test to check that print_tree() function runs
+        """
 
-        print("Start Timing test")
-
-        import random
-        import string
-        import time
-
-        def get_random_string(length: int) -> str:
-            # choose from all lowercase letter
-            letters = string.ascii_lowercase
-            return "".join(random.choice(letters) for i in range(length))
-
-        def get_random_key(n_dots: int, sep_len: int) -> str:
-
-            res = ""
-
-            for i in range(n_dots):
-                if i > 0:
-                    res += "."
-                res += get_random_string(sep_len)
-
-            return res
-
-        WARM_UP = 1_000
-        REAL = 100_000
-
-        real_keys = [get_random_key(n_dots=random.randint(1, 6), sep_len=10) for i in range(REAL)]
         ndict = NDict()
-
-        # records start time
-        start = time.perf_counter()
-
-        # EXECUTE
-        # inserts
-        for key in real_keys:
-            ndict[key] = [0]
-
-        random.shuffle(real_keys)
-
-        # gets
-        for key in real_keys:
-            val = ndict[key]
-
-        random.shuffle(real_keys)
-
-        # deletes
-        for key in real_keys:
-            del ndict[key]
-
-        # record end time
-        end = time.perf_counter()
-
-        # find elapsed time in seconds
-        ms = (end - start) * 10**6
-        print(f"Elapsed {ms:.03f} micro secs.")
+        ndict["a.b.c"] = 42
+        ndict["a.d"] = 23
+        ndict["e"] = 10
+        print()
+        ndict.print_tree(print_values=True)
 
     def tearDown(self) -> None:
         delattr(self, "nested_dict")

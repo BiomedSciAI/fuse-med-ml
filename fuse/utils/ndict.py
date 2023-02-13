@@ -36,12 +36,15 @@ class NDict(dict):
 
     For example:
 
-    nx = NDict(x)
-    nx['a.b'] = 14
-    assert nx['a.b'] == 14
+        nx = NDict(x)
+        nx['a.b'] = 14
+        assert nx['a.b'] == 14
 
-    if the result is a non-leaf, you will get a NDict instance, for example
-    assert nx['a']['d.zz'] == 'abc'
+        if the result is a non-leaf, you will get a NDict instance, for example
+        nx = NDict()
+        nx["a.d.zz] = 42
+        assert nx['a']['d.zz'] == 42
+
     """
 
     def __init__(
@@ -50,7 +53,7 @@ class NDict(dict):
         """
         :param dict_like: the data with which to populate the nested dictionary, in case of NDict it acts as view constructor,
             otherwise we just set all the keys and values using the setitem function
-        :param already_flat: optimization option. set to True only if you are sure that the input "dict_like" is a dict without nested
+        :param already_flat: optimization option. set to True only if you are sure that the input "dict_like" is a dict without nested dictionaries.
         """
 
         if dict_like is None:
@@ -72,15 +75,15 @@ class NDict(dict):
         else:
             raise Exception(f"Not supported dict_like type: {type(dict_like)}")
 
-    def to_dict(self) -> dict:  # OPT
+    def to_dict(self) -> dict:
         """
         converts to standard python dict
         """
         return self._stored
 
-    def clone(self, deepcopy: bool = True) -> NDict:  # OPT
+    def clone(self, deepcopy: bool = True) -> NDict:
         """
-        does a deep or a shallow copy, shallow copy means only top level keys are copied and the values are only referenced
+        does a deep or a shallow copy, shallow copy means only top level keys are copied and the values are only referenced.
         in deep copy, all values are copied recursively
 
         :param deepcopy: if true, does deep copy, otherwise does a shallow copy
@@ -90,7 +93,7 @@ class NDict(dict):
         else:
             return NDict(copy.deepcopy(self._stored))
 
-    def flatten(self) -> dict:  # OPT
+    def flatten(self) -> dict:
         """
         Legacy from previous implementation of NDict where we store the data with nested dictionaries.
         currently we store the data with one flat dictionary
@@ -103,12 +106,12 @@ class NDict(dict):
         """
         return list(self._stored.keys())
 
-    def keys(self) -> dict_keys:
+    def keys(self) -> dict_keys:  # I suggest to rename to "top_level_keys()" and keys() to operate like keypaths
         """
         returns the top-level keys of the dictionary
         """
-        top_keys = [key.split(".")[0] for key in self.keypaths()]
-        return top_keys
+        top_level_keys = {key.split(".")[0] for key in self.keypaths()}
+        return list(top_level_keys)
 
     def values(self) -> dict_items:
         return self._stored.values()
@@ -120,7 +123,7 @@ class NDict(dict):
         """
         inplace merge between self and other.
 
-        :param other: the dic
+        :param other: a dictionary
         """
         for k, v in other.items():
             self[k] = v
@@ -129,8 +132,8 @@ class NDict(dict):
 
     def __getitem__(self, key: str) -> Any:
         """
-        "traverses" the nested dict by the path extracted from splitting the key on '.', if key not found,
-        optionally shows the possible closest options.
+        "traverses" the nested dict by the path extracted from splitting the key on '.'.
+        if key not found, shows the possible closest options.
         if a prefix is given (the key exists but it is not a leaf), returns the corresponding sub dictionary
 
         :param key: dot delimited keypath into the nested dict
@@ -162,9 +165,10 @@ class NDict(dict):
             >>> ndict.is_prefix("a.b.c")
             False    # STRICTLY PREFIX!
         """
+        key_dot = key + "."
         # iterate over all keys and looking for a match
         for kk in self.keypaths():
-            if kk.startswith(f"{key}."):
+            if kk.startswith(key_dot):
                 return True
 
         # a match wasn't found
@@ -172,7 +176,7 @@ class NDict(dict):
 
     def get_sub_dict(self, key: str) -> NDict:
         """
-        TODO
+        returns a copy of the "sub-dict" give a sub-key.
 
         Example:
             >>> ndict = NDict()
@@ -183,17 +187,29 @@ class NDict(dict):
             {'c': 'x', 'd': 'y', 'e': 'z'}
         """
         res = NDict()
-        key = key + "."
+        prefix_key = key + "."
+        suffix_key = None
         for kk in self.keypaths():
-            if kk.startswith(key):
-                sub_key = kk.replace(key, "", 1)
-                res[sub_key] = self[kk]
+            if kk.startswith(prefix_key):
+                suffix_key = kk.replace(prefix_key, "", 1)
+                res[suffix_key] = self[kk]
+
+        if suffix_key is None and key not in self:
+            raise NestedKeyError(key, self)
 
         return res
 
     def __setitem__(self, key: str, value: Any) -> None:
         """
-        go over the the dictionary according to the path, create the nodes that does not exist
+        sets item in the dictionary.
+        if the item is a dict like object, it will parse the values using the delimiter "."
+
+        Example:
+            ndict = NDict()
+            ndict["a"] = {"b" : {"c" : 42}}
+
+            assert ndict["a.b.c"] == 42
+
         :param key: the keypath
         :param value: value to set
         """
@@ -204,7 +220,7 @@ class NDict(dict):
             return
         self._stored[key] = value
 
-    def __delitem__(self, key: str) -> None:  # OPT
+    def __delitem__(self, key: str) -> None:
         """
         :param key:
         TODO should we delete both value and prefix ?
@@ -238,11 +254,10 @@ class NDict(dict):
 
         return ""
 
-    def pop(self, key: str) -> Any:  # OPT
+    def pop(self, key: str) -> Any:
         """
-        return the value nested_dict[key] and remove the key from the dict.
+        returns the value self[key] and removes the key from the dict.
 
-        :param nested_dict: the dictionary
         :param key: the key to return and remove
         """
         res = self[key]
@@ -311,15 +326,14 @@ class NDict(dict):
 
     def get_multi(self, keys: Optional[List[str]] = None) -> NDict:
         """
-        get multiple
+        returns a subset of the dict with the specified keys
 
-        :param keys:
+        :param keys: keys to keep in the returned ndict
         """
         if keys is None:
             keys = self.keypaths()  # take all keys
 
         ans = NDict()
-
         for k in keys:
             curr = self[k]
             ans[k] = curr
@@ -352,10 +366,10 @@ class NDict(dict):
             --------- target -> this_is_a_target_seq
 
         """
-        self._print_tree_static(self._stored, print_values=print_values)
+        self._print_tree_static(self, print_values=print_values)
 
     @staticmethod
-    def _print_tree_static(data_dict: dict, level: int = 0, print_values: bool = False) -> None:
+    def _print_tree_static(data_dict: NDict, level: int = 0, print_values: bool = False) -> None:
         """
         static-method to print the inner structure of a dict in a tree-like structure.
 
@@ -365,9 +379,10 @@ class NDict(dict):
         keys = data_dict.keys()
         level += 1
         for key in keys:
-            if type(data_dict[key]) == dict:
+            sub_dict = data_dict.get_sub_dict(key)
+            if len(sub_dict) > 0:
                 print("---" * level, key)
-                NDict._print_tree_static(data_dict[key], level, print_values=print_values)
+                NDict._print_tree_static(sub_dict, level, print_values=print_values)
             else:
                 if print_values:
                     print("---" * level, key, "->", data_dict[key])
