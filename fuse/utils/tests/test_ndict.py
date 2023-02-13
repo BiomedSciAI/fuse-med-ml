@@ -76,6 +76,14 @@ class TestNDict(unittest.TestCase):
         ndict["a.b.c.d"] = "e"
         self.assertSetEqual(set(ndict.keypaths()), {"a.b.c", "a.b.c.d"})
 
+    def test_keys(self) -> None:
+        ndict = NDict()
+        ndict["a.b.c"] = "d"
+        ndict["e.f"] = "g"
+        ndict["h.i.j"] = "k"
+
+        self.assertSetEqual(set(ndict.keys()), {"a", "e", "h"})
+
     def test_is_in(self) -> None:
         self.assertTrue("a" in self.nested_dict)
         self.assertTrue("b.c" in self.nested_dict)

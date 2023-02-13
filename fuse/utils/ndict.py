@@ -107,7 +107,8 @@ class NDict(dict):
         """
         returns the top-level keys of the dictionary
         """
-        return list(self._stored.keys())
+        top_keys = [key.split(".")[0] for key in self.keypaths()]
+        return top_keys
 
     def values(self) -> dict_items:
         return self._stored.values()
