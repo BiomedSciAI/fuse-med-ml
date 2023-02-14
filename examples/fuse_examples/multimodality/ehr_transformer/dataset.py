@@ -462,7 +462,7 @@ class PhysioNetCinC:
         static_variables_to_embed: Any,
         embed_static_in_all_visits: Any,
         token2idx: Any,
-        max_len: Any,
+        max_len: int,
     ) -> List[OpBase]:
         """
         Generates dynamic pipeline by stacking a list of Operators.

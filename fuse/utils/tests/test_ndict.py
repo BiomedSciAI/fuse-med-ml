@@ -146,11 +146,10 @@ class TestNDict(unittest.TestCase):
         ndict = NDict()
         ndict["a.b.c.d.e"] = "f"
 
-        # verify true
+        # verify
         self.assertTrue(ndict.is_prefix("a"))
         self.assertTrue(ndict.is_prefix("a.b.c"))
         self.assertTrue(ndict.is_prefix("a.b.c.d"))
-        # verify false
         self.assertFalse(ndict.is_prefix("a.b.c.d.e"))
         self.assertFalse(ndict.is_prefix("a.b.c.d.e.f"))
         self.assertFalse(ndict.is_prefix("a.e"))
@@ -166,6 +165,7 @@ class TestNDict(unittest.TestCase):
         ndict["a.b.c.c2"] = "x2"
         ndict["a.b.c.c3"] = "x3"
 
+        # verify
         self.assertDictEqual(ndict.get_sub_dict("a").to_dict(), {"b.c.c1": "x1", "b.c.c2": "x2", "b.c.c3": "x3"})
         self.assertDictEqual(ndict.get_sub_dict("a.b").to_dict(), {"c.c1": "x1", "c.c2": "x2", "c.c3": "x3"})
         self.assertDictEqual(ndict.get_sub_dict("a.b.c").to_dict(), {"c1": "x1", "c2": "x2", "c3": "x3"})
@@ -176,6 +176,7 @@ class TestNDict(unittest.TestCase):
         ndict = NDict()
         ndict["a.b.c"] = 42
 
+        # verify
         self.assertEqual(ndict.get_closest_key("a"), "a")
         self.assertEqual(ndict.get_closest_key("a.b.c"), "a.b.c")
         self.assertEqual(ndict.get_closest_key("a.b.cc"), "a.b")
@@ -187,11 +188,12 @@ class TestNDict(unittest.TestCase):
         ndict["a.b"] = 42
         ndict["a.c"] = 42
 
+        # delete
         del ndict["a.b"]
 
+        # verify deletion and raised error
         with self.assertRaises(KeyError):
             del ndict["a.b"]
-
         self.assertDictEqual(ndict.to_dict(), {"a.c": 42})
 
     def test_merge(self) -> None:
@@ -226,7 +228,7 @@ class TestNDict(unittest.TestCase):
         ndict["a.b.c"] = 42
         ndict["a.d"] = 23
         ndict["e"] = 10
-        print()
+
         ndict.print_tree(print_values=True)
 
     def tearDown(self) -> None:

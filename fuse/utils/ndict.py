@@ -106,7 +106,7 @@ class NDict(dict):
         """
         return list(self._stored.keys())
 
-    def keys(self) -> dict_keys:  # I suggest to rename to "top_level_keys()" and keys() to operate like keypaths
+    def keys(self) -> dict_keys:
         """
         returns the top-level keys of the dictionary
         """
@@ -122,8 +122,6 @@ class NDict(dict):
     def merge(self, other: dict) -> NDict:
         """
         inplace merge between self and other.
-
-        :param other: a dictionary
         """
         for k, v in other.items():
             self[k] = v
