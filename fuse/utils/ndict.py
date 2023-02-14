@@ -101,7 +101,7 @@ class NDict(dict):
         """
         return self
 
-    def keypaths(self) -> dict_keys:
+    def keypaths(self) -> List[str]:
         """
         :return: a list of keypaths (i.e. "a.b.c.d") to all values in the nested dict
         """
@@ -111,9 +111,9 @@ class NDict(dict):
         """
         returns keypaths (threat as a "flat" dictionary)
         """
-        return self.keypaths()
+        return self._stored.keys()
 
-    def top_level_keys(self) -> dict_keys:
+    def top_level_keys(self) -> List[str]:
         """
         return top-level keys.
 
@@ -224,7 +224,7 @@ class NDict(dict):
             deleted = True
 
         # delete entire branch
-        for kk in self.keys():
+        for kk in list(self.keys()):
             if kk.startswith(f"{key}."):
                 del self[kk]
                 deleted = True
