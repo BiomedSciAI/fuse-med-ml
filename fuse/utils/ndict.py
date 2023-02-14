@@ -18,6 +18,7 @@ Created on June 30, 2021
 """
 from __future__ import annotations
 from _collections_abc import dict_items, dict_keys
+import difflib
 
 import copy
 import types
@@ -89,18 +90,18 @@ class NDict(dict):
         :param deepcopy: if true, does deep copy, otherwise does a shallow copy
         """
         if not deepcopy:
-            return NDict(copy.copy(self._stored))
+            return NDict(copy.copy(self._stored), already_flat=True)
         else:
-            return NDict(copy.deepcopy(self._stored))
+            return NDict(copy.deepcopy(self._stored), already_flat=True)
 
-    def flatten(self) -> dict:
+    def flatten(self) -> NDict:
         """
         Legacy from previous implementation of NDict where we store the data with nested dictionaries.
         currently we store the data with one flat dictionary
         """
-        return self._stored
+        return self
 
-    def keypaths(self) -> List[str]:
+    def keypaths(self) -> dict_keys:
         """
         :return: a list of keypaths (i.e. "a.b.c.d") to all values in the nested dict
         """
@@ -108,9 +109,22 @@ class NDict(dict):
 
     def keys(self) -> dict_keys:
         """
-        returns the top-level keys of the dictionary
+        returns keypaths (threat as a "flat" dictionary)
         """
-        top_level_keys = {key.split(".")[0] for key in self.keypaths()}
+        return self.keypaths()
+
+    def top_level_keys(self) -> dict_keys:
+        """
+        return top-level keys.
+
+        Example:
+            >>> ndict = NDict()
+            >>> ndict["a1.b.c"] = 42
+            >>> ndict["a2.b.h"] = 23
+            >>> ndict.top_level_keys()
+            ['a1', 'a2']
+        """
+        top_level_keys = {key.split(".")[0] for key in self.keys()}
         return list(top_level_keys)
 
     def values(self) -> dict_items:
@@ -119,14 +133,13 @@ class NDict(dict):
     def items(self) -> dict_items:
         return self._stored.items()
 
-    def merge(self, other: dict) -> NDict:
+    def merge(self, other: NDict) -> None:
         """
         inplace merge between self and other.
         """
         for k, v in other.items():
             self[k] = v
-
-        return self
+        return
 
     def __getitem__(self, key: str) -> Any:
         """
@@ -136,45 +149,24 @@ class NDict(dict):
 
         :param key: dot delimited keypath into the nested dict
         """
-        # the key is a full key for a value
-        if key in self._stored:
+
+        try:
+            # the key is a full key for a value
             return self._stored[key]
 
-        # the key is a prefix for other value(s)
-        elif self.is_prefix(key):  # TODO can be more optimized. we pass here once and in the "get_sub_dict" once again
-            # collect "sub-dict"
-            return self.get_sub_dict(key)
+        except KeyError:
+            # the key is a prefix for other value(s)
+            sub_dict = self.get_sub_dict(key)
 
-        else:
-            raise NestedKeyError(key, self)
+            if sub_dict is not None:
+                return sub_dict
+            else:
+                raise NestedKeyError(key, self)
 
-    def is_prefix(self, key: str) -> bool:
-        """
-        return True iff the key is a *strictly* prefix of another key(s) in the NDict.
-        :param key:
-
-        Example:
-            >>> ndict = NDict()
-            >>> ndict["a.b.c"] = "d"
-            >>> ndict.is_prefix("a")
-            True
-            >>> ndict.is_prefix("a.b")
-            True
-            >>> ndict.is_prefix("a.b.c")
-            False    # STRICTLY PREFIX!
-        """
-        key_dot = key + "."
-        # iterate over all keys and looking for a match
-        for kk in self.keypaths():
-            if kk.startswith(key_dot):
-                return True
-
-        # a match wasn't found
-        return False
-
-    def get_sub_dict(self, key: str) -> NDict:
+    def get_sub_dict(self, key: str) -> Union[NDict, None]:
         """
         returns a copy of the "sub-dict" give a sub-key.
+        if a sub-dict wasn't found, returns None
 
         Example:
             >>> ndict = NDict()
@@ -187,13 +179,13 @@ class NDict(dict):
         res = NDict()
         prefix_key = key + "."
         suffix_key = None
-        for kk in self.keypaths():
+        for kk in self.keys():
             if kk.startswith(prefix_key):
-                suffix_key = kk.replace(prefix_key, "", 1)
+                suffix_key = kk[len(prefix_key) :]
                 res[suffix_key] = self[kk]
 
-        if suffix_key is None and key not in self:
-            raise NestedKeyError(key, self)
+        if suffix_key is None:
+            return None
 
         return res
 
@@ -220,37 +212,45 @@ class NDict(dict):
 
     def __delitem__(self, key: str) -> None:
         """
-        :param key:
-        TODO should we delete both value and prefix ?
+        deletes self[key] item(s).
+        if key is a prefix to a sub-dict, deletes the entire sub-dict.
+        if key is a key for a value AND a sub-dict, deletes BOTH
         """
+        deleted = False
+
         # delete specific (key, value)
         if key in self._stored:
             del self._stored[key]
+            deleted = True
 
         # delete entire branch
-        elif self.is_prefix(key):
-            for kk in self.keypaths():
-                if kk.startswith(f"{key}."):
-                    del self[kk]
+        for kk in self.keys():
+            if kk.startswith(f"{key}."):
+                del self[kk]
+                deleted = True
 
-        else:
+        if not deleted:
             raise NestedKeyError(key, self)
 
-    def get_closest_key(self, key: str) -> str:
+    def get_closest_keys(self, key: str, n: int = 1) -> List[str]:
         """
-        For a given keypath, returns the longest valid keypath in the current nested dict
-        :param key: a full keypath with dot delimiter
+        For a given keypath, returns the closest key(s) in the current nested dict.
+        if key exists in the dictionary
+        :param key: string as a key
+        :param n: the amount closest key(s) to return
         """
         if key in self._stored:
-            return key
+            return [key]
 
-        key_parts = key.split(".")
-        for i in range(len(key_parts)):
-            if self.is_prefix(key):
-                return key
-            key = ".".join(key_parts[:-i])
+        total_sub_keys = []
 
-        return ""
+        for kk in self.keys():
+            splitted_key = kk.split(".")
+            for i in range(len(splitted_key)):
+                total_sub_keys.append(".".join(splitted_key[: i + 1]))
+
+        closest_keys = difflib.get_close_matches(key, total_sub_keys, n=n, cutoff=0)
+        return closest_keys
 
     def pop(self, key: str) -> Any:
         """
@@ -271,7 +271,7 @@ class NDict(dict):
         :return: NDict with only the required indices
         """
         new_dict = {}
-        all_keys = self.keypaths()
+        all_keys = self.keys()
         for key in all_keys:
             try:
                 value = self[key]
@@ -294,7 +294,7 @@ class NDict(dict):
         :param apply_func: function to apply
         :param args: custom arguments for the 'apply_func' function
         """
-        all_keys = self.keypaths()
+        all_keys = self.keys()
         for key in all_keys:
             new_value = apply_func(self[key], *args)
             self[key] = new_value
@@ -314,8 +314,19 @@ class NDict(dict):
     def __repr__(self) -> str:
         return repr(self._stored)
 
-    def __contains__(self, o: str) -> bool:
-        return o == self.get_closest_key(o)
+    def __contains__(self, key: str) -> bool:
+
+        if key in self._stored:
+            return True
+
+        key_dot = key + "."
+        # iterate over all keys and looking for a match
+        for kk in self.keys():
+            if kk.startswith(key_dot):
+                return True
+
+        # a match wasn't found
+        return False
 
     def get(self, key: str, default_value: Any = None) -> Any:
         if key not in self:
@@ -329,7 +340,7 @@ class NDict(dict):
         :param keys: keys to keep in the returned ndict
         """
         if keys is None:
-            keys = self.keypaths()  # take all keys
+            keys = self.keys()  # take all keys
 
         ans = NDict()
         for k in keys:
@@ -337,6 +348,32 @@ class NDict(dict):
             ans[k] = curr
 
         return ans
+
+    def unflatten(self) -> dict:
+        """
+        returns a nested dictionaries
+
+        Example:
+
+        >>> ndict = NDict({"a.b.c":42, "a.b.d": 23})
+        >>> ndict.unflatten()
+        {'a': {'b': {'d': 23, 'c': 42}}}
+        """
+
+        return NDict._unflatten_static(data_dict=self)
+
+    @staticmethod
+    def _unflatten_static(data_dict: NDict) -> dict:
+
+        res = dict()
+        for top_key in data_dict.top_level_keys():
+            value = data_dict[top_key]
+            if isinstance(value, NDict):
+                res[top_key] = NDict._unflatten_static(value)
+            else:
+                res[top_key] = value
+
+        return res
 
     def print_tree(self, print_values: bool = False) -> None:
         """
@@ -364,10 +401,11 @@ class NDict(dict):
             --------- target -> this_is_a_target_seq
 
         """
-        self._print_tree_static(self, print_values=print_values)
+        unflatten_dict = self.unflatten()
+        self._print_tree_static(unflatten_dict, print_values=print_values)
 
     @staticmethod
-    def _print_tree_static(data_dict: NDict, level: int = 0, print_values: bool = False) -> None:
+    def _print_tree_static(data_dict: dict, level: int = 0, print_values: bool = False) -> None:
         """
         static-method to print the inner structure of a dict in a tree-like structure.
 
@@ -377,10 +415,9 @@ class NDict(dict):
         keys = data_dict.keys()
         level += 1
         for key in keys:
-            sub_dict = data_dict.get_sub_dict(key)
-            if len(sub_dict) > 0:
+            if type(data_dict[key]) == dict:
                 print("---" * level, key)
-                NDict._print_tree_static(sub_dict, level, print_values=print_values)
+                NDict._print_tree_static(data_dict[key], level, print_values=print_values)
             else:
                 if print_values:
                     print("---" * level, key, "->", data_dict[key])
@@ -388,7 +425,7 @@ class NDict(dict):
                     print("---" * level, key)
 
     def describe(self) -> None:
-        for k in self.keypaths():
+        for k in self.keys():
             print(f"{k}")
             val = self[k]
             print(f"\ttype={type(val)}")
@@ -398,18 +435,10 @@ class NDict(dict):
 
 class NestedKeyError(KeyError):
     def __init__(self, key: str, d: NDict) -> None:
-        partial_key = d.get_closest_key(key)
-        if partial_key == "":
-            error_str = f"Error: key {key} does not exist\n. All keys: {d.keypaths()}"
+        closest_keys = d.get_closest_keys(key, n=3)
+        if len(closest_keys) == 0:
+            error_str = f"Error: key {key} does not exist\n. All keys: {d.keys()}"
         else:
-            partial_ndict = d[partial_key]
-
-            if isinstance(partial_ndict, NDict):
-                options = str([f"{partial_key}.{k}" for k in partial_ndict.keypaths()])
-                error_str = f"Error: key {key} does not exist\n. Possible keys on the same branch are: {options}. All keys {d.keypaths()}"
-            else:
-                error_str = (
-                    f"Error: key {key} does not exist\n. Closest key is: {partial_key}. All keys: {d.keypaths()}"
-                )
+            error_str = f"Error: key {key} does not exist\n. Top {len(closest_keys)} Closest key are: {closest_keys}. All keys: {d.keys()}"
         print(error_str)
         super().__init__(error_str)

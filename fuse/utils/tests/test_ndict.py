@@ -76,14 +76,14 @@ class TestNDict(unittest.TestCase):
         ndict["a.b.c.d"] = "e"
         self.assertSetEqual(set(ndict.keypaths()), {"a.b.c", "a.b.c.d"})
 
-    def test_keys(self) -> None:
+    def test_top_level_keys(self) -> None:
         ndict = NDict()
         ndict["a.b.c"] = 11
         ndict["a.d"] = 13
         ndict["e.f"] = 17
         ndict["g.h.i"] = 19
 
-        self.assertSetEqual(set(ndict.keys()), {"a", "e", "g"})
+        self.assertSetEqual(set(ndict.top_level_keys()), {"a", "e", "g"})
 
     def test_is_in(self) -> None:
         self.assertTrue("a" in self.nested_dict)
@@ -120,7 +120,7 @@ class TestNDict(unittest.TestCase):
 
         # verify
         all_keys = sorted(self.nested_dict.keypaths())
-        flat_keys = sorted(flat_dict.keys())
+        flat_keys = sorted(flat_dict.keypaths())
         self.assertListEqual(all_keys, flat_keys)
         for key in flat_keys:
             self.assertEqual(self.nested_dict[key], flat_dict[key])
@@ -141,23 +141,6 @@ class TestNDict(unittest.TestCase):
         self.assertTrue((nested_dict_indices["b.d"] == [0, 2]))
         self.assertTrue((nested_dict_indices["b.f"] == 4))
 
-    def test_is_prefix(self) -> None:
-        # set ndict
-        ndict = NDict()
-        ndict["a.b.c.d.e"] = "f"
-
-        # verify
-        self.assertTrue(ndict.is_prefix("a"))
-        self.assertTrue(ndict.is_prefix("a.b.c"))
-        self.assertTrue(ndict.is_prefix("a.b.c.d"))
-        self.assertFalse(ndict.is_prefix("a.b.c.d.e"))
-        self.assertFalse(ndict.is_prefix("a.b.c.d.e.f"))
-        self.assertFalse(ndict.is_prefix("a.e"))
-        self.assertFalse(ndict.is_prefix("e"))
-
-        ndict = NDict({"a": 1, "b.c": 2})
-        self.assertFalse(ndict.is_prefix("c"))
-
     def test_get_sub_dict(self) -> None:
         # set ndict
         ndict = NDict()
@@ -169,18 +152,19 @@ class TestNDict(unittest.TestCase):
         self.assertDictEqual(ndict.get_sub_dict("a").to_dict(), {"b.c.c1": "x1", "b.c.c2": "x2", "b.c.c3": "x3"})
         self.assertDictEqual(ndict.get_sub_dict("a.b").to_dict(), {"c.c1": "x1", "c.c2": "x2", "c.c3": "x3"})
         self.assertDictEqual(ndict.get_sub_dict("a.b.c").to_dict(), {"c1": "x1", "c2": "x2", "c3": "x3"})
-        self.assertDictEqual(ndict.get_sub_dict("a.b.c.c1").to_dict(), {})
+        self.assertEqual(ndict.get_sub_dict("a.b.c.c1"), None)
+        self.assertEqual(ndict.get_sub_dict("a.q.q"), None)
 
-    def test_get_closest_key(self) -> None:
+    def test_get_closest_keys(self) -> None:
         # set ndict
         ndict = NDict()
         ndict["a.b.c"] = 42
 
         # verify
-        self.assertEqual(ndict.get_closest_key("a"), "a")
-        self.assertEqual(ndict.get_closest_key("a.b.c"), "a.b.c")
-        self.assertEqual(ndict.get_closest_key("a.b.cc"), "a.b")
-        self.assertEqual(ndict.get_closest_key("a.b.cc.d"), "a.b")
+        self.assertEqual(ndict.get_closest_keys("a")[0], "a")
+        self.assertEqual(ndict.get_closest_keys("a.b")[0], "a.b")
+        self.assertEqual(ndict.get_closest_keys("a.b.c", 1)[0], "a.b.c")
+        self.assertEqual(ndict.get_closest_keys("a.bb", 2)[0], "a.b")
 
     def test_delete(self) -> None:
         # set ndict
@@ -196,6 +180,14 @@ class TestNDict(unittest.TestCase):
             del ndict["a.b"]
         self.assertDictEqual(ndict.to_dict(), {"a.c": 42})
 
+        # case: delete both value and sub-dict
+        ndict = NDict()
+        ndict["a.b"] = 23
+        ndict["a.b.c"] = 42
+        del ndict["a.b"]
+
+        self.assertDictEqual(ndict.to_dict(), {})
+
     def test_merge(self) -> None:
         # set ndict
         ndict1 = NDict()
@@ -203,10 +195,10 @@ class TestNDict(unittest.TestCase):
         ndict1["a.b.c"] = None
         ndict2["a.b.d"] = None
 
-        ndict = ndict1.merge(ndict2)
-        sub_dict = ndict.get_sub_dict("a.b")
+        ndict1.merge(ndict2)
+        sub_dict = ndict1.get_sub_dict("a.b")
 
-        self.assertTrue(len(ndict) == 2)
+        self.assertTrue(len(ndict1) == 2)
         self.assertDictEqual(sub_dict.to_dict(), {"c": None, "d": None})
 
     def test_nested(self) -> None:
@@ -222,6 +214,13 @@ class TestNDict(unittest.TestCase):
     def test_print_tree(self) -> None:
         """
         basic test to check that print_tree() function runs
+
+        results:
+        --- e -> 10
+        --- a
+        ------ d -> 23
+        ------ b
+        --------- c -> 42
         """
 
         ndict = NDict()
@@ -230,6 +229,14 @@ class TestNDict(unittest.TestCase):
         ndict["e"] = 10
 
         ndict.print_tree(print_values=True)
+
+    def test_unflatten(self) -> None:
+        ndict = NDict()
+        ndict["a.b.c"] = 42
+        ndict["a.b.d"] = 23
+
+        self.assertDictEqual(ndict.unflatten()["a"]["b"], {"c": 42, "d": 23})
+        self.assertDictEqual(ndict["a"].unflatten()["b"], {"c": 42, "d": 23})
 
     def tearDown(self) -> None:
         delattr(self, "nested_dict")
