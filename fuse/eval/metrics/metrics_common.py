@@ -18,7 +18,7 @@ Created on June 30, 2021
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Hashable, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Hashable, Optional, Sequence, Tuple, Union, List
 import copy
 from fuse.utils import uncollate
 import torch.distributed as dist
@@ -112,18 +112,6 @@ class MetricCollector(MetricBase):
         if not isinstance(batch, NDict):
             batch = NDict(batch)
 
-        # If in distributed mode (multi gpu training) we shall gather the result from all the machine to evaluate with respect to the entire batch.
-        if dist.is_initialized():
-            world_size = dist.get_world_size()  # num of gpus
-            samples_gather = [None for rank in range(world_size)]
-            # samples_gather[i] will have the 'samples' value of the i's GPU
-            dist.all_gather_object(samples_gather, batch)
-
-            # union all the GPU's samples into one samples list
-            samples = []
-            for rank in range(world_size):
-                samples += samples_gather[rank]
-
         if self._pre_collect_process_func is not None or self._post_collect_process_func is not None:
             samples = uncollate(batch)
             for sample in samples:
@@ -150,8 +138,14 @@ class MetricCollector(MetricBase):
             if self._batch_pre_collect_process_func is not None:
                 batch = self._batch_pre_collect_process_func(batch)
             batch_to_collect = {}
+
             for name, key in self._keys_to_collect.items():
                 value = batch[key]
+
+                # collect distributed
+                if dist.is_initialized():
+                    value = self.sync_tensor_data_and_concat(value)
+
                 if isinstance(value, torch.Tensor):
                     value = value.detach().cpu().numpy()
 
@@ -165,10 +159,55 @@ class MetricCollector(MetricBase):
         for key in self._id_keys:
             if key in batch:
                 ids = batch[key]
+                # collect distributed
+                if dist.is_initialized():
+                    ids = self.sync_ids(ids)
                 break
 
         if ids is not None:
             self._collected_ids.extend(ids)
+
+    @staticmethod
+    def sync_tensor_data_and_concat(data: torch.Tensor) -> torch.Tensor:
+        """
+        Collect the arg data (which is a tensor) into a list, concat along the batch dim (assumed first dim) and return
+
+        :param data: value to collect accross gpus
+        """
+        assert isinstance(
+            data, torch.Tensor
+        ), f"ERROR, Fuse Metrics only supports gathering of torch.Tensor at this time. You tried gathering {type(data)}"
+
+        # if data is 1d, torch.vstack will add another dimension which we do not want
+        if len(data.shape) == 1:
+            data = data[:, None]  # add dim to the end
+
+        # gather
+        world_size = dist.get_world_size()
+        data_list = [torch.zeros_like(data) for _ in range(world_size)]
+        dist.all_gather(data_list, data)
+
+        # stack
+        stacked_data = torch.vstack(data_list)
+
+        return stacked_data
+
+    @staticmethod
+    def sync_ids(ids: List[Tuple[str, int]]) -> List[Any]:
+        """
+        Collect the arg ids into a list, flatten this list and return
+
+        :param ids: list of tuples ex [('mnist-train', 0), ('mnist-train', 1)]
+        """
+        # gather
+        world_size = dist.get_world_size()
+        data_list = [None for _ in range(world_size)]
+        dist.all_gather_object(data_list, ids)
+
+        # flatten list
+        data_list = [item for sublist in data_list for item in sublist]
+
+        return data_list
 
     @staticmethod
     def _df_dict_apply(data: pd.Series, func: Callable) -> pd.Series:
@@ -278,7 +317,7 @@ class MetricWithCollectorBase(MetricBase):
         batch_pre_collect_process_func: Optional[Callable] = None,
         external_data_collector: Optional[MetricCollector] = None,
         extract_ids: bool = False,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """
         :param pre_collect_process_func: Optional callable - the callable will get as an input a batch_dict or a dataframe and can preprocess it if required
@@ -371,7 +410,7 @@ class MetricDefault(MetricWithCollectorBase):
     Can be used for any metric getting as an input list of prediction, list of targets and optionally additional parameters
     """
 
-    def __init__(self, metric_func: Callable, pred: Optional[str] = None, target: Optional[str] = None, **kwargs):
+    def __init__(self, metric_func: Callable, pred: Optional[str] = None, target: Optional[str] = None, **kwargs: Any):
         """
         :param pred: prediction key to collect
         :param target: target key to collect
@@ -409,7 +448,7 @@ class MetricPerSampleDefault(MetricWithCollectorBase):
     """
 
     def __init__(
-        self, pred: str, target: str, metric_per_sample_func: Callable, result_aggregate_func: Callable, **kwargs
+        self, pred: str, target: str, metric_per_sample_func: Callable, result_aggregate_func: Callable, **kwargs: Any
     ):
         """
         :param pred: prediction key to collect
@@ -442,7 +481,7 @@ class GroupAnalysis(MetricWithCollectorBase):
     {'mean': <>, 'std': <>, 'median': <>, <group 0>: <>, <group 1>: <>, ...}
     """
 
-    def __init__(self, metric: MetricBase, group: str, **super_kwargs) -> None:
+    def __init__(self, metric: MetricBase, group: str, **super_kwargs: Any) -> None:
         """
         :param metric: metric to analyze
         :param group: key to extract the group from
@@ -524,7 +563,7 @@ class Filter(MetricWithCollectorBase):
     Evaluate a sub-group of data. This utility will filter non relevant samples and will call to the given metric.
     """
 
-    def __init__(self, metric: MetricBase, filter: str, **super_kwargs) -> None:
+    def __init__(self, metric: MetricBase, filter: str, **super_kwargs: Any) -> None:
         """
         :param metric: metric to filter samples for
         :param group: key to extract filter
@@ -583,7 +622,7 @@ class CI(MetricWithCollectorBase):
         rnd_seed: int = 1234,
         conf_interval: float = 95,
         ci_method: str = "PERCENTILE",
-        **super_kwargs,
+        **super_kwargs: Any,
     ) -> None:
         """
         :param metric: metric to compute the confidence interval for
