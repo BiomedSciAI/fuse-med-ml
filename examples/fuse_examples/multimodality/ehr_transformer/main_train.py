@@ -15,7 +15,6 @@ from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 from fuse.dl.models.heads import Head1D
-from fuse.eval.metrics.metrics_common import Filter
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC
 from fuse.dl.losses import LossDefault
 from fuse.utils import NDict
@@ -24,7 +23,7 @@ from examples.fuse_examples.multimodality.ehr_transformer.model import Embed, Tr
 from examples.fuse_examples.multimodality.ehr_transformer.dataset import PhysioNetCinC
 
 
-def filter_gender_label_unknown_for_loss(batch_dict: NDict) -> NDict:
+def filter_gender_label_unknown(batch_dict: NDict) -> NDict:
     """
     Ignore unlabeled (gender) when computing gender classification loss
     """
@@ -34,15 +33,6 @@ def filter_gender_label_unknown_for_loss(batch_dict: NDict) -> NDict:
         keep_indices
     )  # this will keep only a subset of elements per each key in the dictionary (where applicable)
     return batch_dict
-
-
-def filter_gender_label_unknown_for_metric(sample_dict: NDict) -> NDict:
-    """
-    Ignore unlabeled (gender) when computing gender classification metrics (AUC)
-    """
-    # filter out samples
-    sample_dict["filter"] = sample_dict["Gender"] == -1
-    return sample_dict
 
 
 def data(
@@ -91,7 +81,7 @@ def model(
     classifier_gender_head: dict,
     aux_next_vis_classification: bool,
     classifier_next_vis_head: dict,
-):
+) -> torch.nn.Module:
 
     """
     Create transformer based model with 3 classification heads
@@ -163,7 +153,7 @@ def train(
     next_vis_loss_weight: float,
     lr_scheduler: callable = None,
     track_clearml: Optional[dict] = None,
-):
+) -> None:
     """
     Run training process
     :param model: the model to train
@@ -205,14 +195,12 @@ def train(
             pred="model.logits.gender",
             target="Gender",
             callable=F.cross_entropy,
-            preprocess_func=filter_gender_label_unknown_for_loss,
+            preprocess_func=filter_gender_label_unknown,
             weight=gender_loss_weight,
         )
 
-        train_metrics["gender_auc"] = Filter(
-            MetricAUCROC(pred="model.output.gender", target="Gender"),
-            "filter",
-            pre_collect_process_func=filter_gender_label_unknown_for_metric,
+        train_metrics["gender_auc"] = MetricAUCROC(
+            pred="model.output.gender", target="Gender", batch_pre_collect_process_func=filter_gender_label_unknown
         )
 
     # auxiliary gender loss and metric
@@ -261,7 +249,7 @@ def train(
 
 
 @hydra.main(config_path=".", config_name="config")
-def main(cfg: DictConfig):
+def main(cfg: DictConfig) -> None:
     print(str(cfg))
 
     cfg = hydra.utils.instantiate(cfg)

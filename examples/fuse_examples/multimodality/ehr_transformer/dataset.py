@@ -1,7 +1,7 @@
 import pickle
 from collections import OrderedDict
 from random import randrange
-from typing import Sequence, Any, Tuple
+from typing import Sequence, Any, Tuple, List
 
 import glob
 import os
@@ -11,6 +11,7 @@ import pandas as pd
 from fuse.data import DatasetDefault, PipelineDefault, OpBase
 from fuse.data.ops.ops_read import OpReadDataframe
 from fuse.data.ops.ops_common import OpLookup, OpSetIfNotExist
+from fuse.utils.ndict import NDict
 
 from fuse.data.utils.split import dataset_balanced_division_to_folds
 from fuse.data.utils.export import ExportDataset
@@ -50,7 +51,7 @@ class OpAddBMI(OpBase):
     """
     Apply BMI calculation using static patient's fields. Names of the fields
     are provided as parameters as well as output field name.
-    Height expected to be in centimetres
+    Height expected to be in centimeters
     Weight expected to be in kilograms
 
     Example:
@@ -64,7 +65,7 @@ class OpAddBMI(OpBase):
         self._key_weight = key_in_weight
         self._key_bmi = key_out_bmi
 
-    def __call__(self, sample_dict) -> Any:
+    def __call__(self, sample_dict: NDict) -> Any:
 
         if (self._key_height in sample_dict["StaticDetails"]) & (self._key_weight in sample_dict["StaticDetails"]):
             height = sample_dict["StaticDetails." + self._key_height]
@@ -83,7 +84,7 @@ class OpConvertVisitToSentence(OpBase):
      and separator at the end of the sentence
     """
 
-    def __call__(self, sample_dict) -> Any:
+    def __call__(self, sample_dict: NDict) -> Any:
 
         df_visits = sample_dict["Visits"]
 
@@ -120,7 +121,7 @@ class OpGenerateFinalTrajectoryOfVisits(OpBase):
         self._static_variables_to_embed = static_variables_to_embed
         self._embed_static_in_all_visits = embed_static_in_all_visits
 
-    def __call__(self, sample_dict) -> Any:
+    def __call__(self, sample_dict: NDict) -> Any:
 
         d_visits_sentences = sample_dict["VisitSentences"]
         n_visits = len(d_visits_sentences)
@@ -194,13 +195,13 @@ class OpMapToCategorical(OpBase):
       (third bin in calculated distribution)
     """
 
-    def __call__(self, sample_dict, bins: dict) -> Any:
+    def __call__(self, sample_dict: NDict, bins: dict) -> Any:
 
         # convert continuous measurements to categorical ones based
         # on defined bins mapping static clinical characteristics
         # (Age, Gender, ICU type, Height, etc)
         for k in sample_dict["StaticDetails"]:
-            sample_dict["StaticDetails"][k] = k + "_" + str(np.digitize(sample_dict["StaticDetails"][k], bins[k]))
+            sample_dict[f"StaticDetails.{k}"] = k + "_" + str(np.digitize(sample_dict["StaticDetails"][k], bins[k]))
 
         # mapping labs exams and clinical characteristics captured
         # during patients' stay in ICU
@@ -457,8 +458,12 @@ class PhysioNetCinC:
 
     @staticmethod
     def _process_dynamic_pipeline(
-        dict_percentiles, static_variables_to_embed, embed_static_in_all_visits, token2idx, max_len
-    ):
+        dict_percentiles: dict,
+        static_variables_to_embed: Any,
+        embed_static_in_all_visits: Any,
+        token2idx: Any,
+        max_len: int,
+    ) -> List[OpBase]:
         """
         Generates dynamic pipeline by stacking a list of Operators.
         :param dict_percentiles: percentiles of observations
@@ -590,7 +595,7 @@ class PhysioNetCinC:
         corpus = PhysioNetCinC._build_corpus_of_words(dict_percentiles)
         token2idx = WordVocab(corpus, max_size=None, min_freq=1).get_stoi()
 
-        # update pypline with Op using calculated percentiles
+        # update pipeline with Op using calculated percentiles
         dynamic_pipeline_ops = dynamic_pipeline_ops + [
             *PhysioNetCinC._process_dynamic_pipeline(
                 dict_percentiles, static_variables_to_embed, embed_static_in_all_visits, token2idx, max_len_seq

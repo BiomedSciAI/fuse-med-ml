@@ -17,7 +17,7 @@ Created on June 30, 2021
 
 """
 import logging
-from typing import Callable, Dict, List, Sequence, Tuple
+from typing import Callable, Dict, List, Sequence, Tuple, Any
 
 from fuse.utils import NDict
 
@@ -70,7 +70,7 @@ class CollateToBatchList(Callable):
 
         return batch_dict
 
-    def _collect_all_keys(self, samples: List[Dict]):
+    def _collect_all_keys(self, samples: List[Dict]) -> List[Any]:
         """
         collect list of keys used in any one of the samples
         :param samples: list of samples
@@ -81,7 +81,7 @@ class CollateToBatchList(Callable):
             if not isinstance(sample, NDict):
                 sample = NDict(sample)
             keys |= set(sample.keypaths())
-        return keys
+        return list(keys)
 
     def _collect_values_to_list(self, samples: List[str], key: str) -> Tuple[List, bool]:
         """
@@ -126,25 +126,16 @@ def uncollate(batch: Dict) -> List[Dict]:
     else:
         batch_size = None
 
-        keys = batch.keys()
-
-        for key in keys:
-            if isinstance(batch[key], torch.Tensor):
+        for key in batch.keys():
+            if isinstance(batch[key], (torch.Tensor, np.ndarray, list)):
                 batch_size = len(batch[key])
                 break
-
-        if batch_size is None:
-            for key in keys:
-                if isinstance(batch[key], (np.ndarray, list)):
-                    batch_size = len(batch[key])
-                    break
 
     if batch_size is None:
         return batch  # assuming batch dict with no samples
 
-    keys = batch.keys()
-    samples = [{} for _ in range(batch_size)]
-    for key in keys:
+    samples = [NDict() for _ in range(batch_size)]
+    for key in batch.keys():
         values = batch[key]
         for sample_index in range(batch_size):
 

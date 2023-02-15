@@ -91,6 +91,7 @@ class OpReadDataframe(OpBase):
                        For example, with prefix 'data.features' and a df with the columns ['height', 'weight', 'sex'],
                        the matching keys will be: 'data.features.height', 'data.features.weight', 'data.features.sex'.
         """
+
         key = sample_dict[self._key_name]
 
         # locate the required item

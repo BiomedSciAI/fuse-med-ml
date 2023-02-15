@@ -16,7 +16,7 @@ Created on June 30, 2021
 
 """
 
-from typing import Dict, Hashable, List, Optional, Sequence, Union
+from typing import Dict, Hashable, List, Optional, Sequence, Union, Any
 
 from warnings import warn
 from fuse.data.datasets.dataset_base import DatasetBase
@@ -114,11 +114,11 @@ class DatasetDefault(DatasetBase):
         self._created = False
 
     @property
-    def static_pipeline(self):
+    def static_pipeline(self) -> Union[PipelineDefault, None]:
         return self._static_pipeline
 
     @property
-    def dynamic_pipeline(self):
+    def dynamic_pipeline(self) -> Union[PipelineDefault, None]:
         return self._dynamic_pipeline
 
     def create(self, num_workers: int = 0, mp_context: Optional[str] = None) -> None:
@@ -165,7 +165,7 @@ class DatasetDefault(DatasetBase):
         self._orig_sample_ids = None  # should not be use after create. use self._final_sample_ids instead
         self._created = True
 
-    def get_all_sample_ids(self):
+    def get_all_sample_ids(self) -> List[Any]:
         if not self._created:
             raise Exception("you must first call create()")
 
@@ -174,7 +174,7 @@ class DatasetDefault(DatasetBase):
 
         return copy.deepcopy(self._final_sample_ids)
 
-    def __getitem__(self, item: Union[int, Hashable]) -> dict:
+    def __getitem__(self, item: Union[int, Hashable]) -> NDict:
         """
         Get sample, read from cache if possible
         :param item: either int representing sample index or sample_id
@@ -246,12 +246,12 @@ class DatasetDefault(DatasetBase):
 
         return sample
 
-    def _get_multi_multiprocess_func(self, args):
+    def _get_multi_multiprocess_func(self, args: Any) -> Any:
         sid, kwargs = args
         return self.getitem(sid, **kwargs)
 
     @staticmethod
-    def _getitem_multiprocess(item: Union[Hashable, int, np.integer]):
+    def _getitem_multiprocess(item: Union[Hashable, int, np.integer]) -> Any:
         """
         getitem method used to optimize the running time in a multiprocess mode
         """
@@ -266,7 +266,7 @@ class DatasetDefault(DatasetBase):
         verbose: int = 1,
         mp_context: Optional[str] = None,
         desc: str = "dataset_default.get_multi",
-        **kwargs,
+        **kwargs: Any,
     ) -> List[Dict]:
         """
         See super class
@@ -291,7 +291,7 @@ class DatasetDefault(DatasetBase):
         )
         return list_sample_dict
 
-    def __len__(self):
+    def __len__(self) -> int:
         if not self._created:
             raise Exception("you must first call create()")
 
@@ -305,7 +305,7 @@ class DatasetDefault(DatasetBase):
     # internal methods
 
     @staticmethod
-    def _process_orig_sample_id(args):
+    def _process_orig_sample_id(args: Any) -> Any:
         """
         Process, without caching, single sample
         """
@@ -328,7 +328,7 @@ class DatasetDefault(DatasetBase):
 
         return orig_sample_id, output_sample_ids, sample
 
-    def _get_collect_marker_info(self, collect_marker_name: str):
+    def _get_collect_marker_info(self, collect_marker_name: str) -> dict:
         """
         Find the required collect marker (OpCollectMarker in the dynamic pipeline).
         See OpCollectMarker for more details
