@@ -9,7 +9,7 @@ FuseMedML is very flexible. This means that a user can choose to only use some c
 FuseMedML uses PyTorch Lightning as it's model training "manager".
 There are two main supported ways in which lightning is used in fuse:
 ### 1. Ready-made wrapper use (suitable mostly for supervised learning use-cases)
-(see [MNIST example](../../fuse_examples/imaging/classification/mnist/run_mnist.py)).
+(see [MNIST example](../../fuse_examples/imaging/classification/mnist/simple_mnist_starter.py)).
 In this mode, we use `LightningModuleDefault`, a FuseMedML class that inherits from PyTorch Lightning's `LightningModule` class. It is instantiated as follows:
 
 ```
@@ -41,7 +41,7 @@ The basic classes are:
 1. `LossBase` - A generic template class that can be used for implementing any loss function. All it does is receives a `batch_dict` and returns a loss tensor.
 2. `LossWarmUp` - A wrapper class that gets an existing loss function and zeros its value for a given number of iterations. This is useful in a multiple loss function scenario, where one loss should be stabilized before the other one comes into play.
 3. `LossDefault` - Default loss implementation of FuseMedML. It is still a generic class in the sense that is can operate on any actual loss function implementation. In addition, it can receive a scalar multiplier value, and a custom preprocessing function that operated on the `batch_dict` before the loss operates on it.
-[The MNIST example uses `LossDefault`](../../fuse_examples/imaging/classification/mnist/run_mnist.py) as follows:
+[The MNIST example uses `LossDefault`](../../fuse_examples/imaging/classification/mnist/simple_mnist_starter.py) as follows:
 
 ```
     losses = {
@@ -62,7 +62,7 @@ Note again, that while these are specific loss functions that are implemented, i
 This module contains DL model and architecture related classes. A FuseMedML model is very similar to a PyTorch model. The only difference is that in its `forward` function it gets as input a fuse `batch_dict`, extracts the input data from the input keys, forwards it through the model and writes the output to the `batch_dict`'s output keys.
 The most basic class is `ModelWrapSeqToDict`. It is FuseMedML's wrapper for PyTorch models to be used in fuse. It is initialized with an existing PyTorch model, and a list of input and output keys.
 Optionally, a pre and post processing function can be provided to be applied on the `batch_dict` before and after model run.
-[The MNIST example uses `ModelWrapSeqToDict`](../../fuse_examples/imaging/classification/mnist/run_mnist.py) to wrap a PyTorch model as follows:
+[The MNIST example uses `ModelWrapSeqToDict`](../../fuse_examples/imaging/classification/mnist/simple_mnist_starter.py) to wrap a PyTorch model as follows:
 
 ```
 model = ModelWrapSeqToDict(
