@@ -41,7 +41,6 @@ with open(os.path.join(HERE, "fuse_examples/requirements.txt"), "r") as fh:
 
 # all extra requires
 all_requirements = fuseimg_requirements + fuse_requirements_dev
-all_plus_examples_requirements = all_requirements + fuse_examples_requirements
 
 # version
 from fuse.version import __version__  # noqa
@@ -64,7 +63,7 @@ setup(
         "fuseimg": fuseimg_requirements,
         "dev": fuse_requirements_dev,
         "all": all_requirements,
-        "all+examples": all_plus_examples_requirements,
+        "examples": fuse_examples_requirements,
     },
     python_requires=">=3.7",
     classifiers=[

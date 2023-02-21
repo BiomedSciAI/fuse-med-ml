@@ -181,7 +181,7 @@ FuseMedML is tested on Python >= 3.7 and PyTorch >= 1.5
 
 Create a conda environment using the following command (you can replace FUSEMEDML with your preferred enviornment name)
 ```bash
-conda create -n FUSEMEDML python=3.7
+conda create -n FUSEMEDML python=3.9
 conda activate FUSEMEDML
 ```
 
@@ -204,7 +204,7 @@ This mode installs all the currently publicly available domain extensions - fuse
 
 To install `FuseMedML` with an included collection of examples install it using:
 ```bash
-$ pip install -e .[all+examples]
+$ pip install -e .[all,examples]
 ```
 
 ## Option 2: Install from PyPI
