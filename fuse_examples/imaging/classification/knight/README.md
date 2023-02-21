@@ -38,7 +38,7 @@ See [example prediction file for task 2](./eval/example/example_task2_prediction
 
 Here, "case_id" represents the sample (e.g. 00000) and all scores represent the probability of a patient to belong to a class.
 
-The evaluation script together with a dummy prediction file can be found in `fuse-med-ml/examples/fuse_examples/imagin/classification/knight/eval`
+The evaluation script together with a dummy prediction file can be found in `fuse_examples/imagin/classification/knight/eval`
 
 More details can be found in [challenge website](https://research.ibm.com/haifa/Workshops/KNIGHT)
 
@@ -47,7 +47,7 @@ More details can be found in [challenge website](https://research.ibm.com/haifa/
 To run the evaluation script use the following command:
 
 ```
-cd fuse-med-ml/examples/fuse_examples/imaging/classification/knight/eval
+cd fuse_examples/imaging/classification/knight/eval
 python eval.py <target_filename> <task1_prediction_filename> <task2_prediction_filename> <output dir>
 ```
 
@@ -55,7 +55,7 @@ If you only want to evaluate Task 1, you may pass an empty string in place of ``
 
 As an example, this command will evaluate the dummy example predictions and targets:
 ```
-cd fuse-med-ml/examples/fuse_examples/imaging/classification/knight/eval
+cd fuse_examples/imaging/classification/knight/eval
 python eval.py example/example_targets.csv example/example_task1_predictions.csv example/example_task2_predictions.csv example/results
 ```
 
@@ -118,7 +118,7 @@ Here are some of the things we knowingly avoided for the sake of simplicity:
 3. We didn't resample the images with respect to their spacing, but only resized to a common voxel size. Addressing the trade-off between input patch size (limited by the GPU memory) and the amount of contextual information that it contains (controlled by a possible resampling procedure) can be important. You may want to resample the volumes to a common spacing, and you may want (or be forced to, due to GPU memory constraints), to train on smaller cropped patches, with some logic which "prefers" foreground patches.
 
 ### **Make targets file for evaluation**
-'fuse-med-ml/examples/fuse_examples/imaging/classification/knight/make_targets_file.py' is a script that makes a targets file for the evaluation script.
+'fuse_examples/imaging/classification/knight/make_targets_file.py' is a script that makes a targets file for the evaluation script.
 
 Targets file is a csv file that holds just the labels for both tasks. This files is one of the inputs of the evaluation script.
 
@@ -126,11 +126,11 @@ The script extracts the labels from the PyTorch dataset included in baseline imp
 
 The baseline implementation is using specific train/validation split, You can either use the same train/validation split or set a different split.
 
-The script including additional details and documentation can be found in: 'fuse-med-ml/examples/fuse_examples/imaging/classification/knight/make_targets_file.py'
+The script including additional details and documentation can be found in: 'fuse_examples/imaging/classification/knight/make_targets_file.py'
 
 ### **Make predictions file for evaluation**
-'fuse-med-ml/examples/fuse_examples/imaging/classification/knight/make_predictions_file.py' is a script that automatically makes predictions files for any model trained using FuseMedML.
+'fuse_examples/imaging/classification/knight/make_predictions_file.py' is a script that automatically makes predictions files for any model trained using FuseMedML.
 
 Predictions file is a csv file that include prediction score per class and should adhere a format specified in evaluation section.
 
-The script including additional details and documentation can be found in: 'fuse-med-ml/examples/fuse_examples/imaging/classification/knight/make_predictions_file.py'
+The script including additional details and documentation can be found in: 'fuse_examples/imaging/classification/knight/make_predictions_file.py'

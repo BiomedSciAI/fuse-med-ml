@@ -32,7 +32,7 @@ See [example prediction file for task 2](./eval/example/example_task2_prediction
 
 Where “image_name" represents the sample (e.g. BRACS_264) and all scores represent the probability of a patient to belong to a class.
 
-The evaluation script together with a dummy prediction files can be found in `fuse-med-ml/examples/fuse_examples/imaging/classification/bright/eval`
+The evaluation script together with a dummy prediction files can be found in `fuse_examples/imaging/classification/bright/eval`
 More details can be found in [challenge website](https://research.ibm.com/haifa/Workshops/BRIGHT)
 
 
@@ -40,12 +40,12 @@ More details can be found in [challenge website](https://research.ibm.com/haifa/
 
 To run the evaluation script:
 ```
-cd fuse-med-ml/examples/fuse_examples/imaging/classification/knight/eval
+cd fuse_examples/imaging/classification/knight/eval
 python eval.py <target_filename> <task1 prediction_filename> <task1 prediction_filename> <output dir>
 ```
 To evaluate the dummy example predictions and targets
 ```
-cd fuse-med-ml/examples/fuse_examples/imaging/classification/knight/eval
+cd fuse_examples/imaging/classification/knight/eval
 python eval.py example/example_targets.csv example/example_task1_predictions.csv example/example_task2_predictions.csv example/results
 ```
 
@@ -67,6 +67,6 @@ See [validation targets file](./eval/validation_targets.csv)
 
 To evaluate the baseline predictions over the validation set:
 ```
-cd fuse-med-ml/examples/fuse_examples/imaging/classification/bright/eval
+cd fuse_examples/imaging/classification/bright/eval
 python eval.py validation_targets.csv baseline/validation_baseline_task1_predictions.csv baseline/validation_baseline_task2_predictions.csv baseline/validation_results
 ```
