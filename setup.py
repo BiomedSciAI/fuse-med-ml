@@ -33,15 +33,15 @@ with open(os.path.join(HERE, "fuseimg/requirements.txt"), "r") as fh:
             fuseimg_requirements.append(line.strip())
 
 # list of requirements for fuse_examples
-fuse_exampels_requirements = []
+fuse_examples_requirements = []
 with open(os.path.join(HERE, "fuse_examples/requirements.txt"), "r") as fh:
     for line in fh:
         if not line.startswith("#"):
-            fuseimg_requirements.append(line.strip())
+            fuse_examples_requirements.append(line.strip())
 
 # all extra requires
 all_requirements = fuseimg_requirements + fuse_requirements_dev
-all_plus_examples_requirements = all_requirements + fuse_exampels_requirements
+all_plus_examples_requirements = all_requirements + fuse_examples_requirements
 
 # version
 from fuse.version import __version__  # noqa
