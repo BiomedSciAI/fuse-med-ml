@@ -18,6 +18,7 @@ Created on June 30, 2021
 
 import pytorch_lightning as pl
 from typing import Optional
+import os
 
 from fuse.dl.lightning.pl_funcs import *  # noqa
 
@@ -39,7 +40,7 @@ class LightningModuleDefault(pl.LightningModule):
         optimizers_and_lr_schs: Any = None,
         callbacks: Optional[Sequence[pl.Callback]] = None,
         best_epoch_source: Optional[Union[Dict, List[Dict]]] = None,
-        save_hyperparameters: Optional[List[str]] = None,
+        save_hyperparameters_kwargs: Optional[dict] = None,
         tensorboard_sep: str = ".",
         **kwargs: dict,
     ):
@@ -59,8 +60,11 @@ class LightningModuleDefault(pl.LightningModule):
         :param tensorboard_sep: use "/" for cleaner tensorboard. "." is for backward compatibility.
         """
         super().__init__(**kwargs)
-        if save_hyperparameters is not None:
-            self.save_hyperparameters(*save_hyperparameters)
+        if save_hyperparameters_kwargs is not None:
+            self.save_hyperparameters(**save_hyperparameters_kwargs)
+        else:
+            torch.save(model, os.path.join(model_dir, "model.pth"))
+            self.save_hyperparameters(ignore=["model_dir", "model"])
 
         # store arguments
         self._model_dir = model_dir
