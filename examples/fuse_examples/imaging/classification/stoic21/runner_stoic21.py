@@ -49,7 +49,7 @@ from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import create_dir, save_dataframe
 import fuse.utils.gpu as GPU
 
-import examples.fuse_examples.imaging.classification.stoic21.dataset as dataset
+import fuse_examples.imaging.classification.stoic21.dataset as dataset
 
 ###########################################################################################################
 # Fuse

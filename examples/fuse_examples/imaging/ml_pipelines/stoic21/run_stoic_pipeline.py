@@ -1,7 +1,7 @@
 from fuse.dl.cross_validation.pipeline import run
-from examples.fuse_examples.imaging.classification.stoic21.runner_stoic21 import run_train, run_infer, run_eval
-from examples.fuse_examples.imaging.classification.stoic21.dataset import create_dataset, train_val_test_splits
-from examples.fuse_examples.imaging.classification.stoic21.runner_stoic21 import (
+from fuse_examples.imaging.classification.stoic21.runner_stoic21 import run_train, run_infer, run_eval
+from fuse_examples.imaging.classification.stoic21.dataset import create_dataset, train_val_test_splits
+from fuse_examples.imaging.classification.stoic21.runner_stoic21 import (
     TRAIN_COMMON_PARAMS,
     INFER_COMMON_PARAMS,
     EVAL_COMMON_PARAMS,

@@ -45,7 +45,7 @@ from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 
 from fuseimg.datasets.mnist import MNIST
-from examples.fuse_examples.imaging.classification.mnist import lenet
+from fuse_examples.imaging.classification.mnist import lenet
 
 ## Paths and Hyperparameters ############################################
 ROOT = "_examples/mnist"  # TODO: fill path here
