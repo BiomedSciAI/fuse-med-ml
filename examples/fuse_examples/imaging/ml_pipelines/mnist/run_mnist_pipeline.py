@@ -1,5 +1,5 @@
 from fuse.dl.cross_validation.pipeline import run
-from examples.fuse_examples.imaging.classification.mnist.run_mnist import (
+from fuse_examples.imaging.classification.mnist.run_mnist import (
     run_train,
     run_infer,
     run_eval,
