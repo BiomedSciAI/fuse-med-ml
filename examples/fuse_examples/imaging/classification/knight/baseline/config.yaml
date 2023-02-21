@@ -1,10 +1,13 @@
 experiment_num : 0
 task_num : task_1 # task_1 or task_2
-num_gpus : 1
+num_workers: 0
+num_nodes : 1
+num_devices : 1
+accelerator: "gpu"
 use_data : {"imaging": True, "clinical": True}
 batch_size : 6    # need to adjust barch size to your GPU available memory
 resize_to : [80, 256, 256]
-num_epochs : 100
+num_epochs : 50
 learning_rate : 0.0003
 imaging_dropout : 0.5
 fused_dropout : 0.5

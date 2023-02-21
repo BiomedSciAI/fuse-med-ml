@@ -1,6 +1,7 @@
 import os
 from glob import glob
 from typing import Hashable, Optional, Sequence, Tuple
+import pytorch_lightning as pl
 
 from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
 from fuse.utils.ndict import NDict
@@ -11,6 +12,8 @@ from fuse.data import PipelineDefault, OpToTensor
 from fuse.data.ops.op_base import OpBase
 from fuse.data.ops.ops_aug_common import OpSample, OpRandApply
 from fuse.data.ops.ops_common import OpLambda, OpZScoreNorm
+from fuse.data.utils.collates import CollateDefault
+from fuse.data.utils.samplers import BatchSamplerDefault
 from fuseimg.data.ops.aug.geometry import OpAugAffine2D, OpRotation3D, OpResizeTo
 from fuseimg.data.ops.aug.color import OpAugGaussian
 from fuseimg.data.ops.image_loader import OpLoadImage
@@ -19,6 +22,7 @@ import numpy as np
 from fuse.data.utils.sample import get_sample_id
 from functools import partial
 import torch
+from torch.utils.data import DataLoader
 import pandas as pd
 
 
@@ -348,6 +352,134 @@ class KNIGHT:
 
             print("Test Data: Done", {"attrs": "bold"})
             return test_dataset
+
+
+class KNIGHTDataModule(pl.LightningDataModule):
+    """
+    pl.LightningDataModule for use in the knight example
+    """
+
+    def __init__(
+        self,
+        data_path: str = "data",
+        cache_dir: str = "cache",
+        split: dict = None,
+        reset_cache: bool = False,
+        resize_to: Tuple = (70, 256, 256),
+        num_workers: int = 10,
+        batch_size: int = 6,
+        shuffle: bool = False,
+        drop_last: bool = False,
+        use_batch_sampler: bool = False,
+        # required only if also use_batch_sampler = True
+        target_name: str = None,
+        num_classes: int = None,
+        task_num: int = None,
+    ):
+        """
+        Create Dataset and static private variables.
+
+        :param data_path: path to data dir
+        :param cache_dir: path to cache dir
+        :param split: train/val splits. we use the auto-generated one from the nnU-Net framework from the KiTS21 data
+        :param reset_cache: set True to reset the cache data
+        :param resize_to: size images will be resized to in static pipeline. Typically (70, 256, 256).
+        :param num_workers: number of workers for dataloaders
+        :param batch_size: dataloader batch size
+        :param shuffle: dataloader shuffle
+        :param drop_last: dataloader drop_last
+        :param use_batch_sampler: bool to decide if batch sampler is used in train
+
+        # required only if also use_batch_sampler = True
+        :param target_name: str = None,
+        :param num_classes: int = None,
+        :param task_num: int = None,
+        """
+        super().__init__()
+        self._data_path = data_path
+        self._cache_dir = cache_dir
+        self._split = split
+        self._reset_cache = reset_cache
+        self._resize_to = resize_to
+        self._num_workers = num_workers
+        self._batch_size = batch_size
+        self._shuffle = shuffle
+        self._drop_last = drop_last
+        self._use_batch_sampler = use_batch_sampler
+
+        # batch sampler args
+        self._target_name = target_name
+        self._num_classes = num_classes
+        self._task_num = task_num
+
+        # check that batch sampler args exist if use_batch_sampler == True
+        if self._use_batch_sampler:
+            check_list = [self._target_name, self._num_classes, self._task_num]
+            assert all(
+                i is not None for i in check_list
+            ), "ERROR: if you want to use a batch sampler, you must also provide target_name, num_classes, and task_num"
+
+    def setup(self, stage: str) -> None:
+        """
+        Instantiate datasets.
+
+        :param stage: Not used
+        """
+        self._train_ds, self._valid_ds = KNIGHT.dataset(
+            data_path=self._data_path,
+            cache_dir=self._cache_dir,
+            split=self._split,
+            reset_cache=self._reset_cache,
+            resize_to=self._resize_to,
+        )
+
+    def train_dataloader(self) -> DataLoader:
+        """
+        Instantiate train dataloader, with batch sampler if specified by use_batch_sampler.
+        """
+
+        # Check if we need sampler
+        sampler = None
+        if self._use_batch_sampler:
+            sampler = BatchSamplerDefault(
+                dataset=self._train_ds,
+                balanced_class_name=self._target_name,
+                num_balanced_classes=self._num_classes,
+                batch_size=self._batch_size,
+                balanced_class_weights=[1.0 / self._num_classes] * self._num_classes
+                if self._task_num == "task_2"
+                else None,
+                mode="approx",
+            )
+
+        # make dataloader
+        train_dl = DataLoader(
+            dataset=self._train_ds,
+            batch_sampler=sampler,
+            shuffle=self._shuffle if not self._use_batch_sampler else None,
+            drop_last=self._drop_last if not self._use_batch_sampler else None,
+            batch_size=self._batch_size if not self._use_batch_sampler else 1,
+            collate_fn=CollateDefault(),
+            num_workers=self._num_workers,
+        )
+        return train_dl
+
+    def val_dataloader(self) -> DataLoader:
+        """
+        Make val dataloader.
+        """
+
+        # make dataloader
+        val_dl = DataLoader(
+            dataset=self._valid_ds,
+            shuffle=False,
+            drop_last=self._drop_last,
+            batch_sampler=None,
+            batch_size=self._batch_size,
+            num_workers=self._num_workers,
+            collate_fn=CollateDefault(),
+        )
+        return val_dl
 
 
 GENDER_INDEX = {"male": 0, "female": 1}
