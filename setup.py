@@ -60,7 +60,12 @@ setup(
     packages=find_namespace_packages(),
     license="Apache License 2.0",
     install_requires=fuse_requirements,
-    extras_require={"fuseimg": fuseimg_requirements, "dev": fuse_requirements_dev, "all": all_requirements, "all+examples": all_plus_examples_requirements},
+    extras_require={
+        "fuseimg": fuseimg_requirements,
+        "dev": fuse_requirements_dev,
+        "all": all_requirements,
+        "all+examples": all_plus_examples_requirements,
+    },
     python_requires=">=3.7",
     classifiers=[
         "Programming Language :: Python :: 3.7",
