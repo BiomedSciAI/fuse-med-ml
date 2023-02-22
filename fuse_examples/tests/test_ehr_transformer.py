@@ -26,7 +26,7 @@ from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 from omegaconf import DictConfig
 import yaml
 
-from examples.fuse_examples.multimodality.ehr_transformer.main_train import main as main_train
+from fuse_examples.multimodality.ehr_transformer.main_train import main as main_train
 
 
 if "CINC_TEST_DATA_PATH" in os.environ:

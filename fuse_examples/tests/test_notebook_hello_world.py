@@ -4,7 +4,7 @@ from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 
 
 def run_notebook() -> None:
-    notebook_path = "examples/fuse_examples/imaging/hello_world/hello_world.ipynb"
+    notebook_path = "fuse_examples/imaging/hello_world/hello_world.ipynb"
 
     # Execute the whole notebook and save it as an object
     with testbook(notebook_path, execute=True, timeout=600) as tb:

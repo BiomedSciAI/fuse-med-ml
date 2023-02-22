@@ -27,7 +27,7 @@ create_env() {
     fi
 
     if [ $mode = "examples" ]; then
-        requirements+=$(cat examples/requirements.txt)
+        requirements+=$(cat fuse_examples/requirements.txt)
     fi
 
     # Python version
@@ -86,7 +86,7 @@ create_env() {
 
             if [ $mode = "examples" ]; then
                 echo "Installing examples requirements"
-                conda run $env --no-capture-output --live-stream pip install -r examples/requirements.txt
+                conda run $env --no-capture-output --live-stream pip install -r fuse_examples/requirements.txt
                 echo "Installing examples requirements - Done"
             fi
         fi
@@ -130,7 +130,6 @@ echo "Running fuseimg unittests - Done"
 
 echo "Create examples env"
 create_env $force_cuda_version $env_path "examples"
-PYTHONPATH=$PYTHONPATH:./examples
 echo "Create examples env - Done"
 
 echo "Running examples unittests in $ENV_TO_USE"

@@ -275,8 +275,8 @@ if __name__ == "__main__":
     """
     Run evaluation:
     Usage: python eval.py <target_filename> <task1_prediction_filename> <task2_prediction_filename> <output dir>
-    Run dummy example (set the working dir to fuse-med-ml/examples/fuse_examples/imaging/classification/bright/eval): python eval.py example/example_targets.csv example/example_task1_predictions.csv example/example_task2_predictions.csv example/results
-    Run baseline (set the working dir to fuse-med-ml/examples/fuse_examples/imaging/classification/bright/eval): python eval.py validation_targets.csv baseline/validation_baseline_task1_predictions.csv baseline/validation_baseline_task2_predictions.csv baseline/validation_results
+    Run dummy example (set the working dir to fuse_examples/imaging/classification/bright/eval): python eval.py example/example_targets.csv example/example_task1_predictions.csv example/example_task2_predictions.csv example/results
+    Run baseline (set the working dir to fuse_examples/imaging/classification/bright/eval): python eval.py validation_targets.csv baseline/validation_baseline_task1_predictions.csv baseline/validation_baseline_task2_predictions.csv baseline/validation_results
     """
 
     if len(sys.argv) == 1:
