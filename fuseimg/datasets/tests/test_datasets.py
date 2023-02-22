@@ -15,7 +15,7 @@ from fuse.utils.multiprocessing.run_multiprocessed import get_from_global_storag
 from fuse.eval.evaluator import EvaluatorDefault
 
 from fuseimg.datasets.isic import ISIC
-from examples.fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS, TEN_GOLDEN_MEMBERS
+from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS, TEN_GOLDEN_MEMBERS
 
 
 notebook_path = os.path.join(pathlib.Path(__file__).parent.resolve(), "../kits21_example.ipynb")

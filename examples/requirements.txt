@@ -1,6 +1,0 @@
-# All requirements
-# python>=3.7
-pydicom
-scikit-image
-medpy
-transformers
