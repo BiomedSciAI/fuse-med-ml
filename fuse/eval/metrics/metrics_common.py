@@ -18,7 +18,7 @@ Created on June 30, 2021
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Hashable, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Hashable, Optional, Sequence, Tuple, Union, List
 import copy
 from fuse.utils import uncollate
 import torch.distributed as dist
@@ -82,19 +82,23 @@ class MetricCollector(MetricBase):
         self,
         pre_collect_process_func: Optional[Callable] = None,
         post_collect_process_func: Optional[Callable] = None,
+        batch_pre_collect_process_func: Optional[Callable] = None,
         **keys_to_collect: Dict[str, str],
     ):
         """
-        :param pre_collect_process_func: Optional callable - the callable will get as an input a sample_dict and can preprocess it if required
-        :param post_collect_process_func: Optional callable - custom process func that convert the fields to be collected to the values that will actually be collected
-                                          the callable will get as an input the collected values of a single sample
-                                          and can return either a single value or dictionary. The returned values will be collected under the name "post_args"
+        :param pre_collect_process_func: Optional callable - the callable will get as an input a sample_dict and can preprocess it if required before collection.
+                                         Consider using batch_pre_collect_process_func instead to optimize the running time when working with large batch size.
+        :param post_collect_process_func: Optional callable - custom process func - used to evaluate in a sample level and keep only the result.
+                                          Typically used in methods such as segmentation to avoid from storing all the images until the end of the epoch.
+                                          Can return either a single value or dictionary. The returned values will be collected under the name "post_args"
+        :param batch_pre_collect_process_func: Optional callable - the callable will get as an input a batch_dict and can preprocess it if required before collection.
         :param keys_to_collect: specify the keys you want to collect from the source data
         """
         super().__init__()
         # store input
         self._pre_collect_process_func = pre_collect_process_func
         self._post_collect_process_func = post_collect_process_func
+        self._batch_pre_collect_process_func = batch_pre_collect_process_func
         self._keys_to_collect = copy.copy(keys_to_collect)
         self._id_keys = MetricCollector.DEFAULT_ID_KEYS
 
@@ -108,49 +112,100 @@ class MetricCollector(MetricBase):
         if not isinstance(batch, NDict):
             batch = NDict(batch)
 
-        samples = uncollate(batch)
+        if self._pre_collect_process_func is not None or self._post_collect_process_func is not None:
+            samples = uncollate(batch)
+            for sample in samples:
+                if self._pre_collect_process_func is not None:
+                    sample = self._pre_collect_process_func(sample)
 
-        # If in distributed mode (multi gpu training) we shall gather the result from all the machine to evaluate with respect to the entire batch.
-        if dist.is_initialized():
-            world_size = dist.get_world_size()  # num of gpus
-            samples_gather = [None for rank in range(world_size)]
-            # samples_gather[i] will have the 'samples' value of the i's GPU
-            dist.all_gather_object(samples_gather, samples)
+                sample_to_collect = {}
+                for name, key in self._keys_to_collect.items():
+                    value = sample[key]
+                    if isinstance(value, torch.Tensor):
+                        value = value.detach().cpu().numpy()
 
-            # union all the GPU's samples into one samples list
-            samples = []
-            for rank in range(world_size):
-                samples += samples_gather[rank]
+                    sample_to_collect[name] = value
 
-        for sample in samples:
-            sample_to_collect = {}
+                if self._post_collect_process_func is not None:
+                    sample_to_collect = {"post_args": self._post_collect_process_func(**sample_to_collect)}
 
-            if self._pre_collect_process_func is not None:
-                sample = NDict(self._pre_collect_process_func(sample))
+                # store it - assumes batch dimension? What about single sample?
+                for name in sample_to_collect:
+                    self._collected_data[name].append(sample_to_collect[name])
+        else:  # work in a batch level - optimized for large batch size
+            if self._batch_pre_collect_process_func is not None:
+                batch = self._batch_pre_collect_process_func(batch)
+            batch_to_collect = {}
 
             for name, key in self._keys_to_collect.items():
-                value = sample[key]
+                value = batch[key]
+
+                # collect distributed
+                if dist.is_initialized():
+                    value = self.sync_tensor_data_and_concat(value)
+
                 if isinstance(value, torch.Tensor):
                     value = value.detach().cpu().numpy()
 
-                sample_to_collect[name] = value
+                batch_to_collect[name] = value
 
-            if self._post_collect_process_func is not None:
-                sample_to_collect = {"post_args": self._post_collect_process_func(**sample_to_collect)}
-
-            # store it - assumes batch dimension? What about single sample?
-            for name in sample_to_collect:
-                self._collected_data[name].append(sample_to_collect[name])
+            for name in batch_to_collect:
+                self._collected_data[name].extend(batch_to_collect[name])
 
         # extract ids and store it in self._collected_ids
         ids = None
         for key in self._id_keys:
             if key in batch:
                 ids = batch[key]
+                # collect distributed
+                if dist.is_initialized():
+                    ids = self.sync_ids(ids)
                 break
 
         if ids is not None:
             self._collected_ids.extend(ids)
+
+    @staticmethod
+    def sync_tensor_data_and_concat(data: torch.Tensor) -> torch.Tensor:
+        """
+        Collect the arg data (which is a tensor) into a list, concat along the batch dim (assumed first dim) and return
+
+        :param data: value to collect accross gpus
+        """
+        assert isinstance(
+            data, torch.Tensor
+        ), f"ERROR, Fuse Metrics only supports gathering of torch.Tensor at this time. You tried gathering {type(data)}"
+
+        # if data is 1d, torch.vstack will add another dimension which we do not want
+        if len(data.shape) == 1:
+            data = data[:, None]  # add dim to the end
+
+        # gather
+        world_size = dist.get_world_size()
+        data_list = [torch.zeros_like(data) for _ in range(world_size)]
+        dist.all_gather(data_list, data)
+
+        # stack
+        stacked_data = torch.vstack(data_list)
+
+        return stacked_data
+
+    @staticmethod
+    def sync_ids(ids: List[Tuple[str, int]]) -> List[Any]:
+        """
+        Collect the arg ids into a list, flatten this list and return
+
+        :param ids: list of tuples ex [('mnist-train', 0), ('mnist-train', 1)]
+        """
+        # gather
+        world_size = dist.get_world_size()
+        data_list = [None for _ in range(world_size)]
+        dist.all_gather_object(data_list, ids)
+
+        # flatten list
+        data_list = [item for sublist in data_list for item in sublist]
+
+        return data_list
 
     @staticmethod
     def _df_dict_apply(data: pd.Series, func: Callable) -> pd.Series:
@@ -228,7 +283,10 @@ class MetricCollector(MetricBase):
             # convert required ids to permutation
             original_ids = self._collected_ids
             required_ids = ids
-            permutation = [original_ids.index(sample_id) for sample_id in required_ids]
+            original_ids_pos = {s: i for (i, s) in enumerate(original_ids)}
+
+            # permutation_old = [original_ids.index(sample_id) for sample_id in required_ids]  #16.399551391601562
+            permutation = [original_ids_pos[sample_id] for sample_id in required_ids]  # 0.008132457733154297 seconds
 
             # create the permuted dictionary
             data = {}
@@ -254,9 +312,10 @@ class MetricWithCollectorBase(MetricBase):
         self,
         pre_collect_process_func: Optional[Callable] = None,
         post_collect_process_func: Optional[Callable] = None,
+        batch_pre_collect_process_func: Optional[Callable] = None,
         external_data_collector: Optional[MetricCollector] = None,
         extract_ids: bool = False,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """
         :param pre_collect_process_func: Optional callable - the callable will get as an input a batch_dict or a dataframe and can preprocess it if required
@@ -273,7 +332,12 @@ class MetricWithCollectorBase(MetricBase):
         }
         self._value_args = {n: k for n, k in kwargs.items() if k is not None and not isinstance(k, str)}
         self._collector = (
-            MetricCollector(pre_collect_process_func, post_collect_process_func, **self._keys_to_collect)
+            MetricCollector(
+                pre_collect_process_func,
+                post_collect_process_func,
+                batch_pre_collect_process_func,
+                **self._keys_to_collect,
+            )
             if external_data_collector is None
             else external_data_collector
         )
@@ -344,7 +408,7 @@ class MetricDefault(MetricWithCollectorBase):
     Can be used for any metric getting as an input list of prediction, list of targets and optionally additional parameters
     """
 
-    def __init__(self, metric_func: Callable, pred: Optional[str] = None, target: Optional[str] = None, **kwargs):
+    def __init__(self, metric_func: Callable, pred: Optional[str] = None, target: Optional[str] = None, **kwargs: Any):
         """
         :param pred: prediction key to collect
         :param target: target key to collect
@@ -382,7 +446,7 @@ class MetricPerSampleDefault(MetricWithCollectorBase):
     """
 
     def __init__(
-        self, pred: str, target: str, metric_per_sample_func: Callable, result_aggregate_func: Callable, **kwargs
+        self, pred: str, target: str, metric_per_sample_func: Callable, result_aggregate_func: Callable, **kwargs: Any
     ):
         """
         :param pred: prediction key to collect
@@ -415,7 +479,7 @@ class GroupAnalysis(MetricWithCollectorBase):
     {'mean': <>, 'std': <>, 'median': <>, <group 0>: <>, <group 1>: <>, ...}
     """
 
-    def __init__(self, metric: MetricBase, group: str, **super_kwargs) -> None:
+    def __init__(self, metric: MetricBase, group: str, **super_kwargs: Any) -> None:
         """
         :param metric: metric to analyze
         :param group: key to extract the group from
@@ -497,7 +561,7 @@ class Filter(MetricWithCollectorBase):
     Evaluate a sub-group of data. This utility will filter non relevant samples and will call to the given metric.
     """
 
-    def __init__(self, metric: MetricBase, filter: str, **super_kwargs) -> None:
+    def __init__(self, metric: MetricBase, filter: str, **super_kwargs: Any) -> None:
         """
         :param metric: metric to filter samples for
         :param group: key to extract filter
@@ -556,7 +620,7 @@ class CI(MetricWithCollectorBase):
         rnd_seed: int = 1234,
         conf_interval: float = 95,
         ci_method: str = "PERCENTILE",
-        **super_kwargs,
+        **super_kwargs: Any,
     ) -> None:
         """
         :param metric: metric to compute the confidence interval for

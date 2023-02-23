@@ -31,7 +31,7 @@ class Head1D(nn.Module):
         head_name: str = "head_0",
         mode: str = None,  # "classification" or "regression"
         conv_inputs: Sequence[Tuple[str, int]] = None,
-        num_outputs: int = 2,  # num classes in case of classification
+        num_outputs: int = 2,
         append_features: Optional[Sequence[Tuple[str, int]]] = None,
         layers_description: Sequence[int] = (256,),
         append_layers_description: Sequence[int] = tuple(),
@@ -105,9 +105,6 @@ class Head1D(nn.Module):
             batch_dict["model.output." + self.head_name] = prediction
         else:
             logits = self.head_module(global_features)  # --> res.shape = [batch_size, 2, 1, 1]
-            if len(logits.shape) > 2:
-                logits = logits.squeeze(dim=3)  # --> res.shape = [batch_size, 2, 1]
-                logits = logits.squeeze(dim=2)  # --> res.shape = [batch_size, 2]
 
             cls_preds = F.softmax(logits, dim=1)
 

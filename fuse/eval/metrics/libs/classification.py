@@ -48,7 +48,7 @@ class MetricsLibClass:
                         If not ``None``, the standardized partial AUC over the range [0, max_fpr] is returned.
         :return auc Receiver operating characteristic score
         """
-        if not isinstance(pred[0], np.ndarray):
+        if not isinstance(pred[0], np.ndarray) or len(pred[0].shape) == 0:
             pred = [np.array(p) for p in pred]
             pos_class_index = 1
             y_score = np.asarray(pred)
@@ -59,6 +59,29 @@ class MetricsLibClass:
 
         return metrics.roc_auc_score(
             y_score=y_score, y_true=np.asarray(target) == pos_class_index, sample_weight=sample_weight, max_fpr=max_fpr
+        )
+
+    @staticmethod
+    def auc_roc_mult_binary_label(
+        pred: Sequence[Union[np.ndarray, float]],
+        target: Sequence[Union[np.ndarray, int]],
+        sample_weight: Optional[Sequence[Union[np.ndarray, float]]] = None,
+        average: str = "micro",
+        max_fpr: Optional[float] = None,
+    ) -> float:
+        """
+        Compute multi label auc roc (Receiver operating characteristic) score using sklearn
+        :param pred: prediction array per sample. Each element shape [num_classes]
+        :param target: target per sample. Each element shape [num_classes] with 0 and 1 only.
+        :param sample_weight: Optional - weight per sample for a weighted auc. Each element is  float in range [0-1]
+        :param max_fpr: float > 0 and <= 1, default=None
+                        If not ``None``, the standardized partial AUC over the range [0, max_fpr] is returned.
+        :return auc Receiver operating characteristic score
+        """
+        y_score = np.asarray(pred)
+        y_true = np.asarray(target)
+        return metrics.roc_auc_score(
+            y_score=y_score, y_true=y_true, sample_weight=sample_weight, max_fpr=max_fpr, average=average
         )
 
     @staticmethod
@@ -118,7 +141,7 @@ class MetricsLibClass:
         :param pos_class_index: the class to compute the metrics in one vs rest manner - set to 1 in binary classification
         :return auc precision recall score
         """
-        if not isinstance(pred[0], np.ndarray):
+        if not isinstance(pred[0], np.ndarray) or len(pred[0].shape) == 0:
             pred = [np.array(p) for p in pred]
             pos_class_index = 1
             y_score = np.asarray(pred)

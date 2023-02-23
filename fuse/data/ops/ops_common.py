@@ -45,7 +45,7 @@ class OpRepeat(OpReversibleBase):
         self._op = op
         self._kwargs_per_step_to_add = kwargs_per_step_to_add
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs: Any) -> Union[None, dict, List[dict]]:
         """
         See super class
         """
@@ -86,13 +86,13 @@ class OpLambda(OpReversibleBase):
     OpLambda(func=lambda x: torch.tensor(x))
     """
 
-    def __init__(self, func: Callable, func_reverse: Optional[Callable] = None, **kwargs):
+    def __init__(self, func: Callable, func_reverse: Optional[Callable] = None, **kwargs: Any):
         super().__init__(**kwargs)
         self._func = func
         self._func_reverse = func_reverse
 
     def __call__(
-        self, sample_dict: NDict, op_id: Optional[str], key: Optional[str] = None, **kwargs
+        self, sample_dict: NDict, op_id: Optional[str], key: Optional[str] = None, **kwargs: Any
     ) -> Union[None, dict, List[dict]]:
         """
         More details in super class
@@ -136,20 +136,20 @@ class OpFunc(OpReversibleBase):
 
     Example:
 
-    def add_seperator(text:str, sep=' '):
+    def add_separator(text:str, sep=' '):
         return sep.join(text)
 
-    OpAddSeperator = OpFunc(add_seperator)
+    OpAddSeparator = OpFunc(add_separator)
 
     usage in pipeline:
 
     pipeline = [
-        (OpAddSeperator, dict(inputs={'data.text_input':'text'}, outputs='data.text_input'), #
+        (OpAddSeparator, dict(inputs={'data.text_input':'text'}, outputs='data.text_input'), #
     ]
 
     """
 
-    def __init__(self, func: Callable, **kwargs):
+    def __init__(self, func: Callable, **kwargs: Any):
         """
         :param func: a callable to call in  __call__()
         """
@@ -162,7 +162,7 @@ class OpFunc(OpReversibleBase):
         op_id: Optional[str],
         inputs: Dict[str, str],
         outputs: Union[Sequence[str], str],
-        **kwargs,
+        **kwargs: Any,
     ) -> Union[None, dict, List[dict]]:
         """
         See super class
@@ -217,7 +217,7 @@ class OpApplyPatterns(OpReversibleBase):
         super().__init__()
         self._patterns_dict = Patterns(patterns_dict, (None, None))
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs: Any) -> Union[None, dict, List[dict]]:
         """
         See super class
         """
@@ -275,7 +275,7 @@ class OpApplyTypes(OpReversibleBase):
         self._type_to_op_dict = type_to_op_dict
         self._type_detector = type_detector
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs: Any) -> Union[None, dict, List[dict]]:
         """
         See super class
         """
@@ -355,7 +355,7 @@ class OpCollectMarker(OpReversibleBase):
         """
         return {"name": self._name, "static_keys_deps": self._static_keys_deps}
 
-    def __call__(self, sample_dict: dict, op_id: Optional[str], **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: dict, op_id: Optional[str], **kwargs: Any) -> Union[None, dict, List[dict]]:
         return sample_dict
 
     def reverse(self, sample_dict: dict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
@@ -369,7 +369,7 @@ class OpKeepKeypaths(OpBase):
     You can keep only what you want to enter the collate.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
 
     def __call__(self, sample_dict: NDict, keep_keypaths: List[str]) -> Union[None, dict, List[dict]]:
@@ -484,7 +484,7 @@ class OpOverrideNaN(OpBase):
 
 
 class OpZScoreNorm(OpBase):
-    def __call__(self, sample_dict: NDict, key: str, mean: float, std: float):
+    def __call__(self, sample_dict: NDict, key: str, mean: float, std: float) -> NDict:
         sample_dict[key] = (sample_dict[key] - mean) / std
         return sample_dict
 
@@ -499,7 +499,7 @@ class OpCond(OpBase):
         super().__init__()
         self._op = op
 
-    def __call__(self, sample_dict: NDict, condition: Union[str, bool], **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, condition: Union[str, bool], **kwargs: Any) -> Union[None, dict, List[dict]]:
         """
         :param condition:instruct if to call the inner op. Can either a boolean or a key to sample_dict used to extract the boolean
         """
@@ -520,4 +520,17 @@ class OpSet(OpBase):
         :param value: the value to store
         """
         sample_dict[key] = value
+        return sample_dict
+
+
+class OpSetIfNotExist(OpBase):
+    """Add key-value pair into sample_dict only if the key doesn't already exist"""
+
+    def __call__(self, sample_dict: NDict, key: str, value: Any) -> Union[None, dict, List[dict]]:
+        """
+        :param key: where to store the value
+        :param value: the value to store
+        """
+        if key not in sample_dict:
+            sample_dict[key] = value
         return sample_dict

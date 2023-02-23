@@ -17,7 +17,7 @@ Created on June 30, 2021
 
 """
 
-from typing import Sequence, Dict, Tuple
+from typing import Sequence, Dict, Tuple, Union
 
 import torch
 
@@ -33,8 +33,8 @@ class ModelMultiHead(torch.nn.Module):
         self,
         backbone: torch.nn.Module,
         heads: Sequence[torch.nn.Module],
-        conv_inputs: Tuple[Tuple[str, int], ...] = None,
-        backbone_args: Tuple[Tuple[str, int], ...] = None,
+        conv_inputs: Union[Sequence[str], Sequence[Tuple[str, int]]] = None,
+        backbone_args: Union[Sequence[str], Sequence[Tuple[str, int]]] = None,
         key_out_features: str = "model.backbone_features",
     ) -> None:
         """
@@ -54,9 +54,13 @@ class ModelMultiHead(torch.nn.Module):
             raise Exception(
                 "Neither conv_inputs nor backbone_args are None. One must be set (conv_inputs soon to be deprecated)"
             )
+        # we don't use the number of input channels.
+        # it's just kept for backward compatibility
+        if conv_inputs is not None:
+            self.conv_inputs = [inp[0] if isinstance(inp, Tuple) else inp for inp in conv_inputs]
+        if backbone_args is not None:
+            self.backbone_args = [inp[0] if isinstance(inp, Tuple) else inp for inp in backbone_args]
 
-        self.conv_inputs = conv_inputs
-        self.backbone_args = backbone_args
         self.backbone = backbone
         self.key_out_features = key_out_features
         self.add_module("backbone", self.backbone)
@@ -65,10 +69,10 @@ class ModelMultiHead(torch.nn.Module):
 
     def forward(self, batch_dict: NDict) -> Dict:
         if self.conv_inputs is not None:
-            conv_input = torch.cat([batch_dict[conv_input[0]] for conv_input in self.conv_inputs], 1)
+            conv_input = torch.cat([batch_dict[conv_input] for conv_input in self.conv_inputs], 1)
             backbone_features = self.backbone.forward(conv_input)
         else:
-            backbone_args = [batch_dict[inp[0]] for inp in self.backbone_args]
+            backbone_args = [batch_dict[inp] for inp in self.backbone_args]
             backbone_features = self.backbone.forward(*backbone_args)
 
         batch_dict[self.key_out_features] = backbone_features

@@ -8,9 +8,9 @@ matplotlib>=3.3.3
 scikit-learn>=0.23.2
 termcolor>=1.1.0
 pycocotools>=2.0.1
-torch>=1.5.0
-torchvision>=0.8.1,<0.14.0
 pytorch_lightning>=1.6
+torch
+torchvision
 tensorboard
 wget
 ipython
@@ -29,3 +29,4 @@ nibabel
 vit-pytorch
 lifelines
 clearml
+x-transformers

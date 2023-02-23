@@ -16,7 +16,7 @@ Created on June 30, 2021
 
 """
 
-from typing import Dict, Hashable, List, Optional, Sequence, Union
+from typing import Dict, Hashable, List, Optional, Sequence, Union, Any
 
 from warnings import warn
 from fuse.data.datasets.dataset_base import DatasetBase
@@ -38,17 +38,21 @@ from operator import itemgetter
 class DatasetDefault(DatasetBase):
     def __init__(
         self,
-        sample_ids: Union[int, Sequence[Hashable]],
+        sample_ids: Union[int, Sequence[Hashable], None],
         static_pipeline: Optional[PipelineDefault] = None,
         dynamic_pipeline: Optional[PipelineDefault] = None,
         cacher: Optional[SamplesCacher] = None,
         allow_uncached_sample_morphing: bool = False,
     ):
         """
-        :param sample_ids:      list of sample_ids included in dataset.
-            Optionally, you can provide an integer that describes only the size of the dataset. This is useful in massive datasets
-             (for example 100M samples). In such case, multiple functionalities will not be supported, mainly -
-              cacher, allow_uncached_sample_morphing and get_all_sample_ids
+        :param sample_ids: list of sample_ids included in dataset. Or:
+                - An integer that describes only the size of the dataset. This is useful in massive datasets
+                    (for example 100M samples). In such case, multiple functionalities will not be supported, mainly -
+                    cacher, allow_uncached_sample_morphing and get_all_sample_ids
+                - None. In this case, the dataset will not deal with sample ids. it is the user's respobsibility to handle
+                    iterations w.r.t the length of the dataset, as well as the index passed to __getitem__
+                    this is useful for massive datasets, but when the sample ids are not expected to be running integets from 0 to a given length.
+
         :param static_pipeline:   static_pipeline, the output of this pipeline will be automatically cached.
         :param dynamic_pipeline:  dynamic_pipeline. applied sequentially after the static_pipeline, but not automatically cached.
                                 changing it will NOT trigger recaching of the static_pipeline part.
@@ -67,9 +71,11 @@ class DatasetDefault(DatasetBase):
                 )
             if cacher is not None:
                 raise Exception("providing a cacher is not allowed when providing sample_ids=an integer value")
-            self._explicit_sample_ids_mode = False
+            self._sample_ids_mode = "running_int"
+        elif sample_ids is None:
+            self._sample_ids_mode = "external"
         else:
-            self._explicit_sample_ids_mode = True
+            self._sample_ids_mode = "explicit"
 
         # self._orig_sample_ids = sample_ids
         self._allow_uncached_sample_morphing = allow_uncached_sample_morphing
@@ -106,6 +112,14 @@ class DatasetDefault(DatasetBase):
         self._orig_sample_ids = copy.deepcopy(sample_ids)
 
         self._created = False
+
+    @property
+    def static_pipeline(self) -> Union[PipelineDefault, None]:
+        return self._static_pipeline
+
+    @property
+    def dynamic_pipeline(self) -> Union[PipelineDefault, None]:
+        return self._dynamic_pipeline
 
     def create(self, num_workers: int = 0, mp_context: Optional[str] = None) -> None:
         """
@@ -151,16 +165,16 @@ class DatasetDefault(DatasetBase):
         self._orig_sample_ids = None  # should not be use after create. use self._final_sample_ids instead
         self._created = True
 
-    def get_all_sample_ids(self):
+    def get_all_sample_ids(self) -> List[Any]:
         if not self._created:
             raise Exception("you must first call create()")
 
-        if not self._explicit_sample_ids_mode:
-            raise Exception("get_all_sample_ids is not supported when constructed with an integer for sample_ids")
+        if self._sample_ids_mode != "explicit":
+            raise Exception("get_all_sample_ids is not supported when constructed with non explicit sample_ids")
 
         return copy.deepcopy(self._final_sample_ids)
 
-    def __getitem__(self, item: Union[int, Hashable]) -> dict:
+    def __getitem__(self, item: Union[int, Hashable]) -> NDict:
         """
         Get sample, read from cache if possible
         :param item: either int representing sample index or sample_id
@@ -185,10 +199,11 @@ class DatasetDefault(DatasetBase):
             raise Exception("you must first call create()")
 
         # get sample id
-        if not self._explicit_sample_ids_mode:
+        if self._sample_ids_mode != "explicit":
             sample_id = item
-            if sample_id >= self._final_sample_ids:
-                raise IndexError
+            if self._sample_ids_mode == "running_int":  # allow using non int sample_ids
+                if sample_id >= self._final_sample_ids:
+                    raise IndexError
 
         elif not isinstance(item, (int, np.integer)):
             sample_id = item
@@ -231,12 +246,12 @@ class DatasetDefault(DatasetBase):
 
         return sample
 
-    def _get_multi_multiprocess_func(self, args):
+    def _get_multi_multiprocess_func(self, args: Any) -> Any:
         sid, kwargs = args
         return self.getitem(sid, **kwargs)
 
     @staticmethod
-    def _getitem_multiprocess(item: Union[Hashable, int, np.integer]):
+    def _getitem_multiprocess(item: Union[Hashable, int, np.integer]) -> Any:
         """
         getitem method used to optimize the running time in a multiprocess mode
         """
@@ -251,7 +266,7 @@ class DatasetDefault(DatasetBase):
         verbose: int = 1,
         mp_context: Optional[str] = None,
         desc: str = "dataset_default.get_multi",
-        **kwargs,
+        **kwargs: Any,
     ) -> List[Dict]:
         """
         See super class
@@ -276,19 +291,21 @@ class DatasetDefault(DatasetBase):
         )
         return list_sample_dict
 
-    def __len__(self):
+    def __len__(self) -> int:
         if not self._created:
             raise Exception("you must first call create()")
 
-        if not self._explicit_sample_ids_mode:
+        if self._sample_ids_mode == "running_int":
             return self._final_sample_ids
+        elif self._sample_ids_mode == "external":
+            raise Exception("__len__ is not defined where explicit sample_ids or an interer len are not provided.")
 
         return len(self._final_sample_ids)
 
     # internal methods
 
     @staticmethod
-    def _process_orig_sample_id(args):
+    def _process_orig_sample_id(args: Any) -> Any:
         """
         Process, without caching, single sample
         """
@@ -311,7 +328,7 @@ class DatasetDefault(DatasetBase):
 
         return orig_sample_id, output_sample_ids, sample
 
-    def _get_collect_marker_info(self, collect_marker_name: str):
+    def _get_collect_marker_info(self, collect_marker_name: str) -> dict:
         """
         Find the required collect marker (OpCollectMarker in the dynamic pipeline).
         See OpCollectMarker for more details
