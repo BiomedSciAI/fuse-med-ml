@@ -56,7 +56,7 @@ class LightningModuleDefault(pl.LightningModule):
         :param callbacks: see pl.LightningModule.configure_callbacks return value for details
         :param best_epoch_source: Create list of pl.callbacks that saves checkpoints using (pl.callbacks.ModelCheckpoint) and print per epoch summary (fuse.dl.lightning.pl_epoch_summary.ModelEpochSummary).
                                   Either a dict with arguments to pass to ModelCheckpoint or list dicts for multiple ModelCheckpoint callbacks (to monitor and save checkpoints for more then one metric).
-        :param save_hyperparameters_kwargs: specify pl.LightningModule.save_hyperparameters() to save the hyper parameters. By default saved all except model_dir and the model (which stored separately)
+        :param save_hyperparameters_kwargs: specify pl.LightningModule.save_hyperparameters() arguments to save the hyper parameters. By default saved all except model_dir and the model (which stored separately)
                 To load checkpoint do the following:
                 "
                     model_dir = <path/to/the/original/model_dir>
