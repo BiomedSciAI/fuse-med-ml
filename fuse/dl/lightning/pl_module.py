@@ -67,13 +67,13 @@ class LightningModuleDefault(pl.LightningModule):
         :param tensorboard_sep: use "/" for cleaner tensorboard. "." is for backward compatibility.
         """
         super().__init__(**kwargs)
-        
+
         # save hyper parameters
         if save_hyperparameters_kwargs is not None:
             self.save_hyperparameters(**save_hyperparameters_kwargs)
         else:
             self.save_hyperparameters(ignore=["model_dir", "model"])
-        
+
         # save the model into model_dir
         torch.save(model, os.path.join(model_dir, "model.pth"))
 
