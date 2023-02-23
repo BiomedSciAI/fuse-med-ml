@@ -56,15 +56,26 @@ class LightningModuleDefault(pl.LightningModule):
         :param callbacks: see pl.LightningModule.configure_callbacks return value for details
         :param best_epoch_source: Create list of pl.callbacks that saves checkpoints using (pl.callbacks.ModelCheckpoint) and print per epoch summary (fuse.dl.lightning.pl_epoch_summary.ModelEpochSummary).
                                   Either a dict with arguments to pass to ModelCheckpoint or list dicts for multiple ModelCheckpoint callbacks (to monitor and save checkpoints for more then one metric).
-        :param save_hyperparameters: specify which hyperparameters you would like to save. Default None.  See pl.LightningModule.save_hyperparameters() for more details.
+        :param save_hyperparameters_kwargs: specify pl.LightningModule.save_hyperparameters() to save the hyper parameters. By default saved all except model_dir and the model (which stored separately)
+                To load checkpoint do the following:
+                "
+                    model_dir = <path/to/the/original/model_dir>
+                    checkpoint_path = os.path.join(model_dir, "last_epoch.ckpt")
+                    nn_model = torch.load(os.path.join(model_dir, "model.pth"))
+                    pl_model = LightningModuleDefault.load_from_checkpoint(checkpoint_path=checkpoint_path, model_dir=model_dir, model=nn_model)
+                "
         :param tensorboard_sep: use "/" for cleaner tensorboard. "." is for backward compatibility.
         """
         super().__init__(**kwargs)
+        
+        # save hyper parameters
         if save_hyperparameters_kwargs is not None:
             self.save_hyperparameters(**save_hyperparameters_kwargs)
         else:
-            torch.save(model, os.path.join(model_dir, "model.pth"))
             self.save_hyperparameters(ignore=["model_dir", "model"])
+        
+        # save the model into model_dir
+        torch.save(model, os.path.join(model_dir, "model.pth"))
 
         # store arguments
         self._model_dir = model_dir
