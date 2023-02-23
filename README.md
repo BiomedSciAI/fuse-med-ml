@@ -185,7 +185,7 @@ conda create -n FUSEMEDML python=3.9
 conda activate FUSEMEDML
 ```
 
-Now one shall install PyTorch and it's corresponding cudatoolkit. See [here](https://pytorch.org/get-started/locally/) for the exact command that will suit your local environment. 
+Now one shall install PyTorch and it's corresponding cudatoolkit. See [here](https://pytorch.org/get-started/locally/) for the exact command that will suit your local environment.
 For example:
 ```
 conda install pytorch torchvision torchaudio pytorch-cuda=11.6 -c pytorch -c nvidia
@@ -213,7 +213,7 @@ $ pip install fuse-med-ml[all]
 ```
 or with examples:
 ```bash
-$ pip install fuse-med-ml[all+examples]
+$ pip install fuse-med-ml[all,examples]
 ```
 
 
@@ -229,7 +229,7 @@ $ pip install fuse-med-ml[all+examples]
     * [**Skin Lesion**](./fuse_examples/imaging/classification/isic/) - skin lesion classification , including training, inference and evaluation over the public dataset introduced in [ISIC challenge](https://challenge.isic-archive.com/landing/2019)
     * [**Breast Cancer Lesion Classification**](./fuse_examples/imaging/classification/cmmd) - lesions classification of tumor ( benign, malignant) in breast mammography over the public dataset introduced in [The Chinese Mammography Database (CMMD)](https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508)
     * [**Mortality prediction for ICU patients**](./fuse_examples/multimodality/ehr_transformer) - Example of EHR transformer applied to the data of Intensive Care Units patients for in-hospital mortality prediction. The dataset is from [PhysioNet Computing in Cardiology Challenge (2012)](https://physionet.org/content/challenge-2012/1.0.0/)
-    
+
 ## Walkthrough template
 * [**Walkthrough Template**](./fuse/dl/templates/walkthrough_template.py) - includes several TODO notes, marking the minimal scope of code required to get your pipeline up and running. The template also includes useful explanations and tips.
 
@@ -241,16 +241,16 @@ $ pip install fuse-med-ml[all+examples]
 # Citation
 If you use FuseMedML in scientific context, please consider citing our [JOSS paper](https://joss.theoj.org/papers/10.21105/joss.04943#):
 ```bibtex
-@article{Golts2023, 
-        doi = {10.21105/joss.04943}, 
-        url = {https://doi.org/10.21105/joss.04943}, 
-        year = {2023}, 
-        publisher = {The Open Journal}, 
-        volume = {8}, 
-        number = {81}, 
-        pages = {4943}, 
-        author = {Alex Golts and Moshe Raboh and Yoel Shoshan and Sagi Polaczek and Simona Rabinovici-Cohen and Efrat Hexter}, 
-        title = {FuseMedML: a framework for accelerated discovery in machine learning based biomedicine}, 
-        journal = {Journal of Open Source Software} 
+@article{Golts2023,
+        doi = {10.21105/joss.04943},
+        url = {https://doi.org/10.21105/joss.04943},
+        year = {2023},
+        publisher = {The Open Journal},
+        volume = {8},
+        number = {81},
+        pages = {4943},
+        author = {Alex Golts and Moshe Raboh and Yoel Shoshan and Sagi Polaczek and Simona Rabinovici-Cohen and Efrat Hexter},
+        title = {FuseMedML: a framework for accelerated discovery in machine learning based biomedicine},
+        journal = {Journal of Open Source Software}
 }
 ```
