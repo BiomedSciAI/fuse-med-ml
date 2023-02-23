@@ -21,7 +21,7 @@ from typing import Optional
 import os
 
 from fuse.dl.lightning.pl_funcs import *  # noqa
-
+from fuse.utils.file_io.file_io import create_dir
 
 class LightningModuleDefault(pl.LightningModule):
     """
@@ -68,6 +68,9 @@ class LightningModuleDefault(pl.LightningModule):
         """
         super().__init__(**kwargs)
 
+        # create model_dir
+        create_dir(model_dir)
+        
         # save hyper parameters
         if save_hyperparameters_kwargs is not None:
             self.save_hyperparameters(**save_hyperparameters_kwargs)
