@@ -32,8 +32,16 @@ with open(os.path.join(HERE, "fuseimg/requirements.txt"), "r") as fh:
         if not line.startswith("#"):
             fuseimg_requirements.append(line.strip())
 
+# list of requirements for fuse_examples
+fuse_examples_requirements = []
+with open(os.path.join(HERE, "fuse_examples/requirements.txt"), "r") as fh:
+    for line in fh:
+        if not line.startswith("#"):
+            fuse_examples_requirements.append(line.strip())
+
 # all extra requires
 all_requirements = fuseimg_requirements + fuse_requirements_dev
+
 # version
 from fuse.version import __version__  # noqa
 
@@ -42,7 +50,7 @@ version = __version__
 setup(
     name="fuse-med-ml",
     version=version,
-    description="Open-source PyTorch based framework designed to facilitate deep learning R&D in medical imaging",
+    description="A python framework accelerating ML based discovery in the medical field by encouraging code reuse. Batteries included :)",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/BiomedSciAI/fuse-med-ml/",
@@ -51,7 +59,12 @@ setup(
     packages=find_namespace_packages(),
     license="Apache License 2.0",
     install_requires=fuse_requirements,
-    extras_require={"fuseimg": fuseimg_requirements, "dev": fuse_requirements_dev, "all": all_requirements},
+    extras_require={
+        "fuseimg": fuseimg_requirements,
+        "dev": fuse_requirements_dev,
+        "all": all_requirements,
+        "examples": fuse_examples_requirements,
+    },
     python_requires=">=3.7",
     classifiers=[
         "Programming Language :: Python :: 3.7",

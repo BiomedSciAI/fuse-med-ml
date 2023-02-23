@@ -16,7 +16,7 @@ from fuse.utils.ndict import NDict
 from fuse.data.utils.split import dataset_balanced_division_to_folds
 from fuse.data.utils.export import ExportDataset
 
-from examples.fuse_examples.multimodality.ehr_transformer.utils import (
+from fuse_examples.multimodality.ehr_transformer.utils import (
     seq_translate,
     position_idx,
     special_tokens,

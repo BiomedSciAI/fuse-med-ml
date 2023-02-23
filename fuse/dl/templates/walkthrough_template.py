@@ -133,7 +133,7 @@ TRAIN_COMMON_PARAMS["opt.weight_decay"] = 1e-3
 #   Each head output will be aggregated in batch_dict['model.<head name>.*']
 #
 #   Additional implemented models:
-#   * ModelWrapper - allow to use single standard PyTorch module as is - see (examples/fuse_examples/imaging/classification/mnist/runner.py)[../../examples/fuse_examples/imaging/classification/mnist/runner.py]
+#   * ModelWrapper - allow to use single standard PyTorch module as is - see (fuse_examples/imaging/classification/mnist)[../../fuse_examples/imaging/classification/mnist]
 #   * ModelEnsemble - runs several sub-modules sequentially
 #   * ModelMultistream - convolutional neural network with multiple processing streams and multiple heads
 # ===================================================================================================================
@@ -177,7 +177,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     #   We split the pipeline into two parts - static and dynamic, which allow us to control the part out of the entire pipeline that will be cached.
     #
     #   For more details and examples, read (fuse/data/README.md)[../../fuse/data/README.md]
-    #   A complete example implementation of a dataset can be bound in  (fuseimg/datasets/stoic21.py)[../../examples/fuse_examples/imaging/classification/stoic21/runner_stoic21.py] STOIC21.static_pipeline().
+    #   A complete example implementation of a dataset can be bound in  (fuseimg/datasets/stoic21.py)[../../fuse_examples/imaging/classification/stoic21/runner_stoic21.py] STOIC21.static_pipeline().
     # ==============================================================================
 
     #### Train Data
@@ -186,13 +186,13 @@ def run_train(paths: dict, train_common_params: dict) -> None:
 
     ## TODO - list your sample ids:
     # Fuse TIP - splitting the sample_ids to folds can be done by fuse.data.utils.split.dataset_balanced_division_to_folds().
-    #            See (examples/fuse_examples/imaging/classification/stoic21/runner_stoic21.py)[../../examples/fuse_examples/imaging/classification/stoic21/runner_stoic21.py]
+    #            See (fuse_examples/imaging/classification/stoic21/runner_stoic21.py)[../../fuse_examples/imaging/classification/stoic21/runner_stoic21.py]
     train_sample_ids = None
     validation_sample_ids = None
 
     ## Create data static_pipeline -
     #                                the output of this pipeline will be cached to optimize the running time and to better utilize the GPU:
-    #                                See example in (fuseimg/datasets/stoic21.py)[../../examples/fuse_examples/imaging/classification/stoic21/runner_stoic21.py] STOIC21.static_pipeline().
+    #                                See example in (fuseimg/datasets/stoic21.py)[../../fuseimg/datasets/stoic21.py] STOIC21.static_pipeline().
     static_pipeline = PipelineDefault(
         "template_static",
         [

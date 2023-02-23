@@ -145,7 +145,7 @@ Broadly speaking, the supported DL libraries are:
 * [pytorch-lightning](https://www.pytorchlightning.ai/)
 
 Before you ask - **pytorch-lightning and FuseMedML play along very nicely and have in practice orthogonal and additive benefits :)**
-See [Simple FuseMedML + PytorchLightning Example](./examples/fuse_examples/imaging/classification/mnist/run_mnist.py) for simple supervised learning cases, and [this example ](./examples/fuse_examples/imaging/classification/mnist/run_mnist_custom_pl_imp.py) for completely custom usage of pytorch-lightning and FuseMedML - useful for advanced scenarios such as Reinforcement Learning and generative models.
+See [Simple FuseMedML + PytorchLightning Example](./fuse_examples/imaging/classification/mnist/simple_mnist_starter.py) for simple supervised learning cases, and [this example ](./fuse_examples/imaging/classification/mnist/run_mnist_custom_pl_imp.py) for completely custom usage of pytorch-lightning and FuseMedML - useful for advanced scenarios such as Reinforcement Learning and generative models.
 
 ## Domain Extensions
 fuse-med-ml, the core library, is completely domain agnostic!
@@ -181,11 +181,11 @@ FuseMedML is tested on Python >= 3.7 and PyTorch >= 1.5
 
 Create a conda environment using the following command (you can replace FUSEMEDML with your preferred enviornment name)
 ```bash
-conda create -n FUSEMEDML python=3.7
+conda create -n FUSEMEDML python=3.9
 conda activate FUSEMEDML
 ```
 
-Now one shall install PyTorch and it's corresponding cudatoolkit. See [here](https://pytorch.org/get-started/locally/) for the exact command that will suit your local environment. 
+Now one shall install PyTorch and it's corresponding cudatoolkit. See [here](https://pytorch.org/get-started/locally/) for the exact command that will suit your local environment.
 For example:
 ```
 conda install pytorch torchvision torchaudio pytorch-cuda=11.6 -c pytorch -c nvidia
@@ -202,29 +202,34 @@ $ pip install -e .[all]
 ```
 This mode installs all the currently publicly available domain extensions - fuseimg as of now, fusedrug will be added soon.
 
-In this mode you can also install and run our end to end examples using:
+To install `FuseMedML` with an included collection of examples install it using:
 ```bash
-$ pip install -e examples
+$ pip install -e .[all,examples]
 ```
 
-## Option 2: Install from PyPI (does not include examples)
+## Option 2: Install from PyPI
 ```bash
 $ pip install fuse-med-ml[all]
 ```
+or with examples:
+```bash
+$ pip install fuse-med-ml[all,examples]
+```
+
 
 # Examples
 
-* Easy access "Hello World" [colab notebook](https://colab.research.google.com/github/BiomedSciAI/fuse-med-ml/blob/master/examples/fuse_examples/imaging/hello_world/hello_world.ipynb)
+* Easy access "Hello World" [colab notebook](https://colab.research.google.com/github/BiomedSciAI/fuse-med-ml/blob/master/fuse_examples/imaging/hello_world/hello_world.ipynb)
 * classification
-    * [**MNIST**](./examples/fuse_examples/imaging/classification/mnist/)  - a simple example, including training, inference and evaluation over [MNIST dataset](http://yann.lecun.com/exdb/mnist/)
-    * [**STOIC**](./examples/fuse_examples/imaging/classification/stoic21/) - severe COVID-19 classifier baseline given a Computed-Tomography (CT), age group and gender. [Challenge description](https://stoic2021.grand-challenge.org/)
+    * [**MNIST**](./fuse_examples/imaging/classification/mnist/)  - a simple example, including training, inference and evaluation over [MNIST dataset](http://yann.lecun.com/exdb/mnist/)
+    * [**STOIC**](./fuse_examples/imaging/classification/stoic21/) - severe COVID-19 classifier baseline given a Computed-Tomography (CT), age group and gender. [Challenge description](https://stoic2021.grand-challenge.org/)
 
-    * [**KNIGHT Challenge**](./examples/fuse_examples/imaging/classification/knight) - preoperative prediction of risk class for patients with renal masses identified in clinical Computed Tomography (CT) imaging of the kidneys. Including data pre-processing, baseline implementation and evaluation pipeline for the challenge.
-    * [**Multimodality tutorial**](https://colab.research.google.com/github/BiomedSciAI/fuse-med-ml/blob/master/examples/fuse_examples/multimodality/image_clinical/multimodality_image_clinical.ipynb) - demonstration of two popular simple methods integrating imaging and clinical data (tabular) using FuseMedML
-    * [**Skin Lesion**](./examples/fuse_examples/imaging/classification/isic/) - skin lesion classification , including training, inference and evaluation over the public dataset introduced in [ISIC challenge](https://challenge.isic-archive.com/landing/2019)
-    * [**Breast Cancer Lesion Classification**](./examples/fuse_examples/imaging/classification/cmmd) - lesions classification of tumor ( benign, malignant) in breast mammography over the public dataset introduced in [The Chinese Mammography Database (CMMD)](https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508)
-    * [**Mortality prediction for ICU patients**](./examples/fuse_examples/multimodality/ehr_transformer) - Example of EHR transformer applied to the data of Intensive Care Units patients for in-hospital mortality prediction. The dataset is from [PhysioNet Computing in Cardiology Challenge (2012)](https://physionet.org/content/challenge-2012/1.0.0/)
-    
+    * [**KNIGHT Challenge**](./fuse_examples/imaging/classification/knight) - preoperative prediction of risk class for patients with renal masses identified in clinical Computed Tomography (CT) imaging of the kidneys. Including data pre-processing, baseline implementation and evaluation pipeline for the challenge.
+    * [**Multimodality tutorial**](https://colab.research.google.com/github/BiomedSciAI/fuse-med-ml/blob/master/fuse_examples/multimodality/image_clinical/multimodality_image_clinical.ipynb) - demonstration of two popular simple methods integrating imaging and clinical data (tabular) using FuseMedML
+    * [**Skin Lesion**](./fuse_examples/imaging/classification/isic/) - skin lesion classification , including training, inference and evaluation over the public dataset introduced in [ISIC challenge](https://challenge.isic-archive.com/landing/2019)
+    * [**Breast Cancer Lesion Classification**](./fuse_examples/imaging/classification/cmmd) - lesions classification of tumor ( benign, malignant) in breast mammography over the public dataset introduced in [The Chinese Mammography Database (CMMD)](https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508)
+    * [**Mortality prediction for ICU patients**](./fuse_examples/multimodality/ehr_transformer) - Example of EHR transformer applied to the data of Intensive Care Units patients for in-hospital mortality prediction. The dataset is from [PhysioNet Computing in Cardiology Challenge (2012)](https://physionet.org/content/challenge-2012/1.0.0/)
+
 ## Walkthrough template
 * [**Walkthrough Template**](./fuse/dl/templates/walkthrough_template.py) - includes several TODO notes, marking the minimal scope of code required to get your pipeline up and running. The template also includes useful explanations and tips.
 
@@ -236,16 +241,16 @@ $ pip install fuse-med-ml[all]
 # Citation
 If you use FuseMedML in scientific context, please consider citing our [JOSS paper](https://joss.theoj.org/papers/10.21105/joss.04943#):
 ```bibtex
-@article{Golts2023, 
-        doi = {10.21105/joss.04943}, 
-        url = {https://doi.org/10.21105/joss.04943}, 
-        year = {2023}, 
-        publisher = {The Open Journal}, 
-        volume = {8}, 
-        number = {81}, 
-        pages = {4943}, 
-        author = {Alex Golts and Moshe Raboh and Yoel Shoshan and Sagi Polaczek and Simona Rabinovici-Cohen and Efrat Hexter}, 
-        title = {FuseMedML: a framework for accelerated discovery in machine learning based biomedicine}, 
-        journal = {Journal of Open Source Software} 
+@article{Golts2023,
+        doi = {10.21105/joss.04943},
+        url = {https://doi.org/10.21105/joss.04943},
+        year = {2023},
+        publisher = {The Open Journal},
+        volume = {8},
+        number = {81},
+        pages = {4943},
+        author = {Alex Golts and Moshe Raboh and Yoel Shoshan and Sagi Polaczek and Simona Rabinovici-Cohen and Efrat Hexter},
+        title = {FuseMedML: a framework for accelerated discovery in machine learning based biomedicine},
+        journal = {Journal of Open Source Software}
 }
 ```
