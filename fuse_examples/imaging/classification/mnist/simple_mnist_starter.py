@@ -27,7 +27,6 @@ load datasets from fuse.
 import copy
 import os
 from typing import OrderedDict, Any, Tuple
-from functools import partial
 
 import torch.nn.functional as F
 import torch.optim as optim
