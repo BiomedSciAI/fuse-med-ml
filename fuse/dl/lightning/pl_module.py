@@ -23,6 +23,7 @@ import os
 from fuse.dl.lightning.pl_funcs import *  # noqa
 from fuse.utils.file_io.file_io import create_dir
 
+
 class LightningModuleDefault(pl.LightningModule):
     """
     Generic implementation of LightningModule using FuseMedML style focusing primarily on supervised training.
@@ -76,14 +77,14 @@ class LightningModuleDefault(pl.LightningModule):
                 "
 
         :param save_model: save pickled format of the model
-        :param save_arguments: save pickled format of main __init__ arguments (not including the model)  
+        :param save_arguments: save pickled format of main __init__ arguments (not including the model)
         :param tensorboard_sep: use "/" for cleaner tensorboard. "." is for backward compatibility.
         """
         super().__init__(**kwargs)
 
         # create model_dir
         create_dir(model_dir)
-        
+
         # save hyper parameters
         if save_hyperparameters_kwargs is not None:
             self.save_hyperparameters(**save_hyperparameters_kwargs)
@@ -97,11 +98,16 @@ class LightningModuleDefault(pl.LightningModule):
 
         # save the rest of the arguments - useful in case you want to load it without the original script
         if save_arguments:
-            arguments = dict(losses=losses, train_metrics=train_metrics, validation_metrics=validation_metrics, test_metrics=test_metrics,
-                            optimizers_and_lr_schs=optimizers_and_lr_schs, callbacks=callbacks, best_epoch_source=best_epoch_source 
+            arguments = dict(
+                losses=losses,
+                train_metrics=train_metrics,
+                validation_metrics=validation_metrics,
+                test_metrics=test_metrics,
+                optimizers_and_lr_schs=optimizers_and_lr_schs,
+                callbacks=callbacks,
+                best_epoch_source=best_epoch_source,
             )
             torch.save(arguments, os.path.join(model_dir, "arguments.pth"))
-
 
         # store arguments
         self._model_dir = model_dir
