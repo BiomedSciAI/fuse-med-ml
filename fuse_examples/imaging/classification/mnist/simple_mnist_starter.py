@@ -26,7 +26,7 @@ load datasets from fuse.
 
 import copy
 import os
-from typing import OrderedDict
+from typing import OrderedDict, Any, Tuple
 from functools import partial
 
 import torch.nn.functional as F
@@ -47,6 +47,8 @@ from fuse.dl.lightning.pl_module import LightningModuleDefault
 
 from fuseimg.datasets.mnist import MNIST
 from fuse_examples.imaging.classification.mnist import lenet
+
+import torch
 
 ## Paths and Hyperparameters ############################################
 ROOT = "_examples/mnist"  # TODO: fill path here
@@ -69,6 +71,11 @@ TRAIN_PARAMS = {
 }
 
 
+def perform_softmax(logits: Any) -> Tuple[torch.Tensor, torch.Tensor]:
+    cls_preds = F.softmax(logits, dim=1)
+    return logits, cls_preds
+
+
 ## Model Definition #####################################################
 class FuseLitLenet(LightningModuleDefault):
     def __init__(self, model_dir: str, lr: float, weight_decay: float):  # paths, train_params):
@@ -85,7 +92,7 @@ class FuseLitLenet(LightningModuleDefault):
         model = ModelWrapSeqToDict(
             model=lenet.LeNet(),
             model_inputs=["data.image"],
-            post_forward_processing_function=partial(F.softmax, dim=1),
+            post_forward_processing_function=perform_softmax,
             model_outputs=["model.logits.classification", "model.output.classification"],
         )
 

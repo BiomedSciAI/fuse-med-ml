@@ -62,8 +62,13 @@ class ExportDataset:
         # store in dataframe
         df = pds.DataFrame()
 
-        for sample_dict in tqdm(data):
-            df = pds.concat([df, pds.DataFrame([sample_dict])])
+        if all_keys is None:
+            for sample_dict in tqdm(data):
+                df = pds.concat([df, pds.DataFrame([sample_dict])])
+        else:
+            for key in all_keys:
+                values = [sample_dict[key] for sample_dict in data]
+                df[key] = values
 
         if output_filename is not None:
             save_dataframe(df, output_filename)

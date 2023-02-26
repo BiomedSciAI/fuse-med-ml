@@ -20,10 +20,7 @@ Created on June 30, 2021
 import shutil
 import tempfile
 import unittest
-import os
-from unittest import result
 from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
-from fuse.utils.ndict import NDict
 
 from fuseimg.datasets.mnist import MNIST
 
