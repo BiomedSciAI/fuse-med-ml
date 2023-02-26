@@ -27,6 +27,7 @@ load datasets from fuse.
 import copy
 import os
 from typing import OrderedDict
+from functools import partial
 
 import torch.nn.functional as F
 import torch.optim as optim
@@ -84,7 +85,7 @@ class FuseLitLenet(LightningModuleDefault):
         model = ModelWrapSeqToDict(
             model=lenet.LeNet(),
             model_inputs=["data.image"],
-            post_forward_processing_function=lambda logits: (logits, F.softmax(logits, dim=1)),
+            post_forward_processing_function=partial(F.softmax, dim=1),
             model_outputs=["model.logits.classification", "model.output.classification"],
         )
 
