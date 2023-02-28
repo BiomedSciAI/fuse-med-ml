@@ -18,8 +18,10 @@ Created on June 30, 2021
 
 import pytorch_lightning as pl
 from typing import Optional
+import os
 
 from fuse.dl.lightning.pl_funcs import *  # noqa
+from fuse.utils.file_io.file_io import create_dir
 
 
 class LightningModuleDefault(pl.LightningModule):
@@ -39,7 +41,9 @@ class LightningModuleDefault(pl.LightningModule):
         optimizers_and_lr_schs: Any = None,
         callbacks: Optional[Sequence[pl.Callback]] = None,
         best_epoch_source: Optional[Union[Dict, List[Dict]]] = None,
-        save_hyperparameters: Optional[List[str]] = None,
+        save_hyperparameters_kwargs: Optional[dict] = None,
+        save_model: bool = True,
+        save_arguments: bool = False,
         tensorboard_sep: str = ".",
         **kwargs: dict,
     ):
@@ -55,12 +59,55 @@ class LightningModuleDefault(pl.LightningModule):
         :param callbacks: see pl.LightningModule.configure_callbacks return value for details
         :param best_epoch_source: Create list of pl.callbacks that saves checkpoints using (pl.callbacks.ModelCheckpoint) and print per epoch summary (fuse.dl.lightning.pl_epoch_summary.ModelEpochSummary).
                                   Either a dict with arguments to pass to ModelCheckpoint or list dicts for multiple ModelCheckpoint callbacks (to monitor and save checkpoints for more then one metric).
-        :param save_hyperparameters: specify which hyperparameters you would like to save. Default None.  See pl.LightningModule.save_hyperparameters() for more details.
+        :param save_hyperparameters_kwargs: specify pl.LightningModule.save_hyperparameters() arguments to save the hyper parameters. By default saved all except model_dir and the model (which stored separately)
+                To load checkpoint (assuming save_model == True and save_arguments == True) do the following:
+                "
+                    model_dir = <path/to/the/original/model_dir>
+                    checkpoint_path = os.path.join(model_dir, "last_epoch.ckpt")
+                    nn_model = torch.load(os.path.join(model_dir, "model.pth"))
+                    arguments = torch.load(os.path.join(model_dir, "arguments.pth"))
+                    pl_model = LightningModuleDefault.load_from_checkpoint(checkpoint_path=checkpoint_path, model_dir=model_dir, model=nn_model, **arguments)
+                "
+                To load only the model (assuming save_model == True):
+                "
+                    model_dir = <path/to/the/original/model_dir>
+                    checkpoint_path = os.path.join(model_dir, "last_epoch.ckpt")
+                    nn_model = torch.load(os.path.join(model_dir, "model.pth"))
+                    pl_model = LightningModuleDefault.load_from_checkpoint(checkpoint_path=checkpoint_path, model_dir=model_dir, model=nn_model)
+                "
+
+        :param save_model: save pickled format of the model
+        :param save_arguments: save pickled format of main __init__ arguments (not including the model)
         :param tensorboard_sep: use "/" for cleaner tensorboard. "." is for backward compatibility.
         """
         super().__init__(**kwargs)
-        if save_hyperparameters is not None:
-            self.save_hyperparameters(*save_hyperparameters)
+
+        # create model_dir
+        create_dir(model_dir)
+
+        # save hyper parameters
+        if save_hyperparameters_kwargs is not None:
+            self.save_hyperparameters(**save_hyperparameters_kwargs)
+        else:
+            # do nothing - save the arguments once in model dir instead of on every checkpoint
+            pass
+
+        # save the model into model_dir - useful in case you want to load it without the original script
+        if save_model:
+            torch.save(model, os.path.join(model_dir, "model.pth"))
+
+        # save the rest of the arguments - useful in case you want to load it without the original script
+        if save_arguments:
+            arguments = dict(
+                losses=losses,
+                train_metrics=train_metrics,
+                validation_metrics=validation_metrics,
+                test_metrics=test_metrics,
+                optimizers_and_lr_schs=optimizers_and_lr_schs,
+                callbacks=callbacks,
+                best_epoch_source=best_epoch_source,
+            )
+            torch.save(arguments, os.path.join(model_dir, "arguments.pth"))
 
         # store arguments
         self._model_dir = model_dir
