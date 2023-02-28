@@ -124,7 +124,7 @@ def run_train(paths, train_params):
 
     # log clearml only on rank 0
     start_clearml_logger(
-        project_name='shatz_root/shatz_ddp_mnist_7',
+        project_name="shatz_root/shatz_ddp_mnist_7",
         task_name=f"TEST num_nodes={num_nodes} num_gpus={num_gpus} bs={bs} lr={lr}",
     )
 
@@ -175,7 +175,7 @@ if __name__ == "__main__":
     TRAIN_PARAMS["opt.lr"] = args.lr
     TRAIN_PARAMS["data.batch_size"] = args.bs
 
-    # check if we should enable ddp 
+    # check if we should enable ddp
     use_ddp = False
     if args.num_nodes > 1 or args.num_devices > 1:
         use_ddp = True
