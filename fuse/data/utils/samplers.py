@@ -89,8 +89,9 @@ class BatchSamplerDefault(BatchSampler):
 
         # read data from dataset
         if self._sampler:
+            print(f"✅ BatchSamplerDefault got a sampler of type: {type(self._sampler).__name__}")
             if self._verbose:
-                print(f"BatchSamplerDefault got a sampler of type: {type(self._sampler).__name__}")
+                print(f"✅ BatchSamplerDefault got a sampler of type: {type(self._sampler).__name__}")
             # Get all samples that sampler posses.
             # In use in DDP strategy: each process runs on a different GPU with a different instance of 'DistributedSampler'.
             #   The DistributedSampler(s) make sure that each GPU posses a different subset of the samplers to avoid overlaps.

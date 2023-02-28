@@ -1,6 +1,6 @@
 experiment_num : 0
 task_num : task_1 # task_1 or task_2
-num_workers: 0
+num_workers: 16
 num_nodes : 1
 num_devices : 1
 accelerator: "gpu"

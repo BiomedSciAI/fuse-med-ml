@@ -470,16 +470,17 @@ class KNIGHTDataModule(pl.LightningDataModule):
         """
 
         # make dataloader
-        val_dl = DataLoader(
-            dataset=self._valid_ds,
-            shuffle=False,
-            drop_last=self._drop_last,
-            batch_sampler=None,
-            batch_size=self._batch_size,
-            num_workers=self._num_workers,
-            collate_fn=CollateDefault(),
-        )
-        return val_dl
+        # val_dl = DataLoader(
+        #     dataset=self._valid_ds,
+        #     shuffle=False,
+        #     drop_last=self._drop_last,
+        #     batch_sampler=None,
+        #     batch_size=self._batch_size,
+        #     num_workers=self._num_workers,
+        #     collate_fn=CollateDefault(),
+        # )
+        # return val_dl
+        return None
 
 
 GENDER_INDEX = {"male": 0, "female": 1}
