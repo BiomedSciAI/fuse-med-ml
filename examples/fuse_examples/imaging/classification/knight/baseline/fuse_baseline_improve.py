@@ -7,9 +7,9 @@ import yaml
 import pandas as pd
 from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
-from fuse.dl.models.heads.heads_3D import Head3D
-# from fuse.dl.models.heads.heads_3D import Head3DClassifier
-# from fuse.dl.models.heads.heads_3D import Head3DRegression
+# from fuse.dl.models.heads.heads_3D import Head3D
+from fuse.dl.models.heads.heads_3D import Head3DClassifier
+from fuse.dl.models.heads.heads_3D import Head3DRegression
 from fuse.dl.models.backbones.backbone_vit import vit_base, vit_small
 
 from fuseimg.datasets.knight import KNIGHT
@@ -35,7 +35,7 @@ import pytorch_lightning as pl
 # from nnunet.network_architecture.initialization import InitWeights_He
 # from torchvision.models import resnet50
 
-# from resnet import resnet34, resnet18, resnet50
+from examples.fuse_examples.imaging.classification.knight.baseline.resnet import resnet18, resnet50, resnet101
 
 from fuse.dl.models.heads.heads_1D import Head1D
 from clearml import Task
@@ -56,10 +56,10 @@ def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_d
             backbone.fc = nn.Identity()
             conv_inputs = [("model.backbone_features", 2048)]
         elif not pretrained:
-            # backbone = BackboneResnet3D(True, in_channels=1)
-            # conv_inputs = [("model.backbone_features", 512)]
-            backbone = vit_small(image_shape=image_shape, patch_shape=(4,16,16), channels=1)
-            conv_inputs = [("model.backbone_features", 384)]
+            backbone = BackboneResnet3D(in_channels=1) #, layers= [3, 4, 6, 3])
+            conv_inputs = [("model.backbone_features", 512)]
+            # backbone = vit_small(image_shape=image_shape, patch_shape=(4,16,16), channels=1)
+            # conv_inputs = [("model.backbone_features", 384)]
 
         else:
             # unet_path = "/data/usr/liam/nnUNet/3d_fullres/Task135_KiTS2021/nnUNetTrainerV2__nnUNetPlansv2.1/fold_0/model_final_checkpoint.model"
@@ -76,19 +76,21 @@ def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_d
             # backbone.inference_apply_nonlin = None
             # conv_inputs = [('model.backbone_features', 320)]
 
-            # state_dict = torch.load(open("/data/usr/liam/age_classification/pretrain/resnet_50_23dataset.pth", "rb"))["state_dict"]
+            #MED3D
+            # state_dict = torch.load(open("/dccstor/mm_hcls2/liver_results/mednet_models/resnet_101.pth", "rb"))["state_dict"]
             # state_dict = {k[7:]:v for k,v in state_dict.items()}
-            # backbone = resnet50()#(shortcut_type='A')
+            # backbone = resnet101()#(shortcut_type='A')
             # backbone.load_state_dict(state_dict=state_dict)
             # conv_inputs = [("model.backbone_features", 2048)]
 
             backbone = BackboneResnet3D(in_channels=1)
-            state_dict = torch.load(open("/dccstor/mm_hcls/usr/liam/dino/basic/lightning_logs/version_3/checkpoints/epoch=12-step=21463.ckpt", "rb"), map_location=torch.device('cpu'))["state_dict"]
+            state_dict = torch.load(open("/dccstor/mm_hcls/usr/liam/dino/basic/lightning_logs/version_0/checkpoints/epoch=8-step=7101.ckpt", "rb"), map_location=torch.device('cpu'))["state_dict"]
             # state_dict = {k[1:7] + k.replace("stem", "layer0")[21:]:v for k,v in state_dict.items() if ("fc" not in k and "classifier" not in k)}
             # state_dict = {k.replace("stem","layer0").replace("student.new_head.backbone.layer","model.") :v for k,v in state_dict.items() if "student.new_head.backbone" in k and ".fc." not in k}
-            state_dict = {k.replace("student.new_head.backbone.","") :v for k,v in state_dict.items() if "student.new_head.backbone" in k}
-
-            backbone.load_state_dict(state_dict=state_dict, )
+            # state_dict = {k.replace("student.new_head.backbone.","") :v for k,v in state_dict.items() if "student.new_head.backbone" in k}
+            state_dict = {k.replace("teacher.new_head.backbone.model.","layer").replace("layer0","stem")  :v for k,v in state_dict.items() if "teacher.new_head.backbone" in k and ".fc." not in k}
+            backbone.load_state_dict(state_dict=state_dict)
+            print("LOADED PRETRAINED WEIGHTS")
             conv_inputs = [("model.backbone_features", 512)]
 
     else:
@@ -113,13 +115,13 @@ def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_d
         ]
     else:
         heads=[
-                Head3D(#Classifier(
+                Head3DClassifier(
                     head_name="head_0",
-                    mode = "classification",
+                    # mode = "classification",
                     conv_inputs=conv_inputs,
                     dropout_rate=imaging_dropout,
-                    num_outputs=num_classes,
-                    # num_classes=num_classes,
+                    # num_outputs=num_classes,
+                    num_classes=num_classes,
                     append_features=append_features,
                     append_layers_description=(256, 128),
                     fused_dropout_rate=fused_dropout,
@@ -167,7 +169,7 @@ def main(cfg_path):
     
     # read config params
     cfg = yaml.safe_load(open(cfg_path))
-    task = Task.init(project_name="Liam/KNIGHT", task_name=cfg["experiment"])
+    task = Task.init(project_name="Liam/KNIGHT", task_name=cfg["experiment"], continue_last_task=True)
     task.connect(cfg)
     task_num = cfg['task_num']
     num_classes = cfg[task_num]["num_classes"]
@@ -249,7 +251,7 @@ def main(cfg_path):
         drop_last=False,
         batch_sampler=sampler,
         collate_fn=CollateDefault(),
-        num_workers=8,
+        num_workers=16,
     )
 
     valid_dl = DataLoader(
@@ -258,7 +260,7 @@ def main(cfg_path):
         drop_last=False,
         batch_sampler=None,
         batch_size=cfg["batch_size"],
-        num_workers=8,
+        num_workers=16,
         collate_fn=CollateDefault(),
         generator=rand_gen,
     )
@@ -320,10 +322,13 @@ def main(cfg_path):
         accelerator="gpu",
         # devices=cfg["num_gpus"],
         strategy=None,
-        auto_select_gpus=True,
         num_sanity_val_steps=-1,
     )
+    # lr_finder = pl_trainer.tuner.lr_find(pl_module, train_dl, valid_dl) # Run learning rate finder
 
+    # fig = lr_finder.plot(suggest=True) # Plot
+    # fig.show()
+    # print(lr_finder.results)
     # train
     pl_trainer.fit(pl_module, train_dl, valid_dl, ckpt_path=None)
 

@@ -1,5 +1,5 @@
-experiment : im_pretrained(dino)
-cache_name : 1 # 0 - [70, 256, 256] 1 - [40, 256, 256] 2 - [20, 256, 256] 3 - [40, 512, 512]
+experiment : im_basic(scratch_3) #_pretrained(mednet101)
+cache_name : 1
 
 
 task_num : task_1 # task_1 or task_2 
@@ -8,14 +8,14 @@ use_data : {"imaging": True, "clinical": False}
 batch_size : 24
 resize_to : [40, 256, 256]
 num_epochs : 140
-learning_rate : 0.0002
+learning_rate : 4.786300923226383e-07 #0.0003
 imaging_dropout : 0.5
 fused_dropout : 0.5
-pretrained : True
+
+pretrained : False
 regression_head : False
 two_dim : False
-reset_cache : True
-gpus : [0]
+reset_cache : False
 debug : False # for debugging\continous integration
 
 task_1:
