@@ -107,11 +107,11 @@ def op_call(op: OpBase, sample_dict: NDict, op_id: str, **kwargs):
     try:
         if isinstance(op, OpReversibleBase):
             return op(sample_dict, op_id=op_id, **kwargs)
-        elif isinstance(op, OpBase):  # OpBase but not reversible
+        elif isinstance(op, OpBase) or hasattr(op, "__call__"):  # OpBase but not reversible
             return op(sample_dict, **kwargs)
         else:
             raise Exception(
-                f"Ops are expected to be instances of classes or subclasses of OpBase. The following op is not: {op}"
+                f"Ops are expected to be instances of classes or subclasses of OpBase (or to implement __call__(sample_dict, **kwargs) function). The following op is not: {op}"
             )
 
     except:

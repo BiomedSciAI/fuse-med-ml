@@ -11,6 +11,9 @@
 
 A python framework accelerating ML based discovery in the medical field by encouraging code reuse. Batteries included :)
 
+FuseMedML is part of the [PyTorch Ecosystem](https://pytorch.org/ecosystem/).
+
+
 ## Jump to:
 
 * install instructions [section](#installation)
