@@ -123,7 +123,6 @@ def _run_multiprocessed_as_iterator_impl(
 
     assert callable(worker_func)
 
-    
     def _passthrough_tqdm_dummy(x, *args, **kwargs):
         return x
 
@@ -159,7 +158,12 @@ def _run_multiprocessed_as_iterator_impl(
             pool = mp.get_context(mp_context).Pool
 
         worker_func = functools.partial(worker_func_wrapper, worker_func=worker_func)
-        with pool(processes=workers, initializer=_store_in_global_storage, initargs=(copy_to_global_storage,), maxtasksperchild=maxtasksperchild) as pool:
+        with pool(
+            processes=workers,
+            initializer=_store_in_global_storage,
+            initargs=(copy_to_global_storage,),
+            maxtasksperchild=maxtasksperchild,
+        ) as pool:
             if verbose > 0:
                 cprint(f"multiprocess pool created with {workers} workers.", "cyan")
             map_func = pool.imap if keep_results_order else pool.imap_unordered
