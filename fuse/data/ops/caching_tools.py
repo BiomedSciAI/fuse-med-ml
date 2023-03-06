@@ -45,7 +45,8 @@ def get_function_call_str(func,
     args_flat_str += "@" + str(
         inspect.getmodule(func)
     )  # adding full (including scope) name of the function, for the case of multiple functions with the same name
-    args_flat_str += "@" + inspect.getsource(func)  # considering the source code (first level of it...)
+    if _include_code:
+        args_flat_str += "@" + inspect.getsource(func)  # considering the source code (first level of it...)
 
     return args_flat_str
 
