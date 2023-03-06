@@ -33,7 +33,8 @@ def get_function_call_str(
 
 
     """
-
+    if _ignore_kwargs_names is None:
+        _ignore_kwargs_names = []
     kwargs = convert_func_call_into_kwargs_only(func, *_args, **_kwargs)
 
     args_flat_str = func.__name__ + "@"
