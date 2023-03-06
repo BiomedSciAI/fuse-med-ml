@@ -117,8 +117,12 @@ def _run_multiprocessed_as_iterator_impl(
 
     assert callable(worker_func)
 
+    
+    def _passthrough_tqdm_dummy(x, *args, **kwargs):
+        return x
+
     if verbose < 1:
-        tqdm_func = lambda x: x
+        tqdm_func = _passthrough_tqdm_dummy
     else:
         tqdm_func = functools.partial(tqdm, desc=desc)
 

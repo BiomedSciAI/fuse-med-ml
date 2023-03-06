@@ -1,5 +1,5 @@
 import inspect
-from typing import Callable, Any, Type, Optional, Sequence
+from typing import Callable, Any, Type, Optional, Sequence, List
 from inspect import stack
 import warnings
 from fuse.utils.file_io.file_io import load_pickle, save_pickle_safe
@@ -8,7 +8,11 @@ from fuse.utils.cpu_profiling import Timer
 import hashlib
 
 
-def get_function_call_str(func, *_args, **_kwargs) -> str:
+def get_function_call_str(func, 
+                          *_args, 
+                          _ignore_kwargs_names:List=None, 
+                          _include_code:bool=True,
+                          **_kwargs) -> str:
     """
     Converts a function and its kwargs into a hash value which can be used for caching.
     NOTE:
@@ -19,12 +23,25 @@ def get_function_call_str(func, *_args, **_kwargs) -> str:
     see 'value_to_string' for more details.
     For example, if an arg is an entire numpy array, it will not contribute to the total hash.
     The reason is that it will make the cache calculation too slow, and might
+
+
+    _ignore_kwargs_names: args to ignore when generating the string representation. This is useful for kwargs
+        that you don't want to have an effect on the hash, for example, verbose flag.
+        example usage: ignore_kwargs_names=['verbose', 'cpu_cores_num']
+
+    _include_code: would code be included in the string representation. Note, it will only include code found *directly* 
+        in the provided function. Set to False if you don't want it to influence the generated string.
+        Default is True.
+
+
     """
 
     kwargs = convert_func_call_into_kwargs_only(func, *_args, **_kwargs)
 
     args_flat_str = func.__name__ + "@"
-    args_flat_str += "@".join(["{}@{}".format(str(k), value_to_string(kwargs[k])) for k in sorted(kwargs.keys())])
+    use_keys = [k for k in sorted(kwargs.keys()) if k not in _ignore_kwargs_names]
+    #ignore_kwargs_names
+    args_flat_str += "@".join(["{}@{}".format(str(k), value_to_string(kwargs[k])) for k in use_keys])
     args_flat_str += "@" + str(
         inspect.getmodule(func)
     )  # adding full (including scope) name of the function, for the case of multiple functions with the same name
