@@ -16,7 +16,7 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-
+import pandas as pd
 from distutils.log import warn
 import unittest
 
@@ -46,6 +46,10 @@ from fuse.eval.examples.examples_segmentation import (
     example_seg_2,
     example_seg_3,
     example_seg_4,
+)
+
+from fuse.eval.examples.examples_seq_gen import (
+    example_seq_gen_0,
 )
 
 
@@ -194,6 +198,10 @@ class TestEval(unittest.TestCase):
     def test_eval_example_14(self):
         results = example_14()
         self.assertGreater(results["metrics.accuracy"], 0.9)
+
+    def test_eval_example_seq_gen_0(self):
+        results = example_seq_gen_0(seed=1234)
+        self.assertAlmostEqual(results["metrics.perplexity"], 162.87, places=2)
 
 
 if __name__ == "__main__":
