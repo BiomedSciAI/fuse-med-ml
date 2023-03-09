@@ -112,7 +112,7 @@ class EvaluatorDefault:
             # data is iterable - each iteration is a single sample (represented by a dictionary)
             assert isinstance(data, Iterable) and not isinstance(
                 data, pd.DataFrame
-            ), "Error: batch mode (batch_size != None) supports only iterable data"
+            ), "Error: batch mode (batch_size != None) supports only iterable data and doesn't support pandas' DataFrame"
             collate_fn = CollateToBatchList()
             data_iter = iter(data)
             while True:
