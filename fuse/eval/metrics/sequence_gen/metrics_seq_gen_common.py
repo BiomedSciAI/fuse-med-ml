@@ -79,6 +79,6 @@ def _perplexity_compute(
     log_probs: List[np.ndarray],
     token_num: List[np.ndarray],
 ) -> float:
-    sum_log_probs = np.sum(log_probs)
-    num_total = np.sum(token_num)
+    sum_log_probs = sum(log_probs)
+    num_total = sum(token_num)
     return float(np.exp(sum_log_probs / num_total))
