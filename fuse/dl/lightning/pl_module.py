@@ -32,8 +32,8 @@ class LightningModuleDefault(pl.LightningModule):
 
     def __init__(
         self,
-        model_dir: str,
         model: torch.nn.Module,
+        model_dir: str = None,
         losses: Optional[Dict[str, LossBase]] = None,
         train_metrics: Optional[OrderedDict[str, MetricBase]] = None,
         validation_metrics: Optional[OrderedDict[str, MetricBase]] = None,
@@ -82,8 +82,12 @@ class LightningModuleDefault(pl.LightningModule):
         """
         super().__init__(**kwargs)
 
+        if (save_arguments or save_model) and (model_dir is None):
+            raise Exception("Error: saving arguments or saving model requires a model_dir to be supplied as well.")
+
         # create model_dir
-        create_dir(model_dir)
+        if model_dir is not None:
+            create_dir(model_dir)
 
         # save hyper parameters
         if save_hyperparameters_kwargs is not None:
