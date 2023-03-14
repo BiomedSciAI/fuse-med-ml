@@ -48,9 +48,7 @@ from fuse.eval.examples.examples_segmentation import (
     example_seg_4,
 )
 
-from fuse.eval.examples.examples_seq_gen import (
-    example_seq_gen_0,
-)
+from fuse.eval.examples.examples_seq_gen import example_seq_gen_0, example_seq_gen_1
 
 
 class TestEval(unittest.TestCase):
@@ -201,6 +199,10 @@ class TestEval(unittest.TestCase):
 
     def test_eval_example_seq_gen_0(self):
         results = example_seq_gen_0(seed=1234)
+        self.assertAlmostEqual(results["metrics.perplexity.org"], 162.87, places=2)
+
+    def test_eval_example_seq_gen_1(self):
+        results = example_seq_gen_1(seed=1234)
         self.assertAlmostEqual(results["metrics.perplexity"], 162.87, places=2)
 
 

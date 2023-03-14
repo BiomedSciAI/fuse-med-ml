@@ -138,7 +138,6 @@ class MetricCollector(MetricBase):
                     if self._post_keys_to_collect is None:
                         sample_to_collect = {"post_args": sample_to_collect}
 
-                # store it - assumes batch dimension? What about single sample?
                 for name in self._collected_data:
                     self._collected_data[name].append(sample_to_collect[name])
         else:  # work in a batch level - optimized for large batch size
@@ -252,6 +251,7 @@ class MetricCollector(MetricBase):
                     result_sample[k] = v[0]
                 else:
                     result_sample[k] = v
+            result = result_sample
 
         return pd.Series(result)
 
@@ -648,14 +648,16 @@ class Filter(MetricWithCollectorBase):
     Evaluate a sub-group of data. This utility will filter non relevant samples and will call to the given metric.
     """
 
-    def __init__(self, metric: MetricBase, filter: str, **super_kwargs: Any) -> None:
+    def __init__(self, metric: MetricBase, filter: str, cond: Optional[callable] = None, **super_kwargs: Any) -> None:
         """
         :param metric: metric to filter samples for
-        :param group: key to extract filter
+        :param filter: key to extract filter
+        :param cond: if None, then values stored in filtered expected to be booleans. Otherwise apply cond to convert each value to boolean
         :param super_kwargs: additional arguments for super class (MetricWithCollectorBase) constructor
         """
         super().__init__(filter=filter, **super_kwargs)
         self._metric = metric
+        self._cond = cond
 
     def collect(self, batch: Dict) -> None:
         "See super class"
@@ -686,7 +688,10 @@ class Filter(MetricWithCollectorBase):
             )
         ids = np.array(ids)
 
-        filter = np.array(data["filter"])
+        if self._cond is not None:
+            filter = np.array([self._cond(elem) for elem in data["filter"]])
+        else:
+            filter = np.array(data["filter"])
         keep_ids = ids[~filter]
         metric_result = self._metric.eval(results, keep_ids)
         return metric_result
@@ -755,14 +760,15 @@ class CI(MetricWithCollectorBase):
         data = self._collector.get()
         if ids is None:
             ids = self._collector.get_ids()
-        if not ids:
+
+        if ids is None:
             raise Exception(
                 "Error: confidence interval is supported only when a unique identifier is specified. Add key 'id' to your data"
             )
         ids = np.array(ids)
 
         rnd = np.random.RandomState(self._rnd_seed)
-        original_sample_results = self._metric.eval(results)
+        original_sample_results = self._metric.eval(results, ids=ids)
         boot_results = []
         ci_results = {}
 

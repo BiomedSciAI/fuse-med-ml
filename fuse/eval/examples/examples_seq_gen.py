@@ -51,6 +51,26 @@ def example_seq_gen_0(seed: int = 1234) -> Dict[str, Any]:
     results = evaluator.eval(ids=None, data=data, metrics=metrics)
     print(results)
 
+    return results
+
+
+def example_seq_gen_1(seed: int = 1234) -> Dict[str, Any]:
+    """
+    Example/Test for perplexity metric - batch mode
+    """
+    # entire dataframe at once case
+    torch.manual_seed(seed=seed)
+    pred = torch.randn(1000, 7, 100)
+    pred = torch.nn.functional.softmax(pred, dim=-1).numpy()
+    target = torch.randint(0, 100, (1000, 7)).numpy()
+
+    data = {
+        "pred": list(pred),
+        "label": list(target),
+        "id": list(range(1000)),
+    }
+    data = pd.DataFrame(data)
+
     # Working with pytorch dataloader mode
     dynamic_pipeline = PipelineDefault(
         "test",
@@ -62,11 +82,9 @@ def example_seq_gen_0(seed: int = 1234) -> Dict[str, Any]:
     ds.create()
     dl = DataLoader(ds, collate_fn=CollateDefault(), batch_size=100)
     metrics = OrderedDict([("perplexity", MetricPerplexity(preds="pred", target="label"))])
+
+    evaluator = EvaluatorDefault()
     results = evaluator.eval(ids=None, data=dl, metrics=metrics, batch_size=0)
     print(results)
 
     return results
-
-
-if __name__ == "__main__":
-    example_seq_gen_0()

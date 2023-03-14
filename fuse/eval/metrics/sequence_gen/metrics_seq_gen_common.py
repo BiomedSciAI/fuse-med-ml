@@ -17,21 +17,23 @@ Created on June 30, 2021
 
 """
 from typing import Optional, Tuple, List, Union
+from functools import partial
+
 import torch
+import numpy as np
 
 from fuse.eval.metrics.metrics_common import MetricPerBatchDefault
-import numpy as np
 
 
 class MetricPerplexity(MetricPerBatchDefault):
-    def __init__(self, preds: str, target: str, **kwargs) -> None:
+    def __init__(self, preds: str, target: str, ignore_index: Optional[int] = None, **kwargs) -> None:
         super().__init__(
             preds=preds,
             target=target,
-            metric_per_batch_func=_perplexity_update,
+            metric_per_batch_func=partial(_perplexity_update, ignore_index=ignore_index),
             result_aggregate_func=_perplexity_compute,
             post_keys_to_collect=["log_probs", "token_num"],
-            **kwargs
+            **kwargs,
         )
 
 
@@ -59,6 +61,11 @@ def _perplexity_update(
     if isinstance(target, np.ndarray):
         target = torch.tensor(target)
 
+    if not isinstance(target, torch.Tensor):
+        return {"log_probs": None, "token_num": None}
+
+    assert len(preds.shape) == 3, f"Error: expected num dims is 3, got shape {preds.shape}"
+    assert len(target.shape) == 2, f"Error: expected num dims is 2, got shape {target.shape}"
     preds = preds.reshape(-1, preds.shape[-1])
     target = target.reshape(-1)
 
