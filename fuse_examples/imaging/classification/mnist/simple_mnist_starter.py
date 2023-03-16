@@ -63,7 +63,6 @@ TRAIN_PARAMS = {
     "trainer.num_epochs": 2,
     "trainer.num_devices": 1,
     "trainer.accelerator": "gpu",
-    "trainer.strategy": "dp",
     "trainer.ckpt_path": None,
     "opt.lr": 1e-4,
     "opt.weight_decay": 0.001,
@@ -127,7 +126,7 @@ class FuseLitLenet(LightningModuleDefault):
 
 
 ## Training #############################################################
-def run_train(paths: dict, train_params: dict):
+def run_train(paths: dict, train_params: dict) -> None:
 
     # initialize model
     model = FuseLitLenet(
@@ -166,9 +165,8 @@ def run_train(paths: dict, train_params: dict):
         default_root_dir=paths["model_dir"],
         max_epochs=train_params["trainer.num_epochs"],
         accelerator=train_params["trainer.accelerator"],
-        strategy=train_params["trainer.strategy"],
+        strategy="auto",
         devices=train_params["trainer.num_devices"],
-        auto_select_gpus=True,
     )
 
     # train model
