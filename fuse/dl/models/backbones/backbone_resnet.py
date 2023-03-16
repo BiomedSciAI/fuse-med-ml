@@ -29,7 +29,14 @@ class BackboneResnet(ResNet):
     2D ResNet backbone
     """
 
-    def __init__(self, *, pretrained: bool = False, weights: Optional[WeightsEnum] = None,in_channels: int = 3, name: str = "resnet18") -> None:
+    def __init__(
+        self,
+        *,
+        pretrained: bool = False,
+        weights: Optional[WeightsEnum] = None,
+        in_channels: int = 3,
+        name: str = "resnet18"
+    ) -> None:
         """
         Create 2D Resnet
         :param pretrained: reload imagenet weights
@@ -46,9 +53,10 @@ class BackboneResnet(ResNet):
             print("Warning: not supported by new torchvision version - use weights instead")
             from torch.hub import load_state_dict_from_url
             from torchvision.models.resnet import model_urls
+
             state_dict = load_state_dict_from_url(model_urls[name])
             self.load_state_dict(state_dict)
-        
+
         if weights is not None:
             self.load_state_dict(weights.get_state_dict(progress=True))
 
