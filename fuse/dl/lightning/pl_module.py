@@ -130,12 +130,16 @@ class LightningModuleDefault(pl.LightningModule):
         self._prediction_keys = None
         self._sep = tensorboard_sep
 
+        self._validation_step_outputs = []
+        self._training_step_outputs = []
+        self._test_step_outputs = []
+
     ## forward
     def forward(self, batch_dict: NDict) -> NDict:
         return self._model(batch_dict)
 
     ## Step
-    def training_step(self, batch_dict: NDict, batch_idx: int) -> dict:
+    def training_step(self, batch_dict: NDict, batch_idx: int) -> torch.Tensor:
         # add step number to batch_dict
         batch_dict["global_step"] = self.global_step
         # run forward function and store the outputs in batch_dict["model"]
@@ -144,10 +148,12 @@ class LightningModuleDefault(pl.LightningModule):
         total_loss = step_losses(self._losses, batch_dict)
         # given the batch_dict and FuseMedML style losses - collect the required values to compute the metrics on epoch_end
         step_metrics(self._train_metrics, batch_dict)
-        # return the total_loss, the losses and drop everything else
-        return {"loss": total_loss, "losses": batch_dict["losses"]}
+        # aggregate losses
+        self._training_step_outputs.append({"losses": batch_dict["losses"]})
+        # return the total_loss
+        return total_loss
 
-    def validation_step(self, batch_dict: NDict, batch_idx: int) -> dict:
+    def validation_step(self, batch_dict: NDict, batch_idx: int) -> None:
         # add step number to batch_dict
         batch_dict["global_step"] = self.global_step
         # run forward function and store the outputs in batch_dict["model"]
@@ -156,11 +162,10 @@ class LightningModuleDefault(pl.LightningModule):
         _ = step_losses(self._losses, batch_dict)
         # given the batch_dict and FuseMedML style losses - collect the required values to compute the metrics on epoch_end
         step_metrics(self._validation_metrics, batch_dict)
+        # aggregate losses
+        self._validation_step_outputs.append({"losses": batch_dict["losses"]})
 
-        # return just the losses and drop everything else
-        return {"losses": batch_dict["losses"]}
-
-    def test_step(self, batch_dict: NDict, batch_idx: int) -> dict:
+    def test_step(self, batch_dict: NDict, batch_idx: int) -> None:
         # add step number to batch_dict
         batch_dict["global_step"] = self.global_step
         # run forward function and store the outputs in batch_dict["model"]
@@ -169,9 +174,8 @@ class LightningModuleDefault(pl.LightningModule):
         _ = step_losses(self._losses, batch_dict)
         # given the batch_dict and FuseMedML style losses - collect the required values to compute the metrics on epoch_end
         step_metrics(self._test_metrics, batch_dict)
-
-        # return just the losses and drop everything else
-        return {"losses": batch_dict["losses"]}
+        # aggregate losses
+        self._test_step_outputs.append({"losses": batch_dict["losses"]})
 
     def predict_step(self, batch_dict: NDict, batch_idx: int) -> dict:
         if self._prediction_keys is None:
@@ -184,29 +188,38 @@ class LightningModuleDefault(pl.LightningModule):
         return step_extract_predictions(self._prediction_keys, batch_dict)
 
     ## Epoch end
-    def training_epoch_end(self, step_outputs: List[dict]) -> None:
+    def on_train_epoch_end(self) -> None:
+        step_outputs = self._training_step_outputs
         # for the logs to be at each epoch, not each step
         self.log("step", float(self.current_epoch), on_epoch=True, sync_dist=True)
         # calc average epoch loss and log it
         epoch_end_compute_and_log_losses(self, "train", [e["losses"] for e in step_outputs], sep=self._sep)
         # evaluate  and log it
         epoch_end_compute_and_log_metrics(self, "train", self._train_metrics, sep=self._sep)
+        # reset state
+        self._training_step_outputs.clear()
 
-    def validation_epoch_end(self, step_outputs: List[dict]) -> None:
+    def on_validation_epoch_end(self) -> None:
+        step_outputs = self._validation_step_outputs
         # for the logs to be at each epoch, not each step
         self.log("step", float(self.current_epoch), on_epoch=True, sync_dist=True)
         # calc average epoch loss and log it
         epoch_end_compute_and_log_losses(self, "validation", [e["losses"] for e in step_outputs], sep=self._sep)
         # evaluate  and log it
         epoch_end_compute_and_log_metrics(self, "validation", self._validation_metrics, sep=self._sep)
+        # reset state
+        self._validation_step_outputs.clear()
 
-    def test_epoch_end(self, step_outputs: List[dict]) -> None:
+    def on_test_epoch_end(self) -> None:
+        step_outputs = self._test_step_outputs
         # for the logs to be at each epoch, not each step
         self.log("step", self.current_epoch, on_epoch=True, sync_dist=True)
         # calc average epoch loss and log it
         epoch_end_compute_and_log_losses(self, "test", [e["losses"] for e in step_outputs], sep=self._sep)
         # evaluate  and log it
         epoch_end_compute_and_log_metrics(self, "test", self._test_metrics, sep=self._sep)
+        # reset state
+        self._validation_step_outputs.clear()
 
     # configuration
     def configure_callbacks(self) -> Sequence[pl.Callback]:
