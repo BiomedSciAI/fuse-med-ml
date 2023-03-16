@@ -49,6 +49,9 @@ class BackboneResnet(ResNet):
         super().__init__(*init_parameters)
 
         # load pretrained parameters if required
+        if weights is not None and pretrained:
+            raise Exception("Use only one method to load pre-trained weights. Two were given!")
+
         if pretrained:
             print("Warning: not supported by new torchvision version - use weights instead")
             from torch.hub import load_state_dict_from_url
