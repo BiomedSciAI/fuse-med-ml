@@ -50,6 +50,8 @@ class BackboneResnet(ResNet):
             state_dict = load_state_dict_from_url(model_urls[name])
             self.load_state_dict(state_dict)
 
+        self.fc = nn.Identity()
+
         # save input parameters
         self.pretrained = pretrained
         self.in_channels = in_channels
