@@ -32,3 +32,13 @@ jobs:
       - run: pip install --upgrade pip
       - run: pip install mypy==0.950
       - run: python -m mypy . --show-error-codes
+  nb-clean:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.7"
+      - run: pip install --upgrade pip
+      - run: pip install nb-clean
+      - run: nb-clean check .
