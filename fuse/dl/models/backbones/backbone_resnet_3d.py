@@ -19,8 +19,6 @@ Created on June 30, 2021
 
 import torch.nn as nn
 from torch import Tensor
-from torch.hub import load_state_dict_from_url
-from torchvision.models.video.resnet import model_urls
 from typing import Tuple, Optional, Callable, List, Sequence, Type
 
 
@@ -139,8 +137,11 @@ class BackboneResnet3D(nn.Module):
         self._pretrained = pretrained
 
         if pretrained:
+            print("Warning: not supported by new torchvision version")
+            from torch.hub import load_state_dict_from_url
+            from torchvision.models.video.resnet import model_urls
             state_dict = load_state_dict_from_url(model_urls[name])
-            self.load_state_dict(state_dict)
+            self.load_state_dict(state_dict)            
         else:
             for m in self.modules():
                 if isinstance(m, nn.Conv3d):
