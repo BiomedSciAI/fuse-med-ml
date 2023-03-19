@@ -16,15 +16,11 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-
+from typing import Optional
 import torch.nn as nn
 
-try:
-    from torch.hub import load_state_dict_from_url
-except:
-    pass
 from torchvision.models import ResNet
-from torchvision.models.resnet import Bottleneck, model_urls, BasicBlock
+from torchvision.models.resnet import Bottleneck, BasicBlock, WeightsEnum
 from torch import Tensor
 
 
@@ -33,7 +29,14 @@ class BackboneResnet(ResNet):
     2D ResNet backbone
     """
 
-    def __init__(self, pretrained: bool = False, in_channels: int = 3, name: str = "resnet18") -> None:
+    def __init__(
+        self,
+        *,
+        pretrained: bool = False,
+        weights: Optional[WeightsEnum] = None,
+        in_channels: int = 3,
+        name: str = "resnet18"
+    ) -> None:
         """
         Create 2D Resnet
         :param pretrained: reload imagenet weights
@@ -46,10 +49,20 @@ class BackboneResnet(ResNet):
         super().__init__(*init_parameters)
 
         # load pretrained parameters if required
+        if weights is not None and pretrained:
+            raise Exception("Use only one method to load pre-trained weights. Two were given!")
+
         if pretrained:
+            print("Warning: not supported by new torchvision version - use weights instead")
+            from torch.hub import load_state_dict_from_url
+            from torchvision.models.resnet import model_urls
+
             state_dict = load_state_dict_from_url(model_urls[name])
             self.load_state_dict(state_dict)
 
+        if weights is not None:
+            self.load_state_dict(weights.get_state_dict(progress=True))
+            
         self.fc = nn.Identity()
 
         # save input parameters
