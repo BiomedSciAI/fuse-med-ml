@@ -65,14 +65,19 @@ class BackboneResnet(ResNet):
 
         self.fc = nn.Identity()
 
+        del self.fc
+
         # save input parameters
         self.pretrained = pretrained
         self.in_channels = in_channels
 
         if self.in_channels != 3:
             # modify the first convolution layer to support any number of input channels
-            self.conv1.in_channels = 1
-            self.conv1.weight = nn.Parameter(self.conv1.weight.sum(dim=1, keepdim=True))
+            if self.in_channels == 1:
+                self.conv1.in_channels = 1
+                self.conv1.weight = nn.Parameter(self.conv1.weight.sum(dim=1, keepdim=True))
+            else:
+                self.conv1 = nn.Conv2d(self.in_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
 
     def forward(self, x: Tensor) -> Tensor:  # type: ignore
         """
