@@ -165,7 +165,6 @@ def run_train(paths: dict, train_params: dict) -> None:
         default_root_dir=paths["model_dir"],
         max_epochs=train_params["trainer.num_epochs"],
         accelerator=train_params["trainer.accelerator"],
-        strategy="auto",
         devices=train_params["trainer.num_devices"],
     )
 
