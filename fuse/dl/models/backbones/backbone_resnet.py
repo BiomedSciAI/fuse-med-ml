@@ -63,8 +63,6 @@ class BackboneResnet(ResNet):
         if weights is not None:
             self.load_state_dict(weights.get_state_dict(progress=True))
 
-        self.fc = nn.Identity()
-
         del self.fc
 
         # save input parameters
