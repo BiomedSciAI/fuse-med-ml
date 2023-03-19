@@ -18,23 +18,11 @@ Created on June 30, 2021
 """
 
 import torch.nn as nn
-from torchvision.models.video.mvit import MViT, mvit_v2_s, mvit_v1_b, MViT_V2_S_Weights, MViT_V1_B_Weights
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
-from dataclasses import dataclass
-from fuse.dl.models.heads import Head3D
+from torchvision.models.video.mvit import MViT, MViT_V2_S_Weights
+from typing import Dict, List
 from torch import Tensor
 import torch
-
-
-@dataclass
-class MSBlockConfig:
-    num_heads: int
-    input_channels: int
-    output_channels: int
-    kernel_q: List[int]
-    kernel_kv: List[int]
-    stride_q: List[int]
-    stride_kv: List[int]
+from torchvision.models.video.mvit import MSBlockConfig
 
 
 class BackboneMViT(nn.Module):
@@ -45,6 +33,9 @@ class BackboneMViT(nn.Module):
         pretrained: bool = False,
     ) -> None:
         """
+        Multiscale Vision Transformers (MViT) is based on connecting the seminal idea of multiscale feature hierarchies with transformer models.
+        This MViT model is based on the MViTv2: Improved Multiscale Vision Transformers for Classification and Detection (https://arxiv.org/abs/2112.01526)
+        and Multiscale Vision Transformers papers (https://arxiv.org/abs/2104.11227).
         :param in_channels: number of channels in the image
         :param input_dim: shape of each image in the format [depth, height, width]
 
