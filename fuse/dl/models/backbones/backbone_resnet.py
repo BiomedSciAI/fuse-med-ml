@@ -62,7 +62,7 @@ class BackboneResnet(ResNet):
 
         if weights is not None:
             self.load_state_dict(weights.get_state_dict(progress=True))
-            
+
         self.fc = nn.Identity()
 
         # save input parameters
@@ -70,8 +70,9 @@ class BackboneResnet(ResNet):
         self.in_channels = in_channels
 
         if self.in_channels != 3:
-            # override the first convolution layer to support any number of input channels
-            self.conv1 = nn.Conv2d(self.in_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
+            # modify the first convolution layer to support any number of input channels
+            self.conv1.in_channels = 1
+            self.conv1.weight = nn.Parameter(self.conv1.weight.sum(dim=1, keepdim=True))
 
     def forward(self, x: Tensor) -> Tensor:  # type: ignore
         """
