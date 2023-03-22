@@ -8,7 +8,7 @@ def num_available_cores(verbose: int = 0) -> int:
     if "LSB_DJOB_NUMPROC" in os.environ:
         ans = int(os.environ["LSB_DJOB_NUMPROC"])
         if verbose > 0:
-            print("LSB_DJOB_NUMPROC is found - extract availables cores num from it. Available cores = {ans}")
+            print(f"LSB_DJOB_NUMPROC is found - extracting availables cores num from it. Available cores = {ans}")
         return ans
 
     return multiprocessing.cpu_count()
