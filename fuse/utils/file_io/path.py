@@ -1,5 +1,19 @@
 import os
+from os.path import join, basename, dirname
 
+def add_base_prefix(filepath:str, prefix:str) -> str:
+    """
+    Useful simple helper function for adding a prefix to a file. The prefix is added to the file "basename", 
+        and the full path is returned.
+    Example usage:
+
+        ans = add_base_prefix('/a/b/c/wow.tsv', 'extra_info@')
+        print(ans)
+        >'/a/b/c/extra_info@wow.tsv'
+
+
+    """
+    return join(dirname(filepath), prefix+basename(filepath))
 
 def change_extension(filepath: str, new_extension: str) -> str:
     """
@@ -9,11 +23,11 @@ def change_extension(filepath: str, new_extension: str) -> str:
     will return '/a/b/c.sdf/ew/some_file.7zip'
     """
 
-    _basename = os.path.basename(filepath)
+    _basename = basename(filepath)
     last_dot = _basename.rfind(".")
     if last_dot < 0:
         return filepath + "." + new_extension
-    ans = os.path.join(os.path.dirname(filepath), _basename[:last_dot] + "." + new_extension)
+    ans = join(dirname(filepath), _basename[:last_dot] + "." + new_extension)
     return ans
 
 
@@ -22,7 +36,7 @@ def get_extension(filepath: str) -> str:
     Returns the extension.
     For example - get_extension('/a/b/c/d/banana.txt') will return '.txt'
     """
-    _basename = os.path.basename(filepath)
+    _basename = basename(filepath)
     last_dot = _basename.rfind(".")
     if last_dot < 0:
         return ""
@@ -36,11 +50,11 @@ def remove_extension(filepath: str) -> str:
     For example: remove_extension('/a/b/c/d/asdf.txt') with return '/a/b/c/d/asdf'
     """
 
-    _dirname = os.path.dirname(filepath)
-    _basename = os.path.basename(filepath)
+    _dirname = dirname(filepath)
+    _basename = basename(filepath)
     if "." not in _basename:
         return filepath
 
     last_dot = _basename.rfind(".")
-    ans = os.path.join(_dirname, _basename[:last_dot])
+    ans = join(_dirname, _basename[:last_dot])
     return ans
