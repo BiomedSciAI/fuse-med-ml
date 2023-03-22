@@ -64,7 +64,7 @@ class MetricBase(ABC):
     ) -> Union[Dict[str, Any], Any]:
         """
         evaluate the collected data
-        :param results: results aggergated by the previous metrics
+        :param results: results aggregated by the previous metrics
         :param ids: sequence of sample ids
         The evaluated results should be stored in results. (recommendation: store it under metrics namespace)
         """
@@ -83,6 +83,8 @@ class MetricCollector(MetricBase):
         pre_collect_process_func: Optional[Callable] = None,
         post_collect_process_func: Optional[Callable] = None,
         batch_pre_collect_process_func: Optional[Callable] = None,
+        batch_post_collect_process_func: Optional[Callable] = None,
+        post_keys_to_collect: Optional[List[str]] = None,
         **keys_to_collect: Dict[str, str],
     ):
         """
@@ -90,8 +92,11 @@ class MetricCollector(MetricBase):
                                          Consider using batch_pre_collect_process_func instead to optimize the running time when working with large batch size.
         :param post_collect_process_func: Optional callable - custom process func - used to evaluate in a sample level and keep only the result.
                                           Typically used in methods such as segmentation to avoid from storing all the images until the end of the epoch.
-                                          Can return either a single value or dictionary. The returned values will be collected under the name "post_args"
-        :param batch_pre_collect_process_func: Optional callable - the callable will get as an input a batch_dict and can preprocess it if required before collection.
+                                          Returns a dictionary to be aggregated.
+        :param batch_pre_collect_process_func: Optional callable - same as pre_collect_process_func but in a batch level (more efficient)
+        :param batch_post_collect_process_func: Optional callable - same as post_collect_process_func but in a batch level (more efficient)
+        :param post_keys_to_collect: specify the keys you want to collect after post_collect_process. Required only if post_collect_process_func or batch_post_collect_process_func are specified.
+                                     if None, will aggregate list of post_collect_process_func returned values
         :param keys_to_collect: specify the keys you want to collect from the source data
         """
         super().__init__()
@@ -99,7 +104,9 @@ class MetricCollector(MetricBase):
         self._pre_collect_process_func = pre_collect_process_func
         self._post_collect_process_func = post_collect_process_func
         self._batch_pre_collect_process_func = batch_pre_collect_process_func
+        self._batch_post_collect_process_func = batch_post_collect_process_func
         self._keys_to_collect = copy.copy(keys_to_collect)
+        self._post_keys_to_collect = copy.copy(post_keys_to_collect)
         self._id_keys = MetricCollector.DEFAULT_ID_KEYS
 
         # reset
@@ -127,10 +134,11 @@ class MetricCollector(MetricBase):
                     sample_to_collect[name] = value
 
                 if self._post_collect_process_func is not None:
-                    sample_to_collect = {"post_args": self._post_collect_process_func(**sample_to_collect)}
+                    sample_to_collect = self._post_collect_process_func(**sample_to_collect)
+                    if self._post_keys_to_collect is None:
+                        sample_to_collect = {"post_args": sample_to_collect}
 
-                # store it - assumes batch dimension? What about single sample?
-                for name in sample_to_collect:
+                for name in self._collected_data:
                     self._collected_data[name].append(sample_to_collect[name])
         else:  # work in a batch level - optimized for large batch size
             if self._batch_pre_collect_process_func is not None:
@@ -144,13 +152,17 @@ class MetricCollector(MetricBase):
                 if dist.is_initialized():
                     value = self.sync_tensor_data_and_concat(value)
 
-                if isinstance(value, torch.Tensor):
-                    value = value.detach().cpu().numpy()
-
                 batch_to_collect[name] = value
 
-            for name in batch_to_collect:
-                self._collected_data[name].extend(batch_to_collect[name])
+            if self._batch_post_collect_process_func is not None:
+                batch_to_collect = self._batch_post_collect_process_func(**batch_to_collect)
+                if self._post_keys_to_collect is None:
+                    batch_to_collect = {"post_args": batch_to_collect}
+
+            for name, value in batch_to_collect.items():
+                if isinstance(value, torch.Tensor):
+                    value = value.detach().cpu().numpy()
+                self._collected_data[name].extend(value)
 
         # extract ids and store it in self._collected_ids
         ids = None
@@ -213,9 +225,35 @@ class MetricCollector(MetricBase):
         return pd.Series(result.flatten())
 
     @staticmethod
-    def _df_dict_apply_kwargs(data: pd.Series, func: Callable) -> pd.Series:
-        result = func(**data.to_dict())
-        return pd.Series(result.flatten())
+    def _df_dict_apply_kwargs(data: pd.Series, func: Callable, batch: bool = False, post: bool = False) -> pd.Series:
+        if batch:
+            kwargs = {}
+            for k, v in data.to_dict().items():
+                if isinstance(v, torch.Tensor):
+                    kwargs[k] = v.unsqueeze(0)
+                elif isinstance(v, np.ndarray):
+                    kwargs[k] = np.expand_dims(v, axis=0)
+                else:
+                    kwargs[k] = [v]
+        else:
+            kwargs = data.to_dict()
+
+        result = func(**kwargs)
+
+        if post:
+            if not isinstance(result, dict):
+                result = {"post_args": result}
+
+        if batch:
+            result_sample = {}
+            for k, v in result.items():
+                if isinstance(v, (torch.Tensor, np.ndarray, list)):
+                    result_sample[k] = v[0]
+                else:
+                    result_sample[k] = v
+            result = result_sample
+
+        return pd.Series(result)
 
     def set(self, data: pd.DataFrame) -> None:
         """
@@ -235,8 +273,14 @@ class MetricCollector(MetricBase):
             data_to_collect[name] = data[key]
 
         if self._post_collect_process_func is not None:
-            post_collect_process = lambda x: self._df_dict_apply_kwargs(x, self._post_collect_process_func)
-            data_to_collect = data.apply(post_collect_process, axis=1)
+            post_collect_process = lambda x: self._df_dict_apply_kwargs(x, self._post_collect_process_func, post=True)
+            data_to_collect = data_to_collect.apply(post_collect_process, axis=1)
+
+        if self._batch_post_collect_process_func is not None:
+            post_collect_process = lambda x: self._df_dict_apply_kwargs(
+                x, self._batch_post_collect_process_func, batch=True, post=True
+            )
+            data_to_collect = data_to_collect.apply(post_collect_process, axis=1)
 
         for name in data_to_collect.keys():
             values = data_to_collect.loc[:, name]
@@ -256,15 +300,18 @@ class MetricCollector(MetricBase):
         """
         See super class
         """
-        if self._post_collect_process_func is None:
+        if self._post_collect_process_func is None and self._batch_post_collect_process_func is None:
             self._collected_data = {name: [] for name in self._keys_to_collect}
         else:
             # collect everything you get from post_collect_process_args
-            self._collected_data = {"post_args": []}
+            if self._post_keys_to_collect is not None:
+                self._collected_data = {name: [] for name in self._post_keys_to_collect}
+            else:
+                self._collected_data = {"post_args": []}
 
         self._collected_ids = []  # the original collected ids
 
-        self._sampled_ids = None  # the required ids - set be sample() method
+        self._sampled_ids = None  # the required ids - set by sample() method
 
     def get_ids(self) -> Sequence[Hashable]:
         """
@@ -281,12 +328,10 @@ class MetricCollector(MetricBase):
             return copy.copy(self._collected_data)
         else:
             # convert required ids to permutation
-            original_ids = self._collected_ids
             required_ids = ids
-            original_ids_pos = {s: i for (i, s) in enumerate(original_ids)}
+            original_ids_pos = {s: i for (i, s) in enumerate(self._collected_ids)}
 
-            # permutation_old = [original_ids.index(sample_id) for sample_id in required_ids]  #16.399551391601562
-            permutation = [original_ids_pos[sample_id] for sample_id in required_ids]  # 0.008132457733154297 seconds
+            permutation = [original_ids_pos[sample_id] for sample_id in required_ids]
 
             # create the permuted dictionary
             data = {}
@@ -313,12 +358,18 @@ class MetricWithCollectorBase(MetricBase):
         pre_collect_process_func: Optional[Callable] = None,
         post_collect_process_func: Optional[Callable] = None,
         batch_pre_collect_process_func: Optional[Callable] = None,
+        batch_post_collect_process_func: Optional[Callable] = None,
+        post_keys_to_collect: Optional[Sequence[str]] = None,
         external_data_collector: Optional[MetricCollector] = None,
         extract_ids: bool = False,
         **kwargs: Any,
     ) -> None:
         """
-        :param pre_collect_process_func: Optional callable - the callable will get as an input a batch_dict or a dataframe and can preprocess it if required
+        :param pre_collect_process_func: Optional callable - see details in MetricCollector.__init__
+        :param post_collect_process_func: Optional callable - see details in MetricCollector.__init__
+        :param batch_pre_collect_process_func: Optional callable - see details in MetricCollector.__init__
+        :param batch_post_collect_process_func: Optional callable - see details in MetricCollector.__init__
+        :param post_keys_to_collect: Optional keys to collect from post_collect_process func results - see details in MetricCollector.__init__
         :param external_data_collector: Optional - in a case space optimization required and there by using shared collector for few metrics
         :param extract_ids: self._extract_arguments packs all arguments for a underlying function. Set to True, to pack also the ids (under the name 'ids')
         :param kwargs: specify keywords and value arguments you want to collect from the source data.
@@ -336,6 +387,8 @@ class MetricWithCollectorBase(MetricBase):
                 pre_collect_process_func,
                 post_collect_process_func,
                 batch_pre_collect_process_func,
+                batch_post_collect_process_func,
+                post_keys_to_collect=post_keys_to_collect,
                 **self._keys_to_collect,
             )
             if external_data_collector is None
@@ -468,8 +521,42 @@ class MetricPerSampleDefault(MetricWithCollectorBase):
         # extract values from collected data and results dict
         kwargs = self._extract_arguments(results, ids)
 
+        if self._collector._post_keys_to_collect is None:
+            kwargs = kwargs["post_args"]
+
         # single evaluation method
-        return self._result_aggregate_func(kwargs["post_args"])
+        return self._result_aggregate_func(kwargs)
+
+
+class MetricPerBatchDefault(MetricWithCollectorBase):
+    """
+    Default generic implementation for a case that is better to compute the metric per sample and then aggregate the results.
+    Can be used for any metric getting as an input list of prediction, list of targets and optionally additional parameters
+    """
+
+    def __init__(self, *, metric_per_batch_func: Callable, result_aggregate_func: Callable, **kwargs: Any):
+        """
+        :param pred: prediction key to collect
+        :param target: target key to collect
+        :param metric_per_sample_func: function that gets as input the values to collect specified in metric constructor, typically pred and target.
+                                       A sequence of all the returned values from all samples will be passed to result_aggregate_func
+        :param result_aggregate_func: function that get the output of metric_per_sample_func and aggregates it over multiple samples
+        :param kwargs: additional kw arguments for MetricWithCollectorBase
+        """
+
+        super().__init__(batch_post_collect_process_func=metric_per_batch_func, **kwargs)
+        self._result_aggregate_func = result_aggregate_func
+
+    def eval(self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None) -> Union[Dict, Any]:
+        """
+        See super class
+        """
+
+        # extract values from collected data and results dict
+        kwargs = self._extract_arguments(results, ids)
+
+        # single evaluation method
+        return self._result_aggregate_func(**kwargs)
 
 
 class GroupAnalysis(MetricWithCollectorBase):
@@ -561,14 +648,16 @@ class Filter(MetricWithCollectorBase):
     Evaluate a sub-group of data. This utility will filter non relevant samples and will call to the given metric.
     """
 
-    def __init__(self, metric: MetricBase, filter: str, **super_kwargs: Any) -> None:
+    def __init__(self, metric: MetricBase, filter: str, cond: Optional[callable] = None, **super_kwargs: Any) -> None:
         """
         :param metric: metric to filter samples for
-        :param group: key to extract filter
+        :param filter: key to extract filter
+        :param cond: if None, then values stored in filtered expected to be booleans. Otherwise apply cond to convert each value to boolean
         :param super_kwargs: additional arguments for super class (MetricWithCollectorBase) constructor
         """
         super().__init__(filter=filter, **super_kwargs)
         self._metric = metric
+        self._cond = cond
 
     def collect(self, batch: Dict) -> None:
         "See super class"
@@ -599,7 +688,10 @@ class Filter(MetricWithCollectorBase):
             )
         ids = np.array(ids)
 
-        filter = np.array(data["filter"])
+        if self._cond is not None:
+            filter = np.array([self._cond(elem) for elem in data["filter"]])
+        else:
+            filter = np.array(data["filter"])
         keep_ids = ids[~filter]
         metric_result = self._metric.eval(results, keep_ids)
         return metric_result
@@ -668,18 +760,19 @@ class CI(MetricWithCollectorBase):
         data = self._collector.get()
         if ids is None:
             ids = self._collector.get_ids()
-        if not ids:
+
+        if ids is None:
             raise Exception(
                 "Error: confidence interval is supported only when a unique identifier is specified. Add key 'id' to your data"
             )
         ids = np.array(ids)
 
         rnd = np.random.RandomState(self._rnd_seed)
-        original_sample_results = self._metric.eval(results)
+        original_sample_results = self._metric.eval(results, ids=ids)
         boot_results = []
         ci_results = {}
 
-        stratum_id = np.array(data["stratum"]) if "stratum" in data else np.ones(len(data["index"]))
+        stratum_id = np.array(data["stratum"]) if "stratum" in data else np.ones(len(ids))
         unique_strata = np.unique(stratum_id)
 
         for _ in range(self._num_of_bootstraps):

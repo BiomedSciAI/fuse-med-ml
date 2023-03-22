@@ -130,7 +130,7 @@ def _run_multiprocessed_as_iterator_impl(
     try:
         args_num = len(args_list)
     except:
-        print('Warning: could not deduce args_list length, assuming it is an iterator')
+        print("Warning: could not deduce args_list length, assuming it is an iterator")
         pass
 
     if verbose < 1:
@@ -144,9 +144,7 @@ def _run_multiprocessed_as_iterator_impl(
     if workers is None or workers <= 1:
         _store_in_global_storage(copy_to_global_storage)
         try:
-            #for i in tqdm_func(range(args_num)):
-                #curr_ans = worker_func(args_list[i])
-            for curr_input in tqdm_func(args_list):                
+            for curr_input in tqdm_func(args_list):
                 curr_ans = worker_func(curr_input)
                 yield curr_ans
         except:

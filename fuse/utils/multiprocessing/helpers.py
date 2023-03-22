@@ -2,7 +2,7 @@ import numpy as np
 from typing import List, Tuple
 
 
-def get_chunks_ranges(total: int, *, chunk_size: int = None, parts:int = None) -> List[Tuple[int, int]]:
+def get_chunks_ranges(total: int, *, chunk_size: int = None, parts: int = None) -> List[Tuple[int, int]]:
     """
     Creates "chunks" of work, useful when creating worker functions for run_multiprocessed
      where each workers gets a range ("chunk") to work on.
@@ -18,7 +18,7 @@ def get_chunks_ranges(total: int, *, chunk_size: int = None, parts:int = None) -
     """
 
     assert (chunk_size is not None) ^ (parts is not None), "Exactly one of chunk_size or parts must be provided"
-    
+
     if chunk_size is not None:
         if chunk_size >= total:
             return [(0, total)]
@@ -28,19 +28,15 @@ def get_chunks_ranges(total: int, *, chunk_size: int = None, parts:int = None) -
         if ans[-1][-1] < total:
             ans.append((ans[-1][-1], total))
         ans[-1] = (ans[-1][0], min(ans[-1][-1], total))
-        return ans    
-    
+        return ans
+
     elif parts is not None:
         chunk_size = np.ceil(total / parts)
         return get_chunks_ranges(total, chunk_size=chunk_size)
 
-
-
-
     assert False, "should not reach here"
-
 
 
 if __name__ == "__main__":
     ans = get_chunks_ranges(12, parts=2)
-    z=1
+    z = 1
