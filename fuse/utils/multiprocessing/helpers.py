@@ -1,6 +1,17 @@
 import numpy as np
 from typing import List, Tuple
+import os
+import multiprocessing
 
+def num_available_cores(verbose:int = 0) -> int:
+    if 'LSB_DJOB_NUMPROC' in os.environ:
+        ans = int(os.environ['LSB_DJOB_NUMPROC'])
+        if verbose>0:
+            print('LSB_DJOB_NUMPROC is found - extract availables cores num from it. Available cores = {ans}')
+        return ans
+
+    return multiprocessing.cpu_count()
+    
 
 def get_chunks_ranges(total: int, *, chunk_size: int = None, parts: int = None) -> List[Tuple[int, int]]:
     """
