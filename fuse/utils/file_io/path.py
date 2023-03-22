@@ -1,9 +1,9 @@
-import os
 from os.path import join, basename, dirname
 
-def add_base_prefix(filepath:str, prefix:str) -> str:
+
+def add_base_prefix(filepath: str, prefix: str) -> str:
     """
-    Useful simple helper function for adding a prefix to a file. The prefix is added to the file "basename", 
+    Useful simple helper function for adding a prefix to a file. The prefix is added to the file "basename",
         and the full path is returned.
     Example usage:
 
@@ -13,7 +13,8 @@ def add_base_prefix(filepath:str, prefix:str) -> str:
 
 
     """
-    return join(dirname(filepath), prefix+basename(filepath))
+    return join(dirname(filepath), prefix + basename(filepath))
+
 
 def change_extension(filepath: str, new_extension: str) -> str:
     """
