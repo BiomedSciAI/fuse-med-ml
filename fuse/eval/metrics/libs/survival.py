@@ -22,6 +22,8 @@ class MetricsSurvival:
         """
         if isinstance(pred[0], np.ndarray):
             pred = np.asarray(pred)[:, event_class_index]
+        elif isinstance(pred, list):
+            pred = np.asarray(pred)
 
         event_times = (np.array(event_times) / time_unit).astype(int)
 
