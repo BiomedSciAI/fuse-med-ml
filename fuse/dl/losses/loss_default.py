@@ -76,6 +76,7 @@ class LossDefault(LossBase):
         callable: Callable = None,
         weight: Optional[float] = None,
         preprocess_func: Optional[Callable] = None,
+        postprocess_func: Optional[Callable] = None,
     ) -> None:
         """
         This class wraps a PyTorch loss function with a Fuse api.
@@ -85,6 +86,7 @@ class LossDefault(LossBase):
         :param callable:           PyTorch loss function handle (e.g., torch.nn.functional.cross_entropy)
         :param weight:             scalar loss multiplier
         :param preprocess_func:             function that filters batch_dict/ The function gets an input batch_dict and returns filtered batch_dict
+        :param postprocess_func:             function that filters output/ The function gets an loss output and returns filtered loss
             the expected function signature is:
                 foo(batch_dict: NDict) -> NDict:
         """
@@ -94,6 +96,7 @@ class LossDefault(LossBase):
         self.callable = callable
         self.weight = weight
         self.preprocess_func = preprocess_func
+        self.postprocess_func = postprocess_func
 
     def forward(self, batch_dict: NDict) -> torch.Tensor:
         # preprocess batch_dict if required
@@ -103,7 +106,7 @@ class LossDefault(LossBase):
         targets = batch_dict[self.target]
 
         loss_obj = self.callable(preds, targets)
-
+        loss_obj = self.postprocess_func(loss_obj)
         if self.weight is not None:
             loss_obj *= self.weight
 

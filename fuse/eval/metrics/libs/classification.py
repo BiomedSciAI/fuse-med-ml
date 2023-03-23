@@ -68,7 +68,7 @@ class MetricsLibClass:
         sample_weight: Optional[Sequence[Union[np.ndarray, float]]] = None,
         average: str = "micro",
         max_fpr: Optional[float] = None,
-        ignore_value : int = -100,
+        ignore_value: int = -100,
     ) -> float:
         """
         Compute multi label auc roc (Receiver operating characteristic) score using sklearn
@@ -82,8 +82,6 @@ class MetricsLibClass:
         """
         y_score = np.asarray(pred)
         y_true = np.asarray(target)
-        y_true = y_true[y_true != ignore_value]
-        y_score = y_score[y_true != ignore_value]
         return metrics.roc_auc_score(
             y_score=y_score, y_true=y_true, sample_weight=sample_weight, max_fpr=max_fpr, average=average
         )
