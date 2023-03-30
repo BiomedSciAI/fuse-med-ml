@@ -23,20 +23,20 @@ the goal of this script is simply to train a classifier and show how to wrap a r
 trained "fuse" style. Meaning it accesses data using keys to a batch_dict. It also demonstrates how easy it is to
 load datasets from fuse.
 """
-
 import copy
 from typing import OrderedDict, Any, Tuple, Optional
 
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
+from torch.utils.data import DistributedSampler
 import pytorch_lightning as pl
 
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy
 
 from fuse.data.utils.collates import CollateDefault
-
+from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
 from fuse.dl.lightning.pl_module import LightningModuleDefault
@@ -50,10 +50,9 @@ import torch
 PARAMS_DICT = {
     "paths.data_dir": "_examples/mnist",
     "data.batch_size": 100,
-    "data.train_num_workers": 8,
-    "data.validation_num_workers": 8,
-    "trainer.num_epochs": 2,
-    "trainer.num_devices": 1,
+    "data.num_workers": 8,
+    "trainer.num_epochs": 3,
+    "trainer.num_devices": 2,
     "trainer.accelerator": "gpu",
     "trainer.ckpt_path": None,
     "opt.lr": 1e-4,
@@ -121,7 +120,11 @@ class FuseLitLenet(LightningModuleDefault):
 ## Datamodule ###########################################################
 class MNISTDataModule(pl.LightningDataModule):
     def __init__(
-        self, data_dir: str = "path/to/cache_dir", batch_size: int = 8, num_workers: int = 1, distributed: bool = False
+        self,
+        data_dir: str,
+        batch_size: int,
+        num_workers: int,
+        distributed: bool,
     ):
         super().__init__()
         self.data_dir = data_dir
@@ -134,21 +137,19 @@ class MNISTDataModule(pl.LightningDataModule):
         self.mnist_val = MNIST.dataset(self.data_dir, train=False)
 
     def train_dataloader(self) -> DataLoader:
-
-        # batch_sampler = BatchSamplerDefault(
-        #     sampler=DistributedSampler(self.mnist_train, rank=int(os.environ["RANK"])),
-        #     dataset=self.mnist_train,
-        #     mode="approx",
-        #     balanced_class_name="data.label",
-        #     num_balanced_classes=10,
-        #     batch_size=self.batch_size,
-        #     balanced_class_weights=None,
-        #     verbose=True,
-        # )
+        sampler = DistributedSampler(self.mnist_train) if self.distributed else None
+        batch_sampler = BatchSamplerDefault(
+            sampler=sampler,
+            dataset=self.mnist_train,
+            mode="approx",
+            balanced_class_name="data.label",
+            num_balanced_classes=10,
+            batch_size=self.batch_size,
+            balanced_class_weights=None,
+        )
         train_loader = DataLoader(
             dataset=self.mnist_train,
-            # batch_sampler=batch_sampler,
-            batch_size=self.batch_size,
+            batch_sampler=batch_sampler,
             collate_fn=CollateDefault(),
             num_workers=self.num_workers,
         )
@@ -171,15 +172,22 @@ def run_train(params: dict) -> None:
     model = FuseLitLenet(model_dir=None, save_model=False, lr=params["opt.lr"], weight_decay=params["opt.weight_decay"])
 
     # initialize data module
-    mnist_dm = MNISTDataModule()
+    distributed = True if params["trainer.num_devices"] > 1 else None
+    mnist_dm = MNISTDataModule(
+        data_dir=params["paths.data_dir"],
+        batch_size=params["data.batch_size"],
+        num_workers=params["data.num_workers"],
+        distributed=distributed,
+    )
 
     # create pl trainer
     pl_trainer = pl.Trainer(
         # default_root_dir=params["model_dir"],
+        replace_sampler_ddp=False,  # Must be set when using a batch sampler
         max_epochs=params["trainer.num_epochs"],
         accelerator=params["trainer.accelerator"],
         devices=params["trainer.num_devices"],
-        strategy="ddp" if params["trainer.num_devices"] > 1 else None,
+        strategy="ddp" if distributed else None,
     )
 
     # train model
