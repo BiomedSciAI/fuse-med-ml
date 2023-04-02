@@ -23,23 +23,20 @@ the goal of this script is simply to train a classifier and show how to wrap a r
 trained "fuse" style. Meaning it accesses data using keys to a batch_dict. It also demonstrates how easy it is to
 load datasets from fuse.
 """
-
 import copy
-import os
-from typing import OrderedDict, Any, Tuple
+from typing import OrderedDict, Any, Tuple, Optional
 
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
+from torch.utils.data import DistributedSampler
 import pytorch_lightning as pl
-
 
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy
 
-from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.collates import CollateDefault
-
+from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
 from fuse.dl.lightning.pl_module import LightningModuleDefault
@@ -50,17 +47,11 @@ from fuse_examples.imaging.classification.mnist import lenet
 import torch
 
 ## Paths and Hyperparameters ############################################
-ROOT = "_examples/mnist"  # TODO: fill path here
-MODEL_DIR = os.path.join(ROOT, "model_dir")
-PATHS = {
-    "model_dir": MODEL_DIR,
-    "cache_dir": os.path.join(ROOT, "cache_dir"),
-}
-TRAIN_PARAMS = {
+PARAMS_DICT = {
+    "paths.data_dir": "_examples/mnist",
     "data.batch_size": 100,
-    "data.train_num_workers": 8,
-    "data.validation_num_workers": 8,
-    "trainer.num_epochs": 2,
+    "data.num_workers": 8,
+    "trainer.num_epochs": 3,
     "trainer.num_devices": 1,
     "trainer.accelerator": "gpu",
     "trainer.ckpt_path": None,
@@ -76,7 +67,7 @@ def perform_softmax(logits: Any) -> Tuple[torch.Tensor, torch.Tensor]:
 
 ## Model Definition #####################################################
 class FuseLitLenet(LightningModuleDefault):
-    def __init__(self, model_dir: str, lr: float, weight_decay: float):  # paths, train_params):
+    def __init__(self, model_dir: Optional[str], save_model: bool, lr: float, weight_decay: float):  # paths, params):
         """
         Initialize the model. We inheret from LightningModuleDefault to get functions necessary for lightning trainer.
         We also wrap the torch model so that it can train using keys from the fuse NDict batch dict.
@@ -117,6 +108,7 @@ class FuseLitLenet(LightningModuleDefault):
         # initialize LightningModuleDefault with our module, losses, etc so that we can use the functions of LightningModuleDefault
         super().__init__(
             model_dir=model_dir,
+            save_model=save_model,
             model=model,
             losses=losses,
             train_metrics=train_metrics,
@@ -125,52 +117,81 @@ class FuseLitLenet(LightningModuleDefault):
         )
 
 
+## Datamodule ###########################################################
+class MNISTDataModule(pl.LightningDataModule):
+    def __init__(
+        self,
+        data_dir: str,
+        batch_size: int,
+        num_workers: int,
+        distributed: bool,
+    ):
+        super().__init__()
+        self.data_dir = data_dir
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+        self.distributed = distributed
+
+    def setup(self, stage: str) -> None:
+        self.mnist_train = MNIST.dataset(self.data_dir, train=True)
+        self.mnist_val = MNIST.dataset(self.data_dir, train=False)
+
+    def train_dataloader(self) -> DataLoader:
+        sampler = DistributedSampler(self.mnist_train) if self.distributed else None
+        batch_sampler = BatchSamplerDefault(
+            sampler=sampler,
+            dataset=self.mnist_train,
+            mode="approx",
+            balanced_class_name="data.label",
+            num_balanced_classes=10,
+            batch_size=self.batch_size,
+            balanced_class_weights=None,
+        )
+        train_loader = DataLoader(
+            dataset=self.mnist_train,
+            batch_sampler=batch_sampler,
+            collate_fn=CollateDefault(),
+            num_workers=self.num_workers,
+        )
+        return train_loader
+
+    def val_dataloader(self) -> DataLoader:
+        val_loader = DataLoader(
+            self.mnist_val,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            collate_fn=CollateDefault(),
+        )
+        return val_loader
+
+
 ## Training #############################################################
-def run_train(paths: dict, train_params: dict) -> None:
+def run_train(params: dict) -> None:
 
     # initialize model
-    model = FuseLitLenet(
-        model_dir=paths["model_dir"], lr=train_params["opt.lr"], weight_decay=train_params["opt.weight_decay"]
-    )
+    model = FuseLitLenet(model_dir=None, save_model=False, lr=params["opt.lr"], weight_decay=params["opt.weight_decay"])
 
-    # make datasets
-    train_dataset = MNIST.dataset(paths["cache_dir"], train=True)
-    validation_dataset = MNIST.dataset(paths["cache_dir"], train=False)
-
-    # make sampler
-    sampler = BatchSamplerDefault(
-        dataset=train_dataset,
-        balanced_class_name="data.label",
-        num_balanced_classes=10,
-        batch_size=train_params["data.batch_size"],
-        balanced_class_weights=None,
-    )
-
-    # train/val dataloaders
-    train_dataloader = DataLoader(
-        dataset=train_dataset,
-        batch_sampler=sampler,
-        collate_fn=CollateDefault(),
-        num_workers=train_params["data.train_num_workers"],
-    )
-    validation_dataloader = DataLoader(
-        dataset=validation_dataset,
-        batch_size=train_params["data.batch_size"],
-        collate_fn=CollateDefault(),
-        num_workers=train_params["data.validation_num_workers"],
+    # initialize data module
+    distributed = True if params["trainer.num_devices"] > 1 else None
+    mnist_dm = MNISTDataModule(
+        data_dir=params["paths.data_dir"],
+        batch_size=params["data.batch_size"],
+        num_workers=params["data.num_workers"],
+        distributed=distributed,
     )
 
     # create pl trainer
     pl_trainer = pl.Trainer(
-        default_root_dir=paths["model_dir"],
-        max_epochs=train_params["trainer.num_epochs"],
-        accelerator=train_params["trainer.accelerator"],
-        devices=train_params["trainer.num_devices"],
+        replace_sampler_ddp=False,  # Must be set when using a batch sampler
+        max_epochs=params["trainer.num_epochs"],
+        accelerator=params["trainer.accelerator"],
+        devices=params["trainer.num_devices"],
+        strategy="ddp" if distributed else None,
     )
 
     # train model
-    pl_trainer.fit(model, train_dataloader, validation_dataloader, ckpt_path=train_params["trainer.ckpt_path"])
+    pl_trainer.fit(model, mnist_dm)
 
 
 if __name__ == "__main__":
-    run_train(paths=PATHS, train_params=TRAIN_PARAMS)
+    run_train(params=PARAMS_DICT)
