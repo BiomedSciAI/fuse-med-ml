@@ -52,7 +52,7 @@ PARAMS_DICT = {
     "data.batch_size": 100,
     "data.num_workers": 8,
     "trainer.num_epochs": 3,
-    "trainer.num_devices": 2,
+    "trainer.num_devices": 1,
     "trainer.accelerator": "gpu",
     "trainer.ckpt_path": None,
     "opt.lr": 1e-4,
@@ -182,7 +182,6 @@ def run_train(params: dict) -> None:
 
     # create pl trainer
     pl_trainer = pl.Trainer(
-        # default_root_dir=params["model_dir"],
         replace_sampler_ddp=False,  # Must be set when using a batch sampler
         max_epochs=params["trainer.num_epochs"],
         accelerator=params["trainer.accelerator"],
