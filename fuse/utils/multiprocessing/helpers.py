@@ -1,17 +1,23 @@
 import numpy as np
 from typing import List, Tuple
 import os
-import multiprocessing
 
 
-def num_available_cores(verbose: int = 0) -> int:
-    if "LSB_DJOB_NUMPROC" in os.environ:
-        ans = int(os.environ["LSB_DJOB_NUMPROC"])
-        if verbose > 0:
-            print(f"LSB_DJOB_NUMPROC is found - extracting availables cores num from it. Available cores = {ans}")
-        return ans
+def num_available_cores(verbose: bool = True) -> int:
 
-    return multiprocessing.cpu_count()
+    if hasattr(os, "sched_getaffinity"):
+        try:
+            ans = len(os.sched_getaffinity(0))
+            if verbose:
+                print(f"num_available_cores:: spotted affinity which restricts available cores. Returning {ans} cores")
+            return ans
+        except Exception:
+            pass
+
+    ans = os.cpu_count()
+    if verbose:
+        print(f"num_available_cores:: Returning {ans} cores")
+    return ans
 
 
 def get_chunks_ranges(total: int, *, chunk_size: int = None, parts: int = None) -> List[Tuple[int, int]]:
