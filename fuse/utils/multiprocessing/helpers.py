@@ -4,17 +4,17 @@ import os
 
 
 def num_available_cores(verbose: int = 1) -> int:
-        
-    if hasattr(os, 'sched_getaffinity'):
+
+    if hasattr(os, "sched_getaffinity"):
         try:
             ans = len(os.sched_getaffinity(0))
-            print(f'num_available_cores:: spotted affinity which restricts available cores. Returning {ans} cores')
+            print(f"num_available_cores:: spotted affinity which restricts available cores. Returning {ans} cores")
             return ans
         except Exception:
             pass
-    
-    ans = os.cpu_count()        
-    print(f'num_available_cores:: Returning {ans} cores')
+
+    ans = os.cpu_count()
+    print(f"num_available_cores:: Returning {ans} cores")
     return ans
 
 
