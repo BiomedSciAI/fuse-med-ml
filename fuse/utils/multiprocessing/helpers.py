@@ -3,18 +3,20 @@ from typing import List, Tuple
 import os
 
 
-def num_available_cores(verbose: int = 1) -> int:
+def num_available_cores(verbose: bool = True) -> int:
 
     if hasattr(os, "sched_getaffinity"):
         try:
             ans = len(os.sched_getaffinity(0))
-            print(f"num_available_cores:: spotted affinity which restricts available cores. Returning {ans} cores")
+            if verbose:
+                print(f"num_available_cores:: spotted affinity which restricts available cores. Returning {ans} cores")
             return ans
         except Exception:
             pass
 
     ans = os.cpu_count()
-    print(f"num_available_cores:: Returning {ans} cores")
+    if verbose:
+        print(f"num_available_cores:: Returning {ans} cores")
     return ans
 
 
