@@ -1,5 +1,6 @@
 from lifelines.utils import concordance_index
 import numpy as np
+from typing import Sequence
 
 
 class MetricsSurvival:
@@ -20,8 +21,11 @@ class MetricsSurvival:
         :param event_class_index: Optional - the index of the event class in predicted scores tuples
         :return c-index (concordance index) score
         """
+
+        if isinstance(pred, Sequence):
+            pred = np.asarray(pred)
         if isinstance(pred[0], np.ndarray):
-            pred = np.asarray(pred)[:, event_class_index]
+            pred = pred[:, event_class_index]
 
         event_times = (np.array(event_times) / time_unit).astype(int)
 
