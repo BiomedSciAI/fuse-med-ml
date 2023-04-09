@@ -126,10 +126,17 @@ def _run_multiprocessed_as_iterator_impl(
     def _passthrough_tqdm_dummy(x, *args, **kwargs):
         return x
 
+    args_num = None
+    try:
+        args_num = len(args_list)
+    except:
+        print("Warning: could not deduce args_list length, assuming it is an iterator")
+        pass
+
     if verbose < 1:
         tqdm_func = _passthrough_tqdm_dummy
     else:
-        tqdm_func = functools.partial(tqdm, desc=desc)
+        tqdm_func = functools.partial(tqdm, desc=desc, total=args_num)
 
     if copy_to_global_storage is None:
         copy_to_global_storage = {}
@@ -137,8 +144,8 @@ def _run_multiprocessed_as_iterator_impl(
     if workers is None or workers <= 1:
         _store_in_global_storage(copy_to_global_storage)
         try:
-            for i in tqdm_func(range(len(args_list))):
-                curr_ans = worker_func(args_list[i])
+            for curr_input in tqdm_func(args_list):
+                curr_ans = worker_func(curr_input)
                 yield curr_ans
         except:
             raise
@@ -168,7 +175,7 @@ def _run_multiprocessed_as_iterator_impl(
                 cprint(f"multiprocess pool created with {workers} workers.", "cyan")
             map_func = pool.imap if keep_results_order else pool.imap_unordered
             for curr_ans in tqdm_func(
-                map_func(worker_func, args_list), total=len(args_list), smoothing=0.1, disable=verbose < 1
+                map_func(worker_func, args_list), total=args_num, smoothing=0.1, disable=verbose < 1
             ):
                 yield curr_ans
 
