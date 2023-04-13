@@ -294,7 +294,10 @@ class ModelComparison:
         return results
 
 
-def psi(x, y):  # Heaviside function
+def psi(x, y):  # type: ignore
+    """
+    Heaviside function
+    """
     if y < x:
         return 1
     elif y == x:
