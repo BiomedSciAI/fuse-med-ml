@@ -142,7 +142,7 @@ class BackboneResnet3D(nn.Module):
             from torchvision.models.video.resnet import model_urls
 
             state_dict = load_state_dict_from_url(model_urls[name])
-            del state_dict["fc.weight"]
+            del state_dict["fc.weight"]  # as a backbone the fc in not necessary
             del state_dict["fc.bias"]
             self.load_state_dict(state_dict)
         else:
@@ -157,14 +157,14 @@ class BackboneResnet3D(nn.Module):
                 elif isinstance(m, nn.Linear):
                     nn.init.normal_(m.weight, 0, 0.01)
                     nn.init.constant_(m.bias, 0)
-        
+
         if in_channels == 1:
             self.stem[0].in_channels = 1
             self.stem[0].weight = nn.Parameter(self.stem[0].weight.sum(dim=1, keepdim=True))
         elif in_channels != 3:
-            self.stem[0] = nn.Conv3d(in_channels, 64, kernel_size=(3, 7, 7), stride=(1, 2, 2), padding=(1, 3, 3), bias=False)
-
-
+            self.stem[0] = nn.Conv3d(
+                in_channels, 64, kernel_size=(3, 7, 7), stride=(1, 2, 2), padding=(1, 3, 3), bias=False
+            )
 
     def _make_layer(
         self,
