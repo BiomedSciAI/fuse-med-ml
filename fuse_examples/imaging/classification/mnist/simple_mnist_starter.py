@@ -182,11 +182,11 @@ def run_train(params: dict) -> None:
 
     # create pl trainer
     pl_trainer = pl.Trainer(
-        replace_sampler_ddp=False,  # Must be set when using a batch sampler
+        use_distributed_sampler=False,  # Must be set when using a batch sampler
         max_epochs=params["trainer.num_epochs"],
         accelerator=params["trainer.accelerator"],
         devices=params["trainer.num_devices"],
-        strategy="ddp" if distributed else None,
+        strategy="ddp" if distributed else "None",
     )
 
     # train model
