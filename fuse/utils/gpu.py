@@ -110,7 +110,7 @@ def move_tensor_to_device(tensor: Any, device: str) -> Any:
     return tensor
 
 
-def allocate_gpu_for_process(gpu_list: list):
+def allocate_gpu_for_process(gpu_list: list) -> None:
     """
     Allocate a gpu for a process given list of available gpus shared between processes
     :param gpu_list: available gpus shared between processes
@@ -129,7 +129,7 @@ def allocate_gpu_for_process(gpu_list: list):
         lgr.error(track)
 
 
-def deallocate_gpu():
+def deallocate_gpu() -> None:
     import gc
 
     with torch.no_grad():

@@ -21,6 +21,7 @@ import sys
 import os
 import os.path as path
 import fileinput
+from typing import List
 
 src_extensions = [".py"]
 preamble_signature = "(C) Copyright 2021 IBM Corp."
@@ -46,14 +47,14 @@ Created on June 30, 2021
 """
 
 
-def is_preamble_required_file(f):
+def is_preamble_required_file(f: str) -> bool:
     if f == "__init__.py":
         return False
     results = [f.endswith(ext) for ext in src_extensions]
     return True in results
 
 
-def is_header_missing(f):
+def is_header_missing(f: str) -> bool:
     with open(f) as reader:
         lines = reader.read().lstrip().splitlines()
         if len(lines) > 1:
@@ -61,7 +62,7 @@ def is_header_missing(f):
         return True
 
 
-def get_src_files(dirname):
+def get_src_files(dirname: str) -> List[str]:
     src_files = []
     for cur, _dirs, files in os.walk(dirname):
         [src_files.append(path.join(cur, f)) for f in files if is_preamble_required_file(f)]
@@ -69,7 +70,7 @@ def get_src_files(dirname):
     return [f for f in src_files if is_header_missing(f)]
 
 
-def add_preamble(files, header):
+def add_preamble(files: List[str], header: str) -> None:
     for line in fileinput.input(files, inplace=True):
         if fileinput.isfirstline():
             [print(h) for h in header.splitlines()]

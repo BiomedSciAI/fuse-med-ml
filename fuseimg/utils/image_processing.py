@@ -128,7 +128,7 @@ def align_ecc(
 
     try:
         import cv2
-        from fuse.utils.imaging.align.utils_align_ecc import AlignMapECC
+        from fuseimg.utils.align.utils_align_ecc import AlignMapECC
 
         transformation = transformation or cv2.MOTION_AFFINE
 

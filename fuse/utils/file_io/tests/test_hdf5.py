@@ -29,10 +29,10 @@ class TestHDF5IO(unittest.TestCase):
     Test HDF5 IO
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         pass
 
-    def _generate_test_data_1(self):
+    def _generate_test_data_1(self) -> None:
         Seed.set_seed(1337)
         ans = {
             "data.cc.img": np.random.rand(30, 200, 200),
@@ -43,7 +43,7 @@ class TestHDF5IO(unittest.TestCase):
         }
         return ans
 
-    def test_object_requires_hdf5_recurse(self):
+    def test_object_requires_hdf5_recurse(self) -> None:
         data = self._generate_test_data_1()
         tmpdir = tempfile.gettempdir()
         filename = os.path.join(tmpdir, "test_hdf5_1.hdf5")
@@ -71,7 +71,7 @@ class TestHDF5IO(unittest.TestCase):
         self.assertAlmostEqual(loaded_hdf5_partial["data.mlo.img"].sum(), 20010.11375657579)
         self.assertAlmostEqual(loaded_hdf5_partial["data.clinical_info_input"].sum(), 507.3055890687598)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         pass
 
 
