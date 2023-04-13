@@ -18,16 +18,17 @@ Created on June 30, 2021
 """
 
 from abc import ABC
+import numpy as np
 
 
 class AlignMapBase(ABC):
-    def __init__(self):
+    def __init__(self) -> None:
         """
         AlignMap settings, e.g. number of iterations for an iterative algorithm.
         """
         pass
 
-    def align(self, img1, img2):
+    def align(self, img1: np.ndarray, img2: np.ndarray) -> None:
         """
         Learn mapping between two images. This may be a computationally heavy step.
         Mapping is unidirectional, from coordinates in img1 to coordinates in img2.
@@ -41,7 +42,7 @@ class AlignMapBase(ABC):
         """
         pass
 
-    def translate_xy(self, x, y):
+    def translate_xy(self, x: np.ndarray, y: np.ndarray) -> np.ndarray:
         """
         Map coordinates: img1 --> img2
         Ideally this should be a computationally light step.
