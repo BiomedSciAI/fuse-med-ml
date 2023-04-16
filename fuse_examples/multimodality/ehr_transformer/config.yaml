@@ -139,7 +139,6 @@ train: # arguments for train() in classifiers_main_train.py
     accelerator: "gpu"
     devices: 1
     strategy: "auto"
-    auto_select_gpus: True
     num_sanity_val_steps: 0
 
 hydra:

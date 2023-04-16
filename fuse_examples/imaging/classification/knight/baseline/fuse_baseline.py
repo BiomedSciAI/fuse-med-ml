@@ -217,7 +217,6 @@ def main(cfg_path: DictConfig) -> None:
         max_epochs=cfg["num_epochs"],
         accelerator="gpu" if use_gpu else "cpu",
         devices=cfg["num_gpus"] if use_gpu else None,
-        auto_select_gpus=True if use_gpu else False,
         num_sanity_val_steps=-1,
         auto_scale_batch_size="binsearch",
     )

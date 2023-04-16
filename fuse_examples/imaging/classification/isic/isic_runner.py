@@ -425,7 +425,6 @@ def run_infer(paths: dict, infer_common_params: dict) -> None:
         default_root_dir=paths["model_dir"],
         accelerator=infer_common_params["trainer.accelerator"],
         devices=infer_common_params["trainer.num_devices"],
-        auto_select_gpus=True,
         max_epochs=0,
     )
     predictions = pl_trainer.predict(pl_module, infer_dataloader, return_predictions=True)
