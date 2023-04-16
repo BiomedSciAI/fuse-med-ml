@@ -14,41 +14,38 @@ Created on June 30, 2021
 
 """
 
-from collections import OrderedDict
+import copy
+import logging
 import os
 import sys
-import copy
-from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
+from collections import OrderedDict
 
-from fuse.utils.utils_debug import FuseDebug
-from fuse.utils.gpu import choose_and_enable_multiple_gpus
-
-import logging
-
-import torch.optim as optim
+import hydra
+import torch
 import torch.nn.functional as F
+import torch.optim as optim
+from omegaconf import DictConfig, OmegaConf
+from pytorch_lightning import Trainer
 from torch.utils.data.dataloader import DataLoader
 
-from fuse.utils.utils_logger import fuse_logger_start
-from fuse.utils import NDict
-from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.collates import CollateDefault
+from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.split import dataset_balanced_division_to_folds
-from fuse.dl.models import ModelMultiHead
-from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
-from fuse.dl.losses.loss_default import LossDefault
-
-from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy
-from fuseimg.datasets.cmmd import CMMD
-from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
 from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
-from pytorch_lightning import Trainer
 from fuse.dl.lightning.pl_module import LightningModuleDefault
-from fuse.utils.file_io.file_io import create_dir, load_pickle, save_dataframe
+from fuse.dl.losses.loss_default import LossDefault
+from fuse.dl.models import ModelMultiHead
+from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
+from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
 from fuse.eval.evaluator import EvaluatorDefault
-import torch
-import hydra
-from omegaconf import DictConfig, OmegaConf
+from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC
+from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
+from fuse.utils import NDict
+from fuse.utils.file_io.file_io import create_dir, load_pickle, save_dataframe
+from fuse.utils.gpu import choose_and_enable_multiple_gpus
+from fuse.utils.utils_debug import FuseDebug
+from fuse.utils.utils_logger import fuse_logger_start
+from fuseimg.datasets.cmmd import CMMD
 
 assert (
     "CMMD_DATA_PATH" in os.environ

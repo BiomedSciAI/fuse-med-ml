@@ -1,7 +1,7 @@
-from typing import Union, Optional
-from fuseimg.datasets.mnist import MNIST
-from typing import Sequence
+from typing import Optional, Sequence, Union
+
 from fuse.data import DatasetDefault
+from fuseimg.datasets.mnist import MNIST
 
 
 def create_dataset(

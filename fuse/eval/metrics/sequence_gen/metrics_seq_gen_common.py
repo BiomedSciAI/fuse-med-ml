@@ -16,11 +16,11 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from typing import Optional, Tuple, List, Union
 from functools import partial
+from typing import List, Optional, Tuple, Union
 
-import torch
 import numpy as np
+import torch
 
 from fuse.eval.metrics.metrics_common import MetricPerBatchDefault
 

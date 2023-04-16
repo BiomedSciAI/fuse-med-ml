@@ -1,9 +1,10 @@
+from typing import Optional
+
 import torch
 from torch import nn
-from typing import Optional
 from vit_pytorch.vit import Transformer as _Transformer
 from vit_pytorch.vit import repeat
-from x_transformers import Encoder, CrossAttender, TransformerWrapper
+from x_transformers import CrossAttender, Encoder, TransformerWrapper
 
 
 class Transformer(nn.Module):

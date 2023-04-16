@@ -1,4 +1,5 @@
 from typing import Dict, Optional, Sequence
+
 import numpy as np
 import scipy
 

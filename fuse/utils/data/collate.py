@@ -17,12 +17,12 @@ Created on June 30, 2021
 
 """
 import logging
-from typing import Callable, Dict, List, Sequence, Tuple, Any
+from typing import Any, Callable, Dict, List, Sequence, Tuple
+
+import numpy as np
+import torch
 
 from fuse.utils import NDict
-
-import torch
-import numpy as np
 
 
 class CollateToBatchList(Callable):

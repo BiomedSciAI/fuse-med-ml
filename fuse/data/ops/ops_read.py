@@ -17,11 +17,12 @@ Created on June 30, 2021
 
 """
 
-from typing import Hashable, List, Optional, Dict, Union
-from fuse.utils.file_io.file_io import read_dataframe
+from typing import Dict, Hashable, List, Optional, Union
+
 import pandas as pd
 
 from fuse.data import OpBase
+from fuse.utils.file_io.file_io import read_dataframe
 from fuse.utils.ndict import NDict
 
 

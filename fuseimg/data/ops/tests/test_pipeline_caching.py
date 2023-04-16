@@ -1,11 +1,9 @@
-import unittest
 import os
 import tempfile
+import unittest
 
-
-from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
-
+from fuse.data.datasets.dataset_default import DatasetDefault
 from fuseimg.datasets.isic import ISIC
 
 

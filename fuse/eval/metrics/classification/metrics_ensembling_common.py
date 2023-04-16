@@ -1,13 +1,12 @@
-from typing import Optional, Sequence, Hashable, List, Dict
-from fuse.eval.metrics.libs.ensembling import Ensembling
-from fuse.eval.metrics.utils import PerSampleData
-
-import pandas as pd
+from functools import partial
+from typing import Dict, Hashable, List, Optional, Sequence
 
 import numpy as np
+import pandas as pd
 
+from fuse.eval.metrics.libs.ensembling import Ensembling
 from fuse.eval.metrics.metrics_common import MetricDefault
-from functools import partial
+from fuse.eval.metrics.utils import PerSampleData
 
 
 class MetricEnsemble(MetricDefault):

@@ -1,5 +1,6 @@
-import paramiko
 import re
+
+import paramiko
 
 
 class ShellHandler:

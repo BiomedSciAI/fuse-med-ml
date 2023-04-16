@@ -19,8 +19,9 @@ Created on June 30, 2021
 
 import unittest
 
-import fuse.data
 import pkg_resources  # part of setuptools
+
+import fuse.data
 
 
 class TestVersion(unittest.TestCase):

@@ -17,9 +17,8 @@ Created on June 30, 2021
 
 """
 
-import unittest
-
 import random
+import unittest
 
 from fuse.utils import Seed
 

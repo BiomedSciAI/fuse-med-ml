@@ -17,14 +17,13 @@ Created on June 30, 2021
 
 """
 
+import logging
 from typing import Callable, Optional
+from urllib.error import URLError
 
 import torch
-from torch.hub import load_state_dict_from_url
 import torch.nn as nn
-
-from urllib.error import URLError
-import logging
+from torch.hub import load_state_dict_from_url
 
 
 def make_seq(foo: Callable, num: int, *args, **kwargs):

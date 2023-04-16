@@ -1,12 +1,12 @@
 from typing import Optional, Sequence, Tuple
+
+from torch.utils.data.dataloader import DataLoader
+
 from fuse.data import OpBase
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.split import dataset_balanced_division_to_folds
-
 from fuseimg.datasets.isic import ISIC
-
-from torch.utils.data.dataloader import DataLoader
 
 
 def isic_2019_dataloaders(

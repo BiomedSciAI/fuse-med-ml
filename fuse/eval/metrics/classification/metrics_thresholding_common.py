@@ -1,8 +1,9 @@
-from typing import Optional, Sequence, Tuple, Union, Hashable
-from fuse.eval.metrics.libs.thresholding import Thresholding
-from fuse.eval.metrics.utils import PerSampleData
+from typing import Hashable, Optional, Sequence, Tuple, Union
 
 import numpy as np
+
+from fuse.eval.metrics.libs.thresholding import Thresholding
+from fuse.eval.metrics.utils import PerSampleData
 
 from .metrics_classification_common import MetricMultiClassDefault
 

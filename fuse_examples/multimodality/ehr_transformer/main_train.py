@@ -1,26 +1,23 @@
-from typing import Any, Optional, Tuple
-import hydra
-from omegaconf import DictConfig
 from copy import deepcopy
+from typing import Any, Optional, Tuple
 
+import hydra
+import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
-
-import pytorch_lightning as pl
-
+from omegaconf import DictConfig
 from torch.utils.data.dataloader import DataLoader
 
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.samplers import BatchSamplerDefault
-from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
 from fuse.dl.lightning.pl_module import LightningModuleDefault
-from fuse.dl.models.heads import Head1D
-from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC
 from fuse.dl.losses import LossDefault
+from fuse.dl.models.heads import Head1D
+from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
+from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC
 from fuse.utils import NDict
-
-from fuse_examples.multimodality.ehr_transformer.model import Embed, TransformerEncoder, Bert, BertConfig
 from fuse_examples.multimodality.ehr_transformer.dataset import PhysioNetCinC
+from fuse_examples.multimodality.ehr_transformer.model import Bert, BertConfig, Embed, TransformerEncoder
 
 
 def filter_gender_label_unknown(batch_dict: NDict) -> NDict:

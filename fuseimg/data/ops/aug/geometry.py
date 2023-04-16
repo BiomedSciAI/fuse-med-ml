@@ -1,17 +1,15 @@
 from typing import List, Optional, Tuple, Union
 
-from PIL import Image
-
 import numpy as np
-import torch
-import torchvision.transforms.functional as TTF
-import torchvision.transforms as transforms
 import skimage
 import skimage.transform
-
-from fuse.utils.ndict import NDict
+import torch
+import torchvision.transforms as transforms
+import torchvision.transforms.functional as TTF
+from PIL import Image
 
 from fuse.data import OpBase
+from fuse.utils.ndict import NDict
 
 
 class OpAugAffine2D(OpBase):

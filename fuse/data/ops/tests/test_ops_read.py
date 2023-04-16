@@ -18,11 +18,12 @@ Created on June 30, 2021
 """
 
 import unittest
-from fuse.data.ops.op_base import op_call
 
 import pandas as pd
-from fuse.utils.ndict import NDict
+
+from fuse.data.ops.op_base import op_call
 from fuse.data.ops.ops_read import OpReadDataframe
+from fuse.utils.ndict import NDict
 
 
 class TestOpsRead(unittest.TestCase):

@@ -1,12 +1,12 @@
 from typing import Tuple, Union
+
 import numpy as np
 import torch
-from fuse.utils.ndict import NDict
 
 from fuse.data.ops.op_base import OpBase
-
-from fuseimg.utils.typing.key_types_imaging import DataTypeImaging
+from fuse.utils.ndict import NDict
 from fuseimg.data.ops.ops_common_imaging import OpApplyTypesImaging
+from fuseimg.utils.typing.key_types_imaging import DataTypeImaging
 
 
 class OpClip(OpBase):

@@ -1,13 +1,12 @@
 import unittest
 
-from fuse.data.pipelines.pipeline_default import PipelineDefault
-from fuseimg.data.ops.color import OpClip, OpToRange
-from fuseimg.data.ops.shape_ops import OpPad
-
-from fuse.utils.ndict import NDict
-
 import numpy as np
 import torch
+
+from fuse.data.pipelines.pipeline_default import PipelineDefault
+from fuse.utils.ndict import NDict
+from fuseimg.data.ops.color import OpClip, OpToRange
+from fuseimg.data.ops.shape_ops import OpPad
 
 
 class TestOps(unittest.TestCase):

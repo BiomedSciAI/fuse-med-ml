@@ -24,27 +24,24 @@ trained "fuse" style. Meaning it accesses data using keys to a batch_dict. It al
 load datasets from fuse.
 """
 import copy
-from typing import OrderedDict, Any, Tuple, Optional
+from typing import Any, Optional, OrderedDict, Tuple
 
+import pytorch_lightning as pl
+import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from torch.utils.data.dataloader import DataLoader
 from torch.utils.data import DistributedSampler
-import pytorch_lightning as pl
-
-from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
-from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy
+from torch.utils.data.dataloader import DataLoader
 
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.samplers import BatchSamplerDefault
+from fuse.dl.lightning.pl_module import LightningModuleDefault
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
-from fuse.dl.lightning.pl_module import LightningModuleDefault
-
-from fuseimg.datasets.mnist import MNIST
+from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy
+from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 from fuse_examples.imaging.classification.mnist import lenet
-
-import torch
+from fuseimg.datasets.mnist import MNIST
 
 ## Paths and Hyperparameters ############################################
 PARAMS_DICT = {

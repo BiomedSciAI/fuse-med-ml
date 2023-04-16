@@ -16,27 +16,22 @@ limitations under the License.
 Created on June 30, 2021
 
 """
+import csv
+import os
 import pathlib
 import sys
-import os
-from typing import List, Tuple, Union, Optional
 from collections import OrderedDict
+from functools import partial
+from typing import List, Optional, Tuple, Union
 
-import csv
-import pandas as pd
 import numpy as np
-
-from fuse.utils.ndict import NDict
-from fuse.utils.file_io.file_io import create_dir
+import pandas as pd
 
 from fuse.eval.evaluator import EvaluatorDefault
-
-from fuse.eval.metrics.classification.metrics_classification_common import (
-    MetricAUCROC,
-    MetricROCCurve,
-)
+from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricROCCurve
 from fuse.eval.metrics.metrics_common import CI
-from functools import partial
+from fuse.utils.file_io.file_io import create_dir
+from fuse.utils.ndict import NDict
 
 ## Constants
 # Constants that defines the expected format of the prediction and target files and list the classes for task 1 and task @

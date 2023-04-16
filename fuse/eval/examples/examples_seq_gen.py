@@ -11,19 +11,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 Created on June 30, 2021
 """
-import pandas as pd
-from typing import Any, Dict
 from collections import OrderedDict
+from typing import Any, Dict
 
-from fuse.eval.metrics.sequence_gen.metrics_seq_gen_common import MetricPerplexity
-from fuse.eval.metrics.metrics_common import CI
-
-from fuse.eval.evaluator import EvaluatorDefault
-
-
-from fuse.data import PipelineDefault, DatasetDefault, OpReadDataframe, CollateDefault
+import pandas as pd
 import torch
 from torch.utils.data.dataloader import DataLoader
+
+from fuse.data import CollateDefault, DatasetDefault, OpReadDataframe, PipelineDefault
+from fuse.eval.evaluator import EvaluatorDefault
+from fuse.eval.metrics.metrics_common import CI
+from fuse.eval.metrics.sequence_gen.metrics_seq_gen_common import MetricPerplexity
 
 
 def example_seq_gen_0(seed: int = 1234) -> Dict[str, Any]:

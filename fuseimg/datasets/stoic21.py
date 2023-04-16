@@ -16,34 +16,29 @@ limitations under the License.
 Created on June 30, 2021
 
 """
+import os
 from functools import partial
 from glob import glob
-import os
 from typing import Hashable, Optional, Sequence, Tuple
 
-
 import numpy as np
-import torch
 import skimage
 import skimage.transform
+import torch
 
-
-from fuse.utils import NDict
-from fuse.utils.rand.param_sampler import RandBool, RandInt, Uniform
-
-from fuse.data import DatasetDefault
+from fuse.data import DatasetDefault, OpToTensor, PipelineDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
-from fuse.data import PipelineDefault, OpToTensor
 from fuse.data.ops.op_base import OpBase
-from fuse.data.ops.ops_aug_common import OpSample, OpRandApply
+from fuse.data.ops.ops_aug_common import OpRandApply, OpSample
+from fuse.data.ops.ops_cast import OpToFloat, OpToInt, OpToNumpy
 from fuse.data.ops.ops_common import OpConcat, OpLambda, OpLookup, OpToOneHot
 from fuse.data.ops.ops_read import OpReadDataframe
-from fuse.data.ops.ops_cast import OpToFloat, OpToInt, OpToNumpy
 from fuse.data.utils.sample import get_sample_id
-
+from fuse.utils import NDict
+from fuse.utils.rand.param_sampler import RandBool, RandInt, Uniform
 from fuseimg.data.ops.aug.geometry import OpAugAffine2D
-from fuseimg.data.ops.image_loader import OpLoadImage
 from fuseimg.data.ops.color import OpClip, OpToRange
+from fuseimg.data.ops.image_loader import OpLoadImage
 
 
 class OpSTOIC21SampleIDDecode(OpBase):

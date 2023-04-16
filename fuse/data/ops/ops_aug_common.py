@@ -1,12 +1,9 @@
 from typing import List, Optional, Sequence, Union
 
-
-from fuse.utils.rand.param_sampler import RandBool, draw_samples_recursively
-
 from fuse.data.ops.op_base import OpBase, OpReversibleBase, op_call, op_reverse
 from fuse.data.ops.ops_common import OpRepeat
-
 from fuse.utils.ndict import NDict
+from fuse.utils.rand.param_sampler import RandBool, draw_samples_recursively
 
 
 class OpRandApply(OpReversibleBase):

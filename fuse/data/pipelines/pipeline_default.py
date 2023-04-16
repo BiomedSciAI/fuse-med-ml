@@ -16,13 +16,13 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from typing import List, Tuple, Union, Optional
+import copy
+from typing import List, Optional, Tuple, Union
+
 from fuse.data.ops.op_base import OpBase, OpReversibleBase, op_call, op_reverse
+from fuse.utils.cpu_profiling.timer import Timer
 from fuse.utils.misc.context import DummyContext
 from fuse.utils.ndict import NDict
-from fuse.utils.cpu_profiling.timer import Timer
-
-import copy
 
 
 class PipelineDefault(OpReversibleBase):

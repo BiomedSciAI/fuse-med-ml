@@ -18,16 +18,14 @@ Created on June 30, 2021
 """
 
 import os
-from typing import Dict, Hashable, Iterable, List, Optional, OrderedDict, Sequence, Union
 import pickle
-import pandas as pd
-import numpy as np
+from typing import Dict, Hashable, Iterable, List, Optional, OrderedDict, Sequence, Union
 
-from fuse.utils import read_dataframe
-from fuse.utils import NDict
-from fuse.utils import CollateToBatchList
+import numpy as np
+import pandas as pd
 
 from fuse.eval.metrics.metrics_common import MetricBase
+from fuse.utils import CollateToBatchList, NDict, read_dataframe
 
 
 class EvaluatorDefault:

@@ -16,17 +16,17 @@ limitations under the License.
 Created on June 30, 2021
 """
 
-from copy import deepcopy
 import os
+from copy import deepcopy
 from typing import Optional
-from fuse.utils.misc.misc import get_pretty_dataframe
 
-import pytorch_lightning as pl
-from pytorch_lightning import Callback
-
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
-import torch
 import pandas as pd
+import pytorch_lightning as pl
+import torch
+from pytorch_lightning import Callback
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
+
+from fuse.utils.misc.misc import get_pretty_dataframe
 
 
 class ModelEpochSummary(Callback):

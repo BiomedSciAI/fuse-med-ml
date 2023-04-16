@@ -1,5 +1,5 @@
 import runpy
-from typing import List, Union, Callable, Dict
+from typing import Callable, Dict, List, Union
 
 
 class Config:

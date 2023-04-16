@@ -19,9 +19,9 @@ Created on June 30, 2021
 
 import copy
 import os
+from typing import Dict, List, Sequence
 
 import torch
-from typing import Sequence, Dict, List
 
 
 class ModelEnsemble(torch.nn.Module):

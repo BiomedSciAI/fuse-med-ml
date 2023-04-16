@@ -17,10 +17,10 @@ Created on June 30, 2021
 
 """
 
-import sys
+import fileinput
 import os
 import os.path as path
-import fileinput
+import sys
 
 src_extensions = [".py"]
 preamble_signature = "(C) Copyright 2021 IBM Corp."

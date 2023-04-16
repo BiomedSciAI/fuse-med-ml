@@ -18,12 +18,13 @@ Created on June 30, 2021
 """
 from abc import abstractmethod
 from typing import Any, List, Optional, Sequence, Union
-from fuse.data.ops.op_base import OpReversibleBase
-import numpy as np
 
-from fuse.data import OpBase
+import numpy as np
 import torch
 from torch import Tensor
+
+from fuse.data import OpBase
+from fuse.data.ops.op_base import OpReversibleBase
 from fuse.utils.ndict import NDict
 
 

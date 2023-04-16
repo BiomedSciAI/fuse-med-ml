@@ -17,12 +17,14 @@ Created on June 30, 2021
 
 """
 
+from typing import Callable, Optional
+
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
+
 from fuse.dl.losses.loss_base import LossBase
 from fuse.utils.ndict import NDict
-from typing import Callable, Optional
 
 
 def make_one_hot(input, num_classes):

@@ -4,9 +4,10 @@ In the case that it's a Jenkins job, it should delete any created cache (not imp
 """
 
 import logging
+import os
 import sys
 import unittest
-import os
+
 import termcolor
 import xmlrunner
 

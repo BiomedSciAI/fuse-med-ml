@@ -5,3 +5,4 @@ line-length = 120
 # makes isort compatibale with black
 profile = "black"
 line_length = 120
+skip = "__init__.py"

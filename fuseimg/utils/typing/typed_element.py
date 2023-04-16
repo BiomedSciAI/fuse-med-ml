@@ -1,4 +1,5 @@
 import numpy as np
+
 from fuse.data.key_types import DataTypeBasic
 from fuse.data.patterns import Patterns
 

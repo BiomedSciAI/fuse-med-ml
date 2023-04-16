@@ -1,10 +1,11 @@
-import os
-from typing import Optional, List, Tuple
 import getpass
-from .shell_handler import ShellHandler
-from os.path import abspath, join, dirname
-from glob import glob
+import os
 from collections import namedtuple
+from glob import glob
+from os.path import abspath, dirname, join
+from typing import List, Optional, Tuple
+
+from .shell_handler import ShellHandler
 
 SCRIPT_RUNNER_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "script_runner")
 

@@ -1,6 +1,7 @@
-import numpy as np
-from typing import List, Tuple
 import os
+from typing import List, Tuple
+
+import numpy as np
 
 
 def num_available_cores(verbose: bool = True) -> int:

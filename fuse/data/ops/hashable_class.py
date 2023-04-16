@@ -1,4 +1,5 @@
 from typing import Callable
+
 from fuse.data.ops import get_function_call_str
 from fuse.data.ops.caching_tools import get_callers_string_description, value_to_string
 

@@ -1,6 +1,8 @@
 from typing import Dict, Sequence, Union
-from fuse.eval.metrics.libs.classification import MetricsLibClass
+
 import numpy as np
+
+from fuse.eval.metrics.libs.classification import MetricsLibClass
 
 
 class Thresholding:

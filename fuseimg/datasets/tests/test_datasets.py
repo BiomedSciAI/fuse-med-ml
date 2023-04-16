@@ -1,22 +1,21 @@
 import os
 import pathlib
 import shutil
-from tempfile import mkdtemp
 import unittest
-from fuse.data.utils.sample import get_sample_id
-from fuse.utils.file_io.file_io import create_dir
+from tempfile import mkdtemp
 
+from testbook import testbook
+from tqdm import trange
+
+from fuse.data.utils.sample import get_sample_id
+from fuse.eval.evaluator import EvaluatorDefault
+from fuse.eval.metrics.stat.metrics_stat_common import MetricUniqueValues
+from fuse.utils.file_io.file_io import create_dir
+from fuse.utils.multiprocessing.run_multiprocessed import get_from_global_storage, run_multiprocessed
+from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS, TEN_GOLDEN_MEMBERS
+from fuseimg.datasets.isic import ISIC
 from fuseimg.datasets.kits21 import KITS21
 from fuseimg.datasets.stoic21 import STOIC21
-from tqdm import trange
-from testbook import testbook
-from fuse.eval.metrics.stat.metrics_stat_common import MetricUniqueValues
-from fuse.utils.multiprocessing.run_multiprocessed import get_from_global_storage, run_multiprocessed
-from fuse.eval.evaluator import EvaluatorDefault
-
-from fuseimg.datasets.isic import ISIC
-from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS, TEN_GOLDEN_MEMBERS
-
 
 notebook_path = os.path.join(pathlib.Path(__file__).parent.resolve(), "../kits21_example.ipynb")
 

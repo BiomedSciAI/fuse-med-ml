@@ -1,10 +1,12 @@
 from abc import abstractmethod
-from typing import Hashable, List, Sequence, Optional
-from fuse.data.utils.sample import get_sample_id
-from fuse.utils import NDict
-from fuse.data import OpBase
+from typing import Hashable, List, Optional, Sequence
+
 import numpy
 import torch
+
+from fuse.data import OpBase
+from fuse.data.utils.sample import get_sample_id
+from fuse.utils import NDict
 
 
 class OpDebugBase(OpBase):

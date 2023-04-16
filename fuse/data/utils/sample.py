@@ -1,4 +1,5 @@
 from typing import Dict, Hashable
+
 from fuse.utils.ndict import NDict
 
 """

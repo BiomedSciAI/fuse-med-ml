@@ -17,14 +17,15 @@ Created on June 30, 2021
 
 """
 from __future__ import annotations
-from _collections_abc import dict_items, dict_keys
-import difflib
 
 import copy
+import difflib
 import types
+from typing import Any, Callable, Iterator, List, MutableMapping, Optional, Sequence, Union
+
 import numpy
 import torch
-from typing import Any, Callable, Iterator, Optional, Sequence, Union, List, MutableMapping
+from _collections_abc import dict_items, dict_keys
 
 
 class NDict(dict):

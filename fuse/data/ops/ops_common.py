@@ -1,13 +1,16 @@
+import copy
 import math
 import numbers
-from typing import Any, Callable, Dict, List, Optional, OrderedDict, Sequence, Tuple, Union
-from fuse.data.key_types import TypeDetectorBase
-import copy
 from enum import Enum
-from .op_base import OpBase, OpReversibleBase, op_call, op_reverse  # DataType,
+from typing import Any, Callable, Dict, List, Optional, OrderedDict, Sequence, Tuple, Union
+
+import numpy as np
+
+from fuse.data.key_types import TypeDetectorBase
 from fuse.data.patterns import Patterns
 from fuse.utils.ndict import NDict
-import numpy as np
+
+from .op_base import OpBase, OpReversibleBase, op_call, op_reverse  # DataType,
 
 
 class OpRepeat(OpReversibleBase):

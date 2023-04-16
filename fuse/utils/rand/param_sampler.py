@@ -16,10 +16,9 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from abc import ABC, abstractmethod
-
-from typing import Any, Optional, Sequence, List, Tuple
 import random
+from abc import ABC, abstractmethod
+from typing import Any, List, Optional, Sequence, Tuple
 
 import numpy as np
 

@@ -16,12 +16,13 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from typing import Union, List, Optional
+import inspect
 from abc import abstractmethod
+from typing import List, Optional, Union
+
+from fuse.data.ops.hashable_class import HashableClass
 from fuse.data.utils.sample import get_sample_id
 from fuse.utils.ndict import NDict
-from fuse.data.ops.hashable_class import HashableClass
-import inspect
 
 
 class OpBase(HashableClass):

@@ -17,8 +17,9 @@ Created on June 30, 2021
 
 """
 
+from typing import Callable, Dict, Optional, Sequence, Tuple
+
 import torch
-from typing import Sequence, Dict, Tuple, Callable, Optional
 
 from fuse.utils.ndict import NDict
 

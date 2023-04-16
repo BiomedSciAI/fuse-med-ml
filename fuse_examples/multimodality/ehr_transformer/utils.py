@@ -18,8 +18,9 @@ Created on Jan 09, 2023
 """
 
 import pickle
-import tqdm
 from collections import Counter
+
+import tqdm
 
 # dictionary of special tokens that will be used in a generation of
 # patients trajectory sequence
