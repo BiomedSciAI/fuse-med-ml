@@ -186,7 +186,7 @@ def run_train(params: dict) -> None:
         max_epochs=params["trainer.num_epochs"],
         accelerator=params["trainer.accelerator"],
         devices=params["trainer.num_devices"],
-        strategy="ddp" if distributed else "auto",
+        strategy="auto",
     )
 
     # train model

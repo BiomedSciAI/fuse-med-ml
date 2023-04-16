@@ -27,6 +27,7 @@ import shutil
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 import pytorch_lightning as pl
+from omegaconf import DictConfig
 
 ## Parameters:
 ##############################################################################
@@ -36,7 +37,7 @@ import pytorch_lightning as pl
 # uncomment if you want to use specific gpus instead of automatically looking for free ones
 
 
-def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_dropout: float):
+def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_dropout: float) -> nn.Module:
     if use_data["imaging"]:
         backbone = BackboneResnet3D(in_channels=1, pretrained=False)
         conv_inputs = [("model.backbone_features", 512)]
@@ -67,7 +68,7 @@ def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_d
     return model
 
 
-def main(cfg_path):
+def main(cfg_path: DictConfig) -> None:
     # read config params
     cfg = yaml.safe_load(open(cfg_path))
     task_num = cfg["task_num"]
@@ -216,7 +217,6 @@ def main(cfg_path):
         max_epochs=cfg["num_epochs"],
         accelerator="gpu" if use_gpu else "cpu",
         devices=cfg["num_gpus"] if use_gpu else None,
-        strategy=None,
         auto_select_gpus=True if use_gpu else False,
         num_sanity_val_steps=-1,
         auto_scale_batch_size="binsearch",

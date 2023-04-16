@@ -48,7 +48,7 @@ def make_predictions_file(
     task_num: int,
     auto_select_gpus: Optional[bool] = True,
     reset_cache: bool = False,
-):
+) -> None:
     """
     Automaitically make prediction files in the requested format - given path to model dir create by FuseMedML during training
     :param model_dir: path to model dir create by FuseMedML during training
@@ -105,7 +105,6 @@ def make_predictions_file(
         default_root_dir=model_dir,
         accelerator="gpu",
         devices=1,
-        strategy=None,
         auto_select_gpus=auto_select_gpus,
     )
 
