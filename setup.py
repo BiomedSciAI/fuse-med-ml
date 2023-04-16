@@ -40,7 +40,7 @@ with open(os.path.join(HERE, "fuse_examples/requirements.txt"), "r") as fh:
             fuse_examples_requirements.append(line.strip())
 
 # all extra requires
-all_requirements = fuseimg_requirements + fuse_requirements_dev
+all_requirements = fuseimg_requirements + fuse_requirements_dev + fuse_examples_requirements
 
 # version
 from fuse.version import __version__  # noqa

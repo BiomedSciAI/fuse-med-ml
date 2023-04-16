@@ -246,7 +246,7 @@ class PhysioNetCinC:
         outcomes = ["Outcomes-a.txt", "Outcomes-b.txt"]
         for o in outcomes:
             o_file = os.path.join(raw_data_path + "/" + o)
-            df_outcomes = df_outcomes.append(pd.read_csv(o_file)[["RecordID", "In-hospital_death"]]).reset_index(
+            df_outcomes = df_outcomes.concat(pd.read_csv(o_file)[["RecordID", "In-hospital_death"]]).reset_index(
                 drop=True
             )
         df_outcomes["RecordID"] = df_outcomes["RecordID"].astype(str)
