@@ -45,8 +45,7 @@ class ClassificationMnistTestCase(unittest.TestCase):
         self.root = tempfile.mkdtemp()
 
     def test_template(self) -> None:
-        # run_in_subprocess(run_mnist, self.root)
-        run_mnist(self.root)
+        run_in_subprocess(run_mnist, self.root)
 
     def tearDown(self) -> None:
         # Delete temporary directories
