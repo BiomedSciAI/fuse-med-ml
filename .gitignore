@@ -48,3 +48,4 @@ fuse_examples/imaging/classification/stoic21/_examples/
 fuse_examples/imaging/ml_pipelines/stoic21/results/
 _examples
 run_script.py
+lightning_logs/
