@@ -10,6 +10,7 @@ from fuse.utils.ndict import NDict
 import numpy as np
 import torch
 
+
 class OpRepeat(OpReversibleBase):
     """
     Repeat an op multiple times
@@ -538,14 +539,16 @@ class OpSetIfNotExist(OpBase):
 
 class OpReplaceElements(OpBase):
     """
-    Replace elements value 
+    Replace elements value
 
     For example, take a tensor [0,1,2,3,4,3,2,1,0] and replace all 0 with -100
-
+        which results in [-100,1,2,3,4,3,2,1,-100]
     This is useful, for example, when converting token IDs into -100 to make pytorch loss functions ignore certain elemets
     """
 
-    def __call__(self, sample_dict: NDict, key_in: str, find_val:Any, replace_with_val:Any, key_out:str=None) -> NDict:
+    def __call__(
+        self, sample_dict: NDict, key_in: str, find_val: Any, replace_with_val: Any, key_out: str = None
+    ) -> NDict:
         """
         Args:
         key_in: the input numpy array, tensor, list or str
@@ -553,10 +556,10 @@ class OpReplaceElements(OpBase):
         replace_with_val: the value that will be used to replace "find_val" elements
         key_out: if None, the modification will be inplace in "key_in" (faster), other wise, the name of the key to write to
         """
-        assert key_in in sample_dict, f"Error: missing {key_in}, available keys {sample_dict.keypaths()} "                    
-        
+        assert key_in in sample_dict, f"Error: missing {key_in}, available keys {sample_dict.keypaths()} "
+
         input_obj = sample_dict[key_in]
-        
+
         if key_out is not None:
             if torch.is_tensor(input_obj):
                 input_obj = input_obj.clone()
@@ -567,11 +570,11 @@ class OpReplaceElements(OpBase):
 
         if torch.is_tensor(input_obj) or isinstance(input_obj, np.ndarray):
             sample_dict[key_out] = input_obj
-            sample_dict[key_out][sample_dict[key_out]==find_val] = replace_with_val
+            sample_dict[key_out][sample_dict[key_out] == find_val] = replace_with_val
         elif isinstance(sample_dict[key_in], str):
             sample_dict[key_out] = input_obj.replace(find_val, replace_with_val)
         elif isinstance(input_obj, (list, tuple)):
-            sample_dict[key_out] = [x if x!=find_val else replace_with_val for x in input_obj]
+            sample_dict[key_out] = [x if x != find_val else replace_with_val for x in input_obj]
         else:
             raise Exception(f"Unsupported object type {type(input_obj)}")
 
