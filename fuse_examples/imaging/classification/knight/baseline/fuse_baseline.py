@@ -211,14 +211,14 @@ def main(cfg_path: DictConfig) -> None:
         best_epoch_source=best_epoch_source,
         optimizers_and_lr_schs=optimizers_and_lr_schs,
     )
-    # create lightining trainer.
+    # create lightning trainer.
     pl_trainer = pl.Trainer(
         default_root_dir=model_dir,
         max_epochs=cfg["num_epochs"],
         accelerator="gpu" if use_gpu else "cpu",
         devices=cfg["num_gpus"] if use_gpu else None,
         num_sanity_val_steps=-1,
-        auto_scale_batch_size="binsearch",
+        # auto_scale_batch_size="binsearch",  # should use Tuner -  https://lightning.ai/pages/releases/2.0.0/#tuner
     )
 
     # train
