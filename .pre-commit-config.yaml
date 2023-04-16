@@ -22,6 +22,9 @@ repos:
     rev: "2.4.0"
     hooks:
       - id: nb-clean
+        args:
+          - --remove-empty-cells
+          - --preserve-cell-outputs
   - repo: https://github.com/pycqa/isort
     rev: 5.12.0
     hooks:
