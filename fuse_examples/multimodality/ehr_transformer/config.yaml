@@ -138,7 +138,6 @@ train: # arguments for train() in classifiers_main_train.py
     max_epochs: 100
     accelerator: "gpu"
     devices: 1
-    strategy: "auto"
     num_sanity_val_steps: 0
 
 hydra:

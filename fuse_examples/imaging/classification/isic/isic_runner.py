@@ -122,7 +122,6 @@ TRAIN_COMMON_PARAMS["data.samples_ids"] = {"all": None, "golden": FULL_GOLDEN_ME
 TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 30
 TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
-TRAIN_COMMON_PARAMS["trainer.strategy"] = "auto"
 
 # ===============
 # Optimizer
@@ -350,7 +349,6 @@ def run_train(paths: dict, train_common_params: dict) -> None:
         max_epochs=train_common_params["trainer.num_epochs"],
         accelerator=train_common_params["trainer.accelerator"],
         devices=train_common_params["trainer.num_devices"],
-        strategy=train_common_params["trainer.strategy"],
     )
 
     # train

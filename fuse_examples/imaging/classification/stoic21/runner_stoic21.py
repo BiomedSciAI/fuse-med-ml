@@ -105,7 +105,9 @@ TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 50
 TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
 # use "dp" strategy temp when working with multiple GPUS - workaround for pytorch lightning issue: https://github.com/Lightning-AI/lightning/issues/11807
-TRAIN_COMMON_PARAMS["trainer.strategy"] = "dp" if TRAIN_COMMON_PARAMS["trainer.num_devices"] > 1 else None
+TRAIN_COMMON_PARAMS["trainer.strategy"] = (
+    "dp" if TRAIN_COMMON_PARAMS["trainer.num_devices"] > 1 else None
+)  # use "auto" for Lightning 2.0
 TRAIN_COMMON_PARAMS["trainer.ckpt_path"] = None  # path to the checkpoint you wish continue the training from
 # ===============
 # Optimizer
@@ -285,7 +287,6 @@ INFER_COMMON_PARAMS["data.num_workers"] = 16
 INFER_COMMON_PARAMS["model"] = TRAIN_COMMON_PARAMS["model"]
 INFER_COMMON_PARAMS["trainer.num_devices"] = 1  # infer must use single device
 INFER_COMMON_PARAMS["trainer.accelerator"] = "gpu"
-INFER_COMMON_PARAMS["trainer.strategy"] = None
 ######################################
 # Inference Template
 ######################################
@@ -318,7 +319,6 @@ def run_infer(dataset: DatasetDefault, paths: dict, infer_params: dict) -> None:
         default_root_dir=paths["model_dir"],
         accelerator=infer_params["trainer.accelerator"],
         devices=infer_params["trainer.num_devices"],
-        strategy=infer_params["trainer.strategy"],
         logger=None,
     )
     predictions = pl_trainer.predict(pl_module, infer_dataloader, return_predictions=True)

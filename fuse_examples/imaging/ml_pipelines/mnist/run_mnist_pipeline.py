@@ -50,7 +50,7 @@ dataset_params["target_key"] = "data.label"
 train_params = TRAIN_COMMON_PARAMS
 
 # use "dp" strategy temp when working with multiple GPUS - workaround for pytorch lightning issue: https://github.com/Lightning-AI/lightning/issues/11807
-train_params["trainer.strategy"] = "dp" if num_gpus_per_split > 1 else None
+train_params["trainer.strategy"] = "dp" if num_gpus_per_split > 1 else None  # use "auto" for Lightning 2.0
 train_params["trainer.num_devices"] = num_gpus_per_split
 
 ######################################
