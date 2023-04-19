@@ -8,7 +8,7 @@ matplotlib>=3.3.3
 scikit-learn>=0.23.2
 termcolor>=1.1.0
 pycocotools>=2.0.1
-pytorch_lightning>=2.0.0 # Lightning 2.0.0 is not backward compatible
+pytorch_lightning<2.0.0 # Lightning 2.0.0 is not backward compatible
 torch
 torchvision
 tensorboard
