@@ -9,14 +9,14 @@ from fuse.utils.ndict import NDict
 
 
 class Embed(nn.Module):
-    def __init__(self, n_vocab: int, emb_dim: int, key_in: str, key_out: str, **embedding_kwargs):
+    def __init__(self, n_vocab: int, emb_dim: int, key_in: str, key_out: str, **embedding_kwargs: dict):
         super().__init__()
         self._emb_dim = emb_dim
         self._word_emb = nn.Embedding(n_vocab, self._emb_dim, **embedding_kwargs)
         self._key_in = key_in
         self._key_out = key_out
 
-    def forward(self, batch_dict: dict):
+    def forward(self, batch_dict: NDict) -> NDict:
         tokens = batch_dict[self._key_in]
         tokens = tokens.to(device=next(iter(self._word_emb.parameters())).device)
 
