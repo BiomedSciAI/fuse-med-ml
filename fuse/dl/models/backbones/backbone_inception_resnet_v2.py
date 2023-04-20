@@ -46,7 +46,14 @@ def make_final_seq(foo: Callable, num: int, *args: Any, **kwargs: Dict[str, Any]
 
 
 class BasicConv2d(nn.Module):
-    def __init__(self, in_planes: int, out_planes: int, kernel_size: Union[int, Tuple[int]], stride: Union[int, Tuple[int]], padding: int=0):
+    def __init__(
+        self,
+        in_planes: int,
+        out_planes: int,
+        kernel_size: Union[int, Tuple[int]],
+        stride: Union[int, Tuple[int]],
+        padding: int = 0,
+    ):
         super(BasicConv2d, self).__init__()
         self.conv = nn.Conv2d(
             in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=padding, bias=False
@@ -91,7 +98,7 @@ class Mixed_5b(nn.Module):
 
 
 class Block35(nn.Module):
-    def __init__(self, scale: float=1.0):
+    def __init__(self, scale: float = 1.0):
         super(Block35, self).__init__()
 
         self.scale = scale
@@ -145,7 +152,7 @@ class Mixed_6a(nn.Module):
 
 
 class Block17(nn.Module):
-    def __init__(self, scale: float=1.0, final_block: bool=False, intra_block_cut_level: int=384):
+    def __init__(self, scale: float = 1.0, final_block: bool = False, intra_block_cut_level: int = 384):
         super(Block17, self).__init__()
 
         self.scale = scale
@@ -208,7 +215,7 @@ class Mixed_7a(nn.Module):
 
 
 class Block8(nn.Module):
-    def __init__(self, scale: float=1.0, noReLU: bool=False):
+    def __init__(self, scale: float = 1.0, noReLU: bool = False):
         super(Block8, self).__init__()
 
         self.scale = scale

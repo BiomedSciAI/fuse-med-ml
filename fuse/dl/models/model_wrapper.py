@@ -18,12 +18,12 @@ Created on June 30, 2021
 """
 
 from typing import Sequence, Dict, Callable, Any, Union
-import torch
+import torch.nn as nn
 from torch import Tensor
 from fuse.utils.ndict import NDict
 
 
-class ModelWrapSeqToDict(torch.nn.Module):
+class ModelWrapSeqToDict(nn.Module):
     """
     Fuse model wrapper for wrapping torch modules and passing through Fuse
     """
@@ -31,7 +31,7 @@ class ModelWrapSeqToDict(torch.nn.Module):
     def __init__(
         self,
         *,  # preventing positional args
-        model: torch.nn.Module = None,
+        model: nn.Module = None,
         model_inputs: Sequence[str] = None,
         model_outputs: Sequence[str] = None,
         pre_forward_processing_function: Callable = None,
@@ -90,20 +90,20 @@ class ModelWrapSeqToDict(torch.nn.Module):
 
         return batch_dict
 
-    def __getattr__(self, name: str) -> Union[Tensor, 'Module']:
+    def __getattr__(self, name: str) -> Union[Tensor, nn.Module]:
         try:
             return super().__getattr__(name)
         except:
             return self.model.__getattribute__(name)
 
 
-class ModelWrapDictToSeq(torch.nn.Module):
+class ModelWrapDictToSeq(nn.Module):
     """
     Fuse model wrapper for wrapping fuse pytorch model and make him be in basic format- input is tensor and output is tensor
     The user need to provide the input and output keys of the fuse model
     """
 
-    def __init__(self, fuse_model: torch.nn.Module, output_key: str, input_key: str):
+    def __init__(self, fuse_model: nn.Module, output_key: str, input_key: str):
         super().__init__()
         self.model = fuse_model
         self.output_key = output_key
