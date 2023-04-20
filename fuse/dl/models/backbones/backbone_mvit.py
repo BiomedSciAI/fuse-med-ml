@@ -17,12 +17,12 @@ Created on June 30, 2021
 
 """
 
-import torch.nn as nn
-from torchvision.models.video.mvit import MViT, MViT_V2_S_Weights
 from typing import Dict, List
-from torch import Tensor
+
 import torch
-from torchvision.models.video.mvit import MSBlockConfig
+import torch.nn as nn
+from torch import Tensor
+from torchvision.models.video.mvit import MSBlockConfig, MViT, MViT_V2_S_Weights
 
 
 class BackboneMViT(nn.Module):
