@@ -26,7 +26,7 @@ from fuse.data.ops.ops_read import OpReadDataframe
 
 
 class TestOpsRead(unittest.TestCase):
-    def test_op_read_dataframe(self):
+    def test_op_read_dataframe(self) -> None:
         """
         Test OpReadDataframe
         """
