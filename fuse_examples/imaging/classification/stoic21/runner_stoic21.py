@@ -104,11 +104,6 @@ TRAIN_COMMON_PARAMS["data.validation_folds"] = [4]
 TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 50
 TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
-# use "dp" strategy temp when working with multiple GPUS - workaround for pytorch lightning issue: https://github.com/Lightning-AI/lightning/issues/11807
-TRAIN_COMMON_PARAMS["trainer.strategy"] = (
-    "dp" if TRAIN_COMMON_PARAMS["trainer.num_devices"] > 1 else None
-)  # use "auto" for Lightning 2.0
-TRAIN_COMMON_PARAMS["trainer.ckpt_path"] = None  # path to the checkpoint you wish continue the training from
 # ===============
 # Optimizer
 # ===============
@@ -270,7 +265,7 @@ def run_train(
     )
 
     # train
-    pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=train_params["trainer.ckpt_path"])
+    pl_trainer.fit(pl_module, train_dataloader, validation_dataloader)
 
     lgr.info("Train: Done", {"attrs": "bold"})
 

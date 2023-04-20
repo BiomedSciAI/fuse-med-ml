@@ -180,11 +180,20 @@ def run_train(params: dict) -> None:
         distributed=distributed,
     )
 
+    # A workaround to support multiple GPUs with a custom batch_sampler for both Lightning versions
+    #       see: https://lightning.ai/pages/releases/2.0.0/#sampler-replacement
+    kwargs = {}
+    if pl.__version__[0] == "2":
+        kwargs["use_distributed_sampler"] = False
+    else:
+        kwargs["replace_sampler_ddp"] = False
+
     # create pl trainer
     pl_trainer = pl.Trainer(
         max_epochs=params["trainer.num_epochs"],
         accelerator=params["trainer.accelerator"],
         devices=params["trainer.num_devices"],
+        **kwargs,
     )
 
     # train model
