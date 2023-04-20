@@ -209,7 +209,7 @@ def step_extract_predictions(prediction_keys: Sequence[str], batch_dict: NDict) 
 
 
 def epoch_end_compute_and_log_losses(
-    pl: pl.LightningModule, mode: str, batch_losses: Sequence[Dict], sep: str = "."
+    pl: pl.LightningModule, mode: str, batch_losses: Sequence[NDict], sep: str = "."
 ) -> None:
     """
     On epoch end average out the batch losses and log the averaged losses

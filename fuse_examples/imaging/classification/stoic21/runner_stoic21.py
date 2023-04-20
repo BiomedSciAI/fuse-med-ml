@@ -48,6 +48,7 @@ from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import create_dir, save_dataframe
 import fuse.utils.gpu as GPU
+from fuse.utils import NDict
 
 import fuse_examples.imaging.classification.stoic21.dataset as dataset
 
@@ -142,7 +143,9 @@ def create_model(imaging_dropout: float, clinical_dropout: float, fused_dropout:
 #################################
 # Train Template
 #################################
-def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault, paths: dict, train_params: dict):
+def run_train(
+    train_dataset: DatasetDefault, validation_dataset: DatasetDefault, paths: dict, train_params: dict
+) -> None:
     # ==============================================================================
     # Logger
     # ==============================================================================
@@ -291,7 +294,7 @@ INFER_COMMON_PARAMS["trainer.auto_select_gpus"] = True
 ######################################
 
 
-def run_infer(dataset: DatasetDefault, paths: dict, infer_params: dict):
+def run_infer(dataset: DatasetDefault, paths: dict, infer_params: dict) -> None:
     create_dir(paths["inference_dir"])
     infer_file = os.path.join(paths["inference_dir"], infer_params["infer_filename"])
     checkpoint_file = os.path.join(paths["model_dir"], infer_params["checkpoint"])
@@ -347,7 +350,7 @@ DATASET_COMMON_PARAMS["infer"] = INFER_COMMON_PARAMS
 ######################################
 
 
-def run_eval(paths: dict, eval_params: dict):
+def run_eval(paths: dict, eval_params: dict) -> NDict:
     infer_file = os.path.join(paths["inference_dir"], eval_params["infer_filename"])
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger("Fuse")

@@ -86,13 +86,13 @@ def run_cmmd(root: str) -> None:
 
 @unittest.skipIf("CMMD_DATA_PATH" not in os.environ, "define environment variable 'CMMD_DATA_PATH' to run this test")
 class ClassificationMGCmmdTestCase(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.root = tempfile.mkdtemp()
 
-    def test_runner(self):
+    def test_runner(self) -> None:
         run_in_subprocess(run_cmmd, self.root)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         # Delete temporary directories
         shutil.rmtree(self.root)
 

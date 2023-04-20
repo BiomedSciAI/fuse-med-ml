@@ -65,10 +65,10 @@ from fuse_examples.imaging.classification.mnist import lenet
 class LightningModuleMnist(pl.LightningModule):
     """
     Implementation of pl.LightningModule
-    Demonstrates how to use FuseMedML with your own PyTorch lightining implementaiton.
+    Demonstrates how to use FuseMedML with your own PyTorch lightning implementation.
     """
 
-    def __init__(self, model_dir: str, opt_lr: float, opt_weight_decay: float, **kwargs):
+    def __init__(self, model_dir: str, opt_lr: float, opt_weight_decay: float, **kwargs: dict):
         """
         :param model_dir: location for checkpoints and logs
         :param opt_lr: learning rate for Adam optimizer
@@ -151,13 +151,13 @@ class LightningModuleMnist(pl.LightningModule):
         return fuse_pl.step_extract_predictions(self._prediction_keys, batch_dict)
 
     ## Epoch end
-    def training_epoch_end(self, step_outputs) -> None:
+    def training_epoch_end(self, step_outputs) -> None:  # type: ignore
         # calc average epoch loss and log it
         fuse_pl.epoch_end_compute_and_log_losses(self, "train", [e["losses"] for e in step_outputs])
         # evaluate  and log it
         fuse_pl.epoch_end_compute_and_log_metrics(self, "train", self._train_metrics)
 
-    def validation_epoch_end(self, step_outputs) -> None:
+    def validation_epoch_end(self, step_outputs) -> None:  # type: ignore
         # calc average epoch loss and log it
         fuse_pl.epoch_end_compute_and_log_losses(self, "validation", [e["losses"] for e in step_outputs])
         # evaluate  and log it
@@ -242,7 +242,7 @@ def perform_softmax(logits: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
 #################################
 # Train Template
 #################################
-def run_train(paths: dict, train_params: dict):
+def run_train(paths: dict, train_params: dict) -> None:
     # ==============================================================================
     # Logger(s)
     # ==============================================================================
@@ -331,7 +331,7 @@ INFER_COMMON_PARAMS["trainer.strategy"] = None
 ######################################
 
 
-def run_infer(paths: dict, infer_common_params: dict):
+def run_infer(paths: dict, infer_common_params: dict) -> None:
     create_dir(paths["inference_dir"])
     infer_file = os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])
     checkpoint_file = os.path.join(paths["model_dir"], infer_common_params["checkpoint"])
@@ -385,7 +385,7 @@ EVAL_COMMON_PARAMS["infer_filename"] = INFER_COMMON_PARAMS["infer_filename"]
 ######################################
 # Eval Template
 ######################################
-def run_eval(paths: dict, eval_common_params: dict):
+def run_eval(paths: dict, eval_common_params: dict) -> NDict:
     create_dir(paths["eval_dir"])
     infer_file = os.path.join(paths["inference_dir"], eval_common_params["infer_filename"])
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)

@@ -74,13 +74,13 @@ def run_stoic21(root: str) -> None:
     "STOIC21_DATA_PATH" not in os.environ, "define environment variable 'STOIC21_DATA_PATH' to run this test"
 )
 class ClassificationStoic21TestCase(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.root = tempfile.mkdtemp()
 
-    def test_template(self):
+    def test_template(self) -> None:
         run_in_subprocess(run_stoic21, self.root, timeout=1800)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         # Delete temporary directories
         shutil.rmtree(self.root)
 

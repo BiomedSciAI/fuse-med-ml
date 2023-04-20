@@ -48,15 +48,15 @@ def make_predictions_file(
     task_num: int,
     auto_select_gpus: Optional[bool] = True,
     reset_cache: bool = False,
-):
+) -> None:
     """
-    Automaitically make prediction files in the requested format - given path to model dir create by FuseMedML during training
+    Automatically make prediction files in the requested format - given path to model dir create by FuseMedML during training
     :param model_dir: path to model dir create by FuseMedML during training
     :param model: definition of the model
     :param checkpoint: path to the model checkpoint file
     :param data_path: path to the original data downloaded from https://github.com/neheller/KNIGHT
     :param cache_path: Optional - path to the cache folder. If none, it will pre-processes the data again
-    :param split: either path to pickled dictionary or the actual dictionary specifing the split between train and validation. the dictionary maps "train" to list of sample descriptors and "val" to list of sample descriptions
+    :param split: either path to pickled dictionary or the actual dictionary specifying the split between train and validation. the dictionary maps "train" to list of sample descriptors and "val" to list of sample descriptions
     :param output_filename: filename of the output csv file
     :param predictions_key_name: the key in batch_dict of the model predictions
     :param task_num: either 1 or 2 (task 1 or task 2)

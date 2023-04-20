@@ -36,7 +36,7 @@ import pytorch_lightning as pl
 # uncomment if you want to use specific gpus instead of automatically looking for free ones
 
 
-def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_dropout: float):
+def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_dropout: float) -> ModelMultiHead:
     if use_data["imaging"]:
         backbone = BackboneResnet3D(in_channels=1, pretrained=False)
         conv_inputs = [("model.backbone_features", 512)]
@@ -67,7 +67,7 @@ def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_d
     return model
 
 
-def main(cfg_path):
+def main(cfg_path: str) -> None:
     # read config params
     cfg = yaml.safe_load(open(cfg_path))
     task_num = cfg["task_num"]
