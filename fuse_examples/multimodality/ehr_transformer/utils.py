@@ -160,7 +160,7 @@ class TorchVocab(object):
     def __len__(self):
         return len(self.itos)
 
-    def vocab_rerank(self):
+    def vocab_rerank(self) -> None:
         self.stoi = {word: i for i, word in enumerate(self.itos)}
 
     def extend(self, v, sort=False):

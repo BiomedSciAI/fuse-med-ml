@@ -5,6 +5,7 @@ import torch.nn as nn
 
 from fuse.dl.models.backbones.backbone_transformer import Transformer
 from transformers.models.bert.modeling_bert import BertEncoder, BertPooler, BertConfig
+from fuse.utils.ndict import NDict
 
 
 class Embed(nn.Module):
@@ -42,7 +43,7 @@ class WordDropout(nn.Module):
         self._key_out = key_out
         self._mask_value = mask_value
 
-    def forward(self, batch_dict: dict):
+    def forward(self, batch_dict: NDict) -> NDict:
         """
         Do word dropout: with prob `p_word_dropout`, set the word to '<unk>'.
         """
@@ -66,7 +67,7 @@ class WordDropout(nn.Module):
 
 
 class TransformerEncoder(Transformer):
-    def __init__(self, num_cls_tokens=1, **kwargs):
+    def __init__(self, num_cls_tokens: int = 1, **kwargs: dict):
         super().__init__(num_cls_tokens=num_cls_tokens, **kwargs)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
