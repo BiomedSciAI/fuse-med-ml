@@ -260,7 +260,6 @@ def run_train(
         max_epochs=train_params["trainer.num_epochs"],
         accelerator=train_params["trainer.accelerator"],
         devices=train_params["trainer.num_devices"],
-        strategy=train_params["trainer.strategy"],
         logger=[lightning_csv_logger, lightning_tb_logger],
     )
 
