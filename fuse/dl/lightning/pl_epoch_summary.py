@@ -79,7 +79,7 @@ class ModelEpochSummary(Callback):
                 if self._monitor is not None
                 else "epoch_summary.txt"
             )
-        self._best_epßoch_metrics = None
+        self._best_epoch_metrics = None
         self._best_epoch_index = None
 
     @rank_zero_only
