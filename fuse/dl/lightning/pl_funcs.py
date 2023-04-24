@@ -29,7 +29,7 @@ import pandas as pd
 
 import torch
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 from .pl_epoch_summary import ModelEpochSummary
 
 from fuse.utils import NDict
@@ -101,35 +101,47 @@ def start_clearml_logger(
     return task
 
 
-def model_checkpoint_callbacks(model_dir: str, best_epoch_source: Union[Dict, List[Dict]]) -> List[pl.Callback]:
+def model_default_callbacks(
+    model_dir: str, best_epoch_source: Union[Dict, List[Dict], None], log_lr: bool = True
+) -> List[pl.Callback]:
     """
-    Create list of pl.callbacks that saves checkpoints using (pl.callbacks.ModelCheckpoint) and print per epoch summary (fuse.dl.lightning.pl_epoch_summary.ModelEpochSummary).
+    Create list of pl.callbacks that saves checkpoints using (pl.callbacks.ModelCheckpoint), print per epoch summary (fuse.dl.lightning.pl_epoch_summary.ModelEpochSummary) and log learning rate (lightning.pytorch.callbacks.LearningRateMonitor).
     :param model_dir: path to save checkpoints and summary
     :param best_epoch_source: either a dict with arguments to pass to ModelCheckpoint or list dicts to for multiple ModelCheckpoint callbacks (to monitor and save checkpoints for more then one metric).
+                              If set to None, it only store the last checkpoint.
     """
     callbacks = []
-    # checkpoints
-    if not isinstance(best_epoch_source, list):
-        best_epoch_source = [best_epoch_source]
-    for checkpoint_to_monitor in best_epoch_source:
-        if "dirpath" not in checkpoint_to_monitor:
-            checkpoint_to_monitor["dirpath"] = model_dir
-        if "filename" not in checkpoint_to_monitor:
-            checkpoint_to_monitor["filename"] = "best_epoch"
-            if len(best_epoch_source) > 1:
-                checkpoint_to_monitor["auto_insert_metric_name"] = True
 
-        model_checkpoint = ModelCheckpoint(**checkpoint_to_monitor)
-        model_checkpoint_display = ModelEpochSummary(
-            dirpath=checkpoint_to_monitor["dirpath"],
-            monitor=checkpoint_to_monitor.get("monitor", None),
-            mode=checkpoint_to_monitor.get("mode", "min"),
-        )
-        callbacks.append(model_checkpoint)
+    if best_epoch_source is None:
+        model_checkpoint_display = ModelEpochSummary(dirpath=model_dir)
         callbacks.append(model_checkpoint_display)
+    else:
+        # checkpoints
+        if not isinstance(best_epoch_source, list):
+            best_epoch_source = [best_epoch_source]
+        for checkpoint_to_monitor in best_epoch_source:
+            if "dirpath" not in checkpoint_to_monitor:
+                checkpoint_to_monitor["dirpath"] = model_dir
+            if "filename" not in checkpoint_to_monitor:
+                checkpoint_to_monitor["filename"] = "best_epoch"
+                if len(best_epoch_source) > 1:
+                    checkpoint_to_monitor["auto_insert_metric_name"] = True
+
+            model_checkpoint = ModelCheckpoint(**checkpoint_to_monitor)
+            model_checkpoint_display = ModelEpochSummary(
+                dirpath=checkpoint_to_monitor["dirpath"],
+                monitor=checkpoint_to_monitor.get("monitor", None),
+                mode=checkpoint_to_monitor.get("mode", "min"),
+            )
+            callbacks.append(model_checkpoint)
+            callbacks.append(model_checkpoint_display)
 
     # last epoch checkpoint
     callbacks.append(ModelCheckpoint(dirpath=model_dir, filename="last_epoch", save_last=True))
+
+    if log_lr:
+        lr_monitor = LearningRateMonitor(logging_interval="step")
+        callbacks.append(lr_monitor)
     return callbacks
 
 
