@@ -180,10 +180,10 @@ def run_train(params: dict) -> None:
         distributed=distributed,
     )
 
+    # A workaround to support multiple GPUs with a custom batch_sampler for both Lightning versions
+    #       see: https://lightning.ai/pages/releases/2.0.0/#sampler-replacement
+    kwargs = {}
     if distributed:
-        # A workaround to support multiple GPUs with a custom batch_sampler for both Lightning versions
-        #       see: https://lightning.ai/pages/releases/2.0.0/#sampler-replacement
-        kwargs = {}
         if pl.__version__[0] == "2":
             kwargs["use_distributed_sampler"] = False
         else:
