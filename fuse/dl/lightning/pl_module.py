@@ -123,8 +123,8 @@ class LightningModuleDefault(pl.LightningModule):
 
         self._optimizers_and_lr_schs = optimizers_and_lr_schs
         self._callbacks = callbacks if callbacks is not None else []
-        if best_epoch_source is not None:
-            self._callbacks += model_checkpoint_callbacks(model_dir, best_epoch_source)
+
+        self._callbacks += model_default_callbacks(model_dir, best_epoch_source)
 
         # init state
         self._prediction_keys = None
