@@ -98,7 +98,6 @@ def create_model(train: NDict, paths: NDict) -> torch.nn.Module:
         accelerator=train["trainer"]["accelerator"],
         devices=train["trainer"]["devices"],
         num_sanity_val_steps=-1,
-        auto_select_gpus=True,
     )
     return model, pl_trainer, num_classes, gt_label, skip_keys, class_names
 
@@ -275,7 +274,6 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
         accelerator=train["trainer"]["accelerator"],
         devices=train["trainer"]["devices"],
         num_sanity_val_steps=-1,
-        auto_select_gpus=True,
     )
 
     # train from scratch

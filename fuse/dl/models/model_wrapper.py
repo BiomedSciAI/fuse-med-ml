@@ -17,9 +17,12 @@ Created on June 30, 2021
 
 """
 
-from typing import Sequence, Dict, Callable, Any, Union
+from typing import Sequence, Dict, Callable, Union, Any
+
+import torch
 import torch.nn as nn
 from torch import Tensor
+
 from fuse.utils.ndict import NDict
 
 
@@ -31,8 +34,8 @@ class ModelWrapSeqToDict(nn.Module):
     def __init__(
         self,
         *,  # preventing positional args
-        model: nn.Module = None,
-        model_inputs: Sequence[str] = None,
+        model: torch.nn.Module = None,
+        model_inputs: Union[Sequence[str], Dict[str, str]] = None,
         model_outputs: Sequence[str] = None,
         pre_forward_processing_function: Callable = None,
         post_forward_processing_function: Callable = None,
@@ -46,6 +49,14 @@ class ModelWrapSeqToDict(nn.Module):
         :param model: The model to wrap
         :param model_inputs: sequence of keys in batch dict to transfer into model.forward function
             for example: model_inputs=('data.input.input_0.tensor',)
+            It can also be a dictionary mapping model forward argument name to key used to extract value from batch_dict.
+            For example:
+            class MyModel(nn.Module):
+                def forward(encoder_input, decoder_input):
+                    ...
+
+            model_inputs = dict(encoder_input="data.query.encoder_input", decoder_input="data.query.decoder_input")
+
         :param model_outputs: keys in batch dict to save the outputs of model.forward()
             for example: model_outputs=('output.output_0',)
         :param pre_forward_processing_function: utility function to process input data before forward is called (after it's extracted from batch_dict)
@@ -67,14 +78,23 @@ class ModelWrapSeqToDict(nn.Module):
 
     def forward(self, batch_dict: NDict, *args: Any, **kwargs: Dict[str, Any]) -> NDict:
         # convert input to the model's expected input
-        model_input = [batch_dict[conv_input] for conv_input in self.model_inputs]
+        if isinstance(self.model_inputs, dict):
+            model_input = {
+                input_arg_name: batch_dict[input_batch_dict_key]
+                for input_arg_name, input_batch_dict_key in self.model_inputs.items()
+            }
+        else:
+            model_input = [batch_dict[input_batch_dict_key] for input_batch_dict_key in self.model_inputs]
 
         # convert input to model expected input
         if self.pre_forward_processing_function is not None:
             model_input = self.pre_forward_processing_function(model_input)
 
         # run the model
-        model_output = self.model(*model_input, *args, **kwargs)
+        if isinstance(self.model_inputs, dict):
+            model_output = self.model(*args, **model_input, **kwargs)
+        else:
+            model_output = self.model(*model_input, *args, **kwargs)
 
         # convert output of model to Fuse expected output
         if self.post_forward_processing_function is not None:

@@ -368,7 +368,6 @@ def run_train(paths: dict, train_common_params: dict) -> None:
         max_epochs=train_common_params["trainer.num_epochs"],
         accelerator=train_common_params["trainer.accelerator"],
         devices=train_common_params["trainer.num_devices"],
-        auto_select_gpus=True,
     )
 
     # train
@@ -441,7 +440,6 @@ def run_infer(paths: dict, infer_common_params: dict) -> None:
         default_root_dir=paths["model_dir"],
         accelerator=infer_common_params["trainer.accelerator"],
         devices=infer_common_params["trainer.num_devices"],
-        auto_select_gpus=True,
     )
     predictions = pl_trainer.predict(pl_module, infer_dataloader, return_predictions=True)
 
