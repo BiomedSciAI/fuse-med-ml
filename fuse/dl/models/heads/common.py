@@ -19,6 +19,7 @@ Created on June 30, 2021
 
 from typing import Optional, Sequence
 import torch.nn as nn
+from torch import Tensor
 
 
 class ClassifierFCN(nn.Module):
@@ -56,7 +57,7 @@ class ClassifierFCN(nn.Module):
 
         self.classifier = nn.Sequential(*layer_list)
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         x = self.classifier(x)
         return x
 
@@ -95,7 +96,7 @@ class ClassifierFCN3D(nn.Module):
 
         self.classifier = nn.Sequential(*layer_list)
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         x = self.classifier(x)
         return x
 
@@ -134,6 +135,6 @@ class ClassifierMLP(nn.Module):
 
         self.classifier = nn.Sequential(*layer_list)
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         x = self.classifier(x)
         return x

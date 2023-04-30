@@ -74,13 +74,13 @@ def run_isic(root: str) -> None:
 
 
 class ClassificationISICTestCase(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.root = tempfile.mkdtemp()
 
-    def test_runner(self):
+    def test_runner(self) -> None:
         run_in_subprocess(run_isic, self.root)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         # Delete temporary directories
         shutil.rmtree(self.root)
 

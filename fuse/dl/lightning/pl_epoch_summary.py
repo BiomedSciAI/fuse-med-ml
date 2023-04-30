@@ -18,7 +18,7 @@ Created on June 30, 2021
 
 from copy import deepcopy
 import os
-from typing import Optional
+from typing import Optional, Dict, Union
 from fuse.utils.misc.misc import get_pretty_dataframe
 
 import pytorch_lightning as pl
@@ -89,7 +89,7 @@ class ModelEpochSummary(Callback):
         Decorator makes sure it runs only once in a DDP strategy.
         """
 
-        def get_value_as_float_str(dict, key):
+        def get_value_as_float_str(dict: Dict[str, Union[float, int]], key: str) -> Union[None, str]:
             val_as_str = "N/A"
             try:
                 value = dict[key]

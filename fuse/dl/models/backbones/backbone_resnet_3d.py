@@ -81,7 +81,13 @@ class BasicBlock(nn.Module):
 class BasicStem(nn.Sequential):
     """The default conv-batchnorm-relu stem"""
 
-    def __init__(self, in_channels=3, out_channels=64, kernel_size=(3, 7, 7), stride=(1, 2, 2)) -> None:
+    def __init__(
+        self,
+        in_channels: int = 3,
+        out_channels: int = 64,
+        kernel_size: Tuple[int, int, int] = (3, 7, 7),
+        stride: Tuple[int, int, int] = (1, 2, 2),
+    ):
         padding = tuple([x // 2 for x in kernel_size])
         super().__init__(
             nn.Conv3d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding, bias=False),

@@ -23,7 +23,7 @@ from fuse.data.utils.export import ExportDataset
 from fuse.data.utils.sample import get_sample_id_key
 
 
-def print_folds_stat(db: pd.DataFrame, nfolds: int, key_columns: np.ndarray):
+def print_folds_stat(db: pd.DataFrame, nfolds: int, key_columns: np.ndarray) -> str:
     """
     Print fold statistics
     :param db:                 dataframe which contains the fold partition
@@ -130,8 +130,8 @@ def dataset_balanced_division_to_folds(
     reset_split: bool = False,
     workers: int = 10,
     mp_context: str = None,
-    **kwargs
-):
+    **kwargs: dict
+) -> dict:
 
     """
     Split dataset to folds.

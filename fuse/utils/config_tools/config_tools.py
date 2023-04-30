@@ -1,9 +1,9 @@
 import runpy
-from typing import List, Union, Callable, Dict
+from typing import List, Union, Callable, Dict, Any
 
 
 class Config:
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     def load(self, *configs: List[Union[Dict, str, Callable]]) -> Dict:
@@ -30,7 +30,7 @@ class Config:
         return ans
 
 
-def get_config_function(script_path: str):
+def get_config_function(script_path: str) -> Any:
     ans = runpy.run_path(script_path)
     func_name = "load_config"
     if func_name not in ans:

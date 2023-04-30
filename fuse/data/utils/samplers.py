@@ -40,7 +40,7 @@ class BatchSamplerDefault(BatchSampler):
         balanced_class_weights: Union[List[int], List[float], Dict[Any, int], Dict[Any, float], None] = None,
         num_batches: Optional[int] = None,
         verbose: bool = False,
-        **dataset_get_multi_kwargs,
+        **dataset_get_multi_kwargs: dict,
     ) -> None:
         """
         :param dataset: dataset used to extract the balanced class from each sample

@@ -1,4 +1,4 @@
-from typing import Dict, Hashable
+from typing import Dict, Hashable, Optional, Union, List
 from fuse.utils.ndict import NDict
 
 """
@@ -22,7 +22,7 @@ The bare minimum that a sample is required to contain are:
 """
 
 
-def create_initial_sample(initial_sample_id: Hashable, sample_id=None):
+def create_initial_sample(initial_sample_id: Hashable, sample_id: Optional[Hashable] = None) -> NDict:
     """
     creates an empty sample dict and sets both sample_id and initial_sample_id
     :param sample_id:
@@ -58,7 +58,7 @@ def get_sample_id(sample: Dict) -> Hashable:
     return sample[get_sample_id_key()]
 
 
-def set_sample_id(sample: Dict, sample_id: Hashable):
+def set_sample_id(sample: Dict, sample_id: Hashable) -> None:
     """
     sets sample_id in an existing sample dict
     """
@@ -75,7 +75,7 @@ def get_initial_sample_id_key() -> str:
     return "data.initial_sample_id"
 
 
-def set_initial_sample_id(sample: Dict, initial_sample_id: Hashable):
+def set_initial_sample_id(sample: Dict, initial_sample_id: Hashable) -> None:
     """
     sets initial_sample_id in an existing sample dict
     """
@@ -94,7 +94,7 @@ def get_initial_sample_id(sample: Dict) -> Hashable:
 ####
 
 
-def get_specific_sample_from_potentially_morphed(sample, sample_id):
+def get_specific_sample_from_potentially_morphed(sample: Union[NDict, List[NDict]], sample_id: Hashable) -> NDict:
     if isinstance(sample, dict):
         assert get_sample_id(sample) == sample_id
         return sample

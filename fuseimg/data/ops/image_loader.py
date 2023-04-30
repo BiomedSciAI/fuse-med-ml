@@ -16,7 +16,7 @@ class OpLoadImage(OpReversibleBase):
             'nii', 'nib', 'jpg', 'jpeg', 'png', 'mha','dcm'
     """
 
-    def __init__(self, dir_path: str, **kwargs):
+    def __init__(self, dir_path: str, **kwargs: dict):
         super().__init__(**kwargs)
         self._dir_path = dir_path
 
@@ -28,7 +28,7 @@ class OpLoadImage(OpReversibleBase):
         key_out: str,
         key_metadata_out: Optional[str] = None,
         format: str = "infer",
-    ):
+    ) -> NDict:
         """
         :param key_in: the key name in sample_dict that holds the filename
         :param key_out: the key name in sample_dict that holds the image

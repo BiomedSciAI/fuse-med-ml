@@ -34,14 +34,14 @@ class Checkpoint:
         self.learning_rate = learning_rate
         pass
 
-    def as_dict(self):
+    def as_dict(self) -> None:
         return {"net_state_dict": self.net_state_dict, "epoch_idx": self.epoch_idx, "learning_rate": self.learning_rate}
 
-    def save_to_file(self, file_name: str):
+    def save_to_file(self, file_name: str) -> None:
         torch.save(self.as_dict(), file_name)
 
     @classmethod
-    def load_from_file(cls, file_name: str):
+    def load_from_file(cls, file_name: str) -> "Checkpoint":
         checkpoint_dict = torch.load(file_name, map_location="cpu")
         net_state_dict = checkpoint_dict["net_state_dict"]
         epoch_idx = checkpoint_dict["epoch_idx"]

@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 
@@ -8,7 +8,9 @@ from scipy.spatial.distance import directed_hausdorff
 
 class MetricsSegmentation:
     @staticmethod
-    def get_tf_ft_values_from_bool_array_with_weights(u: np.ndarray, v: np.ndarray, w: Optional[Dict[int, np.ndarray]]):
+    def get_tf_ft_values_from_bool_array_with_weights(
+        u: np.ndarray, v: np.ndarray, w: Optional[Dict[int, np.ndarray]]
+    ) -> Tuple[float, float]:
         """
         Calculates the false positive and true negative between two ndarray , while having different weight for each pixel
         :param u: single sample prediction matrix ( np.ndarray of any shape) per sample

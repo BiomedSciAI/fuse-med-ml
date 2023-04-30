@@ -36,7 +36,7 @@ class MetricCIndex(MetricDefault):
         event_observed: str,
         time_unit: Optional[int] = 1,
         time_followup: Optional[int] = None,
-        **kwargs,
+        **kwargs: dict,
     ):
         """
         See MetricDefault for the missing params
@@ -66,7 +66,7 @@ class MetricExpectedCIndex(MetricDefault):
         pred: str,
         event_times: str,
         event_observed: str,
-        **kwargs,
+        **kwargs: dict,
     ):
         """
         See MetricDefault for the missing params

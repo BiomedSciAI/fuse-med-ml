@@ -19,7 +19,7 @@ Created on June 30, 2021
 from functools import partial
 from glob import glob
 import os
-from typing import Hashable, Optional, Sequence, Tuple
+from typing import Hashable, Optional, Sequence, Tuple, List
 
 
 import numpy as np
@@ -81,7 +81,7 @@ class STOIC21:
         ), "automatic download is not supported, please follow instructions in STOIC21 class header to download"
 
     @staticmethod
-    def sample_ids(path: str):
+    def sample_ids(path: str) -> List[str]:
         """
         get all the sample ids in train-set
         sample_id is *.mha file found in the specified path
@@ -148,7 +148,7 @@ class STOIC21:
         return static_pipeline
 
     @staticmethod
-    def dynamic_pipeline(train: bool, clip_range: Tuple[float, float]):
+    def dynamic_pipeline(train: bool, clip_range: Tuple[float, float]) -> PipelineDefault:
         """
         Get suggested dynamic pipeline. including pre-processing that might be modified and augmentation operations.
         :param clip_range: clip the original voxels values to fit this range

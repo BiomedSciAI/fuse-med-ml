@@ -17,14 +17,16 @@ Created on June 30, 2021
 
 """
 
-from typing import Sequence, Dict, Callable, Union
+from typing import Sequence, Dict, Callable, Union, Any
 
 import torch
+import torch.nn as nn
+from torch import Tensor
 
 from fuse.utils.ndict import NDict
 
 
-class ModelWrapSeqToDict(torch.nn.Module):
+class ModelWrapSeqToDict(nn.Module):
     """
     Fuse model wrapper for wrapping torch modules and passing through Fuse
     """
@@ -74,7 +76,7 @@ class ModelWrapSeqToDict(torch.nn.Module):
                 "Model Inputs and Outputs should be a Sequence of keys to data in a batch NDict. Not str. See fuse.data for more info."
             )
 
-    def forward(self, batch_dict: NDict, *args, **kwargs) -> Dict:
+    def forward(self, batch_dict: NDict, *args: Any, **kwargs: Dict[str, Any]) -> NDict:
         # convert input to the model's expected input
         if isinstance(self.model_inputs, dict):
             model_input = {
@@ -108,30 +110,30 @@ class ModelWrapSeqToDict(torch.nn.Module):
 
         return batch_dict
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Union[Tensor, nn.Module]:
         try:
             return super().__getattr__(name)
         except:
             return self.model.__getattribute__(name)
 
 
-class ModelWrapDictToSeq(torch.nn.Module):
+class ModelWrapDictToSeq(nn.Module):
     """
     Fuse model wrapper for wrapping fuse pytorch model and make him be in basic format- input is tensor and output is tensor
     The user need to provide the input and output keys of the fuse model
     """
 
-    def __init__(self, fuse_model: torch.nn.Module, output_key: str, input_key: str):
+    def __init__(self, fuse_model: nn.Module, output_key: str, input_key: str):
         super().__init__()
         self.model = fuse_model
         self.output_key = output_key
         self.input_key = input_key
 
-    def forward(self, input: torch.tensor):
+    def forward(self, input: Tensor) -> Tensor:
         batch_dict = NDict()
         # find input key
         batch_dict[self.input_key] = input
-        # feed fuse model with dict as he excpect
+        # feed fuse model with dict as he expect
         ans_ndict = self.model(batch_dict)
         # extract model output from dict
         output = ans_ndict[self.output_key]

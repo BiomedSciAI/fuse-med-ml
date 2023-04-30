@@ -10,7 +10,7 @@ from fuseimg.datasets.isic import ISIC
 
 
 class TestPipelineCaching(unittest.TestCase):
-    def test_basic_1(self):
+    def test_basic_1(self) -> None:
         """
         Test basic imaging ops
         """

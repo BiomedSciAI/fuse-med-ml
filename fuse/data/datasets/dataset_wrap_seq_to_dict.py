@@ -90,7 +90,7 @@ class DatasetWrapSeqToDict(DatasetDefault):
         sample_keys: Union[Sequence[str], str],
         cache_dir: Optional[str] = None,
         sample_ids: Optional[Sequence] = None,
-        **kwargs,
+        **kwargs: dict,
     ):
         """
         :param name: name of the data extracted from dataset, typically: 'train', 'validation;, 'test'
