@@ -108,7 +108,7 @@ class BatchSamplerDefault(BatchSampler):
             collected_data = dataset.get_multi(None, desc="batch_sampler", **self._dataset_get_multi_kwargs)
             self._balanced_classes = self._extract_balanced_classes(collected_data)
         else:
-            self._balanced_classes = np.zeros(len(self._dataset), dtype=np.integer)
+            self._balanced_classes = np.zeros(len(self._dataset), dtype=np.int32)
 
         self._balanced_class_values = np.unique(self._balanced_classes)
         if self._balanced_class_weights is None:
@@ -238,7 +238,7 @@ class BatchSamplerDefault(BatchSampler):
     def __len__(self) -> int:
         return self._num_batches
 
-    def _get_sample(self, balanced_class: Any) -> Any:
+    def _get_sample(self, balanced_class: Any) -> int:
         """
         sample index given balanced class value
         :param balanced_class: integer representing balanced class value
