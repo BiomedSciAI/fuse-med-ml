@@ -121,7 +121,7 @@ class Misc:
         return res
 
     @staticmethod
-    def in_ipynb():
+    def in_ipynb() -> bool:
         try:
             ip = get_ipython()
             if ip is None:
@@ -132,7 +132,7 @@ class Misc:
             return False
 
 
-def time_display(seconds, granularity=3):
+def time_display(seconds: int, granularity: int = 3) -> str:
     intervals = (
         # ('weeks', 604800),  # 60 * 60 * 24 * 7
         ("days", 86400),  # 60 * 60 * 24
@@ -153,7 +153,7 @@ def time_display(seconds, granularity=3):
     return ", ".join(result[:granularity])
 
 
-def get_pretty_dataframe(df, col_width=25):
+def get_pretty_dataframe(df: pd.DataFrame, col_width: int = 25) -> str:
     # check is col_width needs to be widen (so that dashes are in one line)
     max_val_width = np.vectorize(len)(df.values.astype(str)).max()  # get maximum length of all values
     max_col_width = max([len(x) for x in df.columns])  # get the maximum lengths of all column names
@@ -183,7 +183,7 @@ def get_time_delta(begin_time: float) -> str:
     return time_display(time_as_float)
 
 
-def autodetect_input_source(input_source: Union[str, pd.DataFrame, Sequence[Hashable]] = None):
+def autodetect_input_source(input_source: Union[str, pd.DataFrame, Sequence[Hashable]] = None) -> pd.DataFrame:
     """
     Loads sample descriptors from multiple auto-detectable possible sources:
     1. DataFrame (instance or path to pickled object)
@@ -234,7 +234,7 @@ class Singleton(type):
     _instances = {}
     _lock = Lock()
 
-    def __call__(cls, *args, **kwargs):
+    def __call__(cls, *args: list, **kwargs: dict) -> Any:
         with cls._lock:
             if cls not in cls._instances:
                 cls._instances[cls] = super().__call__(*args, **kwargs)

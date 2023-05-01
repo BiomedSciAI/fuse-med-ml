@@ -33,12 +33,12 @@ class OpSetForTest(OpReversibleBase):
 
 
 class OpNoneForTest(OpBase):
-    def __call__(self, sample_dict: NDict, **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, **kwargs: dict) -> Union[None, dict, List[dict]]:
         return None
 
 
 class OpSplitForTest(OpBase):
-    def __call__(self, sample_dict: NDict, **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, **kwargs: dict) -> Union[None, dict, List[dict]]:
         sample_id = sample_dict["data.sample_id"]
         samples = []
         split_num = 10
@@ -51,7 +51,7 @@ class OpSplitForTest(OpBase):
 
 
 class TestPipelineDefault(unittest.TestCase):
-    def test_pipeline(self):
+    def test_pipeline(self) -> None:
         """
         Test standard backward and forward pipeline
         """
@@ -75,7 +75,7 @@ class TestPipelineDefault(unittest.TestCase):
         self.assertEqual("data.test_pipeline" in sample_dict, False)
         self.assertEqual("data.test_pipeline_2" in sample_dict, False)
 
-    def test_none(self):
+    def test_none(self) -> None:
         """
         Test pipeline with an op returning None
         """
@@ -89,7 +89,7 @@ class TestPipelineDefault(unittest.TestCase):
         sample_dict = pipe(sample_dict)
         self.assertIsNone(sample_dict)
 
-    def test_split(self):
+    def test_split(self) -> None:
         """
         Test pipeline with an op splitting samples to multiple samples
         """

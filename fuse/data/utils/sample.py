@@ -1,17 +1,17 @@
-from typing import Dict, Hashable
+from typing import Dict, Hashable, List, Optional, Union
 
 from fuse.utils.ndict import NDict
 
 """
 helper utilities for creating empty samples, and setting and getting sample_id within samples
 
-A sample is a NDict, which is a special "flavor" of a dictionry, allowing accessing elements within it using x['a.b.c.d'] instead of x['a']['b']['c']['d'],
+A sample is a NDict, which is a special "flavor" of a dictionary, allowing accessing elements within it using x['a.b.c.d'] instead of x['a']['b']['c']['d'],
 which is very useful as it allows defining a nested element, or a nested sub-dict using a single string.
 
 The bare minimum that a sample is required to contain are:
 
 'initial_sample_id' - this is an arbitrary (Hashable) identifier. Usually a string, but doesn't have to be.
-    It represnts the initial sample_id that was provided before a pipeline was used to process the sample, and potentially use "sample morphing".
+    It represents the initial sample_id that was provided before a pipeline was used to process the sample, and potentially use "sample morphing".
     "sample morphing" means that a sample might change during the pipeline execution.
     1. Discard - one type of morphing is that a sample is being discarded. Example use case is discarding an MRI volume because it has too little segmentation info that interests a certain research design.
     2. Split - another type of morphing is that a sample can be split into multiple samples.
@@ -23,7 +23,7 @@ The bare minimum that a sample is required to contain are:
 """
 
 
-def create_initial_sample(initial_sample_id: Hashable, sample_id=None):
+def create_initial_sample(initial_sample_id: Hashable, sample_id: Optional[Hashable] = None) -> NDict:
     """
     creates an empty sample dict and sets both sample_id and initial_sample_id
     :param sample_id:
@@ -59,7 +59,7 @@ def get_sample_id(sample: Dict) -> Hashable:
     return sample[get_sample_id_key()]
 
 
-def set_sample_id(sample: Dict, sample_id: Hashable):
+def set_sample_id(sample: Dict, sample_id: Hashable) -> None:
     """
     sets sample_id in an existing sample dict
     """
@@ -76,7 +76,7 @@ def get_initial_sample_id_key() -> str:
     return "data.initial_sample_id"
 
 
-def set_initial_sample_id(sample: Dict, initial_sample_id: Hashable):
+def set_initial_sample_id(sample: Dict, initial_sample_id: Hashable) -> None:
     """
     sets initial_sample_id in an existing sample dict
     """
@@ -95,7 +95,7 @@ def get_initial_sample_id(sample: Dict) -> Hashable:
 ####
 
 
-def get_specific_sample_from_potentially_morphed(sample, sample_id):
+def get_specific_sample_from_potentially_morphed(sample: Union[NDict, List[NDict]], sample_id: Hashable) -> NDict:
     if isinstance(sample, dict):
         assert get_sample_id(sample) == sample_id
         return sample

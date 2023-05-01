@@ -117,7 +117,7 @@ class CollateDefault(CollateToBatchList):
             batch_dict[key] = collected_values
 
     @staticmethod
-    def just_collect_to_list(values: List[Any]):
+    def just_collect_to_list(values: List[Any]) -> List[Any]:
         """
         special handler doing nothing - will just keep the collected list
         """
@@ -145,7 +145,7 @@ class CollateDefault(CollateToBatchList):
         max_per_dim = np.amax(np.stack([value.shape for value in values]), axis=0)
 
         # pad
-        def _pad_size(value, dim):
+        def _pad_size(value: torch.Tensor, dim: int) -> List[int]:
             assert max_per_dim[dim] >= value.shape[dim]
             return [0, max_per_dim[dim] - value.shape[dim]]
 

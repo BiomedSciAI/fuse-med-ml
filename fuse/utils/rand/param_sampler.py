@@ -53,7 +53,7 @@ class Uniform(ParamSamplerBase):
         """
         return random.uniform(self.min, self.max)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Uniform [{self.min} - {self.max}] "
 
 
@@ -74,7 +74,7 @@ class RandInt(ParamSamplerBase):
         """
         return random.randint(self.min, self.max)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"RandInt [{self.min} - {self.max}] "
 
 
@@ -94,7 +94,7 @@ class RandBool(ParamSamplerBase):
         """
         return random.uniform(0, 1) <= self.probability
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"RandBool p={self.probability}] "
 
 
@@ -121,7 +121,7 @@ class Choice(ParamSamplerBase):
         else:
             return random.choices(self.seq, weights=self.probabilities, k=self.k)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Choice seq={self.seq}, w={self.probabilities}] "
 
 

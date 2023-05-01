@@ -40,7 +40,7 @@ class MetricInstanceIouJaccard(MetricPerSampleDefault):
         height: str,
         width: str,
         threshold: Optional[float] = 0.5,
-        **kwargs
+        **kwargs: dict
     ):
         """
         See super class for the missing params , to read more about the segmentation types go to class MetricsInstanceSegmentaion

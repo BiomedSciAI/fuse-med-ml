@@ -3,6 +3,7 @@ import pathlib
 import shutil
 import unittest
 from tempfile import mkdtemp
+from typing import Any
 
 from testbook import testbook
 from tqdm import trange
@@ -20,7 +21,7 @@ from fuseimg.datasets.stoic21 import STOIC21
 notebook_path = os.path.join(pathlib.Path(__file__).parent.resolve(), "../kits21_example.ipynb")
 
 
-def ds_getitem(index: int):
+def ds_getitem(index: int) -> Any:
     sample = get_from_global_storage("ds")[index].flatten()
     del sample["data.input.img"]
     return sample
@@ -41,7 +42,7 @@ class TestDatasets(unittest.TestCase):
             os.environ["ISIC19_DATA_PATH"] if "ISIC19_DATA_PATH" in os.environ else mkdtemp(prefix="isic_data")
         )
 
-    def test_kits21(self):
+    def test_kits21(self) -> None:
         KITS21.download(self.kits21_data_dir, cases=list(range(10)))
 
         create_dir(self.kits21_cache_dir)
@@ -59,7 +60,7 @@ class TestDatasets(unittest.TestCase):
     @unittest.skipIf(
         "STOIC21_DATA_PATH" not in os.environ, "Expecting environment variable STOIC21_DATA_PATH to be defined"
     )
-    def test_stoic21(self):
+    def test_stoic21(self) -> None:
         data_path = os.environ["STOIC21_DATA_PATH"]
         sids = STOIC21.sample_ids(data_path)[:10]
         ds = STOIC21.dataset(sample_ids=sids, data_path=data_path, cache_dir=self.stoic21_cache_dir, reset_cache=True)
@@ -87,7 +88,7 @@ class TestDatasets(unittest.TestCase):
         self.assertEqual(ds[0]["data.input.clinical"].shape[0], 8)
         self.assertTrue(5 in dict(results["metrics.age"]))
 
-    def test_isic(self):
+    def test_isic(self) -> None:
 
         create_dir(self.isic_cache_dir)
         dataset = ISIC.dataset(
@@ -99,7 +100,7 @@ class TestDatasets(unittest.TestCase):
             self.assertEqual(get_sample_id(sample), TEN_GOLDEN_MEMBERS[sample_index])
 
     @testbook(notebook_path, execute=range(0, 4), timeout=120)
-    def test_basic(tb, self):
+    def test_basic(tb, self) -> None:  # type: ignore
         tb.execute_cell([4, 5])
 
         tb.inject(
@@ -109,7 +110,7 @@ class TestDatasets(unittest.TestCase):
         )
 
     @testbook(notebook_path, execute=range(0, 4), timeout=240)
-    def test_caching(tb, self):
+    def test_caching(tb, self) -> None:  # type: ignore
         tb.execute_cell([9])
 
         tb.execute_cell([16, 17])
@@ -120,7 +121,7 @@ class TestDatasets(unittest.TestCase):
         )
 
     @testbook(notebook_path, execute=range(0, 4), timeout=240)
-    def test_custom(tb, self):
+    def test_custom(tb, self) -> None:  # type: ignore
         tb.execute_cell([25])
 
         tb.inject(

@@ -10,7 +10,7 @@ from fuseimg.data.ops.shape_ops import OpPad
 
 
 class TestOps(unittest.TestCase):
-    def test_basic_1(self):
+    def test_basic_1(self) -> None:
         """
         Test basic imaging ops
         """
@@ -32,7 +32,7 @@ class TestOps(unittest.TestCase):
         self.assertGreaterEqual(sample["data.input.img"].min(), -3.5)
         self.assertEqual(sample["data.input.img"][-1], 3.5)
 
-    def test_op_pad(self):
+    def test_op_pad(self) -> None:
         """
         Test OpPad
         """
@@ -62,9 +62,6 @@ class TestOps(unittest.TestCase):
         self.assertTrue(np.array_equal(sample["data.input.numpy_img_1"], res_1))
         self.assertTrue(np.array_equal(sample["data.input.tensor_img_2"], res_2))
         self.assertTrue(np.array_equal(sample["data.input.numpy_img_2"], res_2))
-
-    def test_op_resize_to(self):
-        pass
 
 
 if __name__ == "__main__":

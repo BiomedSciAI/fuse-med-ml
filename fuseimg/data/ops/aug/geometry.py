@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import skimage
@@ -276,11 +276,11 @@ class OpCrop3D(OpBase):
         sample_dict: NDict,
         key: str,
         output_shape: Tuple[int, int, int],
-        z_move=0.5,
-        x_move=0.5,
-        y_move=0.5,
+        z_move: float = 0.5,
+        x_move: float = 0.5,
+        y_move: float = 0.5,
         fill: int = 0,
-    ):
+    ) -> NDict:
         """
         :param key: key to a tensor stored in sample_dict and get cropped by OpRandomCrop3D
         :param out_size: shape of the output tensor
@@ -325,7 +325,7 @@ class OpResizeTo(OpBase):
         super().__init__()
         self._channels_first = channels_first
 
-    def __call__(self, sample_dict: NDict, output_shape: Tuple[int], key: str, **kwargs) -> NDict:
+    def __call__(self, sample_dict: NDict, output_shape: Tuple[int], key: str, **kwargs: Dict[str, Any]) -> NDict:
         """
         :param key: key to a numpy array or tensor stored in the sample_dict in a H x W x C format.
         :param kwargs: additional arguments to pass to the resize function
@@ -352,7 +352,7 @@ class OpResizeTo(OpBase):
 
         return sample_dict
 
-    def get_permutation(self, dim: int, channels_first: bool):
+    def get_permutation(self, dim: int, channels_first: bool) -> List[int]:
         """
         :param dim: tensor's dimension
         :param channels_first: True iff the wanted permutation is: HxWxC -> CxHxW
@@ -382,7 +382,7 @@ class OpResizeTo(OpBase):
 
 
 class OpRotation3D(OpBase):
-    def __call__(self, sample_dict: NDict, key: str, z_rot: float = 0.0, y_rot: float = 0.0, x_rot: float = 0):
+    def __call__(self, sample_dict: NDict, key: str, z_rot: float = 0.0, y_rot: float = 0.0, x_rot: float = 0) -> NDict:
         """
         rotates an input tensor around an axis, when for example z_rot is chosen,
         the rotation is in the x-y plane.

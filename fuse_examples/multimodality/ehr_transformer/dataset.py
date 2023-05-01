@@ -246,6 +246,7 @@ class PhysioNetCinC:
             df_outcomes = pd.concat([df_outcomes, pd.read_csv(o_file)[["RecordID", "In-hospital_death"]]]).reset_index(
                 drop=True
             )
+
         df_outcomes["RecordID"] = df_outcomes["RecordID"].astype(str)
         df_outcomes.rename(columns={"RecordID": "PatientId"}, inplace=True)
 

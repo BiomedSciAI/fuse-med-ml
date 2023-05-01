@@ -50,6 +50,7 @@ from fuse.eval.metrics.metrics_common import CI, Filter, GroupAnalysis
 from fuse.eval.metrics.metrics_model_comparison import PairedBootstrap
 from fuse.eval.metrics.survival.metrics_survival import MetricCIndex
 from fuse.utils import set_seed
+from fuse.utils.ndict import NDict
 
 
 def example_0() -> Dict[str, Any]:
@@ -125,7 +126,7 @@ def example_1() -> Dict[str, Any]:
     return results
 
 
-def example_2():
+def example_2() -> NDict:
     """
     Cross validation example - evaluation the entire data, built from few folds at once
     Multiple inference files - each include prediction of a different fold - binary predictions (single probability)
@@ -159,7 +160,7 @@ def example_2():
     return results
 
 
-def example_3():
+def example_3() -> NDict:
     """
     General group analysis example - compute the AUC for each group separately.
     In this case the grouping is done according to gender
@@ -182,7 +183,7 @@ def example_3():
     return results
 
 
-def example_4() -> Dict[str, Any]:
+def example_4() -> NDict:
     """
     Simple evaluation example with Confidence Interval
     Inputs are two .csv files: one including predictions and one targets
@@ -217,7 +218,7 @@ def example_4() -> Dict[str, Any]:
     return results
 
 
-def example_5():
+def example_5() -> NDict:
     """
     Model comparison using paired bootstrap metric
     Compare model a binary classification sensitivity to model b binary classification sensitivity
@@ -263,7 +264,7 @@ def example_5():
     return results
 
 
-def example_6() -> Dict:
+def example_6() -> NDict:
     """
     Simple test of the DeLong's test implementation
     Also "naively" test the multiclass mode (one vs. all) by simply extending the
@@ -308,7 +309,7 @@ def example_6() -> Dict:
     return results
 
 
-def example_7() -> Dict:
+def example_7() -> NDict:
     """
     Another example for testing the DeLong's test implementation. This time in "binary classifier" mode
     The sample data in this example was used in the above blog post and verified against an R implementation.
@@ -347,7 +348,7 @@ def example_7() -> Dict:
     return results
 
 
-def example_8():
+def example_8() -> NDict:
     """
     Classification Multiclass example: five classes evaluation with metrics AUC-ROC AUC-PR, sensitivity, specificity and precision
     Input: one .csv prediction file that requires processing to convert the predictions to numpy array and one target file.
@@ -446,7 +447,7 @@ def example_8():
     return results
 
 
-def example_9():
+def example_9() -> NDict:
     """
     Classification example with single-process iterator.
     This example requires fuse-med-ml-data and torchvision packages installed
@@ -462,7 +463,7 @@ def example_9():
     torch_dataset = torchvision.datasets.MNIST(mnist_data_path, download=True, train=False)
 
     # define iterator
-    def data_iter():
+    def data_iter() -> NDict:
         for sample_index, (image, label) in enumerate(torch_dataset):
             sample_dict = {}
             sample_dict["id"] = sample_index
@@ -489,7 +490,7 @@ def example_9():
     return results
 
 
-def example_10() -> Dict:
+def example_10() -> NDict:
     """
     Test of McNemar's test implementation
     """
@@ -531,7 +532,7 @@ def example_10() -> Dict:
     return results
 
 
-def example_11() -> Dict:
+def example_11() -> NDict:
     """
     Sub group analysis example
     """
@@ -566,7 +567,7 @@ def example_11() -> Dict:
     return results
 
 
-def example_12() -> Dict:
+def example_12() -> NDict:
     """
     Example of a metric pipeline which includes a per-sample metric/operation.
     First, we apply a simple thresholding operation (per sample "metric"/operation) to generate class predictions.
@@ -602,7 +603,7 @@ def example_12() -> Dict:
     return results
 
 
-def example_13() -> Dict:
+def example_13() -> NDict:
     """
     Test reliability diagram and ECE metrics
     We use multi-class input data as in example_7:
@@ -707,7 +708,7 @@ def example_13() -> Dict:
     return results
 
 
-def example_14() -> Dict[str, Any]:
+def example_14() -> NDict:
     """
     Model ensemble example
     """
@@ -758,7 +759,7 @@ def example_14() -> Dict[str, Any]:
     return results
 
 
-def example_15():
+def example_15() -> NDict:
     """
     General group analysis example - compute the AUC for each group separately.
     In this case the grouping is done according to gender
@@ -781,7 +782,7 @@ def example_15():
     return results
 
 
-def example_16():
+def example_16() -> NDict:
     """
     General group analysis example - compute the AUC for each group separately.
     In this case the grouping is done according to gender
@@ -813,7 +814,7 @@ def example_16():
     return results
 
 
-def example_17() -> Dict:
+def example_17() -> NDict:
     """
     Test of C-Index test implementation
     """
@@ -848,7 +849,7 @@ def example_17() -> Dict:
     return results
 
 
-def example_18():
+def example_18() -> NDict:
     """
     Compute the AUC in case of a multi-label classification problem (each sample has more than one possible label).
     """

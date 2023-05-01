@@ -90,7 +90,7 @@ class CMMD:
         return static_pipeline
 
     @staticmethod
-    def dynamic_pipeline(train: bool = False):
+    def dynamic_pipeline(train: bool = False) -> PipelineDefault:
         """
         Get suggested dynamic pipeline. including pre-processing that might be modified and augmentation operations.
         :param train : True iff we request dataset for train purpouse
@@ -186,7 +186,7 @@ class CMMD:
         num_workers: int = 10,
         sample_ids: Optional[Sequence[Hashable]] = None,
         train: bool = False,
-    ):
+    ) -> DatasetDefault:
         """
         Creates Fuse Dataset single object (either for training, validation and test or user defined set)
         :param data_dir:                    dataset root path

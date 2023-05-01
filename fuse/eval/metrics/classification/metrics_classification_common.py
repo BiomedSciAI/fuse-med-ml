@@ -40,7 +40,7 @@ class MetricMultiClassDefault(MetricWithCollectorBase):
         metric_func: Callable,
         class_names: Optional[Sequence[str]] = None,
         class_weights: Optional[Sequence[float]] = None,
-        **kwargs,
+        **kwargs: dict,
     ):
         """
         :param pred: prediction key to collect
@@ -134,7 +134,7 @@ class MetricAUCROC(MetricMultiClassDefault):
         target: str,
         class_names: Optional[Sequence[str]] = None,
         max_fpr: Optional[float] = None,
-        **kwargs,
+        **kwargs: dict,
     ):
         """
         See MetricMultiClassDefault for the missing params
@@ -156,7 +156,7 @@ class MetricAUCROCMultLabel(MetricDefault):
         target: str,
         max_fpr: Optional[float] = None,
         average: str = "micro",
-        **kwargs,
+        **kwargs: dict,
     ):
         """
         See MetricMultiClassDefault for the missing params
@@ -179,7 +179,7 @@ class MetricROCCurve(MetricDefault):
         output_filename: Optional[str] = None,
         class_names: Optional[List[str]] = None,
         sample_weight: Optional[str] = None,
-        **kwargs,
+        **kwargs: dict,
     ) -> None:
         """
         :param pred:                key for predicted output (e.g., class scores after softmax)
@@ -198,7 +198,7 @@ class MetricAUCPR(MetricMultiClassDefault):
     Compute Area Under Precision Recall Curve score using sklearn (one vs rest)
     """
 
-    def __init__(self, pred: str, target: str, class_names: Optional[Sequence[str]] = None, **kwargs):
+    def __init__(self, pred: str, target: str, class_names: Optional[Sequence[str]] = None, **kwargs: dict):
         super().__init__(pred, target, MetricsLibClass.auc_pr, class_names=class_names, **kwargs)
 
 
@@ -207,7 +207,7 @@ class MetricAccuracy(MetricDefault):
     Compute accuracy over all the samples
     """
 
-    def __init__(self, pred: str, target: str, sample_weight: Optional[str] = None, **kwargs):
+    def __init__(self, pred: str, target: str, sample_weight: Optional[str] = None, **kwargs: dict):
         """
         See MetricDefault for the missing params
         :param sample_weight: weight per sample for the final accuracy score. Keep None if not required.
@@ -229,7 +229,7 @@ class MetricConfusion(MetricMultiClassDefault):
         class_names: Optional[Sequence[str]] = None,
         metrics: Sequence[str] = ("sensitivity",),
         operation_point: Union[float, Sequence[Tuple[int, float]], str, None] = tuple(),
-        **kwargs,
+        **kwargs: dict,
     ):
         """
         See MetricMultiClassDefault for the missing params
@@ -255,7 +255,12 @@ class MetricConfusionMatrix(MetricDefault):
     """
 
     def __init__(
-        self, cls_pred: str, target: str, class_names: Sequence[str], sample_weight: Optional[str] = None, **kwargs
+        self,
+        cls_pred: str,
+        target: str,
+        class_names: Sequence[str],
+        sample_weight: Optional[str] = None,
+        **kwargs: dict,
     ) -> None:
         """
         See super class
@@ -281,7 +286,7 @@ class MetricBSS(MetricDefault):
 
     """
 
-    def __init__(self, pred: str, target: str, **kwargs):
+    def __init__(self, pred: str, target: str, **kwargs: dict):
         """
         See super class
         """

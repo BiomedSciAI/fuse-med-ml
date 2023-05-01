@@ -14,7 +14,7 @@ import xmlrunner
 print(os.path.dirname(os.path.realpath(__file__)))
 
 
-def mehikon(a, b):
+def mehikon(a, b):  # type: ignore
     print(a)
 
 

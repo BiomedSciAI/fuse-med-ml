@@ -141,7 +141,7 @@ class KITS21:
                 print(f"{seg_file} number {i} was found")
 
     @staticmethod
-    def sample_ids():
+    def sample_ids() -> List[str]:
         """
         get all the sample ids in trainset
         sample_id is case_{id:05d} (for example case_00001 or case_00100)
@@ -178,7 +178,7 @@ class KITS21:
         return static_pipeline
 
     @staticmethod
-    def dynamic_pipeline():
+    def dynamic_pipeline() -> PipelineDefault:
         """
         Get suggested dynamic pipeline. including pre-processing that might be modified and augmentation operations.
         """

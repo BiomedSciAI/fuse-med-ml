@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from scipy import stats
-from torch import nn, optim
+from torch import Tensor, nn, optim
 
 
 class Calibration:
@@ -152,7 +152,7 @@ class Calibration:
             logits = torch.tensor(np.array(pred))
             target = torch.tensor(target)
 
-        def eval():
+        def eval() -> Tensor:
             optimizer.zero_grad()
             loss = nll_criterion(logits / temperature, target)
             loss.backward()

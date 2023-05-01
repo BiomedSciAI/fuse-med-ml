@@ -1,4 +1,4 @@
-from typing import Hashable, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Hashable, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -14,7 +14,7 @@ class MetricApplyThresholds(MetricMultiClassDefault):
         pred: str,
         class_names: Optional[Sequence[str]] = None,
         operation_point: Union[float, Sequence[Tuple[int, float]], str, None] = None,
-        **kwargs
+        **kwargs: dict
     ):
         """
         :param pred: key name for the model prediction scores
@@ -42,7 +42,7 @@ class MetricApplyThresholds(MetricMultiClassDefault):
         pred: Sequence[np.ndarray],
         ids: Sequence[Hashable],
         operation_point: Union[float, Sequence[Tuple[int, float]], str, None] = None,
-    ):
+    ) -> Dict[str, Any]:
         pred_thresholded = Thresholding.apply_thresholds(pred=pred, operation_point=operation_point)
         # make sure to return the per-sample metric result for the relevant sample ids:
         per_sample_data = PerSampleData(data=pred_thresholded, ids=ids)

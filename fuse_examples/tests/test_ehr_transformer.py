@@ -68,14 +68,14 @@ def run_ehr_transformer(cfg: DictConfig) -> None:
     "CINC_TEST_DATA_PATH" not in os.environ, "define environment variable 'CINC_TEST_DATA_PATH' to run this test"
 )
 class EHRTransformerTestCase(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.root = tempfile.mkdtemp()
         self.cfg = init_test_environment(self.root)
 
-    def test_template(self):
+    def test_template(self) -> None:
         run_in_subprocess(run_ehr_transformer, self.cfg)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         shutil.rmtree(self.root)
 
 

@@ -10,7 +10,7 @@ class MetricUniqueValues(MetricWithCollectorBase):
     Result format: list of tuples - each tuple include the value and number of occurrences
     """
 
-    def __init__(self, key: str, **kwargs) -> None:
+    def __init__(self, key: str, **kwargs: dict) -> None:
         super().__init__(key=key, **kwargs)
 
     def eval(self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None) -> None:

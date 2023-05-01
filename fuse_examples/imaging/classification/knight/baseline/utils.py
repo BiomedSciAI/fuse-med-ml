@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -24,7 +25,7 @@ CLINICAL_NAMES = [
 ]
 
 
-def create_knight_clinical(original_file, processed_file=None):
+def create_knight_clinical(original_file: str, processed_file: Optional[str] = None) -> pd.DataFrame:
     with open(original_file) as f:
         clinical_data = json.load(f)
     t_stage_count = np.zeros((5))

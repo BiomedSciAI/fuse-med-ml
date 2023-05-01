@@ -26,7 +26,7 @@ from fuse.eval.metrics.metrics_common import MetricPerBatchDefault
 
 
 class MetricPerplexity(MetricPerBatchDefault):
-    def __init__(self, preds: str, target: str, ignore_index: Optional[int] = None, **kwargs) -> None:
+    def __init__(self, preds: str, target: str, ignore_index: Optional[int] = None, **kwargs: dict) -> None:
         super().__init__(
             preds=preds,
             target=target,

@@ -1,3 +1,4 @@
+# type: ignore
 import numpy as np
 
 from fuse.data.key_types import DataTypeBasic
@@ -9,7 +10,15 @@ class TypedElement:
     encapsulates a single item view with all its overlayed data
     """
 
-    def __init__(self, image=None, seg=None, contours=None, bboxes=None, labels=None, metadata=None) -> None:
+    def __init__(
+        self,
+        image: np.ndarray = None,
+        seg: np.ndarray = None,
+        contours=None,
+        bboxes: np.ndarray = None,
+        labels=None,
+        metadata=None,
+    ) -> None:
         assert isinstance(image, (np.ndarray, type(None)))
         assert isinstance(seg, (np.ndarray, type(None)))
         # assert isinstance(contours, (np.ndarray, type(None)))

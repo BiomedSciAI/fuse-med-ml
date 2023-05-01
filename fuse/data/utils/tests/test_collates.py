@@ -34,15 +34,15 @@ from fuse.data.utils.collates import CollateDefault
 
 
 class OpCustomCollateDefTest(OpBase):
-    def __call__(self, sample_dict: dict, **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: dict, **kwargs: dict) -> Union[None, dict, List[dict]]:
         if get_sample_id(sample_dict) == "a":
             sample_dict["data.partial"] = 1
         return sample_dict
 
 
 class TestCollate(unittest.TestCase):
-    def test_collate_default(self):
-        # datainfo
+    def test_collate_default(self) -> None:
+        # data info
         data = {
             "sample_id": ["a", "b", "c", "d", "e"],
             "data.values": [7, 4, 9, 2, 4],
@@ -79,7 +79,7 @@ class TestCollate(unittest.TestCase):
         self.assertListEqual(batch["data.partial"], [1, None, None])
         self.assertFalse("data.not_important" in batch)
 
-    def test_pad_all_tensors_to_same_size(self):
+    def test_pad_all_tensors_to_same_size(self) -> None:
         a = torch.zeros((1, 1, 3))
         b = torch.ones((1, 2, 1))
         values = CollateDefault.pad_all_tensors_to_same_size([a, b])
@@ -88,12 +88,12 @@ class TestCollate(unittest.TestCase):
         self.assertTrue((values[1][:, :, :1] == b).all())
         self.assertTrue(values[1].sum() == b.sum())
 
-    def test_pad_all_tensors_to_same_size_bs_1(self):
+    def test_pad_all_tensors_to_same_size_bs_1(self) -> None:
         a = torch.ones((1, 2, 1))
         values = CollateDefault.pad_all_tensors_to_same_size([a])
         self.assertTrue((values[0] == a).all())
 
-    def test_pad_all_tensors_to_same_size_bs_3(self):
+    def test_pad_all_tensors_to_same_size_bs_3(self) -> None:
         a = torch.ones((1, 2, 3))
         b = torch.ones((3, 2, 1))
         c = torch.ones((1, 3, 2))

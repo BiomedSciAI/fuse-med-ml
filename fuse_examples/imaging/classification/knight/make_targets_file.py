@@ -26,12 +26,12 @@ from fuse.utils.file_io.file_io import save_dataframe
 from fuse.utils.utils_logger import fuse_logger_start
 
 
-def make_targets_file(data_path: str, split: Union[str, dict], output_filename: str):
+def make_targets_file(data_path: str, split: Union[str, dict], output_filename: str) -> None:
     """
-    Automaitically make targets file in the requested format
+    Automatically make targets file in the requested format
     :param data_path: path to the original data downloaded from https://github.com/neheller/KNIGHT
     :param cache_path: Optional - path to the cache folder. If none, it will pre-processes the data again
-    :param split: either path to pickled dictionary or the actual dictionary specifing the split between train and validation. the dictionary maps "train" to list of sample descriptors and "val" to list of sample descriptions
+    :param split: either path to pickled dictionary or the actual dictionary specifying the split between train and validation. the dictionary maps "train" to list of sample descriptors and "val" to list of sample descriptions
     :param output_filename: filename of the output csv file
     """
     # Logger
@@ -82,7 +82,7 @@ def make_targets_file(data_path: str, split: Union[str, dict], output_filename: 
 
 if __name__ == "__main__":
     """
-    Automaitically make targets file (csv files that holds just the labels for tasks) in the requested format
+    Automatically make targets file (csv files that holds just the labels for tasks) in the requested format
     Usage: python make_predictions_file <data_path> <cache_path> <split> <output_filename>
     See details in function make_predictions_file.
     """

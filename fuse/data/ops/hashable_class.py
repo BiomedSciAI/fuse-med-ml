@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Any, Callable
 
 from fuse.data.ops import get_function_call_str
 from fuse.data.ops.caching_tools import get_callers_string_description, value_to_string
@@ -11,7 +11,7 @@ class HashableClass:
     # expected signature: foo(val:Any) -> str
     VALUE_TO_STRING_FUNC: Callable = value_to_string
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         when init is called, a string representation of the caller(s) init args are recorded.
         This is used in get_hashable_string_representation which is used later for hashing in caching related tools (for example, SamplesCacher)
@@ -27,7 +27,7 @@ class HashableClass:
             ignore_first_frames=3,
         )
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: Any) -> None:
         """
         Verifies that super().__init__() is called before setting any attribute
         """

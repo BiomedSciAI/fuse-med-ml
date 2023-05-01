@@ -27,7 +27,7 @@ from fuse.utils.ndict import NDict
 
 
 class TestOpsRead(unittest.TestCase):
-    def test_op_read_dataframe(self):
+    def test_op_read_dataframe(self) -> None:
         """
         Test OpReadDataframe
         """

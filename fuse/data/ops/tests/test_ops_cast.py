@@ -29,7 +29,7 @@ from fuse.utils.ndict import NDict
 
 
 class TestOpsCast(unittest.TestCase):
-    def test_op_to_tensor(self):
+    def test_op_to_tensor(self) -> None:
         """
         Test OpToTensor __call__ and reverse
         """
@@ -64,7 +64,7 @@ class TestOpsCast(unittest.TestCase):
         )
         self.assertIsInstance(sample["values.val_np"], np.ndarray)
 
-    def test_op_to_numpy(self):
+    def test_op_to_numpy(self) -> None:
         """
         Test OpToNumpy __call__ and reverse
         """

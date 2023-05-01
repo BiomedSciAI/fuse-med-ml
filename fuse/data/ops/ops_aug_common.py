@@ -16,7 +16,7 @@ class OpRandApply(OpReversibleBase):
         self._op = op
         self._param_sampler = RandBool(probability=probability)
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs: dict) -> Union[None, dict, List[dict]]:
         """
         See super class
         """
@@ -60,7 +60,7 @@ class OpSample(OpReversibleBase):
         super().__init__()
         self._op = op
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs: dict) -> Union[None, dict, List[dict]]:
         """
         See super class
         """

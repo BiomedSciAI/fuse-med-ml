@@ -38,10 +38,10 @@ from fuse.utils import Seed
 
 
 class TestSamplers(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         pass
 
-    def test_balanced_dataset(self):
+    def test_balanced_dataset(self) -> None:
         Seed.set_seed(1234)
 
         transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
@@ -92,7 +92,7 @@ class TestSamplers(unittest.TestCase):
                 msg=f"Unbalanced class {idx}, expected 0.1+-0.05 and got {sampled}",
             )
 
-    def test_not_equalbalance_dataset(self):
+    def test_not_equalbalance_dataset(self) -> None:
         Seed.set_seed(1234)
 
         transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
@@ -140,7 +140,7 @@ class TestSamplers(unittest.TestCase):
             print(f"Class {idx}: {sampled * 100}% of data")
             self.assertEqual(sampled, balanced_class_weights[idx] / batch_size)
 
-    def test_sampler_default(self):
+    def test_sampler_default(self) -> None:
         # datainfo
         data = {
             "sample_id": ["a", "b", "c", "d", "e"],

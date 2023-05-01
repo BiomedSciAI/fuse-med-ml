@@ -1,5 +1,5 @@
 from time import time
-from typing import Optional
+from typing import Any, Optional
 
 from deepdiff import DeepDiff
 
@@ -90,7 +90,7 @@ class SampleCachingAudit:
                 return True
         return False
 
-    def audit(self, cached_sample, fresh_sample):
+    def audit(self, cached_sample: Any, fresh_sample: Any) -> None:
         diff = DeepDiff(cached_sample, fresh_sample, **self._audit_diff_kwargs)
         self._audited_so_far += 1
         if len(diff) > 0:

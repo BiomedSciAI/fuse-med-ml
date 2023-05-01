@@ -34,7 +34,7 @@ class BatchSamplerDefault(BatchSampler):
     def __init__(
         self,
         dataset: DatasetBase,
-        balanced_class_name: str,
+        balanced_class_name: Optional[str],
         num_balanced_classes: int = None,
         sampler: Optional[Sampler] = None,
         batch_size: Optional[int] = None,
@@ -42,11 +42,12 @@ class BatchSamplerDefault(BatchSampler):
         balanced_class_weights: Union[List[int], List[float], Dict[Any, int], Dict[Any, float], None] = None,
         num_batches: Optional[int] = None,
         verbose: bool = False,
-        **dataset_get_multi_kwargs,
+        **dataset_get_multi_kwargs: dict,
     ) -> None:
         """
         :param dataset: dataset used to extract the balanced class from each sample
-        :param balanced_class_name:  the name of balanced class to extract from dataset
+        :param balanced_class_name:  the name of balanced class to extract from dataset.
+                                     Set to none if you just want to randomly sample from entire dataset.
         :param num_balanced_classes: Not used. the number of classes inferred automatically. Keeping for backward compatibility.
         :param sampler: Optional - pytorch sampler for collecting the data.
                         In use in DDP strategy, when PL trainer re-instantiate a custom batch_sampler with a DistributedSampler.
@@ -83,11 +84,12 @@ class BatchSamplerDefault(BatchSampler):
             self._balanced_class_weights = balanced_class_weights
 
         self._num_batches = num_batches
-        self._dataset_get_multi_kwargs = dataset_get_multi_kwargs
+        self._dataset_get_multi_kwargs = dataset_get_multi_kwargs.copy()
         self._verbose = verbose
         # modify relevant keys
-        if self._balanced_class_name not in self._dataset_get_multi_kwargs:
-            self._dataset_get_multi_kwargs["keys"] = [self._balanced_class_name]
+        if self._balanced_class_name is not None:
+            if "keys" not in self._dataset_get_multi_kwargs:
+                self._dataset_get_multi_kwargs["keys"] = [self._balanced_class_name]
 
         # read data from dataset
         if self._sampler:
@@ -104,8 +106,12 @@ class BatchSamplerDefault(BatchSampler):
         dataset.subset(items)
 
         # get balanced classes per each sample
-        collected_data = dataset.get_multi(None, desc="batch_sampler", **self._dataset_get_multi_kwargs)
-        self._balanced_classes = self._extract_balanced_classes(collected_data)
+        if self._balanced_class_name is not None:
+            collected_data = dataset.get_multi(None, desc="batch_sampler", **self._dataset_get_multi_kwargs)
+            self._balanced_classes = self._extract_balanced_classes(collected_data)
+        else:
+            self._balanced_classes = np.zeros(len(self._dataset), dtype=np.int32)
+
         self._balanced_class_values = np.unique(self._balanced_classes)
         if self._balanced_class_weights is None:
             self._balanced_class_weights_list = None
@@ -234,7 +240,7 @@ class BatchSamplerDefault(BatchSampler):
     def __len__(self) -> int:
         return self._num_batches
 
-    def _get_sample(self, balanced_class: Any) -> Any:
+    def _get_sample(self, balanced_class: Any) -> int:
         """
         sample index given balanced class value
         :param balanced_class: integer representing balanced class value
@@ -247,7 +253,7 @@ class BatchSamplerDefault(BatchSampler):
             self._cls_pointers[balanced_class] = 0
             np.random.shuffle(self._balanced_class_indices[balanced_class])
 
-        return sample_idx
+        return int(sample_idx)
 
     def _make_batch(self) -> list:
         """

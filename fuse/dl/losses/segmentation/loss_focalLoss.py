@@ -23,12 +23,13 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch import Tensor
 
 from fuse.dl.losses.loss_base import LossBase
 from fuse.utils.ndict import NDict
 
 
-def make_one_hot(input, num_classes):
+def make_one_hot(input: Tensor, num_classes: int) -> Tensor:
     """Convert class index tensor to one hot encoding tensor.
     Args:
          input: A tensor of shape [N, 1, *]
@@ -58,7 +59,7 @@ class WeightedFocalLoss(nn.Module):
         self.alpha = torch.tensor([alpha, 1 - alpha])
         self.gamma = gamma
 
-    def forward(self, inputs, targets):
+    def forward(self, inputs: Tensor, targets: Tensor) -> Tensor:
 
         if targets.dim() < 4:
             targets = targets.unsqueeze(1)

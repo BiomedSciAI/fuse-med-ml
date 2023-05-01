@@ -131,7 +131,7 @@ def read_text_file(file_path: str) -> str:
 G_host_name = socket.gethostname()
 
 
-def get_randomized_postfix_name(filename: str, **additional_rand_state) -> str:
+def get_randomized_postfix_name(filename: str, **additional_rand_state: dict) -> str:
     """
     Returns a filename post-fixed with a random hash
     This is mostly used to create a multi-processing safe save operation.
@@ -177,7 +177,7 @@ def create_simple_timestamp_file(file_path: str) -> None:
         f.close()
 
 
-def save_hdf5_safe(filename: str, use_blosc: bool = True, **kwarrays):
+def save_hdf5_safe(filename: str, use_blosc: bool = True, **kwarrays: dict) -> str:
     """
     multi-threading and multi-processing safe saving content to hdf5 file
     args:
@@ -276,7 +276,7 @@ def load_hdf5(
     return ans
 
 
-def save_dataframe(df: pd.DataFrame, filename: str, **kwargs) -> None:
+def save_dataframe(df: pd.DataFrame, filename: str, **kwargs: dict) -> None:
     """
     Save dataframe into a file. The file format inferred from filename suffix
     Supported types: "csv", "hd5", "hdf5", "pickle", "pkl", "gz", "xslx", "md"

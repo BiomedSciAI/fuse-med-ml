@@ -44,6 +44,7 @@ from fuse.eval.evaluator import EvaluatorDefault
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 from fuse.utils.file_io.file_io import create_dir, save_dataframe
+from fuse.utils.ndict import NDict
 from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.utils_logger import fuse_logger_start
 
@@ -99,10 +100,6 @@ TRAIN_COMMON_PARAMS["data.validation_folds"] = [4]
 TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 50
 TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
-# use "dp" strategy temp when working with multiple GPUS - workaround for pytorch lightning issue: https://github.com/Lightning-AI/lightning/issues/11807
-TRAIN_COMMON_PARAMS["trainer.strategy"] = "dp" if TRAIN_COMMON_PARAMS["trainer.num_devices"] > 1 else None
-TRAIN_COMMON_PARAMS["trainer.ckpt_path"] = None  # path to the checkpoint you wish continue the training from
-TRAIN_COMMON_PARAMS["trainer.auto_select_gpus"] = True
 # ===============
 # Optimizer
 # ===============
@@ -138,7 +135,9 @@ def create_model(imaging_dropout: float, clinical_dropout: float, fused_dropout:
 #################################
 # Train Template
 #################################
-def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault, paths: dict, train_params: dict):
+def run_train(
+    train_dataset: DatasetDefault, validation_dataset: DatasetDefault, paths: dict, train_params: dict
+) -> None:
     # ==============================================================================
     # Logger
     # ==============================================================================
@@ -232,7 +231,7 @@ def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault,
     lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
     lr_sch_config = dict(scheduler=lr_scheduler, monitor="validation.losses.total_loss")
 
-    # optimizier and lr sch - see pl.LightningModule.configure_optimizers return value for all options
+    # optimizer and lr sch - see pl.LightningModule.configure_optimizers return value for all options
     optimizers_and_lr_schs = dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
 
     # =====================================================================================
@@ -251,19 +250,17 @@ def run_train(train_dataset: DatasetDefault, validation_dataset: DatasetDefault,
         optimizers_and_lr_schs=optimizers_and_lr_schs,
     )
 
-    # create lightining trainer.
+    # create lightning trainer.
     pl_trainer = pl.Trainer(
         default_root_dir=paths["model_dir"],
         max_epochs=train_params["trainer.num_epochs"],
         accelerator=train_params["trainer.accelerator"],
         devices=train_params["trainer.num_devices"],
-        strategy=train_params["trainer.strategy"],
-        auto_select_gpus=train_params["trainer.auto_select_gpus"],
         logger=[lightning_csv_logger, lightning_tb_logger],
     )
 
     # train
-    pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=train_params["trainer.ckpt_path"])
+    pl_trainer.fit(pl_module, train_dataloader, validation_dataloader)
 
     lgr.info("Train: Done", {"attrs": "bold"})
 
@@ -280,14 +277,12 @@ INFER_COMMON_PARAMS["data.num_workers"] = 16
 INFER_COMMON_PARAMS["model"] = TRAIN_COMMON_PARAMS["model"]
 INFER_COMMON_PARAMS["trainer.num_devices"] = 1  # infer must use single device
 INFER_COMMON_PARAMS["trainer.accelerator"] = "gpu"
-INFER_COMMON_PARAMS["trainer.strategy"] = None
-INFER_COMMON_PARAMS["trainer.auto_select_gpus"] = True
 ######################################
 # Inference Template
 ######################################
 
 
-def run_infer(dataset: DatasetDefault, paths: dict, infer_params: dict):
+def run_infer(dataset: DatasetDefault, paths: dict, infer_params: dict) -> None:
     create_dir(paths["inference_dir"])
     infer_file = os.path.join(paths["inference_dir"], infer_params["infer_filename"])
     checkpoint_file = os.path.join(paths["model_dir"], infer_params["checkpoint"])
@@ -314,8 +309,6 @@ def run_infer(dataset: DatasetDefault, paths: dict, infer_params: dict):
         default_root_dir=paths["model_dir"],
         accelerator=infer_params["trainer.accelerator"],
         devices=infer_params["trainer.num_devices"],
-        strategy=infer_params["trainer.strategy"],
-        auto_select_gpus=infer_params["trainer.auto_select_gpus"],
         logger=None,
     )
     predictions = pl_trainer.predict(pl_module, infer_dataloader, return_predictions=True)
@@ -343,7 +336,7 @@ DATASET_COMMON_PARAMS["infer"] = INFER_COMMON_PARAMS
 ######################################
 
 
-def run_eval(paths: dict, eval_params: dict):
+def run_eval(paths: dict, eval_params: dict) -> NDict:
     infer_file = os.path.join(paths["inference_dir"], eval_params["infer_filename"])
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger("Fuse")

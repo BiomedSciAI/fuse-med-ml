@@ -12,7 +12,7 @@ from fuse.utils.ndict import NDict
 # TODO: maybe it's better to flatten the dictionaries first
 
 
-def _object_requires_hdf5_recurse(curr: NDict, str_base="") -> List[str]:
+def _object_requires_hdf5_recurse(curr: NDict, str_base: str = "") -> List[str]:
     """
     Iterates on keys and checks
     """
@@ -53,7 +53,7 @@ def _object_requires_hdf5_recurse(curr: NDict, str_base="") -> List[str]:
 #     return None
 
 
-def _object_requires_hdf5_single(obj, minimal_ndarray_size=100):
+def _object_requires_hdf5_single(obj, minimal_ndarray_size=100):  # type: ignore
     ans = isinstance(obj, np.ndarray) and (obj.size > minimal_ndarray_size)
 
     if isinstance(obj, torch.Tensor):

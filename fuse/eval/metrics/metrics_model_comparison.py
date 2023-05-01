@@ -45,7 +45,7 @@ class PairedBootstrap(MetricWithCollectorBase):
         num_of_bootstraps: int = 10000,
         rnd_seed: int = 1234,
         margin: float = 0.0,
-        **super_kwargs
+        **super_kwargs: dict
     ) -> None:
         """
         :param metric_test: compare the results of metric_test to results of metric_reference

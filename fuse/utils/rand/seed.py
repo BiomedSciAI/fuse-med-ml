@@ -36,7 +36,7 @@ class Seed:
         return dataloader_rand_gen
 
     @staticmethod
-    def seed_worker_init(worker_id: int):
+    def seed_worker_init(worker_id: int) -> None:
         """
         Function to provide to torch dataloader to set a seed per worker
         """

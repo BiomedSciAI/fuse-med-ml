@@ -2,7 +2,7 @@ from typing import Sequence
 
 import numpy as np
 import torch
-from torch import nn
+from torch import Tensor, nn
 
 from fuse.dl.models.backbones.backbone_transformer import Transformer
 
@@ -33,7 +33,7 @@ class ProjectPatchesTokenizer(nn.Module):
         np_image_shape = np.array(image_shape)
         np_patch_shape = np.array(patch_shape)
 
-        # when shapes not divisable and strict=False, handaling is similar to pytorch strided convolution
+        # when shapes not divisible and strict=False, handling is similar to pytorch strided convolution
         # see here: https://pytorch.org/docs/stable/generated/torch.nn.Conv1d.html#torch.nn.Conv1d
         if strict:
             assert (np_image_shape % np_patch_shape == 0).all(), "Image dimensions must be divisible by the patch size."
@@ -55,7 +55,7 @@ class ProjectPatchesTokenizer(nn.Module):
         else:
             raise NotImplementedError("only supports 1D/2D/3D images")
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         assert len(x.shape) == self.image_dim + 2, "input should be [batch, channels] + image_shape"
         x = self.proj_layer(x)
         x = x.flatten(start_dim=2, end_dim=-1)  # x.shape == (batch_size, token_dim, num_tokens)
@@ -79,7 +79,7 @@ class ViT(nn.Module):
         num_tokens = self.projection_layer.num_tokens
         self.transformer = Transformer(num_tokens=num_tokens, token_dim=token_dim, **transformer_kwargs)
 
-    def forward(self, x: torch.Tensor, pool: str = "none"):
+    def forward(self, x: Tensor, pool: str = "none") -> Tensor:
         """
         :param pool: returns all tokens (pool='none'), only cls token (pool='cls') or the average token (pool='mean')
         """
@@ -120,7 +120,7 @@ def vit_base(
     return ViT(token_dim=token_dim, projection_kwargs=projection_kwargs, transformer_kwargs=transformer_kwargs)
 
 
-def usage_example():
+def usage_example() -> Tensor:
     vit = vit_tiny()
     # an example input to the model
     x = torch.zeros([1, 3, 224, 224])

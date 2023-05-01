@@ -157,7 +157,7 @@ class MetricsLibClass:
         pred: Sequence[Union[np.ndarray, int]],
         target: Sequence[Union[np.ndarray, int]],
         sample_weight: Optional[Sequence[Union[np.ndarray, float]]] = None,
-    ):
+    ) -> float:
         """
         Compute accuracy score
         :param pred: class prediction. Each element is an integer in range [0 - num_classes) or a float in range [0-1] in which case argmax will be applied

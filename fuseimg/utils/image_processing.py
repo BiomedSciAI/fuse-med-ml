@@ -17,7 +17,7 @@ Created on June 30, 2021
 
 """
 
-from typing import Tuple, Union
+from typing import Callable, Tuple, Union
 
 import cv2
 import numpy as np
@@ -25,7 +25,7 @@ import skimage
 import torch
 
 
-def match_img_to_input(im: np.ndarray, input: np.ndarray):
+def match_img_to_input(im: np.ndarray, input: np.ndarray) -> np.ndarray:
     """
     Resize an im to the input shape
     :param im: 2D image, can be numpy or Tensor
@@ -66,7 +66,9 @@ def pad_ndimage(
     return outer_image, h_offset, w_offset
 
 
-def block_reduce_resize(img: np.ndarray, target_shape: Tuple[int, int] = (10, 5), func=np.max) -> np.ndarray:
+def block_reduce_resize(
+    img: np.ndarray, target_shape: Tuple[int, int] = (10, 5), func: Callable = np.max
+) -> np.ndarray:
     """
     Reduces an image by applying 'func' param on blocks, to yield a target shape.
     :param img:             2D ndarray, shape [height, width]
@@ -127,7 +129,7 @@ def align_ecc(
     try:
         import cv2
 
-        from fuse.utils.imaging.align.utils_align_ecc import AlignMapECC
+        from fuseimg.utils.align.utils_align_ecc import AlignMapECC
 
         transformation = transformation or cv2.MOTION_AFFINE
 
@@ -145,7 +147,7 @@ def align_ecc(
         return img2
 
 
-def resize_image(image: np.ndarray, resize_to: Tuple[int, int]):
+def resize_image(image: np.ndarray, resize_to: Tuple[int, int]) -> np.ndarray:
     """
     Resizes image to resize_to dimensions
     :param image: ndarray of shape [height, width]

@@ -4,7 +4,7 @@ import zipfile
 from tqdm import tqdm
 
 
-def extract_zip_file(filename: str, dest_dir: str, show_progress_bar=True):
+def extract_zip_file(filename: str, dest_dir: str, show_progress_bar: bool = True) -> None:
     os.makedirs(dest_dir, exist_ok=True)
     print(f"extracting {filename} ...")
     with zipfile.ZipFile(filename) as zf:

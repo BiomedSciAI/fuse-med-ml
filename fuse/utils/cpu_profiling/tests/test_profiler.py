@@ -1,10 +1,10 @@
+# type: ignore
 import unittest
-
 from fuse.utils.cpu_profiling import Profiler
 
 
 class TestTimer(unittest.TestCase):
-    def test_profiler_1(self):
+    def test_profiler_1(self) -> None:
         """ """
         from itertools import combinations
 

@@ -1,3 +1,4 @@
+# type: ignore
 """
 (C) Copyright 2021 IBM Corp.
 
@@ -18,7 +19,8 @@ Created on Jan 09, 2023
 """
 
 import pickle
-from collections import Counter
+from collections import Counter, defaultdict
+from typing import List, Optional, Sequence, Tuple, Union
 
 import tqdm
 
@@ -33,7 +35,7 @@ special_tokens = {
 }
 
 
-def seq_translate(tokens, translate_dict):
+def seq_translate(tokens: List[str], translate_dict: dict) -> Tuple[List[str]]:
     """
     returns a list of tokens translated using translate_dict
     :param tokens:
@@ -43,7 +45,7 @@ def seq_translate(tokens, translate_dict):
     return ([translate_dict.get(token, translate_dict[special_tokens["unknown"]]) for token in tokens],)
 
 
-def position_idx(tokens, symbol=special_tokens["separator"]):
+def position_idx(tokens: Sequence[str], symbol: str = special_tokens["separator"]) -> List[int]:
     """
     Given a sequence of codes divided into groups (visits)
      by symbol ('SEP') tokens, returns a sequence of the same
@@ -61,7 +63,7 @@ def position_idx(tokens, symbol=special_tokens["separator"]):
     return group_inds
 
 
-def seq_pad(tokens, max_len, symbol=special_tokens["padding"]):
+def seq_pad(tokens: Sequence[str], max_len: int, symbol: str = special_tokens["padding"]) -> List[str]:
     """
     Returns a list of tokens padded by symbol to length max_len.
     :param tokens:
@@ -89,14 +91,14 @@ class TorchVocab(object):
 
     def __init__(
         self,
-        counter,
-        max_size=None,
-        min_freq=1,
-        specials=["<pad>", "<oov>"],
+        counter: Counter,
+        max_size: Optional[int] = None,
+        min_freq: int = 1,
+        specials: Sequence[str] = ["<pad>", "<oov>"],
         vectors=None,
         unk_init=None,
         vectors_cache=None,
-    ):
+    ) -> None:
         """Create a Vocab object from a collections.Counter.
         Arguments:
             counter: collections.Counter object holding the frequencies of
@@ -147,7 +149,7 @@ class TorchVocab(object):
         else:
             assert unk_init is None and vectors_cache is None
 
-    def __eq__(self, other):
+    def __eq__(self, other: "TorchVocab") -> bool:
         if self.freqs != other.freqs:
             return False
         if self.stoi != other.stoi:
@@ -158,13 +160,13 @@ class TorchVocab(object):
             return False
         return True
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.itos)
 
-    def vocab_rerank(self):
+    def vocab_rerank(self) -> None:
         self.stoi = {word: i for i, word in enumerate(self.itos)}
 
-    def extend(self, v, sort=False):
+    def extend(self, v: "TorchVocab", sort: bool = False) -> None:
         words = sorted(v.itos) if sort else v.itos
         for w in words:
             if w not in self.stoi:
@@ -173,7 +175,7 @@ class TorchVocab(object):
 
 
 class Vocab(TorchVocab):
-    def __init__(self, counter, max_size=None, min_freq=1):
+    def __init__(self, counter: Counter, max_size: Optional[int] = None, min_freq: int = 1):
         self.pad_index = 0
         self.unk_index = 1
         self.eos_index = 2
@@ -197,14 +199,14 @@ class Vocab(TorchVocab):
         with open(vocab_path, "rb") as f:
             return pickle.load(f)
 
-    def save_vocab(self, vocab_path):
+    def save_vocab(self, vocab_path: str) -> None:
         with open(vocab_path, "wb") as f:
             pickle.dump(self, f)
 
 
 # Building Vocab with text files
 class WordVocab(Vocab):
-    def __init__(self, texts, max_size=None, min_freq=1):
+    def __init__(self, texts: List[Union[List[str], str]], max_size: Optional[int] = None, min_freq: int = 1):
         print("Building Vocab")
         counter = Counter()
         for line in tqdm.tqdm(texts):
@@ -217,7 +219,14 @@ class WordVocab(Vocab):
                 counter[word] += 1
         super().__init__(counter, max_size=max_size, min_freq=min_freq)
 
-    def to_seq(self, sentence, seq_len=None, with_eos=False, with_sos=False, with_len=False):
+    def to_seq(
+        self,
+        sentence: Union[str, List[str]],
+        seq_len: Optional[int] = None,
+        with_eos: bool = False,
+        with_sos: bool = False,
+        with_len: bool = False,
+    ) -> Union[str, Tuple[str, int]]:
         if isinstance(sentence, str):
             sentence = sentence.split()
 
@@ -239,7 +248,7 @@ class WordVocab(Vocab):
 
         return (seq, origin_seq_len) if with_len else seq
 
-    def from_seq(self, seq, join=False, with_pad=False):
+    def from_seq(self, seq: Sequence, join: bool = False, with_pad: bool = False) -> str:
         words = [
             self.itos[idx] if idx < len(self.itos) else "<%d>" % idx
             for idx in seq
@@ -248,10 +257,10 @@ class WordVocab(Vocab):
 
         return " ".join(words) if join else words
 
-    def get_stoi(self):
+    def get_stoi(self) -> defaultdict:
         return self.stoi
 
-    def get_itos(self):
+    def get_itos(self) -> List[str]:
         return self.itos
 
     @staticmethod

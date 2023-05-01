@@ -28,7 +28,7 @@ class OpDebugBase(OpBase):
         self._num_samples = num_samples
         self._num_samples_done = 0
 
-    def reset(self, name: Optional[str] = None):
+    def reset(self, name: Optional[str] = None) -> None:
         """Reset operation state"""
         self._num_samples_done = 0
         self._name = name
@@ -45,13 +45,13 @@ class OpDebugBase(OpBase):
         self._num_samples_done += 1
         return True
 
-    def __call__(self, sample_dict: NDict, **kwargs) -> NDict:
+    def __call__(self, sample_dict: NDict, **kwargs: dict) -> NDict:
         if self.should_debug_sample(sample_dict):
             self.call_debug(sample_dict, **kwargs)
         return sample_dict
 
     @abstractmethod
-    def call_debug(self, sample_dict: NDict, **kwargs) -> None:
+    def call_debug(self, sample_dict: NDict, **kwargs: dict) -> None:
         """The actual debug op implementation"""
         raise NotImplementedError
 

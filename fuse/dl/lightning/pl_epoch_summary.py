@@ -18,7 +18,7 @@ Created on June 30, 2021
 
 import os
 from copy import deepcopy
-from typing import Optional
+from typing import Dict, Optional, Union
 
 import pandas as pd
 import pytorch_lightning as pl
@@ -34,7 +34,7 @@ class ModelEpochSummary(Callback):
         Model Checkpointing Display
         ===================
 
-        Automatically display (print to screen and log to a file) best vs current epoch metircs and losses.
+        Automatically display (print to screen and log to a file) best vs current epoch metrics and losses.
 
         Example:
     Stats for epoch: 9 (best epoch is 7 for source validation.metrics.accuracy!)
@@ -65,15 +65,20 @@ class ModelEpochSummary(Callback):
     ):
         """
         :param dirpath: location of log file
-        :param filename: specify a filename. If not set will use f"epoch_summary_{monitor}.txt"
-        :param monitor: the metric name to track
+        :param filename: specify a filename. If not set, it will use f"epoch_summary_{monitor}.txt"
+        :param monitor: the metric name to track. if not set, it will just save the last model.
         :param mode: either consider the "min" value to be best or the "max" value to be the best
         """
         super().__init__()
         self._monitor = monitor
         self._mode = mode
         self._dirpath = dirpath
-        self._filename = filename if filename is not None else f"epoch_summary_{self._monitor.replace('/', '.')}.txt"
+        if filename is None:
+            self._filename = (
+                f"epoch_summary_{self._monitor.replace('/', '.')}.txt"
+                if self._monitor is not None
+                else "epoch_summary.txt"
+            )
         self._best_epoch_metrics = None
         self._best_epoch_index = None
 
@@ -84,7 +89,7 @@ class ModelEpochSummary(Callback):
         Decorator makes sure it runs only once in a DDP strategy.
         """
 
-        def get_value_as_float_str(dict, key):
+        def get_value_as_float_str(dict: Dict[str, Union[float, int]], key: str) -> Union[None, str]:
             val_as_str = "N/A"
             try:
                 value = dict[key]
@@ -131,10 +136,11 @@ class ModelEpochSummary(Callback):
         """Print summary at the end of the validation stage."""
         monitor_candidates = monitor_candidates = deepcopy(trainer.callback_metrics)
         current_epoch_metrics = monitor_candidates
-        monitor_op = {"min": torch.lt, "max": torch.gt}[self._mode]
-        if self._best_epoch_metrics is None or monitor_op(
-            current_epoch_metrics[self._monitor], self._best_epoch_metrics[self._monitor]
-        ):
-            self._best_epoch_metrics = current_epoch_metrics
-            self._best_epoch_index = trainer.current_epoch
+        if self._monitor is not None:
+            monitor_op = {"min": torch.lt, "max": torch.gt}[self._mode]
+            if self._best_epoch_metrics is None or monitor_op(
+                current_epoch_metrics[self._monitor], self._best_epoch_metrics[self._monitor]
+            ):
+                self._best_epoch_metrics = current_epoch_metrics
+                self._best_epoch_index = trainer.current_epoch
         self.print_epoch_summary_table(current_epoch_metrics, trainer.current_epoch)
