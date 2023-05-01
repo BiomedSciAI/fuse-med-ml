@@ -96,7 +96,6 @@ class LossDefault(LossBase):
         self.callable = callable
         self.weight = weight
         self.preprocess_func = preprocess_func
-        self.postprocess_func = postprocess_func
 
     def forward(self, batch_dict: NDict) -> torch.Tensor:
         # preprocess batch_dict if required
@@ -106,7 +105,6 @@ class LossDefault(LossBase):
         targets = batch_dict[self.target]
 
         loss_obj = self.callable(preds, targets)
-        loss_obj = self.postprocess_func(loss_obj)
         if self.weight is not None:
             loss_obj *= self.weight
 
