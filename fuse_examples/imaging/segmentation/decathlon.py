@@ -11,15 +11,11 @@ from monai.transforms import (
     EnsureTyped,
 )
 # from monai.networks.nets import UNet, DenseNet121
-from monai.networks.layers import Norm
 from monai.losses import DiceLoss
-from monai.inferers import SimpleInferer
-from monai.handlers import MeanDice, StatsHandler, from_engine
-from monai.engines import SupervisedTrainer
-from monai.data import CacheDataset, DataLoader
+from monai.data import DataLoader
 from monai.config import print_config
-from monai.apps import DecathlonDataset, MedNISTDataset, download_and_extract
-import torch
+from monai.apps import DecathlonDataset
+
 import torch.optim as optim
 import matplotlib.pyplot as plt
 from fuse.dl.lightning.pl_module import LightningModuleDefault
@@ -59,7 +55,6 @@ validation_ds = DecathlonDataset(
 # random seeds handling, and the customized collate functions
 train_loader = DataLoader(train_ds, batch_size=32, shuffle=True, num_workers=16)
 validation_loader = DataLoader(validation_ds, batch_size=32, shuffle=True, num_workers=16)
-device = torch.device("cuda:0")
 model = UNet(
     input_name="image",
     seg_name="label",
