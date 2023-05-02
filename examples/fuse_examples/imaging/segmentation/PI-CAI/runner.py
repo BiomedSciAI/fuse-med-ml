@@ -39,14 +39,14 @@ from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.losses.segmentation.loss_dice import DiceLoss
-from report_guided_annotation import extract_lesion_candidates
+# from report_guided_annotation import extract_lesion_candidates
 import monai
 import torch.nn as nn
 from typing import Any, Callable, Dict, List, Sequence
 from fuse.data import get_sample_id_key
 from unet import UNet
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy
-from fuse.eval.metrics.detection.metrics_detection_common import MetricDetectionPICAI
+#from fuse.eval.metrics.detection.metrics_detection_common import MetricDetectionPICAI
 from picai import PICAI
 from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
 from fuse.dl.models import ModelMultiHead
@@ -57,10 +57,10 @@ from pytorch_lightning import Trainer
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 from fuse.utils.file_io.file_io import create_dir, load_pickle, save_dataframe
 from fuse.eval.evaluator import EvaluatorDefault
-from picai_baseline.unet.training_setup.default_hyperparam import \
-    get_default_hyperparams
-from picai_baseline.unet.training_setup.neural_network_selector import \
-    neural_network_for_run
+# from picai_baseline.unet.training_setup.default_hyperparam import \
+#     get_default_hyperparams
+# from picai_baseline.unet.training_setup.neural_network_selector import \
+#     neural_network_for_run
 import torch
 import hydra
 from omegaconf import DictConfig, OmegaConf
@@ -74,17 +74,6 @@ from monai.losses import DiceFocalLoss
 ##########################################
 mode = "default"  # Options: 'default', 'debug'. See details in FuseDebug
 debug = FuseDebug(mode)
-
-def print_struct(d, level=0):
-    if type(d) == dict or type(d) == NDict:
-        keys = d.keys()
-        level += 1
-        for key in keys:
-            print('---' * level, key)
-            print_struct(d[key], level)
-    else:
-        if hasattr(d, 'shape'):
-            print(d.shape)
 
 
 def create_model(unet_kwargs) -> torch.nn.Module:
@@ -201,17 +190,11 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
             shuffle=False,
             drop_last=False,
             batch_sampler=None,
-            batch_size=train["batch_size"], # TODO - set a validation batch_size parameter instead of - train["batch_size"],
+            batch_size=train["batch_size"],
             num_workers=train["num_workers"],
             collate_fn=CollateDefault()
     )
     lgr.info("Validation Data: Done", {"attrs": "bold"})
-
-    # for x in train_dataloader:
-    #     x.print_tree()
-    #     out = model(x)
-    #     out.print_tree()
-    #     break
 
     # ====================================================================================
     #  Loss and metrics
@@ -223,14 +206,15 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
             target="data.gt.seg",
             callable=monai.losses.DiceFocalLoss(to_onehot_y=True, softmax=True),
             weight=train["loss_config.segmentation_lambda"])
-    losses['classification'] = LossDefault(pred='model.logits.all_pred_target', target='data.gt.classification', callable=F.cross_entropy, weight=train["loss_config.classification_lamba"])
-    train_metrics = OrderedDict(
-        [
-            ("op", MetricApplyThresholds(pred="model.outputs.all_pred_target")),  # will apply argmax
-            ("auc", MetricAUCROC(pred="model.outputs.all_pred_target", target='data.gt.classification', class_names=['Healthy','Cancer'])),
-            ("accuracy", MetricAccuracy(pred="results:metrics.op.cls_pred", target='data.gt.classification')),
-        ]
-    )
+    # losses['classification'] = LossDefault(pred='model.logits.all_pred_target', target='data.gt.classification', callable=F.cross_entropy, weight=train["loss_config.classification_lamba"])
+    # train_metrics = OrderedDict(
+    #     [
+    #         ("op", MetricApplyThresholds(pred="model.outputs.all_pred_target")),  # will apply argmax
+    #         ("auc", MetricAUCROC(pred="model.outputs.all_pred_target", target='data.gt.classification', class_names=['Healthy','Cancer'])),
+    #         ("accuracy", MetricAccuracy(pred="results:metrics.op.cls_pred", target='data.gt.classification')),
+    #     ]
+    # )
+    train_metrics = {}
 
     validation_metrics = copy.deepcopy(train_metrics)  # use the same metrics in validation as well
 
@@ -331,7 +315,8 @@ def run_infer(infer: NDict, paths: NDict):
     )
     # set the prediction keys to extract (the ones used be the evaluation function).
     pl_module.set_predictions_keys(
-        ["model.logits.segmentation", "data.gt.seg", "data.gt.classification"]
+        #["model.logits.segmentation", "data.gt.seg", "data.gt.classification"]
+        ["model.logits.segmentation", "data.gt.seg"]
     )  # which keys to extract and dump into file
     lgr.info("Test Data: Done", {"attrs": "bold"})
     # create lightining trainer.
@@ -390,13 +375,6 @@ def main(cfg: DictConfig) -> None:
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
     force_gpus = None  # [0]
     choose_and_enable_multiple_gpus(cfg["train.trainer.devices"], force_gpus=force_gpus)
-
-    # Path to the stored dataset location
-    # dataset should be download from https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508
-    # download requires NBIA data retriever https://wiki.cancerimagingarchive.net/display/NBIA/Downloading+TCIA+Images
-    # put on the following in the main folder  -
-    # 1. CMMD_clinicaldata_revision.csv which is a converted version of CMMD_clinicaldata_revision.xlsx
-    # 2. folder named CMMD which is the downloaded data folder
 
     # train
     if "train" in cfg["run.running_modes"]:

@@ -131,6 +131,7 @@ class OpLoadPICAISegmentation(OpBase):
         sample_dict: NDict,
         key_in: str,
         key_out: str,
+        gt: str,
     ):
         """
         :param key_in: the key name in sample_dict that holds the filename
@@ -147,6 +148,10 @@ class OpLoadPICAISegmentation(OpBase):
             img_filename = os.path.join(self._data_dir,sample_dict[key_in].split("_")[0],sample_dict[key_in]+"_t2w.mha")
             image_data, image_header = load(img_filename)
             nii_data = np.zeros(image_data.shape)
+        if sample_dict[gt] == 'YES' and np.count_nonzero(nii_data) == 0:
+            print(sample_dict[key_in],"is cancer and has no segmentation")
+            return None
+
         sample_dict[key_out] = nii_data
         return sample_dict
 
@@ -167,14 +172,6 @@ class PICAI:
                 # decoding sample ID
                 (OpPICAISampleIDDecode(), dict()),  # will save image and seg path to "data.input.img_path"
                 (OpLoadPICAIImage(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img")),
-                (OpLoadPICAISegmentation(data_dir,seg_dir), dict(key_in="data.input.img_path", key_out="data.gt.seg")),
-                (OpRepeat((OpLambda(partial(skimage.transform.resize,
-                                                output_shape=(32, 256, 256),
-                                                mode='reflect',
-                                                anti_aliasing=True,
-                                                preserve_range=True))),kwargs_per_step_to_add = repeat_images),{}) ,
-                (OpRepeat((OpNormalizeAgainstSelf()),kwargs_per_step_to_add = repeat_images),{}) ,
-                (OpRepeat((OpToNumpy()),kwargs_per_step_to_add = repeat_images),dict(dtype=np.float32)) ,
                 (
                     OpReadDataframe(
                         data_source,
@@ -188,6 +185,14 @@ class PICAI:
                     ),
                     dict(),
                 ),
+                (OpLoadPICAISegmentation(data_dir,seg_dir), dict(key_in="data.input.img_path", key_out="data.gt.seg", gt="data.gt.classification")),
+                (OpRepeat((OpLambda(partial(skimage.transform.resize,
+                                                output_shape=(32, 256, 256),
+                                                mode='reflect',
+                                                anti_aliasing=True,
+                                                preserve_range=True))),kwargs_per_step_to_add = repeat_images),{}) ,
+                (OpRepeat((OpNormalizeAgainstSelf()),kwargs_per_step_to_add = repeat_images),{}) ,
+                (OpRepeat((OpToNumpy()),kwargs_per_step_to_add = repeat_images),dict(dtype=np.float32)) ,
                 (OpLookup(bool_map), dict(key_in="data.gt.classification", key_out="data.gt.classification")),
                 (OpToOneHot(len(bool_map)), dict(key_in="data.gt.classification", key_out="data.gt.classification_one_hot")),
                 # (OpResizeAndPad2D(), dict(key="data.input.img", resize_to=(2200, 1200), padding=(60, 60))),
