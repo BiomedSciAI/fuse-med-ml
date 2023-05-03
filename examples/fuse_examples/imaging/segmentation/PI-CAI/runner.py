@@ -27,7 +27,6 @@ from fuse.utils.gpu import choose_and_enable_multiple_gpus
 import logging
 
 import torch.optim as optim
-import torch.nn.functional as F
 from torch.utils.data.dataloader import DataLoader
 
 from fuse.utils.utils_logger import fuse_logger_start
@@ -41,17 +40,11 @@ from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.losses.segmentation.loss_dice import DiceLoss
 # from report_guided_annotation import extract_lesion_candidates
 import monai
-import torch.nn as nn
-from typing import Any, Callable, Dict, List, Sequence
 from fuse.data import get_sample_id_key
 from unet import UNet
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy
 #from fuse.eval.metrics.detection.metrics_detection_common import MetricDetectionPICAI
-from picai import PICAI
-from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
-from fuse.dl.models import ModelMultiHead
-from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
-from fuse.dl.models.heads.heads_3D import Head3D
+from fuseimg.datasets.picai import PICAI
 from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
 from pytorch_lightning import Trainer
 from fuse.dl.lightning.pl_module import LightningModuleDefault
@@ -64,7 +57,7 @@ from fuse.eval.evaluator import EvaluatorDefault
 import torch
 import hydra
 from omegaconf import DictConfig, OmegaConf
-from monai.losses import DiceFocalLoss
+#from monai.losses import DiceFocalLoss
 
 # assert (
 #     "PICAI_DATA_PATH" in os.environ
@@ -80,7 +73,6 @@ def create_model(unet_kwargs) -> torch.nn.Module:
     """
     creates the model
     """
-    unet_kwargs["in_channels"] = 1
     model = UNet(
         input_name="data.input.img_t2w",
         seg_name="model.seg",
@@ -145,7 +137,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
         paths = paths,
         cfg = train,
         reset_cache=False,
-        sample_ids=train_sample_ids,  #[:10],
+        sample_ids=train_sample_ids,
         train=True,
     )
 
@@ -153,7 +145,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
         paths = paths,
         cfg = train,
         reset_cache=False,
-        sample_ids=validation_sample_ids  #[:10]
+        sample_ids=validation_sample_ids 
     )
 
     ## Create sampler
@@ -206,14 +198,6 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
             target="data.gt.seg",
             callable=monai.losses.DiceFocalLoss(to_onehot_y=True, softmax=True),
             weight=train["loss_config.segmentation_lambda"])
-    # losses['classification'] = LossDefault(pred='model.logits.all_pred_target', target='data.gt.classification', callable=F.cross_entropy, weight=train["loss_config.classification_lamba"])
-    # train_metrics = OrderedDict(
-    #     [
-    #         ("op", MetricApplyThresholds(pred="model.outputs.all_pred_target")),  # will apply argmax
-    #         ("auc", MetricAUCROC(pred="model.outputs.all_pred_target", target='data.gt.classification', class_names=['Healthy','Cancer'])),
-    #         ("accuracy", MetricAccuracy(pred="results:metrics.op.cls_pred", target='data.gt.classification')),
-    #     ]
-    # )
     train_metrics = {}
 
     validation_metrics = copy.deepcopy(train_metrics)  # use the same metrics in validation as well
@@ -315,7 +299,6 @@ def run_infer(infer: NDict, paths: NDict):
     )
     # set the prediction keys to extract (the ones used be the evaluation function).
     pl_module.set_predictions_keys(
-        #["model.logits.segmentation", "data.gt.seg", "data.gt.classification"]
         ["model.logits.segmentation", "data.gt.seg"]
     )  # which keys to extract and dump into file
     lgr.info("Test Data: Done", {"attrs": "bold"})
