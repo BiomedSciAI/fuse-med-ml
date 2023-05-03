@@ -169,7 +169,7 @@ class BackboneResnet3D(nn.Module):
             self.stem[0].weight = nn.Parameter(self.stem[0].weight.sum(dim=1, keepdim=True))
         elif in_channels != 3:
             self.stem[0] = nn.Conv3d(
-                in_channels, 64, kernel_size=(3, 7, 7), stride=(1, 2, 2), padding=(1, 3, 3), bias=False
+                in_channels, first_channel_dim, kernel_size=(3, 7, 7), stride=(1, 2, 2), padding=(1, 3, 3), bias=False
             )
 
     def _make_layer(
