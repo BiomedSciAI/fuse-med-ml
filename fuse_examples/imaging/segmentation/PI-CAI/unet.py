@@ -11,7 +11,7 @@ class UNet(nn.Module):
         self.seg_name = seg_name
         self.unet = UNetBase(**unet_kwargs)
 
-    def forward(self, batch_dict: NDict):
+    def forward(self, batch_dict: NDict) -> None:
         x = batch_dict[self.input_name]
         seg_output = self.unet(x)
         batch_dict[self.seg_name] = torch.unsqueeze(seg_output[:, 0, :, :, :], 1)
