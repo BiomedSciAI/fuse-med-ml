@@ -19,13 +19,14 @@ Created on June 30, 2021
 
 import torch
 import torch.nn as nn
+from torch import Tensor
 import numpy as np
 from fuse.dl.losses.loss_base import LossBase
 from fuse.utils.ndict import NDict
-from typing import Callable, Optional
+from typing import Callable, Optional, Dict, Any, List
 
 
-def make_one_hot(input, num_classes):
+def make_one_hot(input: Tensor, num_classes: int) -> Tensor:
     """Convert class index tensor to one hot encoding tensor.
     Args:
          input: A tensor of shape [N, 1, *]
@@ -58,7 +59,7 @@ class BinaryDiceLoss(nn.Module):
         self.reduction = reduction
         self.eps = eps
 
-    def __call__(self, predict, target):
+    def __call__(self, predict: Tensor, target: Tensor) -> Tensor:
         assert predict.shape[0] == target.shape[0], "predict & target batch size don't match"
         predict = predict.contiguous().view(predict.shape[0], -1)
         target = target.contiguous().view(target.shape[0], -1)
@@ -83,13 +84,18 @@ class BinaryDiceLoss(nn.Module):
 class DiceLoss(LossBase):
     def __init__(
         self,
-        pred_name,
-        target_name,
+        pred_name: str,
+        target_name: str,
         filter_func: Optional[Callable] = None,
+<<<<<<< HEAD
         class_weights=None,
         ignore_cls_index_list=[],
+=======
+        class_weights: List[float] = None,
+        ignore_cls_index_list: List[int] = None,
+>>>>>>> 0ce451f37b1e2d9fed0bd350c50301105055c6c6
         resize_mode: str = "maxpool",
-        **kwargs
+        **kwargs: Dict[str, Any]
     ):
         """
 
@@ -116,7 +122,7 @@ class DiceLoss(LossBase):
         self.resize_mode = resize_mode
         self.dice = BinaryDiceLoss(**self.kwargs)
 
-    def __call__(self, batch_dict: NDict):
+    def __call__(self, batch_dict: NDict) -> Tensor:
 
         if self.filter_func is not None:
             batch_dict = self.filter_func(batch_dict)

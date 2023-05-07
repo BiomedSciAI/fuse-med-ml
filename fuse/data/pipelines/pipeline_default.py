@@ -16,11 +16,13 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from typing import List, Tuple, Union, Optional
+from typing import List, Tuple, Union, Optional, Any
 from fuse.data.ops.op_base import OpBase, OpReversibleBase, op_call, op_reverse
 from fuse.utils.misc.context import DummyContext
 from fuse.utils.ndict import NDict
 from fuse.utils.cpu_profiling.timer import Timer
+
+import copy
 
 
 class PipelineDefault(OpReversibleBase):
@@ -54,7 +56,20 @@ class PipelineDefault(OpReversibleBase):
             self._op_ids = op_ids
         self._verbose = verbose
 
-    def extend(self, ops_and_kwargs: List[Tuple[OpBase, dict]], op_ids: Optional[List[str]] = None):
+    @property
+    def ops(self) -> List[Any]:
+        return [a[0] for a in self._ops_and_kwargs]
+
+    def copy(self) -> "PipelineDefault":
+        """
+        This is a shallow copy of the pipeline: the two pipelines will point to the same operation instances.
+        """
+        self_copy = copy.copy(self)
+        self_copy._ops_and_kwargs = copy.copy(self_copy._ops_and_kwargs)
+        self_copy._op_ids = copy.copy(self_copy._op_ids)
+        return self_copy
+
+    def extend(self, ops_and_kwargs: List[Tuple[OpBase, dict]], op_ids: Optional[List[str]] = None) -> None:
         """
         Extends pipeline
         :param ops_and_args: Ops to append, List of tuples. Each tuple include op and dictionary includes op specific arguments.

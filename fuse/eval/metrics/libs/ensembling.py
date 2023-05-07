@@ -1,8 +1,5 @@
-from typing import Dict, Optional, Sequence, Tuple, Union, Hashable
-from fuse.eval.metrics.libs.classification import MetricsLibClass
+from typing import Dict, Optional, Sequence
 import numpy as np
-from sklearn.utils import resample
-import pandas as pd
 import scipy
 
 
@@ -24,7 +21,7 @@ class Ensembling:
 
         # ensemble
         if method.lower() in ("average", "mean"):
-            preds_ensembled = np.mean(preds, 1)
+            preds_ensembled = np.nanmean(preds, 1)
         elif method.lower() in ("vote", "voting"):
             assert len(preds.shape) == 2 or (len(preds.shape) == 3 and preds.shape[2] == 1)
             if len(preds.shape) == 3:

@@ -23,6 +23,8 @@ import numpy as np
 
 from sklearn import metrics
 import sklearn
+from sklearn.utils.multiclass import type_of_target
+
 
 import matplotlib.pyplot as plt
 
@@ -46,7 +48,7 @@ class MetricsLibClass:
                         If not ``None``, the standardized partial AUC over the range [0, max_fpr] is returned.
         :return auc Receiver operating characteristic score
         """
-        if not isinstance(pred[0], np.ndarray):
+        if not isinstance(pred[0], np.ndarray) or len(pred[0].shape) == 0:
             pred = [np.array(p) for p in pred]
             pos_class_index = 1
             y_score = np.asarray(pred)
@@ -57,6 +59,29 @@ class MetricsLibClass:
 
         return metrics.roc_auc_score(
             y_score=y_score, y_true=np.asarray(target) == pos_class_index, sample_weight=sample_weight, max_fpr=max_fpr
+        )
+
+    @staticmethod
+    def auc_roc_mult_binary_label(
+        pred: Sequence[Union[np.ndarray, float]],
+        target: Sequence[Union[np.ndarray, int]],
+        sample_weight: Optional[Sequence[Union[np.ndarray, float]]] = None,
+        average: str = "micro",
+        max_fpr: Optional[float] = None,
+    ) -> float:
+        """
+        Compute multi label auc roc (Receiver operating characteristic) score using sklearn
+        :param pred: prediction array per sample. Each element shape [num_classes]
+        :param target: target per sample. Each element shape [num_classes] with 0 and 1 only.
+        :param sample_weight: Optional - weight per sample for a weighted auc. Each element is  float in range [0-1]
+        :param max_fpr: float > 0 and <= 1, default=None
+                        If not ``None``, the standardized partial AUC over the range [0, max_fpr] is returned.
+        :return auc Receiver operating characteristic score
+        """
+        y_score = np.asarray(pred)
+        y_true = np.asarray(target)
+        return metrics.roc_auc_score(
+            y_score=y_score, y_true=y_true, sample_weight=sample_weight, max_fpr=max_fpr, average=average
         )
 
     @staticmethod
@@ -116,7 +141,7 @@ class MetricsLibClass:
         :param pos_class_index: the class to compute the metrics in one vs rest manner - set to 1 in binary classification
         :return auc precision recall score
         """
-        if not isinstance(pred[0], np.ndarray):
+        if not isinstance(pred[0], np.ndarray) or len(pred[0].shape) == 0:
             pred = [np.array(p) for p in pred]
             pos_class_index = 1
             y_score = np.asarray(pred)
@@ -135,17 +160,23 @@ class MetricsLibClass:
         pred: Sequence[Union[np.ndarray, int]],
         target: Sequence[Union[np.ndarray, int]],
         sample_weight: Optional[Sequence[Union[np.ndarray, float]]] = None,
-    ):
+    ) -> float:
         """
         Compute accuracy score
-        :param pred: class prediction. Each element is an integer in range [0 - num_classes)
-        :param target: the target class. Each element is an integer in range [0 - num_classes)
+        :param pred: class prediction. Each element is an integer in range [0 - num_classes) or a float in range [0-1] in which case argmax will be applied
+        :param target: the target class. Each element is an integer in range [0 - num_classes) or its one hot encoded version
         :param sample_weight: Optional - weight per sample for a weighted score. Each element is  float in range [0-1]
         :return: accuracy score
         """
 
         pred = np.array(pred)
         target = np.array(target)
+
+        if type_of_target(pred) in ("continuous", "continuous-multioutput"):
+            pred = np.argmax(pred, -1)
+        if type_of_target(target) in ("multilabel-indicator", "multiclass-multioutput"):
+            target = np.argmax(target, -1)
+
         return metrics.accuracy_score(target, pred, sample_weight=sample_weight)
 
     @staticmethod
@@ -159,8 +190,8 @@ class MetricsLibClass:
         """
         Compute metrics derived from one-vs-rest confusion matrix such as 'sensitivity', 'recall', 'tpr', 'specificity',  'selectivity', 'npr', 'precision', 'ppv', 'f1'
         Assuming that there are positive cases and negative cases in targets
-        :param pred: class prediction. Each element is an integer in range [0 - num_classes)
-        :param target: the target class. Each element is an integer in range [0 - num_classes)
+        :param pred: class prediction. Each element is an integer in range [0 - num_classes) or a float in range [0-1] in which case argmax will be applied
+        :param target: the target class. Each element is an integer in range [0 - num_classes) or its one hot encoded version
         :param pos_class_index: the class to compute the metrics in one vs rest manner - set to 1 in binary classification
         :param metrics: required metrics names, options: 'sensitivity', 'recall', 'tpr', 'specificity',  'selectivity', 'npr', 'precision', 'ppv', 'f1'
         :param sample_weight: Optional - weight per sample for a weighted score. Each element is  float in range [0-1]
@@ -169,6 +200,11 @@ class MetricsLibClass:
         """
         pred = np.array(pred)
         target = np.array(target)
+
+        if type_of_target(pred) in ("continuous", "continuous-multioutput"):
+            pred = np.argmax(pred, -1)
+        if type_of_target(target) in ("multilabel-indicator", "multiclass-multioutput"):
+            target = np.argmax(target, -1)
 
         class_target_t = np.where(target == pos_class_index, 1, 0)
         class_pred_t = np.where(pred == pos_class_index, 1, 0)
@@ -212,13 +248,19 @@ class MetricsLibClass:
     ) -> Dict[str, pd.DataFrame]:
         """
         Calculates Confusion Matrix (multi class version)
-        :param cls_pred: sequence of class prediction
-        :param target: sequence of labels
+        :param cls_pred: sequence of class prediction or a floats in range [0-1]
+        :param target: sequence of labels or their one hot encoded versions
         :param class_names: string name per class
         :param sample_weight: optional, weight per sample.
         :return: {"count": <confusion matrix>, "percent" : <confusion matrix - percent>)
         Confusion matrix whose i-th row and j-th column entry indicates the number of samples with true label being i-th class and predicted label being j-th class.
         """
+
+        if type_of_target(cls_pred) in ("continuous", "continuous-multioutput"):
+            cls_pred = np.argmax(cls_pred, -1)
+        if type_of_target(target) in ("multilabel-indicator", "multiclass-multioutput"):
+            target = np.argmax(target, -1)
+
         conf_matrix = sklearn.metrics.confusion_matrix(y_true=target, y_pred=cls_pred, sample_weight=sample_weight)
         conf_matrix_count = pd.DataFrame(conf_matrix, columns=class_names, index=class_names)
         conf_matrix_total = conf_matrix.sum(axis=1)
@@ -300,7 +342,7 @@ class MetricsLibClass:
             elif pred[0].shape[0] == 1:
                 return np.where(pred > operation_point, 1, 0)
             else:
-                raise Exception(f"Error - got single float as an operation point for multiclass prediction")
+                raise Exception("Error - got single float as an operation point for multi-class prediction")
 
         # convert according to thresholds
         output_class = np.array([-1 for x in range(len(pred))])

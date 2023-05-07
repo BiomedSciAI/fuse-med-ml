@@ -19,9 +19,8 @@ Created on June 30, 2021
 
 import unittest
 
-import random
-
-from fuse.utils import Seed
+# import random
+# from fuse.utils import Seed
 
 
 class TestSeed(unittest.TestCase):
@@ -29,7 +28,7 @@ class TestSeed(unittest.TestCase):
     Test Seed functionality
     """
 
-    def test_dataloader(self):
+    def test_dataloader(self) -> None:
         # FIXME: test dataloader after dataset implementation
         pass
 

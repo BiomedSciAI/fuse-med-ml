@@ -16,7 +16,7 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from typing import Dict, Optional, Sequence, Tuple, Union
+from typing import Dict, Optional, Sequence, Union
 
 import numpy as np
 import scipy
@@ -294,7 +294,10 @@ class ModelComparison:
         return results
 
 
-def psi(x, y):  # Heaviside function
+def psi(x, y):  # type: ignore
+    """
+    Heaviside function
+    """
     if y < x:
         return 1
     elif y == x:

@@ -41,7 +41,7 @@ class SamplesCacher:
         custom_read_dirs_callable: Optional[Callable] = None,
         restart_cache: bool = False,
         workers: int = 0,
-        verbose=1,
+        verbose: int = 1,
         use_pipeline_hash: Optional[bool] = True,
         **audit_kwargs: dict,
     ) -> None:
@@ -122,10 +122,21 @@ class SamplesCacher:
                 if not os.path.isdir(found_dir):
                     continue
                 if os.path.basename(found_dir) != self._pipeline_desc_hash:
+                    new_desc = self._pipeline_desc_text
+                    new_file = os.path.join(found_dir, f"pipeline_{self._pipeline_desc_hash}_desc.txt")
+                    with open(new_file, "wt") as f:
+                        f.write(new_desc)
+
+                    pipeline_desc_file = os.path.join(found_dir, f"pipeline_{os.path.basename(found_dir)}_desc.txt")
+                    if os.path.exists(pipeline_desc_file):
+                        print("*** Old pipeline description:", pipeline_desc_file)
+                        print("*** New pipeline description (does not match old pipeline):", new_file)
+
                     raise Exception(
                         f"Found samples cache for pipeline hash {os.path.basename(found_dir)} which is different from the current loaded pipeline hash {self._pipeline_desc_hash} !!\n"
                         "This is not allowed, you may only use a single pipeline per uniquely named cache.\n"
-                        'You can use "restart_cache=True" to rebuild the cache or delete the different cache manually.\n'
+                        "You can use 'restart_cache=True' to rebuild the cache or delete the different cache manually.\n"
+                        f"Cache full path {os.path.abspath(d)}"
                     )
 
     def delete_cache(self) -> None:
@@ -147,12 +158,12 @@ class SamplesCacher:
             print(f"deleting {os.path.abspath(del_dir)} ...")
             delete_directory_tree(del_dir)
 
-    def _get_write_dir(self):
+    def _get_write_dir(self) -> str:
         ans = self._write_dir_logic(self._cache_dirs)
         ans = os.path.join(ans, self._pipeline_desc_hash)
         return ans
 
-    def _get_read_dirs(self):
+    def _get_read_dirs(self) -> List[str]:
         ans = self._read_dirs_logic()
         ans = [os.path.join(x, self._pipeline_desc_hash) for x in ans]
         return ans
@@ -196,15 +207,23 @@ class SamplesCacher:
             orig_sid_to_final[initial_sample_id] = output_sample_ids
 
         write_dir = self._get_write_dir()
+
         set_info_dir = os.path.join(write_dir, "full_sets_info")
         os.makedirs(set_info_dir, exist_ok=True)
+
+        pipeline_desc_file = os.path.join(write_dir, f"pipeline_{self._pipeline_desc_hash}_desc.txt")
+        if not os.path.exists(pipeline_desc_file):
+            with open(pipeline_desc_file, "wt") as f:
+                f.write(self._pipeline_desc_text)
+            print("======== wrote", pipeline_desc_file)
+
         fullpath_filename = os.path.join(set_info_dir, hash_filename)
         save_pickle_safe(orig_sid_to_final, fullpath_filename, compress=True)
 
         return orig_sid_to_final
 
     @staticmethod
-    def get_final_sample_id_hash(sample_id):
+    def get_final_sample_id_hash(sample_id: Any) -> str:
         """
         sample_id is the final sample_id that came out of the pipeline
         note: our pipeline supports Ops returning None, thus, discarding a sample (in that case, it will not have any final sample_id),
@@ -216,7 +235,7 @@ class SamplesCacher:
         return ans
 
     @staticmethod
-    def get_orig_sample_id_hash(orig_sample_id):
+    def get_orig_sample_id_hash(orig_sample_id: Any) -> str:
         """
         orig_sample_id is the original sample_id that was provided, regardless if it turned out to become None, the same sample_id, or different sample_id(s)
         """
@@ -230,10 +249,7 @@ class SamplesCacher:
         ans = "out_info_for_orig_sample@" + ans
         return ans
 
-    def get_orig_sample_id_from_final_sample_id(self, orig_sample_id):
-        pass
-
-    def load_sample(self, sample_id: Hashable, keys: Optional[Sequence[str]] = None):
+    def load_sample(self, sample_id: Hashable, keys: Optional[Sequence[str]] = None) -> NDict:
         """
         :param sample_id: the sample_id of the sample to load
         :param keys: optionally, provide a subset of the keys to load in this sample.
@@ -252,12 +268,12 @@ class SamplesCacher:
 
         return sample_from_cache
 
-    def _load_sample_using_pipeline(self, sample_id: Hashable, keys: Optional[Sequence[str]] = None):
+    def _load_sample_using_pipeline(self, sample_id: Hashable, keys: Optional[Sequence[str]] = None) -> NDict:
         sample_dict = create_initial_sample(sample_id)
         result_sample = self._pipeline(sample_dict)
         return result_sample
 
-    def _load_sample_from_cache(self, sample_id: Hashable, keys: Optional[Sequence[str]] = None):
+    def _load_sample_from_cache(self, sample_id: Hashable, keys: Optional[Sequence[str]] = None) -> NDict:
         """
         TODO: add comments
         """
@@ -276,12 +292,12 @@ class SamplesCacher:
         raise Exception(f"Expected to find a cached sample for sample_id={sample_id} but could not find any!")
 
     @staticmethod
-    def _cache_worker(orig_sample_id: Any):
+    def _cache_worker(orig_sample_id: Any) -> Any:
         cacher = get_from_global_storage("samples_cacher_instance")
         ans = cacher._cache(orig_sample_id)
         return ans
 
-    def _cache(self, orig_sample_id: Any):
+    def _cache(self, orig_sample_id: Any) -> Any:
         """
         :param orig_sample_id: the original sample id, which was provided as the input to the pipeline
         :param sample: the result of the pipeline - can be None if it was dropped, a dictionary in the typical standard case,
@@ -346,7 +362,7 @@ class SamplesCacher:
         return output_info
 
 
-def _get_available_write_location(cache_dirs: List[str], max_allowed_used_space=None):
+def _get_available_write_location(cache_dirs: List[str], max_allowed_used_space: Optional[float] = None) -> str:
     """
     :param cache_dirs: write directories. Directories are checked in order that they are provided.
     :param max_allowed_used_space: set to a value between 0.0 to 1.0.
@@ -370,5 +386,5 @@ def _get_available_write_location(cache_dirs: List[str], max_allowed_used_space=
     )
 
 
-def default_read_dirs_logic(cache_dirs: List[str]):
+def default_read_dirs_logic(cache_dirs: List[str]) -> List[str]:
     return cache_dirs

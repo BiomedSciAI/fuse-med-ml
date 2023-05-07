@@ -10,7 +10,7 @@ from fuse.data.key_types_for_testing import DataTypeForTesting, type_detector_fo
 
 
 class TestOpBase(unittest.TestCase):
-    def test_for_type_detector(self):
+    def test_for_type_detector(self) -> None:
         td = type_detector_for_testing
         sample = create_initial_sample("dummy")
 
@@ -22,9 +22,9 @@ class TestOpBase(unittest.TestCase):
         self.assertEqual(td.get_type(sample, "bbox_for_testing"), DataTypeForTesting.BBOX_FOR_TESTING)
         self.assertEqual(td.get_type(sample, "a.bbox_for_testing"), DataTypeForTesting.BBOX_FOR_TESTING)
 
-    def test_op_base(self):
+    def test_op_base(self) -> None:
         class OpImp(OpBase):
-            def __call__(self, sample_dict: NDict, **kwargs) -> Union[None, dict, List[dict]]:
+            def __call__(self, sample_dict: NDict, **kwargs: dict) -> Union[None, dict, List[dict]]:
                 sample_dict["data.cc.seg_for_testing"] = 5
                 return sample_dict
 

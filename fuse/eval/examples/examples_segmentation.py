@@ -19,7 +19,7 @@ from collections import OrderedDict
 from pycocotools.coco import COCO
 import numpy as np
 import nibabel as nib
-from fuse.utils import set_seed
+from fuse.utils import set_seed, NDict
 
 from fuse.eval.metrics.segmentation.metrics_segmentation_common import (
     MetricDice,
@@ -80,7 +80,7 @@ def example_seg_0() -> Dict[str, Any]:
         return sample_dict
 
     # define iterator
-    def data_iter():
+    def data_iter() -> NDict:
         dir_path = pathlib.Path(__file__).parent.resolve()
         predicted_list = os.listdir(os.path.join(dir_path, "inputs/semantic_segmentation/predicted/"))
         labels_path = os.path.join(dir_path, "inputs/semantic_segmentation/labeled/")
@@ -137,7 +137,7 @@ def example_seg_1() -> Dict[str, Any]:
     """
 
     # define iterator
-    def data_iter():
+    def data_iter() -> NDict:
         # set seed
         set_seed(0)
 
@@ -165,11 +165,12 @@ def example_seg_1() -> Dict[str, Any]:
 
 def example_seg_2() -> Dict[str, Any]:
     """
-    Simple evaluation example for dice score for multiclass semantic segmentation
+    Simple evaluation example for dice score for multi-class semantic segmentation
     Inputs are 4 pairs of segmentation files: one including predictions and one targets
     """
+
     # define iterator
-    def data_iter():
+    def data_iter() -> NDict:
         dir_path = pathlib.Path(__file__).parent.resolve()
         predicted_list = os.listdir(os.path.join(dir_path, "inputs/semantic_segmentation/predicted/"))
         labels_path = os.path.join(dir_path, "inputs/semantic_segmentation/labeled/")
@@ -203,13 +204,13 @@ def example_seg_3() -> Dict[str, Any]:
     """
 
     # define iterator
-    def data_iter():
+    def data_iter() -> NDict:
         sample_dict = {}
         sample_dict["id"] = id
         sample_dict["pred.array"] = np.array([(1.0, 0.0), (0.0, 1.0), (1.0, 0.0), (0.0, 1.0)])
         sample_dict["label.array"] = np.array([(1.0, 1.0), (1.0, 1.0), (1.0, 1.0), (1.0, 1.0)])
         sample_dict["pixel_weight"] = {"1": np.array([(0.125, 0.125), (0.125, 0.125), (0.125, 0.125), (0.125, 0.125)])}
-        yield sample_dict
+        yield NDict(sample_dict)
 
     # list of metrics
     metrics = OrderedDict(
@@ -255,7 +256,7 @@ def example_seg_4() -> Dict[str, Any]:
     """
 
     # define iterator
-    def data_iter():
+    def data_iter() -> NDict:
         dir_path = pathlib.Path(__file__).parent.resolve()
         annotation_path = os.path.join(dir_path, "inputs/detection/example_coco_new.json")
         cocoGt = COCO(annotation_path)

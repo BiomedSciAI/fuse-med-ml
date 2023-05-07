@@ -22,6 +22,7 @@ import pandas as pds
 from fuse.data.datasets.dataset_base import DatasetBase
 
 from fuse.utils.file_io.file_io import save_dataframe
+from tqdm import tqdm
 
 
 class ExportDataset:
@@ -35,7 +36,7 @@ class ExportDataset:
         keys: Sequence[str],
         output_filename: Optional[str] = None,
         sample_id_key: str = "data.sample_id",
-        **dataset_get_kwargs
+        **dataset_get_kwargs: dict
     ) -> pds.DataFrame:
         """
         extract from dataset the specified and keys and create a dataframe.
@@ -61,9 +62,13 @@ class ExportDataset:
         # store in dataframe
         df = pds.DataFrame()
 
-        for key in all_keys:
-            values = [sample_dict[key] for sample_dict in data]
-            df[key] = values
+        if all_keys is None:
+            for sample_dict in tqdm(data):
+                df = pds.concat([df, pds.DataFrame([sample_dict])])
+        else:
+            for key in all_keys:
+                values = [sample_dict[key] for sample_dict in data]
+                df[key] = values
 
         if output_filename is not None:
             save_dataframe(df, output_filename)

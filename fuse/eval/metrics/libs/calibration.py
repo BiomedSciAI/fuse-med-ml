@@ -1,10 +1,9 @@
-from re import T
 from typing import Sequence, Union, Dict, Optional
 import numpy as np
 import matplotlib.pyplot as plt
 import math
 import torch
-from torch import nn, optim
+from torch import nn, optim, Tensor
 from scipy import stats
 
 
@@ -152,7 +151,7 @@ class Calibration:
             logits = torch.tensor(np.array(pred))
             target = torch.tensor(target)
 
-        def eval():
+        def eval() -> Tensor:
             optimizer.zero_grad()
             loss = nll_criterion(logits / temperature, target)
             loss.backward()

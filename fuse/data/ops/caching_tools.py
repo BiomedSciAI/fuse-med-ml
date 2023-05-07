@@ -1,5 +1,5 @@
 import inspect
-from typing import Callable, Any, Type, Optional, Sequence
+from typing import Callable, Any, Type, Optional, Sequence, List
 from inspect import stack
 import warnings
 from fuse.utils.file_io.file_io import load_pickle, save_pickle_safe
@@ -8,7 +8,9 @@ from fuse.utils.cpu_profiling import Timer
 import hashlib
 
 
-def get_function_call_str(func, *_args, **_kwargs) -> str:
+def get_function_call_str(
+    func: Callable, *_args: list, _ignore_kwargs_names: List = None, _include_code: bool = True, **_kwargs: dict
+) -> str:
     """
     Converts a function and its kwargs into a hash value which can be used for caching.
     NOTE:
@@ -19,16 +21,31 @@ def get_function_call_str(func, *_args, **_kwargs) -> str:
     see 'value_to_string' for more details.
     For example, if an arg is an entire numpy array, it will not contribute to the total hash.
     The reason is that it will make the cache calculation too slow, and might
-    """
 
+
+    _ignore_kwargs_names: args to ignore when generating the string representation. This is useful for kwargs
+        that you don't want to have an effect on the hash, for example, verbose flag.
+        example usage: ignore_kwargs_names=['verbose', 'cpu_cores_num']
+
+    _include_code: would code be included in the string representation. Note, it will only include code found *directly*
+        in the provided function. Set to False if you don't want it to influence the generated string.
+        Default is True.
+
+
+    """
+    if _ignore_kwargs_names is None:
+        _ignore_kwargs_names = []
     kwargs = convert_func_call_into_kwargs_only(func, *_args, **_kwargs)
 
     args_flat_str = func.__name__ + "@"
-    args_flat_str += "@".join(["{}@{}".format(str(k), value_to_string(kwargs[k])) for k in sorted(kwargs.keys())])
+    use_keys = [k for k in sorted(kwargs.keys()) if k not in _ignore_kwargs_names]
+    # ignore_kwargs_names
+    args_flat_str += "@".join(["{}@{}".format(str(k), value_to_string(kwargs[k])) for k in use_keys])
     args_flat_str += "@" + str(
         inspect.getmodule(func)
     )  # adding full (including scope) name of the function, for the case of multiple functions with the same name
-    args_flat_str += "@" + inspect.getsource(func)  # considering the source code (first level of it...)
+    if _include_code:
+        args_flat_str += "@" + inspect.getsource(func)  # considering the source code (first level of it...)
 
     return args_flat_str
 
@@ -50,7 +67,7 @@ def value_to_string(val: Any, warn_on_types: Optional[Sequence] = None) -> str:
     return str(val)
 
 
-def convert_func_call_into_kwargs_only(func: Callable, *args, **kwargs) -> dict:
+def convert_func_call_into_kwargs_only(func: Callable, *args: list, **kwargs: dict) -> dict:
     """
     considers positional and kwargs (including their default values !)
     and converts into ONLY kwargs
@@ -74,8 +91,8 @@ def get_callers_string_description(
     expected_class: Type,
     expected_function_name: str,
     value_to_string_func: Callable = value_to_string,
-    ignore_first_frames=3,  # one for this function, one for HashableCallable, and one for OpBase
-):
+    ignore_first_frames: int = 3,  # one for this function, one for HashableCallable, and one for OpBase
+) -> str:
     """
     iterates on the callstack, and accumulates a string representation of the callers args.
     Used in OpBase to "record" the __init__ args, to be used in the string representation of an Op,
@@ -149,7 +166,7 @@ def get_callers_string_description(
 
 
 # TODO: consider adding "ignore list" of args that should not participate in cache value calculation (for example - "verbose")
-def run_cached_func(cache_dir: str, func: Callable, *args, **kwargs) -> Any:
+def run_cached_func(cache_dir: str, func: Callable, *args: list, **kwargs: dict) -> Any:
     """
     Will cache the function output in the first time that
      it is executed, and will load from cache on the next times.

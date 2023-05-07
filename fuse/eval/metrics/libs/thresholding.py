@@ -1,7 +1,6 @@
-from typing import Dict, Optional, Sequence, Tuple, Union, Hashable
+from typing import Dict, Sequence, Union
 from fuse.eval.metrics.libs.classification import MetricsLibClass
 import numpy as np
-from sklearn.utils import resample
 
 
 class Thresholding:

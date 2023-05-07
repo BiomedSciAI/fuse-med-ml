@@ -24,7 +24,7 @@ from fuse.dl.models.backbones.backbone_vit import usage_example
 class TestViT(unittest.TestCase):
     def test_vit_usage_example(self) -> None:
         results = usage_example()
-        self.assertEqual(tuple(results.shape), (1, 64))
+        self.assertEqual(tuple(results.shape), (1, 192))
 
 
 if __name__ == "__main__":

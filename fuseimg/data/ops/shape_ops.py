@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from typing import Tuple, List, Dict, Any
 import numpy as np
 from torch import Tensor
 import skimage
@@ -13,14 +13,14 @@ from fuseimg.utils.typing.key_types_imaging import DataTypeImaging
 from fuseimg.data.ops.ops_common_imaging import OpApplyTypesImaging
 
 
-def sanity_check_HWC(input_tensor):
+def sanity_check_HWC(input_tensor: Tensor) -> None:
     if 3 != input_tensor.ndim:
         raise Exception(f"expected 3 dim tensor, instead got {input_tensor.shape}")
     assert input_tensor.shape[2] < input_tensor.shape[0]
     assert input_tensor.shape[2] < input_tensor.shape[1]
 
 
-def sanity_check_CHW(input_tensor):
+def sanity_check_CHW(input_tensor: Tensor) -> None:
     if 3 != input_tensor.ndim:
         raise Exception(f"expected 3 dim tensor, instead got {input_tensor.shape}")
     assert input_tensor.shape[0] < input_tensor.shape[1]
@@ -71,10 +71,10 @@ class OpSelectSlice(OpBase):
     from the first dimension of a >2 dimensional input
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Dict[str, Any]):
         super().__init__(**kwargs)
 
-    def __call__(self, sample_dict: NDict, key: str, slice_idx: int):
+    def __call__(self, sample_dict: NDict, key: str, slice_idx: int) -> NDict:
         """
         :param slice_idx: the index of the selected slice from the 1st dimmention of an input tensor
         """
@@ -93,7 +93,7 @@ class OpResizeAndPad2D(OpBase):
     Resize and Pad a 2D image
     """
 
-    def __init__(self, number_of_channels: int = 1, pad_value: int = 0, **kwargs):
+    def __init__(self, number_of_channels: int = 1, pad_value: int = 0, **kwargs: Dict[str, Any]):
         super().__init__(**kwargs)
         self.number_of_channels = number_of_channels
         self.pad_value = pad_value
@@ -168,7 +168,7 @@ class OpResizeAndPad2D(OpBase):
             )
         return inner_image
 
-    def __call__(self, sample_dict: NDict, key: str, resize_to: Tuple, padding: Tuple):
+    def __call__(self, sample_dict: NDict, key: str, resize_to: Tuple, padding: Tuple) -> NDict:
         """
         :param resize_to:               new size of input images, keeping proportions
         :param padding:                 required padding size [x,y]
@@ -191,7 +191,7 @@ class OpFindBiggestNonEmptyBbox2D(OpBase):
     Finds the the biggest connected component bounding box in the image that is non empty (dark)
     """
 
-    def __init__(self, dark_area_threshold: int = 10, blocks_num: int = 30, **kwargs):
+    def __init__(self, dark_area_threshold: int = 10, blocks_num: int = 30, **kwargs: dict):
         super().__init__(**kwargs)
         self.dark_area_threshold = dark_area_threshold
         self.blocks_num = blocks_num
@@ -247,7 +247,7 @@ class OpFindBiggestNonEmptyBbox2D(OpBase):
 
         return minr, minc, maxr, maxc
 
-    def __call__(self, sample_dict: NDict, key: str):
+    def __call__(self, sample_dict: NDict, key: str) -> NDict:
         """ """
 
         img = sample_dict[key]
@@ -262,7 +262,7 @@ class OpFlipBrightSideOnLeft2D(OpBase):
     Returns an image where the brigheter half side is on the left, flips the image if the condition does nt hold.
     """
 
-    def __init__(self, max_pixel_value: float = 255.0, dark_region_ratio: float = 15.0, **kwargs):
+    def __init__(self, max_pixel_value: float = 255.0, dark_region_ratio: float = 15.0, **kwargs: dict):
         super().__init__(**kwargs)
         self.max_pixel_value = max_pixel_value
         self.dark_region_ratio = dark_region_ratio
@@ -281,7 +281,7 @@ class OpFlipBrightSideOnLeft2D(OpBase):
         dark_region = self.max_pixel_value / self.dark_region_ratio
         return np.count_nonzero(left_side < dark_region) < np.count_nonzero(right_side < dark_region)
 
-    def __call__(self, sample_dict: NDict, key: str):
+    def __call__(self, sample_dict: NDict, key: str) -> NDict:
         """
         :param image: numpy image , expected 2d grayscale image
         :return: image where the breast is in the left
@@ -305,8 +305,8 @@ class OpPad(OpBase):
     """
 
     def __call__(
-        self, sample_dict: NDict, key: str, padding: List[int], fill: int = 0, mode: str = "constant", **kwargs
-    ):
+        self, sample_dict: NDict, key: str, padding: List[int], fill: int = 0, mode: str = "constant", **kwargs: dict
+    ) -> NDict:
         """
         Pad values
         :param key: key to an image in sample_dict - either torch tensor or ndarray

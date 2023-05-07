@@ -46,7 +46,11 @@ class CollateDefault(CollateToBatchList):
     ):
         """
         :param skip_keys: do not collect the listed keys
+<<<<<<< HEAD
         :param keep_keys: specifies a list of keys to collect. missing keep_keys are skipped.
+=======
+        :param keep_keys: specifies a list of keys to collect. See raise_error_key_missing argument (dealing with missing keys).
+>>>>>>> 0ce451f37b1e2d9fed0bd350c50301105055c6c6
         :param special_handlers_keys: per key specify a callable which gets as an input list of values and convert it to a batch.
                                       The rest of the keys will be converted to batch using PyTorch default collate_fn()
                                       Example of such Callable can be seen in the CollateDefault.pad_all_tensors_to_same_size.
@@ -68,9 +72,17 @@ class CollateDefault(CollateToBatchList):
         batch_dict = NDict()
 
         # collect all keys
+<<<<<<< HEAD
         keys = self._collect_all_keys(samples)
         if self._keep_keys:
             keys = [k for k in keys if k in self._keep_keys]
+=======
+        if self._keep_keys:
+            keys = self._keep_keys
+        else:
+            keys = self._collect_all_keys(samples)
+
+>>>>>>> 0ce451f37b1e2d9fed0bd350c50301105055c6c6
         # collect values
         for key in keys:
 
@@ -80,10 +92,10 @@ class CollateDefault(CollateToBatchList):
 
             try:
                 # collect values into a list
-                collected_values, has_error = self._collect_values_to_list(samples, key)
+                collected_values, has_error, has_missing_values = self._collect_values_to_list(samples, key)
 
                 # batch values
-                self._batch_dispatch(batch_dict, samples, key, has_error, collected_values)
+                self._batch_dispatch(batch_dict, samples, key, has_error or has_missing_values, collected_values)
             except:
                 print(f"Error: Failed to collect key {key}")
                 raise
@@ -115,7 +127,7 @@ class CollateDefault(CollateToBatchList):
             batch_dict[key] = collected_values
 
     @staticmethod
-    def just_collect_to_list(values: List[Any]):
+    def just_collect_to_list(values: List[Any]) -> List[Any]:
         """
         special handler doing nothing - will just keep the collected list
         """
@@ -143,7 +155,7 @@ class CollateDefault(CollateToBatchList):
         max_per_dim = np.amax(np.stack([value.shape for value in values]), axis=0)
 
         # pad
-        def _pad_size(value, dim):
+        def _pad_size(value: torch.Tensor, dim: int) -> List[int]:
             assert max_per_dim[dim] >= value.shape[dim]
             return [0, max_per_dim[dim] - value.shape[dim]]
 

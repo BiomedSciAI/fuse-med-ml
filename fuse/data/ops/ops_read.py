@@ -46,7 +46,7 @@ class OpReadDataframe(OpBase):
         :param columns_to_extract: list of columns to extract from dataframe. When None (default) all columns are extracted
         :param rename_columns: rename columns from dataframe, when None (default) column names are kept
         :param key_name: name of value in sample_dict which will be used as the key/index
-        :param key_column: name of the column which use as key/index
+        :param key_column: name of the column which use as key/index. In case of None, the original dataframe index will be used to extract the values for a single sample.
         """
         super().__init__()
 
@@ -91,6 +91,7 @@ class OpReadDataframe(OpBase):
                        For example, with prefix 'data.features' and a df with the columns ['height', 'weight', 'sex'],
                        the matching keys will be: 'data.features.height', 'data.features.weight', 'data.features.sex'.
         """
+
         key = sample_dict[self._key_name]
 
         # locate the required item

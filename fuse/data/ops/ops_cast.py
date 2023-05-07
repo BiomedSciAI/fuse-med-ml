@@ -57,6 +57,8 @@ class Cast:
             pass  # do nothing
         elif isinstance(value, (torch.Tensor, int, float, list, np.ndarray)):
             value = np.array(value, dtype=dtype)
+        elif isinstance(value, bytes):
+            value = np.array([e for e in value], dtype=dtype)
         else:
             raise Exception(f"Unsupported type {type(value)} - add here support for this type")
 
@@ -107,7 +109,7 @@ class Cast:
         return value
 
     @staticmethod
-    def to(value: Any, type_name: str, **kwargs) -> Any:
+    def to(value: Any, type_name: str, **kwargs: dict) -> Any:
         """
         Convert any type to type specified in type_name
         """
@@ -143,7 +145,7 @@ class Cast:
 
 class OpCast(OpReversibleBase):
     def __call__(
-        self, sample_dict: NDict, op_id: Optional[str], key: Union[str, Sequence[str]], **kwargs
+        self, sample_dict: NDict, op_id: Optional[str], key: Union[str, Sequence[str]], **kwargs: dict
     ) -> Union[None, dict, List[dict]]:
         """
         See super class
@@ -171,7 +173,7 @@ class OpCast(OpReversibleBase):
         return sample_dict
 
     @abstractmethod
-    def _cast(self):
+    def _cast(self) -> None:
         raise NotImplementedError
 
 
@@ -187,6 +189,9 @@ class OpToTensor(OpCast):
 class OpToNumpy(OpCast):
     """
     Convert many types to numpy
+
+    Example:
+        (OpToNumpy(), dict(key="data.input.img", dtype=np.float32)),
     """
 
     def _cast(self, value: Any, dtype: Optional[np.dtype] = None) -> np.ndarray:
@@ -220,7 +225,7 @@ class OpOneHotToNumber(OpBase):
         [0, 0, 1, 0] -> 2
     """
 
-    def __init__(self, num_classes, verify_arguments: bool = True):
+    def __init__(self, num_classes: int, verify_arguments: bool = True):
         """
         :param num_classes: Number of class the Op should expect.
         :param verify_arguments: Defualt is True - can be set to False for a speedup.
@@ -229,7 +234,7 @@ class OpOneHotToNumber(OpBase):
         self._num_classes = num_classes
         self._verify_arguments = verify_arguments
 
-    def __call__(self, sample_dict: NDict, key: str, **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, key: str, **kwargs: dict) -> Union[None, dict, List[dict]]:
         """
         :param key: the sample_dict's key where the one-hot vector is located.
                     The corresponding number will be save in the same key (instead of the one-hot)

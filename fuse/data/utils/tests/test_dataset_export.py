@@ -31,8 +31,8 @@ from fuse.data.pipelines.pipeline_default import PipelineDefault
 
 
 class TestDatasetExport(unittest.TestCase):
-    def test_export_to_dataframe(self):
-        # datainfo
+    def test_export_to_dataframe(self) -> None:
+        # data info
         data = {"sample_id": ["a", "b", "c", "d", "e"], "values": [7, 4, 9, 2, 4], "not_important": [12] * 5}
         df = pds.DataFrame(data)
 

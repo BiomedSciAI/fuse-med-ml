@@ -33,15 +33,16 @@ class MetricCIndex(MetricDefault):
         self,
         pred: str,
         event_times: str,
-        event_observed: Optional[str] = None,
+        event_observed: str,
         time_unit: Optional[int] = 1,
-        **kwargs,
+        time_followup: Optional[int] = None,
+        **kwargs: dict,
     ):
         """
         See MetricDefault for the missing params
         :param pred: a length-n iterable prediction scores
         :param event_times:  a length-n iterable event times, or censor times if event is not observed.
-        :param event_observed: a length-n iterable event observed flags, 1 if observed, 0 if not (i.e. censored). Default None assumes all observed.
+        :param event_observed: a length-n iterable event observed flags, 1 if observed, 0 if not (i.e. censored).
         """
         super().__init__(
             pred=pred,
@@ -49,6 +50,35 @@ class MetricCIndex(MetricDefault):
             event_times=event_times,
             event_observed=event_observed,
             time_unit=time_unit,
+            time_followup=time_followup,
             metric_func=MetricsSurvival.c_index,
+            **kwargs,
+        )
+
+
+class MetricExpectedCIndex(MetricDefault):
+    """
+    Compute expected C-index (concordance index) score when given a survival distribution
+    """
+
+    def __init__(
+        self,
+        pred: str,
+        event_times: str,
+        event_observed: str,
+        **kwargs: dict,
+    ):
+        """
+        See MetricDefault for the missing params
+        :param pred: a length-n iterable prediction scores
+        :param event_times:  a length-n iterable event times, or censor times if event is not observed.
+        :param event_observed: a length-n iterable event observed flags, 1 if observed, 0 if not (i.e. censored).
+        """
+        super().__init__(
+            pred=pred,
+            target=None,
+            event_times=event_times,
+            event_observed=event_observed,
+            metric_func=MetricsSurvival.expected_cindex,
             **kwargs,
         )

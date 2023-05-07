@@ -1,13 +1,13 @@
 import unittest
-
+from typing import Union
 from fuse.utils.cpu_profiling import Timer
 
 
 class TestTimer(unittest.TestCase):
-    def test_timer_1(self):
+    def test_timer_1(self) -> None:
         """ """
 
-        def foo(x):
+        def foo(x: Union[int, float]) -> None:
             with Timer("banana"):
                 for _ in range(10**5):
                     x = x * 2

@@ -1,3 +1,4 @@
+# type: ignore
 """
 (C) Copyright 2021 IBM Corp.
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +19,7 @@ import numpy
 import torch
 import warnings
 
-warnings.warn("FuseUtilsHierarchicalDict is obsolete and soon will be deleted! Please consider trasform to NDict.")
+warnings.warn("FuseUtilsHierarchicalDict is obsolete and soon will be deleted! Please consider transform to NDict.")
 
 
 class FuseUtilsHierarchicalDict:

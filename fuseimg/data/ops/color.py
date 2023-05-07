@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import Tuple, Union, Dict, Any
 import numpy as np
 import torch
 from fuse.utils.ndict import NDict
@@ -14,18 +14,18 @@ class OpClip(OpBase):
     Clip values - support both torch tensor and numpy array
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Dict[str, Any]):
         super().__init__(**kwargs)
 
     def __call__(
         self,
         sample_dict: NDict,
         key: str,
-        clip=(0.0, 1.0),
-    ):
+        clip: Tuple[float, float] = (0.0, 1.0),
+    ) -> NDict:
         """
         Clip  values
-        :param key: key to an image in sample_dict: either torh tensor or numpy array and any dimension
+        :param key: key to an image in sample_dict: either torch tensor or numpy array and any dimension
         :param clip: values for clipping from both sides
         """
 
@@ -57,14 +57,13 @@ class OpNormalizeAgainstSelf(OpBase):
     normalizes a tensor into [0.0, 1.0] using its own statistics (NOT against a dataset)
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: dict):
         super().__init__(**kwargs)
 
-    def __call__(self, sample_dict: NDict, key: str):
-        img = sample_dict[key]
-        if img.max() != 0 : 
-            img -= img.min()
-            img /= img.max()
+    def __call__(self, sample_dict: NDict, key: str) -> NDict:
+        img = sample_dict[key].astype(np.float32)
+        img -= img.min()
+        img = img / img.max()
         sample_dict[key] = img
 
         return sample_dict
@@ -78,14 +77,14 @@ class OpToIntImageSpace(OpBase):
     normalizes a tensor into [0, 255] int gray-scale using its own statistics (NOT against a dataset)
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: dict):
         super().__init__(**kwargs)
 
     def __call__(
         self,
         sample_dict: NDict,
         key: str,
-    ):
+    ) -> NDict:
         img = sample_dict[key]
         img -= img.min()
         img /= img.max()
@@ -110,7 +109,7 @@ class OpToRange(OpBase):
         key: str,
         from_range: Tuple[float, float],
         to_range: Tuple[float, float],
-    ):
+    ) -> NDict:
 
         from_range_start = from_range[0]
         from_range_end = from_range[1]

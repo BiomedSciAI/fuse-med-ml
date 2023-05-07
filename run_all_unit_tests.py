@@ -13,7 +13,7 @@ import xmlrunner
 print(os.path.dirname(os.path.realpath(__file__)))
 
 
-def mehikon(a, b):
+def mehikon(a, b):  # type: ignore
     print(a)
 
 
@@ -38,7 +38,7 @@ if __name__ == "__main__":
         ("fuse/data", search_base),
     ]
     sub_sections_fuseimg = [("fuseimg", search_base)]
-    sub_sections_examples = [("examples/fuse_examples/tests", os.path.join(search_base, "examples"))]
+    sub_sections_examples = [("fuse_examples/tests", search_base)]
     if mode is None:
         sub_sections = sub_sections_core + sub_sections_fuseimg + sub_sections_examples
     elif mode == "core":

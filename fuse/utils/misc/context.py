@@ -1,3 +1,4 @@
+# type: ignore
 class DummyContext:
     def __init__(self, *args, **kwargs) -> None:
         pass

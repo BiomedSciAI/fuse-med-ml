@@ -17,7 +17,7 @@ Created on June 30, 2021
 
 """
 import logging
-from typing import Callable, Dict, List, Sequence, Tuple
+from typing import Callable, Dict, List, Sequence, Tuple, Any
 
 from fuse.utils import NDict
 
@@ -62,7 +62,7 @@ class CollateToBatchList(Callable):
 
             try:
                 # collect values into a list
-                collected_values, has_error = self._collect_values_to_list(samples, key)
+                collected_values, _, _ = self._collect_values_to_list(samples, key)
                 batch_dict[key] = collected_values
             except:
                 print(f"Error: Failed to collect key {key}")
@@ -70,7 +70,7 @@ class CollateToBatchList(Callable):
 
         return batch_dict
 
-    def _collect_all_keys(self, samples: List[Dict]):
+    def _collect_all_keys(self, samples: List[Dict]) -> List[Any]:
         """
         collect list of keys used in any one of the samples
         :param samples: list of samples
@@ -81,7 +81,7 @@ class CollateToBatchList(Callable):
             if not isinstance(sample, NDict):
                 sample = NDict(sample)
             keys |= set(sample.keypaths())
-        return keys
+        return list(keys)
 
     def _collect_values_to_list(self, samples: List[str], key: str) -> Tuple[List, bool]:
         """
@@ -91,22 +91,21 @@ class CollateToBatchList(Callable):
         :return: list of values
         """
         has_error = False
+        has_missing_values = False
         collected_values = []
         for index, sample in enumerate(samples):
-            sample = NDict(sample)
-            if key not in sample:
-                if key.startswith("internal"):
-                    value = None
-                else:        
-                    has_error = True
-                    if self._raise_error_key_missing:
-                        raise Exception(f"Error: key {key} does not exist in sample {index}: {sample}")
-                    else:
-                        value = None
-            else:
+            try:
                 value = sample[key]
+            except:
+                has_error = True
+                has_missing_values = True
+                if self._raise_error_key_missing:
+                    raise Exception(f"Error: key {key} does not exist in sample {index}: {sample}")
+                else:
+                    value = None
+
             collected_values.append(value)
-        return collected_values, has_error
+        return collected_values, has_error, has_missing_values
 
 
 def uncollate(batch: Dict) -> List[Dict]:
@@ -114,44 +113,41 @@ def uncollate(batch: Dict) -> List[Dict]:
     Reverse collate method
     Gets a batch_dict and convert it back to list of samples
     """
-    samples = []
-    if not isinstance(batch, NDict):
-        batch = NDict(batch)
-    keys = batch.keypaths()
-
     # empty batch
-    if not keys:
-        return samples
+    if not batch.keys():
+        return []
 
-    batch_size = None
-    for key in keys:
-        if isinstance(batch[key], torch.Tensor):
-            batch_size = len(batch[key])
-            break
+    if isinstance(batch, NDict):
+        batch = batch.flatten()
 
-    if batch_size is None:
-        for key in keys:
-            if isinstance(batch[key], (np.ndarray, list)):
+    # infer batch size
+    if "data.sample_id" in batch:
+        batch_size = len(batch["data.sample_id"])
+    else:
+        batch_size = None
+
+        for key in batch.keys():
+            if isinstance(batch[key], (torch.Tensor, np.ndarray, list)):
                 batch_size = len(batch[key])
                 break
 
     if batch_size is None:
         return batch  # assuming batch dict with no samples
 
-    for sample_index in range(batch_size):
-        sample = NDict()
-        for key in keys:
-            if isinstance(batch[key], (np.ndarray, torch.Tensor, list)):
+    samples = [NDict() for _ in range(batch_size)]
+    for key in batch.keys():
+        values = batch[key]
+        for sample_index in range(batch_size):
+
+            if isinstance(values, (np.ndarray, torch.Tensor, list)):
                 try:
-                    sample[key] = batch[key][sample_index]
+                    samples[sample_index][key] = values[sample_index]
                 except IndexError:
                     logging.error(
                         f"Error - IndexError - key={key}, batch_size={batch_size}, type={type((batch[key]))}, len={len(batch[key])}"
                     )
                     raise
             else:
-                sample[key] = batch[key]  # broadcast single value for all batch
-
-        samples.append(sample)
+                samples[sample_index][key] = values  # broadcast single value for all batch
 
     return samples

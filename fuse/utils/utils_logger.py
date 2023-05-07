@@ -27,24 +27,25 @@ from collections import defaultdict
 from logging.handlers import RotatingFileHandler
 from multiprocessing import current_process
 from shutil import copyfile
-from typing import Dict, Optional, Any, List
+from typing import Dict, Optional, Any, List, Tuple, Union
 
 from termcolor import colored
 
 from fuse.utils.file_io.file_io import create_dir, create_or_reset_dir
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 
 class ProcessSafeHandler(logging.StreamHandler):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: dict):
         super().__init__(**kwargs)
 
         self._locks = defaultdict(lambda: threading.RLock())
 
-    def acquire(self):
+    def acquire(self) -> None:
         current_process_id = current_process().pid
         self._locks[current_process_id].acquire()
 
-    def release(self):
+    def release(self) -> None:
         current_process_id = current_process().pid
         self._locks[current_process_id].release()
 
@@ -66,7 +67,7 @@ class ConsoleFormatter(logging.Formatter):
         logging.CRITICAL: bold_red + err_format + reset,
     }
 
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
         if record.levelno in [logging.INFO, logging.DEBUG]:
             if isinstance(record.__dict__["args"], dict):
                 color = record.__dict__["args"].get("color", None)
@@ -84,6 +85,7 @@ class ConsoleFormatter(logging.Formatter):
         return formatter.format(record)
 
 
+@rank_zero_only  # in ddp should start the logger once - on the main process
 def fuse_logger_start(
     output_path: Optional[str] = None,
     console_verbose_level: int = logging.INFO,
@@ -159,7 +161,7 @@ def fuse_logger_start(
                 copyfile(os.path.abspath(src_file), os.path.join(source_files_output_path, os.path.basename(src_file)))
 
 
-def fuse_logger_end():
+def fuse_logger_end() -> None:
     lgr = logging.getLogger("Fuse")
     # skip if not already configured
     if lgr.level == 0:
@@ -168,7 +170,7 @@ def fuse_logger_end():
         lgr.removeHandler(h)
 
 
-def convert_state_to_str(input_state: Any):
+def convert_state_to_str(input_state: Any) -> Union[str, Tuple[str]]:
     """
     Convert a state built from a nested dictionaries, lists and tuples to a string
     :param input_state:

@@ -1,6 +1,7 @@
 import cProfile
 import pstats
 from io import StringIO
+from typing import Any
 
 
 class Profiler:
@@ -55,7 +56,7 @@ class Profiler:
     10   0.000    0.000    0.000    0.000 /some/path/test_profiler.py:17(dummy_quick)
     1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
 
-    #analyzing it we can see that dummy_slow is the bottelneck within get_combs,
+    analyzing it we can see that dummy_slow is the bottleneck within get_combs,
     as its cumulative time is 0.778 secs out of the total of 0.779 seconds of get_combs
     on the other hand, dummy_quick is clearly not the bottleneck.
 
@@ -64,12 +65,12 @@ class Profiler:
     def __init__(self, txt: str = ""):
         self.txt = txt
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         print(f"starting profiling for {self.txt}...")
         self.pr = cProfile.Profile()
         self.pr.enable()
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:
         self.pr.disable()
         print(f"profiling results for {self.txt} :")
         self.s = StringIO()

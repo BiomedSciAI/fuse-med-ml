@@ -26,7 +26,7 @@ class OpDebugBase(OpBase):
         self._num_samples = num_samples
         self._num_samples_done = 0
 
-    def reset(self, name: Optional[str] = None):
+    def reset(self, name: Optional[str] = None) -> None:
         """Reset operation state"""
         self._num_samples_done = 0
         self._name = name
@@ -43,13 +43,13 @@ class OpDebugBase(OpBase):
         self._num_samples_done += 1
         return True
 
-    def __call__(self, sample_dict: NDict, **kwargs) -> NDict:
+    def __call__(self, sample_dict: NDict, **kwargs: dict) -> NDict:
         if self.should_debug_sample(sample_dict):
             self.call_debug(sample_dict, **kwargs)
         return sample_dict
 
     @abstractmethod
-    def call_debug(self, sample_dict: NDict, **kwargs) -> None:
+    def call_debug(self, sample_dict: NDict, **kwargs: dict) -> None:
         """The actual debug op implementation"""
         raise NotImplementedError
 
@@ -89,7 +89,11 @@ class OpPrintShapes(OpDebugBase):
     ```
     """
 
-    def call_debug(self, sample_dict: NDict) -> None:
+    def call_debug(self, sample_dict: NDict, include_strings: bool = False) -> None:
+        """
+        :param include_strings: set to True if you want to see strings lengths.
+                                useful when dealing with sequences such as SMILES.
+        """
         print(f"Sample {get_sample_id(sample_dict)} shapes:")
         for key in sample_dict.keypaths():
             value = sample_dict[key]
@@ -99,6 +103,8 @@ class OpPrintShapes(OpDebugBase):
                 print(f"\t{key} is numpy array with shape: {value.shape}")
             elif not isinstance(value, str) and isinstance(value, Sequence):
                 print(f"\t{key} is sequence with length: {len(value)}")
+            elif isinstance(value, str) and include_strings:
+                print(f"\t{key} is string with length: {len(value)}")
 
 
 class OpPrintTypes(OpDebugBase):

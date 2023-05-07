@@ -21,6 +21,7 @@ from abc import abstractmethod
 from fuse.data.utils.sample import get_sample_id
 from fuse.utils.ndict import NDict
 from fuse.data.ops.hashable_class import HashableClass
+import inspect
 
 
 class OpBase(HashableClass):
@@ -32,7 +33,7 @@ class OpBase(HashableClass):
     """
 
     @abstractmethod
-    def __call__(self, sample_dict: NDict, **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, **kwargs: dict) -> Union[None, dict, List[dict]]:
         """
         call function that apply the operation
         :param sample_dict: the generated dictionary generated so far (generated be the previous ops in the pipeline)
@@ -58,9 +59,9 @@ class OpReversibleBase(OpBase):
     """
 
     @abstractmethod
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs: dict) -> Union[None, dict, List[dict]]:
         """
-        See OpBase.__call__ for more infomation. The only difference is the extra argument that can be used to "record" the information required to reverse the operation.
+        See OpBase.__call__ for more information. The only difference is the extra argument that can be used to "record" the information required to reverse the operation.
         :param op_id: unique identifier for an operation.
                       Might be used to support reverse operation as sample_dict key.
                       In such a case use sample_dict[op_id] = info_to_store
@@ -92,12 +93,27 @@ class OpReversibleBase(OpBase):
         )
 
 
-def op_call(op: OpBase, sample_dict: NDict, op_id: str, **kwargs):
+def op_call(op: OpBase, sample_dict: NDict, op_id: str, **kwargs: dict) -> Union[None, dict, List[dict]]:
+
+    if inspect.isclass(op):
+        raise Exception(
+            f"Error: expected an instance object, not a class object for {op}\n"
+            "When creating a pipeline, such error can happen when you provide the following ops list description:\n"
+            "[SomeOp, {}]\n"
+            "instead of \n"
+            "[SomeOp(), {}]\n"
+        )
+
     try:
         if isinstance(op, OpReversibleBase):
             return op(sample_dict, op_id=op_id, **kwargs)
-        else:  # OpBase but note reversible
+        elif isinstance(op, OpBase) or hasattr(op, "__call__"):  # OpBase but not reversible
             return op(sample_dict, **kwargs)
+        else:
+            raise Exception(
+                f"Ops are expected to be instances of classes or subclasses of OpBase (or to implement __call__(sample_dict, **kwargs) function). The following op is not: {op}"
+            )
+
     except:
         # error messages are cryptic without this. For example, you can get "TypeError: __call__() got an unexpected keyword argument 'key_out_input'" , without any reference to the relevant op!
         print(
@@ -108,7 +124,7 @@ def op_call(op: OpBase, sample_dict: NDict, op_id: str, **kwargs):
         raise
 
 
-def op_reverse(op, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]):
+def op_reverse(op: OpBase, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
     if isinstance(op, OpReversibleBase):
         try:
             return op.reverse(sample_dict, key_to_reverse, key_to_follow, op_id)
