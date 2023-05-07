@@ -75,7 +75,6 @@ def create_model(unet_kwargs) -> torch.nn.Module:
     model = UNet(
         input_name="data.input.img_t2w",
         seg_name="model.seg",
-        out_features=2,
         unet_kwargs=unet_kwargs,
     )
 
