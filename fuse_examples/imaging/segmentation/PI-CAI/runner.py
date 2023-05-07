@@ -17,7 +17,6 @@ import os
 import sys
 import copy
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
-import numpy as np
 from pathlib import Path
 import pickle
 
@@ -34,22 +33,21 @@ from fuse.utils import NDict
 from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.split import dataset_balanced_division_to_folds
-from fuse.dl.models import ModelMultiHead
-from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
 from fuse.dl.losses.loss_default import LossDefault
-from fuse.dl.losses.segmentation.loss_dice import DiceLoss
+
 # from report_guided_annotation import extract_lesion_candidates
 import monai
-from fuse.data import get_sample_id_key
 from unet import UNet
 from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy
-#from fuse.eval.metrics.detection.metrics_detection_common import MetricDetectionPICAI
+
+# from fuse.eval.metrics.detection.metrics_detection_common import MetricDetectionPICAI
 from fuseimg.datasets.picai import PICAI
 from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
 from pytorch_lightning import Trainer
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 from fuse.utils.file_io.file_io import create_dir, load_pickle, save_dataframe
 from fuse.eval.evaluator import EvaluatorDefault
+
 # from picai_baseline.unet.training_setup.default_hyperparam import \
 #     get_default_hyperparams
 # from picai_baseline.unet.training_setup.neural_network_selector import \
@@ -57,7 +55,8 @@ from fuse.eval.evaluator import EvaluatorDefault
 import torch
 import hydra
 from omegaconf import DictConfig, OmegaConf
-#from monai.losses import DiceFocalLoss
+
+# from monai.losses import DiceFocalLoss
 
 # assert (
 #     "PICAI_DATA_PATH" in os.environ
@@ -110,8 +109,8 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     #### Train Data
     # split to folds randomly - temp
     dataset_all = PICAI.dataset(
-        paths = paths,
-        cfg = train,
+        paths=paths,
+        cfg=train,
         reset_cache=False,
         train=True,
     )
@@ -132,25 +131,20 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
         validation_sample_ids += folds[fold]
 
     train_dataset = PICAI.dataset(
-        paths = paths,
-        cfg = train,
+        paths=paths,
+        cfg=train,
         reset_cache=False,
         sample_ids=train_sample_ids,
         train=True,
     )
 
-    validation_dataset = PICAI.dataset(
-        paths = paths,
-        cfg = train,
-        reset_cache=False,
-        sample_ids=validation_sample_ids 
-    )
+    validation_dataset = PICAI.dataset(paths=paths, cfg=train, reset_cache=False, sample_ids=validation_sample_ids)
 
     ## Create sampler
     lgr.info("- Create sampler:")
     sampler = BatchSamplerDefault(
         dataset=train_dataset,
-        balanced_class_name= "data.gt.classification", #gt_label, TODO - make diff label for balance-sampler
+        balanced_class_name="data.gt.classification",  # gt_label, TODO - make diff label for balance-sampler
         num_balanced_classes=2,
         batch_size=train["batch_size"],
         mode="approx",
@@ -166,7 +160,9 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
         shuffle=False,
         drop_last=False,
         batch_sampler=sampler,
-        collate_fn=CollateDefault(special_handlers_keys={"data.input.img":CollateDefault.pad_all_tensors_to_same_size}),
+        collate_fn=CollateDefault(
+            special_handlers_keys={"data.input.img": CollateDefault.pad_all_tensors_to_same_size}
+        ),
         num_workers=train["num_workers"],
     )
     lgr.info("Train Data: Done", {"attrs": "bold"})
@@ -176,13 +172,13 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
 
     ## Create dataloader
     validation_dataloader = DataLoader(
-            dataset=validation_dataset,
-            shuffle=False,
-            drop_last=False,
-            batch_sampler=None,
-            batch_size=train["batch_size"],
-            num_workers=train["num_workers"],
-            collate_fn=CollateDefault()
+        dataset=validation_dataset,
+        shuffle=False,
+        drop_last=False,
+        batch_sampler=None,
+        batch_size=train["batch_size"],
+        num_workers=train["num_workers"],
+        collate_fn=CollateDefault(),
     )
     lgr.info("Validation Data: Done", {"attrs": "bold"})
 
@@ -192,17 +188,18 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     # TODO - add a classification loss - add head to the bottom of the unet
     losses = {}
     losses["segmentation"] = LossDefault(
-            pred="model.seg",
-            target="data.gt.seg",
-            callable=monai.losses.DiceFocalLoss(to_onehot_y=True, softmax=True),
-            weight=train["loss_config.segmentation_lambda"])
+        pred="model.seg",
+        target="data.gt.seg",
+        callable=monai.losses.DiceFocalLoss(to_onehot_y=True, softmax=True),
+        weight=train["loss_config.segmentation_lambda"],
+    )
     train_metrics = {}
 
     validation_metrics = copy.deepcopy(train_metrics)  # use the same metrics in validation as well
 
     # either a dict with arguments to pass to ModelCheckpoint or list dicts for multiple ModelCheckpoint callbacks (to monitor and save checkpoints for more then one metric).
     best_epoch_source = dict(
-        monitor="validation.losses.total_loss",  #metrics.auc.macro_avg",
+        monitor="validation.losses.total_loss",  # metrics.auc.macro_avg",
         mode="min",
     )
 
@@ -287,7 +284,7 @@ def run_infer(infer: NDict, paths: NDict):
         shuffle=False,
         drop_last=False,
         batch_sampler=None,
-        batch_size=1, # TODO - set a validation batch_size parameter instead of - train["batch_size"],
+        batch_size=1,  # TODO - set a validation batch_size parameter instead of - train["batch_size"],
         collate_fn=CollateDefault(),
         num_workers=infer["num_workers"],
     )
@@ -310,8 +307,8 @@ def run_infer(infer: NDict, paths: NDict):
     # create a trainer instance
     predictions = pl_trainer.predict(pl_module, infer_dataloader, return_predictions=True)
 
-    with open(Path(infer_file).parents[0] / 'infer.pickle', 'wb') as f:
-        pickle.dump( predictions, f)
+    with open(Path(infer_file).parents[0] / "infer.pickle", "wb") as f:
+        pickle.dump(predictions, f)
 
     # convert list of batch outputs into a dataframe
     infer_df = convert_predictions_to_dataframe(predictions)
