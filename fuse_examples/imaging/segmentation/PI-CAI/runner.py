@@ -68,7 +68,7 @@ mode = "default"  # Options: 'default', 'debug'. See details in FuseDebug
 debug = FuseDebug(mode)
 
 
-def create_model(unet_kwargs) -> torch.nn.Module:
+def create_model(unet_kwargs: dict) -> torch.nn.Module:
     """
     creates the model
     """
@@ -84,7 +84,7 @@ def create_model(unet_kwargs) -> torch.nn.Module:
 #################################
 # Train Template
 #################################
-def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
+def run_train(paths: NDict, train: NDict) -> None:
     # ==============================================================================
     # Logger
     # ==============================================================================
@@ -247,7 +247,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
 ######################################
 # Inference Template
 ######################################
-def run_infer(infer: NDict, paths: NDict):
+def run_infer(infer: NDict, paths: NDict) -> None:
     create_dir(paths["inference_dir"])
     #### Logger
     # fuse_logger_start(output_path=paths["inference_dir"], console_verbose_level=logging.INFO)
@@ -317,7 +317,7 @@ def run_infer(infer: NDict, paths: NDict):
 ######################################
 # Analyze Template
 ######################################
-def run_eval(paths: NDict, infer: NDict):
+def run_eval(paths: NDict, infer: NDict) -> None:
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger("Fuse")
     lgr.info("Fuse Eval", {"attrs": ["bold", "underline"]})

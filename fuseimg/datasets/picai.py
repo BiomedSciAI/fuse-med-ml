@@ -42,7 +42,7 @@ class OpLoadPICAIImage(OpBase):
     Loads a medical image
     """
 
-    def __init__(self, dir_path: str, seuqences: Sequence[str] = ["_t2w"], **kwargs):
+    def __init__(self, dir_path: str, seuqences: Sequence[str] = ["_t2w"], **kwargs: dict):
         super().__init__(**kwargs)
         self._dir_path = dir_path
         self._sequences = seuqences
@@ -52,7 +52,7 @@ class OpLoadPICAIImage(OpBase):
         sample_dict: NDict,
         key_in: str,
         key_out: str,
-    ):
+    ) -> None:
         """
         :param key_in: the key name in sample_dict that holds the filename
         :param key_out: the key name in sample_dict that holds the image
@@ -76,7 +76,7 @@ class OpLoadPICAISegmentation(OpBase):
     Loads a medical image
     """
 
-    def __init__(self, data_dir: str, dir_path: str, seuqences: Sequence[str] = ["_t2w"], **kwargs):
+    def __init__(self, data_dir: str, dir_path: str, seuqences: Sequence[str] = ["_t2w"], **kwargs: dict):
         super().__init__(**kwargs)
         self._dir_path = dir_path
         self._data_dir = data_dir
@@ -88,7 +88,7 @@ class OpLoadPICAISegmentation(OpBase):
         key_in: str,
         key_out: str,
         gt: str,
-    ):
+    ) -> None:
         """
         :param key_in: the key name in sample_dict that holds the filename
         :param key_out: the key name in sample_dict that holds the image
@@ -179,12 +179,10 @@ class PICAI:
 
     @staticmethod
     def dynamic_pipeline(
-        data_source: pd.DataFrame,
-        target: str,
+        repeat_images: Sequence[NDict],
         train: bool = False,
-        repeat_images=Sequence[NDict],
         aug_params: NDict = None,
-    ):
+    ) -> PipelineDefault:
         """
         Get suggested dynamic pipeline. including pre-processing that might be modified and augmentation operations.
         :param train : True iff we request dataset for train purpouse
@@ -225,7 +223,7 @@ class PICAI:
         reset_cache: bool = True,
         sample_ids: Optional[Sequence[Hashable]] = None,
         train: bool = False,
-    ):
+    ) -> DatasetDefault:
         """
         Creates Fuse Dataset single object (either for training, validation and test or user defined set)
         :param data_dir:                    dataset root path
@@ -254,7 +252,7 @@ class PICAI:
         )
         if train:
             dynamic_pipeline = PICAI.dynamic_pipeline(
-                input_source_gt, cfg["target"], train=train, repeat_images=repeat_images, aug_params=cfg["aug_params"]
+                train=train, repeat_images=repeat_images, aug_params=cfg["aug_params"]
             )
         else:
             dynamic_pipeline = PICAI.dynamic_pipeline(
