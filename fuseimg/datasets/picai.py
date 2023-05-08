@@ -125,7 +125,7 @@ class PICAI:
         Get suggested static pipeline (which will be cached), typically loading the data plus design choices that we won't experiment with.
         :param data_path: path to original kits21 data (can be downloaded by KITS21.download())
         """
-
+        repeat_images_with_seg = repeat_images +[(dict(key="data.gt.seg"))]
         bool_map = {"NO": 0, "YES": 1}
         static_pipeline = PipelineDefault(
             "cmmd_static",
@@ -166,12 +166,13 @@ class PICAI:
                                 )
                             )
                         ),
-                        kwargs_per_step_to_add=repeat_images,
+                        kwargs_per_step_to_add=repeat_images_with_seg,
                     ),
                     {},
                 ),
-                (OpRepeat((OpNormalizeAgainstSelf()), kwargs_per_step_to_add=repeat_images), {}),
-                (OpRepeat((OpToNumpy()), kwargs_per_step_to_add=repeat_images), dict(dtype=np.float32)),
+                #(OpNormalizeAgainstSelf(), dict(key="data.input.img_t2w")),
+                (OpRepeat((OpNormalizeAgainstSelf()), kwargs_per_step_to_add=repeat_images), dict()),
+                (OpRepeat((OpToNumpy()), kwargs_per_step_to_add=repeat_images_with_seg), dict(dtype=np.float32)),
                 # (OpResizeAndPad2D(), dict(key="data.input.img", resize_to=(2200, 1200), padding=(60, 60))),
             ],
         )
@@ -192,27 +193,27 @@ class PICAI:
             (OpRepeat((OpToTensor()), kwargs_per_step_to_add=repeat_images), dict(dtype=torch.float32)),
             (OpRepeat((OpLambda(partial(torch.unsqueeze, dim=0))), kwargs_per_step_to_add=repeat_images), {}),
         ]
-        if train:
-            ops += [
-                # affine augmentation - will apply the same affine transformation on each slice
-                (OpRepeat((OpAugSqueeze3Dto2D()), kwargs_per_step_to_add=repeat_images), dict(axis_squeeze=1)),
-                (
-                    OpRandApply(
-                        OpSampleAndRepeat(OpAugAffine2D(), kwargs_per_step_to_add=repeat_images),
-                        aug_params["apply_aug_prob"],
-                    ),
-                    dict(
-                        rotate=Uniform(*aug_params["rotate"]),
-                        scale=Uniform(*aug_params["scale"]),
-                        flip=(aug_params["flip"], aug_params["flip"]),
-                        translate=(RandInt(*aug_params["translate"]), RandInt(*aug_params["translate"])),
-                    ),
-                ),
-                (
-                    OpRepeat(OpAugUnsqueeze3DFrom2D(), kwargs_per_step_to_add=repeat_images),
-                    dict(axis_squeeze=1, channels=1),
-                ),
-            ]
+        # if train:
+        #     ops += [
+        #         # affine augmentation - will apply the same affine transformation on each slice
+        #         (OpRepeat((OpAugSqueeze3Dto2D()), kwargs_per_step_to_add=repeat_images), dict(axis_squeeze=1)),
+        #         (
+        #             OpRandApply(
+        #                 OpSampleAndRepeat(OpAugAffine2D(), kwargs_per_step_to_add=repeat_images),
+        #                 aug_params["apply_aug_prob"],
+        #             ),
+        #             dict(
+        #                 rotate=Uniform(*aug_params["rotate"]),
+        #                 scale=Uniform(*aug_params["scale"]),
+        #                 flip=(aug_params["flip"], aug_params["flip"]),
+        #                 translate=(RandInt(*aug_params["translate"]), RandInt(*aug_params["translate"])),
+        #             ),
+        #         ),
+        #         (
+        #             OpRepeat(OpAugUnsqueeze3DFrom2D(), kwargs_per_step_to_add=repeat_images),
+        #             dict(axis_squeeze=1, channels=1),
+        #         ),
+        #     ]
         dynamic_pipeline = PipelineDefault("picai_dynamic", ops)
         return dynamic_pipeline
 
@@ -246,17 +247,17 @@ class PICAI:
             sample_ids = all_sample_ids
 
         repeat_images = [dict(key="data.input.img" + seq) for seq in cfg["series_config"]]
-        repeat_images.append(dict(key="data.gt.seg"))
         static_pipeline = PICAI.static_pipeline(
             input_source_gt, paths["data_dir"], paths["seg_dir"], cfg["target"], repeat_images
         )
+        repeat_images_with_seg = repeat_images +[dict(key="data.gt.seg")]
         if train:
             dynamic_pipeline = PICAI.dynamic_pipeline(
-                train=train, repeat_images=repeat_images, aug_params=cfg["aug_params"]
+                train=train, repeat_images=repeat_images_with_seg, aug_params=cfg["aug_params"]
             )
         else:
             dynamic_pipeline = PICAI.dynamic_pipeline(
-                input_source_gt, cfg["target"], train=train, repeat_images=repeat_images
+                train=train, repeat_images=repeat_images_with_seg
             )
 
         cacher = SamplesCacher(
