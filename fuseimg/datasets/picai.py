@@ -1,10 +1,12 @@
 from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuseimg.data.ops.color import OpNormalizeAgainstSelf
-#from fuseimg.data.ops.aug.geometry import OpAugAffine2D, OpAugSqueeze3Dto2D, OpAugUnsqueeze3DFrom2D
+
+# from fuseimg.data.ops.aug.geometry import OpAugAffine2D, OpAugSqueeze3Dto2D, OpAugUnsqueeze3DFrom2D
 from fuse.data import PipelineDefault, OpToTensor, OpRepeat
 from fuse.data.ops.ops_common import OpLambda, OpLookup, OpToOneHot
-#from fuse.data.ops.ops_aug_common import OpRandApply, OpSampleAndRepeat
+
+# from fuse.data.ops.ops_aug_common import OpRandApply, OpSampleAndRepeat
 from fuse.data.ops.ops_read import OpReadDataframe
 from fuse.data.ops.ops_cast import OpToNumpy
 from fuse.data.ops.op_base import OpBase
@@ -19,7 +21,8 @@ import skimage
 import os
 from fuse.data.utils.sample import get_sample_id
 from medpy.io import load
-#from fuse.utils.rand.param_sampler import Uniform, RandInt
+
+# from fuse.utils.rand.param_sampler import Uniform, RandInt
 
 
 class OpPICAISampleIDDecode(OpBase):
