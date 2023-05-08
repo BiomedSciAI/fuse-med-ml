@@ -1,10 +1,10 @@
 from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuseimg.data.ops.color import OpNormalizeAgainstSelf
-from fuseimg.data.ops.aug.geometry import OpAugAffine2D, OpAugSqueeze3Dto2D, OpAugUnsqueeze3DFrom2D
+#from fuseimg.data.ops.aug.geometry import OpAugAffine2D, OpAugSqueeze3Dto2D, OpAugUnsqueeze3DFrom2D
 from fuse.data import PipelineDefault, OpToTensor, OpRepeat
 from fuse.data.ops.ops_common import OpLambda, OpLookup, OpToOneHot
-from fuse.data.ops.ops_aug_common import OpRandApply, OpSampleAndRepeat
+#from fuse.data.ops.ops_aug_common import OpRandApply, OpSampleAndRepeat
 from fuse.data.ops.ops_read import OpReadDataframe
 from fuse.data.ops.ops_cast import OpToNumpy
 from fuse.data.ops.op_base import OpBase
@@ -19,7 +19,7 @@ import skimage
 import os
 from fuse.data.utils.sample import get_sample_id
 from medpy.io import load
-from fuse.utils.rand.param_sampler import Uniform, RandInt
+#from fuse.utils.rand.param_sampler import Uniform, RandInt
 
 
 class OpPICAISampleIDDecode(OpBase):
@@ -125,7 +125,7 @@ class PICAI:
         Get suggested static pipeline (which will be cached), typically loading the data plus design choices that we won't experiment with.
         :param data_path: path to original kits21 data (can be downloaded by KITS21.download())
         """
-        repeat_images_with_seg = repeat_images +[(dict(key="data.gt.seg"))]
+        repeat_images_with_seg = repeat_images + [(dict(key="data.gt.seg"))]
         bool_map = {"NO": 0, "YES": 1}
         static_pipeline = PipelineDefault(
             "cmmd_static",
@@ -170,7 +170,7 @@ class PICAI:
                     ),
                     {},
                 ),
-                #(OpNormalizeAgainstSelf(), dict(key="data.input.img_t2w")),
+                # (OpNormalizeAgainstSelf(), dict(key="data.input.img_t2w")),
                 (OpRepeat((OpNormalizeAgainstSelf()), kwargs_per_step_to_add=repeat_images), dict()),
                 (OpRepeat((OpToNumpy()), kwargs_per_step_to_add=repeat_images_with_seg), dict(dtype=np.float32)),
                 # (OpResizeAndPad2D(), dict(key="data.input.img", resize_to=(2200, 1200), padding=(60, 60))),
@@ -250,15 +250,13 @@ class PICAI:
         static_pipeline = PICAI.static_pipeline(
             input_source_gt, paths["data_dir"], paths["seg_dir"], cfg["target"], repeat_images
         )
-        repeat_images_with_seg = repeat_images +[dict(key="data.gt.seg")]
+        repeat_images_with_seg = repeat_images + [dict(key="data.gt.seg")]
         if train:
             dynamic_pipeline = PICAI.dynamic_pipeline(
                 train=train, repeat_images=repeat_images_with_seg, aug_params=cfg["aug_params"]
             )
         else:
-            dynamic_pipeline = PICAI.dynamic_pipeline(
-                train=train, repeat_images=repeat_images_with_seg
-            )
+            dynamic_pipeline = PICAI.dynamic_pipeline(train=train, repeat_images=repeat_images_with_seg)
 
         cacher = SamplesCacher(
             "cache_ver",
