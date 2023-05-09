@@ -37,7 +37,7 @@ import fuse.utils.gpu as GPU
 from fuse.utils.rand.seed import Seed
 
 
-def run_isic(root: str) -> None:
+def run_isic(root: str, train_common_params: dict, infer_common_params: dict, eval_common_params: dict) -> None:
     model_dir = os.path.join(root, "model_dir")
     paths = {
         "model_dir": model_dir,
@@ -53,13 +53,6 @@ def run_isic(root: str) -> None:
     dd = paths["data_dir"]
     print(f"data_dir={dd}")
 
-    train_common_params = TRAIN_COMMON_PARAMS
-    train_common_params["trainer.num_epochs"] = 1
-    train_common_params["data.samples_ids"] = FULL_GOLDEN_MEMBERS
-
-    infer_common_params = INFER_COMMON_PARAMS
-
-    eval_common_params = EVAL_COMMON_PARAMS
 
     # Must use GPU due a long running time
     GPU.choose_and_enable_multiple_gpus(1, use_cpu_if_fail=False)
@@ -76,9 +69,42 @@ def run_isic(root: str) -> None:
 class ClassificationISICTestCase(unittest.TestCase):
     def setUp(self) -> None:
         self.root = tempfile.mkdtemp()
+        self.train_common_params = TRAIN_COMMON_PARAMS
+        self.train_common_params["trainer.num_epochs"] = 1
+        self.train_common_params["data.samples_ids"] = FULL_GOLDEN_MEMBERS
 
-    def test_runner(self) -> None:
-        run_in_subprocess(run_isic, self.root)
+
+        self.infer_common_params = INFER_COMMON_PARAMS
+        self.eval_common_params = EVAL_COMMON_PARAMS
+
+    def test_runner_transformer(self) -> None:
+        # Define model parameters
+        token_dim = 768
+        self.train_common_params["model"] = dict(
+            token_dim=token_dim,
+            projection_kwargs=dict(image_shape=[300, 300], patch_shape=[30, 30], channels=3),
+            transformer_kwargs=dict(depth=12, heads=12, mlp_dim=token_dim * 4, dim_head=64, dropout=0.0, emb_dropout=0.0),
+        )
+
+        # Reflect model choice in the infer stage
+        self.infer_common_params["model"] = self.train_common_params["model"]
+        run_in_subprocess(run_isic, self.root, self.train_common_params, self.infer_common_params, self.eval_common_params)
+
+    def test_runner_cnn(self) -> None:
+        # Define model parameters for two CNN backbone types
+        # for backbone_type in ["InceptionResnetV2","Resnet18"]:
+        for backbone_type in ["Resnet18"]:
+            self.train_common_params["model"] = dict(
+                dropout_rate=0.5,
+                layers_description=(256,),
+                tabular_data_inputs=[("data.input.clinical.all", 19)],
+                tabular_layers_description=(128,),
+                backbone_type=backbone_type,
+            )
+
+        # Reflect model choice in the infer stage
+        self.infer_common_params["model"] = self.train_common_params["model"]
+        run_in_subprocess(run_isic, self.root, self.train_common_params, self.infer_common_params, self.eval_common_params)
 
     def tearDown(self) -> None:
         # Delete temporary directories

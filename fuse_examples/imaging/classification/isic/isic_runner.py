@@ -55,6 +55,7 @@ from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN
 import torch.nn as nn
 from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
 from fuse.dl.models.backbones.backbone_vit import ViT
+from torchvision.models.resnet import ResNet50_Weights
 
 ###########################################################################################################
 # Fuse
@@ -79,7 +80,7 @@ multimodality = True  # Set: 'False' to use only imaging, 'True' to use imaging 
 ##########################################
 # Model Type
 ##########################################
-model_type = "Transformer"  # Set: 'Transformer' to use ViT/MMViT, 'CNN' to use InceptionResNet
+model_type = "CNN"  # Set: 'Transformer' to use ViT/MMViT, 'CNN' to use InceptionResNet
 
 ##########################################
 # Output Paths
@@ -205,16 +206,19 @@ def create_cnn_model(
     layers_description: Sequence[int],
     tabular_data_inputs: Sequence[Tuple[str, int]],
     tabular_layers_description: Sequence[int],
+    backbone_type: str = "Resnet18",
 ) -> torch.nn.Module:
     """
     creates the model
+
+    :param model_type: (str) "InceptionResnetV2" or "Resnet18"
     """
     model = ModelMultiHead(
         conv_inputs=(("data.input.img", 3),),
         backbone={
-            "Resnet18": BackboneResnet(pretrained=True, in_channels=3, name="resnet18"),
+            "Resnet18": BackboneResnet(weights=ResNet50_Weights.IMAGENET1K_V1, in_channels=3, name="resnet18"),
             "InceptionResnetV2": BackboneInceptionResnetV2(input_channels_num=3, logical_units_num=43),
-        }["InceptionResnetV2"],
+        }[backbone_type],
         heads=[
             HeadGlobalPoolingClassifier(
                 head_name="head_0",
@@ -281,7 +285,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     # Model
     # ==============================================================================
     lgr.info("Model:", {"attrs": "bold"})
-
+    model_type = "Transformer" if "token_dim" in train_common_params["model"] else "CNN"
     if model_type == "Transformer":
         model = create_transformer_model(**train_common_params["model"])
     elif model_type == "CNN":
@@ -407,6 +411,7 @@ def run_infer(paths: dict, infer_common_params: dict) -> None:
     )
 
     # load python lightning module
+    model_type = "Transformer" if "token_dim" in infer_common_params["model"] else "CNN"
     if model_type == "Transformer":
         model = create_transformer_model(**infer_common_params["model"])
     elif model_type == "CNN":
