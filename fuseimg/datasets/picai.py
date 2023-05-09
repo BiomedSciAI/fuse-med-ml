@@ -2,11 +2,11 @@ from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuseimg.data.ops.color import OpNormalizeAgainstSelf
 
-# from fuseimg.data.ops.aug.geometry import OpAugAffine2D, OpAugSqueeze3Dto2D, OpAugUnsqueeze3DFrom2D
+from fuseimg.data.ops.aug.geometry import OpAugAffine2D, OpAugSqueeze3Dto2D, OpAugUnsqueeze3DFrom2D
 from fuse.data import PipelineDefault, OpToTensor, OpRepeat
 from fuse.data.ops.ops_common import OpLambda, OpLookup, OpToOneHot
 
-# from fuse.data.ops.ops_aug_common import OpRandApply, OpSampleAndRepeat
+from fuse.data.ops.ops_aug_common import OpRandApply, OpSampleAndRepeat
 from fuse.data.ops.ops_read import OpReadDataframe
 from fuse.data.ops.ops_cast import OpToNumpy
 from fuse.data.ops.op_base import OpBase
@@ -22,7 +22,7 @@ import os
 from fuse.data.utils.sample import get_sample_id
 from medpy.io import load
 
-# from fuse.utils.rand.param_sampler import Uniform, RandInt
+from fuse.utils.rand.param_sampler import Uniform, RandInt
 
 
 class OpPICAISampleIDDecode(OpBase):
@@ -196,27 +196,27 @@ class PICAI:
             (OpRepeat((OpToTensor()), kwargs_per_step_to_add=repeat_images), dict(dtype=torch.float32)),
             (OpRepeat((OpLambda(partial(torch.unsqueeze, dim=0))), kwargs_per_step_to_add=repeat_images), {}),
         ]
-        # if train:
-        #     ops += [
-        #         # affine augmentation - will apply the same affine transformation on each slice
-        #         (OpRepeat((OpAugSqueeze3Dto2D()), kwargs_per_step_to_add=repeat_images), dict(axis_squeeze=1)),
-        #         (
-        #             OpRandApply(
-        #                 OpSampleAndRepeat(OpAugAffine2D(), kwargs_per_step_to_add=repeat_images),
-        #                 aug_params["apply_aug_prob"],
-        #             ),
-        #             dict(
-        #                 rotate=Uniform(*aug_params["rotate"]),
-        #                 scale=Uniform(*aug_params["scale"]),
-        #                 flip=(aug_params["flip"], aug_params["flip"]),
-        #                 translate=(RandInt(*aug_params["translate"]), RandInt(*aug_params["translate"])),
-        #             ),
-        #         ),
-        #         (
-        #             OpRepeat(OpAugUnsqueeze3DFrom2D(), kwargs_per_step_to_add=repeat_images),
-        #             dict(axis_squeeze=1, channels=1),
-        #         ),
-        #     ]
+        if train:
+            ops += [
+                # affine augmentation - will apply the same affine transformation on each slice
+                (OpRepeat((OpAugSqueeze3Dto2D()), kwargs_per_step_to_add=repeat_images), dict(axis_squeeze=1)),
+                (
+                    OpRandApply(
+                        OpSampleAndRepeat(OpAugAffine2D(), kwargs_per_step_to_add=repeat_images),
+                        aug_params["apply_aug_prob"],
+                    ),
+                    dict(
+                        rotate=Uniform(*aug_params["rotate"]),
+                        scale=Uniform(*aug_params["scale"]),
+                        flip=(aug_params["flip"], aug_params["flip"]),
+                        translate=(RandInt(*aug_params["translate"]), RandInt(*aug_params["translate"])),
+                    ),
+                ),
+                (
+                    OpRepeat(OpAugUnsqueeze3DFrom2D(), kwargs_per_step_to_add=repeat_images),
+                    dict(axis_squeeze=1, channels=1),
+                ),
+            ]
         dynamic_pipeline = PipelineDefault("picai_dynamic", ops)
         return dynamic_pipeline
 

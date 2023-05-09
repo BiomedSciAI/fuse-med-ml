@@ -160,7 +160,7 @@ def run_train(paths: NDict, train: NDict) -> None:
         drop_last=False,
         batch_sampler=sampler,
         collate_fn=CollateDefault(
-            special_handlers_keys={"data.input.img": CollateDefault.pad_all_tensors_to_same_size}
+            special_handlers_keys={"data.input.img": CollateDefault.pad_all_tensors_to_same_size}, raise_error_key_missing = False,
         ),
         num_workers=train["num_workers"],
     )
