@@ -85,6 +85,7 @@ class MetricCollector(MetricBase):
         batch_pre_collect_process_func: Optional[Callable] = None,
         batch_post_collect_process_func: Optional[Callable] = None,
         post_keys_to_collect: Optional[List[str]] = None,
+        collect_distributed: bool = True,
         **keys_to_collect: Dict[str, str],
     ):
         """
@@ -97,6 +98,7 @@ class MetricCollector(MetricBase):
         :param batch_post_collect_process_func: Optional callable - same as post_collect_process_func but in a batch level (more efficient)
         :param post_keys_to_collect: specify the keys you want to collect after post_collect_process. Required only if post_collect_process_func or batch_post_collect_process_func are specified.
                                      if None, will aggregate list of post_collect_process_func returned values
+        :param collect_distributed: if True, in multi gpu training, will collect the samples from all gpus - otherwise only rank0 will be reported.
         :param keys_to_collect: specify the keys you want to collect from the source data
         """
         super().__init__()
@@ -108,6 +110,7 @@ class MetricCollector(MetricBase):
         self._keys_to_collect = copy.copy(keys_to_collect)
         self._post_keys_to_collect = copy.copy(post_keys_to_collect)
         self._id_keys = MetricCollector.DEFAULT_ID_KEYS
+        self._collect_distributed = collect_distributed
 
         # reset
         self.reset()
@@ -149,7 +152,7 @@ class MetricCollector(MetricBase):
                 value = batch[key]
 
                 # collect distributed
-                if dist.is_initialized():
+                if dist.is_initialized() and self._collect_distributed:
                     value = self.sync_tensor_data_and_concat(value)
 
                 batch_to_collect[name] = value
@@ -170,7 +173,7 @@ class MetricCollector(MetricBase):
             if key in batch:
                 ids = batch[key]
                 # collect distributed
-                if dist.is_initialized():
+                if dist.is_initialized() and self._collect_distributed:
                     ids = self.sync_ids(ids)
                 break
 
@@ -362,6 +365,7 @@ class MetricWithCollectorBase(MetricBase):
         post_keys_to_collect: Optional[Sequence[str]] = None,
         external_data_collector: Optional[MetricCollector] = None,
         extract_ids: bool = False,
+        collect_distributed: bool = True,
         **kwargs: Any,
     ) -> None:
         """
@@ -372,6 +376,7 @@ class MetricWithCollectorBase(MetricBase):
         :param post_keys_to_collect: Optional keys to collect from post_collect_process func results - see details in MetricCollector.__init__
         :param external_data_collector: Optional - in a case space optimization required and there by using shared collector for few metrics
         :param extract_ids: self._extract_arguments packs all arguments for a underlying function. Set to True, to pack also the ids (under the name 'ids')
+        :param collect_distributed: if True, in multi gpu training, will collect the samples from all gpus - otherwise only rank0 will be reported.
         :param kwargs: specify keywords and value arguments you want to collect from the source data.
                 can be strings (key names) and/or actual values
                 to collect from the results dictionary: add a "results:" prefix to the key name
@@ -389,6 +394,7 @@ class MetricWithCollectorBase(MetricBase):
                 batch_pre_collect_process_func,
                 batch_post_collect_process_func,
                 post_keys_to_collect=post_keys_to_collect,
+                collect_distributed=collect_distributed,
                 **self._keys_to_collect,
             )
             if external_data_collector is None
