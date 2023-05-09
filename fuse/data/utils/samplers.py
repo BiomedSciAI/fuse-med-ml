@@ -142,7 +142,7 @@ class BatchSamplerDefault(BatchSampler):
                         )
                 else:
                     self._batch_size = sum(self._balanced_class_weights_list)
-                    
+
             elif self._batch_size is None:
                 raise Exception("Error: In 'approx' mode, either batch_size or balanced_class_weights")
 
