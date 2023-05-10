@@ -259,6 +259,7 @@ def create_datamodule(paths: dict, train_common_params: dict) -> pl.LightningDat
         reset_cache=False,
         reset_split=False,
         use_batch_sampler=True if NUM_GPUS <= 1 else False,
+        verify_folds_total_size=True,
     )
 
     return datamodule

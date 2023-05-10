@@ -130,6 +130,7 @@ def dataset_balanced_division_to_folds(
     reset_split: bool = False,
     workers: int = 10,
     mp_context: str = None,
+    verify_folds_total_size: bool = True,
     **kwargs: dict
 ) -> dict:
 
@@ -146,10 +147,16 @@ def dataset_balanced_division_to_folds(
     :param reset_split: delete output_split_filename and recompute the split
     :param workers : numbers of workers for multiprocessing (eport dataset into dataframe)
     :param mp_context : multiprocessing context: "fork", "spawn", etc.
+    :param verify_folds_total_size: (bool), when true - if a split file was found, will verify the the number of samples in the folds sum up to the amount of samples in the given dataset
     :param kwargs: more arguments controlling the split. See function balanced_division() for details
     """
     if output_split_filename is not None and os.path.exists(output_split_filename) and not reset_split:
-        return load_pickle(output_split_filename)
+        folds = load_pickle(output_split_filename)
+
+        # Check that the number of samples in the folds sum up to the dataset size
+        if verify_folds_total_size:
+            assert len(dataset) == sum([len(folds[fold]) for fold in folds])
+        return folds
     else:
         if id == get_sample_id_key():
             keys = [get_sample_id_key()]
