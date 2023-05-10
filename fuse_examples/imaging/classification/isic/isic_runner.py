@@ -215,14 +215,13 @@ def create_cnn_model(
     :param model_type: (str) "InceptionResnetV2" or "Resnet18"
     """
     if backbone_type == "Resnet18":
-        backbone=BackboneResnet(weights=ResNet18_Weights.IMAGENET1K_V1, in_channels=3, name="resnet18")
+        backbone = BackboneResnet(weights=ResNet18_Weights.IMAGENET1K_V1, in_channels=3, name="resnet18")
         header_conv_inputs = [("model.backbone_features", 512)]
     elif backbone_type == "InceptionResnetV2":
-        backbone=BackboneInceptionResnetV2(input_channels_num=3, logical_units_num=43)
+        backbone = BackboneInceptionResnetV2(input_channels_num=3, logical_units_num=43)
         header_conv_inputs = [("model.backbone_features", 1536)]
     else:
         raise Exception(f"backbone_type ({backbone_type}) not supported")
-
 
     model = ModelMultiHead(
         conv_inputs=(("data.input.img", 3),),
