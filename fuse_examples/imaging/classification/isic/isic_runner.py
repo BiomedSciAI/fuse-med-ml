@@ -295,7 +295,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     # Model
     # ==============================================================================
     lgr.info("Model:", {"attrs": "bold"})
-    model_type = ["model"]["model_type"]
+    model_type = train_common_params["model"]["model_type"]
     if model_type == "Transformer":
         model = create_transformer_model(**train_common_params["model"])
     elif model_type == "CNN":
