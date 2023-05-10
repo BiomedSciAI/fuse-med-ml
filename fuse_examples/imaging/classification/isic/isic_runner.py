@@ -81,7 +81,7 @@ multimodality = True  # Set: 'False' to use only imaging, 'True' to use imaging 
 ##########################################
 # Model Type
 ##########################################
-model_type = "CNN"  # Set: 'Transformer' to use ViT/MMViT, 'CNN' to use InceptionResNet
+model_type = "Transformer"  # Set: 'Transformer' to use ViT/MMViT, 'CNN' to use InceptionResNet
 
 ##########################################
 # Output Paths
