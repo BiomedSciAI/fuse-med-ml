@@ -26,6 +26,7 @@ import torch
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data.dataloader import DataLoader
+from torchvision.models.resnet import ResNet50_Weights
 
 from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.backbones.backbone_resnet import BackboneResnet
@@ -55,7 +56,7 @@ from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN
 import torch.nn as nn
 from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
 from fuse.dl.models.backbones.backbone_vit import ViT
-from torchvision.models.resnet import ResNet50_Weights
+
 
 ###########################################################################################################
 # Fuse
