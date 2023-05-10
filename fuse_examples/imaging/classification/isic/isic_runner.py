@@ -81,7 +81,7 @@ multimodality = True  # Set: 'False' to use only imaging, 'True' to use imaging 
 ##########################################
 # Model Type
 ##########################################
-model_type = "Transformer"  # Set: 'Transformer' to use ViT/MMViT, 'CNN' to use InceptionResNet
+model_type = "Transformer"  # Set: 'Transformer' to use ViT/MMViT, 'CNN' to use InceptionResNet or Resnet18
 
 ##########################################
 # Output Paths
@@ -212,7 +212,7 @@ def create_cnn_model(
     """
     creates the model
 
-    :param model_type: (str) "InceptionResnetV2" or "Resnet18"
+    :param backbone_type: (str) "InceptionResnetV2" or "Resnet18"
     """
     if backbone_type == "Resnet18":
         backbone = BackboneResnet(weights=ResNet18_Weights.IMAGENET1K_V1, in_channels=3, name="resnet18")
