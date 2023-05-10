@@ -149,6 +149,8 @@ elif model_type == "Transformer":
         transformer_kwargs=dict(depth=12, heads=12, mlp_dim=token_dim * 4, dim_head=64, dropout=0.0, emb_dropout=0.0),
     )
 
+TRAIN_COMMON_PARAMS["model"]["model_type"] = model_type
+
 
 def perform_softmax(logits: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     cls_preds = F.softmax(logits, dim=1)
@@ -293,7 +295,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     # Model
     # ==============================================================================
     lgr.info("Model:", {"attrs": "bold"})
-    model_type = "Transformer" if "token_dim" in train_common_params["model"] else "CNN"
+    model_type = ["model"]["model_type"]
     if model_type == "Transformer":
         model = create_transformer_model(**train_common_params["model"])
     elif model_type == "CNN":
@@ -419,7 +421,7 @@ def run_infer(paths: dict, infer_common_params: dict) -> None:
     )
 
     # load python lightning module
-    model_type = "Transformer" if "token_dim" in infer_common_params["model"] else "CNN"
+    model_type = infer_common_params["model"]["model_type"]
     if model_type == "Transformer":
         model = create_transformer_model(**infer_common_params["model"])
     elif model_type == "CNN":

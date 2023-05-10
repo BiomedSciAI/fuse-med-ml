@@ -145,7 +145,7 @@ def dataset_balanced_division_to_folds(
     :param  nfolds : number of folds
     :param  id  : id to balance the split by ( not allowed 2 in same fold)
     :param reset_split: delete output_split_filename and recompute the split
-    :param workers : numbers of workers for multiprocessing (eport dataset into dataframe)
+    :param workers : numbers of workers for multiprocessing (export dataset into dataframe)
     :param mp_context : multiprocessing context: "fork", "spawn", etc.
     :param verify_folds_total_size: (bool), when true - if a split file was found, will verify the the number of samples in the folds sum up to the amount of samples in the given dataset
     :param kwargs: more arguments controlling the split. See function balanced_division() for details
