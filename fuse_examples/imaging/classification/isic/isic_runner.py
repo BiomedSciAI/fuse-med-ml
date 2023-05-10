@@ -26,7 +26,7 @@ import torch
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data.dataloader import DataLoader
-from torchvision.models.resnet import ResNet50_Weights
+from torchvision.models.resnet import ResNet18_Weights
 
 from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.backbones.backbone_resnet import BackboneResnet
@@ -214,17 +214,24 @@ def create_cnn_model(
 
     :param model_type: (str) "InceptionResnetV2" or "Resnet18"
     """
+    if backbone_type == "Resnet18":
+        backbone=BackboneResnet(weights=ResNet18_Weights.IMAGENET1K_V1, in_channels=3, name="resnet18")
+        header_conv_inputs = [("model.backbone_features", 512)]
+    elif backbone_type == "InceptionResnetV2":
+        backbone=BackboneInceptionResnetV2(input_channels_num=3, logical_units_num=43)
+        header_conv_inputs = [("model.backbone_features", 1536)]
+    else:
+        raise Exception(f"backbone_type ({backbone_type}) not supported")
+
+
     model = ModelMultiHead(
         conv_inputs=(("data.input.img", 3),),
-        backbone={
-            "Resnet18": BackboneResnet(weights=ResNet50_Weights.IMAGENET1K_V1, in_channels=3, name="resnet18"),
-            "InceptionResnetV2": BackboneInceptionResnetV2(input_channels_num=3, logical_units_num=43),
-        }[backbone_type],
+        backbone=backbone,
         heads=[
             HeadGlobalPoolingClassifier(
                 head_name="head_0",
                 dropout_rate=dropout_rate,
-                conv_inputs=[("model.backbone_features", 1536)],
+                conv_inputs=header_conv_inputs,
                 tabular_data_inputs=tabular_data_inputs,
                 layers_description=layers_description,
                 tabular_layers_description=tabular_layers_description,

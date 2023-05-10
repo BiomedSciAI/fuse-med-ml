@@ -61,7 +61,7 @@ class BackboneResnet(ResNet):
             self.load_state_dict(state_dict)
 
         if weights is not None:
-            self.load_state_dict(weights.get_state_dict(progress=True), strict=False)
+            self.load_state_dict(weights.get_state_dict(progress=True))
 
         del self.fc
 
