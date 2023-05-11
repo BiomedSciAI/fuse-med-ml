@@ -78,6 +78,7 @@ class ClassificationISICTestCase(unittest.TestCase):
     def test_runner_transformer(self) -> None:
         # Define model parameters
         token_dim = 768
+        self.train_common_params["model_type"] = "Transformer"
         self.train_common_params["model"] = dict(
             token_dim=token_dim,
             projection_kwargs=dict(image_shape=[300, 300], patch_shape=[30, 30], channels=3),
@@ -87,6 +88,7 @@ class ClassificationISICTestCase(unittest.TestCase):
         )
 
         # Reflect model choice in the infer stage
+        self.infer_common_params["model_type"] = self.train_common_params["model_type"]
         self.infer_common_params["model"] = self.train_common_params["model"]
         run_in_subprocess(
             run_isic, self.root, self.train_common_params, self.infer_common_params, self.eval_common_params
@@ -94,6 +96,7 @@ class ClassificationISICTestCase(unittest.TestCase):
 
     def test_runner_resnet18(self) -> None:
         # Define model parameters for two CNN backbone types
+        self.train_common_params["model_type"] = "CNN"
         self.train_common_params["model"] = dict(
             dropout_rate=0.5,
             layers_description=(256,),
@@ -103,6 +106,7 @@ class ClassificationISICTestCase(unittest.TestCase):
         )
 
         # Reflect model choice in the infer stage
+        self.infer_common_params["model_type"] = self.train_common_params["model_type"]
         self.infer_common_params["model"] = self.train_common_params["model"]
         run_in_subprocess(
             run_isic, self.root, self.train_common_params, self.infer_common_params, self.eval_common_params
@@ -110,6 +114,7 @@ class ClassificationISICTestCase(unittest.TestCase):
 
     def test_runner_inception(self) -> None:
         # Define model parameters for two CNN backbone types
+        self.train_common_params["model_type"] = "CNN"
         self.train_common_params["model"] = dict(
             dropout_rate=0.5,
             layers_description=(256,),
@@ -119,6 +124,7 @@ class ClassificationISICTestCase(unittest.TestCase):
         )
 
         # Reflect model choice in the infer stage
+        self.infer_common_params["model_type"] = self.train_common_params["model_type"]
         self.infer_common_params["model"] = self.train_common_params["model"]
         run_in_subprocess(
             run_isic, self.root, self.train_common_params, self.infer_common_params, self.eval_common_params

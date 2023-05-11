@@ -149,7 +149,7 @@ elif model_type == "Transformer":
         transformer_kwargs=dict(depth=12, heads=12, mlp_dim=token_dim * 4, dim_head=64, dropout=0.0, emb_dropout=0.0),
     )
 
-TRAIN_COMMON_PARAMS["model"]["model_type"] = model_type
+TRAIN_COMMON_PARAMS["model_type"] = model_type
 
 
 def perform_softmax(logits: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -295,7 +295,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     # Model
     # ==============================================================================
     lgr.info("Model:", {"attrs": "bold"})
-    model_type = train_common_params["model"]["model_type"]
+    model_type = train_common_params["model_type"]
     if model_type == "Transformer":
         model = create_transformer_model(**train_common_params["model"])
     elif model_type == "CNN":
@@ -384,6 +384,7 @@ INFER_COMMON_PARAMS["data.batch_size"] = 4
 INFER_COMMON_PARAMS["model"] = TRAIN_COMMON_PARAMS["model"]
 INFER_COMMON_PARAMS["trainer.num_devices"] = 1  # No need for multi-gpu in inference
 INFER_COMMON_PARAMS["trainer.accelerator"] = TRAIN_COMMON_PARAMS["trainer.accelerator"]
+INFER_COMMON_PARAMS["model_type"] = TRAIN_COMMON_PARAMS["model_type"]
 
 ######################################
 # Inference Template
@@ -421,7 +422,7 @@ def run_infer(paths: dict, infer_common_params: dict) -> None:
     )
 
     # load python lightning module
-    model_type = infer_common_params["model"]["model_type"]
+    model_type = infer_common_params["model_type"]
     if model_type == "Transformer":
         model = create_transformer_model(**infer_common_params["model"])
     elif model_type == "CNN":
