@@ -131,7 +131,7 @@ def dataset_balanced_division_to_folds(
     workers: int = 10,
     mp_context: str = None,
     verify_folds_total_size: bool = True,
-    **kwargs: dict
+    **kwargs: dict,
 ) -> dict:
 
     """
@@ -154,8 +154,12 @@ def dataset_balanced_division_to_folds(
         folds = load_pickle(output_split_filename)
 
         # Check that the number of samples in the folds sum up to the dataset size
-        if verify_folds_total_size:
-            assert len(dataset) == sum([len(folds[fold]) for fold in folds])
+        dataset_size = len(dataset)
+        num_samples_in_folds = sum([len(folds[fold]) for fold in folds])
+        if verify_folds_total_size and dataset_size != num_samples_in_folds:
+            raise Exception(
+                f"Total number of samples in existed split file ({num_samples_in_folds}) is different from the number of samples in the given dataset ({dataset_size})."
+            )
         return folds
     else:
         if id == get_sample_id_key():
