@@ -158,7 +158,7 @@ def dataset_balanced_division_to_folds(
         num_samples_in_folds = sum([len(folds[fold]) for fold in folds])
         if verify_folds_total_size and dataset_size != num_samples_in_folds:
             raise Exception(
-                f"Total number of samples in existed split file ({num_samples_in_folds}) is different from the number of samples in the given dataset ({dataset_size})."
+                f"Total number of samples founds in split file ({num_samples_in_folds}) is different from the total number of samples in the given dataset ({dataset_size})."
             )
         return folds
     else:
