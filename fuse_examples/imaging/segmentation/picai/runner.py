@@ -368,5 +368,4 @@ def main(cfg: DictConfig) -> None:
 
 
 if __name__ == "__main__":
-    sys.argv.append("hydra.run.dir=working_dir")
     main()
