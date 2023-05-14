@@ -1,9 +1,9 @@
 paths:
-  working_dir : /dccstor/mm_hcls/guez/fuse-med-ml/working_dir
+  working_dir : .
   model_dir : ${paths.working_dir}/model_dir
   inference_dir : ${paths.working_dir}/model_new/infer_dir
   eval_dir : ${paths.working_dir}/model_new/eval_dir
-  cache_dir : /dccstor/mm_hcls/guez/fuse-med-ml/cache/PICAI
+  cache_dir : ${paths.working_dir}/cache/PICAI
   clinical_file : ${oc.env:PICAI_DATA_PATH}/labels/picai_labels-main/clinical_information/marksheet.csv
   data_misc_dir : ${paths.working_dir}/data_misc
   data_split_filename:  split.pkl
