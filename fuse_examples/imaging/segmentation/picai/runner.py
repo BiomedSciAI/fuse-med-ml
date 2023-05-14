@@ -14,7 +14,6 @@ Created on June 30, 2021
 
 from collections import OrderedDict
 import os
-import sys
 import copy
 from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 from pathlib import Path
