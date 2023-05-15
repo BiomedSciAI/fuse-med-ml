@@ -227,6 +227,7 @@ class PICAI:
         reset_cache: bool = True,
         sample_ids: Optional[Sequence[Hashable]] = None,
         train: bool = False,
+        run_sample: int = 0,
     ) -> DatasetDefault:
         """
         Creates Fuse Dataset single object (either for training, validation and test or user defined set)
@@ -248,7 +249,8 @@ class PICAI:
 
         if sample_ids is None:
             sample_ids = all_sample_ids
-
+        if run_sample > 0:
+            sample_ids = sample_ids[:run_sample]
         repeat_images = [dict(key="data.input.img" + seq) for seq in cfg["series_config"]]
         static_pipeline = PICAI.static_pipeline(
             input_source_gt, paths["data_dir"], paths["seg_dir"], cfg["target"], repeat_images

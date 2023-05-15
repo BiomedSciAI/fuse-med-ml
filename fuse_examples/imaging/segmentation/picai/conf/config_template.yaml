@@ -23,6 +23,7 @@ train:
   batch_size: 16
   learning_rate : 1e-3
   weight_decay :  0
+  run_sample : 0
   resume_checkpoint_filename : 
   trainer:
     accelerator : gpu
