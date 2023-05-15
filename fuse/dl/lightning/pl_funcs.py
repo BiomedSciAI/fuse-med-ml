@@ -112,10 +112,7 @@ def model_default_callbacks(
     """
     callbacks = []
 
-    if best_epoch_source is None:
-        model_checkpoint_display = ModelEpochSummary(dirpath=model_dir)
-        callbacks.append(model_checkpoint_display)
-    else:
+    if best_epoch_source is not None:
         # checkpoints
         if not isinstance(best_epoch_source, list):
             best_epoch_source = [best_epoch_source]
@@ -126,6 +123,8 @@ def model_default_callbacks(
                 checkpoint_to_monitor["filename"] = "best_epoch"
                 if len(best_epoch_source) > 1:
                     checkpoint_to_monitor["auto_insert_metric_name"] = True
+            if "save_last" not in checkpoint_to_monitor:
+                checkpoint_to_monitor["save_last"] = False
 
             model_checkpoint = ModelCheckpoint(**checkpoint_to_monitor)
             model_checkpoint_display = ModelEpochSummary(
@@ -137,7 +136,7 @@ def model_default_callbacks(
             callbacks.append(model_checkpoint_display)
 
     # last epoch checkpoint
-    callbacks.append(ModelCheckpoint(dirpath=model_dir, filename="last_epoch", save_last=True))
+    callbacks.append(ModelCheckpoint(dirpath=model_dir, save_last=True, save_top_k=0))
 
     if log_lr:
         lr_monitor = LearningRateMonitor(logging_interval="step")
@@ -221,11 +220,11 @@ def step_extract_predictions(prediction_keys: Sequence[str], batch_dict: NDict) 
 
 
 def epoch_end_compute_and_log_losses(
-    pl: pl.LightningModule, mode: str, batch_losses: Sequence[NDict], sep: str = "."
+    pl_module: pl.LightningModule, mode: str, batch_losses: Sequence[NDict], sep: str = "."
 ) -> None:
     """
     On epoch end average out the batch losses and log the averaged losses
-    :param pl: LightningModule. Used for logging.
+    :param pl_module: LightningModule. Used for logging.
     :param mode: prefix to add to each loss name (when logging), typically validation/train/test
     :param batch_losses: list of batch_dict["losses"] as added by 'epoch_losses'
     :return: None
@@ -239,15 +238,15 @@ def epoch_end_compute_and_log_losses(
             else:
                 losses.append(elem[key])
         loss = mean(losses)
-        pl.log(f"{mode}{sep}losses.{key}", loss, on_epoch=True, sync_dist=True, rank_zero_only=True)
+        pl_module.log(f"{mode}{sep}losses.{key}", loss, on_epoch=True, sync_dist=True, rank_zero_only=True)
 
 
 def epoch_end_compute_and_log_metrics(
-    pl: pl.LightningModule, mode: str, metrics: OrderedDict[str, MetricBase], sep: str = "."
+    pl_module: pl.LightningModule, mode: str, metrics: OrderedDict[str, MetricBase], sep: str = "."
 ) -> None:
     """
     On epoch end compute and log per epoch metrics
-    :param pl: LightningModule. Used for logging.
+    :param pl_module: LightningModule. Used for logging.
     :param mode: prefix to add to each metric name (when logging), typically validation/train/test
     :param metrics: Dict of FuseMedML style metrics
     :return: None
@@ -270,4 +269,4 @@ def epoch_end_compute_and_log_metrics(
     # log metrics
     for key in epoch_results.keypaths():
         if epoch_results[key] is not None and not isinstance(epoch_results[key], (PerSampleData)):
-            pl.log(f"{mode}{sep}{key}", epoch_results[key], on_epoch=True, sync_dist=True, rank_zero_only=True)
+            pl_module.log(f"{mode}{sep}{key}", epoch_results[key], on_epoch=True, sync_dist=True, rank_zero_only=True)
