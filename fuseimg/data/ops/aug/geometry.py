@@ -344,7 +344,7 @@ class OpResizeTo(OpBase):
 
         # Apply Resize
         aug_output = skimage.transform.resize(image=aug_input, output_shape=output_shape, **kwargs)
-
+        
         if self._channels_first:
             # Permutes back HxWxC -> CxHxW
             perm = self.get_permutation(dim=dim, channels_first=False)
