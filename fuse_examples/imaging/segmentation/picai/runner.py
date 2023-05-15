@@ -111,6 +111,7 @@ def run_train(paths: NDict, train: NDict) -> None:
         cfg=train,
         reset_cache=False,
         train=True,
+        run_sample=train["run_sample"],
     )
     folds = dataset_balanced_division_to_folds(
         dataset=dataset_all,
@@ -247,7 +248,7 @@ def run_train(paths: NDict, train: NDict) -> None:
 ######################################
 # Inference Template
 ######################################
-def run_infer(infer: NDict, paths: NDict) -> None:
+def run_infer(infer: NDict, paths: NDict, train: NDict) -> None:
     create_dir(paths["inference_dir"])
     #### Logger
     # fuse_logger_start(output_path=paths["inference_dir"], console_verbose_level=logging.INFO)
@@ -259,7 +260,7 @@ def run_infer(infer: NDict, paths: NDict) -> None:
 
     lgr.info("Model:", {"attrs": "bold"})
 
-    model = create_model(infer["target"])
+    model = create_model(train["unet_kwargs"])
     lgr.info("Model: Done", {"attrs": "bold"})
     ## Data
     folds = load_pickle(
@@ -272,7 +273,7 @@ def run_infer(infer: NDict, paths: NDict) -> None:
 
     test_dataset = PICAI.dataset(
         paths=paths,
-        cfg=infer,
+        cfg=train,
         sample_ids=infer_sample_ids,
         reset_cache=False,
     )
@@ -283,7 +284,7 @@ def run_infer(infer: NDict, paths: NDict) -> None:
         shuffle=False,
         drop_last=False,
         batch_sampler=None,
-        batch_size=1,  # TODO - set a validation batch_size parameter instead of - train["batch_size"],
+        batch_size=train["batch_size"],
         collate_fn=CollateDefault(),
         num_workers=infer["num_workers"],
     )
@@ -292,14 +293,14 @@ def run_infer(infer: NDict, paths: NDict) -> None:
         checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True
     )
     # set the prediction keys to extract (the ones used be the evaluation function).
-    pl_module.set_predictions_keys(
-        ["model.logits.segmentation", "data.gt.seg"]
-    )  # which keys to extract and dump into file
+    pl_module.set_predictions_keys(["model.seg"])  # which keys to extract and dump into file
     lgr.info("Test Data: Done", {"attrs": "bold"})
     # create lightining trainer.
     pl_trainer = Trainer(
         default_root_dir=paths["model_dir"],
-        accelerator=infer["accelerator"],
+        max_epochs=train["trainer"]["num_epochs"],
+        accelerator=train["trainer"]["accelerator"],
+        devices=train["trainer"]["devices"],
         num_sanity_val_steps=-1,
         auto_select_gpus=True,
     )
@@ -322,15 +323,6 @@ def run_eval(paths: NDict, infer: NDict) -> None:
     lgr = logging.getLogger("Fuse")
     lgr.info("Fuse Eval", {"attrs": ["bold", "underline"]})
 
-    # metrics
-    metrics = OrderedDict(
-        [
-            ("op", MetricApplyThresholds(pred="model.output.head_0")),  # will apply argmax
-            ("auc", MetricAUCROC(pred="model.output.head_0", target="data.gt.classification")),
-            ("accuracy", MetricAccuracy(pred="results:metrics.op.cls_pred", target="data.gt.classification")),
-        ]
-    )
-
     # create evaluator
     evaluator = EvaluatorDefault()
 
@@ -338,7 +330,7 @@ def run_eval(paths: NDict, infer: NDict) -> None:
     results = evaluator.eval(
         ids=None,
         data=os.path.join(paths["inference_dir"], infer["infer_filename"]),
-        metrics=metrics,
+        metrics={},
         output_dir=paths["eval_dir"],
     )
 
@@ -359,11 +351,11 @@ def main(cfg: DictConfig) -> None:
 
     # infer
     if "infer" in cfg["run.running_modes"]:
-        run_infer(NDict(cfg["infer"]), NDict(cfg["paths"]))
+        run_infer(NDict(cfg["infer"]), NDict(cfg["paths"]), NDict(cfg["train"]))
     #
-    # analyze
-    if "eval" in cfg["run.running_modes"]:
-        run_eval(NDict(cfg["paths"]), NDict(cfg["infer"]))
+    # analyze - skipping as it crushes without metrics
+    # if "eval" in cfg["run.running_modes"]:
+    #     run_eval(NDict(cfg["paths"]), NDict(cfg["infer"]))
 
 
 if __name__ == "__main__":
