@@ -26,6 +26,7 @@ import torch
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data.dataloader import DataLoader
+from torchvision.models.resnet import ResNet18_Weights
 
 from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.backbones.backbone_resnet import BackboneResnet
@@ -56,6 +57,7 @@ import torch.nn as nn
 from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
 from fuse.dl.models.backbones.backbone_vit import ViT
 
+
 ###########################################################################################################
 # Fuse
 ###########################################################################################################
@@ -79,7 +81,7 @@ multimodality = True  # Set: 'False' to use only imaging, 'True' to use imaging 
 ##########################################
 # Model Type
 ##########################################
-model_type = "Transformer"  # Set: 'Transformer' to use ViT/MMViT, 'CNN' to use InceptionResNet
+model_type = "Transformer"  # Set: 'Transformer' to use ViT/MMViT, 'CNN' to use InceptionResNet or Resnet18
 
 ##########################################
 # Output Paths
@@ -147,6 +149,8 @@ elif model_type == "Transformer":
         transformer_kwargs=dict(depth=12, heads=12, mlp_dim=token_dim * 4, dim_head=64, dropout=0.0, emb_dropout=0.0),
     )
 
+TRAIN_COMMON_PARAMS["model_type"] = model_type
+
 
 def perform_softmax(logits: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     cls_preds = F.softmax(logits, dim=1)
@@ -205,21 +209,30 @@ def create_cnn_model(
     layers_description: Sequence[int],
     tabular_data_inputs: Sequence[Tuple[str, int]],
     tabular_layers_description: Sequence[int],
+    backbone_type: str = "Resnet18",
 ) -> torch.nn.Module:
     """
     creates the model
+
+    :param backbone_type: (str) "InceptionResnetV2" or "Resnet18"
     """
+    if backbone_type == "Resnet18":
+        backbone = BackboneResnet(weights=ResNet18_Weights.IMAGENET1K_V1, in_channels=3, name="resnet18")
+        header_conv_inputs = [("model.backbone_features", 512)]
+    elif backbone_type == "InceptionResnetV2":
+        backbone = BackboneInceptionResnetV2(input_channels_num=3, logical_units_num=43)
+        header_conv_inputs = [("model.backbone_features", 1536)]
+    else:
+        raise Exception(f"backbone_type ({backbone_type}) not supported")
+
     model = ModelMultiHead(
         conv_inputs=(("data.input.img", 3),),
-        backbone={
-            "Resnet18": BackboneResnet(pretrained=True, in_channels=3, name="resnet18"),
-            "InceptionResnetV2": BackboneInceptionResnetV2(input_channels_num=3, logical_units_num=43),
-        }["InceptionResnetV2"],
+        backbone=backbone,
         heads=[
             HeadGlobalPoolingClassifier(
                 head_name="head_0",
                 dropout_rate=dropout_rate,
-                conv_inputs=[("model.backbone_features", 1536)],
+                conv_inputs=header_conv_inputs,
                 tabular_data_inputs=tabular_data_inputs,
                 layers_description=layers_description,
                 tabular_layers_description=tabular_layers_description,
@@ -248,6 +261,7 @@ def create_datamodule(paths: dict, train_common_params: dict) -> pl.LightningDat
         reset_cache=False,
         reset_split=False,
         use_batch_sampler=True if NUM_GPUS <= 1 else False,
+        verify_folds_total_size=True,
     )
 
     return datamodule
@@ -281,7 +295,7 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     # Model
     # ==============================================================================
     lgr.info("Model:", {"attrs": "bold"})
-
+    model_type = train_common_params["model_type"]
     if model_type == "Transformer":
         model = create_transformer_model(**train_common_params["model"])
     elif model_type == "CNN":
@@ -370,6 +384,7 @@ INFER_COMMON_PARAMS["data.batch_size"] = 4
 INFER_COMMON_PARAMS["model"] = TRAIN_COMMON_PARAMS["model"]
 INFER_COMMON_PARAMS["trainer.num_devices"] = 1  # No need for multi-gpu in inference
 INFER_COMMON_PARAMS["trainer.accelerator"] = TRAIN_COMMON_PARAMS["trainer.accelerator"]
+INFER_COMMON_PARAMS["model_type"] = TRAIN_COMMON_PARAMS["model_type"]
 
 ######################################
 # Inference Template
@@ -407,6 +422,7 @@ def run_infer(paths: dict, infer_common_params: dict) -> None:
     )
 
     # load python lightning module
+    model_type = infer_common_params["model_type"]
     if model_type == "Transformer":
         model = create_transformer_model(**infer_common_params["model"])
     elif model_type == "CNN":
