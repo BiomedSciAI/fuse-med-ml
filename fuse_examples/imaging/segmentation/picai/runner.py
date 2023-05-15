@@ -12,10 +12,8 @@ limitations under the License.
 Created on June 30, 2021
 """
 
-from collections import OrderedDict
 import os
 import copy
-from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
 from pathlib import Path
 import pickle
 
@@ -37,7 +35,6 @@ from fuse.dl.losses.loss_default import LossDefault
 # from report_guided_annotation import extract_lesion_candidates
 import monai
 from fuse_examples.imaging.segmentation.picai.unet import UNet
-from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy
 
 # from fuse.eval.metrics.detection.metrics_detection_common import MetricDetectionPICAI
 from fuseimg.datasets.picai import PICAI
