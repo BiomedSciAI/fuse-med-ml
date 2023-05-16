@@ -298,7 +298,6 @@ def run_infer(infer: NDict, paths: NDict, train: NDict) -> None:
         accelerator=train["trainer"]["accelerator"],
         devices=train["trainer"]["devices"],
         num_sanity_val_steps=-1,
-        auto_select_gpus=True,
     )
     # create a trainer instance
     predictions = pl_trainer.predict(pl_module, infer_dataloader, return_predictions=True)
