@@ -156,7 +156,12 @@ class PICAI:
                     OpLoadPICAISegmentation(data_dir, seg_dir),
                     dict(key_in="data.input.img_path", key_out="data.gt.seg", gt="data.gt.classification"),
                 ),
-                (OpRepeat(OpLambda(partial(np.transpose, axes=[2,0,1])), kwargs_per_step_to_add=repeat_images_with_seg), dict()),
+                (
+                    OpRepeat(
+                        OpLambda(partial(np.transpose, axes=[2, 0, 1])), kwargs_per_step_to_add=repeat_images_with_seg
+                    ),
+                    dict(),
+                ),
                 (
                     OpRepeat(
                         (
