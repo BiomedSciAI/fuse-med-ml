@@ -234,7 +234,6 @@ def run_train(paths: NDict, train: NDict) -> None:
         accelerator=train["trainer"]["accelerator"],
         devices=train["trainer"]["devices"],
         num_sanity_val_steps=-1,
-        auto_select_gpus=True,
     )
 
     # train from scratch
