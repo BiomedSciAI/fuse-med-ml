@@ -121,6 +121,9 @@ class LightningModuleDefault(pl.LightningModule):
         self._train_metrics = train_metrics if train_metrics is not None else {}
         self._validation_metrics = validation_metrics if validation_metrics is not None else {}
         self._test_metrics = test_metrics if test_metrics is not None else {}
+        if log_unit not in [None, "optimizer_step", "epoch"]:
+            raise Exception(f"Error: unexpected log_unit {log_unit}")
+
         self._log_unit = log_unit
 
         self._optimizers_and_lr_schs = optimizers_and_lr_schs
