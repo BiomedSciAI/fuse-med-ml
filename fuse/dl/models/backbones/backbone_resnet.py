@@ -36,14 +36,14 @@ class BackboneResnet(ResNet):
         weights: Optional[Union[WeightsEnum, dict]] = None,
         in_channels: int = 3,
         name: str = "resnet18",
-        pool: bool = False,
+        pool: Optional[str] = None,
     ) -> None:
         """
         Create 2D Resnet
         :param pretrained: reload imagenet weights
         :param in_channels: Number of input channels
         :param name: model name. Currently support 'resnet18' and 'resnet50'
-        :param pool: whether to use global average pooling to reduce the spacial dimensions after the convolutional layers
+        :param pool: whether to use global average pooling to reduce the spacial dimensions after the convolutional layers can be either 'avg', 'max' or None - dont use pool
 
         """
         # init parameters per required backbone
@@ -74,7 +74,11 @@ class BackboneResnet(ResNet):
         # save input parameters
         self.pretrained = pretrained
         self.in_channels = in_channels
-        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        if pool == "avg":
+            self.pool_layer = nn.AdaptiveAvgPool2d((1, 1))
+        elif pool == "max":
+            self.pool_layer = nn.AdaptiveMaxPool2d((1, 1))
+
         self._pool = pool
         if self.in_channels != 3:
             # modify the first convolution layer to support any number of input channels
@@ -100,7 +104,7 @@ class BackboneResnet(ResNet):
         x = self.layer3(x)
         x = self.layer4(x)
         if hasattr(self, "_pool"):
-            if self._pool:
-                x = self.avgpool(x)
+            if self._pool is not None:
+                x = self.pool_layer(x)
                 x = x.flatten(1)
         return x

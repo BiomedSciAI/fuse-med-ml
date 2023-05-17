@@ -14,7 +14,6 @@ def softcrossentropyloss(target: Tensor, logits: Tensor) -> Tensor:
     https://discuss.pytorch.org/t/soft-cross-entropy-loss-tf-has-it-does-pytorch-have-it/69501
     """
     logprobs = F.log_softmax(logits, dim=1)
-    # print(target * logprobs)
     loss = -(target * logprobs).sum() / target.sum()  # logits.shape[0]
     return loss
 
@@ -22,18 +21,24 @@ def softcrossentropyloss(target: Tensor, logits: Tensor) -> Tensor:
 def supervised_contrastive_loss(
     feat_xi: Tensor, feat_xj: Tensor, yi: Tensor, yj: Tensor, symm: bool = False, alpha: float = 0.5, temp: float = 0.2
 ) -> Tensor:
+    """
+    :param feat_i:               feature in the shape [Batch_size, embed dim]
+    :param feat_j:               feature in the shape [Batch_size, embed dim]
+    :param target_i:             ground truth label of class indexes in the shape [batch_size]
+    :param target_j:             ground truth label of class indexes in the shape [batch_size]
+    :param tempreture:           tempreture scaling parameter
+    :param symmetrical:          should the output of the function is a combination of supervised contrastive loss components
+    :param alpha:                if symmetrical -> the weight for each component
+    """
     if feat_xi.isnan().any() | feat_xj.isnan().any():
-        print("feature has nan")
-    if len(feat_xi.shape) < 2:
-        feat_xi = feat_xi.unsqueeze(dim=0)
-    if len(feat_xj.shape) < 2:
-        feat_xj = feat_xj.unsqueeze(dim=0)
+        raise Exception("One of the features has nan value")
+
     feat_xi = F.normalize(feat_xi, p=2, dim=1)
     feat_xj = F.normalize(feat_xj, p=2, dim=1)
     label_vec = torch.unsqueeze(yi, 0)
     mask = torch.eq(torch.transpose(label_vec, 0, 1), yj).float()
     if mask.sum() == 0:
-        return torch.tensor(0.0).to("cuda")
+        return torch.tensor(0.0).to(mask.device)
     logits_xi = torch.div(torch.matmul(feat_xi, torch.transpose(feat_xj, 0, 1)), temp)
     logits_max, _ = torch.max(logits_xi, dim=1, keepdim=True)
     logits_xi = logits_xi - logits_max.detach()
@@ -48,9 +53,7 @@ def supervised_contrastive_loss(
 
 class SupervisedContrastiveLoss(LossBase):
     """
-    Default Fuse loss function
-
-    '''
+    Supervised contrastive loss as defined in 'https://arxiv.org/pdf/2004.11362.pdf'
 
     """
 
@@ -61,7 +64,7 @@ class SupervisedContrastiveLoss(LossBase):
         feat_j: str = None,
         target_i: str = None,
         target_j: str = None,
-        temp: float = 0.2,
+        tempreture: float = 0.2,
         alpha: float = 0.5,
         symmetrical: bool = False,
         callable: Callable = None,
@@ -71,8 +74,14 @@ class SupervisedContrastiveLoss(LossBase):
         """
         This class wraps a PyTorch loss function with a Fuse api.
         Args:
-        :param pred:               batch_dict key for prediction (e.g., network output)
-        :param target:             batch_dict key for target (e.g., ground truth label)
+        :param feat_i:               batch_dict key for feat i (e.g., network feature output)
+        :param feat_j:               batch_dict key for feat_j (e.g., other network feature output to contrast with)
+        :param target_i:             batch_dict key for target (e.g., ground truth label for feat_i)
+        :param target_j:             batch_dict key for target (e.g., ground truth label for feat_j)
+        :param tempreture:           tempreture scaling parameter
+        :param symmetrical:          should the output of the function is a combination of supervised contrastive loss components
+        :param alpha:                if symmetrical -> the weight for each component
+
         :param callable:           PyTorch loss function handle (e.g., torch.nn.functional.cross_entropy)
         :param weight:             scalar loss multiplier
         :param preprocess_func:             function that filters batch_dict/ The function gets an input batch_dict and returns filtered batch_dict
@@ -85,7 +94,7 @@ class SupervisedContrastiveLoss(LossBase):
         self.target_i = target_i
         self.target_j = target_j
 
-        self.temp = temp
+        self.temp = tempreture
         self.alpha = alpha
         self.symm = symmetrical
 
