@@ -79,11 +79,10 @@ class OpLoadPICAISegmentation(OpBase):
     Loads a medical image
     """
 
-    def __init__(self, data_dir: str, dir_path: str, seuqences: Sequence[str] = ["_t2w"], **kwargs: dict):
+    def __init__(self, data_dir: str, dir_path: str, **kwargs: dict):
         super().__init__(**kwargs)
         self._dir_path = dir_path
         self._data_dir = data_dir
-        # self._sequences = seuqences
 
     def __call__(
         self,

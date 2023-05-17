@@ -5,7 +5,7 @@ paths:
   eval_dir : ${paths.working_dir}/model_new/eval_dir
   cache_dir : ${paths.working_dir}/cache/PICAI
   clinical_file : ${oc.env:PICAI_DATA_PATH}/labels/picai_labels-main/clinical_information/marksheet.csv
-  data_misc_dir : ${paths.working_dir}/data_misc
+  data_misc_dir : ${paths.working_dir}
   data_split_filename:  split.pkl
   data_dir :  ${oc.env:PICAI_DATA_PATH}/images
   seg_dir : ${oc.env:PICAI_DATA_PATH}/labels/picai_labels-main/csPCa_lesion_delineations/human_expert/resampled
@@ -23,6 +23,7 @@ train:
   batch_size: 16
   learning_rate : 1e-3
   weight_decay :  0
+  run_sample : 0
   resume_checkpoint_filename : 
   trainer:
     accelerator : gpu
@@ -44,9 +45,6 @@ train:
     translate: [-25, 25]
     mask_prob: 0
     total_mask_prob: 0
-  loss_config :
-    segmentation_lambda : 0.2
-    classification_lamba : 0.8
 infer:
   infer_filename : validation_set_infer.gz
   checkpoint : best_epoch.ckpt

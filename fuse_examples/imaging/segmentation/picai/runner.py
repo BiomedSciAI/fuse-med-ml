@@ -56,7 +56,7 @@ from omegaconf import DictConfig, OmegaConf
 
 # assert (
 #     "PICAI_DATA_PATH" in os.environ
-# ), "Expecting environment variable CMMD_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
+# ), "Expecting environment variable PICAI_DATA_PATH to be set. Follow the instruction in example README file to download and set the path to the data"
 ##########################################
 # Debug modes
 ##########################################
@@ -188,7 +188,6 @@ def run_train(paths: NDict, train: NDict) -> None:
         pred="model.seg",
         target="data.gt.seg",
         callable=monai.losses.DiceFocalLoss(to_onehot_y=True, softmax=True),
-        weight=train["loss_config.segmentation_lambda"],
     )
     train_metrics = {}
 
