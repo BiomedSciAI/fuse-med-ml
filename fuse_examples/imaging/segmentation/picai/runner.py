@@ -16,7 +16,7 @@ import os
 import copy
 from pathlib import Path
 import pickle
-
+import pandas as pd
 from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.gpu import choose_and_enable_multiple_gpus
 
@@ -36,6 +36,8 @@ from fuse.dl.losses.loss_default import LossDefault
 import monai
 from fuse_examples.imaging.segmentation.picai.unet import UNet
 
+from fuse.eval.metrics.segmentation.metrics_segmentation_common import MetricDice
+from collections import OrderedDict
 # from fuse.eval.metrics.detection.metrics_detection_common import MetricDetectionPICAI
 from fuseimg.datasets.picai import PICAI
 from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
@@ -288,7 +290,7 @@ def run_infer(infer: NDict, paths: NDict, train: NDict) -> None:
         checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True
     )
     # set the prediction keys to extract (the ones used be the evaluation function).
-    pl_module.set_predictions_keys(["model.seg"])  # which keys to extract and dump into file
+    pl_module.set_predictions_keys(["model.seg" , "data.gt.seg"])  # which keys to extract and dump into file
     lgr.info("Test Data: Done", {"attrs": "bold"})
     # create lightining trainer.
     pl_trainer = Trainer(
@@ -319,14 +321,32 @@ def run_eval(paths: NDict, infer: NDict) -> None:
 
     # create evaluator
     evaluator = EvaluatorDefault()
-
+    metrics = OrderedDict(
+        [
+            ("dice", MetricDice(pred="model.seg",target="data.gt.seg")),
+        ]
+    )
+    # define iterator
+    def data_iter() -> NDict:
+        # set seed
+        data_file = os.path.join(paths["inference_dir"], "infer.pickle")
+        data = pd.read_pickle(data_file)
+        for fold in data :
+            for i,sample in enumerate(fold['id']):
+                sample_dict = {}
+                sample_dict["id"] = sample
+                sample_dict["model.seg"] = fold["model.seg"][i]
+                sample_dict["data.gt.seg"] = fold["data.gt.seg"][i]
+                yield sample_dict
     # run
     results = evaluator.eval(
         ids=None,
-        data=os.path.join(paths["inference_dir"], infer["infer_filename"]),
-        metrics={},
+        data=data_iter(),
+        batch_size=60,
+        metrics=metrics,
         output_dir=paths["eval_dir"],
     )
+    print(results)
 
     return results
 
@@ -346,10 +366,10 @@ def main(cfg: DictConfig) -> None:
     # infer
     if "infer" in cfg["run.running_modes"]:
         run_infer(NDict(cfg["infer"]), NDict(cfg["paths"]), NDict(cfg["train"]))
-    #
-    # analyze - skipping as it crushes without metrics
-    # if "eval" in cfg["run.running_modes"]:
-    #     run_eval(NDict(cfg["paths"]), NDict(cfg["infer"]))
+    
+    #analyze - skipping as it crushes without metrics
+    if "eval" in cfg["run.running_modes"]:
+        run_eval(NDict(cfg["paths"]), NDict(cfg["infer"]))
 
 
 if __name__ == "__main__":
