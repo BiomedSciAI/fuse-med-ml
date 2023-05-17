@@ -35,7 +35,7 @@ from hydra import compose, initialize
 # labels should be downloaded from https://github.com/DIAGNijmegen/picai_labels
 # folder named PICAI which is the downloaded data folder with partition for images and labels
 if "PICAI_DATA_PATH" in os.environ:
-    from fuse_examples.imaging.segmentation.picai.runner import run_train, run_infer,run_eval
+    from fuse_examples.imaging.segmentation.picai.runner import run_train, run_infer, run_eval
 
 
 def run_picai(root: str) -> None:
