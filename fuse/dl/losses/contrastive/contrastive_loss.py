@@ -1,29 +1,29 @@
 from typing import Callable, Optional
 
-import torch
-
 from fuse.dl.losses.loss_base import LossBase
 from fuse.utils.ndict import NDict
 
 import torch
 import torch.nn.functional as F
+from torch import Tensor
 
 
-
-def softcrossentropyloss(target, logits):
+def softcrossentropyloss(target: Tensor, logits: Tensor) -> Tensor:
     """
     From the pytorch discussion Forum:
     https://discuss.pytorch.org/t/soft-cross-entropy-loss-tf-has-it-does-pytorch-have-it/69501
     """
     logprobs = F.log_softmax(logits, dim=1)
     # print(target * logprobs)
-    loss = -(target * logprobs).sum() / target.sum() # logits.shape[0]
+    loss = -(target * logprobs).sum() / target.sum()  # logits.shape[0]
     return loss
 
 
-def supervised_contrastive_loss(feat_xi, feat_xj, yi, yj, symm=False, alpha=0.5, temp=0.2):
+def supervised_contrastive_loss(
+    feat_xi: Tensor, feat_xj: Tensor, yi: Tensor, yj: Tensor, symm: bool = False, alpha: float = 0.5, temp: float = 0.2
+) -> Tensor:
     if feat_xi.isnan().any() | feat_xj.isnan().any():
-        print('feature has nan')
+        print("feature has nan")
     if len(feat_xi.shape) < 2:
         feat_xi = feat_xi.unsqueeze(dim=0)
     if len(feat_xj.shape) < 2:
@@ -33,17 +33,18 @@ def supervised_contrastive_loss(feat_xi, feat_xj, yi, yj, symm=False, alpha=0.5,
     label_vec = torch.unsqueeze(yi, 0)
     mask = torch.eq(torch.transpose(label_vec, 0, 1), yj).float()
     if mask.sum() == 0:
-        return torch.tensor(0.).to('cuda')
-    logits_xi = torch.div( torch.matmul(feat_xi, torch.transpose(feat_xj, 0, 1)), temp)
+        return torch.tensor(0.0).to("cuda")
+    logits_xi = torch.div(torch.matmul(feat_xi, torch.transpose(feat_xj, 0, 1)), temp)
     logits_max, _ = torch.max(logits_xi, dim=1, keepdim=True)
     logits_xi = logits_xi - logits_max.detach()
-    loss_xi = softcrossentropyloss(mask, logits_xi)# / torch.sum(mask, 1)
+    loss_xi = softcrossentropyloss(mask, logits_xi)  # / torch.sum(mask, 1)
     if symm:
         logits_xj = torch.matmul(feat_xj, torch.transpose(feat_xi, 0, 1)) / temp
         loss_xj = softcrossentropyloss(mask, logits_xj) / torch.sum(mask, 0)
         return alpha * loss_xi.sum() + (1 - alpha) * loss_xj.sum()
     else:
         return loss_xi.mean()
+
 
 class SupervisedContrastiveLoss(LossBase):
     """
@@ -83,7 +84,7 @@ class SupervisedContrastiveLoss(LossBase):
         self.feat_j = feat_j
         self.target_i = target_i
         self.target_j = target_j
-        
+
         self.temp = temp
         self.alpha = alpha
         self.symm = symmetrical
@@ -102,8 +103,9 @@ class SupervisedContrastiveLoss(LossBase):
         target_i = batch_dict[self.target_i]
         target_j = batch_dict[self.target_j]
 
-        loss_obj = supervised_contrastive_loss(feat_i, feat_j, target_i, target_j, 
-                                                  symm=self.symm, alpha=self.alpha, temp=self.temp)
+        loss_obj = supervised_contrastive_loss(
+            feat_i, feat_j, target_i, target_j, symm=self.symm, alpha=self.alpha, temp=self.temp
+        )
         if self.weight is not None:
             loss_obj *= self.weight
 

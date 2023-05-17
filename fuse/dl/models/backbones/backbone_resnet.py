@@ -16,7 +16,7 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from typing import Optional
+from typing import Optional, Union
 import torch.nn as nn
 
 from torchvision.models import ResNet
@@ -33,12 +33,10 @@ class BackboneResnet(ResNet):
         self,
         *,
         pretrained: bool = False,
-        weights: Optional[WeightsEnum] = None,
+        weights: Optional[Union[WeightsEnum, dict]] = None,
         in_channels: int = 3,
-        name: str = "resnet18", 
+        name: str = "resnet18",
         pool: bool = False,
-        outer_weights=None,
-
     ) -> None:
         """
         Create 2D Resnet
@@ -69,8 +67,8 @@ class BackboneResnet(ResNet):
             if isinstance(weights, WeightsEnum):
                 self.load_state_dict(weights.get_state_dict(progress=True))
             elif isinstance(weights, dict):
-                self.load_state_dict(outer_weights, strict=False)  
-                
+                self.load_state_dict(weights, strict=False)
+
         del self.fc
 
         # save input parameters
