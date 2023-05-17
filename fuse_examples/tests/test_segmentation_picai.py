@@ -35,7 +35,7 @@ from hydra import compose, initialize
 # labels should be downloaded from https://github.com/DIAGNijmegen/picai_labels
 # folder named PICAI which is the downloaded data folder with partition for images and labels
 if "PICAI_DATA_PATH" in os.environ:
-    from fuse_examples.imaging.segmentation.picai.runner import run_train, run_infer  # run_eval
+    from fuse_examples.imaging.segmentation.picai.runner import run_train, run_infer,run_eval
 
 
 def run_picai(root: str) -> None:
@@ -54,9 +54,8 @@ def run_picai(root: str) -> None:
     run_train(cfg["paths"], cfg["train"])
     run_infer(cfg["infer"], cfg["paths"], cfg["train"])
     # analyze - skipping as it crushes without metrics
-    # results = run_eval(cfg["paths"], cfg["infer"])
-
-    # assert "metrics.auc" in results
+    results = run_eval(cfg["paths"], cfg["infer"])
+    print(results)
 
 
 @unittest.skipIf("PICAI_DATA_PATH" not in os.environ, "define environment variable 'PICAI_DATA_PATH' to run this test")
