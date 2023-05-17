@@ -71,7 +71,14 @@ class OpLoadPICAIImage(OpBase):
                 sample_dict[key_out + seq] = image_data
             return sample_dict
         except:
-            print("sample id",sample_dict[key_in].split("_")[0],"has missing sequence",seq,"file name does not exist",img_filename)
+            print(
+                "sample id",
+                sample_dict[key_in].split("_")[0],
+                "has missing sequence",
+                seq,
+                "file name does not exist",
+                img_filename,
+            )
             return None
 
 
