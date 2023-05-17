@@ -39,8 +39,8 @@ if "PICAI_DATA_PATH" in os.environ:
 
 
 def run_picai(root: str) -> None:
-    initialize(config_path="conf", job_name="test_app")
-    cfg = compose(config_name="config")
+    initialize(config_path="../imaging/segmentation/conf", job_name="test_app")
+    cfg = compose(config_name="config_template")
     print(str(cfg))
 
     cfg = NDict(hydra.utils.instantiate(cfg))

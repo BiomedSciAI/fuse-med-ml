@@ -13,7 +13,7 @@ run:
   running_modes : ['train', 'infer', 'eval']
 train:
   target : seg3d
-  series_config : ['_t2w']
+  series_config : ['_t2w'] #list of sequences names according to the filename ending in PICAI scan files, each startes with _
   resize_resolution : [23,384,384]
   reset_cache: False
   num_workers : 16
@@ -23,7 +23,7 @@ train:
   batch_size: 16
   learning_rate : 1e-3
   weight_decay :  0
-  run_sample : 0
+  run_sample : 0 #if 0 - used all samples otherwise sample only run_sample samples ( for test purpouse )
   resume_checkpoint_filename : 
   trainer:
     accelerator : gpu
