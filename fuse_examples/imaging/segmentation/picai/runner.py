@@ -328,6 +328,7 @@ def run_eval(paths: NDict, infer: NDict) -> None:
         ]
     )
     # define iterator
+    
     def data_iter() -> NDict:
         # set seed
         data_file = os.path.join(paths["inference_dir"], "infer.pickle")
