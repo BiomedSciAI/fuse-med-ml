@@ -40,11 +40,10 @@ if "PICAI_DATA_PATH" in os.environ:
 
 def run_picai(root: str) -> None:
     initialize(config_path="../imaging/segmentation/picai/conf", job_name="test_app")
-    cfg = compose(config_name="config_template")
+    cfg = compose(config_name="config_template", overrides=["paths.working_dir=" + root])
     print(str(cfg))
 
     cfg = NDict(hydra.utils.instantiate(cfg))
-    cfg["paths.working_dir"] = root
     cfg["train.run_sample"] = 100
     cfg["train.trainer.num_epochs"] = 1
     # uncomment if you want to use specific gpus instead of automatically looking for free ones
