@@ -17,6 +17,7 @@ import copy
 from pathlib import Path
 import pickle
 import pandas as pd
+import numpy as np
 from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.gpu import choose_and_enable_multiple_gpus
 
@@ -337,7 +338,8 @@ def run_eval(paths: NDict, infer: NDict) -> None:
             for i, sample in enumerate(fold["id"]):
                 sample_dict = {}
                 sample_dict["id"] = sample
-                sample_dict["model.seg"] = fold["model.seg"][i]
+                sample_dict["model.seg"] = np.expand_dims(fold["model.seg"][i][0], axis=0)
+                sample_dict["model.seg"] = np.where(sample_dict["model.seg"] > 0.5, 1, 0)
                 sample_dict["data.gt.seg"] = fold["data.gt.seg"][i]
                 yield sample_dict
 
