@@ -8,11 +8,11 @@ paths:
   data_misc_dir : ${paths.working_dir}
   data_split_filename:  split.pkl
   data_dir :  ${oc.env:PICAI_DATA_PATH}/images
-  seg_dir : ${oc.env:PICAI_DATA_PATH}/labels/picai_labels-main/csPCa_lesion_delineations/human_expert/resampled
+  seg_dir : ${oc.env:PICAI_DATA_PATH}/labels/picai_labels-main/anatomical_delineations/whole_gland/AI/Bosma22b
 run: 
   running_modes : ['train', 'infer', 'eval']
 train:
-  target : seg3d
+  target : seg3d #might later be used to change between different possible tasks in this dataset
   series_config : ['_t2w'] #list of sequences names according to the filename ending in PICAI scan files, each startes with _
   resize_resolution : [23,384,384]
   reset_cache: False
