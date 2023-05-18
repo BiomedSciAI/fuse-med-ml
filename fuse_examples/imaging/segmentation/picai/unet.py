@@ -1,7 +1,6 @@
 from torch import nn
 from monai.networks.nets import UNet as UNetBase
 from fuse.utils.ndict import NDict
-import torch
 
 
 class UNet(nn.Module):
@@ -14,5 +13,5 @@ class UNet(nn.Module):
     def forward(self, batch_dict: NDict) -> None:
         x = batch_dict[self.input_name]
         seg_output = self.unet(x)
-        batch_dict[self.seg_name] = torch.unsqueeze(seg_output[:, 0, :, :, :], 1)
+        batch_dict[self.seg_name] = seg_output
         return batch_dict
