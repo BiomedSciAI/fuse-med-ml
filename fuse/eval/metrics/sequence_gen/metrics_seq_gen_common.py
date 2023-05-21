@@ -66,6 +66,10 @@ def _perplexity_update(
 
     assert len(preds.shape) == 3, f"Error: expected num dims is 3, got shape {preds.shape}"
     assert len(target.shape) == 2, f"Error: expected num dims is 2, got shape {target.shape}"
+    # to save GPU memory
+    preds = preds.detach()
+    target = target.detach()
+
     preds = preds.reshape(-1, preds.shape[-1])
     target = target.reshape(-1)
 
