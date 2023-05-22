@@ -259,7 +259,8 @@ def run_in_subprocess(f: Callable, *args: list, timeout: int = 600, **kwargs: di
     :param f: the function to run in a subprocess
     :param timeout: the maximum time to wait for the process to complete
     """
-    if not os.environ.get("FORCE_RUN_IN_SUBPROCESS", True):
+
+    if "FORCE_RUN_IN_MAIN_PROCESS" in os.environ:
         return f(*args, **kwargs)
 
     # create process
