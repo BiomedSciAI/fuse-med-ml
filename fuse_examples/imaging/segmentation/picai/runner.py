@@ -191,7 +191,7 @@ def run_train(paths: NDict, train: NDict) -> None:
     losses["segmentation"] = LossDefault(
         pred="model.seg",
         target="data.gt.seg",
-        callable=monai.losses.DiceFocalLoss(to_onehot_y=True, softmax=True),
+        callable=monai.losses.DiceLoss(to_onehot_y=True, softmax=False),
     )
     train_metrics = {}
 
@@ -338,8 +338,8 @@ def run_eval(paths: NDict, infer: NDict) -> None:
             for i, sample in enumerate(fold["id"]):
                 sample_dict = {}
                 sample_dict["id"] = sample
-                sample_dict["model.seg"] = np.expand_dims(fold["model.seg"][i][0], axis=0)
-                sample_dict["model.seg"] = np.where(sample_dict["model.seg"] > 0.5, 1, 0)
+                sample_dict["model.seg"] = np.expand_dims(fold["model.seg"][i][1], axis=0)
+                sample_dict["model.seg"] = np.where(sample_dict["model.seg"] > 0.7, 1, 0)
                 sample_dict["data.gt.seg"] = fold["data.gt.seg"][i]
                 yield sample_dict
 
