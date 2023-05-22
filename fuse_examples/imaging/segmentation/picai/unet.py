@@ -1,6 +1,7 @@
 from torch import nn
 from monai.networks.nets import UNet as UNetBase
 from fuse.utils.ndict import NDict
+import torch.nn.functional as F
 
 
 class UNet(nn.Module):
@@ -13,5 +14,5 @@ class UNet(nn.Module):
     def forward(self, batch_dict: NDict) -> None:
         x = batch_dict[self.input_name]
         seg_output = self.unet(x)
-        batch_dict[self.seg_name] = seg_output
+        batch_dict[self.seg_name] = F.softmax(seg_output, dim=1)
         return batch_dict
