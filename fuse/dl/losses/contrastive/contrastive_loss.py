@@ -107,7 +107,7 @@ class SupervisedContrastiveLoss(LossBase):
         if self.preprocess_func is not None:
             batch_dict = self.preprocess_func(batch_dict)
         feat_i = batch_dict[self.feat_i]
-        feat_j = batch_dict[self.feat_i]
+        feat_j = batch_dict[self.feat_j]
 
         target_i = batch_dict[self.target_i]
         target_j = batch_dict[self.target_j]
