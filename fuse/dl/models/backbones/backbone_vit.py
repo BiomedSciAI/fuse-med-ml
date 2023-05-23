@@ -77,7 +77,7 @@ class ViT(nn.Module):
         num_tokens = self.projection_layer.num_tokens
         self.transformer = Transformer(num_tokens=num_tokens, token_dim=token_dim, **transformer_kwargs)
 
-    def forward(self, x: Tensor, pool: str = "cls") -> Tensor:
+    def forward(self, x: Tensor, pool: str = "none") -> Tensor:
         """
         :param pool: returns all tokens (pool='none'), only cls token (pool='cls') or the average token (pool='mean')
         """
