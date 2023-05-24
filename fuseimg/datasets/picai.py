@@ -298,13 +298,12 @@ class PICAI:
     ) -> DatasetDefault:
         """
         Creates Fuse Dataset single object (either for training, validation and test or user defined set)
-        :param data_dir:                    dataset root path
-        :param clinical_file                path to clinical_file
-        :param target                       target name used from the ground truth dataframe
-        :param cache_dir:                   Optional, name of the cache folder
+        :param paths                        paths dictionary for dataset files
+        :param cfg                          dict cfg for training phase
         :param reset_cache:                 Optional,specifies if we want to clear the cache first
-        :param sample_ids: dataset including the specified sample_ids or None for all the samples. sample_id is case_{id:05d} (for example case_00001 or case_00100).
-        :param train: True if used for training  - adds augmentation operations to the pipeline
+        :param sample_ids:                  dataset including the specified sample_ids or None for all the samples.
+        :param train:                       True if used for training  - adds augmentation operations to the pipeline
+        :param run_sample:                  if > 0 it samples from all the samples #run_sample examples ( used for testing), if =0 then it takes all samples
         :return: DatasetDefault object
         """
 

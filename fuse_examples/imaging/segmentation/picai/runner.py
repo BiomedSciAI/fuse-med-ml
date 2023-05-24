@@ -144,7 +144,7 @@ def run_train(paths: NDict, train: NDict) -> None:
     lgr.info("- Create sampler:")
     sampler = BatchSamplerDefault(
         dataset=train_dataset,
-        balanced_class_name="data.gt.classification",  # gt_label, TODO - make diff label for balance-sampler
+        balanced_class_name="data.gt.classification",
         num_balanced_classes=2,
         batch_size=train["batch_size"],
         mode="approx",
@@ -199,7 +199,7 @@ def run_train(paths: NDict, train: NDict) -> None:
 
     # either a dict with arguments to pass to ModelCheckpoint or list dicts for multiple ModelCheckpoint callbacks (to monitor and save checkpoints for more then one metric).
     best_epoch_source = dict(
-        monitor="validation.losses.total_loss",  # metrics.auc.macro_avg",
+        monitor="validation.losses.total_loss",
         mode="min",
     )
 
@@ -331,7 +331,6 @@ def run_eval(paths: NDict, infer: NDict) -> None:
     # define iterator
 
     def data_iter() -> NDict:
-        # set seed
         data_file = os.path.join(paths["inference_dir"], "infer.pickle")
         data = pd.read_pickle(data_file)
         for fold in data:
@@ -372,7 +371,7 @@ def main(cfg: DictConfig) -> None:
     if "infer" in cfg["run.running_modes"]:
         run_infer(NDict(cfg["infer"]), NDict(cfg["paths"]), NDict(cfg["train"]))
 
-    # analyze - skipping as it crushes without metrics
+    # analyze
     if "eval" in cfg["run.running_modes"]:
         run_eval(NDict(cfg["paths"]), NDict(cfg["infer"]))
 

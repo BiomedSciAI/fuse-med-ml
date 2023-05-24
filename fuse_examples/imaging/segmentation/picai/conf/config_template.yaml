@@ -24,12 +24,12 @@ train:
   learning_rate : 1e-3
   weight_decay :  0
   run_sample : 0 #if 0 - used all samples otherwise sample only run_sample samples ( for test purpouse )
-  resume_checkpoint_filename : 
+  resume_checkpoint_filename : null
   trainer:
     accelerator : gpu
     devices : 1
     num_epochs : 100
-    ckpt_path : 
+    ckpt_path : null
   unet_kwargs :
     strides : [[2, 2, 2], [1, 2, 2], [1, 2, 2], [1, 2, 2], [2, 2, 2]]
     channels : [32, 64, 128, 256, 512, 1024]
