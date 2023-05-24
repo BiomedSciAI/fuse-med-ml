@@ -1,3 +1,4 @@
+# type: ignore
 """
 (C) Copyright 2021 IBM Corp.
 
@@ -17,13 +18,15 @@ Created on June 30, 2021
 
 """
 
-from fuse.utils.align.utils_align_base import AlignMapBase
+from fuseimg.utils.align.utils_align_base import AlignMapBase
 import numpy as np
 import cv2
 
 
 class AlignMapECC(AlignMapBase):
-    def __init__(self, transformation_type="homography", num_iterations=600, termination_eps=1e-4):
+    def __init__(
+        self, transformation_type: str = "homography", num_iterations: int = 600, termination_eps: float = 1e-4
+    ):
         transformation_type = transformation_type.lower()
         assert transformation_type in ["homography", "affine"]
 

@@ -29,7 +29,7 @@ class OpAugColor(OpBase):
         gamma: Optional[float] = None,
         contrast: Optional[float] = None,
         channels: Optional[List[int]] = None,
-    ):
+    ) -> NDict:
         """
         :param key: key to a image stored in sample_dict: torch tensor of range [0, 1] representing an image to ,
         :param add: value to add to each pixel

@@ -168,7 +168,7 @@ class EvaluatorDefault:
         id_key: str,
         error_missing_ids: bool = True,
         error_duplicate: bool = True,
-    ):
+    ) -> pd.DataFrame:
         """
         Read data and convert to a single dataframe
         :param data: the input data to covert - see eval() method to understand the supported options

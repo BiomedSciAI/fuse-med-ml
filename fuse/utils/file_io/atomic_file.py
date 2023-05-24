@@ -20,6 +20,7 @@ Created on June 30, 2021
 import gzip
 import os
 import threading
+from io import BufferedWriter
 
 
 class AtomicFileWriter:
@@ -29,14 +30,14 @@ class AtomicFileWriter:
         self.filename = filename
         self.temp_filename = f"{filename}_{os.getpid()}_{threading.get_ident() }.tmp"
 
-    def __enter__(self):
+    def __enter__(self) -> BufferedWriter:
         if self.filename.endswith(".gz"):
             self.filehandle = gzip.open(self.temp_filename, "wb")
         else:
             self.filehandle = open(self.temp_filename, "wb")
         return self.filehandle
 
-    def __exit__(self, exc_type, exc_value, exc_traceback):
+    def __exit__(self, exc_type, exc_value, exc_traceback):  # type: ignore
         if exc_type is None:
             self.filehandle.close()
             os.replace(self.temp_filename, self.filename)

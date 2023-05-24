@@ -47,7 +47,7 @@ class MetricDice(MetricPerSampleDefault):
         target: str,
         pixel_weight: Optional[str] = None,
         class_weights: Optional[Dict[int, float]] = None,
-        **kwargs
+        **kwargs: dict
     ):
         """
         See super class for the missing params
@@ -78,7 +78,7 @@ class MetricIouJaccard(MetricPerSampleDefault):
         target: str,
         pixel_weight: Optional[str] = None,
         class_weights: Optional[Dict[int, float]] = None,
-        **kwargs
+        **kwargs: dict
     ):
         """
         See super class for the missing params
@@ -108,7 +108,7 @@ class MetricOverlap(MetricPerSampleDefault):
         target: str,
         pixel_weight: Optional[str] = None,
         class_weights: Optional[Dict[int, float]] = None,
-        **kwargs
+        **kwargs: dict
     ):
         """
         See super class for the missing params
@@ -132,7 +132,7 @@ class Metric2DHausdorff(MetricPerSampleDefault):
     used for sematric and binary segmentation
     """
 
-    def __init__(self, pred: str, target: str, class_weights: Optional[Dict[int, float]] = None, **kwargs):
+    def __init__(self, pred: str, target: str, class_weights: Optional[Dict[int, float]] = None, **kwargs: dict):
         """
         See super class for the missing params
         :param class_weights: weight per segmentation class , we assume sum of total weights is 1 and each element is in 0-1 range
@@ -159,7 +159,7 @@ class MetricPixelAccuracy(MetricPerSampleDefault):
         target: str,
         pixel_weight: Optional[str] = None,
         class_weights: Optional[Dict[int, float]] = None,
-        **kwargs
+        **kwargs: dict
     ):
         """
         See super class for the missing params

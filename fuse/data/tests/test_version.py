@@ -24,7 +24,7 @@ import pkg_resources  # part of setuptools
 
 
 class TestVersion(unittest.TestCase):
-    def test_version(self):
+    def test_version(self) -> None:
         """
         Make sure data version equal to the installed version
         """

@@ -81,7 +81,13 @@ class BasicBlock(nn.Module):
 class BasicStem(nn.Sequential):
     """The default conv-batchnorm-relu stem"""
 
-    def __init__(self, in_channels=3, out_channels=64, kernel_size=(3, 7, 7), stride=(1, 2, 2)) -> None:
+    def __init__(
+        self,
+        in_channels: int = 3,
+        out_channels: int = 64,
+        kernel_size: Tuple[int, int, int] = (3, 7, 7),
+        stride: Tuple[int, int, int] = (1, 2, 2),
+    ):
         padding = tuple([x // 2 for x in kernel_size])
         super().__init__(
             nn.Conv3d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding, bias=False),
@@ -125,7 +131,7 @@ class BackboneResnet3D(nn.Module):
         """
         super().__init__()
         self.inplanes = first_channel_dim
-        self.stem = BasicStem(in_channels, first_channel_dim, kernel_size=stem_kernel_size, stride=stem_stride)
+        self.stem = BasicStem(3, first_channel_dim, kernel_size=stem_kernel_size, stride=stem_stride)
 
         self.layer1 = self._make_layer(BasicBlock, Conv3DSimple, first_channel_dim, layers[0], stride=first_stride)
         self.layer2 = self._make_layer(BasicBlock, Conv3DSimple, first_channel_dim * 2, layers[1], stride=2)
@@ -142,6 +148,8 @@ class BackboneResnet3D(nn.Module):
             from torchvision.models.video.resnet import model_urls
 
             state_dict = load_state_dict_from_url(model_urls[name])
+            del state_dict["fc.weight"]  # as a backbone the fc in not necessary
+            del state_dict["fc.bias"]
             self.load_state_dict(state_dict)
         else:
             for m in self.modules():
@@ -155,6 +163,12 @@ class BackboneResnet3D(nn.Module):
                 elif isinstance(m, nn.Linear):
                     nn.init.normal_(m.weight, 0, 0.01)
                     nn.init.constant_(m.bias, 0)
+
+        if in_channels == 1:
+            self.stem[0].in_channels = 1
+            self.stem[0].weight = nn.Parameter(self.stem[0].weight.sum(dim=1, keepdim=True))
+        elif in_channels != 3:
+            self.stem = BasicStem(in_channels, first_channel_dim, kernel_size=stem_kernel_size, stride=stem_stride)
 
     def _make_layer(
         self,

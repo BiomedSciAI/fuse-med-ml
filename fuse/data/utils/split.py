@@ -23,7 +23,7 @@ from fuse.data.utils.export import ExportDataset
 from fuse.data.utils.sample import get_sample_id_key
 
 
-def print_folds_stat(db: pd.DataFrame, nfolds: int, key_columns: np.ndarray):
+def print_folds_stat(db: pd.DataFrame, nfolds: int, key_columns: np.ndarray) -> str:
     """
     Print fold statistics
     :param db:                 dataframe which contains the fold partition
@@ -130,8 +130,9 @@ def dataset_balanced_division_to_folds(
     reset_split: bool = False,
     workers: int = 10,
     mp_context: str = None,
-    **kwargs
-):
+    verify_folds_total_size: bool = True,
+    **kwargs: dict,
+) -> dict:
 
     """
     Split dataset to folds.
@@ -144,12 +145,22 @@ def dataset_balanced_division_to_folds(
     :param  nfolds : number of folds
     :param  id  : id to balance the split by ( not allowed 2 in same fold)
     :param reset_split: delete output_split_filename and recompute the split
-    :param workers : numbers of workers for multiprocessing (eport dataset into dataframe)
+    :param workers : numbers of workers for multiprocessing (export dataset into dataframe)
     :param mp_context : multiprocessing context: "fork", "spawn", etc.
+    :param verify_folds_total_size: (bool), when true - if a split file was found, will verify the the number of samples in the folds sum up to the amount of samples in the given dataset
     :param kwargs: more arguments controlling the split. See function balanced_division() for details
     """
     if output_split_filename is not None and os.path.exists(output_split_filename) and not reset_split:
-        return load_pickle(output_split_filename)
+        folds = load_pickle(output_split_filename)
+
+        # Check that the number of samples in the folds sum up to the dataset size
+        dataset_size = len(dataset)
+        num_samples_in_folds = sum([len(folds[fold]) for fold in folds])
+        if verify_folds_total_size and dataset_size != num_samples_in_folds:
+            raise Exception(
+                f"Total number of samples founds in split file ({num_samples_in_folds}) is different from the total number of samples in the given dataset ({dataset_size})."
+            )
+        return folds
     else:
         if id == get_sample_id_key():
             keys = [get_sample_id_key()]

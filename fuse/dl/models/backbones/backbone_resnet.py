@@ -16,7 +16,7 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from typing import Optional
+from typing import Optional, Union
 import torch.nn as nn
 
 from torchvision.models import ResNet
@@ -33,15 +33,18 @@ class BackboneResnet(ResNet):
         self,
         *,
         pretrained: bool = False,
-        weights: Optional[WeightsEnum] = None,
+        weights: Optional[Union[WeightsEnum, dict]] = None,
         in_channels: int = 3,
-        name: str = "resnet18"
+        name: str = "resnet18",
+        pool: Optional[str] = None,
     ) -> None:
         """
         Create 2D Resnet
         :param pretrained: reload imagenet weights
         :param in_channels: Number of input channels
         :param name: model name. Currently support 'resnet18' and 'resnet50'
+        :param pool: whether to use global average pooling to reduce the spacial dimensions after the convolutional layers can be either 'avg', 'max' or None - dont use pool
+
         """
         # init parameters per required backbone
         init_parameters = {"resnet18": [BasicBlock, [2, 2, 2, 2]], "resnet50": [Bottleneck, [3, 4, 6, 3]]}[name]
@@ -61,15 +64,29 @@ class BackboneResnet(ResNet):
             self.load_state_dict(state_dict)
 
         if weights is not None:
-            self.load_state_dict(weights.get_state_dict(progress=True))
+            if isinstance(weights, WeightsEnum):
+                self.load_state_dict(weights.get_state_dict(progress=True))
+            elif isinstance(weights, dict):
+                self.load_state_dict(weights, strict=False)
+
+        del self.fc
 
         # save input parameters
         self.pretrained = pretrained
         self.in_channels = in_channels
+        if pool == "avg":
+            self.pool_layer = nn.AdaptiveAvgPool2d((1, 1))
+        elif pool == "max":
+            self.pool_layer = nn.AdaptiveMaxPool2d((1, 1))
 
+        self._pool = pool
         if self.in_channels != 3:
-            # override the first convolution layer to support any number of input channels
-            self.conv1 = nn.Conv2d(self.in_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
+            # modify the first convolution layer to support any number of input channels
+            if self.in_channels == 1:
+                self.conv1.in_channels = 1
+                self.conv1.weight = nn.Parameter(self.conv1.weight.sum(dim=1, keepdim=True))
+            else:
+                self.conv1 = nn.Conv2d(self.in_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
 
     def forward(self, x: Tensor) -> Tensor:  # type: ignore
         """
@@ -86,4 +103,8 @@ class BackboneResnet(ResNet):
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
+        if hasattr(self, "_pool"):
+            if self._pool is not None:
+                x = self.pool_layer(x)
+                x = x.flatten(1)
         return x

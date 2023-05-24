@@ -246,9 +246,10 @@ class PhysioNetCinC:
         outcomes = ["Outcomes-a.txt", "Outcomes-b.txt"]
         for o in outcomes:
             o_file = os.path.join(raw_data_path + "/" + o)
-            df_outcomes = df_outcomes.append(pd.read_csv(o_file)[["RecordID", "In-hospital_death"]]).reset_index(
+            df_outcomes = pd.concat([df_outcomes, pd.read_csv(o_file)[["RecordID", "In-hospital_death"]]]).reset_index(
                 drop=True
             )
+
         df_outcomes["RecordID"] = df_outcomes["RecordID"].astype(str)
         df_outcomes.rename(columns={"RecordID": "PatientId"}, inplace=True)
 
@@ -295,7 +296,7 @@ class PhysioNetCinC:
         count_dropped_min_visits = 0
         for pat_id, df_pat_records in df.groupby("PatientId"):
 
-            hours = df_pat_records["Time"].str.split(":", 1, True)[0].values
+            hours = df_pat_records["Time"].str.split(":", n=1, expand=True)[0].values
             if max(hours.astype(int)) < min_hours:
                 df_fixed.drop(df_pat_records.index, inplace=True)
                 count_dropped_short_time += 1

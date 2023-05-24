@@ -1,4 +1,6 @@
 import torch
+from torch import Tensor
+from typing import Any, Dict
 
 
 class LossWarmUp(torch.nn.Module):
@@ -14,7 +16,7 @@ class LossWarmUp(torch.nn.Module):
         self._nof_iterrations = nof_iterations
         self._count = 0
 
-    def forward(self, *args, **kwargs):
+    def forward(self, *args: Any, **kwargs: Dict[str, Any]) -> Tensor:
         if self._count < self._nof_iterrations:
             self._count += 1
             return torch.tensor(0.0)

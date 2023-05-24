@@ -98,7 +98,6 @@ def create_model(train: NDict, paths: NDict) -> torch.nn.Module:
         accelerator=train["trainer"]["accelerator"],
         devices=train["trainer"]["devices"],
         num_sanity_val_steps=-1,
-        auto_select_gpus=True,
     )
     return model, pl_trainer, num_classes, gt_label, skip_keys, class_names
 
@@ -275,7 +274,6 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
         accelerator=train["trainer"]["accelerator"],
         devices=train["trainer"]["devices"],
         num_sanity_val_steps=-1,
-        auto_select_gpus=True,
     )
 
     # train from scratch
@@ -286,7 +284,7 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
 ######################################
 # Inference Template
 ######################################
-def run_infer(train: NDict, paths: NDict, infer: NDict):
+def run_infer(train: NDict, paths: NDict, infer: NDict) -> None:
     create_dir(paths["inference_dir"])
     #### Logger
     fuse_logger_start(output_path=paths["inference_dir"], console_verbose_level=logging.INFO)
@@ -346,7 +344,7 @@ def run_infer(train: NDict, paths: NDict, infer: NDict):
 ######################################
 # Analyze Template
 ######################################
-def run_eval(paths: NDict, infer: NDict):
+def run_eval(paths: NDict, infer: NDict) -> NDict:
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger("Fuse")
     lgr.info("Fuse Eval", {"attrs": ["bold", "underline"]})

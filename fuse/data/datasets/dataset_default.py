@@ -203,7 +203,7 @@ class DatasetDefault(DatasetBase):
             sample_id = item
             if self._sample_ids_mode == "running_int":  # allow using non int sample_ids
                 if sample_id >= self._final_sample_ids:
-                    raise IndexError
+                    raise IndexError(f"Expecting {sample_id} to be smaller than {self._final_sample_ids}")
 
         elif not isinstance(item, (int, np.integer)):
             sample_id = item

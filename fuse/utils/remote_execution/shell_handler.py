@@ -1,9 +1,11 @@
 import paramiko
+from paramiko.channel import ChannelFile
 import re
+from typing import List, Tuple
 
 
 class ShellHandler:
-    def __init__(self, host, user, psw):
+    def __init__(self, host: str, user: str, psw: str):
         self.ssh = paramiko.SSHClient()
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         self.ssh.connect(host, username=user, password=psw, port=22)
@@ -12,10 +14,10 @@ class ShellHandler:
         self.stdin = channel.makefile("wb")
         self.stdout = channel.makefile("r")
 
-    def __del__(self):
+    def __del__(self) -> None:
         self.ssh.close()
 
-    def execute(self, cmd):
+    def execute(self, cmd: str) -> Tuple[ChannelFile, List[str], List[str]]:
         """
 
         @param cmd: the command to be executed on the remote computer
