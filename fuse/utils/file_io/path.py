@@ -1,4 +1,5 @@
 from os.path import join, basename, dirname
+import re
 
 
 def add_base_prefix(filepath: str, prefix: str) -> str:
@@ -59,3 +60,11 @@ def remove_extension(filepath: str) -> str:
     last_dot = _basename.rfind(".")
     ans = join(_dirname, _basename[:last_dot])
     return ans
+
+
+def get_valid_filename(s: str) -> str:
+    """
+    modifies an input string into a string that is valid as a filename in linux
+    """
+    s = str(s).strip().replace(" ", "_")
+    return re.sub(r"(?u)[^-\w.]", "@", s)
