@@ -4,3 +4,4 @@ pydicom
 scikit-image
 medpy
 transformers
+monai
