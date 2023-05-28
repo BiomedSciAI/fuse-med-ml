@@ -349,6 +349,7 @@ class ISICDataModule(pl.LightningDataModule):
         reset_cache: bool = False,
         reset_split: bool = False,
         use_batch_sampler: bool = True,
+        verify_folds_total_size: bool = True,
     ):
         """
         :param data_dir: path to data directory
@@ -363,6 +364,7 @@ class ISICDataModule(pl.LightningDataModule):
         :param reset_cache: set True to reset the cache data
         :param reset_split: set True to reset the split file
         :param use_batch_sample: set True to use Fuse's custom balanced batch sampler (see BatchSamplerDefault class)
+        :param verify_folds_total_size: (bool), when true - if a split file was found, will verify the the number of samples in the folds sum up to the amount of samples in the given dataset
         """
         super().__init__()
         self._data_dir = data_dir
@@ -391,6 +393,7 @@ class ISICDataModule(pl.LightningDataModule):
             nfolds=len(train_folds + validation_folds + infer_folds),
             output_split_filename=split_filename,
             reset_split=reset_split,
+            verify_folds_total_size=verify_folds_total_size,
         )
 
         for fold in train_folds:
