@@ -45,7 +45,7 @@ def supervised_contrastive_loss(
     loss_xi = softcrossentropyloss(mask, logits_xi)  # / torch.sum(mask, 1)
     if symm:
         logits_xj = torch.matmul(feat_xj, torch.transpose(feat_xi, 0, 1)) / temp
-        loss_xj = softcrossentropyloss(mask, logits_xj) / torch.sum(mask, 0)
+        loss_xj = softcrossentropyloss(mask, logits_xj)
         return alpha * loss_xi.sum() + (1 - alpha) * loss_xj.sum()
     else:
         return loss_xi.mean()
