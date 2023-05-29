@@ -34,11 +34,11 @@ from fuse.data.utils.split import dataset_balanced_division_to_folds
 from fuse.dl.losses.loss_default import LossDefault
 
 # from report_guided_annotation import extract_lesion_candidates
-import monai
 from fuse_examples.imaging.segmentation.picai.unet import UNet
 
 from fuse.eval.metrics.segmentation.metrics_segmentation_common import MetricDice
 from collections import OrderedDict
+from fuse.dl.losses.segmentation.loss_dice import BinaryDiceLoss
 
 # from fuse.eval.metrics.detection.metrics_detection_common import MetricDetectionPICAI
 from fuseimg.datasets.picai import PICAI
@@ -191,7 +191,7 @@ def run_train(paths: NDict, train: NDict) -> None:
     losses["segmentation"] = LossDefault(
         pred="model.seg",
         target="data.gt.seg",
-        callable=monai.losses.DiceLoss(to_onehot_y=True, softmax=False),
+        callable=BinaryDiceLoss(),
     )
     train_metrics = {}
 
