@@ -69,11 +69,6 @@ mode = "default"  # Options: 'default', 'debug'. See details in FuseDebug
 debug = FuseDebug(mode)
 
 
-def perform_softmax(logits: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-    cls_preds = F.softmax(logits, dim=1)
-    return logits, cls_preds
-
-
 def create_model(unet_kwargs: dict) -> torch.nn.Module:
     """
     creates the model
@@ -81,15 +76,14 @@ def create_model(unet_kwargs: dict) -> torch.nn.Module:
     torch_model = UNet3D(
         in_channels=unet_kwargs["in_channels"],
         out_channels=unet_kwargs["out_channels"],
-        num_groups=1,
-        num_levels=2,
-        f_maps=16,
+        num_groups=8,
+        num_levels=4,
+        f_maps=32,
         final_sigmoid=False,
     )
     model = ModelWrapSeqToDict(
         model=torch_model,
         model_inputs=["data.input.img_t2w"],
-        post_forward_processing_function=perform_softmax,
         model_outputs=["model.seg"],
     )
     return model
