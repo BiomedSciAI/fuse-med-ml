@@ -78,7 +78,7 @@ def create_model(unet_kwargs: dict) -> torch.nn.Module:
         out_channels=unet_kwargs["out_channels"],
         num_groups=8,
         num_levels=4,
-        f_maps=32,
+        f_maps=16,
         final_sigmoid=False,
     )
     model = ModelWrapSeqToDict(
