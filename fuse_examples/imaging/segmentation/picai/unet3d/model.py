@@ -7,7 +7,7 @@ from fuse_examples.imaging.segmentation.picai.unet3d.buildingblocks import (
     create_decoders,
     create_encoders,
 )
-from fuse_examples.imaging.segmentation.picai.unet3d.utils import get_class, number_of_features_per_level
+from fuse_examples.imaging.segmentation.picai.unet3d.model_utils import get_class, number_of_features_per_level
 
 
 class AbstractUNet(nn.Module):
