@@ -30,13 +30,6 @@ train:
     devices : 1
     num_epochs : 100
     ckpt_path : null
-  unet_kwargs :
-    strides : [[2, 2, 2], [1, 2, 2], [1, 2, 2], [1, 2, 2], [2, 2, 2]]
-    channels : [32, 64, 128, 256, 512, 1024]
-    in_channels : 1
-    out_channels : 2 
-    num_res_units: 2
-    spatial_dims : 3
   aug_params:
     apply_aug_prob: 0.9
     rotate: [-180, 180]

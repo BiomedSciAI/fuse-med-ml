@@ -57,6 +57,8 @@ class BinaryDiceLoss(nn.Module):
         self.eps = eps
 
     def __call__(self, predict: Tensor, target: Tensor) -> Tensor:
+        if isinstance(predict, tuple):
+            predict = predict[1]
         assert predict.shape[0] == target.shape[0], "predict & target batch size don't match"
         reduce_axis: List[int] = torch.arange(2, len(predict.shape)).tolist()
         intersection = torch.sum(target * predict, dim=reduce_axis)

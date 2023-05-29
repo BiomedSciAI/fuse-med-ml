@@ -22,7 +22,7 @@ from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.gpu import choose_and_enable_multiple_gpus
 
 import logging
-
+import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
 
@@ -32,10 +32,11 @@ from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.split import dataset_balanced_division_to_folds
 from fuse.dl.losses.loss_default import LossDefault
+from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
 
 # from report_guided_annotation import extract_lesion_candidates
-from fuse_examples.imaging.segmentation.picai.unet import UNet
-
+from fuse_examples.imaging.segmentation.picai.unet3d.model import UNet3D
+from typing import Tuple
 from fuse.eval.metrics.segmentation.metrics_segmentation_common import MetricDice
 from collections import OrderedDict
 from fuse.dl.losses.segmentation.loss_dice import BinaryDiceLoss
@@ -68,16 +69,29 @@ mode = "default"  # Options: 'default', 'debug'. See details in FuseDebug
 debug = FuseDebug(mode)
 
 
+def perform_softmax(logits: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    cls_preds = F.softmax(logits, dim=1)
+    return logits, cls_preds
+
+
 def create_model(unet_kwargs: dict) -> torch.nn.Module:
     """
     creates the model
     """
-    model = UNet(
-        input_name="data.input.img_t2w",
-        seg_name="model.seg",
-        unet_kwargs=unet_kwargs,
+    torch_model = UNet3D(
+        in_channels=unet_kwargs["in_channels"],
+        out_channels=unet_kwargs["out_channels"],
+        num_groups=1,
+        num_levels=2,
+        f_maps=16,
+        final_sigmoid=False,
     )
-
+    model = ModelWrapSeqToDict(
+        model=torch_model,
+        model_inputs=["data.input.img_t2w"],
+        post_forward_processing_function=perform_softmax,
+        model_outputs=["model.seg"],
+    )
     return model
 
 
