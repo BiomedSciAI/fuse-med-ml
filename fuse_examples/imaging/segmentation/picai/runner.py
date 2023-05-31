@@ -22,7 +22,6 @@ from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.gpu import choose_and_enable_multiple_gpus
 
 import logging
-
 import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
 
@@ -34,11 +33,10 @@ from fuse.data.utils.split import dataset_balanced_division_to_folds
 from fuse.dl.losses.loss_default import LossDefault
 
 # from report_guided_annotation import extract_lesion_candidates
-import monai
 from fuse_examples.imaging.segmentation.picai.unet import UNet
-
 from fuse.eval.metrics.segmentation.metrics_segmentation_common import MetricDice
 from collections import OrderedDict
+from fuse.dl.losses.segmentation.loss_dice import BinaryDiceLoss
 
 # from fuse.eval.metrics.detection.metrics_detection_common import MetricDetectionPICAI
 from fuseimg.datasets.picai import PICAI
@@ -77,7 +75,6 @@ def create_model(unet_kwargs: dict) -> torch.nn.Module:
         seg_name="model.seg",
         unet_kwargs=unet_kwargs,
     )
-
     return model
 
 
@@ -191,7 +188,7 @@ def run_train(paths: NDict, train: NDict) -> None:
     losses["segmentation"] = LossDefault(
         pred="model.seg",
         target="data.gt.seg",
-        callable=monai.losses.DiceLoss(to_onehot_y=True, softmax=False),
+        callable=BinaryDiceLoss(),
     )
     train_metrics = {}
 
