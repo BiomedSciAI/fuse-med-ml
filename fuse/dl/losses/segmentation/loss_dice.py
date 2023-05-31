@@ -20,31 +20,12 @@ Created on June 30, 2021
 import torch
 import torch.nn as nn
 from torch import Tensor
-import numpy as np
 from typing import List
-
-
-def make_one_hot(input: Tensor, num_classes: int) -> Tensor:
-    """Convert class index tensor to one hot encoding tensor.
-    Args:
-         input: A tensor of shape [N, 1, *]
-         num_classes: An int of number of class
-    Returns:
-        A tensor of shape [N, num_classes, *]
-    """
-    shape = np.array(input.shape)
-    shape[1] = num_classes
-    shape = tuple(shape)
-    result = torch.zeros(shape, device=input.device)
-    result = result.scatter_(1, input, 1)
-
-    return result
 
 
 class BinaryDiceLoss(nn.Module):
     def __init__(self, eps: float = 1e-5, reduction: str = "mean"):
         """
-        :param power:       Denominator value: \sum{x^p} + \sum{y^p}, default: 1
         :param eps:         A float number to smooth loss, and avoid NaN error, default: 1
         :param reduction:   Reduction method to apply, return mean over batch if 'mean',
                             return sum if 'sum', return a tensor of shape [N,] if 'none'
