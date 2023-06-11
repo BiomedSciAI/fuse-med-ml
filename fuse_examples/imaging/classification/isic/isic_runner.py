@@ -365,13 +365,6 @@ def run_train(paths: dict, train_common_params: dict) -> None:
         best_epoch_source=best_epoch_source,
         optimizers_and_lr_schs=optimizers_and_lr_schs,
     )
-    # checkpoint_file = os.path.join(paths["model_dir"], "best_epoch.ckpt")
-    # pl_module = LightningModuleDefault.load_from_checkpoint(
-    #     checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu", strict=False, optimizers_and_lr_schs=optimizers_and_lr_schs,
-    #     losses=losses,
-    #     train_metrics=train_metrics,
-    #     validation_metrics=validation_metrics,
-    # )
 
     # create lightning trainer.
     pl_trainer = pl.Trainer(
@@ -385,8 +378,8 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     pl_trainer.fit(pl_module, datamodule=datamodule)
 
     # Save backbone weights
-    print(f"Saving backbone weight @ {backbone_ckpt_path}")
-    torch.save(pl_module._model.backbone.state_dict(), backbone_ckpt_path)
+    # print(f"Saving backbone weights @ {backbone_ckpt_path}")
+    # torch.save(pl_module._model.backbone.state_dict(), backbone_ckpt_path)
 
     lgr.info("Train: Done", {"attrs": "bold"})
 
