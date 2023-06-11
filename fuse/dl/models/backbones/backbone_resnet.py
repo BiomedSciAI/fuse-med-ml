@@ -68,6 +68,8 @@ class BackboneResnet(ResNet):
                 self.load_state_dict(weights.get_state_dict(progress=True))
             elif isinstance(weights, dict):
                 self.load_state_dict(weights, strict=False)
+            else:
+                raise Exception(f"Got unexpected type for 'weights' ({type(weights)}) !")
 
         del self.fc
 

@@ -20,7 +20,7 @@ Created on June 30, 2021
 import os
 import copy
 import logging
-from typing import OrderedDict, Sequence, Tuple
+from typing import OrderedDict, Sequence, Tuple, Optional
 
 import torch
 import torch.optim as optim
@@ -76,12 +76,12 @@ NUM_WORKERS = 8
 ##########################################
 # Modality
 ##########################################
-multimodality = True  # Set: 'False' to use only imaging, 'True' to use imaging & meta-data
+multimodality = False  # Set: 'False' to use only imaging, 'True' to use imaging & meta-data
 
 ##########################################
 # Model Type
 ##########################################
-model_type = "Transformer"  # Set: 'Transformer' to use ViT/MMViT, 'CNN' to use InceptionResNet or Resnet18
+model_type = "CNN"  # Set: 'Transformer' to use ViT/MMViT, 'CNN' to use InceptionResNet or Resnet18
 
 ##########################################
 # Output Paths
@@ -115,13 +115,13 @@ TRAIN_COMMON_PARAMS["data.num_folds"] = 5
 TRAIN_COMMON_PARAMS["data.train_folds"] = [0, 1, 2]
 TRAIN_COMMON_PARAMS["data.validation_folds"] = [3]
 TRAIN_COMMON_PARAMS["data.infer_folds"] = [4]
-TRAIN_COMMON_PARAMS["data.samples_ids"] = {"all": None, "golden": FULL_GOLDEN_MEMBERS}["all"]
+TRAIN_COMMON_PARAMS["data.samples_ids"] = {"all": None, "golden": FULL_GOLDEN_MEMBERS}["golden"]
 
 
 # ===============
 # PL Trainer
 # ===============
-TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 30
+TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 10
 TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
 
@@ -210,6 +210,7 @@ def create_cnn_model(
     tabular_data_inputs: Sequence[Tuple[str, int]],
     tabular_layers_description: Sequence[int],
     backbone_type: str = "Resnet18",
+    backbone_ckpt_path: Optional[str] = None,
 ) -> torch.nn.Module:
     """
     creates the model
@@ -217,7 +218,12 @@ def create_cnn_model(
     :param backbone_type: (str) "InceptionResnetV2" or "Resnet18"
     """
     if backbone_type == "Resnet18":
-        backbone = BackboneResnet(weights=ResNet18_Weights.IMAGENET1K_V1, in_channels=3, name="resnet18")
+        if backbone_ckpt_path:
+            print(f"Found a backbone checkpoint path @ {backbone_ckpt_path} ! Loading it...")
+            state_dict = torch.load(backbone_ckpt_path)
+            backbone = BackboneResnet(weights=state_dict, in_channels=3, name="resnet18")
+        else:
+            backbone = BackboneResnet(weights=ResNet18_Weights.IMAGENET1K_V1, in_channels=3, name="resnet18")
         header_conv_inputs = [("model.backbone_features", 512)]
     elif backbone_type == "InceptionResnetV2":
         backbone = BackboneInceptionResnetV2(input_channels_num=3, logical_units_num=43)
@@ -294,11 +300,14 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     # ==============================================================================
     # Model
     # ==============================================================================
+    backbone_ckpt_path = os.path.join(paths["model_dir"], "backbone.pth")
     lgr.info("Model:", {"attrs": "bold"})
     model_type = train_common_params["model_type"]
     if model_type == "Transformer":
         model = create_transformer_model(**train_common_params["model"])
     elif model_type == "CNN":
+        if os.path.isfile(backbone_ckpt_path):
+            train_common_params["model"]["backbone_ckpt_path"] = backbone_ckpt_path
         model = create_cnn_model(**train_common_params["model"])
 
     lgr.info("Model: Done", {"attrs": "bold"})
@@ -356,6 +365,13 @@ def run_train(paths: dict, train_common_params: dict) -> None:
         best_epoch_source=best_epoch_source,
         optimizers_and_lr_schs=optimizers_and_lr_schs,
     )
+    # checkpoint_file = os.path.join(paths["model_dir"], "best_epoch.ckpt")
+    # pl_module = LightningModuleDefault.load_from_checkpoint(
+    #     checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu", strict=False, optimizers_and_lr_schs=optimizers_and_lr_schs,
+    #     losses=losses,
+    #     train_metrics=train_metrics,
+    #     validation_metrics=validation_metrics,
+    # )
 
     # create lightning trainer.
     pl_trainer = pl.Trainer(
@@ -367,6 +383,10 @@ def run_train(paths: dict, train_common_params: dict) -> None:
 
     # train
     pl_trainer.fit(pl_module, datamodule=datamodule)
+
+    # Save backbone weights
+    print(f"Saving backbone weight @ {backbone_ckpt_path}")
+    torch.save(pl_module._model.backbone.state_dict(), backbone_ckpt_path)
 
     lgr.info("Train: Done", {"attrs": "bold"})
 
@@ -487,7 +507,7 @@ def run_eval(paths: dict, eval_common_params: dict) -> None:
     evaluator = EvaluatorDefault()
 
     # run
-    results = evaluator.eval(ids=None, data=infer_file, metrics=metrics, output_dir=paths["eval_dir"])
+    results = evaluator.eval(ids=None, data=infer_file, metrics=metrics, output_dir=paths["eval_dir"], silent=False)
 
     return results
 
