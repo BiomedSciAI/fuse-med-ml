@@ -378,8 +378,8 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     pl_trainer.fit(pl_module, datamodule=datamodule)
 
     # Save backbone weights
-    # print(f"Saving backbone weights @ {backbone_ckpt_path}")
-    # torch.save(pl_module._model.backbone.state_dict(), backbone_ckpt_path)
+    print(f"Saving backbone weights @ {backbone_ckpt_path}")
+    torch.save(pl_module._model.backbone.state_dict(), backbone_ckpt_path)
 
     lgr.info("Train: Done", {"attrs": "bold"})
 
