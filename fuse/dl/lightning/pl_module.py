@@ -17,7 +17,7 @@ Created on June 30, 2021
 """
 
 import pytorch_lightning as pl
-from typing import Optional
+from typing import Optional, Union, Tuple
 import os
 
 from fuse.dl.lightning.pl_funcs import *  # noqa
@@ -34,9 +34,11 @@ class LightningModuleDefault(pl.LightningModule):
         self,
         model_dir: Optional[str],
         model: torch.nn.Module,
-        losses: Optional[Dict[str, LossBase]] = None,
+        losses: Optional[Union[Dict[str, LossBase], List[Tuple[str, Dict[str, LossBase]]]]] = None,
         train_metrics: Optional[OrderedDict[str, MetricBase]] = None,
-        validation_metrics: Optional[OrderedDict[str, MetricBase]] = None,
+        validation_metrics: Optional[
+            Union[OrderedDict[str, MetricBase], List[Tuple[str, OrderedDict[str, MetricBase]]]]
+        ] = None,
         test_metrics: Optional[OrderedDict[str, MetricBase]] = None,
         optimizers_and_lr_schs: Any = None,
         callbacks: Optional[Sequence[pl.Callback]] = None,
@@ -53,8 +55,13 @@ class LightningModuleDefault(pl.LightningModule):
         :param model: Pytorch model to use
         :param optimizers_and_lr_schs: see pl.LightningModule.configure_optimizers for details and relevant options
         :param losses: dict of FuseMedML style losses
+               In case of multiple validation dataloaders,  losses should be a list of tuples (the keeps the same validation dataloaders list order),
+               the first element is the name of the dataloader and the second is the corresponding losses for this specific dataloader
+               The last tuple in the list should be the losses that are used for the single training dataloader.
         :param train_metrics: dict of FuseMedML style metrics - used for training set
-        :param validation_metrics: dict of FuseMedML style metrics - used for validation set (must be different instances of metrics (from train_metrics!)
+        :param validation_metrics: ordereddict of FuseMedML style metrics - used for validation set (must be different instances of metrics (from train_metrics!)
+                                   In case of multiple validation dataloaders,  validation_metrics should be a list of tuples (the keeps the same dataloaders list order),
+                                   the first element is the name of the dataloader and the second is the corresponding validation_metrics for this specific dataloader
         :param test_metrics: dict of FuseMedML style metrics - used for test set (must be different instances of metrics (from train_metrics and validation_metrics!)
         :param optimizers_and_lr_schs: see pl.LightningModule.configure_optimizers return value for all options
         :param callbacks: see pl.LightningModule.configure_callbacks return value for details
@@ -118,8 +125,14 @@ class LightningModuleDefault(pl.LightningModule):
         self._model_dir = model_dir
         self._model = model
         self._losses = losses if losses is not None else {}
+        if isinstance(self._losses, dict):
+            self._losses = [(None, self._losses)]
+
         self._train_metrics = train_metrics if train_metrics is not None else {}
         self._validation_metrics = validation_metrics if validation_metrics is not None else {}
+        if isinstance(self._validation_metrics, dict):
+            self._validation_metrics = [(None, self._validation_metrics)]
+
         self._test_metrics = test_metrics if test_metrics is not None else {}
         if log_unit not in [None, "optimizer_step", "epoch"]:
             raise Exception(f"Error: unexpected log_unit {log_unit}")
@@ -135,7 +148,7 @@ class LightningModuleDefault(pl.LightningModule):
         self._prediction_keys = None
         self._sep = tensorboard_sep
 
-        self._validation_step_outputs = []
+        self._validation_step_outputs = {i: [] for i, _ in enumerate(self._validation_metrics)}
         self._training_step_outputs = []
         self._test_step_outputs = []
 
@@ -150,25 +163,25 @@ class LightningModuleDefault(pl.LightningModule):
         # run forward function and store the outputs in batch_dict["model"]
         batch_dict = self.forward(batch_dict)
         # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss and save losses values in batch_dict["losses"]
-        total_loss = step_losses(self._losses, batch_dict)
-        # given the batch_dict and FuseMedML style losses - collect the required values to compute the metrics on epoch_end
+        total_loss = step_losses(self._losses[-1][1], batch_dict)
+        # given the batch_dict and FuseMedML style metrics - collect the required values to compute the metrics on epoch_end
         step_metrics(self._train_metrics, batch_dict)
         # aggregate losses
         self._training_step_outputs.append({"losses": batch_dict["losses"]})
         # return the total_loss
         return total_loss
 
-    def validation_step(self, batch_dict: NDict, batch_idx: int) -> None:
+    def validation_step(self, batch_dict: NDict, batch_idx: int, dataloader_idx: int = 0) -> None:
         # add step number to batch_dict
         batch_dict["global_step"] = self.global_step
         # run forward function and store the outputs in batch_dict["model"]
         batch_dict = self.forward(batch_dict)
         # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss (ignored) and save losses values in batch_dict["losses"]
-        _ = step_losses(self._losses, batch_dict)
-        # given the batch_dict and FuseMedML style losses - collect the required values to compute the metrics on epoch_end
-        step_metrics(self._validation_metrics, batch_dict)
+        _ = step_losses(self._losses[dataloader_idx][1], batch_dict)
+        # given the batch_dict and FuseMedML style metrics - collect the required values to compute the metrics on epoch_end
+        step_metrics(self._validation_metrics[dataloader_idx][1], batch_dict)
         # aggregate losses
-        self._validation_step_outputs.append({"losses": batch_dict["losses"]})
+        self._validation_step_outputs[dataloader_idx].append({"losses": batch_dict["losses"]})
 
     def test_step(self, batch_dict: NDict, batch_idx: int) -> None:
         # add step number to batch_dict
@@ -177,7 +190,7 @@ class LightningModuleDefault(pl.LightningModule):
         batch_dict = self.forward(batch_dict)
         # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss (ignored) and save losses values in batch_dict["losses"]
         _ = step_losses(self._losses, batch_dict)
-        # given the batch_dict and FuseMedML style losses - collect the required values to compute the metrics on epoch_end
+        # given the batch_dict and FuseMedML style metrics - collect the required values to compute the metrics on epoch_end
         step_metrics(self._test_metrics, batch_dict)
         # aggregate losses
         self._test_step_outputs.append({"losses": batch_dict["losses"]})
@@ -206,16 +219,21 @@ class LightningModuleDefault(pl.LightningModule):
         self._training_step_outputs.clear()
 
     def on_validation_epoch_end(self) -> None:
-        step_outputs = self._validation_step_outputs
+        step_outputs_lst = self._validation_step_outputs
         # for the logs to be at each epoch, not each step
         if self._log_unit == "epoch":
             self.log("step", float(self.current_epoch), on_epoch=True, sync_dist=True)
-        # calc average epoch loss and log it
-        epoch_end_compute_and_log_losses(self, "validation", [e["losses"] for e in step_outputs], sep=self._sep)
-        # evaluate  and log it
-        epoch_end_compute_and_log_metrics(self, "validation", self._validation_metrics, sep=self._sep)
+        for dataloader_idx, step_outputs in step_outputs_lst.items():
+            if len(self._validation_metrics) == 1:
+                prefix = "validation"
+            else:
+                prefix = f"validation.{self._validation_metrics[dataloader_idx][0]}"
+            # calc average epoch loss and log it
+            epoch_end_compute_and_log_losses(self, prefix, [e["losses"] for e in step_outputs], sep=self._sep)
+            # evaluate  and log it
+            epoch_end_compute_and_log_metrics(self, prefix, self._validation_metrics[dataloader_idx][1], sep=self._sep)
         # reset state
-        self._validation_step_outputs.clear()
+        self._validation_step_outputs = {i: [] for i, _ in enumerate(self._validation_metrics)}
 
     def on_test_epoch_end(self) -> None:
         step_outputs = self._test_step_outputs
@@ -227,7 +245,7 @@ class LightningModuleDefault(pl.LightningModule):
         # evaluate  and log it
         epoch_end_compute_and_log_metrics(self, "test", self._test_metrics, sep=self._sep)
         # reset state
-        self._validation_step_outputs.clear()
+        self._test_step_outputs.clear()
 
     # configuration
     def configure_callbacks(self) -> Sequence[pl.Callback]:
