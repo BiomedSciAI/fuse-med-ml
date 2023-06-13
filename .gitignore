@@ -25,7 +25,6 @@ target
 .project
 logs
 Test_Res
-*.cfg
 *.mat
 lib64
 **/*.log
