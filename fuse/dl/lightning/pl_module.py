@@ -18,6 +18,7 @@ Created on June 30, 2021
 
 import pytorch_lightning as pl
 from typing import Optional, Union, Tuple
+from collections import OrderedDict
 import os
 
 from fuse.dl.lightning.pl_funcs import *  # noqa
@@ -34,7 +35,8 @@ class LightningModuleDefault(pl.LightningModule):
         self,
         model_dir: Optional[str],
         model: torch.nn.Module,
-        losses: Optional[Union[Dict[str, LossBase], List[Tuple[str, Dict[str, LossBase]]]]] = None,
+        losses: Optional[Dict[str, LossBase]] = None,
+        validation_losses: Optional[List[Tuple[str, Dict[str, LossBase]]]] = None,
         train_metrics: Optional[OrderedDict[str, MetricBase]] = None,
         validation_metrics: Optional[
             Union[OrderedDict[str, MetricBase], List[Tuple[str, OrderedDict[str, MetricBase]]]]
@@ -55,13 +57,13 @@ class LightningModuleDefault(pl.LightningModule):
         :param model: Pytorch model to use
         :param optimizers_and_lr_schs: see pl.LightningModule.configure_optimizers for details and relevant options
         :param losses: dict of FuseMedML style losses
-               In case of multiple validation dataloaders,  losses should be a list of tuples (the keeps the same validation dataloaders list order),
-               the first element is the name of the dataloader and the second is the corresponding losses for this specific dataloader
-               The last tuple in the list should be the losses that are used for the single training dataloader.
+               Will be used for both train and validation unless validation_losses is specified.
+        :param validation_losses: Optional, typically used when there are multiple validation dataloaders - each with a different loss
+                                List of tuples (must keep the same validation dataloaders order). Each tuple built from validation_dataloader name and the corresponding losses
         :param train_metrics: dict of FuseMedML style metrics - used for training set
         :param validation_metrics: ordereddict of FuseMedML style metrics - used for validation set (must be different instances of metrics (from train_metrics!)
-                                   In case of multiple validation dataloaders,  validation_metrics should be a list of tuples (the keeps the same dataloaders list order),
-                                   the first element is the name of the dataloader and the second is the corresponding validation_metrics for this specific dataloader
+                                   In case of multiple validation dataloaders,  validation_metrics should be list of tuples (that keeps the same dataloaders list order),
+                                   Each tuple built from validation dataloader name and corresponding metrics dict.
         :param test_metrics: dict of FuseMedML style metrics - used for test set (must be different instances of metrics (from train_metrics and validation_metrics!)
         :param optimizers_and_lr_schs: see pl.LightningModule.configure_optimizers return value for all options
         :param callbacks: see pl.LightningModule.configure_callbacks return value for details
@@ -125,11 +127,12 @@ class LightningModuleDefault(pl.LightningModule):
         self._model_dir = model_dir
         self._model = model
         self._losses = losses if losses is not None else {}
-        if isinstance(self._losses, dict):
-            self._losses = [(None, self._losses)]
+        self._validation_losses = validation_losses
 
         self._train_metrics = train_metrics if train_metrics is not None else {}
         self._validation_metrics = validation_metrics if validation_metrics is not None else {}
+
+        # convert all use-cases to the same format that supports multiple val dataloaders: List[Tuple[str, OrderedDict[str, MetricBase]]]
         if isinstance(self._validation_metrics, dict):
             self._validation_metrics = [(None, self._validation_metrics)]
 
@@ -163,7 +166,7 @@ class LightningModuleDefault(pl.LightningModule):
         # run forward function and store the outputs in batch_dict["model"]
         batch_dict = self.forward(batch_dict)
         # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss and save losses values in batch_dict["losses"]
-        total_loss = step_losses(self._losses[-1][1], batch_dict)
+        total_loss = step_losses(self._losses, batch_dict)
         # given the batch_dict and FuseMedML style metrics - collect the required values to compute the metrics on epoch_end
         step_metrics(self._train_metrics, batch_dict)
         # aggregate losses
@@ -176,8 +179,12 @@ class LightningModuleDefault(pl.LightningModule):
         batch_dict["global_step"] = self.global_step
         # run forward function and store the outputs in batch_dict["model"]
         batch_dict = self.forward(batch_dict)
+        if self._validation_losses is not None:
+            losses = self._validation_losses[dataloader_idx][1]
+        else:
+            losses = self._losses
         # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss (ignored) and save losses values in batch_dict["losses"]
-        _ = step_losses(self._losses[dataloader_idx][1], batch_dict)
+        _ = step_losses(losses, batch_dict)
         # given the batch_dict and FuseMedML style metrics - collect the required values to compute the metrics on epoch_end
         step_metrics(self._validation_metrics[dataloader_idx][1], batch_dict)
         # aggregate losses
