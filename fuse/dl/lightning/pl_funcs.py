@@ -3,7 +3,7 @@
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+   You may obtain a copy of the License at
 
    http://www.apache.org/licenses/LICENSE-2.0
 
@@ -152,10 +152,8 @@ def convert_predictions_to_dataframe(predictions: List[NDict]) -> pd.DataFrame:
     predictions_per_sample = []
     for elem in predictions:
         predictions_per_sample += uncollate(elem)
-    if isinstance(predictions_per_sample[0], NDict):
-        keys = predictions_per_sample[0].keypaths()
-    else:  # dict
-        keys = predictions_per_sample[0].keys()
+
+    keys = predictions_per_sample[0].keys()
 
     for key in keys:
         values[key] = [elem[key] for elem in predictions_per_sample]
@@ -229,15 +227,18 @@ def epoch_end_compute_and_log_losses(
     :param batch_losses: list of batch_dict["losses"] as added by 'epoch_losses'
     :return: None
     """
-    keys = batch_losses[0].keys()
-    for key in keys:
-        losses = []
-        for elem in batch_losses:
+    losses = {}
+    for elem in batch_losses:
+        for key in elem:
+            if key not in losses:
+                losses[key] = []
             if isinstance(elem[key], torch.Tensor):
-                losses.extend(elem[key].detach().cpu().tolist())
+                losses(key).extend(elem[key].detach().cpu().tolist())
             else:
-                losses.append(elem[key])
-        loss = mean(losses)
+                losses[key].append(elem[key])
+
+    for key in losses:
+        loss = mean(losses[key])
         pl_module.log(f"{mode}{sep}losses.{key}", loss, on_epoch=True, sync_dist=True, rank_zero_only=True)
 
 
@@ -267,6 +268,6 @@ def epoch_end_compute_and_log_metrics(
         metric.reset()
 
     # log metrics
-    for key in epoch_results.keypaths():
+    for key in epoch_results.keys():
         if epoch_results[key] is not None and not isinstance(epoch_results[key], (PerSampleData)):
             pl_module.log(f"{mode}{sep}{key}", epoch_results[key], on_epoch=True, sync_dist=True, rank_zero_only=True)
