@@ -41,10 +41,17 @@ def seq_translate(tokens: List[str], translate_dict: dict) -> Tuple[List[str]]:
     :param translate_dict:
     :return:
     """
-    return ([translate_dict.get(token, translate_dict[special_tokens["unknown"]]) for token in tokens],)
+    return (
+        [
+            translate_dict.get(token, translate_dict[special_tokens["unknown"]])
+            for token in tokens
+        ],
+    )
 
 
-def position_idx(tokens: Sequence[str], symbol: str = special_tokens["separator"]) -> List[int]:
+def position_idx(
+    tokens: Sequence[str], symbol: str = special_tokens["separator"]
+) -> List[int]:
     """
     Given a sequence of codes divided into groups (visits)
      by symbol ('SEP') tokens, returns a sequence of the same
@@ -62,7 +69,9 @@ def position_idx(tokens: Sequence[str], symbol: str = special_tokens["separator"
     return group_inds
 
 
-def seq_pad(tokens: Sequence[str], max_len: int, symbol: str = special_tokens["padding"]) -> List[str]:
+def seq_pad(
+    tokens: Sequence[str], max_len: int, symbol: str = special_tokens["padding"]
+) -> List[str]:
     """
     Returns a list of tokens padded by symbol to length max_len.
     :param tokens:
@@ -174,7 +183,9 @@ class TorchVocab(object):
 
 
 class Vocab(TorchVocab):
-    def __init__(self, counter: Counter, max_size: Optional[int] = None, min_freq: int = 1):
+    def __init__(
+        self, counter: Counter, max_size: Optional[int] = None, min_freq: int = 1
+    ):
         self.pad_index = 0
         self.unk_index = 1
         self.eos_index = 2
@@ -205,7 +216,12 @@ class Vocab(TorchVocab):
 
 # Building Vocab with text files
 class WordVocab(Vocab):
-    def __init__(self, texts: List[Union[List[str], str]], max_size: Optional[int] = None, min_freq: int = 1):
+    def __init__(
+        self,
+        texts: List[Union[List[str], str]],
+        max_size: Optional[int] = None,
+        min_freq: int = 1,
+    ):
         print("Building Vocab")
         counter = Counter()
         for line in tqdm.tqdm(texts):
@@ -247,7 +263,9 @@ class WordVocab(Vocab):
 
         return (seq, origin_seq_len) if with_len else seq
 
-    def from_seq(self, seq: Sequence, join: bool = False, with_pad: bool = False) -> str:
+    def from_seq(
+        self, seq: Sequence, join: bool = False, with_pad: bool = False
+    ) -> str:
         words = [
             self.itos[idx] if idx < len(self.itos) else "<%d>" % idx
             for idx in seq

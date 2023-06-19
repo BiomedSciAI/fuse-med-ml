@@ -22,7 +22,9 @@ The bare minimum that a sample is required to contain are:
 """
 
 
-def create_initial_sample(initial_sample_id: Hashable, sample_id: Optional[Hashable] = None) -> NDict:
+def create_initial_sample(
+    initial_sample_id: Hashable, sample_id: Optional[Hashable] = None
+) -> NDict:
     """
     creates an empty sample dict and sets both sample_id and initial_sample_id
     :param sample_id:
@@ -94,7 +96,9 @@ def get_initial_sample_id(sample: Dict) -> Hashable:
 ####
 
 
-def get_specific_sample_from_potentially_morphed(sample: Union[NDict, List[NDict]], sample_id: Hashable) -> NDict:
+def get_specific_sample_from_potentially_morphed(
+    sample: Union[NDict, List[NDict]], sample_id: Hashable
+) -> NDict:
     if isinstance(sample, dict):
         assert get_sample_id(sample) == sample_id
         return sample

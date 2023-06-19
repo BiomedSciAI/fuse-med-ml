@@ -65,7 +65,9 @@ class HeadDenseSegmentation(nn.Module):
 
         feature_depth = sum([conv_input[1] for conv_input in self.conv_inputs])
         if post_concat_inputs is not None:
-            feature_depth += sum([post_concat_input[1] for post_concat_input in post_concat_inputs])
+            feature_depth += sum(
+                [post_concat_input[1] for post_concat_input in post_concat_inputs]
+            )
 
         if shared_classifier_head is not None:
             self.classifier_head_module = shared_classifier_head
@@ -78,12 +80,16 @@ class HeadDenseSegmentation(nn.Module):
             )
 
     def forward(self, batch_dict: NDict) -> Dict:
-        conv_input = torch.cat([batch_dict[conv_input[0]] for conv_input in self.conv_inputs])
+        conv_input = torch.cat(
+            [batch_dict[conv_input[0]] for conv_input in self.conv_inputs]
+        )
         if self.maxpool_kernel is not None:
             conv_input = F.max_pool2d(conv_input, kernel_size=self.maxpool_kernel)
 
         logits = self.classifier_head_module(conv_input)
-        score_map = F.softmax(logits, dim=1)  # --> score_map.shape = [batch_size, 2, height, width]
+        score_map = F.softmax(
+            logits, dim=1
+        )  # --> score_map.shape = [batch_size, 2, height, width]
 
         batch_dict["model.logits." + self.head_name] = logits
         batch_dict["model.output." + self.head_name] = score_map

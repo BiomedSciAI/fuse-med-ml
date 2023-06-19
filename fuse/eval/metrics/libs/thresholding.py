@@ -10,7 +10,8 @@ class Thresholding:
 
     @staticmethod
     def apply_thresholds(
-        pred: Sequence[np.ndarray], operation_point: Union[float, Sequence[float], None] = None
+        pred: Sequence[np.ndarray],
+        operation_point: Union[float, Sequence[float], None] = None,
     ) -> Dict:
         """
         :param pred: sequence of numpy arrays / floats of shape [NUM_CLASSES]

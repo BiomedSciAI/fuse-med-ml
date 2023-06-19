@@ -7,7 +7,9 @@ from pycocotools import mask as maskUtils
 
 class MetricsInstanceSegmentaion:
     @staticmethod
-    def convert_uncompressed_RLE_COCO_type(element: Dict, height: int, width: int) -> Dict:
+    def convert_uncompressed_RLE_COCO_type(
+        element: Dict, height: int, width: int
+    ) -> Dict:
         """
         converts uncompressed RLE to COCO default type ( compressed RLE)
         :param element:  input in uncompressed Run Length Encoding (RLE - https://en.wikipedia.org/wiki/Run-length_encoding)
@@ -44,7 +46,12 @@ class MetricsInstanceSegmentaion:
         return p
 
     @staticmethod
-    def convert_to_COCO_type(input_list: Sequence[np.ndarray], height: int, width: int, segmentation_type: str) -> Dict:
+    def convert_to_COCO_type(
+        input_list: Sequence[np.ndarray],
+        height: int,
+        width: int,
+        segmentation_type: str,
+    ) -> Dict:
         """
         converts all input list to COCO default type ( compressed RLE)
         :param input_list:  list of input in any COCO format
@@ -55,15 +62,23 @@ class MetricsInstanceSegmentaion:
         """
         if segmentation_type == "uncompressed_RLE":
             output_list = [
-                MetricsInstanceSegmentaion.convert_uncompressed_RLE_COCO_type(element, height, width)
+                MetricsInstanceSegmentaion.convert_uncompressed_RLE_COCO_type(
+                    element, height, width
+                )
                 for element in input_list
             ]
         elif segmentation_type == "polygon":
             output_list = [
-                MetricsInstanceSegmentaion.convert_polygon_COCO_type(element, height, width) for element in input_list
+                MetricsInstanceSegmentaion.convert_polygon_COCO_type(
+                    element, height, width
+                )
+                for element in input_list
             ]
         elif segmentation_type == "pixel_map":
-            output_list = [MetricsInstanceSegmentaion.convert_pixel_map_COCO_type(element) for element in input_list]
+            output_list = [
+                MetricsInstanceSegmentaion.convert_pixel_map_COCO_type(element)
+                for element in input_list
+            ]
 
         return output_list
 
@@ -89,9 +104,13 @@ class MetricsInstanceSegmentaion:
         """
         # convert input format to supported in pycocotools
         if segmentation_pred_type in ["pixel_map", "uncompressed_RLE", "polygon"]:
-            pred = MetricsInstanceSegmentaion.convert_to_COCO_type(pred, height, width, segmentation_pred_type)
+            pred = MetricsInstanceSegmentaion.convert_to_COCO_type(
+                pred, height, width, segmentation_pred_type
+            )
         if segmentation_target_type in ["pixel_map", "uncompressed_RLE", "polygon"]:
-            target = MetricsInstanceSegmentaion.convert_to_COCO_type(target, height, width, segmentation_target_type)
+            target = MetricsInstanceSegmentaion.convert_to_COCO_type(
+                target, height, width, segmentation_target_type
+            )
         if segmentation_target_type == "uncompressed_RLE":
             iscrowd = list(np.ones(len(target)))
         else:

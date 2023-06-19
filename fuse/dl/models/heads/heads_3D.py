@@ -70,17 +70,25 @@ class Head3D(nn.Module):
         self.num_outputs = num_outputs
         self.append_features = append_features
         self.gmp = nn.AdaptiveMaxPool3d(output_size=1)
-        self.features_size = sum([features[1] for features in self.conv_inputs]) if self.conv_inputs is not None else 0
+        self.features_size = (
+            sum([features[1] for features in self.conv_inputs])
+            if self.conv_inputs is not None
+            else 0
+        )
 
         # calc appended feature size if used
         if self.append_features is not None:
             if len(append_layers_description) == 0:
-                self.features_size += sum([post_concat_input[1] for post_concat_input in append_features])
+                self.features_size += sum(
+                    [post_concat_input[1] for post_concat_input in append_features]
+                )
                 self.append_features_module = nn.Identity()
             else:
                 self.features_size += append_layers_description[-1]
                 self.append_features_module = ClassifierMLP(
-                    in_ch=sum([post_concat_input[1] for post_concat_input in append_features]),
+                    in_ch=sum(
+                        [post_concat_input[1] for post_concat_input in append_features]
+                    ),
                     num_classes=None,
                     layers_description=append_layers_description,
                     dropout_rate=append_dropout_rate,
@@ -99,7 +107,9 @@ class Head3D(nn.Module):
         :return: batch dict with fields model.outputs and model.logits
         """
         if self.conv_inputs is not None:
-            conv_input = torch.cat([batch_dict[conv_input[0]] for conv_input in self.conv_inputs], dim=1)
+            conv_input = torch.cat(
+                [batch_dict[conv_input[0]] for conv_input in self.conv_inputs], dim=1
+            )
             global_features = self.gmp(conv_input)
             # backward compatibility
             if hasattr(self, "do"):
@@ -107,7 +117,11 @@ class Head3D(nn.Module):
         # append global features if are used
         if self.append_features is not None:
             features = torch.cat(
-                [batch_dict[features[0]].reshape(-1, features[1]) for features in self.append_features], dim=1
+                [
+                    batch_dict[features[0]].reshape(-1, features[1])
+                    for features in self.append_features
+                ],
+                dim=1,
             )
             features = self.append_features_module(features)
             features = features.reshape(features.shape + (1, 1, 1))
@@ -119,7 +133,9 @@ class Head3D(nn.Module):
         logits = self.conv_classifier_3d(global_features)
         logits = logits.squeeze(dim=4)
         logits = logits.squeeze(dim=3)
-        logits = logits.squeeze(dim=2)  # squeeze will change the shape to  [batch_size, channels']
+        logits = logits.squeeze(
+            dim=2
+        )  # squeeze will change the shape to  [batch_size, channels']
         if self.mode == "regression":
             prediction = logits
             batch_dict["model.output." + self.head_name] = prediction

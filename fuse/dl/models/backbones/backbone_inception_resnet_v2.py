@@ -27,7 +27,9 @@ from urllib.error import URLError
 import logging
 
 
-def make_seq(foo: Callable, num: int, *args: Any, **kwargs: Dict[str, Any]) -> nn.Module:
+def make_seq(
+    foo: Callable, num: int, *args: Any, **kwargs: Dict[str, Any]
+) -> nn.Module:
     """
     Makes a sequence of blocks
     """
@@ -35,7 +37,9 @@ def make_seq(foo: Callable, num: int, *args: Any, **kwargs: Dict[str, Any]) -> n
     return nn.Sequential(*l)
 
 
-def make_final_seq(foo: Callable, num: int, *args: Any, **kwargs: Dict[str, Any]) -> nn.Module:
+def make_final_seq(
+    foo: Callable, num: int, *args: Any, **kwargs: Dict[str, Any]
+) -> nn.Module:
     """
     Makes a sequence of blocks, but passes 'final_block'= True (to cut inside final block17)
     """
@@ -56,9 +60,16 @@ class BasicConv2d(nn.Module):
     ):
         super(BasicConv2d, self).__init__()
         self.conv = nn.Conv2d(
-            in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=padding, bias=False
+            in_planes,
+            out_planes,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+            bias=False,
         )  # verify bias false
-        self.bn = nn.BatchNorm2d(out_planes, eps=0.001, momentum=0.01, affine=True)  # changed from original 0.1
+        self.bn = nn.BatchNorm2d(
+            out_planes, eps=0.001, momentum=0.01, affine=True
+        )  # changed from original 0.1
         self.relu = nn.ReLU(inplace=False)
 
     def forward(self, x: Tensor) -> Tensor:
@@ -75,7 +86,8 @@ class Mixed_5b(nn.Module):
         self.branch0 = BasicConv2d(192, 96, kernel_size=1, stride=1)
 
         self.branch1 = nn.Sequential(
-            BasicConv2d(192, 48, kernel_size=1, stride=1), BasicConv2d(48, 64, kernel_size=5, stride=1, padding=2)
+            BasicConv2d(192, 48, kernel_size=1, stride=1),
+            BasicConv2d(48, 64, kernel_size=5, stride=1, padding=2),
         )
 
         self.branch2 = nn.Sequential(
@@ -85,7 +97,8 @@ class Mixed_5b(nn.Module):
         )
 
         self.branch3 = nn.Sequential(
-            nn.AvgPool2d(3, stride=1, padding=1, count_include_pad=False), BasicConv2d(192, 64, kernel_size=1, stride=1)
+            nn.AvgPool2d(3, stride=1, padding=1, count_include_pad=False),
+            BasicConv2d(192, 64, kernel_size=1, stride=1),
         )
 
     def forward(self, x: Tensor) -> Tensor:
@@ -106,7 +119,8 @@ class Block35(nn.Module):
         self.branch0 = BasicConv2d(320, 32, kernel_size=1, stride=1)
 
         self.branch1 = nn.Sequential(
-            BasicConv2d(320, 32, kernel_size=1, stride=1), BasicConv2d(32, 32, kernel_size=3, stride=1, padding=1)
+            BasicConv2d(320, 32, kernel_size=1, stride=1),
+            BasicConv2d(32, 32, kernel_size=3, stride=1, padding=1),
         )
 
         self.branch2 = nn.Sequential(
@@ -152,7 +166,12 @@ class Mixed_6a(nn.Module):
 
 
 class Block17(nn.Module):
-    def __init__(self, scale: float = 1.0, final_block: bool = False, intra_block_cut_level: int = 384):
+    def __init__(
+        self,
+        scale: float = 1.0,
+        final_block: bool = False,
+        intra_block_cut_level: int = 384,
+    ):
         super(Block17, self).__init__()
 
         self.scale = scale
@@ -190,11 +209,13 @@ class Mixed_7a(nn.Module):
         super(Mixed_7a, self).__init__()
 
         self.branch0 = nn.Sequential(
-            BasicConv2d(1088, 256, kernel_size=1, stride=1), BasicConv2d(256, 384, kernel_size=3, stride=2)
+            BasicConv2d(1088, 256, kernel_size=1, stride=1),
+            BasicConv2d(256, 384, kernel_size=3, stride=2),
         )
 
         self.branch1 = nn.Sequential(
-            BasicConv2d(1088, 256, kernel_size=1, stride=1), BasicConv2d(256, 288, kernel_size=3, stride=2)
+            BasicConv2d(1088, 256, kernel_size=1, stride=1),
+            BasicConv2d(256, 288, kernel_size=3, stride=2),
         )
 
         self.branch2 = nn.Sequential(
@@ -272,7 +293,9 @@ class BackboneInceptionResnetV2(nn.Module):
         self.feature_depth = 96 + 64 + 96 + 64
 
         if self.logical_units_num >= 1:
-            self.repeat = make_seq(Block35, min(self.logical_units_num - 1 + 1, 10), scale=0.17)
+            self.repeat = make_seq(
+                Block35, min(self.logical_units_num - 1 + 1, 10), scale=0.17
+            )
             self.feature_depth = 320
 
         if self.logical_units_num >= 11:
@@ -290,7 +313,9 @@ class BackboneInceptionResnetV2(nn.Module):
                 self.feature_depth = self.intra_block_cut_level
 
             else:
-                self.repeat_1 = make_seq(Block17, min(self.logical_units_num - 12 + 1, 20), scale=0.10)
+                self.repeat_1 = make_seq(
+                    Block17, min(self.logical_units_num - 12 + 1, 20), scale=0.10
+                )
                 self.feature_depth = 1088
 
         if self.logical_units_num >= 32:
@@ -298,7 +323,9 @@ class BackboneInceptionResnetV2(nn.Module):
             self.feature_depth = 384 + 288 + 320 + 1088
 
         if self.logical_units_num >= 33:
-            self.repeat_2 = make_seq(Block8, min(self.logical_units_num - 33 + 1, 9), scale=0.20)
+            self.repeat_2 = make_seq(
+                Block8, min(self.logical_units_num - 33 + 1, 9), scale=0.20
+            )
             self.feature_depth = 2080
 
         if self.logical_units_num >= 42:
@@ -323,7 +350,9 @@ class BackboneInceptionResnetV2(nn.Module):
 
         # recreate the first conv with the required number of input parameters
         if input_channels_num != 3:
-            self.conv2d_1a = BasicConv2d(input_channels_num, 32, kernel_size=3, stride=2)
+            self.conv2d_1a = BasicConv2d(
+                input_channels_num, 32, kernel_size=3, stride=2
+            )
 
     def features(self, input_tensor: Tensor) -> Tensor:
         x = self.conv2d_1a(input_tensor)

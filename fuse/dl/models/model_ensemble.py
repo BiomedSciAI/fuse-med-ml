@@ -64,7 +64,9 @@ class ModelEnsemble(torch.nn.Module):
             for pred in ensemble_pred:
                 accumulate_prediction.append(pred[key])
             accumulate_prediction = torch.stack(accumulate_prediction)
-            ensemble_avg_dict[key + "_ensemble_average"] = torch.mean(accumulate_prediction, dim=0)
+            ensemble_avg_dict[key + "_ensemble_average"] = torch.mean(
+                accumulate_prediction, dim=0
+            )
         return ensemble_avg_dict
 
     def calculate_ensemble_majority_vote(self, ensemble_pred: List[Dict]) -> Dict:
@@ -76,19 +78,27 @@ class ModelEnsemble(torch.nn.Module):
             for pred in ensemble_pred:
                 accumulate_prediction.append(torch.argmax(pred[key], dim=-1))
             accumulate_prediction = torch.stack(accumulate_prediction)
-            unique_val, unique_count = torch.unique(accumulate_prediction, dim=0, return_counts=True)
-            ensemble_majority_dict[key + "_ensemble_majority_vote"] = unique_val[torch.argmax(unique_count)]
+            unique_val, unique_count = torch.unique(
+                accumulate_prediction, dim=0, return_counts=True
+            )
+            ensemble_majority_dict[key + "_ensemble_majority_vote"] = unique_val[
+                torch.argmax(unique_count)
+            ]
         return ensemble_majority_dict
 
     def forward(self, batch_dict: Dict) -> Dict:
         ensemble_model_dict = {"output": {}}
         ensemble_pred = []
         for ensemble_idx, ensemble_net in enumerate(self.nets):
-            ensemble_model_dict["output"]["ensemble_output_" + str(ensemble_idx)] = copy.deepcopy(
-                ensemble_net(batch_dict)["output"]
+            ensemble_model_dict["output"][
+                "ensemble_output_" + str(ensemble_idx)
+            ] = copy.deepcopy(ensemble_net(batch_dict)["output"])
+            ensemble_pred.append(
+                ensemble_model_dict["output"]["ensemble_output_" + str(ensemble_idx)]
             )
-            ensemble_pred.append(ensemble_model_dict["output"]["ensemble_output_" + str(ensemble_idx)])
         ensemble_model_dict["output"].update(self.calculate_ensemble_avg(ensemble_pred))
-        ensemble_model_dict["output"].update(self.calculate_ensemble_majority_vote(ensemble_pred))
+        ensemble_model_dict["output"].update(
+            self.calculate_ensemble_majority_vote(ensemble_pred)
+        )
         batch_dict["model"] = ensemble_model_dict
         return batch_dict

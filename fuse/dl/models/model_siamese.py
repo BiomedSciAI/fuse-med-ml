@@ -55,11 +55,19 @@ class ModelSiamese(ModelMultiHead):
         self.conv_inputs_1 = conv_inputs_1
 
     def forward(self, batch_dict: NDict) -> Dict:
-        backbone_input_0 = [batch_dict[conv_input[0]] for conv_input in self.conv_inputs_0]  # [batch,channels(1),h,w]
-        backbone_input_1 = [batch_dict[conv_input[0]] for conv_input in self.conv_inputs_1]  # [batch,channels(1),h,w]
+        backbone_input_0 = [
+            batch_dict[conv_input[0]] for conv_input in self.conv_inputs_0
+        ]  # [batch,channels(1),h,w]
+        backbone_input_1 = [
+            batch_dict[conv_input[0]] for conv_input in self.conv_inputs_1
+        ]  # [batch,channels(1),h,w]
 
-        backbone_features_0 = self.backbone.forward(torch.stack(backbone_input_0, dim=1))  # batch, features, h', w'
-        backbone_features_1 = self.backbone.forward(torch.stack(backbone_input_1, dim=1))  # batch, features, h', w'
+        backbone_features_0 = self.backbone.forward(
+            torch.stack(backbone_input_0, dim=1)
+        )  # batch, features, h', w'
+        backbone_features_1 = self.backbone.forward(
+            torch.stack(backbone_input_1, dim=1)
+        )  # batch, features, h', w'
 
         backbone_features = torch.cat([backbone_features_0, backbone_features_1], dim=1)
 

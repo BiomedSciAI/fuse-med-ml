@@ -51,8 +51,12 @@ class PipelineDefault(OpReversibleBase):
         if op_ids is None:
             self._op_ids = [str(index) for index in range(len(self._ops_and_kwargs))]
         else:
-            assert len(self._ops_and_kwargs) == len(op_ids), "Expecting op_id for every op"
-            assert len(set(op_ids)) == len(op_ids), "Expecting unique op id for every op."
+            assert len(self._ops_and_kwargs) == len(
+                op_ids
+            ), "Expecting op_id for every op"
+            assert len(set(op_ids)) == len(
+                op_ids
+            ), "Expecting unique op id for every op."
             self._op_ids = op_ids
         self._verbose = verbose
 
@@ -69,18 +73,27 @@ class PipelineDefault(OpReversibleBase):
         self_copy._op_ids = copy.copy(self_copy._op_ids)
         return self_copy
 
-    def extend(self, ops_and_kwargs: List[Tuple[OpBase, dict]], op_ids: Optional[List[str]] = None) -> None:
+    def extend(
+        self,
+        ops_and_kwargs: List[Tuple[OpBase, dict]],
+        op_ids: Optional[List[str]] = None,
+    ) -> None:
         """
         Extends pipeline
         :param ops_and_args: Ops to append, List of tuples. Each tuple include op and dictionary includes op specific arguments.
         :param op_ids: Optional, set op_id - unique name for every op. If not set, an index will be used
         """
         if op_ids is None:
-            op_ids = [str(index + len(self._ops_and_kwargs)) for index in range(len(ops_and_kwargs))]
+            op_ids = [
+                str(index + len(self._ops_and_kwargs))
+                for index in range(len(ops_and_kwargs))
+            ]
         else:
             assert len(ops_and_kwargs) == len(op_ids), "Expecting op_id for every op"
             all_op_ids = self._op_ids + op_ids
-            assert len(set(all_op_ids)) == len(all_op_ids), "Expecting unique op id for every op."
+            assert len(set(all_op_ids)) == len(
+                all_op_ids
+            ), "Expecting unique op id for every op."
 
         self._ops_and_kwargs.extend(ops_and_kwargs)
         self._op_ids.extend(op_ids)
@@ -92,11 +105,21 @@ class PipelineDefault(OpReversibleBase):
         text = []
         for (op_id, op_kwargs) in zip(self._op_ids, self._ops_and_kwargs):
             op, kwargs = op_kwargs
-            text.append(str(op_id) + "@" + op.get_hashable_string_representation() + "@" + str(kwargs) + "@")
+            text.append(
+                str(op_id)
+                + "@"
+                + op.get_hashable_string_representation()
+                + "@"
+                + str(kwargs)
+                + "@"
+            )
         return "".join(text)  # this is faster than accumulate_str+=new_str
 
     def __call__(
-        self, sample_dict: NDict, op_id: Optional[str] = None, until_op_id: Optional[str] = None
+        self,
+        sample_dict: NDict,
+        op_id: Optional[str] = None,
+        until_op_id: Optional[str] = None,
     ) -> Union[None, dict, List[dict]]:
         """
         See super class
@@ -110,7 +133,10 @@ class PipelineDefault(OpReversibleBase):
         samples_to_process = [sample_dict]
         for sub_op_id, (op, op_kwargs) in zip(self._op_ids, self._ops_and_kwargs):
             if self._verbose:
-                context = Timer(f"Pipeline {self._name}: op {type(op).__name__}, op_id {sub_op_id}", self._verbose)
+                context = Timer(
+                    f"Pipeline {self._name}: op {type(op).__name__}, op_id {sub_op_id}",
+                    self._verbose,
+                )
             else:
                 context = DummyContext()
             with context:
@@ -131,7 +157,9 @@ class PipelineDefault(OpReversibleBase):
                     elif isinstance(sample, dict):
                         samples_to_process_next.append(sample)
                     else:
-                        raise Exception(f"unexpected sample type returned by {type(op)}: {type(sample)}")
+                        raise Exception(
+                            f"unexpected sample type returned by {type(op)}: {type(sample)}"
+                        )
 
             # continue to process with next op
             samples_to_process = samples_to_process_next
@@ -146,7 +174,13 @@ class PipelineDefault(OpReversibleBase):
         else:
             return samples_to_process
 
-    def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str] = None) -> dict:
+    def reverse(
+        self,
+        sample_dict: NDict,
+        key_to_reverse: str,
+        key_to_follow: str,
+        op_id: Optional[str] = None,
+    ) -> dict:
         """
         See super class
         """
@@ -154,7 +188,11 @@ class PipelineDefault(OpReversibleBase):
         if op_id is None:
             op_id = f"internal.{self._name}"
 
-        for sub_op_id, (op, _) in zip(reversed(self._op_ids), reversed(self._ops_and_kwargs)):
-            sample_dict = op_reverse(op, sample_dict, f"{op_id}.{sub_op_id}", key_to_reverse, key_to_follow)
+        for sub_op_id, (op, _) in zip(
+            reversed(self._op_ids), reversed(self._ops_and_kwargs)
+        ):
+            sample_dict = op_reverse(
+                op, sample_dict, f"{op_id}.{sub_op_id}", key_to_reverse, key_to_follow
+            )
 
         return sample_dict

@@ -6,7 +6,12 @@ from fuse.utils.ndict import NDict
 from fuse.data.ops.op_base import OpBase, OpReversibleBase, op_call, op_reverse
 from fuse.data import create_initial_sample
 from fuse.data import OpRepeat
-from fuse.data.ops.ops_aug_common import OpRandApply, OpSample, OpSampleAndRepeat, OpRepeatAndSample
+from fuse.data.ops.ops_aug_common import (
+    OpRandApply,
+    OpSample,
+    OpSampleAndRepeat,
+    OpRepeatAndSample,
+)
 from fuse.utils.rand.param_sampler import Choice, RandBool, RandInt, Uniform
 from fuse.utils import Seed
 
@@ -15,10 +20,18 @@ class OpArgsForTest(OpReversibleBase):
     def __init__(self) -> None:
         super().__init__()
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs: dict) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, op_id: Optional[str], **kwargs: dict
+    ) -> Union[None, dict, List[dict]]:
         return {"op_id": op_id, "kwargs": kwargs}
 
-    def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
+    def reverse(
+        self,
+        sample_dict: NDict,
+        key_to_reverse: str,
+        key_to_follow: str,
+        op_id: Optional[str],
+    ) -> dict:
         return {"op_id": op_id}
 
 
@@ -72,13 +85,29 @@ class TestOpsAugCommon(unittest.TestCase):
     def test_op_sample_and_repeat(self) -> None:
         Seed.set_seed(1337)
         sample_1 = create_initial_sample(0)
-        op = OpSampleAndRepeat(OpBasicSetter(), [dict(key="data.input.img"), dict(key="data.gt.seg")])
-        sample_1 = op_call(op, sample_1, op_id="testing_sample_and_repeat", set_key_to_val=Uniform(3.0, 6.0))
+        op = OpSampleAndRepeat(
+            OpBasicSetter(), [dict(key="data.input.img"), dict(key="data.gt.seg")]
+        )
+        sample_1 = op_call(
+            op,
+            sample_1,
+            op_id="testing_sample_and_repeat",
+            set_key_to_val=Uniform(3.0, 6.0),
+        )
 
         Seed.set_seed(1337)
         sample_2 = create_initial_sample(0)
-        op = OpSample(OpRepeat(OpBasicSetter(), [dict(key="data.input.img"), dict(key="data.gt.seg")]))
-        sample_2 = op_call(op, sample_2, op_id="testing_sample_and_repeat", set_key_to_val=Uniform(3.0, 6.0))
+        op = OpSample(
+            OpRepeat(
+                OpBasicSetter(), [dict(key="data.input.img"), dict(key="data.gt.seg")]
+            )
+        )
+        sample_2 = op_call(
+            op,
+            sample_2,
+            op_id="testing_sample_and_repeat",
+            set_key_to_val=Uniform(3.0, 6.0),
+        )
 
         self.assertEqual(sample_1["data.input.img"], sample_1["data.gt.seg"])
         self.assertEqual(sample_1["data.input.img"], sample_2["data.input.img"])
@@ -86,8 +115,15 @@ class TestOpsAugCommon(unittest.TestCase):
     def test_op_repeat_and_sample(self) -> None:
         Seed.set_seed(1337)
         sample_1 = create_initial_sample(0)
-        op = OpRepeatAndSample(OpBasicSetter(), [dict(key="data.input.img"), dict(key="data.gt.seg")])
-        sample_1 = op_call(op, sample_1, op_id="testing_sample_and_repeat", set_key_to_val=Uniform(3.0, 6.0))
+        op = OpRepeatAndSample(
+            OpBasicSetter(), [dict(key="data.input.img"), dict(key="data.gt.seg")]
+        )
+        sample_1 = op_call(
+            op,
+            sample_1,
+            op_id="testing_sample_and_repeat",
+            set_key_to_val=Uniform(3.0, 6.0),
+        )
 
         Seed.set_seed(1337)
         sample_2 = create_initial_sample(0)
@@ -97,7 +133,12 @@ class TestOpsAugCommon(unittest.TestCase):
             ),
             [dict(key="data.input.img"), dict(key="data.gt.seg")],
         )
-        sample_2 = op_call(op, sample_2, op_id="testing_sample_and_repeat", set_key_to_val=Uniform(3.0, 6.0))
+        sample_2 = op_call(
+            op,
+            sample_2,
+            op_id="testing_sample_and_repeat",
+            set_key_to_val=Uniform(3.0, 6.0),
+        )
 
         self.assertEqual(sample_1["data.input.img"], sample_2["data.input.img"])
         self.assertEqual(sample_1["data.gt.seg"], sample_2["data.gt.seg"])

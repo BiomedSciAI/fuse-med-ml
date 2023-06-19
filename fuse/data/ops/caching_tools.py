@@ -9,7 +9,11 @@ import hashlib
 
 
 def get_function_call_str(
-    func: Callable, *_args: list, _ignore_kwargs_names: List = None, _include_code: bool = True, **_kwargs: dict
+    func: Callable,
+    *_args: list,
+    _ignore_kwargs_names: List = None,
+    _include_code: bool = True,
+    **_kwargs: dict,
 ) -> str:
     """
     Converts a function and its kwargs into a hash value which can be used for caching.
@@ -40,12 +44,16 @@ def get_function_call_str(
     args_flat_str = func.__name__ + "@"
     use_keys = [k for k in sorted(kwargs.keys()) if k not in _ignore_kwargs_names]
     # ignore_kwargs_names
-    args_flat_str += "@".join(["{}@{}".format(str(k), value_to_string(kwargs[k])) for k in use_keys])
+    args_flat_str += "@".join(
+        ["{}@{}".format(str(k), value_to_string(kwargs[k])) for k in use_keys]
+    )
     args_flat_str += "@" + str(
         inspect.getmodule(func)
     )  # adding full (including scope) name of the function, for the case of multiple functions with the same name
     if _include_code:
-        args_flat_str += "@" + inspect.getsource(func)  # considering the source code (first level of it...)
+        args_flat_str += "@" + inspect.getsource(
+            func
+        )  # considering the source code (first level of it...)
 
     return args_flat_str
 
@@ -67,14 +75,20 @@ def value_to_string(val: Any, warn_on_types: Optional[Sequence] = None) -> str:
     return str(val)
 
 
-def convert_func_call_into_kwargs_only(func: Callable, *args: list, **kwargs: dict) -> dict:
+def convert_func_call_into_kwargs_only(
+    func: Callable, *args: list, **kwargs: dict
+) -> dict:
     """
     considers positional and kwargs (including their default values !)
     and converts into ONLY kwargs
     """
     signature = inspect.signature(func)
 
-    my_kwargs = {k: v.default for k, v in signature.parameters.items() if v.default is not inspect.Parameter.empty}
+    my_kwargs = {
+        k: v.default
+        for k, v in signature.parameters.items()
+        if v.default is not inspect.Parameter.empty
+    }
 
     # convert positional args into kwargs
     # uses the fact that zip stops on the smallest length ( so only as much as len(args))
@@ -128,7 +142,9 @@ def get_callers_string_description(
         curr_locals = None
         # note: frame 0 is this function, frame 1 is whoever called this (and wanted to know about its callers),
         # so both frames 0+1 are skipped.
-        for i in range(ignore_first_frames, min(len(curr_stack), max_look_up + ignore_first_frames)):
+        for i in range(
+            ignore_first_frames, min(len(curr_stack), max_look_up + ignore_first_frames)
+        ):
             curr_locals = curr_stack[i].frame.f_locals
             if expected_class is not None:
                 if "self" not in curr_locals:
@@ -142,7 +158,9 @@ def get_callers_string_description(
 
             curr_str = ".".join(
                 [
-                    str(curr_locals["self"].__module__),  # module is probably not needed as class already contains it
+                    str(
+                        curr_locals["self"].__module__
+                    ),  # module is probably not needed as class already contains it
                     str(curr_locals["self"].__class__),
                     str(curr_stack[i].function),
                 ]

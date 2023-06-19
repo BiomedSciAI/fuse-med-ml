@@ -110,7 +110,13 @@ def _run_multiprocessed_as_iterator_impl(
         :param mp_context: "fork", "spawn", "thread" or None for multiprocessing default
         :param maxtasksperchild: the maximum number of tasks that a worker process/thread is allowed to do before it is destroyed (and a new one is created instead of it)
     """
-    if "DEBUG_SINGLE_PROCESS" in os.environ and os.environ["DEBUG_SINGLE_PROCESS"] in ["T", "t", "True", "true", 1]:
+    if "DEBUG_SINGLE_PROCESS" in os.environ and os.environ["DEBUG_SINGLE_PROCESS"] in [
+        "T",
+        "t",
+        "True",
+        "true",
+        1,
+    ]:
         workers = None
         cprint(
             "Due to the env variable DEBUG_SINGLE_PROCESS being set, run_multiprocessed is not using multiprocessing",
@@ -119,7 +125,10 @@ def _run_multiprocessed_as_iterator_impl(
 
     if FuseDebug().get_setting("multiprocessing") == "main_process":
         workers = None
-        cprint("Due to the FuseDebug mode, run_multiprocessed is not using multiprocessing", "red")
+        cprint(
+            "Due to the FuseDebug mode, run_multiprocessed is not using multiprocessing",
+            "red",
+        )
 
     assert callable(worker_func)
 
@@ -175,7 +184,10 @@ def _run_multiprocessed_as_iterator_impl(
                 cprint(f"multiprocess pool created with {workers} workers.", "cyan")
             map_func = pool.imap if keep_results_order else pool.imap_unordered
             for curr_ans in tqdm_func(
-                map_func(worker_func, args_list), total=args_num, smoothing=0.1, disable=verbose < 1
+                map_func(worker_func, args_list),
+                total=args_num,
+                smoothing=0.1,
+                disable=verbose < 1,
             ):
                 yield curr_ans
 
@@ -253,7 +265,9 @@ class Process(ctx.Process):
         return (None, None)
 
 
-def run_in_subprocess(f: Callable, *args: list, timeout: int = 600, **kwargs: dict) -> Any:
+def run_in_subprocess(
+    f: Callable, *args: list, timeout: int = 600, **kwargs: dict
+) -> Any:
     """A decorator that makes function run in a subprocess.
     This can be useful when you want allocate GPU and memory and to release it when you're done.
     :param f: the function to run in a subprocess

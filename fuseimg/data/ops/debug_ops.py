@@ -12,7 +12,13 @@ def no_op(input_tensor: Tensor) -> Tensor:
 
 
 def draw_grid_3d_op(
-    input_tensor, start_slice=0, end_slice=None, line_color=255, thickness=10, type_=cv2.LINE_4, pxstep=50
+    input_tensor,
+    start_slice=0,
+    end_slice=None,
+    line_color=255,
+    thickness=10,
+    type_=cv2.LINE_4,
+    pxstep=50,
 ):
     """
     Draws a grid pattern.

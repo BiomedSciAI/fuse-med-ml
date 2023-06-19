@@ -83,7 +83,9 @@ class OpReadDataframe(OpBase):
             df = df.set_index(self._key_column)
         self._data = df.to_dict(orient="index")
 
-    def __call__(self, sample_dict: NDict, prefix: Optional[str] = None) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, prefix: Optional[str] = None
+    ) -> Union[None, dict, List[dict]]:
         """
         See base class
 

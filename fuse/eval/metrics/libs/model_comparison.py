@@ -197,22 +197,36 @@ class ModelComparison:
         # covariance matrix
         S10 = (1.0 / (m - 1)) * np.array(
             [
-                [np.linalg.norm(V10_1 - emp_auc_1) ** 2, (V10_1 - emp_auc_1).dot(V10_2 - emp_auc_2)],
-                [(V10_2 - emp_auc_2).dot(V10_1 - emp_auc_1), np.linalg.norm(V10_2 - emp_auc_2) ** 2],
+                [
+                    np.linalg.norm(V10_1 - emp_auc_1) ** 2,
+                    (V10_1 - emp_auc_1).dot(V10_2 - emp_auc_2),
+                ],
+                [
+                    (V10_2 - emp_auc_2).dot(V10_1 - emp_auc_1),
+                    np.linalg.norm(V10_2 - emp_auc_2) ** 2,
+                ],
             ]
         )
 
         S01 = (1.0 / (n - 1)) * np.array(
             [
-                [np.linalg.norm(V01_1 - emp_auc_1) ** 2, (V01_1 - emp_auc_1).dot(V01_2 - emp_auc_2)],
-                [(V01_2 - emp_auc_2).dot(V01_1 - emp_auc_1), np.linalg.norm(V01_2 - emp_auc_2) ** 2],
+                [
+                    np.linalg.norm(V01_1 - emp_auc_1) ** 2,
+                    (V01_1 - emp_auc_1).dot(V01_2 - emp_auc_2),
+                ],
+                [
+                    (V01_2 - emp_auc_2).dot(V01_1 - emp_auc_1),
+                    np.linalg.norm(V01_2 - emp_auc_2) ** 2,
+                ],
             ]
         )
 
         S = (1.0 / m) * S10 + (1.0 / n) * S01
 
         # z-score:
-        z = (emp_auc_1 - emp_auc_2) / ((S[0, 0] + S[1, 1] - 2 * S[0, 1]) ** 0.5 + np.finfo(float).eps)
+        z = (emp_auc_1 - emp_auc_2) / (
+            (S[0, 0] + S[1, 1] - 2 * S[0, 1]) ** 0.5 + np.finfo(float).eps
+        )
 
         # p-value:
         p_value = 2 * scipy.stats.norm.sf(abs(z), loc=0, scale=1)
@@ -277,7 +291,9 @@ class ModelComparison:
         if target is not None:
             pred1_correct = pred1 == target
             pred2_correct = pred2 == target
-            contingency_table = ModelComparison.contingency_table(pred1_correct, pred2_correct)
+            contingency_table = ModelComparison.contingency_table(
+                pred1_correct, pred2_correct
+            )
         else:
             contingency_table = ModelComparison.contingency_table(pred1, pred2)
 

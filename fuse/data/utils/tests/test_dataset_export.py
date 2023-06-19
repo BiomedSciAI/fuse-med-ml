@@ -33,7 +33,11 @@ from fuse.data.pipelines.pipeline_default import PipelineDefault
 class TestDatasetExport(unittest.TestCase):
     def test_export_to_dataframe(self) -> None:
         # data info
-        data = {"sample_id": ["a", "b", "c", "d", "e"], "values": [7, 4, 9, 2, 4], "not_important": [12] * 5}
+        data = {
+            "sample_id": ["a", "b", "c", "d", "e"],
+            "values": [7, 4, 9, 2, 4],
+            "not_important": [12] * 5,
+        }
         df = pds.DataFrame(data)
 
         # create simple pipeline
@@ -54,7 +58,9 @@ class TestDatasetExport(unittest.TestCase):
 
         # export dataset - including save
         _, filename = mkstemp(suffix=".gz")
-        _ = ExportDataset.export_to_dataframe(dataset, ["values"], output_filename=filename)
+        _ = ExportDataset.export_to_dataframe(
+            dataset, ["values"], output_filename=filename
+        )
         export_df = read_dataframe(filename)
         export_df = export_df.set_index("data.sample_id")
         for sid in data["sample_id"]:

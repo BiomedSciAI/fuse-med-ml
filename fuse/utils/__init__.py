@@ -7,7 +7,13 @@ import pandas as pd
 from fuse.utils.ndict import NDict
 from fuse.utils.data.collate import CollateToBatchList, uncollate
 
-from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool, Choice, draw_samples_recursively
+from fuse.utils.rand.param_sampler import (
+    Uniform,
+    RandInt,
+    RandBool,
+    Choice,
+    draw_samples_recursively,
+)
 from fuse.utils.rand.seed import Seed
 
 set_seed = Seed.set_seed

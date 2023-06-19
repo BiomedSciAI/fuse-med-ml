@@ -9,7 +9,7 @@ paths:
   data_split_filename:  split.pkl
   data_dir :  ${oc.env:PICAI_DATA_PATH}/images
   seg_dir : ${oc.env:PICAI_DATA_PATH}/labels/picai_labels-main/anatomical_delineations/whole_gland/AI/Bosma22b
-run: 
+run:
   running_modes : ['train', 'infer', 'eval']
 train:
   target : seg3d #might later be used to change between different possible tasks in this dataset
@@ -34,7 +34,7 @@ train:
     strides : [[2, 2, 2], [1, 2, 2], [1, 2, 2], [1, 2, 2], [2, 2, 2]]
     channels : [32, 64, 128, 256, 512, 1024]
     in_channels : 1
-    out_channels : 2 
+    out_channels : 2
     num_res_units: 2
     spatial_dims : 3
   aug_params:
