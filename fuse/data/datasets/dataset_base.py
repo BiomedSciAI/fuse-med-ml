@@ -40,7 +40,10 @@ class DatasetBase(Dataset):
 
     @abstractmethod
     def get_multi(
-        self, items: Optional[Sequence[Union[int, Hashable]]] = None, *args: list, **kwargs: dict
+        self,
+        items: Optional[Sequence[Union[int, Hashable]]] = None,
+        *args: list,
+        **kwargs: dict
     ) -> List[Dict]:
         """
         Get multiple items, optionally just some of the keys

@@ -34,7 +34,9 @@ class OpFakeLoad(OpBase):
     def __init__(self) -> None:
         super().__init__()
 
-    def __call__(self, sample_dict: NDict, **kwargs: dict) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, **kwargs: dict
+    ) -> Union[None, dict, List[dict]]:
         sid = get_sample_id(sample_dict)
         if "case_1" == sid:
             sample_dict.merge(_generate_sample_1())
@@ -111,7 +113,14 @@ class TestSampleCaching(unittest.TestCase):
             (OpFakeLoad(), {}),  ###just doubled it to change the pipeline hash
         ]
         pl = PipelineDefault("example_pipeline", pipeline_desc)
-        self.assertRaises(Exception, SamplesCacher, "unittests_cache", pl, cache_dirs, restart_cache=False)
+        self.assertRaises(
+            Exception,
+            SamplesCacher,
+            "unittests_cache",
+            pl,
+            cache_dirs,
+            restart_cache=False,
+        )
 
     def tearDown(self) -> None:
         pass

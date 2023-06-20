@@ -18,7 +18,16 @@ Created on June 30, 2021
 """
 
 import os
-from typing import Dict, Hashable, Iterable, List, Optional, OrderedDict, Sequence, Union
+from typing import (
+    Dict,
+    Hashable,
+    Iterable,
+    List,
+    Optional,
+    OrderedDict,
+    Sequence,
+    Union,
+)
 import pickle
 import pandas as pd
 import numpy as np
@@ -93,12 +102,16 @@ class EvaluatorDefault:
         self.silent = silent
 
         if ids is not None:
-            ids_df = pd.DataFrame(ids, columns=[id_key]).set_index(id_key)  # use the specified samples
+            ids_df = pd.DataFrame(ids, columns=[id_key]).set_index(
+                id_key
+            )  # use the specified samples
         else:
             ids_df = None  # use all samples
 
         if batch_size is None:
-            data_df = self.read_data(data, ids_df, id_key=id_key, error_missing_ids=error_missing_ids)
+            data_df = self.read_data(
+                data, ids_df, id_key=id_key, error_missing_ids=error_missing_ids
+            )
             data_df["id"] = data_df[id_key]
             ids = data_df["id"].values.tolist()
             # pass data
@@ -131,7 +144,9 @@ class EvaluatorDefault:
                             metric.collect(batch)
         else:
             # data is iterable - each iteration is batch dict (each used element in dict should have batch dimension or list of size batch size)
-            assert isinstance(data, Iterable), "Error: batch mode (batch_size != None) supports only iterable data"
+            assert isinstance(
+                data, Iterable
+            ), "Error: batch mode (batch_size != None) supports only iterable data"
             data_iter = iter(data)
             while True:
                 try:
@@ -162,7 +177,12 @@ class EvaluatorDefault:
             pd.DataFrame,
             Sequence[str],
             Sequence[pd.DataFrame],
-            Dict[str, Union[str, pd.DataFrame, Sequence[str], Sequence[pd.DataFrame], Iterable]],
+            Dict[
+                str,
+                Union[
+                    str, pd.DataFrame, Sequence[str], Sequence[pd.DataFrame], Iterable
+                ],
+            ],
         ],
         ids_df: pd.DataFrame,
         id_key: str,
@@ -195,10 +215,14 @@ class EvaluatorDefault:
                 )
             result_data = result_data.set_index(keys=id_key, drop=False)
 
-        elif isinstance(data, Sequence) and isinstance(data[0], (str, pd.DataFrame)):  # data is a sequence of folds
+        elif isinstance(data, Sequence) and isinstance(
+            data[0], (str, pd.DataFrame)
+        ):  # data is a sequence of folds
             data_lst = []
             for fold, data_elem in enumerate(data):
-                data_elem_df = self.read_data(data_elem, ids_df, error_missing_ids=False, id_key=id_key)
+                data_elem_df = self.read_data(
+                    data_elem, ids_df, error_missing_ids=False, id_key=id_key
+                )
                 # add "fold" number to dataframe
                 data_elem_df["evaluator_fold"] = fold
                 data_lst.append(data_elem_df)
@@ -267,14 +291,18 @@ class EvaluatorDefault:
             # make sure all ids exists
             if error_missing_ids and len(ids_df) > len(result_data):
                 missing_ids = set(ids_df.index) - set(result_data.index)
-                raise Exception(f"Error: missing samples in evaluation (missing_ids={missing_ids}")
+                raise Exception(
+                    f"Error: missing samples in evaluation (missing_ids={missing_ids}"
+                )
 
         # raise error if the same id exist more than once
         if error_duplicate:
             duplicated = result_data.index.duplicated(keep=False)
             duplications = result_data.loc[duplicated].index.unique()
             if not duplications.empty:
-                raise Exception(f"Error: found duplicated ids in data: {list(duplications)}")
+                raise Exception(
+                    f"Error: found duplicated ids in data: {list(duplications)}"
+                )
 
         return result_data
 

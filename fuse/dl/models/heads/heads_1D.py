@@ -69,12 +69,16 @@ class Head1D(nn.Module):
 
         if append_features is not None:
             if len(append_layers_description) == 0:
-                self.features_size += sum([post_concat_input[1] for post_concat_input in append_features])
+                self.features_size += sum(
+                    [post_concat_input[1] for post_concat_input in append_features]
+                )
                 self.append_features_module = nn.Identity()
             else:
                 self.features_size += append_layers_description[-1]
                 self.append_features_module = ClassifierMLP(
-                    in_ch=sum([post_concat_input[1] for post_concat_input in append_features]),
+                    in_ch=sum(
+                        [post_concat_input[1] for post_concat_input in append_features]
+                    ),
                     num_classes=None,
                     layers_description=append_layers_description,
                     dropout_rate=append_dropout_rate,
@@ -89,11 +93,18 @@ class Head1D(nn.Module):
 
     def forward(self, batch_dict: Dict) -> Dict:
 
-        conv_input = torch.cat([batch_dict[conv_input[0]] for conv_input in self.conv_inputs], dim=1)
+        conv_input = torch.cat(
+            [batch_dict[conv_input[0]] for conv_input in self.conv_inputs], dim=1
+        )
         global_features = conv_input
 
         if self.append_features is not None:
-            features = torch.cat([batch_dict[append_feature[0]] for append_feature in self.append_features])
+            features = torch.cat(
+                [
+                    batch_dict[append_feature[0]]
+                    for append_feature in self.append_features
+                ]
+            )
             features = self.append_features_module(features)
             features = features.reshape(features.shape + (1, 1, 1))
             if self.conv_inputs is not None:
@@ -104,7 +115,9 @@ class Head1D(nn.Module):
             prediction = self.head_module(global_features).squeeze(dim=1)
             batch_dict["model.output." + self.head_name] = prediction
         else:
-            logits = self.head_module(global_features)  # --> res.shape = [batch_size, 2, 1, 1]
+            logits = self.head_module(
+                global_features
+            )  # --> res.shape = [batch_size, 2, 1, 1]
 
             cls_preds = F.softmax(logits, dim=1)
 

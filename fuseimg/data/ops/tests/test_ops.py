@@ -23,7 +23,14 @@ class TestOps(unittest.TestCase):
             "test_pipeline",
             [
                 (OpClip(), dict(key="data.input.img", clip=(-0.5, 3.0))),
-                (OpToRange(), dict(key="data.input.img", from_range=(-0.5, 3.0), to_range=(-3.5, 3.5))),
+                (
+                    OpToRange(),
+                    dict(
+                        key="data.input.img",
+                        from_range=(-0.5, 3.0),
+                        to_range=(-3.5, 3.5),
+                    ),
+                ),
             ],
         )
 
@@ -46,10 +53,39 @@ class TestOps(unittest.TestCase):
         pipeline = PipelineDefault(
             "test_pipeline",
             [
-                (OpPad(), dict(key="data.input.tensor_img_1", padding=1, fill=0, mode="constant")),
-                (OpPad(), dict(key="data.input.numpy_img_1", padding=1, fill=0, mode="constant")),
-                (OpPad(), dict(key="data.input.tensor_img_2", padding=1, fill=42, mode="constant")),
-                (OpPad(), dict(key="data.input.numpy_img_2", padding=1, fill=42, mode="constant")),
+                (
+                    OpPad(),
+                    dict(
+                        key="data.input.tensor_img_1",
+                        padding=1,
+                        fill=0,
+                        mode="constant",
+                    ),
+                ),
+                (
+                    OpPad(),
+                    dict(
+                        key="data.input.numpy_img_1", padding=1, fill=0, mode="constant"
+                    ),
+                ),
+                (
+                    OpPad(),
+                    dict(
+                        key="data.input.tensor_img_2",
+                        padding=1,
+                        fill=42,
+                        mode="constant",
+                    ),
+                ),
+                (
+                    OpPad(),
+                    dict(
+                        key="data.input.numpy_img_2",
+                        padding=1,
+                        fill=42,
+                        mode="constant",
+                    ),
+                ),
             ],
         )
 

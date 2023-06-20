@@ -75,7 +75,9 @@ class ConsoleFormatter(logging.Formatter):
                 attrs = record.__dict__["args"].get("attrs", None)
                 if attrs is not None and not isinstance(attrs, list):
                     attrs = [attrs]
-                log_fmt = colored("%(message)s", color=color, on_color=on_color, attrs=attrs)
+                log_fmt = colored(
+                    "%(message)s", color=color, on_color=on_color, attrs=attrs
+                )
             else:
                 log_fmt = "%(message)s"
         else:
@@ -130,16 +132,24 @@ def fuse_logger_start(
         # Create log dir
         create_dir(log_output_path)
         # file info
-        file_handler = logging.FileHandler(os.path.join(log_output_path, f"fuse_{timestr}.log"))
+        file_handler = logging.FileHandler(
+            os.path.join(log_output_path, f"fuse_{timestr}.log")
+        )
         file_handler.setLevel(logging.INFO)
-        formatter = logging.Formatter("(%(filename)s:%(lineno)d) : %(levelname)s : %(message)s")
+        formatter = logging.Formatter(
+            "(%(filename)s:%(lineno)d) : %(levelname)s : %(message)s"
+        )
         file_handler.setFormatter(formatter)
         lgr.addHandler(file_handler)
 
         # file verbose
-        file_handler = RotatingFileHandler(os.path.join(log_output_path, "fuse_verbose.log"), maxBytes=1e6)
+        file_handler = RotatingFileHandler(
+            os.path.join(log_output_path, "fuse_verbose.log"), maxBytes=1e6
+        )
         file_handler.setLevel(logging.DEBUG)
-        formatter = logging.Formatter("%(asctime)s : (%(filename)s:%(lineno)d) : %(message)s")
+        formatter = logging.Formatter(
+            "%(asctime)s : (%(filename)s:%(lineno)d) : %(message)s"
+        )
         file_handler.setFormatter(formatter)
         lgr.addHandler(file_handler)
 
@@ -148,7 +158,9 @@ def fuse_logger_start(
 
     if list_of_source_files is None or list_of_source_files:
         if output_path is not None:
-            source_files_output_path = os.path.join(output_path, "source_files", timestr)
+            source_files_output_path = os.path.join(
+                output_path, "source_files", timestr
+            )
             create_or_reset_dir(source_files_output_path)
 
             lgr.info(f"Copy source files to {source_files_output_path}")
@@ -158,7 +170,10 @@ def fuse_logger_start(
                 list_of_source_files = [caller_function_file_name]
 
             for src_file in list_of_source_files:
-                copyfile(os.path.abspath(src_file), os.path.join(source_files_output_path, os.path.basename(src_file)))
+                copyfile(
+                    os.path.abspath(src_file),
+                    os.path.join(source_files_output_path, os.path.basename(src_file)),
+                )
 
 
 def fuse_logger_end() -> None:
@@ -177,7 +192,10 @@ def convert_state_to_str(input_state: Any) -> Union[str, Tuple[str]]:
     :return:
     """
     if isinstance(input_state, dict):
-        return {param_name: convert_state_to_str(input_state[param_name]) for param_name in input_state}
+        return {
+            param_name: convert_state_to_str(input_state[param_name])
+            for param_name in input_state
+        }
     if isinstance(input_state, list):
         return [convert_state_to_str(param) for param in input_state]
     if isinstance(input_state, tuple):
@@ -198,4 +216,6 @@ def log_object_input_state(obj: Any, input_state: Dict) -> None:
     # remove self from the state if exist
     input_state_copy.pop("self", None)
     input_paramters_str = convert_state_to_str(input_state_copy)
-    lgr.debug(f"\n-----\n{str(obj)} created: \n\tinput state {input_paramters_str} \n-----\n")
+    lgr.debug(
+        f"\n-----\n{str(obj)} created: \n\tinput state {input_paramters_str} \n-----\n"
+    )

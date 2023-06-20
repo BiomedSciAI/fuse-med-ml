@@ -14,7 +14,12 @@ class OpDebugBase(OpBase):
     Inherits and implements self.call_debug instead of self.__call__.
     """
 
-    def __init__(self, name: Optional[str] = None, sample_ids: Optional[List[Hashable]] = None, num_samples: int = 0):
+    def __init__(
+        self,
+        name: Optional[str] = None,
+        sample_ids: Optional[List[Hashable]] = None,
+        num_samples: int = 0,
+    ):
         """
         :param name: string identifier - might be useful when the debug op display or save information into a file
         :param sample_ids: apply for the specified sample ids. To apply for all set to None.
@@ -151,7 +156,9 @@ class OpPrintKeysContent(OpDebugBase):
         """
         :param keys: List of keys to print. Set to 'None' to print all keys.
         """
-        print(f"OpPrintKeysContent, sample '{get_sample_id(sample_dict)}', <key> = <content>:")
+        print(
+            f"OpPrintKeysContent, sample '{get_sample_id(sample_dict)}', <key> = <content>:"
+        )
         dict_keys = sample_dict.keypaths()
 
         if keys is None:

@@ -19,7 +19,9 @@ import numpy
 import torch
 import warnings
 
-warnings.warn("FuseUtilsHierarchicalDict is obsolete and soon will be deleted! Please consider transform to NDict.")
+warnings.warn(
+    "FuseUtilsHierarchicalDict is obsolete and soon will be deleted! Please consider transform to NDict."
+)
 
 
 class FuseUtilsHierarchicalDict:
@@ -42,7 +44,9 @@ class FuseUtilsHierarchicalDict:
             if key in flat_dict:
                 return flat_dict[key]
             else:
-                raise KeyError(f"key {key} does not exist\n. Possible keys are: {str(list(flat_dict.keys()))}")
+                raise KeyError(
+                    f"key {key} does not exist\n. Possible keys are: {str(list(flat_dict.keys()))}"
+                )
 
     @classmethod
     def set(cls, hierarchical_dict: dict, key: str, value: Any) -> None:
@@ -64,15 +68,22 @@ class FuseUtilsHierarchicalDict:
         element[hierarchical_key[-1]] = value
 
     @classmethod
-    def get_all_keys(cls, hierarchical_dict: dict, include_values: bool = False) -> Union[List[str], dict]:
+    def get_all_keys(
+        cls, hierarchical_dict: dict, include_values: bool = False
+    ) -> Union[List[str], dict]:
         """
         Get all hierarchical keys in  hierarchical_dict
         """
         all_keys = {}
         for key in hierarchical_dict:
             if isinstance(hierarchical_dict[key], dict):
-                all_sub_keys = FuseUtilsHierarchicalDict.get_all_keys(hierarchical_dict[key], include_values=True)
-                keys_to_add = {f"{key}.{sub_key}": all_sub_keys[sub_key] for sub_key in all_sub_keys}
+                all_sub_keys = FuseUtilsHierarchicalDict.get_all_keys(
+                    hierarchical_dict[key], include_values=True
+                )
+                keys_to_add = {
+                    f"{key}.{sub_key}": all_sub_keys[sub_key]
+                    for sub_key in all_sub_keys
+                }
                 all_keys.update(keys_to_add)
             else:
                 all_keys[key] = hierarchical_dict[key]
@@ -104,7 +115,9 @@ class FuseUtilsHierarchicalDict:
         return res
 
     @classmethod
-    def apply_on_all(cls, hierarchical_dict: dict, apply_func: Callable, *args: Any) -> None:
+    def apply_on_all(
+        cls, hierarchical_dict: dict, apply_func: Callable, *args: Any
+    ) -> None:
         all_keys = cls.get_all_keys(hierarchical_dict)
         for key in all_keys:
             new_value = apply_func(cls.get(hierarchical_dict, key), *args)
@@ -168,7 +181,11 @@ class FuseUtilsHierarchicalDict:
         # go over the the dictionary towards the requested value
         try:
             key_idx = len(hierarchical_key) - 1
-            value = hierarchical_dict[hierarchical_key[0]] if key_idx > 0 else hierarchical_dict
+            value = (
+                hierarchical_dict[hierarchical_key[0]]
+                if key_idx > 0
+                else hierarchical_dict
+            )
             for sub_key in hierarchical_key[1:-1]:
                 value = value[sub_key]
             return value.pop(hierarchical_key[key_idx])
@@ -177,7 +194,9 @@ class FuseUtilsHierarchicalDict:
             if key in flat_dict:
                 return flat_dict[key]
             else:
-                raise KeyError(f"key {key} does not exist\n. Possible keys are: {str(list(flat_dict.keys()))}")
+                raise KeyError(
+                    f"key {key} does not exist\n. Possible keys are: {str(list(flat_dict.keys()))}"
+                )
 
     @classmethod
     def is_in(cls, hierarchical_dict: dict, key: str) -> bool:

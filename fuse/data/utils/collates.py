@@ -56,7 +56,9 @@ class CollateDefault(CollateToBatchList):
         self._special_handlers_keys = {}
         if special_handlers_keys is not None:
             self._special_handlers_keys.update(special_handlers_keys)
-        self._special_handlers_keys[get_sample_id_key()] = CollateDefault.just_collect_to_list
+        self._special_handlers_keys[
+            get_sample_id_key()
+        ] = CollateDefault.just_collect_to_list
         self._keep_keys = keep_keys
 
     def __call__(self, samples: List[Dict]) -> Dict:
@@ -82,10 +84,20 @@ class CollateDefault(CollateToBatchList):
 
             try:
                 # collect values into a list
-                collected_values, has_error, has_missing_values = self._collect_values_to_list(samples, key)
+                (
+                    collected_values,
+                    has_error,
+                    has_missing_values,
+                ) = self._collect_values_to_list(samples, key)
 
                 # batch values
-                self._batch_dispatch(batch_dict, samples, key, has_error or has_missing_values, collected_values)
+                self._batch_dispatch(
+                    batch_dict,
+                    samples,
+                    key,
+                    has_error or has_missing_values,
+                    collected_values,
+                )
             except:
                 print(f"Error: Failed to collect key {key}")
                 raise
@@ -93,7 +105,12 @@ class CollateDefault(CollateToBatchList):
         return batch_dict
 
     def _batch_dispatch(
-        self, batch_dict: dict, samples: List[dict], key: str, has_error: bool, collected_values: list
+        self,
+        batch_dict: dict,
+        samples: List[dict],
+        key: str,
+        has_error: bool,
+        collected_values: list,
     ) -> None:
         """
         dispatch a key into collate function and save it into batch_dict
@@ -110,7 +127,9 @@ class CollateDefault(CollateToBatchList):
         elif key in self._special_handlers_keys:
             # use special handler if specified
             batch_dict[key] = self._special_handlers_keys[key](collected_values)
-        elif isinstance(collected_values[0], (torch.Tensor, np.ndarray, float, int, str, bytes)):
+        elif isinstance(
+            collected_values[0], (torch.Tensor, np.ndarray, float, int, str, bytes)
+        ):
             # batch with default PyTorch implementation
             batch_dict[key] = default_collate(collected_values)
         else:
@@ -124,7 +143,9 @@ class CollateDefault(CollateToBatchList):
         return values
 
     @staticmethod
-    def pad_all_tensors_to_same_size(values: List[torch.Tensor], pad_val: float = 0.0) -> torch.Tensor:
+    def pad_all_tensors_to_same_size(
+        values: List[torch.Tensor], pad_val: float = 0.0
+    ) -> torch.Tensor:
         """
         pad tensors and create a batch - the shape will be the max size per dim
         values: list of tensor - all should have the same number of dimensions
@@ -133,10 +154,14 @@ class CollateDefault(CollateToBatchList):
         """
 
         # verify all are tensor and that they have the same dim size
-        assert isinstance(values[0], torch.Tensor), f"Expecting just tensors, got {type(values[0])}"
+        assert isinstance(
+            values[0], torch.Tensor
+        ), f"Expecting just tensors, got {type(values[0])}"
         num_dims = len(values[0].shape)
         for value in values:
-            assert isinstance(value, torch.Tensor), f"Expecting just tensors, got {type(value)}"
+            assert isinstance(
+                value, torch.Tensor
+            ), f"Expecting just tensors, got {type(value)}"
             assert (
                 len(value.shape) == num_dims
             ), f"Expecting all tensors to have the same dim size, got {len(value.shape)} and {num_dims}"

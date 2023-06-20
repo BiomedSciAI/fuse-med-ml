@@ -39,7 +39,8 @@ class FuseDebug(metaclass=Singleton):
             # allows to disable multiprocessing and run everything using run_multiprocessed() on the main process instead
             "multiprocessing": ["default", "main_process"],
             # allows to override number of dataloader data workers
-            "manager_override_num_dataloader_workers": lambda x: isinstance(x, int) and x >= 0,
+            "manager_override_num_dataloader_workers": lambda x: isinstance(x, int)
+            and x >= 0,
             # allows to override number of gpus
             "manager_override_num_gpus": lambda x: isinstance(x, int) and x >= 0,
         }
@@ -83,14 +84,18 @@ class FuseDebug(metaclass=Singleton):
         :param name: setting name. See self._settings_supported_values for available settings.
         :param value: value to override to. See self._settings_supported_values for possible values.
         """
-        assert name in self._settings_supported_values, f"setting {name} is not supported"
+        assert (
+            name in self._settings_supported_values
+        ), f"setting {name} is not supported"
         supported_values = self._settings_supported_values[name]
         if isinstance(supported_values, list):
             assert (
                 value in supported_values
             ), f"value {value} is not supported for setting {name}, supported values are {supported_values}"
         else:
-            assert supported_values(value), f"value {value} is not supported for setting {name}"
+            assert supported_values(
+                value
+            ), f"value {value} is not supported for setting {name}"
 
         self._settings[name] = value
 
@@ -99,5 +104,7 @@ class FuseDebug(metaclass=Singleton):
         :param name: setting name. See self._settings_supported_values for possible settings.
         :return: te value of that setting. See self._settings_supported_values for possible values.
         """
-        assert name in self._settings_supported_values, f"setting {name} is not supported"
+        assert (
+            name in self._settings_supported_values
+        ), f"setting {name} is not supported"
         return self._settings[name]

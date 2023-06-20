@@ -16,7 +16,11 @@ set_start_method("spawn", force=True)
 
 
 def ensemble(
-    test_dirs: Sequence[str], test_infer_filename: str, pred_key: str, target_key: str, ensembled_output_file: str
+    test_dirs: Sequence[str],
+    test_infer_filename: str,
+    pred_key: str,
+    target_key: str,
+    ensembled_output_file: str,
 ) -> None:
     ensembled_output_dir = os.path.dirname(ensembled_output_file)
     create_or_reset_dir(ensembled_output_dir, force_reset=True)
@@ -54,7 +58,9 @@ def runner_wrapper(
 ) -> None:
     resource = q_resources.get()
     print(f"Using GPUs: {resource}")
-    FuseUtilsGPU.choose_and_enable_multiple_gpus(len(resource), force_gpus=list(resource))
+    FuseUtilsGPU.choose_and_enable_multiple_gpus(
+        len(resource), force_gpus=list(resource)
+    )
     _ = Seed.set_seed(rep_index, deterministic_mode=deterministic_mode)
     if isinstance(fs, Sequence):
         for f, prev_arg, last_arg in zip(fs, f_args[-2], f_args[-1]):
@@ -79,16 +85,27 @@ def train_wrapper(
     paths_train = paths.copy()
 
     # set parameters specific to this fold:
-    paths_train["model_dir"] = os.path.join(paths["model_dir"], "rep_" + str(rep_index), str(cv_index))
-    paths_train["cache_dir"] = os.path.join(paths["cache_dir"], "rep_" + str(rep_index), str(cv_index))
+    paths_train["model_dir"] = os.path.join(
+        paths["model_dir"], "rep_" + str(rep_index), str(cv_index)
+    )
+    paths_train["cache_dir"] = os.path.join(
+        paths["cache_dir"], "rep_" + str(rep_index), str(cv_index)
+    )
 
     # generate data for this fold:
     train_dataset, validation_dataset = dataset_func(
-        train_val_sample_ids=sample_ids_per_fold, paths=paths_train, params=dataset_params
+        train_val_sample_ids=sample_ids_per_fold,
+        paths=paths_train,
+        params=dataset_params,
     )
 
     # call project specific train_func:
-    func(train_dataset=train_dataset, validation_dataset=validation_dataset, paths=paths_train, train_params=params)
+    func(
+        train_dataset=train_dataset,
+        validation_dataset=validation_dataset,
+        paths=paths_train,
+        train_params=params,
+    )
 
 
 def infer_wrapper(
@@ -105,17 +122,25 @@ def infer_wrapper(
     paths_infer = paths.copy()
 
     # set parameters specific to this fold, and generate data:
-    paths_infer["model_dir"] = os.path.join(paths["model_dir"], "rep_" + str(rep_index), str(cv_index))
+    paths_infer["model_dir"] = os.path.join(
+        paths["model_dir"], "rep_" + str(rep_index), str(cv_index)
+    )
     if sample_ids_per_fold is None:  # test mode
         paths_infer["inference_dir"] = os.path.join(
             paths["inference_dir"], "test", "rep_" + str(rep_index), str(cv_index)
         )
-        _, dataset = dataset_func(train_val_sample_ids=None, paths=paths_infer, params=dataset_params)
+        _, dataset = dataset_func(
+            train_val_sample_ids=None, paths=paths_infer, params=dataset_params
+        )
     else:
         paths_infer["inference_dir"] = os.path.join(
             paths["inference_dir"], "validation", "rep_" + str(rep_index), str(cv_index)
         )
-        _, dataset = dataset_func(train_val_sample_ids=sample_ids_per_fold, paths=paths_infer, params=dataset_params)
+        _, dataset = dataset_func(
+            train_val_sample_ids=sample_ids_per_fold,
+            paths=paths_infer,
+            params=dataset_params,
+        )
 
     # call project specific infer_func:
     func(dataset=dataset, paths=paths_infer, infer_params=params)
@@ -138,12 +163,16 @@ def eval_wrapper(
         paths_eval["inference_dir"] = os.path.join(
             paths["inference_dir"], "test", "rep_" + str(rep_index), str(cv_index)
         )
-        paths_eval["eval_dir"] = os.path.join(paths["eval_dir"], "test", "rep_" + str(rep_index), str(cv_index))
+        paths_eval["eval_dir"] = os.path.join(
+            paths["eval_dir"], "test", "rep_" + str(rep_index), str(cv_index)
+        )
     else:
         paths_eval["inference_dir"] = os.path.join(
             paths["inference_dir"], "validation", "rep_" + str(rep_index), str(cv_index)
         )
-        paths_eval["eval_dir"] = os.path.join(paths["eval_dir"], "validation", "rep_" + str(rep_index), str(cv_index))
+        paths_eval["eval_dir"] = os.path.join(
+            paths["eval_dir"], "validation", "rep_" + str(rep_index), str(cv_index)
+        )
 
     # call project specific eval_func:
     func(paths=paths_eval, eval_params=params)
@@ -210,7 +239,8 @@ def run(
         available_gpu_ids = available_gpu_ids[0:num_gpus_total]
     # group gpus into chunks of size num_gpus_per_split
     gpu_resources = [
-        available_gpu_ids[i : i + num_gpus_per_split] for i in range(0, len(available_gpu_ids), num_gpus_per_split)
+        available_gpu_ids[i : i + num_gpus_per_split]
+        for i in range(0, len(available_gpu_ids), num_gpus_per_split)
     ]
 
     # create a queue of gpu chunks (resources)
@@ -230,7 +260,11 @@ def run(
         # run training, inference and evaluation on all cross validation folds in parallel
         # using the available gpu resources:
         runner = partial(
-            runner_wrapper, q_resources, rep_index, deterministic_mode, [train_wrapper, infer_wrapper, eval_wrapper]
+            runner_wrapper,
+            q_resources,
+            rep_index,
+            deterministic_mode,
+            [train_wrapper, infer_wrapper, eval_wrapper],
         )
 
         # create process per fold
@@ -258,7 +292,13 @@ def run(
             p.close()
 
         # infer and eval each split's model on test set:
-        runner = partial(runner_wrapper, q_resources, rep_index, deterministic_mode, [infer_wrapper, eval_wrapper])
+        runner = partial(
+            runner_wrapper,
+            q_resources,
+            rep_index,
+            deterministic_mode,
+            [infer_wrapper, eval_wrapper],
+        )
         # create process per fold
         processes = [
             Process(
@@ -285,12 +325,18 @@ def run(
 
         # generate ensembled predictions:
         test_dirs = [
-            os.path.join(paths["inference_dir"], "test", "rep_" + str(rep_index), str(cv_index))
+            os.path.join(
+                paths["inference_dir"], "test", "rep_" + str(rep_index), str(cv_index)
+            )
             for cv_index in range(num_folds)
         ][0:num_folds_used]
         test_infer_filename = "infer.gz"
         ensembled_output_file = os.path.join(
-            paths["inference_dir"], "test", "rep_" + str(rep_index), "ensemble", "infer.gz"
+            paths["inference_dir"],
+            "test",
+            "rep_" + str(rep_index),
+            "ensemble",
+            "infer.gz",
         )
 
         ensemble(
@@ -303,8 +349,12 @@ def run(
 
         # evaluate ensemble:
         paths_eval = paths.copy()
-        paths_eval["inference_dir"] = os.path.join(paths["inference_dir"], "test", "rep_" + str(rep_index), "ensemble")
-        paths_eval["eval_dir"] = os.path.join(paths["eval_dir"], "test", "rep_" + str(rep_index), "ensemble")
+        paths_eval["inference_dir"] = os.path.join(
+            paths["inference_dir"], "test", "rep_" + str(rep_index), "ensemble"
+        )
+        paths_eval["eval_dir"] = os.path.join(
+            paths["eval_dir"], "test", "rep_" + str(rep_index), "ensemble"
+        )
 
         _ = Seed.set_seed(rep_index, deterministic_mode=deterministic_mode)
         eval_func(paths=paths_eval, eval_params=eval_params)

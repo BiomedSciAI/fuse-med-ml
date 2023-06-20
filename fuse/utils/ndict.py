@@ -24,7 +24,16 @@ import copy
 import types
 import numpy
 import torch
-from typing import Any, Callable, Iterator, Optional, Sequence, Union, List, MutableMapping
+from typing import (
+    Any,
+    Callable,
+    Iterator,
+    Optional,
+    Sequence,
+    Union,
+    List,
+    MutableMapping,
+)
 
 
 class NDict(dict):
@@ -49,7 +58,9 @@ class NDict(dict):
     """
 
     def __init__(
-        self, dict_like: Union[dict, tuple, types.GeneratorType, NDict, None] = None, already_flat: bool = False
+        self,
+        dict_like: Union[dict, tuple, types.GeneratorType, NDict, None] = None,
+        already_flat: bool = False,
     ):
         """
         :param dict_like: the data with which to populate the nested dictionary, in case of NDict it acts as view constructor,
@@ -405,7 +416,9 @@ class NDict(dict):
         self._print_tree_static(unflatten_dict, print_values=print_values)
 
     @staticmethod
-    def _print_tree_static(data_dict: dict, level: int = 0, print_values: bool = False) -> None:
+    def _print_tree_static(
+        data_dict: dict, level: int = 0, print_values: bool = False
+    ) -> None:
         """
         static-method to print the inner structure of a dict in a tree-like structure.
 
@@ -417,7 +430,9 @@ class NDict(dict):
         for key in keys:
             if type(data_dict[key]) == dict:
                 print("---" * level, key)
-                NDict._print_tree_static(data_dict[key], level, print_values=print_values)
+                NDict._print_tree_static(
+                    data_dict[key], level, print_values=print_values
+                )
             else:
                 if print_values:
                     print("---" * level, key, "->", data_dict[key])

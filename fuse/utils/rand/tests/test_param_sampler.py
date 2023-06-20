@@ -22,7 +22,14 @@ import unittest
 
 import random
 
-from fuse.utils import Uniform, Choice, RandInt, RandBool, draw_samples_recursively, Seed
+from fuse.utils import (
+    Uniform,
+    Choice,
+    RandInt,
+    RandBool,
+    draw_samples_recursively,
+    Seed,
+)
 
 
 class TestParamSampler(unittest.TestCase):

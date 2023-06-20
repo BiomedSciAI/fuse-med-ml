@@ -12,7 +12,9 @@ class MetricUniqueValues(MetricWithCollectorBase):
     def __init__(self, key: str, **kwargs: dict) -> None:
         super().__init__(key=key, **kwargs)
 
-    def eval(self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None) -> None:
+    def eval(
+        self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None
+    ) -> None:
         values = self._extract_arguments(results, ids)["key"]
         counter = Counter(values)
 

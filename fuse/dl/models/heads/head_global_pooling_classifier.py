@@ -74,12 +74,19 @@ class HeadGlobalPoolingClassifier(nn.Module):
 
         if tabular_data_inputs is not None:
             if len(tabular_layers_description) == 0:
-                feature_depth += sum([post_concat_input[1] for post_concat_input in tabular_data_inputs])
+                feature_depth += sum(
+                    [post_concat_input[1] for post_concat_input in tabular_data_inputs]
+                )
                 self.tabular_module = nn.Identity()
             else:
                 feature_depth += tabular_layers_description[-1]
                 self.tabular_module = ClassifierMLP(
-                    in_ch=sum([post_concat_input[1] for post_concat_input in tabular_data_inputs]),
+                    in_ch=sum(
+                        [
+                            post_concat_input[1]
+                            for post_concat_input in tabular_data_inputs
+                        ]
+                    ),
                     num_classes=None,
                     layers_description=tabular_layers_description,
                     dropout_rate=tabular_dropout_rate,
@@ -96,7 +103,9 @@ class HeadGlobalPoolingClassifier(nn.Module):
             )
 
     def forward(self, batch_dict: NDict) -> Dict:
-        conv_input = torch.cat([batch_dict[conv_input[0]] for conv_input in self.conv_inputs])
+        conv_input = torch.cat(
+            [batch_dict[conv_input[0]] for conv_input in self.conv_inputs]
+        )
 
         if len(conv_input.shape) == 2:
             res = conv_input
@@ -108,12 +117,19 @@ class HeadGlobalPoolingClassifier(nn.Module):
                 res = F.avg_pool2d(conv_input, kernel_size=conv_input.shape[2:])
 
         if self.tabular_data_inputs is not None:
-            tabular_input = torch.cat([batch_dict[tabular_input[0]] for tabular_input in self.tabular_data_inputs])
+            tabular_input = torch.cat(
+                [
+                    batch_dict[tabular_input[0]]
+                    for tabular_input in self.tabular_data_inputs
+                ]
+            )
             tabular_input = self.tabular_module(tabular_input)
             tabular_input = tabular_input.reshape(tabular_input.shape + (1, 1))
             res = torch.cat([res, tabular_input], dim=1)
 
-        logits = self.classifier_head_module(res)  # --> res.shape = [batch_size, 2, 1, 1]
+        logits = self.classifier_head_module(
+            res
+        )  # --> res.shape = [batch_size, 2, 1, 1]
         if len(logits.shape) > 2:
             logits = logits.squeeze(dim=3)  # --> res.shape = [batch_size, 2, 1]
             logits = logits.squeeze(dim=2)  # --> res.shape = [batch_size, 2]

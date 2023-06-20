@@ -34,7 +34,9 @@ class OpFakeLoad(OpBase):
     def __init__(self) -> None:
         super().__init__()
 
-    def __call__(self, sample_dict: NDict, **kwargs: dict) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, **kwargs: dict
+    ) -> Union[None, dict, List[dict]]:
         sid = get_sample_id(sample_dict)
         if "case_1" == sid:
             sample_dict.merge(_generate_sample_1())
@@ -71,7 +73,9 @@ class OpPrintContents(OpBase):
     def __init__(self) -> None:
         super().__init__()
 
-    def __call__(self, sample_dict: NDict, **kwargs: dict) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, **kwargs: dict
+    ) -> Union[None, dict, List[dict]]:
         sid = get_sample_id(sample_dict)
         print(f"sid={sid}")
         for k in sample_dict.keypaths():
@@ -149,7 +153,9 @@ class TestDatasetDefault(unittest.TestCase):
         self.assertRaises(Exception, ds_cached, 0)
         # sample_from_cached = ds_cached[0]
 
-        ForMonkeyPatching.identity_transform = lambda x: x  # return it to previous state
+        ForMonkeyPatching.identity_transform = (
+            lambda x: x
+        )  # return it to previous state
 
         ########### do it again, and now test the audit_first_sample
 
@@ -177,7 +183,9 @@ class TestDatasetDefault(unittest.TestCase):
         # the first one is expected to raise an exception
         self.assertRaises(Exception, ds_cached, 0)
 
-        ForMonkeyPatching.identity_transform = lambda x: x  # return it to previous state
+        ForMonkeyPatching.identity_transform = (
+            lambda x: x
+        )  # return it to previous state
 
         ############################## testing audit_first_sample a bit more
         ############################## this time we do the monkey patching only AFTER the first sample was audited (and the staleness will be missed)

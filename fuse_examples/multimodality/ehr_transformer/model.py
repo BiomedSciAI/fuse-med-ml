@@ -9,7 +9,14 @@ from fuse.utils.ndict import NDict
 
 
 class Embed(nn.Module):
-    def __init__(self, n_vocab: int, emb_dim: int, key_in: str, key_out: str, **embedding_kwargs: dict):
+    def __init__(
+        self,
+        n_vocab: int,
+        emb_dim: int,
+        key_in: str,
+        key_out: str,
+        **embedding_kwargs: dict
+    ):
         super().__init__()
         self._emb_dim = emb_dim
         self._word_emb = nn.Embedding(n_vocab, self._emb_dim, **embedding_kwargs)
@@ -38,7 +45,9 @@ class WordDropout(nn.Module):
     ):
         super().__init__()
         self._p = p_word_dropout
-        self._p_eval = p_word_dropout if p_word_dropout_eval is None else p_word_dropout_eval
+        self._p_eval = (
+            p_word_dropout if p_word_dropout_eval is None else p_word_dropout_eval
+        )
         self._key_in = key_in
         self._key_out = key_out
         self._mask_value = mask_value
@@ -54,9 +63,9 @@ class WordDropout(nn.Module):
         # Sample masks: elems with val 1 will be set to <unk>
         p = self._p if self.training else self._p_eval
 
-        mask = torch.from_numpy(np.random.choice(2, p=(1.0 - p, p), size=tuple(data.size())).astype("uint8")).to(
-            x.device
-        )
+        mask = torch.from_numpy(
+            np.random.choice(2, p=(1.0 - p, p), size=tuple(data.size())).astype("uint8")
+        ).to(x.device)
 
         mask = mask.bool()
         # Set to <unk>
@@ -75,7 +84,9 @@ class TransformerEncoder(Transformer):
         if self.num_cls_tokens == 1:
             return out[:, 0], out[:, 1:]
         else:
-            return [out[:, i] for i in range(self.num_cls_tokens)] + [out[:, self.num_cls_tokens :]]
+            return [out[:, i] for i in range(self.num_cls_tokens)] + [
+                out[:, self.num_cls_tokens :]
+            ]
 
 
 class Bert(torch.nn.Module):
