@@ -16,7 +16,7 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from typing import Any, Callable, Dict, List, Sequence
+from typing import Any, Callable, Dict, List, Sequence, Optional
 
 import numpy as np
 import torch
@@ -42,7 +42,8 @@ class CollateDefault(CollateToBatchList):
         skip_keys: Sequence[str] = tuple(),
         keep_keys: Sequence[str] = tuple(),
         raise_error_key_missing: bool = True,
-        special_handlers_keys: Dict[str, Callable] = None,
+        special_handlers_keys: Optional[Dict[str, Callable]] = None,
+        add_to_batch_dict: Optional[Dict[str, Any]] = None,
     ):
         """
         :param skip_keys: do not collect the listed keys
@@ -51,6 +52,7 @@ class CollateDefault(CollateToBatchList):
                                       The rest of the keys will be converted to batch using PyTorch default collate_fn()
                                       Example of such Callable can be seen in the CollateDefault.pad_all_tensors_to_same_size.
         :param raise_error_key_missing: if False, will not raise an error if there are keys that do not exist in some of the samples. Instead will set those values to None.
+        :param add_to_batch_dict: optional, fixed items to add to batch_dict
         """
         super().__init__(skip_keys, raise_error_key_missing)
         self._special_handlers_keys = {}
@@ -60,6 +62,7 @@ class CollateDefault(CollateToBatchList):
             get_sample_id_key()
         ] = CollateDefault.just_collect_to_list
         self._keep_keys = keep_keys
+        self._add_to_batch_dict = add_to_batch_dict
 
     def __call__(self, samples: List[Dict]) -> Dict:
         """
@@ -101,6 +104,9 @@ class CollateDefault(CollateToBatchList):
             except:
                 print(f"Error: Failed to collect key {key}")
                 raise
+
+        if self._add_to_batch_dict is not None:
+            batch_dict.update(self._add_to_batch_dict)
 
         return batch_dict
 

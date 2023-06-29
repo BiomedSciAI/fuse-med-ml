@@ -195,13 +195,15 @@ class LightningModuleDefault(pl.LightningModule):
         else:
             losses = self._losses
         # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss (ignored) and save losses values in batch_dict["losses"]
-        _ = step_losses(losses, batch_dict)
+        if losses is not None:
+            _ = step_losses(losses, batch_dict)
         # given the batch_dict and FuseMedML style metrics - collect the required values to compute the metrics on epoch_end
         step_metrics(self._validation_metrics[dataloader_idx][1], batch_dict)
         # aggregate losses
-        self._validation_step_outputs[dataloader_idx].append(
-            {"losses": batch_dict["losses"]}
-        )
+        if losses is not None:
+            self._validation_step_outputs[dataloader_idx].append(
+                {"losses": batch_dict["losses"]}
+            )
 
     def test_step(self, batch_dict: NDict, batch_idx: int) -> None:
         # add step number to batch_dict
