@@ -144,7 +144,7 @@ class NDict(dict):
     def items(self) -> dict_items:
         return self._stored.items()
 
-    def merge(self, other: NDict) -> None:
+    def merge(self, other: MutableMapping) -> None:
         """
         inplace merge between self and other.
         """
@@ -385,6 +385,9 @@ class NDict(dict):
                 res[top_key] = value
 
         return res
+
+    def update(self, dict_like: MutableMapping) -> None:
+        self.merge(dict_like)
 
     def print_tree(self, print_values: bool = False) -> None:
         """
