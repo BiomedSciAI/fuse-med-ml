@@ -1,3 +1,4 @@
+# type: ignore
 """
 (C) Copyright 2021 IBM Corp.
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,9 +24,13 @@ class FuseUtilsHierarchicalDictTestCase(unittest.TestCase):
 
     def test_get(self):
         self.assertEqual(FuseUtilsHierarchicalDict.get(self.hierarchical_dict, "a"), 1)
-        self.assertEqual(FuseUtilsHierarchicalDict.get(self.hierarchical_dict, "b.c"), 2)
+        self.assertEqual(
+            FuseUtilsHierarchicalDict.get(self.hierarchical_dict, "b.c"), 2
+        )
         self.assertEqual(FuseUtilsHierarchicalDict.get(self.hierarchical_dict, "c"), 4)
-        self.assertDictEqual(FuseUtilsHierarchicalDict.get(self.hierarchical_dict, "b"), {"c": 2, "d": 3})
+        self.assertDictEqual(
+            FuseUtilsHierarchicalDict.get(self.hierarchical_dict, "b"), {"c": 2, "d": 3}
+        )
 
     def test_set(self):
         FuseUtilsHierarchicalDict.set(self.hierarchical_dict, "a", 7)

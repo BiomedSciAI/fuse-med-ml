@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 Created on June 30, 2021
-
 """
 
 import shutil
@@ -61,8 +60,12 @@ def run_stoic21(root: str) -> None:
 
     GPU.choose_and_enable_multiple_gpus(1)
 
-    Seed.set_seed(0, False)  # previous test (in the pipeline) changed the deterministic behavior to True
-    train_dataset, infer_dataset = dataset.create_dataset(paths=paths, params=dataset_common_params)
+    Seed.set_seed(
+        0, False
+    )  # previous test (in the pipeline) changed the deterministic behavior to True
+    train_dataset, infer_dataset = dataset.create_dataset(
+        paths=paths, params=dataset_common_params
+    )
     run_train(train_dataset, infer_dataset, paths, train_common_params)
     run_infer(infer_dataset, paths, infer_common_params)
     results = run_eval(paths, analyze_common_params)
@@ -71,16 +74,17 @@ def run_stoic21(root: str) -> None:
 
 
 @unittest.skipIf(
-    "STOIC21_DATA_PATH" not in os.environ, "define environment variable 'STOIC21_DATA_PATH' to run this test"
+    "STOIC21_DATA_PATH" not in os.environ,
+    "define environment variable 'STOIC21_DATA_PATH' to run this test",
 )
 class ClassificationStoic21TestCase(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.root = tempfile.mkdtemp()
 
-    def test_template(self):
+    def test_template(self) -> None:
         run_in_subprocess(run_stoic21, self.root, timeout=1800)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         # Delete temporary directories
         shutil.rmtree(self.root)
 

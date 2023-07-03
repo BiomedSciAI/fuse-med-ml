@@ -1,5 +1,5 @@
 import functools
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union, Tuple, Callable
 from fuse.utils.utils_debug import FuseDebug
 import torch
 from tqdm import tqdm
@@ -19,13 +19,13 @@ _multiprocess_global_storage = {}
 
 
 def run_multiprocessed(
-    worker_func,
-    args_list,
-    workers=0,
-    verbose=0,
+    worker_func: Callable,
+    args_list: list,
+    workers: int = 0,
+    verbose: int = 0,
     copy_to_global_storage: Optional[dict] = None,
     keep_results_order: bool = True,
-    as_iterator=False,
+    as_iterator: bool = False,
     mp_context: Optional[str] = None,
     desc: Optional[str] = None,
     maxtasksperchild: Optional[int] = None,
@@ -78,10 +78,10 @@ def run_multiprocessed(
 
 
 def _run_multiprocessed_as_iterator_impl(
-    worker_func,
-    args_list,
-    workers=0,
-    verbose=0,
+    worker_func: Callable,
+    args_list: list,
+    workers: int = 0,
+    verbose: int = 0,
     copy_to_global_storage: Optional[dict] = None,
     keep_results_order: bool = True,
     mp_context: Optional[str] = None,
@@ -110,7 +110,13 @@ def _run_multiprocessed_as_iterator_impl(
         :param mp_context: "fork", "spawn", "thread" or None for multiprocessing default
         :param maxtasksperchild: the maximum number of tasks that a worker process/thread is allowed to do before it is destroyed (and a new one is created instead of it)
     """
-    if "DEBUG_SINGLE_PROCESS" in os.environ and os.environ["DEBUG_SINGLE_PROCESS"] in ["T", "t", "True", "true", 1]:
+    if "DEBUG_SINGLE_PROCESS" in os.environ and os.environ["DEBUG_SINGLE_PROCESS"] in [
+        "T",
+        "t",
+        "True",
+        "true",
+        1,
+    ]:
         workers = None
         cprint(
             "Due to the env variable DEBUG_SINGLE_PROCESS being set, run_multiprocessed is not using multiprocessing",
@@ -119,11 +125,14 @@ def _run_multiprocessed_as_iterator_impl(
 
     if FuseDebug().get_setting("multiprocessing") == "main_process":
         workers = None
-        cprint("Due to the FuseDebug mode, run_multiprocessed is not using multiprocessing", "red")
+        cprint(
+            "Due to the FuseDebug mode, run_multiprocessed is not using multiprocessing",
+            "red",
+        )
 
     assert callable(worker_func)
 
-    def _passthrough_tqdm_dummy(x, *args, **kwargs):
+    def _passthrough_tqdm_dummy(x: Any, *args: list, **kwargs: dict) -> Any:
         return x
 
     args_num = None
@@ -175,12 +184,15 @@ def _run_multiprocessed_as_iterator_impl(
                 cprint(f"multiprocess pool created with {workers} workers.", "cyan")
             map_func = pool.imap if keep_results_order else pool.imap_unordered
             for curr_ans in tqdm_func(
-                map_func(worker_func, args_list), total=args_num, smoothing=0.1, disable=verbose < 1
+                map_func(worker_func, args_list),
+                total=args_num,
+                smoothing=0.1,
+                disable=verbose < 1,
             ):
                 yield curr_ans
 
 
-def worker_func_wrapper(*args, worker_func, **kwargs):
+def worker_func_wrapper(*args: list, worker_func: Callable, **kwargs: dict) -> Any:
     torch.set_num_threads(1)
     return worker_func(*args, **kwargs)
 
@@ -232,12 +244,12 @@ ctx = mp.get_context("spawn")
 
 
 class Process(ctx.Process):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: list, **kwargs: dict):
         super().__init__(*args, **kwargs)
         self._pconn, self._cconn = mp.Pipe()
         self._start_method = None  # don't force spawn from now on
 
-    def run(self):
+    def run(self) -> None:
         try:
             results = self._target(*self._args, **self._kwargs)
             self._cconn.send((results, None))
@@ -247,19 +259,22 @@ class Process(ctx.Process):
             raise e  # You can still rise this exception if you need to
 
     @property
-    def results_and_error(self):
+    def results_and_error(self) -> Union[Any, Tuple[None, None]]:
         if self._pconn.poll():
             return self._pconn.recv()
         return (None, None)
 
 
-def run_in_subprocess(f: callable, *args, timeout: int = 600, **kwargs):
+def run_in_subprocess(
+    f: Callable, *args: list, timeout: int = 600, **kwargs: dict
+) -> Any:
     """A decorator that makes function run in a subprocess.
     This can be useful when you want allocate GPU and memory and to release it when you're done.
     :param f: the function to run in a subprocess
     :param timeout: the maximum time to wait for the process to complete
     """
-    if not os.environ.get("FORCE_RUN_IN_SUBPROCESS", True):
+
+    if "FORCE_RUN_IN_MAIN_PROCESS" in os.environ:
         return f(*args, **kwargs)
 
     # create process

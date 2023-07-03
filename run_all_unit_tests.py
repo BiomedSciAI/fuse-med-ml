@@ -13,7 +13,7 @@ import xmlrunner
 print(os.path.dirname(os.path.realpath(__file__)))
 
 
-def mehikon(a, b):
+def mehikon(a, b):  # type: ignore
     print(a)
 
 
@@ -22,7 +22,9 @@ termcolor.cprint = mehikon  # since junit/jenkins doesn't like text color ...
 if __name__ == "__main__":
     mode = None
     if len(sys.argv) > 1:
-        mode = sys.argv[1]  # options "examples", "core" or None for both "core" and "examples"
+        mode = sys.argv[
+            1
+        ]  # options "examples", "core" or None for both "core" and "examples"
     os.environ["DISPLAY"] = ""  # disable display in unit tests
 
     is_jenkins_job = "WORKSPACE" in os.environ and len(os.environ["WORKSPACE"]) > 2
@@ -64,6 +66,8 @@ if __name__ == "__main__":
     lgr = logging.getLogger("Fuse")
     lgr.setLevel(logging.INFO)
 
-    test_results = xmlrunner.XMLTestRunner(output=output, verbosity=2, stream=sys.stdout).run(
+    test_results = xmlrunner.XMLTestRunner(
+        output=output, verbosity=2, stream=sys.stdout
+    ).run(
         suite,
     )

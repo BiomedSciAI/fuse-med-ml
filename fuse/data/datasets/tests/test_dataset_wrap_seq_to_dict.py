@@ -34,23 +34,29 @@ class TestDatasetWrapSeqToDict(unittest.TestCase):
     Test sample caching
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         pass
 
-    def test_dataset_wrap_seq_to_dict(self):
+    def test_dataset_wrap_seq_to_dict(self) -> None:
         Seed.set_seed(1234)
         path = tempfile.mkdtemp()
 
         # Create dataset
-        transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+        transform = transforms.Compose(
+            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+        )
 
-        mnist_data_path = os.environ.get("MNIST_DATA_PATH", tempfile.mkdtemp(prefix="mnist"))
+        mnist_data_path = os.environ.get(
+            "MNIST_DATA_PATH", tempfile.mkdtemp(prefix="mnist")
+        )
         torch_train_dataset = torchvision.datasets.MNIST(
             mnist_data_path, download=True, train=True, transform=transform
         )
         # wrapping torch dataset
         train_dataset = DatasetWrapSeqToDict(
-            name="train", dataset=torch_train_dataset, sample_keys=("data.image", "data.label")
+            name="train",
+            dataset=torch_train_dataset,
+            sample_keys=("data.image", "data.label"),
         )
         train_dataset.create()
 
@@ -65,24 +71,31 @@ class TestDatasetWrapSeqToDict(unittest.TestCase):
         self.assertTrue((sample["data.image"] == item[0]).all())
         self.assertEqual(sample["data.label"], item[1])
 
-    def test_dataset_cache(self):
+    def test_dataset_cache(self) -> None:
         Seed.set_seed(1234)
 
         transform = transforms.Compose([transforms.Normalize((0.1307,), (0.3081,))])
         # Create dataset
-        mnist_data_path = os.environ.get("MNIST_DATA_PATH", tempfile.mkdtemp(prefix="mnist"))
-        torch_dataset = torchvision.datasets.MNIST(mnist_data_path, download=True, train=True, transform=None)
+        mnist_data_path = os.environ.get(
+            "MNIST_DATA_PATH", tempfile.mkdtemp(prefix="mnist")
+        )
+        torch_dataset = torchvision.datasets.MNIST(
+            mnist_data_path, download=True, train=True, transform=None
+        )
         print(f"torch dataset size = {len(torch_dataset)}")
 
         # wrapping torch dataset
         cache_dir = tempfile.mkdtemp()
 
         dataset = DatasetWrapSeqToDict(
-            name="test", dataset=torch_dataset, sample_keys=("data.image", "data.label"), cache_dir=cache_dir
+            name="test",
+            dataset=torch_dataset,
+            sample_keys=("data.image", "data.label"),
+            cache_dir=cache_dir,
         )
         dataset.create()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         pass
 
 

@@ -1,9 +1,9 @@
 import runpy
-from typing import List, Union, Callable, Dict
+from typing import List, Union, Callable, Dict, Any
 
 
 class Config:
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     def load(self, *configs: List[Union[Dict, str, Callable]]) -> Dict:
@@ -26,13 +26,17 @@ class Config:
             elif callable(conf):
                 ans = conf(ans)
             else:
-                raise Exception(f"config element #{idx} is not a valid type. It has type={type(conf)}")
+                raise Exception(
+                    f"config element #{idx} is not a valid type. It has type={type(conf)}"
+                )
         return ans
 
 
-def get_config_function(script_path: str):
+def get_config_function(script_path: str) -> Any:
     ans = runpy.run_path(script_path)
     func_name = "load_config"
     if func_name not in ans:
-        raise Exception(f"Expected to have load_config(conf:dict) -> dict defined in {script_path}")
+        raise Exception(
+            f"Expected to have load_config(conf:dict) -> dict defined in {script_path}"
+        )
     return ans[func_name]

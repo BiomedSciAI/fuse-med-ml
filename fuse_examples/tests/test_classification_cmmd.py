@@ -34,7 +34,11 @@ from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 # 1. CMMD_clinicaldata_revision.csv which is a converted version of CMMD_clinicaldata_revision.xlsx
 # 2. folder named CMMD which is the downloaded data folder
 if "CMMD_DATA_PATH" in os.environ:
-    from fuse_examples.imaging.classification.cmmd.runner import run_train, run_eval, run_infer
+    from fuse_examples.imaging.classification.cmmd.runner import (
+        run_train,
+        run_eval,
+        run_infer,
+    )
 
 
 def run_cmmd(root: str) -> None:
@@ -42,7 +46,9 @@ def run_cmmd(root: str) -> None:
         {
             "paths": {
                 "data_dir": os.environ["CMMD_DATA_PATH"],
-                "model_dir": os.path.join(root, "model_new/InceptionResnetV2_2017_test"),
+                "model_dir": os.path.join(
+                    root, "model_new/InceptionResnetV2_2017_test"
+                ),
                 "inference_dir": os.path.join(root, "model_new/infer_dir"),
                 "eval_dir": os.path.join(root, "model_new/eval_dir"),
                 "cache_dir": os.path.join(root, "examples/CMMD_cache_dir"),
@@ -61,7 +67,12 @@ def run_cmmd(root: str) -> None:
                 "learning_rate": 0.0001,
                 "weight_decay": 0,
                 "resume_checkpoint_filename": None,
-                "trainer": {"accelerator": "gpu", "devices": 1, "num_epochs": 1, "ckpt_path": None},
+                "trainer": {
+                    "accelerator": "gpu",
+                    "devices": 1,
+                    "num_epochs": 1,
+                    "ckpt_path": None,
+                },
             },
             "infer": {
                 "infer_filename": "validation_set_infer.gz",
@@ -84,15 +95,18 @@ def run_cmmd(root: str) -> None:
     assert "metrics.auc" in results
 
 
-@unittest.skipIf("CMMD_DATA_PATH" not in os.environ, "define environment variable 'CMMD_DATA_PATH' to run this test")
+@unittest.skipIf(
+    "CMMD_DATA_PATH" not in os.environ,
+    "define environment variable 'CMMD_DATA_PATH' to run this test",
+)
 class ClassificationMGCmmdTestCase(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.root = tempfile.mkdtemp()
 
-    def test_runner(self):
+    def test_runner(self) -> None:
         run_in_subprocess(run_cmmd, self.root)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         # Delete temporary directories
         shutil.rmtree(self.root)
 

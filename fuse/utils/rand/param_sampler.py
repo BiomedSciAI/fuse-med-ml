@@ -54,7 +54,7 @@ class Uniform(ParamSamplerBase):
         """
         return random.uniform(self.min, self.max)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Uniform [{self.min} - {self.max}] "
 
 
@@ -75,7 +75,7 @@ class RandInt(ParamSamplerBase):
         """
         return random.randint(self.min, self.max)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"RandInt [{self.min} - {self.max}] "
 
 
@@ -95,12 +95,14 @@ class RandBool(ParamSamplerBase):
         """
         return random.uniform(0, 1) <= self.probability
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"RandBool p={self.probability}] "
 
 
 class Choice(ParamSamplerBase):
-    def __init__(self, seq: Sequence, probabilities: Optional[List[float]] = None, k: int = 0):
+    def __init__(
+        self, seq: Sequence, probabilities: Optional[List[float]] = None, k: int = 0
+    ):
         """
         Random choice out of a sequence
         Return a k sized list of population elements chosen with replacement
@@ -122,7 +124,7 @@ class Choice(ParamSamplerBase):
         else:
             return random.choices(self.seq, weights=self.probabilities, k=self.k)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Choice seq={self.seq}, w={self.probabilities}] "
 
 
@@ -174,7 +176,9 @@ def draw_samples_recursively(data: Any) -> Any:
 
     # if a tuple  return a copy of the tuple try to sample each element recursively
     if isinstance(data, Tuple):
-        data_tuple = tuple((draw_samples_recursively(data[ii]) for ii in range(len(data))))
+        data_tuple = tuple(
+            (draw_samples_recursively(data[ii]) for ii in range(len(data)))
+        )
         return data_tuple
 
     # if ParamSamplerBase, sample a number

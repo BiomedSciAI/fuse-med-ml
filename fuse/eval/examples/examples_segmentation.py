@@ -28,8 +28,13 @@ from fuse.eval.metrics.segmentation.metrics_segmentation_common import (
     Metric2DHausdorff,
     MetricPixelAccuracy,
 )
-from fuse.eval.metrics.segmentation.metrics_instance_segmentation_common import MetricInstanceIouJaccard
-from fuse.eval.metrics.detection.metrics_detection_common import MetricDetectionPrecision, MetricDetectionRecall
+from fuse.eval.metrics.segmentation.metrics_instance_segmentation_common import (
+    MetricInstanceIouJaccard,
+)
+from fuse.eval.metrics.detection.metrics_detection_common import (
+    MetricDetectionPrecision,
+    MetricDetectionRecall,
+)
 from fuse.eval.evaluator import EvaluatorDefault
 
 
@@ -80,14 +85,18 @@ def example_seg_0() -> Dict[str, Any]:
         return sample_dict
 
     # define iterator
-    def data_iter():
+    def data_iter() -> NDict:
         dir_path = pathlib.Path(__file__).parent.resolve()
-        predicted_list = os.listdir(os.path.join(dir_path, "inputs/semantic_segmentation/predicted/"))
+        predicted_list = os.listdir(
+            os.path.join(dir_path, "inputs/semantic_segmentation/predicted/")
+        )
         labels_path = os.path.join(dir_path, "inputs/semantic_segmentation/labeled/")
         for predicted in predicted_list:
             id = os.path.basename(predicted).split(".")[0]
             label_path = os.path.join(labels_path, id, "seg.nii.gz")
-            predicted_path = os.path.join(dir_path, "inputs/semantic_segmentation/predicted/", predicted)
+            predicted_path = os.path.join(
+                dir_path, "inputs/semantic_segmentation/predicted/", predicted
+            )
             sample_dict = {}
             sample_dict["id"] = id
             sample_dict["pred.array"] = np.asanyarray(nib.load(predicted_path).dataobj)
@@ -137,7 +146,7 @@ def example_seg_1() -> Dict[str, Any]:
     """
 
     # define iterator
-    def data_iter():
+    def data_iter() -> NDict:
         # set seed
         set_seed(0)
 
@@ -152,7 +161,10 @@ def example_seg_1() -> Dict[str, Any]:
         [
             ("dice", MetricDice(pred="pred.array", target="label.array")),
             ("overlap", MetricOverlap(pred="pred.array", target="label.array")),
-            ("pixel_accuracy", MetricPixelAccuracy(pred="pred.array", target="label.array")),
+            (
+                "pixel_accuracy",
+                MetricPixelAccuracy(pred="pred.array", target="label.array"),
+            ),
             ("iou_jaccard", MetricIouJaccard(pred="pred.array", target="label.array")),
         ]
     )
@@ -165,19 +177,23 @@ def example_seg_1() -> Dict[str, Any]:
 
 def example_seg_2() -> Dict[str, Any]:
     """
-    Simple evaluation example for dice score for multiclass semantic segmentation
+    Simple evaluation example for dice score for multi-class semantic segmentation
     Inputs are 4 pairs of segmentation files: one including predictions and one targets
     """
 
     # define iterator
-    def data_iter():
+    def data_iter() -> NDict:
         dir_path = pathlib.Path(__file__).parent.resolve()
-        predicted_list = os.listdir(os.path.join(dir_path, "inputs/semantic_segmentation/predicted/"))
+        predicted_list = os.listdir(
+            os.path.join(dir_path, "inputs/semantic_segmentation/predicted/")
+        )
         labels_path = os.path.join(dir_path, "inputs/semantic_segmentation/labeled/")
         for predicted in predicted_list:
             id = os.path.basename(predicted).split(".")[0]
             label_path = os.path.join(labels_path, id, "seg.nii.gz")
-            predicted_path = os.path.join(dir_path, "inputs/semantic_segmentation/predicted/", predicted)
+            predicted_path = os.path.join(
+                dir_path, "inputs/semantic_segmentation/predicted/", predicted
+            )
             sample_dict = {}
             sample_dict["id"] = id
             sample_dict["pred.array"] = np.asanyarray(nib.load(predicted_path).dataobj)
@@ -204,40 +220,65 @@ def example_seg_3() -> Dict[str, Any]:
     """
 
     # define iterator
-    def data_iter():
+    def data_iter() -> NDict:
         sample_dict = {}
         sample_dict["id"] = id
-        sample_dict["pred.array"] = np.array([(1.0, 0.0), (0.0, 1.0), (1.0, 0.0), (0.0, 1.0)])
-        sample_dict["label.array"] = np.array([(1.0, 1.0), (1.0, 1.0), (1.0, 1.0), (1.0, 1.0)])
-        sample_dict["pixel_weight"] = {"1": np.array([(0.125, 0.125), (0.125, 0.125), (0.125, 0.125), (0.125, 0.125)])}
+        sample_dict["pred.array"] = np.array(
+            [(1.0, 0.0), (0.0, 1.0), (1.0, 0.0), (0.0, 1.0)]
+        )
+        sample_dict["label.array"] = np.array(
+            [(1.0, 1.0), (1.0, 1.0), (1.0, 1.0), (1.0, 1.0)]
+        )
+        sample_dict["pixel_weight"] = {
+            "1": np.array(
+                [(0.125, 0.125), (0.125, 0.125), (0.125, 0.125), (0.125, 0.125)]
+            )
+        }
         yield NDict(sample_dict)
 
     # list of metrics
     metrics = OrderedDict(
         [
-            ("hausdorff", Metric2DHausdorff(pred="pred.array", target="label.array", class_weights={"1": 1.0})),
+            (
+                "hausdorff",
+                Metric2DHausdorff(
+                    pred="pred.array", target="label.array", class_weights={"1": 1.0}
+                ),
+            ),
             (
                 "dice",
                 MetricDice(
-                    pred="pred.array", target="label.array", pixel_weight="pixel_weight", class_weights={"1": 1.0}
+                    pred="pred.array",
+                    target="label.array",
+                    pixel_weight="pixel_weight",
+                    class_weights={"1": 1.0},
                 ),
             ),
             (
                 "overlap",
                 MetricOverlap(
-                    pred="pred.array", target="label.array", pixel_weight="pixel_weight", class_weights={"1": 1.0}
+                    pred="pred.array",
+                    target="label.array",
+                    pixel_weight="pixel_weight",
+                    class_weights={"1": 1.0},
                 ),
             ),
             (
                 "pixel_accuracy",
                 MetricPixelAccuracy(
-                    pred="pred.array", target="label.array", pixel_weight="pixel_weight", class_weights={"1": 1.0}
+                    pred="pred.array",
+                    target="label.array",
+                    pixel_weight="pixel_weight",
+                    class_weights={"1": 1.0},
                 ),
             ),
             (
                 "iou_jaccard",
                 MetricIouJaccard(
-                    pred="pred.array", target="label.array", pixel_weight="pixel_weight", class_weights={"1": 1.0}
+                    pred="pred.array",
+                    target="label.array",
+                    pixel_weight="pixel_weight",
+                    class_weights={"1": 1.0},
                 ),
             ),
         ]
@@ -256,12 +297,16 @@ def example_seg_4() -> Dict[str, Any]:
     """
 
     # define iterator
-    def data_iter():
+    def data_iter() -> NDict:
         dir_path = pathlib.Path(__file__).parent.resolve()
-        annotation_path = os.path.join(dir_path, "inputs/detection/example_coco_new.json")
+        annotation_path = os.path.join(
+            dir_path, "inputs/detection/example_coco_new.json"
+        )
         cocoGt = COCO(annotation_path)
         # initialize COCO detections api
-        resFile = os.path.join(dir_path, "inputs/detection/instances_val2014_fakesegm100_results.json")
+        resFile = os.path.join(
+            dir_path, "inputs/detection/instances_val2014_fakesegm100_results.json"
+        )
         coco = cocoGt.loadRes(resFile)
         catNms = ["person", "car"]
         segtypes = ["bbox", "polygon"]
@@ -275,13 +320,23 @@ def example_seg_4() -> Dict[str, Any]:
             sample_dict["height"] = img["height"]
             sample_dict["width"] = img["width"]
             for index, catID in enumerate(catIds):
-                pred_annIds = coco.getAnnIds(imgIds=img_id, catIds=[catID], iscrowd=None)
-                target_annIds = cocoGt.getAnnIds(imgIds=img_id, catIds=[str(catID)], iscrowd=None)
+                pred_annIds = coco.getAnnIds(
+                    imgIds=img_id, catIds=[catID], iscrowd=None
+                )
+                target_annIds = cocoGt.getAnnIds(
+                    imgIds=img_id, catIds=[str(catID)], iscrowd=None
+                )
                 for type in segtypes:
-                    pred_annotations = [seg[map_field[type]] for seg in coco.loadAnns(pred_annIds)]
-                    target_annotations = [seg[map_field[type]] for seg in cocoGt.loadAnns(target_annIds)]
+                    pred_annotations = [
+                        seg[map_field[type]] for seg in coco.loadAnns(pred_annIds)
+                    ]
+                    target_annotations = [
+                        seg[map_field[type]] for seg in cocoGt.loadAnns(target_annIds)
+                    ]
                     sample_dict[f"pred.array_{type}_{catNms[index]}"] = pred_annotations
-                    sample_dict[f"label.array_{type}_{catNms[index]}"] = target_annotations
+                    sample_dict[
+                        f"label.array_{type}_{catNms[index]}"
+                    ] = target_annotations
             yield sample_dict
 
     # list of metrics

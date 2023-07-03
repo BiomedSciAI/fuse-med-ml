@@ -58,7 +58,10 @@ class MetricsLibClass:
             y_score = np.asarray(pred)[:, pos_class_index]
 
         return metrics.roc_auc_score(
-            y_score=y_score, y_true=np.asarray(target) == pos_class_index, sample_weight=sample_weight, max_fpr=max_fpr
+            y_score=y_score,
+            y_true=np.asarray(target) == pos_class_index,
+            sample_weight=sample_weight,
+            max_fpr=max_fpr,
         )
 
     @staticmethod
@@ -81,7 +84,11 @@ class MetricsLibClass:
         y_score = np.asarray(pred)
         y_true = np.asarray(target)
         return metrics.roc_auc_score(
-            y_score=y_score, y_true=y_true, sample_weight=sample_weight, max_fpr=max_fpr, average=average
+            y_score=y_score,
+            y_true=y_true,
+            sample_weight=sample_weight,
+            max_fpr=max_fpr,
+            average=average,
         )
 
     @staticmethod
@@ -107,7 +114,10 @@ class MetricsLibClass:
             if cls_name is None:
                 continue
             fpr, tpr, _ = sklearn.metrics.roc_curve(
-                target, np.array(pred)[:, cls], sample_weight=sample_weight, pos_label=cls
+                target,
+                np.array(pred)[:, cls],
+                sample_weight=sample_weight,
+                pos_label=cls,
             )
             auc = sklearn.metrics.auc(fpr, tpr)
             results[cls_name] = {"fpr": fpr, "tpr": tpr, "auc": auc}
@@ -115,7 +125,11 @@ class MetricsLibClass:
         # display
         if output_filename is not None:
             for cls_name, cls_res in results.items():
-                plt.plot(cls_res["fpr"], cls_res["tpr"], label=f'{cls_name}(auc={cls_res["auc"]:0.2f})')
+                plt.plot(
+                    cls_res["fpr"],
+                    cls_res["tpr"],
+                    label=f'{cls_name}(auc={cls_res["auc"]:0.2f})',
+                )
 
             plt.title("ROC curve")
             plt.xlabel("FPR")
@@ -151,7 +165,9 @@ class MetricsLibClass:
             y_score = np.asarray(pred)[:, pos_class_index]
 
         precision, recall, _ = metrics.precision_recall_curve(
-            probas_pred=y_score, y_true=np.asarray(target) == pos_class_index, sample_weight=sample_weight
+            probas_pred=y_score,
+            y_true=np.asarray(target) == pos_class_index,
+            sample_weight=sample_weight,
         )
         return metrics.auc(recall, precision)
 
@@ -160,7 +176,7 @@ class MetricsLibClass:
         pred: Sequence[Union[np.ndarray, int]],
         target: Sequence[Union[np.ndarray, int]],
         sample_weight: Optional[Sequence[Union[np.ndarray, float]]] = None,
-    ):
+    ) -> float:
         """
         Compute accuracy score
         :param pred: class prediction. Each element is an integer in range [0 - num_classes) or a float in range [0-1] in which case argmax will be applied
@@ -213,9 +229,16 @@ class MetricsLibClass:
 
         res = {}
         tp = (np.logical_and(class_target_t, class_pred_t) * sample_weight).sum()
-        fn = (np.logical_and(class_target_t, np.logical_not(class_pred_t)) * sample_weight).sum()
-        fp = (np.logical_and(np.logical_not(class_target_t), class_pred_t) * sample_weight).sum()
-        tn = (np.logical_and(np.logical_not(class_target_t), np.logical_not(class_pred_t)) * sample_weight).sum()
+        fn = (
+            np.logical_and(class_target_t, np.logical_not(class_pred_t)) * sample_weight
+        ).sum()
+        fp = (
+            np.logical_and(np.logical_not(class_target_t), class_pred_t) * sample_weight
+        ).sum()
+        tn = (
+            np.logical_and(np.logical_not(class_target_t), np.logical_not(class_pred_t))
+            * sample_weight
+        ).sum()
 
         for metric in metrics:
             if metric in ["sensitivity", "recall", "tpr"]:
@@ -261,12 +284,18 @@ class MetricsLibClass:
         if type_of_target(target) in ("multilabel-indicator", "multiclass-multioutput"):
             target = np.argmax(target, -1)
 
-        conf_matrix = sklearn.metrics.confusion_matrix(y_true=target, y_pred=cls_pred, sample_weight=sample_weight)
-        conf_matrix_count = pd.DataFrame(conf_matrix, columns=class_names, index=class_names)
+        conf_matrix = sklearn.metrics.confusion_matrix(
+            y_true=target, y_pred=cls_pred, sample_weight=sample_weight
+        )
+        conf_matrix_count = pd.DataFrame(
+            conf_matrix, columns=class_names, index=class_names
+        )
         conf_matrix_total = conf_matrix.sum(axis=1)
         conf_matrix_count["total"] = conf_matrix_total
         conf_matrix_percent = pd.DataFrame(
-            conf_matrix / conf_matrix_total[:, None], columns=class_names, index=class_names
+            conf_matrix / conf_matrix_total[:, None],
+            columns=class_names,
+            index=class_names,
         )
 
         return {"count": conf_matrix_count, "percent": conf_matrix_percent}
@@ -286,7 +315,9 @@ class MetricsLibClass:
         return float(np.mean(np.sum((pred - target_one_hot) ** 2, axis=1)))
 
     @staticmethod
-    def multi_class_bss(pred: Sequence[np.ndarray], target: Sequence[np.ndarray]) -> float:
+    def multi_class_bss(
+        pred: Sequence[np.ndarray], target: Sequence[np.ndarray]
+    ) -> float:
         """
         Brier Skill Score:
         bss = 1 - bs / bs_{ref}
@@ -308,15 +339,21 @@ class MetricsLibClass:
         bs = MetricsLibClass.multi_class_bs(pred, target)
 
         # no skill BS
-        no_skill_prediction = [(target == target_cls).sum() / target.shape[0] for target_cls in range(pred.shape[-1])]
-        no_skill_predictions = np.tile(np.array(no_skill_prediction), (pred.shape[0], 1))
+        no_skill_prediction = [
+            (target == target_cls).sum() / target.shape[0]
+            for target_cls in range(pred.shape[-1])
+        ]
+        no_skill_predictions = np.tile(
+            np.array(no_skill_prediction), (pred.shape[0], 1)
+        )
         bs_ref = MetricsLibClass.multi_class_bs(no_skill_predictions, target)
 
         return 1.0 - bs / bs_ref
 
     @staticmethod
     def convert_probabilities_to_class(
-        pred: Sequence[Union[np.ndarray, float]], operation_point: Union[float, Sequence[Tuple[int, float]]]
+        pred: Sequence[Union[np.ndarray, float]],
+        operation_point: Union[float, Sequence[Tuple[int, float]]],
     ) -> np.array:
         """
         convert probabilities to class prediction
@@ -332,7 +369,9 @@ class MetricsLibClass:
             pred = np.stack((1 - pred, pred), axis=-1)
 
         # if no threshold specified, simply apply argmax
-        if operation_point is None or (isinstance(operation_point, Sequence) and len(operation_point) == 0):
+        if operation_point is None or (
+            isinstance(operation_point, Sequence) and len(operation_point) == 0
+        ):
             return np.argmax(pred, -1)
 
         # binary operation point
@@ -342,7 +381,9 @@ class MetricsLibClass:
             elif pred[0].shape[0] == 1:
                 return np.where(pred > operation_point, 1, 0)
             else:
-                raise Exception("Error - got single float as an operation point for multi-class prediction")
+                raise Exception(
+                    "Error - got single float as an operation point for multi-class prediction"
+                )
 
         # convert according to thresholds
         output_class = np.array([-1 for x in range(len(pred))])
@@ -351,10 +392,14 @@ class MetricsLibClass:
             class_thr = thr[1]
             # argmax
             if class_idx == "argmax":
-                output_class[output_class == -1] = np.argmax(pred, -1)[output_class == -1]
+                output_class[output_class == -1] = np.argmax(pred, -1)[
+                    output_class == -1
+                ]
 
             # among all the samples which not already predicted, set the ones that cross the threshold with this class
-            target_idx = np.argwhere(np.logical_and(pred[:, class_idx] > class_thr, output_class == -1))
+            target_idx = np.argwhere(
+                np.logical_and(pred[:, class_idx] > class_thr, output_class == -1)
+            )
             output_class[target_idx] = class_idx
 
         return output_class

@@ -24,7 +24,12 @@ from typing import Tuple, Optional, Callable, List, Sequence, Type
 
 class Conv3DSimple(nn.Conv3d):
     def __init__(
-        self, in_planes: int, out_planes: int, midplanes: Optional[int] = None, stride: int = 1, padding: int = 1
+        self,
+        in_planes: int,
+        out_planes: int,
+        midplanes: Optional[int] = None,
+        stride: int = 1,
+        padding: int = 1,
     ) -> None:
 
         super().__init__(
@@ -57,9 +62,13 @@ class BasicBlock(nn.Module):
 
         super().__init__()
         self.conv1 = nn.Sequential(
-            conv_builder(inplanes, planes, midplanes, stride), nn.BatchNorm3d(planes), nn.ReLU(inplace=True)
+            conv_builder(inplanes, planes, midplanes, stride),
+            nn.BatchNorm3d(planes),
+            nn.ReLU(inplace=True),
         )
-        self.conv2 = nn.Sequential(conv_builder(planes, planes, midplanes), nn.BatchNorm3d(planes))
+        self.conv2 = nn.Sequential(
+            conv_builder(planes, planes, midplanes), nn.BatchNorm3d(planes)
+        )
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
         self.stride = stride
@@ -81,10 +90,23 @@ class BasicBlock(nn.Module):
 class BasicStem(nn.Sequential):
     """The default conv-batchnorm-relu stem"""
 
-    def __init__(self, in_channels=3, out_channels=64, kernel_size=(3, 7, 7), stride=(1, 2, 2)) -> None:
+    def __init__(
+        self,
+        in_channels: int = 3,
+        out_channels: int = 64,
+        kernel_size: Tuple[int, int, int] = (3, 7, 7),
+        stride: Tuple[int, int, int] = (1, 2, 2),
+    ):
         padding = tuple([x // 2 for x in kernel_size])
         super().__init__(
-            nn.Conv3d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding, bias=False),
+            nn.Conv3d(
+                in_channels,
+                out_channels,
+                kernel_size=kernel_size,
+                stride=stride,
+                padding=padding,
+                bias=False,
+            ),
             nn.BatchNorm3d(out_channels),
             nn.ReLU(inplace=True),
         )
@@ -125,12 +147,22 @@ class BackboneResnet3D(nn.Module):
         """
         super().__init__()
         self.inplanes = first_channel_dim
-        self.stem = BasicStem(3, first_channel_dim, kernel_size=stem_kernel_size, stride=stem_stride)
+        self.stem = BasicStem(
+            3, first_channel_dim, kernel_size=stem_kernel_size, stride=stem_stride
+        )
 
-        self.layer1 = self._make_layer(BasicBlock, Conv3DSimple, first_channel_dim, layers[0], stride=first_stride)
-        self.layer2 = self._make_layer(BasicBlock, Conv3DSimple, first_channel_dim * 2, layers[1], stride=2)
-        self.layer3 = self._make_layer(BasicBlock, Conv3DSimple, first_channel_dim * 4, layers[2], stride=2)
-        self.layer4 = self._make_layer(BasicBlock, Conv3DSimple, first_channel_dim * 8, layers[3], stride=2)
+        self.layer1 = self._make_layer(
+            BasicBlock, Conv3DSimple, first_channel_dim, layers[0], stride=first_stride
+        )
+        self.layer2 = self._make_layer(
+            BasicBlock, Conv3DSimple, first_channel_dim * 2, layers[1], stride=2
+        )
+        self.layer3 = self._make_layer(
+            BasicBlock, Conv3DSimple, first_channel_dim * 4, layers[2], stride=2
+        )
+        self.layer4 = self._make_layer(
+            BasicBlock, Conv3DSimple, first_channel_dim * 8, layers[3], stride=2
+        )
         self.out_dim = first_channel_dim * 8
         self.avgpool = nn.AdaptiveAvgPool3d((1, 1, 1))
         self._pool = pool
@@ -148,7 +180,9 @@ class BackboneResnet3D(nn.Module):
         else:
             for m in self.modules():
                 if isinstance(m, nn.Conv3d):
-                    nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
+                    nn.init.kaiming_normal_(
+                        m.weight, mode="fan_out", nonlinearity="relu"
+                    )
                     if m.bias is not None:
                         nn.init.constant_(m.bias, 0)
                 elif isinstance(m, nn.BatchNorm3d):
@@ -160,10 +194,15 @@ class BackboneResnet3D(nn.Module):
 
         if in_channels == 1:
             self.stem[0].in_channels = 1
-            self.stem[0].weight = nn.Parameter(self.stem[0].weight.sum(dim=1, keepdim=True))
+            self.stem[0].weight = nn.Parameter(
+                self.stem[0].weight.sum(dim=1, keepdim=True)
+            )
         elif in_channels != 3:
-            self.stem[0] = nn.Conv3d(
-                in_channels, 64, kernel_size=(3, 7, 7), stride=(1, 2, 2), padding=(1, 3, 3), bias=False
+            self.stem = BasicStem(
+                in_channels,
+                first_channel_dim,
+                kernel_size=stem_kernel_size,
+                stride=stem_stride,
             )
 
     def _make_layer(
@@ -179,7 +218,13 @@ class BackboneResnet3D(nn.Module):
         if stride != 1 or self.inplanes != planes * block.expansion:
             ds_stride = conv_builder.get_downsample_stride(stride)
             downsample = nn.Sequential(
-                nn.Conv3d(self.inplanes, planes * block.expansion, kernel_size=1, stride=ds_stride, bias=False),
+                nn.Conv3d(
+                    self.inplanes,
+                    planes * block.expansion,
+                    kernel_size=1,
+                    stride=ds_stride,
+                    bias=False,
+                ),
                 nn.BatchNorm3d(planes * block.expansion),
             )
         layers = []

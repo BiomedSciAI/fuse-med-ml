@@ -28,7 +28,7 @@ from fuse.data.ops.ops_cast import OpToNumpy, OpToTensor
 
 
 class TestOpsCast(unittest.TestCase):
-    def test_op_to_tensor(self):
+    def test_op_to_tensor(self) -> None:
         """
         Test OpToTensor __call__ and reverse
         """
@@ -51,7 +51,9 @@ class TestOpsCast(unittest.TestCase):
         self.assertTrue((sample["values.val_np"] == torch.tensor([7, 8, 9])).all())
         self.assertIsInstance(sample["values.val_int"], int)
 
-        sample = op_call(op, sample, "_.test_id", key=["values.val_torch", "values.val_float"])
+        sample = op_call(
+            op, sample, "_.test_id", key=["values.val_torch", "values.val_float"]
+        )
         self.assertIsInstance(sample["values.val_torch"], torch.Tensor)
         self.assertIsInstance(sample["values.val_float"], torch.Tensor)
         self.assertTrue((sample["values.val_torch"] == torch.tensor([1, 2, 3])).all())
@@ -59,11 +61,15 @@ class TestOpsCast(unittest.TestCase):
         self.assertIsInstance(sample["values.val_int"], int)
 
         sample = op_reverse(
-            op, sample, key_to_follow="values.val_np", key_to_reverse="values.val_np", op_id="_.test_id"
+            op,
+            sample,
+            key_to_follow="values.val_np",
+            key_to_reverse="values.val_np",
+            op_id="_.test_id",
         )
         self.assertIsInstance(sample["values.val_np"], np.ndarray)
 
-    def test_op_to_numpy(self):
+    def test_op_to_numpy(self) -> None:
         """
         Test OpToNumpy __call__ and reverse
         """
@@ -86,7 +92,9 @@ class TestOpsCast(unittest.TestCase):
         self.assertTrue((sample["values.val_torch"] == np.array([1, 2, 3])).all())
         self.assertIsInstance(sample["values.val_int"], int)
 
-        sample = op_call(op, sample, "_.test_id", key=["values.val_np", "values.val_float"])
+        sample = op_call(
+            op, sample, "_.test_id", key=["values.val_np", "values.val_float"]
+        )
         self.assertIsInstance(sample["values.val_np"], np.ndarray)
         self.assertIsInstance(sample["values.val_float"], np.ndarray)
         self.assertTrue((sample["values.val_np"] == np.array([7, 8, 9])).all())
@@ -94,7 +102,11 @@ class TestOpsCast(unittest.TestCase):
         self.assertIsInstance(sample["values.val_int"], int)
 
         sample = op_reverse(
-            op, sample, key_to_follow="values.val_torch", key_to_reverse="values.val_torch", op_id="_.test_id"
+            op,
+            sample,
+            key_to_follow="values.val_torch",
+            key_to_reverse="values.val_torch",
+            op_id="_.test_id",
         )
         self.assertIsInstance(sample["values.val_torch"], torch.Tensor)
 

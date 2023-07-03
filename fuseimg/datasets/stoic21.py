@@ -19,7 +19,7 @@ Created on June 30, 2021
 from functools import partial
 from glob import glob
 import os
-from typing import Hashable, Optional, Sequence, Tuple
+from typing import Hashable, Optional, Sequence, Tuple, List
 
 
 import numpy as np
@@ -81,17 +81,24 @@ class STOIC21:
         ), "automatic download is not supported, please follow instructions in STOIC21 class header to download"
 
     @staticmethod
-    def sample_ids(path: str):
+    def sample_ids(path: str) -> List[str]:
         """
         get all the sample ids in train-set
         sample_id is *.mha file found in the specified path
         """
-        files = [os.path.join("data/mha/", os.path.basename(f)) for f in glob(os.path.join(path, "data/mha/*.mha"))]
-        assert len(files) > 0, f"Expecting mha files in {os.path.join(path, 'data/mha/*.mha')}"
+        files = [
+            os.path.join("data/mha/", os.path.basename(f))
+            for f in glob(os.path.join(path, "data/mha/*.mha"))
+        ]
+        assert (
+            len(files) > 0
+        ), f"Expecting mha files in {os.path.join(path, 'data/mha/*.mha')}"
         return files
 
     @staticmethod
-    def static_pipeline(data_path: str, output_shape: Tuple[int, int, int]) -> PipelineDefault:
+    def static_pipeline(
+        data_path: str, output_shape: Tuple[int, int, int]
+    ) -> PipelineDefault:
         """
         Get suggested static pipeline (which will be cached), typically loading the data plus design choices that we won't experiment with.
         :param data_path: path to original STOIC21 data (See in STOIC21 header the instructions to download)
@@ -108,7 +115,11 @@ class STOIC21:
                 # loading data
                 (
                     OpLoadImage(data_path),
-                    dict(key_in="data.input.img_path", key_out="data.input.img", key_metadata_out="data.metadata"),
+                    dict(
+                        key_in="data.input.img_path",
+                        key_out="data.input.img",
+                        key_metadata_out="data.metadata",
+                    ),
                 ),
                 # resize
                 # transposing so the depth channel will be first
@@ -148,7 +159,9 @@ class STOIC21:
         return static_pipeline
 
     @staticmethod
-    def dynamic_pipeline(train: bool, clip_range: Tuple[float, float]):
+    def dynamic_pipeline(
+        train: bool, clip_range: Tuple[float, float]
+    ) -> PipelineDefault:
         """
         Get suggested dynamic pipeline. including pre-processing that might be modified and augmentation operations.
         :param clip_range: clip the original voxels values to fit this range
@@ -161,21 +174,44 @@ class STOIC21:
                 # cast thickness to float
                 (OpToFloat(), dict(key="data.metadata.SliceThickness")),
                 # map input to categories
-                (OpLookup(age_map), dict(key_in="data.metadata.PatientAge", key_out="data.input.age")),
-                (OpToOneHot(len(age_map)), dict(key_in="data.input.age", key_out="data.input.age_one_hot")),
-                (OpLookup(gender_map), dict(key_in="data.metadata.PatientSex", key_out="data.input.gender")),
+                (
+                    OpLookup(age_map),
+                    dict(key_in="data.metadata.PatientAge", key_out="data.input.age"),
+                ),
+                (
+                    OpToOneHot(len(age_map)),
+                    dict(key_in="data.input.age", key_out="data.input.age_one_hot"),
+                ),
+                (
+                    OpLookup(gender_map),
+                    dict(
+                        key_in="data.metadata.PatientSex", key_out="data.input.gender"
+                    ),
+                ),
                 # create clinical data vector
                 (
                     OpConcat(),
                     dict(
-                        keys_in=["data.input.gender", "data.input.age_one_hot", "data.metadata.SliceThickness"],
+                        keys_in=[
+                            "data.input.gender",
+                            "data.input.age_one_hot",
+                            "data.metadata.SliceThickness",
+                        ],
                         key_out="data.input.clinical",
                     ),
                 ),
                 # fixed image normalization
-                (OpToNumpy(), dict(key="data.input.img", dtype=np.float32)),  # cast to float
+                (
+                    OpToNumpy(),
+                    dict(key="data.input.img", dtype=np.float32),
+                ),  # cast to float
                 (OpClip(), dict(key="data.input.img", clip=clip_range)),
-                (OpToRange(), dict(key="data.input.img", from_range=clip_range, to_range=(0.0, 1.0))),
+                (
+                    OpToRange(),
+                    dict(
+                        key="data.input.img", from_range=clip_range, to_range=(0.0, 1.0)
+                    ),
+                ),
                 # Numpy to tensor
                 (OpToTensor(), dict(key="data.input.img", dtype=torch.float32)),
                 (OpToTensor(), dict(key="data.input.clinical", dtype=torch.float32)),
@@ -188,7 +224,10 @@ class STOIC21:
         if train:
             dynamic_pipeline.extend(
                 [
-                    (OpLambda(partial(torch.squeeze, dim=0)), dict(key="data.input.img")),
+                    (
+                        OpLambda(partial(torch.squeeze, dim=0)),
+                        dict(key="data.input.img"),
+                    ),
                     # affine augmentation - will apply the same affine transformation on each slice
                     (
                         OpRandApply(OpSample(OpAugAffine2D()), 0.5),
@@ -208,7 +247,10 @@ class STOIC21:
                     #     add=Uniform(-0.01, 0.01)
                     # )),
                     # add channel dimension -> [C=1, D, H, W]
-                    (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")),
+                    (
+                        OpLambda(partial(torch.unsqueeze, dim=0)),
+                        dict(key="data.input.img"),
+                    ),
                 ]
             )
 

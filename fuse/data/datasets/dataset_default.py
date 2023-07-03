@@ -28,7 +28,11 @@ from fuse.utils.multiprocessing.run_multiprocessed import (
     run_multiprocessed,
     get_from_global_storage,
 )
-from fuse.data import get_sample_id, create_initial_sample, get_specific_sample_from_potentially_morphed
+from fuse.data import (
+    get_sample_id,
+    create_initial_sample,
+    get_specific_sample_from_potentially_morphed,
+)
 import copy
 from collections import OrderedDict
 import numpy as np
@@ -70,7 +74,9 @@ class DatasetDefault(DatasetBase):
                     "allow_uncached_sample_morphing is not allowed when providing sample_ids=an integer value"
                 )
             if cacher is not None:
-                raise Exception("providing a cacher is not allowed when providing sample_ids=an integer value")
+                raise Exception(
+                    "providing a cacher is not allowed when providing sample_ids=an integer value"
+                )
             self._sample_ids_mode = "running_int"
         elif sample_ids is None:
             self._sample_ids_mode = "external"
@@ -88,9 +94,13 @@ class DatasetDefault(DatasetBase):
                 )
 
         if static_pipeline is None:
-            static_pipeline = PipelineDefault("dummy_static_pipeline", ops_and_kwargs=[])
+            static_pipeline = PipelineDefault(
+                "dummy_static_pipeline", ops_and_kwargs=[]
+            )
         if dynamic_pipeline is None:
-            dynamic_pipeline = PipelineDefault("dummy_dynamic_pipeline", ops_and_kwargs=[])
+            dynamic_pipeline = PipelineDefault(
+                "dummy_dynamic_pipeline", ops_and_kwargs=[]
+            )
 
         if dynamic_pipeline is not None:
             assert isinstance(
@@ -133,7 +143,9 @@ class DatasetDefault(DatasetBase):
 
         self._output_sample_ids_info = None
         if self._cacher is not None:
-            self._output_sample_ids_info = self._cacher.cache_samples(self._orig_sample_ids)
+            self._output_sample_ids_info = self._cacher.cache_samples(
+                self._orig_sample_ids
+            )
         elif self._allow_uncached_sample_morphing:
             _output_sample_ids_info_list = run_multiprocessed(
                 DatasetDefault._process_orig_sample_id,
@@ -162,7 +174,9 @@ class DatasetDefault(DatasetBase):
         else:
             self._final_sample_ids = self._orig_sample_ids
 
-        self._orig_sample_ids = None  # should not be use after create. use self._final_sample_ids instead
+        self._orig_sample_ids = (
+            None  # should not be use after create. use self._final_sample_ids instead
+        )
         self._created = True
 
     def get_all_sample_ids(self) -> List[Any]:
@@ -170,7 +184,9 @@ class DatasetDefault(DatasetBase):
             raise Exception("you must first call create()")
 
         if self._sample_ids_mode != "explicit":
-            raise Exception("get_all_sample_ids is not supported when constructed with non explicit sample_ids")
+            raise Exception(
+                "get_all_sample_ids is not supported when constructed with non explicit sample_ids"
+            )
 
         return copy.deepcopy(self._final_sample_ids)
 
@@ -203,7 +219,9 @@ class DatasetDefault(DatasetBase):
             sample_id = item
             if self._sample_ids_mode == "running_int":  # allow using non int sample_ids
                 if sample_id >= self._final_sample_ids:
-                    raise IndexError
+                    raise IndexError(
+                        f"Expecting {sample_id} to be smaller than {self._final_sample_ids}"
+                    )
 
         elif not isinstance(item, (int, np.integer)):
             sample_id = item
@@ -215,7 +233,9 @@ class DatasetDefault(DatasetBase):
 
         # read sample
         if self._cacher is not None:
-            sample = self._cacher.load_sample(sample_id, collect_marker_info["static_keys_deps"])
+            sample = self._cacher.load_sample(
+                sample_id, collect_marker_info["static_keys_deps"]
+            )
 
         if self._cacher is None:
             if not self._allow_uncached_sample_morphing:
@@ -233,7 +253,9 @@ class DatasetDefault(DatasetBase):
                 assert sample is not None
                 sample = get_specific_sample_from_potentially_morphed(sample, sample_id)
 
-        sample = self._dynamic_pipeline(sample, until_op_id=collect_marker_info["op_id"])
+        sample = self._dynamic_pipeline(
+            sample, until_op_id=collect_marker_info["op_id"]
+        )
 
         if not isinstance(sample, dict):
             raise Exception(
@@ -278,7 +300,10 @@ class DatasetDefault(DatasetBase):
         else:
             sample_ids = items
 
-        for_global_storage = {"dataset_default_get_multi_dataset": self, "dataset_default_get_multi_kwargs": kwargs}
+        for_global_storage = {
+            "dataset_default_get_multi_dataset": self,
+            "dataset_default_get_multi_kwargs": kwargs,
+        }
 
         list_sample_dict = run_multiprocessed(
             worker_func=self._getitem_multiprocess,
@@ -298,7 +323,9 @@ class DatasetDefault(DatasetBase):
         if self._sample_ids_mode == "running_int":
             return self._final_sample_ids
         elif self._sample_ids_mode == "external":
-            raise Exception("__len__ is not defined where explicit sample_ids or an interer len are not provided.")
+            raise Exception(
+                "__len__ is not defined where explicit sample_ids or an interer len are not provided."
+            )
 
         return len(self._final_sample_ids)
 
@@ -342,7 +369,9 @@ class DatasetDefault(DatasetBase):
 
         # find the required collect markers and extract the info
         collect_marker_info = None
-        for (op, _), op_id in reversed(zip(self._dynamic_pipeline.ops_and_kwargs, self._dynamic_pipeline._op_ids)):
+        for (op, _), op_id in reversed(
+            zip(self._dynamic_pipeline.ops_and_kwargs, self._dynamic_pipeline._op_ids)
+        ):
             if isinstance(op, OpCollectMarker):
                 collect_marker_info_cur = op.get_info()
                 if collect_marker_info_cur["name"] == collect_marker_name:
@@ -356,7 +385,9 @@ class DatasetDefault(DatasetBase):
                             f"Error: two collect markers with name {collect_marker_info} found in dynamic pipeline"
                         )
         if collect_marker_info is None:
-            raise Exception(f"Error: didn't find collect marker with name {collect_marker_info} in dynamic pipeline.")
+            raise Exception(
+                f"Error: didn't find collect marker with name {collect_marker_info} in dynamic pipeline."
+            )
 
         return collect_marker_info
 

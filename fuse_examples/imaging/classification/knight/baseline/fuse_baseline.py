@@ -15,8 +15,14 @@ from torch.utils.data.dataloader import DataLoader
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.samplers import BatchSamplerDefault
 
-from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy, MetricConfusion
-from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
+from fuse.eval.metrics.classification.metrics_classification_common import (
+    MetricAUCROC,
+    MetricAccuracy,
+    MetricConfusion,
+)
+from fuse.eval.metrics.classification.metrics_thresholding_common import (
+    MetricApplyThresholds,
+)
 import torch.optim as optim
 import fuse.utils.gpu as GPU
 from fuse.utils.rand.seed import Seed
@@ -27,6 +33,7 @@ import shutil
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 import pytorch_lightning as pl
+from omegaconf import DictConfig
 
 ## Parameters:
 ##############################################################################
@@ -36,7 +43,9 @@ import pytorch_lightning as pl
 # uncomment if you want to use specific gpus instead of automatically looking for free ones
 
 
-def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_dropout: float):
+def make_model(
+    use_data: dict, num_classes: int, imaging_dropout: float, fused_dropout: float
+) -> nn.Module:
     if use_data["imaging"]:
         backbone = BackboneResnet3D(in_channels=1, pretrained=False)
         conv_inputs = [("model.backbone_features", 512)]
@@ -67,13 +76,15 @@ def make_model(use_data: dict, num_classes: int, imaging_dropout: float, fused_d
     return model
 
 
-def main(cfg_path):
+def main(cfg_path: DictConfig) -> None:
     # read config params
     cfg = yaml.safe_load(open(cfg_path))
     task_num = cfg["task_num"]
     num_classes = cfg[task_num]["num_classes"]
     target_name = cfg[task_num]["target_name"]
-    class_names = None if not cfg[task_num]["class_names"] else cfg[task_num]["class_names"]
+    class_names = (
+        None if not cfg[task_num]["class_names"] else cfg[task_num]["class_names"]
+    )
     if cfg["num_gpus"] == 0:
         use_gpu = False
     else:
@@ -107,7 +118,9 @@ def main(cfg_path):
     print("Done")
 
     # set constant seed for reproducibility.
-    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"  # required for pytorch deterministic mode
+    os.environ[
+        "CUBLAS_WORKSPACE_CONFIG"
+    ] = ":4096:8"  # required for pytorch deterministic mode
     rand_gen = Seed.set_seed(1234, deterministic_mode=True)
 
     # select gpus
@@ -117,7 +130,9 @@ def main(cfg_path):
     ## Model definition
     ##############################################################################
 
-    model = make_model(cfg["use_data"], num_classes, cfg["imaging_dropout"], cfg["fused_dropout"])
+    model = make_model(
+        cfg["use_data"], num_classes, cfg["imaging_dropout"], cfg["fused_dropout"]
+    )
 
     ## FuseMedML dataset preparation
     ##############################################################################
@@ -137,7 +152,9 @@ def main(cfg_path):
         balanced_class_name=target_name,
         num_balanced_classes=num_classes,
         batch_size=cfg["batch_size"],
-        balanced_class_weights=[1.0 / num_classes] * num_classes if task_num == "task_2" else None,
+        balanced_class_weights=[1.0 / num_classes] * num_classes
+        if task_num == "task_2"
+        else None,
         mode="approx",
     )
 
@@ -164,32 +181,60 @@ def main(cfg_path):
     # Loss definition:
     ##############################################################################
     losses = {
-        "cls_loss": LossDefault(pred="model.logits.head_0", target=target_name, callable=F.cross_entropy, weight=1.0),
+        "cls_loss": LossDefault(
+            pred="model.logits.head_0",
+            target=target_name,
+            callable=F.cross_entropy,
+            weight=1.0,
+        ),
     }
 
     # Metrics definition:
     ##############################################################################
     train_metrics = OrderedDict(
         [
-            ("op", MetricApplyThresholds(pred="model.output.head_0")),  # will apply argmax
-            ("auc", MetricAUCROC(pred="model.output.head_0", target=target_name, class_names=class_names)),
-            ("accuracy", MetricAccuracy(pred="results:metrics.op.cls_pred", target=target_name)),
+            (
+                "op",
+                MetricApplyThresholds(pred="model.output.head_0"),
+            ),  # will apply argmax
+            (
+                "auc",
+                MetricAUCROC(
+                    pred="model.output.head_0",
+                    target=target_name,
+                    class_names=class_names,
+                ),
+            ),
+            (
+                "accuracy",
+                MetricAccuracy(pred="results:metrics.op.cls_pred", target=target_name),
+            ),
             (
                 "sensitivity",
-                MetricConfusion(pred="results:metrics.op.cls_pred", target=target_name, metrics=("sensitivity",)),
+                MetricConfusion(
+                    pred="results:metrics.op.cls_pred",
+                    target=target_name,
+                    metrics=("sensitivity",),
+                ),
             ),
         ]
     )
-    val_metrics = copy.deepcopy(train_metrics)  # use the same metrics in validation as well
+    val_metrics = copy.deepcopy(
+        train_metrics
+    )  # use the same metrics in validation as well
 
     best_epoch_source = dict(
-        monitor=cfg[task_num]["target_metric"],  # can be any key from losses or metrics dictionaries
+        monitor=cfg[task_num][
+            "target_metric"
+        ],  # can be any key from losses or metrics dictionaries
         mode="max",  # can be either min/max
     )
 
     # Optimizer definition:
     ##############################################################################
-    optimizer = optim.Adam(model.parameters(), lr=cfg["learning_rate"], weight_decay=0.001)
+    optimizer = optim.Adam(
+        model.parameters(), lr=cfg["learning_rate"], weight_decay=0.001
+    )
 
     # Scheduler definition:
     ##############################################################################
@@ -210,16 +255,14 @@ def main(cfg_path):
         best_epoch_source=best_epoch_source,
         optimizers_and_lr_schs=optimizers_and_lr_schs,
     )
-    # create lightining trainer.
+    # create lightning trainer.
     pl_trainer = pl.Trainer(
         default_root_dir=model_dir,
         max_epochs=cfg["num_epochs"],
         accelerator="gpu" if use_gpu else "cpu",
         devices=cfg["num_gpus"] if use_gpu else None,
-        strategy=None,
-        auto_select_gpus=True if use_gpu else False,
         num_sanity_val_steps=-1,
-        auto_scale_batch_size="binsearch",
+        # auto_scale_batch_size="binsearch",  # should use Tuner -  https://lightning.ai/pages/releases/2.0.0/#tuner
     )
 
     # train
@@ -227,5 +270,7 @@ def main(cfg_path):
 
 
 if __name__ == "__main__":
-    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.yaml")
+    config_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "config.yaml"
+    )
     main(config_path)

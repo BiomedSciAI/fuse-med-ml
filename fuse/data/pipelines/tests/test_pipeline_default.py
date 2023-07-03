@@ -10,7 +10,9 @@ from fuse.data.pipelines.pipeline_default import PipelineDefault
 
 
 class OpSetForTest(OpReversibleBase):
-    def __call__(self, sample_dict: NDict, op_id: str, key: str, val: Any) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, op_id: str, key: str, val: Any
+    ) -> Union[None, dict, List[dict]]:
         # store information for reverse operation
         sample_dict[f"{op_id}.key"] = key
         if key in sample_dict:
@@ -21,7 +23,9 @@ class OpSetForTest(OpReversibleBase):
         sample_dict[key] = val
         return sample_dict
 
-    def reverse(self, sample_dict: NDict, op_id: str, key_to_reverse: str, key_to_follow: str) -> dict:
+    def reverse(
+        self, sample_dict: NDict, op_id: str, key_to_reverse: str, key_to_follow: str
+    ) -> dict:
         key = sample_dict[f"{op_id}.key"]
         if key == key_to_follow:
             if f"{op_id}.prev_val" in sample_dict:
@@ -34,12 +38,16 @@ class OpSetForTest(OpReversibleBase):
 
 
 class OpNoneForTest(OpBase):
-    def __call__(self, sample_dict: NDict, **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, **kwargs: dict
+    ) -> Union[None, dict, List[dict]]:
         return None
 
 
 class OpSplitForTest(OpBase):
-    def __call__(self, sample_dict: NDict, **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, **kwargs: dict
+    ) -> Union[None, dict, List[dict]]:
         sample_id = sample_dict["data.sample_id"]
         samples = []
         split_num = 10
@@ -52,7 +60,7 @@ class OpSplitForTest(OpBase):
 
 
 class TestPipelineDefault(unittest.TestCase):
-    def test_pipeline(self):
+    def test_pipeline(self) -> None:
         """
         Test standard backward and forward pipeline
         """
@@ -68,15 +76,19 @@ class TestPipelineDefault(unittest.TestCase):
         self.assertEqual(sample_dict["data.test_pipeline"], 6)
         self.assertEqual(sample_dict["data.test_pipeline_2"], 7)
 
-        sample_dict = pipe.reverse(sample_dict, "data.test_pipeline", "data.test_pipeline")
+        sample_dict = pipe.reverse(
+            sample_dict, "data.test_pipeline", "data.test_pipeline"
+        )
         self.assertEqual("data.test_pipeline" in sample_dict, False)
         self.assertEqual(sample_dict["data.test_pipeline_2"], 7)
 
-        sample_dict = pipe.reverse(sample_dict, "data.test_pipeline_2", "data.test_pipeline_2")
+        sample_dict = pipe.reverse(
+            sample_dict, "data.test_pipeline_2", "data.test_pipeline_2"
+        )
         self.assertEqual("data.test_pipeline" in sample_dict, False)
         self.assertEqual("data.test_pipeline_2" in sample_dict, False)
 
-    def test_none(self):
+    def test_none(self) -> None:
         """
         Test pipeline with an op returning None
         """
@@ -90,7 +102,7 @@ class TestPipelineDefault(unittest.TestCase):
         sample_dict = pipe(sample_dict)
         self.assertIsNone(sample_dict)
 
-    def test_split(self):
+    def test_split(self) -> None:
         """
         Test pipeline with an op splitting samples to multiple samples
         """

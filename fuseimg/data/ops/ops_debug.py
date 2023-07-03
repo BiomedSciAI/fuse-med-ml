@@ -35,7 +35,7 @@ class OpVis2DImage(OpDebugBase):
         path: str = ".",
         image_format: str = "channels_first",
         image_process_func: Optional[Callable] = None,
-        **kwargs,
+        **kwargs: dict,
     ):
         """
         :param show: if set to true will display it, otherwise will save it in `path`
@@ -57,7 +57,7 @@ class OpVis2DImage(OpDebugBase):
         clip: Optional[Tuple] = None,
         dtype: Optional[str] = None,
         figure_kwargs: dict = {},
-        **imshow_kwargs,
+        **imshow_kwargs: Dict[str, Any],
     ) -> None:
         """
         :param key: sample_dict key to a 2D image. Either tensor or numpy array.
@@ -97,9 +97,21 @@ class OpVis2DImage(OpDebugBase):
             plt.show()
         else:
             if self._name is None:
-                filename = os.path.join(self._path, get_sample_id(sample_dict).replace(".", "__")) + ".png"
+                filename = (
+                    os.path.join(
+                        self._path, get_sample_id(sample_dict).replace(".", "__")
+                    )
+                    + ".png"
+                )
             else:
-                filename = os.path.join(self._path, self._name, get_sample_id(sample_dict).replace(".", "__")) + ".png"
+                filename = (
+                    os.path.join(
+                        self._path,
+                        self._name,
+                        get_sample_id(sample_dict).replace(".", "__"),
+                    )
+                    + ".png"
+                )
             create_dir(os.path.dirname(filename))
             plt.savefig(filename)  # save fig
 
@@ -117,7 +129,7 @@ class OpVisImageHist(OpDebugBase):
     ```
     """
 
-    def __init__(self, show: bool = True, path: str = ".", **kwargs):
+    def __init__(self, show: bool = True, path: str = ".", **kwargs: dict):
         """
         :param show: if set to true will display it, otherwise will save it in `path`
         :param path: location to save the images. Used when `show` set to False
@@ -128,7 +140,12 @@ class OpVisImageHist(OpDebugBase):
         self._show = show
 
     def call_debug(
-        self, sample_dict: NDict, key: str, bins: int = 10, figure_kwargs: dict = {}, **hist_kwargs
+        self,
+        sample_dict: NDict,
+        key: str,
+        bins: int = 10,
+        figure_kwargs: dict = {},
+        **hist_kwargs: dict,
     ) -> NDict:
         """
         :param key: sample_dict key to a 2D image. Either tensor or numpy array.
@@ -153,7 +170,10 @@ class OpVisImageHist(OpDebugBase):
             plt.show()
         else:
             plt.savefig(
-                os.path.join(self._path, f"hist_{get_sample_id(sample_dict).replace('.', '__')}.png")
+                os.path.join(
+                    self._path,
+                    f"hist_{get_sample_id(sample_dict).replace('.', '__')}.png",
+                )
             )  # save fig
 
 
@@ -219,7 +239,9 @@ class OpVis3DPlotly(OpDebugBase):
                         cmin=cmin,
                         cmax=cmax,
                     ),
-                    name=str(k),  # you need to name the frame for the animation to behave properly
+                    name=str(
+                        k
+                    ),  # you need to name the frame for the animation to behave properly
                 )
                 for k in range(nb_frames)
             ]
@@ -296,10 +318,18 @@ class OpVis3DPlotly(OpDebugBase):
         """
         if self._name is None:
             # filename will be something like ./ProstateX-0008_1_PLOTLY.html
-            filename = os.path.join(self._path, get_sample_id(sample_dict).replace(".", "__")) + "_PLOTLY" + ".html"
+            filename = (
+                os.path.join(self._path, get_sample_id(sample_dict).replace(".", "__"))
+                + "_PLOTLY"
+                + ".html"
+            )
         else:
             filename = (
-                os.path.join(self._path, self._name, get_sample_id(sample_dict).replace(".", "__"))
+                os.path.join(
+                    self._path,
+                    self._name,
+                    get_sample_id(sample_dict).replace(".", "__"),
+                )
                 + "_PLOTLY"
                 + ".html"
             )

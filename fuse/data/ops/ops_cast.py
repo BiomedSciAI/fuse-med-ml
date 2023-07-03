@@ -33,7 +33,11 @@ class Cast:
     """
 
     @staticmethod
-    def to_tensor(value: Any, dtype: Optional[torch.dtype] = None, device: Optional[torch.device] = None) -> Tensor:
+    def to_tensor(
+        value: Any,
+        dtype: Optional[torch.dtype] = None,
+        device: Optional[torch.device] = None,
+    ) -> Tensor:
         """
         Convert many types to tensor
         """
@@ -44,7 +48,9 @@ class Cast:
         elif isinstance(value, (np.ndarray, int, float, list)):
             value = torch.tensor(value, dtype=dtype, device=device)
         else:
-            raise Exception(f"Unsupported type {type(value)} - add here support for this type")
+            raise Exception(
+                f"Unsupported type {type(value)} - add here support for this type"
+            )
 
         return value
 
@@ -60,7 +66,9 @@ class Cast:
         elif isinstance(value, bytes):
             value = np.array([e for e in value], dtype=dtype)
         else:
-            raise Exception(f"Unsupported type {type(value)} - add here support for this type")
+            raise Exception(
+                f"Unsupported type {type(value)} - add here support for this type"
+            )
 
         return value
 
@@ -74,7 +82,9 @@ class Cast:
         elif isinstance(value, (torch.Tensor, np.ndarray, float, str, bytes)):
             value = int(value)
         else:
-            raise Exception(f"Unsupported type {type(value)} - add here support for this type")
+            raise Exception(
+                f"Unsupported type {type(value)} - add here support for this type"
+            )
 
         return value
 
@@ -89,7 +99,9 @@ class Cast:
         elif isinstance(value, (torch.Tensor, np.ndarray, int, str)):
             value = float(value)
         else:
-            raise Exception(f"Unsupported type {type(value)} - add here support for this type")
+            raise Exception(
+                f"Unsupported type {type(value)} - add here support for this type"
+            )
 
         return value
 
@@ -104,12 +116,14 @@ class Cast:
         elif isinstance(value, (torch.Tensor, np.ndarray)):
             value = value.tolist()
         else:
-            raise Exception(f"Unsupported type {type(value)} - add here support for this type")
+            raise Exception(
+                f"Unsupported type {type(value)} - add here support for this type"
+            )
 
         return value
 
     @staticmethod
-    def to(value: Any, type_name: str, **kwargs) -> Any:
+    def to(value: Any, type_name: str, **kwargs: dict) -> Any:
         """
         Convert any type to type specified in type_name
         """
@@ -134,7 +148,9 @@ class Cast:
         if isinstance(like_value, np.ndarray):
             return Cast.to_numpy(value, dtype=like_value.dtype)
         if isinstance(like_value, torch.Tensor):
-            return Cast.to_tensor(value, dtype=like_value.dtype, device=like_value.device)
+            return Cast.to_tensor(
+                value, dtype=like_value.dtype, device=like_value.device
+            )
         if isinstance(like_value, float):
             return Cast.to_float(value)
         if isinstance(like_value, int):
@@ -145,7 +161,11 @@ class Cast:
 
 class OpCast(OpReversibleBase):
     def __call__(
-        self, sample_dict: NDict, op_id: Optional[str], key: Union[str, Sequence[str]], **kwargs
+        self,
+        sample_dict: NDict,
+        op_id: Optional[str],
+        key: Union[str, Sequence[str]],
+        **kwargs: dict,
     ) -> Union[None, dict, List[dict]]:
         """
         See super class
@@ -164,7 +184,13 @@ class OpCast(OpReversibleBase):
 
         return sample_dict
 
-    def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
+    def reverse(
+        self,
+        sample_dict: NDict,
+        key_to_reverse: str,
+        key_to_follow: str,
+        op_id: Optional[str],
+    ) -> dict:
         type_name = sample_dict[f"{op_id}_{key_to_follow}"]
         value = sample_dict[key_to_reverse]
         value = Cast.to(value, type_name)
@@ -173,7 +199,7 @@ class OpCast(OpReversibleBase):
         return sample_dict
 
     @abstractmethod
-    def _cast(self):
+    def _cast(self) -> None:
         raise NotImplementedError
 
 
@@ -182,7 +208,12 @@ class OpToTensor(OpCast):
     Convert many types to tensor
     """
 
-    def _cast(self, value: Any, dtype: Optional[torch.dtype] = None, device: Optional[torch.device] = None) -> Tensor:
+    def _cast(
+        self,
+        value: Any,
+        dtype: Optional[torch.dtype] = None,
+        device: Optional[torch.device] = None,
+    ) -> Tensor:
         return Cast.to_tensor(value, dtype, device)
 
 
@@ -225,7 +256,7 @@ class OpOneHotToNumber(OpBase):
         [0, 0, 1, 0] -> 2
     """
 
-    def __init__(self, num_classes, verify_arguments: bool = True):
+    def __init__(self, num_classes: int, verify_arguments: bool = True):
         """
         :param num_classes: Number of class the Op should expect.
         :param verify_arguments: Defualt is True - can be set to False for a speedup.
@@ -234,7 +265,9 @@ class OpOneHotToNumber(OpBase):
         self._num_classes = num_classes
         self._verify_arguments = verify_arguments
 
-    def __call__(self, sample_dict: NDict, key: str, **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, key: str, **kwargs: dict
+    ) -> Union[None, dict, List[dict]]:
         """
         :param key: the sample_dict's key where the one-hot vector is located.
                     The corresponding number will be save in the same key (instead of the one-hot)
@@ -245,7 +278,9 @@ class OpOneHotToNumber(OpBase):
             assert self._num_classes == len(
                 one_hot_vector
             ), f"Error: One-hot vector length is {len(one_hot_vector)} but number of classes is {self._num_classes}"
-            assert self.is_one_hot_vector(one_hot_vector), f"expect one-hot vector, instead got: {one_hot_vector} ."
+            assert self.is_one_hot_vector(
+                one_hot_vector
+            ), f"expect one-hot vector, instead got: {one_hot_vector} ."
 
         value = one_hot_vector.argmax()
         sample_dict[key] = torch.tensor(value)

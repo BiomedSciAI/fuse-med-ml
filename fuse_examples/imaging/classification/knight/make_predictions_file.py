@@ -30,10 +30,15 @@ from fuseimg.datasets.knight import KNIGHT
 from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import save_dataframe
 
-from fuse_examples.imaging.classification.knight.eval.eval import TASK1_CLASS_NAMES, TASK2_CLASS_NAMES
+from fuse_examples.imaging.classification.knight.eval.eval import (
+    TASK1_CLASS_NAMES,
+    TASK2_CLASS_NAMES,
+)
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 import pytorch_lightning as pl
-from fuse_examples.imaging.classification.knight.baseline.fuse_baseline import make_model
+from fuse_examples.imaging.classification.knight.baseline.fuse_baseline import (
+    make_model,
+)
 
 
 def make_predictions_file(
@@ -46,28 +51,30 @@ def make_predictions_file(
     output_filename: str,
     predictions_key_name: str,
     task_num: int,
-    auto_select_gpus: Optional[bool] = True,
     reset_cache: bool = False,
-):
+) -> None:
     """
-    Automaitically make prediction files in the requested format - given path to model dir create by FuseMedML during training
+    Automatically make prediction files in the requested format - given path to model dir create by FuseMedML during training
     :param model_dir: path to model dir create by FuseMedML during training
     :param model: definition of the model
     :param checkpoint: path to the model checkpoint file
     :param data_path: path to the original data downloaded from https://github.com/neheller/KNIGHT
     :param cache_path: Optional - path to the cache folder. If none, it will pre-processes the data again
-    :param split: either path to pickled dictionary or the actual dictionary specifing the split between train and validation. the dictionary maps "train" to list of sample descriptors and "val" to list of sample descriptions
+    :param split: either path to pickled dictionary or the actual dictionary specifying the split between train and validation. the dictionary maps "train" to list of sample descriptors and "val" to list of sample descriptions
     :param output_filename: filename of the output csv file
     :param predictions_key_name: the key in batch_dict of the model predictions
     :param task_num: either 1 or 2 (task 1 or task 2)
-    :param auto_select_gpus: whether to allow lightning to select gpus automatically
     :param reset_cache: whether to reset the cache
     """
     # Logger
     fuse_logger_start(console_verbose_level=logging.INFO)
     lgr = logging.getLogger("Fuse")
-    lgr.info("KNIGHT: make predictions file in FuseMedML", {"attrs": ["bold", "underline"]})
-    lgr.info(f"predictions_filename={os.path.abspath(output_filename)}", {"color": "magenta"})
+    lgr.info(
+        "KNIGHT: make predictions file in FuseMedML", {"attrs": ["bold", "underline"]}
+    )
+    lgr.info(
+        f"predictions_filename={os.path.abspath(output_filename)}", {"color": "magenta"}
+    )
 
     # Data
     # read train/val splits file.
@@ -105,8 +112,6 @@ def make_predictions_file(
         default_root_dir=model_dir,
         accelerator="gpu",
         devices=1,
-        strategy=None,
-        auto_select_gpus=auto_select_gpus,
     )
 
     predictions = pl_trainer.predict(pl_module, dl, ckpt_path=checkpoint)
@@ -135,7 +140,7 @@ def make_predictions_file(
 
 if __name__ == "__main__":
     """
-    Automaitically make prediction files in the requested format - given model definition and path to model dir create by FuseMedML during training
+    Automatically make prediction files in the requested format - given model definition and path to model dir create by FuseMedML during training
     """
     # no arguments - set arguments inline - see details in function make_predictions_file
     model_dir = ""
@@ -147,14 +152,20 @@ if __name__ == "__main__":
     predictions_key_name = "model.output.head_0"
     task_num = 1  # 1 or 2
 
-    use_data = {"imaging": True, "clinical": True}  # specify whether to use imaging, clinical data or both
+    use_data = {
+        "imaging": True,
+        "clinical": True,
+    }  # specify whether to use imaging, clinical data or both
     num_classes = 2
     imaging_dropout = 0.5
     clinical_dropout = 0.0
     fused_dropout = 0.5
 
     model = make_model(
-        use_data=use_data, num_classes=num_classes, imaging_dropout=imaging_dropout, fused_dropout=fused_dropout
+        use_data=use_data,
+        num_classes=num_classes,
+        imaging_dropout=imaging_dropout,
+        fused_dropout=fused_dropout,
     )
 
     make_predictions_file(

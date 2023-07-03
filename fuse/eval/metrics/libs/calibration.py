@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 import torch
-from torch import nn, optim
+from torch import nn, optim, Tensor
 from scipy import stats
 
 
@@ -60,9 +60,13 @@ class Calibration:
                     if p >= conf_vec[i] and p < conf_vec[i + 1]
                 ]
             )
-            cnt_conf = len([p for p in max_pred if p >= conf_vec[i] and p < conf_vec[i + 1]])
+            cnt_conf = len(
+                [p for p in max_pred if p >= conf_vec[i] and p < conf_vec[i + 1]]
+            )
             num_samples[i] = cnt_conf
-            fraction_of_samples[i] = cnt_conf / np.max([total_samples, np.finfo(float).eps])
+            fraction_of_samples[i] = cnt_conf / np.max(
+                [total_samples, np.finfo(float).eps]
+            )
             acc_vec[i] = cnt_correct_in_conf / np.max([cnt_conf, np.finfo(float).eps])
         mid_conf_vec = np.diff(conf_vec) / 2 + conf_vec[:-1]
         cnt_correct_total = sum([p_cls == t for (p_cls, t) in zip(cls_pred, target)])
@@ -82,7 +86,9 @@ class Calibration:
         if output_filename is not None:
             f, (ax1, ax2) = plt.subplots(2, 1, sharex=True, sharey=True)
             f.tight_layout(pad=3.0)
-            ax1.plot(mid_conf_vec, fraction_of_samples, color="blue", marker="o", linewidth=2)
+            ax1.plot(
+                mid_conf_vec, fraction_of_samples, color="blue", marker="o", linewidth=2
+            )
             ax1.set_title(
                 f"Confidence Histogram. Avg. Accuracy: {np.round(avg_acc, 2)}, Avg. Confidence: {np.round(avg_conf, 2)}"
             )
@@ -116,7 +122,11 @@ class Calibration:
         :return Expected Calibration Error (ECE) score
         """
         reliability_results = Calibration.reliability_diagram(
-            pred, target, num_bins=num_bins, num_quantiles=num_quantiles, output_filename=None
+            pred,
+            target,
+            num_bins=num_bins,
+            num_quantiles=num_quantiles,
+            output_filename=None,
         )
         conf_vec = reliability_results["conf_vec"][1:]
         total_samples = reliability_results["total_samples"]
@@ -124,7 +134,9 @@ class Calibration:
         existing_bins = num_samples_per_bin > 0
         accuracy_vec = reliability_results["accuracy"]
         # expected calibration error
-        ece = (1.0 / total_samples) * np.sum(num_samples_per_bin * np.abs(accuracy_vec - conf_vec))
+        ece = (1.0 / total_samples) * np.sum(
+            num_samples_per_bin * np.abs(accuracy_vec - conf_vec)
+        )
         # maximum calibration error
         # we filter out bins which don't contain any samples
         mce = np.max(np.abs(accuracy_vec[existing_bins] - conf_vec[existing_bins]))
@@ -136,7 +148,10 @@ class Calibration:
         return results
 
     @staticmethod
-    def find_temperature(pred: Sequence[Union[np.ndarray, float]], target: Sequence[Union[np.ndarray, int]]) -> float:
+    def find_temperature(
+        pred: Sequence[Union[np.ndarray, float]],
+        target: Sequence[Union[np.ndarray, int]],
+    ) -> float:
         """
         :param pred: prediction array per sample. Each element shape [num_classes]
             note that pred should be logits *before* conversion to softmax probabilities
@@ -151,7 +166,7 @@ class Calibration:
             logits = torch.tensor(np.array(pred))
             target = torch.tensor(target)
 
-        def eval():
+        def eval() -> Tensor:
             optimizer.zero_grad()
             loss = nll_criterion(logits / temperature, target)
             loss.backward()
@@ -162,7 +177,9 @@ class Calibration:
         return temperature.item()
 
     @staticmethod
-    def apply_temperature(pred: Sequence[Union[np.ndarray, float]], temperature: Union[float, None] = None) -> float:
+    def apply_temperature(
+        pred: Sequence[Union[np.ndarray, float]], temperature: Union[float, None] = None
+    ) -> float:
         """
         :param pred: prediction array per sample. Each element shape [num_classes]
             note that pred should be logits *before* conversion to softmax probabilities

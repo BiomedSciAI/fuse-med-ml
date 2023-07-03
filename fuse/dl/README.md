@@ -81,7 +81,7 @@ model = ModelWrapSeqToDict(
 
 Besides these basic classes, more specific architecture blocks are implemented. They are divided into "backbones" and "heads".
 
-Implemented backbones include a "vanilla" fully connected network, or Multi Layer Perceptron (MLP), supported versions of 2D and 3D ResNets, and an Inception ResNet.  
+Implemented backbones include a "vanilla" fully connected network, or Multi Layer Perceptron (MLP), supported versions of 2D and 3D ResNets, and an Inception ResNet.
 
 Implemented "heads" include a number of parameterized classifier heads, in 1D, 2D and 3D, as well as a dense segmentation head.
 

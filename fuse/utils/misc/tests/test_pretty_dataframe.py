@@ -25,11 +25,13 @@ from fuse.utils.misc.misc import get_pretty_dataframe
 
 
 class PrettyDataframeTestCase(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         pass
 
-    def test_normal_strings(self):
-        df = pd.DataFrame({"A": ["abc", "de", "efg"], "B": ["a", "abcde", "abc"], "C": [1, 2.5, 1.5]})
+    def test_normal_strings(self) -> None:
+        df = pd.DataFrame(
+            {"A": ["abc", "de", "efg"], "B": ["a", "abcde", "abc"], "C": [1, 2.5, 1.5]}
+        )
 
         col_width = 25
         df_as_string = get_pretty_dataframe(df)
@@ -39,7 +41,7 @@ class PrettyDataframeTestCase(unittest.TestCase):
         self.assertTrue(f'| abcde{" " * (col_width - 5)}|' in df_as_string)
         self.assertTrue(f"|\n{'-' * (col_width + 2) * 3}\n" in df_as_string)
 
-    def test_long_strings(self):
+    def test_long_strings(self) -> None:
         df = pd.DataFrame(
             {
                 "A": ["abc", "de", "very long column name should be longer than 25"],
@@ -56,7 +58,7 @@ class PrettyDataframeTestCase(unittest.TestCase):
         self.assertTrue(f'| abcde{" " * (col_width - 5)}|' in df_as_string)
         self.assertTrue(f"|\n{'-' * (col_width + 2) * 3}\n" in df_as_string)
 
-    def test_long_headers(self):
+    def test_long_headers(self) -> None:
         df = pd.DataFrame(
             {
                 "very long column name should be longer than 25": ["abc", "de", "abcd"],
@@ -73,7 +75,7 @@ class PrettyDataframeTestCase(unittest.TestCase):
         self.assertTrue(f'| abcde{" " * (col_width - 5)}|' in df_as_string)
         self.assertTrue(f"|\n{'-' * (col_width + 2) * 3}\n" in df_as_string)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         pass
 
 

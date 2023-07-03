@@ -31,7 +31,8 @@ from fuse_examples.multimodality.ehr_transformer.main_train import main as main_
 
 if "CINC_TEST_DATA_PATH" in os.environ:
     TEST_PARAMS = {
-        "CONFIG_PATH": os.path.dirname(__file__) + "/../multimodality/ehr_transformer/config.yaml",
+        "CONFIG_PATH": os.path.dirname(__file__)
+        + "/../multimodality/ehr_transformer/config.yaml",
         "TEST_DATA_DIR": os.environ["CINC_TEST_DATA_PATH"],
         "TEST_DATA_PICKL": None,
         "NAME": "ehr_transformer_test",
@@ -66,17 +67,18 @@ def run_ehr_transformer(cfg: DictConfig) -> None:
 
 
 @unittest.skipIf(
-    "CINC_TEST_DATA_PATH" not in os.environ, "define environment variable 'CINC_TEST_DATA_PATH' to run this test"
+    "CINC_TEST_DATA_PATH" not in os.environ,
+    "define environment variable 'CINC_TEST_DATA_PATH' to run this test",
 )
 class EHRTransformerTestCase(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.root = tempfile.mkdtemp()
         self.cfg = init_test_environment(self.root)
 
-    def test_template(self):
+    def test_template(self) -> None:
         run_in_subprocess(run_ehr_transformer, self.cfg)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         shutil.rmtree(self.root)
 
 

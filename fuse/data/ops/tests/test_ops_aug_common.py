@@ -1,24 +1,37 @@
 import unittest
 
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Any
 from fuse.utils.ndict import NDict
 
 from fuse.data.ops.op_base import OpBase, OpReversibleBase, op_call, op_reverse
 from fuse.data import create_initial_sample
 from fuse.data import OpRepeat
-from fuse.data.ops.ops_aug_common import OpRandApply, OpSample, OpSampleAndRepeat, OpRepeatAndSample
+from fuse.data.ops.ops_aug_common import (
+    OpRandApply,
+    OpSample,
+    OpSampleAndRepeat,
+    OpRepeatAndSample,
+)
 from fuse.utils.rand.param_sampler import Choice, RandBool, RandInt, Uniform
 from fuse.utils import Seed
 
 
 class OpArgsForTest(OpReversibleBase):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, op_id: Optional[str], **kwargs: dict
+    ) -> Union[None, dict, List[dict]]:
         return {"op_id": op_id, "kwargs": kwargs}
 
-    def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
+    def reverse(
+        self,
+        sample_dict: NDict,
+        key_to_reverse: str,
+        key_to_follow: str,
+        op_id: Optional[str],
+    ) -> dict:
         return {"op_id": op_id}
 
 
@@ -27,16 +40,18 @@ class OpBasicSetter(OpBase):
     A basic op for testing, which sets sample_dict[key] to set_key_to_val
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
-    def __call__(self, sample_dict: NDict, key, set_key_to_val, **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, key: str, set_key_to_val: Any, **kwargs: dict
+    ) -> Union[None, dict, List[dict]]:
         sample_dict[key] = set_key_to_val
         return sample_dict
 
 
 class TestOpsAugCommon(unittest.TestCase):
-    def test_op_sample(self):
+    def test_op_sample(self) -> None:
         Seed.set_seed(0)
         a = {
             "a": 5,
@@ -67,25 +82,48 @@ class TestOpsAugCommon(unittest.TestCase):
         reversed_op_id = result["op_id"]
         self.assertEqual(reversed_op_id, "op_id")
 
-    def test_op_sample_and_repeat(self):
+    def test_op_sample_and_repeat(self) -> None:
         Seed.set_seed(1337)
         sample_1 = create_initial_sample(0)
-        op = OpSampleAndRepeat(OpBasicSetter(), [dict(key="data.input.img"), dict(key="data.gt.seg")])
-        sample_1 = op_call(op, sample_1, op_id="testing_sample_and_repeat", set_key_to_val=Uniform(3.0, 6.0))
+        op = OpSampleAndRepeat(
+            OpBasicSetter(), [dict(key="data.input.img"), dict(key="data.gt.seg")]
+        )
+        sample_1 = op_call(
+            op,
+            sample_1,
+            op_id="testing_sample_and_repeat",
+            set_key_to_val=Uniform(3.0, 6.0),
+        )
 
         Seed.set_seed(1337)
         sample_2 = create_initial_sample(0)
-        op = OpSample(OpRepeat(OpBasicSetter(), [dict(key="data.input.img"), dict(key="data.gt.seg")]))
-        sample_2 = op_call(op, sample_2, op_id="testing_sample_and_repeat", set_key_to_val=Uniform(3.0, 6.0))
+        op = OpSample(
+            OpRepeat(
+                OpBasicSetter(), [dict(key="data.input.img"), dict(key="data.gt.seg")]
+            )
+        )
+        sample_2 = op_call(
+            op,
+            sample_2,
+            op_id="testing_sample_and_repeat",
+            set_key_to_val=Uniform(3.0, 6.0),
+        )
 
         self.assertEqual(sample_1["data.input.img"], sample_1["data.gt.seg"])
         self.assertEqual(sample_1["data.input.img"], sample_2["data.input.img"])
 
-    def test_op_repeat_and_sample(self):
+    def test_op_repeat_and_sample(self) -> None:
         Seed.set_seed(1337)
         sample_1 = create_initial_sample(0)
-        op = OpRepeatAndSample(OpBasicSetter(), [dict(key="data.input.img"), dict(key="data.gt.seg")])
-        sample_1 = op_call(op, sample_1, op_id="testing_sample_and_repeat", set_key_to_val=Uniform(3.0, 6.0))
+        op = OpRepeatAndSample(
+            OpBasicSetter(), [dict(key="data.input.img"), dict(key="data.gt.seg")]
+        )
+        sample_1 = op_call(
+            op,
+            sample_1,
+            op_id="testing_sample_and_repeat",
+            set_key_to_val=Uniform(3.0, 6.0),
+        )
 
         Seed.set_seed(1337)
         sample_2 = create_initial_sample(0)
@@ -95,19 +133,24 @@ class TestOpsAugCommon(unittest.TestCase):
             ),
             [dict(key="data.input.img"), dict(key="data.gt.seg")],
         )
-        sample_2 = op_call(op, sample_2, op_id="testing_sample_and_repeat", set_key_to_val=Uniform(3.0, 6.0))
+        sample_2 = op_call(
+            op,
+            sample_2,
+            op_id="testing_sample_and_repeat",
+            set_key_to_val=Uniform(3.0, 6.0),
+        )
 
         self.assertEqual(sample_1["data.input.img"], sample_2["data.input.img"])
         self.assertEqual(sample_1["data.gt.seg"], sample_2["data.gt.seg"])
 
-    def test_op_rand_apply(self):
+    def test_op_rand_apply(self) -> None:
         """
         Test OpRandApply
         """
         Seed.set_seed(0)
         op = OpRandApply(OpArgsForTest(), 0.5)
 
-        def sample(op):
+        def sample(op: OpBase) -> bool:
             return "kwargs" in op_call(op, {}, "op_id", a=5)
 
         # test range

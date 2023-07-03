@@ -25,7 +25,7 @@ from torch.utils.data.dataset import Dataset
 
 class DatasetBase(Dataset):
     @abstractmethod
-    def create(self, **kwargs) -> None:
+    def create(self, **kwargs: dict) -> None:
         """
         Make the dataset operational: might include data caching, reloading and more.
         """
@@ -39,7 +39,12 @@ class DatasetBase(Dataset):
         raise NotImplementedError
 
     @abstractmethod
-    def get_multi(self, items: Optional[Sequence[Union[int, Hashable]]] = None, *args, **kwargs) -> List[Dict]:
+    def get_multi(
+        self,
+        items: Optional[Sequence[Union[int, Hashable]]] = None,
+        *args: list,
+        **kwargs: dict
+    ) -> List[Dict]:
         """
         Get multiple items, optionally just some of the keys
         :param items: specify the list of sequence to read or None for all

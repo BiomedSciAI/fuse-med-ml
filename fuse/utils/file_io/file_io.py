@@ -24,7 +24,9 @@ from fuse.utils.misc.misc import Misc
 # and when using, import tables  before everything else
 
 
-def save_pickle(obj: Any, output_filename: str, compress: bool = False, verbose: int = 0) -> None:
+def save_pickle(
+    obj: Any, output_filename: str, compress: bool = False, verbose: int = 0
+) -> None:
     """
     Pickles object to a file, optionally compressing it.
     Note - when compress=True, gzip will be used, and a ".gz" extension will be adde if not already present.
@@ -53,7 +55,9 @@ def load_pickle(filename: str) -> Any:
         return pickle.load(f)
 
 
-def save_pickle_safe(obj: Any, output_filename: str, compress: bool = False, verbose: bool = 0) -> None:
+def save_pickle_safe(
+    obj: Any, output_filename: str, compress: bool = False, verbose: bool = 0
+) -> None:
     """
     a multi-threading/multi-process safe version of save_pickle()
     """
@@ -131,7 +135,7 @@ def read_text_file(file_path: str) -> str:
 G_host_name = socket.gethostname()
 
 
-def get_randomized_postfix_name(filename: str, **additional_rand_state) -> str:
+def get_randomized_postfix_name(filename: str, **additional_rand_state: dict) -> str:
     """
     Returns a filename post-fixed with a random hash
     This is mostly used to create a multi-processing safe save operation.
@@ -171,12 +175,14 @@ def create_simple_timestamp_file(file_path: str) -> None:
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
     with open(file_path, "w") as f:
         curr_time = time.time()
-        time_stamp_str = datetime.datetime.fromtimestamp(curr_time).strftime("%Y-%m-%d %H:%M:%S")
+        time_stamp_str = datetime.datetime.fromtimestamp(curr_time).strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
         f.write(time_stamp_str)
         f.close()
 
 
-def save_hdf5_safe(filename: str, use_blosc: bool = True, **kwarrays):
+def save_hdf5_safe(filename: str, use_blosc: bool = True, **kwarrays: dict) -> str:
     """
     multi-threading and multi-processing safe saving content to hdf5 file
     args:
@@ -275,7 +281,7 @@ def load_hdf5(
     return ans
 
 
-def save_dataframe(df: pd.DataFrame, filename: str, **kwargs) -> None:
+def save_dataframe(df: pd.DataFrame, filename: str, **kwargs: dict) -> None:
     """
     Save dataframe into a file. The file format inferred from filename suffix
     Supported types: "csv", "hd5", "hdf5", "pickle", "pkl", "gz", "xslx", "md"
@@ -371,7 +377,9 @@ def create_dir(dir_path: str, error_if_exist: bool = False) -> None:
                 raise
 
 
-def remove_dir_content(dir_path: str, ignore_files: Iterable[str] = tuple(), force_reset: bool = False) -> None:
+def remove_dir_content(
+    dir_path: str, ignore_files: Iterable[str] = tuple(), force_reset: bool = False
+) -> None:
     """
     Remove the content of dir_path ignoring the files under ignore_files.
     If force_reset is False, prompts the user for approval before the deletion.
@@ -391,7 +399,9 @@ def remove_dir_content(dir_path: str, ignore_files: Iterable[str] = tuple(), for
         force_remove = (
             True
             if force_reset
-            else Misc.query_yes_no(question=f"Folder {dir_path} contains {num_files} files. Delete anyway?")
+            else Misc.query_yes_no(
+                question=f"Folder {dir_path} contains {num_files} files. Delete anyway?"
+            )
         )
         # iterate over all the content and delete it
         failure = False
@@ -414,7 +424,9 @@ def remove_dir_content(dir_path: str, ignore_files: Iterable[str] = tuple(), for
             raise Exception(msg)
 
 
-def create_or_reset_dir(dir_path: str, ignore_files: Iterable[str] = tuple(), force_reset: bool = False) -> None:
+def create_or_reset_dir(
+    dir_path: str, ignore_files: Iterable[str] = tuple(), force_reset: bool = False
+) -> None:
     """
     Create dir or reset it if already exists
     :param dir_path: path to dir. either relative or full

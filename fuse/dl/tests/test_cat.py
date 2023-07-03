@@ -20,7 +20,9 @@ Created on Jan 11, 2023
 import torch
 import unittest
 import random
-from fuse.dl.models.backbones.backbone_transformer import CrossAttentionTransformerEncoder
+from fuse.dl.models.backbones.backbone_transformer import (
+    CrossAttentionTransformerEncoder,
+)
 
 
 class TestCrossAttentionTransformerEncoder(unittest.TestCase):

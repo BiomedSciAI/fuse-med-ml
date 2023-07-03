@@ -4,7 +4,7 @@ from fuse.utils.data import CollateToBatchList
 
 
 class TestTimer(unittest.TestCase):
-    def test_collate(self):
+    def test_collate(self) -> None:
         """ """
 
         x = [{"a": 1, "b": 2}, {"a": 3, "b": 4}, {"a": 5, "b": 6}]

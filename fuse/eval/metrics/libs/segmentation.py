@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 
@@ -8,7 +8,9 @@ from scipy.spatial.distance import directed_hausdorff
 
 class MetricsSegmentation:
     @staticmethod
-    def get_tf_ft_values_from_bool_array_with_weights(u: np.ndarray, v: np.ndarray, w: Optional[Dict[int, np.ndarray]]):
+    def get_tf_ft_values_from_bool_array_with_weights(
+        u: np.ndarray, v: np.ndarray, w: Optional[Dict[int, np.ndarray]]
+    ) -> Tuple[float, float]:
         """
         Calculates the false positive and true negative between two ndarray , while having different weight for each pixel
         :param u: single sample prediction matrix ( np.ndarray of any shape) per sample
@@ -24,7 +26,11 @@ class MetricsSegmentation:
         return (nft, ntf)
 
     @staticmethod
-    def dice(pred: np.ndarray, target: np.ndarray, pixel_weight: Optional[Dict[int, np.ndarray]] = None) -> Dict:
+    def dice(
+        pred: np.ndarray,
+        target: np.ndarray,
+        pixel_weight: Optional[Dict[int, np.ndarray]] = None,
+    ) -> Dict:
         """
         Compute dice similarity score (2*|X&Y| / (|X|+|Y|)) using sklearn , pred and target should be of same shape
         Supports multiclass (semantic segmentation)
@@ -49,16 +55,24 @@ class MetricsSegmentation:
                 scores[label] = 1.0
             else:
                 if pixel_weight is None or pixel_weight[label] is None:
-                    scores[label] = 1.0 - distance.dice(mask_pred.flatten(), mask_gt.flatten())
+                    scores[label] = 1.0 - distance.dice(
+                        mask_pred.flatten(), mask_gt.flatten()
+                    )
                 else:
                     scores[label] = 1.0 - distance.dice(
-                        mask_pred.flatten(), mask_gt.flatten(), pixel_weight[label].flatten()
+                        mask_pred.flatten(),
+                        mask_gt.flatten(),
+                        pixel_weight[label].flatten(),
                     )
 
         return scores
 
     @staticmethod
-    def iou_jaccard(pred: np.ndarray, target: np.ndarray, pixel_weight: Optional[Dict[int, np.ndarray]] = None) -> Dict:
+    def iou_jaccard(
+        pred: np.ndarray,
+        target: np.ndarray,
+        pixel_weight: Optional[Dict[int, np.ndarray]] = None,
+    ) -> Dict:
         """
         Calculates intersection over union (iou) (|X&Y| / | XUY |) score based on predicted and target segmentation mask
         Supports multiclass (semantic segmentation)
@@ -89,7 +103,10 @@ class MetricsSegmentation:
                     scores[label] = iou_score
                 else:
                     ntt = (pred * target * pixel_weight[label]).sum()
-                    (nft, ntf) = MetricsSegmentation.get_tf_ft_values_from_bool_array_with_weights(
+                    (
+                        nft,
+                        ntf,
+                    ) = MetricsSegmentation.get_tf_ft_values_from_bool_array_with_weights(
                         pred, target, pixel_weight[label]
                     )
                     iou_score = ntt / (nft + ntf + ntt)
@@ -97,7 +114,11 @@ class MetricsSegmentation:
         return scores
 
     @staticmethod
-    def overlap(pred: np.ndarray, target: np.ndarray, pixel_weight: Optional[Dict[int, np.ndarray]] = None) -> Dict:
+    def overlap(
+        pred: np.ndarray,
+        target: np.ndarray,
+        pixel_weight: Optional[Dict[int, np.ndarray]] = None,
+    ) -> Dict:
         """
         Calculates overlap score (|X&Y| / min(|X|,|Y|)) based on predicted and target segmentation mask
         Supports multiclass (semantic segmentation)
@@ -130,7 +151,8 @@ class MetricsSegmentation:
                 else:
                     intersection = pred * target * pixel_weight[label]
                     overlap = np.sum(intersection) / min(
-                        np.sum(pred * pixel_weight[label]), np.sum(target * pixel_weight[label])
+                        np.sum(pred * pixel_weight[label]),
+                        np.sum(target * pixel_weight[label]),
                     )
                     scores[label] = overlap
         return scores
@@ -169,7 +191,9 @@ class MetricsSegmentation:
 
     @staticmethod
     def pixel_accuracy(
-        pred: np.ndarray, target: np.ndarray, pixel_weight: Optional[Dict[int, np.ndarray]] = None
+        pred: np.ndarray,
+        target: np.ndarray,
+        pixel_weight: Optional[Dict[int, np.ndarray]] = None,
     ) -> Dict:
         """
         Calculates pixel accuracy score (|X&Y| / |Y| ) based on predicted and target segmentation mask
@@ -200,6 +224,8 @@ class MetricsSegmentation:
                     scores[label] = pixel_accuracy
                 else:
                     intersection = pred * target * pixel_weight[label]
-                    pixel_accuracy = np.sum(intersection) / np.sum(target * pixel_weight[label])
+                    pixel_accuracy = np.sum(intersection) / np.sum(
+                        target * pixel_weight[label]
+                    )
                     scores[label] = pixel_accuracy
         return scores

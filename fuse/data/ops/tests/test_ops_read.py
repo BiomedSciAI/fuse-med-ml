@@ -26,11 +26,15 @@ from fuse.data.ops.ops_read import OpReadDataframe
 
 
 class TestOpsRead(unittest.TestCase):
-    def test_op_read_dataframe(self):
+    def test_op_read_dataframe(self) -> None:
         """
         Test OpReadDataframe
         """
-        data = {"sample_id": ["a", "b", "c", "d"], "data.value1": [10, 7, 3, 9], "data.value2": ["5", "4", "3", "2"]}
+        data = {
+            "sample_id": ["a", "b", "c", "d"],
+            "data.value1": [10, 7, 3, 9],
+            "data.value2": ["5", "4", "3", "2"],
+        }
         df = pd.DataFrame(data)
         op = OpReadDataframe(data=df)
         sample_dict = NDict({"data": {"sample_id": "c"}})
@@ -45,7 +49,9 @@ class TestOpsRead(unittest.TestCase):
         self.assertEqual(sample_dict["data.value2"], "3")
 
         op = OpReadDataframe(
-            data=df, columns_to_extract=["sample_id", "data.value2"], rename_columns={"data.value2": "data.value3"}
+            data=df,
+            columns_to_extract=["sample_id", "data.value2"],
+            rename_columns={"data.value2": "data.value3"},
         )
         sample_dict = NDict({"data": {"sample_id": "c"}})
         sample_dict = op_call(op, sample_dict, "id")

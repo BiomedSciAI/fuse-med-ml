@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Dict, Sequence
+from typing import Dict, Sequence, Any
 from fuse.data.patterns import Patterns
 
 
@@ -10,7 +10,7 @@ class DataTypeBasic(Enum):
 
 class TypeDetectorBase(ABC):
     @abstractmethod
-    def get_type(self, sample_dict: Dict, key: str):
+    def get_type(self, sample_dict: Dict, key: str) -> None:
         """
         Returns the type of key
         The most common implementation can be seen in TypeDetectorPatternsBased.
@@ -18,7 +18,7 @@ class TypeDetectorBase(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def verify_type(self, sample_dict: Dict, key: str, types: Sequence[Enum]):
+    def verify_type(self, sample_dict: Dict, key: str, types: Sequence[Enum]) -> None:
         """
         Raises exception if key is not one of the types found in types
         """
@@ -35,8 +35,8 @@ class TypeDetectorPatternsBased(TypeDetectorBase):
         self._patterns_dict = patterns_dict
         self._patterns = Patterns(self._patterns_dict, DataTypeBasic.UNKNOWN)
 
-    def get_type(self, sample_dict: Dict, key: str):
+    def get_type(self, sample_dict: Dict, key: str) -> Any:
         return self._patterns.get_value(key)
 
-    def verify_type(self, sample_dict: Dict, key: str, types: Sequence[Enum]):
+    def verify_type(self, sample_dict: Dict, key: str, types: Sequence[Enum]) -> None:
         self._patterns.verify_value_in(key, types)

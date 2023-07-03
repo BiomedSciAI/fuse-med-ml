@@ -18,7 +18,9 @@ from collections import OrderedDict
 import os
 import sys
 import copy
-from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
+from fuse.eval.metrics.classification.metrics_thresholding_common import (
+    MetricApplyThresholds,
+)
 
 from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.gpu import choose_and_enable_multiple_gpus
@@ -35,12 +37,19 @@ from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.split import dataset_balanced_division_to_folds
 from fuse.dl.models import ModelMultiHead
-from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
+from fuse.dl.models.heads.head_global_pooling_classifier import (
+    HeadGlobalPoolingClassifier,
+)
 from fuse.dl.losses.loss_default import LossDefault
 
-from fuse.eval.metrics.classification.metrics_classification_common import MetricAUCROC, MetricAccuracy
+from fuse.eval.metrics.classification.metrics_classification_common import (
+    MetricAUCROC,
+    MetricAccuracy,
+)
 from fuseimg.datasets.cmmd import CMMD
-from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
+from fuse.dl.models.backbones.backbone_inception_resnet_v2 import (
+    BackboneInceptionResnetV2,
+)
 from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
 from pytorch_lightning import Trainer
 from fuse.dl.lightning.pl_module import LightningModuleDefault
@@ -98,7 +107,6 @@ def create_model(train: NDict, paths: NDict) -> torch.nn.Module:
         accelerator=train["trainer"]["accelerator"],
         devices=train["trainer"]["devices"],
         num_sanity_val_steps=-1,
-        auto_select_gpus=True,
     )
     return model, pl_trainer, num_classes, gt_label, skip_keys, class_names
 
@@ -110,7 +118,9 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     # ==============================================================================
     # Logger
     # ==============================================================================
-    fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
+    fuse_logger_start(
+        output_path=paths["model_dir"], console_verbose_level=logging.INFO
+    )
     lgr = logging.getLogger("Fuse")
 
     # Download data
@@ -119,7 +129,9 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     # ==============================================================================
     lgr.info("Model:", {"attrs": "bold"})
 
-    model, pl_trainer, num_classes, gt_label, skip_keys, class_names = create_model(train, paths)
+    model, pl_trainer, num_classes, gt_label, skip_keys, class_names = create_model(
+        train, paths
+    )
     lgr.info("Model: Done", {"attrs": "bold"})
 
     lgr.info("\nFuse Train", {"attrs": ["bold", "underline"]})
@@ -140,7 +152,9 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     )
     folds = dataset_balanced_division_to_folds(
         dataset=dataset_all,
-        output_split_filename=os.path.join(paths["data_misc_dir"], paths["data_split_filename"]),
+        output_split_filename=os.path.join(
+            paths["data_misc_dir"], paths["data_split_filename"]
+        ),
         id="data.patientID",
         keys_to_balance=[gt_label],
         nfolds=train["num_folds"],
@@ -219,7 +233,12 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     #  Loss
     # ====================================================================================
     losses = {
-        "cls_loss": LossDefault(pred="model.logits.head_0", target=gt_label, callable=F.cross_entropy, weight=1.0)
+        "cls_loss": LossDefault(
+            pred="model.logits.head_0",
+            target=gt_label,
+            callable=F.cross_entropy,
+            weight=1.0,
+        )
     }
 
     # ====================================================================================
@@ -227,13 +246,26 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     # ====================================================================================
     train_metrics = OrderedDict(
         [
-            ("op", MetricApplyThresholds(pred="model.output.head_0")),  # will apply argmax
-            ("auc", MetricAUCROC(pred="model.output.head_0", target=gt_label, class_names=class_names)),
-            ("accuracy", MetricAccuracy(pred="results:metrics.op.cls_pred", target=gt_label)),
+            (
+                "op",
+                MetricApplyThresholds(pred="model.output.head_0"),
+            ),  # will apply argmax
+            (
+                "auc",
+                MetricAUCROC(
+                    pred="model.output.head_0", target=gt_label, class_names=class_names
+                ),
+            ),
+            (
+                "accuracy",
+                MetricAccuracy(pred="results:metrics.op.cls_pred", target=gt_label),
+            ),
         ]
     )
 
-    validation_metrics = copy.deepcopy(train_metrics)  # use the same metrics in validation as well
+    validation_metrics = copy.deepcopy(
+        train_metrics
+    )  # use the same metrics in validation as well
 
     # either a dict with arguments to pass to ModelCheckpoint or list dicts for multiple ModelCheckpoint callbacks (to monitor and save checkpoints for more then one metric).
     best_epoch_source = dict(
@@ -248,7 +280,11 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
     lgr.info("Train:", {"attrs": "bold"})
 
     # create optimizer
-    optimizer = optim.Adam(model.parameters(), lr=train["learning_rate"], weight_decay=train["weight_decay"])
+    optimizer = optim.Adam(
+        model.parameters(),
+        lr=train["learning_rate"],
+        weight_decay=train["weight_decay"],
+    )
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
     lr_sch_config = dict(scheduler=scheduler, monitor="validation.losses.total_loss")
@@ -275,21 +311,27 @@ def run_train(paths: NDict, train: NDict) -> torch.nn.Module:
         accelerator=train["trainer"]["accelerator"],
         devices=train["trainer"]["devices"],
         num_sanity_val_steps=-1,
-        auto_select_gpus=True,
     )
 
     # train from scratch
-    pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=train["trainer"]["ckpt_path"])
+    pl_trainer.fit(
+        pl_module,
+        train_dataloader,
+        validation_dataloader,
+        ckpt_path=train["trainer"]["ckpt_path"],
+    )
     lgr.info("Train: Done", {"attrs": "bold"})
 
 
 ######################################
 # Inference Template
 ######################################
-def run_infer(train: NDict, paths: NDict, infer: NDict):
+def run_infer(train: NDict, paths: NDict, infer: NDict) -> None:
     create_dir(paths["inference_dir"])
     #### Logger
-    fuse_logger_start(output_path=paths["inference_dir"], console_verbose_level=logging.INFO)
+    fuse_logger_start(
+        output_path=paths["inference_dir"], console_verbose_level=logging.INFO
+    )
     lgr = logging.getLogger("Fuse")
     lgr.info("Fuse Inference", {"attrs": ["bold", "underline"]})
     infer_file = os.path.join(paths["inference_dir"], infer["infer_filename"])
@@ -298,7 +340,9 @@ def run_infer(train: NDict, paths: NDict, infer: NDict):
 
     lgr.info("Model:", {"attrs": "bold"})
 
-    model, pl_trainer, num_classes, gt_label, skip_keys, class_names = create_model(train, paths)
+    model, pl_trainer, num_classes, gt_label, skip_keys, class_names = create_model(
+        train, paths
+    )
     lgr.info("Model: Done", {"attrs": "bold"})
     ## Data
     folds = load_pickle(
@@ -327,7 +371,11 @@ def run_infer(train: NDict, paths: NDict, infer: NDict):
     )
     # load python lightning module
     pl_module = LightningModuleDefault.load_from_checkpoint(
-        checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True
+        checkpoint_file,
+        model_dir=paths["model_dir"],
+        model=model,
+        map_location="cpu",
+        strict=True,
     )
     # set the prediction keys to extract (the ones used be the evaluation function).
     pl_module.set_predictions_keys(
@@ -336,7 +384,9 @@ def run_infer(train: NDict, paths: NDict, infer: NDict):
     lgr.info("Test Data: Done", {"attrs": "bold"})
 
     # create a trainer instance
-    predictions = pl_trainer.predict(pl_module, infer_dataloader, return_predictions=True)
+    predictions = pl_trainer.predict(
+        pl_module, infer_dataloader, return_predictions=True
+    )
 
     # convert list of batch outputs into a dataframe
     infer_df = convert_predictions_to_dataframe(predictions)
@@ -346,7 +396,7 @@ def run_infer(train: NDict, paths: NDict, infer: NDict):
 ######################################
 # Analyze Template
 ######################################
-def run_eval(paths: NDict, infer: NDict):
+def run_eval(paths: NDict, infer: NDict) -> NDict:
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger("Fuse")
     lgr.info("Fuse Eval", {"attrs": ["bold", "underline"]})
@@ -354,9 +404,22 @@ def run_eval(paths: NDict, infer: NDict):
     # metrics
     metrics = OrderedDict(
         [
-            ("op", MetricApplyThresholds(pred="model.output.head_0")),  # will apply argmax
-            ("auc", MetricAUCROC(pred="model.output.head_0", target="data.gt.classification")),
-            ("accuracy", MetricAccuracy(pred="results:metrics.op.cls_pred", target="data.gt.classification")),
+            (
+                "op",
+                MetricApplyThresholds(pred="model.output.head_0"),
+            ),  # will apply argmax
+            (
+                "auc",
+                MetricAUCROC(
+                    pred="model.output.head_0", target="data.gt.classification"
+                ),
+            ),
+            (
+                "accuracy",
+                MetricAccuracy(
+                    pred="results:metrics.op.cls_pred", target="data.gt.classification"
+                ),
+            ),
         ]
     )
 

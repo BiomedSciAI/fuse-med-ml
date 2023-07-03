@@ -33,7 +33,9 @@ class OpBase(HashableClass):
     """
 
     @abstractmethod
-    def __call__(self, sample_dict: NDict, **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, **kwargs: dict
+    ) -> Union[None, dict, List[dict]]:
         """
         call function that apply the operation
         :param sample_dict: the generated dictionary generated so far (generated be the previous ops in the pipeline)
@@ -59,9 +61,11 @@ class OpReversibleBase(OpBase):
     """
 
     @abstractmethod
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, op_id: Optional[str], **kwargs: dict
+    ) -> Union[None, dict, List[dict]]:
         """
-        See OpBase.__call__ for more infomation. The only difference is the extra argument that can be used to "record" the information required to reverse the operation.
+        See OpBase.__call__ for more information. The only difference is the extra argument that can be used to "record" the information required to reverse the operation.
         :param op_id: unique identifier for an operation.
                       Might be used to support reverse operation as sample_dict key.
                       In such a case use sample_dict[op_id] = info_to_store
@@ -69,7 +73,13 @@ class OpReversibleBase(OpBase):
         """
         raise NotImplementedError
 
-    def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
+    def reverse(
+        self,
+        sample_dict: NDict,
+        key_to_reverse: str,
+        key_to_follow: str,
+        op_id: Optional[str],
+    ) -> dict:
         """
         reverse operation
         If a reverse operation is not necessary (for example operator that reads an image),
@@ -93,7 +103,9 @@ class OpReversibleBase(OpBase):
         )
 
 
-def op_call(op: OpBase, sample_dict: NDict, op_id: str, **kwargs):
+def op_call(
+    op: OpBase, sample_dict: NDict, op_id: str, **kwargs: dict
+) -> Union[None, dict, List[dict]]:
 
     if inspect.isclass(op):
         raise Exception(
@@ -107,7 +119,9 @@ def op_call(op: OpBase, sample_dict: NDict, op_id: str, **kwargs):
     try:
         if isinstance(op, OpReversibleBase):
             return op(sample_dict, op_id=op_id, **kwargs)
-        elif isinstance(op, OpBase) or hasattr(op, "__call__"):  # OpBase but not reversible
+        elif isinstance(op, OpBase) or hasattr(
+            op, "__call__"
+        ):  # OpBase but not reversible
             return op(sample_dict, **kwargs)
         else:
             raise Exception(
@@ -124,7 +138,13 @@ def op_call(op: OpBase, sample_dict: NDict, op_id: str, **kwargs):
         raise
 
 
-def op_reverse(op, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]):
+def op_reverse(
+    op: OpBase,
+    sample_dict: NDict,
+    key_to_reverse: str,
+    key_to_follow: str,
+    op_id: Optional[str],
+) -> dict:
     if isinstance(op, OpReversibleBase):
         try:
             return op.reverse(sample_dict, key_to_reverse, key_to_follow, op_id)

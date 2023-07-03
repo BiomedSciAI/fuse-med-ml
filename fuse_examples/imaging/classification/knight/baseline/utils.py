@@ -2,6 +2,7 @@ import os
 import json
 import pandas as pd
 import numpy as np
+from typing import Optional
 
 CLINICAL_NAMES = [
     "SubjectId",
@@ -23,7 +24,9 @@ CLINICAL_NAMES = [
 ]
 
 
-def create_knight_clinical(original_file, processed_file=None):
+def create_knight_clinical(
+    original_file: str, processed_file: Optional[str] = None
+) -> pd.DataFrame:
     with open(original_file) as f:
         clinical_data = json.load(f)
     t_stage_count = np.zeros((5))
@@ -35,7 +38,9 @@ def create_knight_clinical(original_file, processed_file=None):
         df.loc[index, "bmi"] = patient["body_mass_index"]
 
         df.loc[index, "gender"] = patient["gender"]
-        if patient["gender"] == "male":  # 0:'male'  1:'female','transgender_male_to_female'
+        if (
+            patient["gender"] == "male"
+        ):  # 0:'male'  1:'female','transgender_male_to_female'
             df.loc[index, "gender_num"] = 0
         else:
             df.loc[index, "gender_num"] = 1
@@ -46,7 +51,9 @@ def create_knight_clinical(original_file, processed_file=None):
                 df.loc[index, "comorbidities"] = 1
 
         df.loc[index, "smoking_history"] = patient["smoking_history"]
-        if patient["smoking_history"] == "never_smoked":  # 0:'never_smoked' 1:'previous_smoker'  2:'current_smoker'
+        if (
+            patient["smoking_history"] == "never_smoked"
+        ):  # 0:'never_smoked' 1:'previous_smoker'  2:'current_smoker'
             df.loc[index, "smoking_history"] = 0
         elif patient["smoking_history"] == "previous_smoker":
             df.loc[index, "smoking_history"] = 1
@@ -65,7 +72,10 @@ def create_knight_clinical(original_file, processed_file=None):
         df.loc[index, "aua_risk_group"] = patient["aua_risk_group"]
 
         # Task 1 labels:
-        if patient["aua_risk_group"] in ["high_risk", "very_high_risk"]:  # 1:'3','4'  0:'0','1a','1b','2a','2b'
+        if patient["aua_risk_group"] in [
+            "high_risk",
+            "very_high_risk",
+        ]:  # 1:'3','4'  0:'0','1a','1b','2a','2b'
             df.loc[index, "task_1_label"] = 1  # CanAT
         else:
             df.loc[index, "task_1_label"] = 0  # NoAT
@@ -98,7 +108,10 @@ def create_knight_clinical(original_file, processed_file=None):
     if processed_file is not None:
         # save csv file
         df.to_csv(processed_file, index=False)
-        df = df.drop(["gender", "pathology_t_stage", "pathology_n_stage", "pathology_m_stage"], axis=1)
+        df = df.drop(
+            ["gender", "pathology_t_stage", "pathology_n_stage", "pathology_m_stage"],
+            axis=1,
+        )
         df.to_csv(os.path.splitext(processed_file)[0] + "_numeric.csv", index=False)
     print(f"Pathology t-stage count summary: {t_stage_count}")
     print(f"AUA risk count summary: {aua_risk_count}")

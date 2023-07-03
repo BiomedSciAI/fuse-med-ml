@@ -32,8 +32,12 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.data import DistributedSampler
 import pytorch_lightning as pl
 
-from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
-from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy
+from fuse.eval.metrics.classification.metrics_thresholding_common import (
+    MetricApplyThresholds,
+)
+from fuse.eval.metrics.classification.metrics_classification_common import (
+    MetricAccuracy,
+)
 
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.samplers import BatchSamplerDefault
@@ -67,7 +71,9 @@ def perform_softmax(logits: Any) -> Tuple[torch.Tensor, torch.Tensor]:
 
 ## Model Definition #####################################################
 class FuseLitLenet(LightningModuleDefault):
-    def __init__(self, model_dir: Optional[str], save_model: bool, lr: float, weight_decay: float):  # paths, params):
+    def __init__(
+        self, model_dir: Optional[str], save_model: bool, lr: float, weight_decay: float
+    ):  # paths, params):
         """
         Initialize the model. We inheret from LightningModuleDefault to get functions necessary for lightning trainer.
         We also wrap the torch model so that it can train using keys from the fuse NDict batch dict.
@@ -82,19 +88,34 @@ class FuseLitLenet(LightningModuleDefault):
             model=lenet.LeNet(),
             model_inputs=["data.image"],
             post_forward_processing_function=perform_softmax,
-            model_outputs=["model.logits.classification", "model.output.classification"],
+            model_outputs=[
+                "model.logits.classification",
+                "model.output.classification",
+            ],
         )
 
         # losses and metrics to track
         losses = {
             "cls_loss": LossDefault(
-                pred="model.logits.classification", target="data.label", callable=F.cross_entropy, weight=1.0
+                pred="model.logits.classification",
+                target="data.label",
+                callable=F.cross_entropy,
+                weight=1.0,
             ),
         }
         train_metrics = OrderedDict(
             [
-                ("operation_point", MetricApplyThresholds(pred="model.output.classification")),  # will apply argmax
-                ("accuracy", MetricAccuracy(pred="results:metrics.operation_point.cls_pred", target="data.label")),
+                (
+                    "operation_point",
+                    MetricApplyThresholds(pred="model.output.classification"),
+                ),  # will apply argmax
+                (
+                    "accuracy",
+                    MetricAccuracy(
+                        pred="results:metrics.operation_point.cls_pred",
+                        target="data.label",
+                    ),
+                ),
             ]
         )
         validation_metrics = copy.deepcopy(train_metrics)  # same as train metrics
@@ -102,7 +123,9 @@ class FuseLitLenet(LightningModuleDefault):
         # optimizer and learning rate scheduler
         optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
         lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
-        lr_sch_config = dict(scheduler=lr_scheduler, monitor="validation.losses.total_loss")
+        lr_sch_config = dict(
+            scheduler=lr_scheduler, monitor="validation.losses.total_loss"
+        )
         optimizers_and_lr_schs = dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
 
         # initialize LightningModuleDefault with our module, losses, etc so that we can use the functions of LightningModuleDefault
@@ -169,7 +192,12 @@ class MNISTDataModule(pl.LightningDataModule):
 def run_train(params: dict) -> None:
 
     # initialize model
-    model = FuseLitLenet(model_dir=None, save_model=False, lr=params["opt.lr"], weight_decay=params["opt.weight_decay"])
+    model = FuseLitLenet(
+        model_dir=None,
+        save_model=False,
+        lr=params["opt.lr"],
+        weight_decay=params["opt.weight_decay"],
+    )
 
     # initialize data module
     distributed = True if params["trainer.num_devices"] > 1 else None
@@ -180,13 +208,21 @@ def run_train(params: dict) -> None:
         distributed=distributed,
     )
 
+    # A workaround to support multiple GPUs with a custom batch_sampler for both Lightning versions
+    #       see: https://lightning.ai/pages/releases/2.0.0/#sampler-replacement
+    kwargs = {}
+    if distributed:
+        if pl.__version__[0] == "2":
+            kwargs["use_distributed_sampler"] = False
+        else:
+            kwargs["replace_sampler_ddp"] = False
+
     # create pl trainer
     pl_trainer = pl.Trainer(
-        replace_sampler_ddp=False,  # Must be set when using a batch sampler
         max_epochs=params["trainer.num_epochs"],
         accelerator=params["trainer.accelerator"],
         devices=params["trainer.num_devices"],
-        strategy="ddp" if distributed else None,
+        **kwargs,
     )
 
     # train model

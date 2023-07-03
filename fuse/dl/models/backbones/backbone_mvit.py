@@ -152,7 +152,9 @@ class BackboneMViT(nn.Module):
 
         if in_channels == 1:
             self.model.conv_proj.in_channels = 1
-            self.model.conv_proj.weight = torch.nn.Parameter(self.model.conv_proj.weight.sum(dim=1, keepdim=True))
+            self.model.conv_proj.weight = torch.nn.Parameter(
+                self.model.conv_proj.weight.sum(dim=1, keepdim=True)
+            )
         self.model.head = nn.Identity()
 
     def forward(self, x: Tensor) -> Tensor:

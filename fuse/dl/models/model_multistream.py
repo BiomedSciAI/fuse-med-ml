@@ -71,7 +71,9 @@ class ModelMultistream(torch.nn.Module):
         # -------------------------------------
         if self.split_logic is None:
             # If no split logic is provided, send each channel to different stream
-            conv_input = batch_dict[self.conv_inputs[0]]  # shape = [batch_size, num_channels, height, width]
+            conv_input = batch_dict[
+                self.conv_inputs[0]
+            ]  # shape = [batch_size, num_channels, height, width]
             stream_outputs = []
             for ch_idx in range(conv_input.shape[1]):
                 single_channel_batch = conv_input[:, ch_idx, :, :].unsqueeze(

@@ -31,10 +31,12 @@ from fuse.utils.ndict import NDict
 
 
 class OpFakeLoad(OpBase):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
-    def __call__(self, sample_dict: NDict, **kwargs) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, **kwargs: dict
+    ) -> Union[None, dict, List[dict]]:
         sid = get_sample_id(sample_dict)
         if "case_1" == sid:
             sample_dict.merge(_generate_sample_1())
@@ -60,10 +62,10 @@ class TestSampleCaching(unittest.TestCase):
     Test sample caching
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         pass
 
-    def test_cache_samples(self):
+    def test_cache_samples(self) -> None:
         orig_sample_ids = ["case_1", "case_2", "case_3", "case_4"]
         tmpdir = tempfile.mkdtemp()
         cache_dirs = [
@@ -89,7 +91,7 @@ class TestSampleCaching(unittest.TestCase):
 
         banana = 123
 
-    def test_same_uniquely_named_cache_and_multiple_pipeline_hashes(self):
+    def test_same_uniquely_named_cache_and_multiple_pipeline_hashes(self) -> None:
         orig_sample_ids = ["case_1", "case_2", "case_3", "case_4"]
         tmpdir = tempfile.mkdtemp()
         cache_dirs = [
@@ -111,13 +113,20 @@ class TestSampleCaching(unittest.TestCase):
             (OpFakeLoad(), {}),  ###just doubled it to change the pipeline hash
         ]
         pl = PipelineDefault("example_pipeline", pipeline_desc)
-        self.assertRaises(Exception, SamplesCacher, "unittests_cache", pl, cache_dirs, restart_cache=False)
+        self.assertRaises(
+            Exception,
+            SamplesCacher,
+            "unittests_cache",
+            pl,
+            cache_dirs,
+            restart_cache=False,
+        )
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         pass
 
 
-def _generate_sample_1(seed=1337):
+def _generate_sample_1(seed: int = 1337) -> NDict:
     Seed.set_seed(seed)
     sample = NDict(
         dict(
@@ -141,7 +150,7 @@ def _generate_sample_1(seed=1337):
     return sample
 
 
-def _generate_sample_2(seed=1234):
+def _generate_sample_2(seed: int = 1234) -> NDict:
     Seed.set_seed(seed)
     sample = NDict(
         dict(

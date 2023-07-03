@@ -1,0 +1,53 @@
+paths:
+  working_dir : .
+  model_dir : ${paths.working_dir}/model_dir
+  inference_dir : ${paths.working_dir}/model_new/infer_dir
+  eval_dir : ${paths.working_dir}/model_new/eval_dir
+  cache_dir : ${paths.working_dir}/cache/PICAI
+  clinical_file : ${oc.env:PICAI_DATA_PATH}/labels/picai_labels-main/clinical_information/marksheet.csv
+  data_misc_dir : ${paths.working_dir}
+  data_split_filename:  split.pkl
+  data_dir :  ${oc.env:PICAI_DATA_PATH}/images
+  seg_dir : ${oc.env:PICAI_DATA_PATH}/labels/picai_labels-main/anatomical_delineations/whole_gland/AI/Bosma22b
+run:
+  running_modes : ['train', 'infer', 'eval']
+train:
+  target : seg3d #might later be used to change between different possible tasks in this dataset
+  series_config : ['_t2w'] #list of sequences names according to the filename ending in PICAI scan files, each startes with _
+  resize_resolution : [23,384,384]
+  reset_cache: False
+  num_workers : 16
+  num_folds : 5
+  train_folds : [0,1,2,3]
+  validation_folds : [4]
+  batch_size: 16
+  learning_rate : 1e-3
+  weight_decay :  0
+  run_sample : 0 #if 0 - used all samples otherwise sample only run_sample samples ( for test purpouse )
+  resume_checkpoint_filename : null
+  trainer:
+    accelerator : gpu
+    devices : 1
+    num_epochs : 100
+    ckpt_path : null
+  unet_kwargs :
+    strides : [[2, 2, 2], [1, 2, 2], [1, 2, 2], [1, 2, 2], [2, 2, 2]]
+    channels : [32, 64, 128, 256, 512, 1024]
+    in_channels : 1
+    out_channels : 2
+    num_res_units: 2
+    spatial_dims : 3
+  aug_params:
+    apply_aug_prob: 0.9
+    rotate: [-180, 180]
+    scale: [0.9, 2]
+    flip: 0.5
+    translate: [-25, 25]
+    mask_prob: 0
+    total_mask_prob: 0
+infer:
+  infer_filename : validation_set_infer.gz
+  checkpoint : best_epoch.ckpt
+  infer_folds : [4]
+  target : classification
+  num_workers : 12

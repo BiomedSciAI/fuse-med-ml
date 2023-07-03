@@ -144,7 +144,9 @@ def create_model() -> torch.nn.Module:
     model = ModelMultiHead(
         conv_inputs=(("data.input.input_0.tensor", 1),),
         backbone="TODO",  # Reference: BackboneInceptionResnetV2
-        heads=["TODO"],  # References: HeadGlobalPoolingClassifier, HeadDenseSegmentation
+        heads=[
+            "TODO"
+        ],  # References: HeadGlobalPoolingClassifier, HeadDenseSegmentation
     )
     return model
 
@@ -159,7 +161,9 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     #     (1) console (2) file - copy of the console (3) verbose file - used for debug
     #   - save a copy of the template file
     # ==============================================================================
-    fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
+    fuse_logger_start(
+        output_path=paths["model_dir"], console_verbose_level=logging.INFO
+    )
 
     print("Fuse Train")
     print(f'model_dir={paths["model_dir"]}')
@@ -368,12 +372,14 @@ def run_train(paths: dict, train_common_params: dict) -> None:
         max_epochs=train_common_params["trainer.num_epochs"],
         accelerator=train_common_params["trainer.accelerator"],
         devices=train_common_params["trainer.num_devices"],
-        auto_select_gpus=True,
     )
 
     # train
     pl_trainer.fit(
-        pl_module, train_dataloader, validation_dataloader, ckpt_path=train_common_params["trainer.ckpt_path"]
+        pl_module,
+        train_dataloader,
+        validation_dataloader,
+        ckpt_path=train_common_params["trainer.ckpt_path"],
     )
 
     print("Fuse Train: Done")
@@ -385,8 +391,12 @@ def run_train(paths: dict, train_common_params: dict) -> None:
 INFER_COMMON_PARAMS = {}
 INFER_COMMON_PARAMS["data.num_workers"] = TRAIN_COMMON_PARAMS["data.train_num_workers"]
 INFER_COMMON_PARAMS["data.batch_size"] = 4
-INFER_COMMON_PARAMS["infer_filename"] = os.path.join(PATHS["inference_dir"], "validation_set_infer.pickle")
-INFER_COMMON_PARAMS["checkpoint"] = "best_epoch.ckpt"  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
+INFER_COMMON_PARAMS["infer_filename"] = os.path.join(
+    PATHS["inference_dir"], "validation_set_infer.pickle"
+)
+INFER_COMMON_PARAMS[
+    "checkpoint"
+] = "best_epoch.ckpt"  # Fuse TIP: possible values are 'best', 'last' or epoch_index.
 
 ######################################
 # Inference Template
@@ -395,16 +405,24 @@ INFER_COMMON_PARAMS["checkpoint"] = "best_epoch.ckpt"  # Fuse TIP: possible valu
 
 def run_infer(paths: dict, infer_common_params: dict) -> None:
     create_dir(paths["inference_dir"])
-    infer_file = os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])
-    checkpoint_file = os.path.join(paths["model_dir"], infer_common_params["checkpoint"])
+    infer_file = os.path.join(
+        paths["inference_dir"], infer_common_params["infer_filename"]
+    )
+    checkpoint_file = os.path.join(
+        paths["model_dir"], infer_common_params["checkpoint"]
+    )
 
     ## Logger
-    fuse_logger_start(output_path=paths["inference_dir"], console_verbose_level=logging.INFO)
+    fuse_logger_start(
+        output_path=paths["inference_dir"], console_verbose_level=logging.INFO
+    )
     print("Fuse Inference")
     print(f"infer_filename={infer_file}")
 
     #### create infer dataset
-    infer_dataset = None  # TODO: follow the same steps to create dataset as in run_train
+    infer_dataset = (
+        None  # TODO: follow the same steps to create dataset as in run_train
+    )
 
     ## Create dataloader
     infer_dataloader = DataLoader(
@@ -421,12 +439,18 @@ def run_infer(paths: dict, infer_common_params: dict) -> None:
     model = ModelMultiHead(
         conv_inputs=(("data.input.input_0.tensor", 1),),
         backbone="TODO",  # Reference: BackboneInceptionResnetV2
-        heads=["TODO"],  # References: HeadGlobalPoolingClassifier, HeadDenseSegmentation
+        heads=[
+            "TODO"
+        ],  # References: HeadGlobalPoolingClassifier, HeadDenseSegmentation
     )
 
     # load python lightning module
     pl_module = LightningModuleDefault.load_from_checkpoint(
-        checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True
+        checkpoint_file,
+        model_dir=paths["model_dir"],
+        model=model,
+        map_location="cpu",
+        strict=True,
     )
 
     # set the prediction keys to extract and dump into file (the ones used be the evaluation function).
@@ -441,9 +465,10 @@ def run_infer(paths: dict, infer_common_params: dict) -> None:
         default_root_dir=paths["model_dir"],
         accelerator=infer_common_params["trainer.accelerator"],
         devices=infer_common_params["trainer.num_devices"],
-        auto_select_gpus=True,
     )
-    predictions = pl_trainer.predict(pl_module, infer_dataloader, return_predictions=True)
+    predictions = pl_trainer.predict(
+        pl_module, infer_dataloader, return_predictions=True
+    )
 
     # convert list of batch outputs into a dataframe
     infer_df = convert_predictions_to_dataframe(predictions)

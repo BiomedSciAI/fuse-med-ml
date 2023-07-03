@@ -22,7 +22,14 @@ import unittest
 
 import random
 
-from fuse.utils import Uniform, Choice, RandInt, RandBool, draw_samples_recursively, Seed
+from fuse.utils import (
+    Uniform,
+    Choice,
+    RandInt,
+    RandBool,
+    draw_samples_recursively,
+    Seed,
+)
 
 
 class TestParamSampler(unittest.TestCase):
@@ -30,7 +37,7 @@ class TestParamSampler(unittest.TestCase):
     Test ParamSampleBase sub classes
     """
 
-    def test_uniform(self):
+    def test_uniform(self) -> None:
         Seed.set_seed(0)
         min = random.random() * 1000
         max = random.random() * 1000 + min
@@ -51,7 +58,7 @@ class TestParamSampler(unittest.TestCase):
         value1 = uniform.sample()
         self.assertEqual(value0, value1)
 
-    def test_randint(self):
+    def test_randint(self) -> None:
         Seed.set_seed(0)
         min = random.randint(0, 1000)
         max = random.randint(0, 1000) + min
@@ -72,7 +79,7 @@ class TestParamSampler(unittest.TestCase):
         value1 = randint.sample()
         self.assertEqual(value0, value1)
 
-    def test_randbool(self):
+    def test_randbool(self) -> None:
         Seed.set_seed(0)
         randbool = RandBool(0.5)
         value = randbool.sample()
@@ -102,7 +109,7 @@ class TestParamSampler(unittest.TestCase):
                 count += 1
         self.assertGreaterEqual(count, 980)
 
-    def test_choice(self):
+    def test_choice(self) -> None:
         Seed.set_seed(0)
         lst = list(range(1000))
         choice = Choice(lst)
@@ -132,7 +139,7 @@ class TestParamSampler(unittest.TestCase):
                 count += 1
         self.assertGreaterEqual(count, 980)
 
-    def test_draw_samples_recursively(self):
+    def test_draw_samples_recursively(self) -> None:
         Seed.set_seed(0)
         a = {
             "a": 5,

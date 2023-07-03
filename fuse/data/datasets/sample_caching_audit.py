@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any
 from time import time
 from deepdiff import DeepDiff
 from fuse.data import get_sample_id
@@ -71,7 +71,9 @@ class SampleCachingAudit:
         if self._audit_rate is not None:
             # progress audit units passed so far
             if self._audit_units == "minutes":
-                self._audit_units_passed_since_last_audit += (time() - self._prev_time) / 60.0
+                self._audit_units_passed_since_last_audit += (
+                    time() - self._prev_time
+                ) / 60.0
                 self._prev_time = time()
             elif self._audit_units == "samples":
                 self._audit_units_passed_since_last_audit += 1
@@ -88,7 +90,7 @@ class SampleCachingAudit:
                 return True
         return False
 
-    def audit(self, cached_sample, fresh_sample):
+    def audit(self, cached_sample: Any, fresh_sample: Any) -> None:
         diff = DeepDiff(cached_sample, fresh_sample, **self._audit_diff_kwargs)
         self._audited_so_far += 1
         if len(diff) > 0:

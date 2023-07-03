@@ -45,7 +45,7 @@ class PairedBootstrap(MetricWithCollectorBase):
         num_of_bootstraps: int = 10000,
         rnd_seed: int = 1234,
         margin: float = 0.0,
-        **super_kwargs
+        **super_kwargs: dict
     ) -> None:
         """
         :param metric_test: compare the results of metric_test to results of metric_reference
@@ -90,7 +90,9 @@ class PairedBootstrap(MetricWithCollectorBase):
         self._metric_reference.reset()
         return super().reset()
 
-    def eval(self, results: Dict[str, Any] = None, ids: Sequence[Hashable] = None) -> Dict[str, Any]:
+    def eval(
+        self, results: Dict[str, Any] = None, ids: Sequence[Hashable] = None
+    ) -> Dict[str, Any]:
         """
         See super class
         :return: the compared results dictionary created by compare_method() specified in constructor
@@ -106,7 +108,9 @@ class PairedBootstrap(MetricWithCollectorBase):
         ids = np.array(ids)
 
         rnd = np.random.RandomState(self._rnd_seed)
-        stratum_id = np.array(data["stratum"]) if "stratum" in data else np.ones(len(data["id"]))
+        stratum_id = (
+            np.array(data["stratum"]) if "stratum" in data else np.ones(len(data["id"]))
+        )
         unique_strata = np.unique(stratum_id)
 
         # initialize results
@@ -114,9 +118,13 @@ class PairedBootstrap(MetricWithCollectorBase):
             bootstrap_results_test = np.empty(self._num_of_bootstraps)
             bootstrap_results_reference = np.empty(self._num_of_bootstraps)
         else:
-            bootstrap_results_test = {key: np.empty(self._num_of_bootstraps) for key in self._metric_keys_to_compare}
+            bootstrap_results_test = {
+                key: np.empty(self._num_of_bootstraps)
+                for key in self._metric_keys_to_compare
+            }
             bootstrap_results_reference = {
-                key: np.empty(self._num_of_bootstraps) for key in self._metric_keys_to_compare
+                key: np.empty(self._num_of_bootstraps)
+                for key in self._metric_keys_to_compare
             }
 
         # aggregate bootstrap results
@@ -155,11 +163,19 @@ class PairedBootstrap(MetricWithCollectorBase):
 
         # compare
         if self._metric_keys_to_compare is None:
-            return self._compare_method(None, bootstrap_results_test, bootstrap_results_reference, margin=self._margin)
+            return self._compare_method(
+                None,
+                bootstrap_results_test,
+                bootstrap_results_reference,
+                margin=self._margin,
+            )
 
         metric_results = {}
         for key in bootstrap_results_test:
             metric_results[key] = self._compare_method(
-                key, bootstrap_results_test[key], bootstrap_results_reference[key], margin=self._margin
+                key,
+                bootstrap_results_test[key],
+                bootstrap_results_reference[key],
+                margin=self._margin,
             )
         return metric_results

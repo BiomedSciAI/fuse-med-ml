@@ -3,7 +3,7 @@
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+   You may obtain a copy of the License at
 
    http://www.apache.org/licenses/LICENSE-2.0
 
@@ -29,7 +29,7 @@ import pandas as pd
 
 import torch
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 from .pl_epoch_summary import ModelEpochSummary
 
 from fuse.utils import NDict
@@ -101,35 +101,48 @@ def start_clearml_logger(
     return task
 
 
-def model_checkpoint_callbacks(model_dir: str, best_epoch_source: Union[Dict, List[Dict]]) -> List[pl.Callback]:
+def model_default_callbacks(
+    model_dir: str,
+    best_epoch_source: Union[Dict, List[Dict], None],
+    log_lr: bool = True,
+) -> List[pl.Callback]:
     """
-    Create list of pl.callbacks that saves checkpoints using (pl.callbacks.ModelCheckpoint) and print per epoch summary (fuse.dl.lightning.pl_epoch_summary.ModelEpochSummary).
+    Create list of pl.callbacks that saves checkpoints using (pl.callbacks.ModelCheckpoint), print per epoch summary (fuse.dl.lightning.pl_epoch_summary.ModelEpochSummary) and log learning rate (lightning.pytorch.callbacks.LearningRateMonitor).
     :param model_dir: path to save checkpoints and summary
     :param best_epoch_source: either a dict with arguments to pass to ModelCheckpoint or list dicts to for multiple ModelCheckpoint callbacks (to monitor and save checkpoints for more then one metric).
+                              If set to None, it only store the last checkpoint.
     """
     callbacks = []
-    # checkpoints
-    if not isinstance(best_epoch_source, list):
-        best_epoch_source = [best_epoch_source]
-    for checkpoint_to_monitor in best_epoch_source:
-        if "dirpath" not in checkpoint_to_monitor:
-            checkpoint_to_monitor["dirpath"] = model_dir
-        if "filename" not in checkpoint_to_monitor:
-            checkpoint_to_monitor["filename"] = "best_epoch"
-            if len(best_epoch_source) > 1:
-                checkpoint_to_monitor["auto_insert_metric_name"] = True
 
-        model_checkpoint = ModelCheckpoint(**checkpoint_to_monitor)
-        model_checkpoint_display = ModelEpochSummary(
-            dirpath=checkpoint_to_monitor["dirpath"],
-            monitor=checkpoint_to_monitor.get("monitor", None),
-            mode=checkpoint_to_monitor.get("mode", "min"),
-        )
-        callbacks.append(model_checkpoint)
-        callbacks.append(model_checkpoint_display)
+    if best_epoch_source is not None:
+        # checkpoints
+        if not isinstance(best_epoch_source, list):
+            best_epoch_source = [best_epoch_source]
+        for checkpoint_to_monitor in best_epoch_source:
+            if "dirpath" not in checkpoint_to_monitor:
+                checkpoint_to_monitor["dirpath"] = model_dir
+            if "filename" not in checkpoint_to_monitor:
+                checkpoint_to_monitor["filename"] = "best_epoch"
+                if len(best_epoch_source) > 1:
+                    checkpoint_to_monitor["auto_insert_metric_name"] = True
+            if "save_last" not in checkpoint_to_monitor:
+                checkpoint_to_monitor["save_last"] = False
+
+            model_checkpoint = ModelCheckpoint(**checkpoint_to_monitor)
+            model_checkpoint_display = ModelEpochSummary(
+                dirpath=checkpoint_to_monitor["dirpath"],
+                monitor=checkpoint_to_monitor.get("monitor", None),
+                mode=checkpoint_to_monitor.get("mode", "min"),
+            )
+            callbacks.append(model_checkpoint)
+            callbacks.append(model_checkpoint_display)
 
     # last epoch checkpoint
-    callbacks.append(ModelCheckpoint(dirpath=model_dir, filename="last_epoch", save_last=True))
+    callbacks.append(ModelCheckpoint(dirpath=model_dir, save_last=True, save_top_k=0))
+
+    if log_lr:
+        lr_monitor = LearningRateMonitor(logging_interval="step")
+        callbacks.append(lr_monitor)
     return callbacks
 
 
@@ -141,10 +154,8 @@ def convert_predictions_to_dataframe(predictions: List[NDict]) -> pd.DataFrame:
     predictions_per_sample = []
     for elem in predictions:
         predictions_per_sample += uncollate(elem)
-    if isinstance(predictions_per_sample[0], NDict):
-        keys = predictions_per_sample[0].keypaths()
-    else:  # dict
-        keys = predictions_per_sample[0].keys()
+
+    keys = predictions_per_sample[0].keys()
 
     for key in keys:
         values[key] = [elem[key] for elem in predictions_per_sample]
@@ -188,7 +199,9 @@ def step_metrics(metrics: OrderedDict[str, MetricBase], batch_dict: NDict) -> No
         metric.collect(batch_dict)
 
 
-def step_extract_predictions(prediction_keys: Sequence[str], batch_dict: NDict) -> Dict[str, Any]:
+def step_extract_predictions(
+    prediction_keys: Sequence[str], batch_dict: NDict
+) -> Dict[str, Any]:
     """
     Extract the specified predictions from batch_dict (torch Tensors will be detached, moved to cpu and coverted to numpy)
     :param prediction_keys: the keys to extract
@@ -209,33 +222,48 @@ def step_extract_predictions(prediction_keys: Sequence[str], batch_dict: NDict) 
 
 
 def epoch_end_compute_and_log_losses(
-    pl: pl.LightningModule, mode: str, batch_losses: Sequence[Dict], sep: str = "."
+    pl_module: pl.LightningModule,
+    mode: str,
+    batch_losses: Sequence[NDict],
+    sep: str = ".",
 ) -> None:
     """
     On epoch end average out the batch losses and log the averaged losses
-    :param pl: LightningModule. Used for logging.
+    :param pl_module: LightningModule. Used for logging.
     :param mode: prefix to add to each loss name (when logging), typically validation/train/test
     :param batch_losses: list of batch_dict["losses"] as added by 'epoch_losses'
     :return: None
     """
-    keys = batch_losses[0].keys()
-    for key in keys:
-        losses = []
-        for elem in batch_losses:
+    losses = {}
+    for elem in batch_losses:
+        for key in elem:
+            if key not in losses:
+                losses[key] = []
             if isinstance(elem[key], torch.Tensor):
-                losses.extend(elem[key].detach().cpu().tolist())
+                losses(key).extend(elem[key].detach().cpu().tolist())
             else:
-                losses.append(elem[key])
-        loss = mean(losses)
-        pl.log(f"{mode}{sep}losses.{key}", loss, on_epoch=True, sync_dist=True, rank_zero_only=True)
+                losses[key].append(elem[key])
+
+    for key in losses:
+        loss = mean(losses[key])
+        pl_module.log(
+            f"{mode}{sep}losses.{key}",
+            loss,
+            on_epoch=True,
+            sync_dist=True,
+            rank_zero_only=True,
+        )
 
 
 def epoch_end_compute_and_log_metrics(
-    pl: pl.LightningModule, mode: str, metrics: OrderedDict[str, MetricBase], sep: str = "."
+    pl_module: pl.LightningModule,
+    mode: str,
+    metrics: OrderedDict[str, MetricBase],
+    sep: str = ".",
 ) -> None:
     """
     On epoch end compute and log per epoch metrics
-    :param pl: LightningModule. Used for logging.
+    :param pl_module: LightningModule. Used for logging.
     :param mode: prefix to add to each metric name (when logging), typically validation/train/test
     :param metrics: Dict of FuseMedML style metrics
     :return: None
@@ -248,7 +276,9 @@ def epoch_end_compute_and_log_metrics(
             metric_result = metric.eval(epoch_results)
         except:
             track = traceback.format_exc()
-            print(f"Metric {metric_name} process() func failed. Setting results to None")
+            print(
+                f"Metric {metric_name} process() func failed. Setting results to None"
+            )
             print(track)
             metric_result = None
 
@@ -256,6 +286,14 @@ def epoch_end_compute_and_log_metrics(
         metric.reset()
 
     # log metrics
-    for key in epoch_results.keypaths():
-        if epoch_results[key] is not None and not isinstance(epoch_results[key], (PerSampleData)):
-            pl.log(f"{mode}{sep}{key}", epoch_results[key], on_epoch=True, sync_dist=True, rank_zero_only=True)
+    for key in epoch_results.keys():
+        if epoch_results[key] is not None and not isinstance(
+            epoch_results[key], (PerSampleData)
+        ):
+            pl_module.log(
+                f"{mode}{sep}{key}",
+                epoch_results[key],
+                on_epoch=True,
+                sync_dist=True,
+                rank_zero_only=True,
+            )

@@ -39,7 +39,9 @@ class OpKnightSampleIDDecode(OpBase):
             sample_dict[img_filename_key] = os.path.join(sid, "imaging.nii.gz")
 
             seg_filename_key = "data.gt.seg_path"
-            sample_dict[seg_filename_key] = os.path.join(sid, "aggregated_MAJ_seg.nii.gz")
+            sample_dict[seg_filename_key] = os.path.join(
+                sid, "aggregated_MAJ_seg.nii.gz"
+            )
 
         return sample_dict
 
@@ -63,7 +65,9 @@ class OpClinicalLoad(OpBase):
         ]
 
         if test:
-            json_data = pd.read_json(os.path.join(self.json_path, "features.json"))[cols]
+            json_data = pd.read_json(os.path.join(self.json_path, "features.json"))[
+                cols
+            ]
         else:
             cols += ["aua_risk_group"]
             json_data = pd.read_json(os.path.join(self.json_path, "knight.json"))[cols]
@@ -75,7 +79,11 @@ class OpClinicalLoad(OpBase):
         row["comorbidities"] = int(
             any(x for x in row["comorbidities"].values())
         )  # if has any comorbidity it is set to 1
-        row["smoking_history"] = ["never_smoked", "previous_smoker", "current_smoker"].index(row["smoking_history"])
+        row["smoking_history"] = [
+            "never_smoked",
+            "previous_smoker",
+            "current_smoker",
+        ].index(row["smoking_history"])
         if row["last_preop_egfr"] is None or row["last_preop_egfr"]["value"] is None:
             row["last_preop_egfr"] = 77  # median value
         elif row["last_preop_egfr"]["value"] in (">=90", ">90"):
@@ -84,7 +92,9 @@ class OpClinicalLoad(OpBase):
             row["last_preop_egfr"] = row["last_preop_egfr"]["value"]
 
         if row["radiographic_size"] is None:
-            row["radiographic_size"] = 4.1  # this is the median value on the training set
+            row[
+                "radiographic_size"
+            ] = 4.1  # this is the median value on the training set
         if not test:
             sample_dict["data.gt.gt_global.task_1_label"] = int(
                 row["aua_risk_group"] in ["high_risk", "very_high_risk"]
@@ -123,7 +133,11 @@ class OpPrepareClinical(OpBase):
             bmi = np.array(-1.0).reshape(-1)
 
         radiographic_size = sample_dict["data.input.clinical.radiographic_size"]
-        if radiographic_size is not None and radiographic_size > 0 and radiographic_size < 50:
+        if (
+            radiographic_size is not None
+            and radiographic_size > 0
+            and radiographic_size < 50
+        ):
             radiographic_size = np.array(radiographic_size / 15.0).reshape(-1)
         else:
             radiographic_size = np.array(-1.0).reshape(-1)
@@ -150,7 +164,15 @@ class OpPrepareClinical(OpBase):
             smoking_history_one_hot[smoking_history] = 1
 
         clinical_encoding = np.concatenate(
-            (age, bmi, radiographic_size, preop_egfr, gender_one_hot, comorbidities_one_hot, smoking_history_one_hot),
+            (
+                age,
+                bmi,
+                radiographic_size,
+                preop_egfr,
+                gender_one_hot,
+                comorbidities_one_hot,
+                smoking_history_one_hot,
+            ),
             axis=0,
             dtype=np.float32,
         )
@@ -174,7 +196,9 @@ class KNIGHT:
         return files
 
     @staticmethod
-    def static_pipeline(data_path: str, resize_to: Tuple, test: bool = False) -> PipelineDefault:
+    def static_pipeline(
+        data_path: str, resize_to: Tuple, test: bool = False
+    ) -> PipelineDefault:
         static_pipeline = PipelineDefault(
             "static",
             [
@@ -185,17 +209,30 @@ class KNIGHT:
                 ),  # will save image and seg path to "data.input.img_path", "data.gt.seg_path" and load json data
                 (OpClinicalLoad(data_path), dict(test=test)),
                 # loading data
-                (OpLoadImage(data_path), dict(key_in="data.input.img_path", key_out="data.input.img", format="nib")),
+                (
+                    OpLoadImage(data_path),
+                    dict(
+                        key_in="data.input.img_path",
+                        key_out="data.input.img",
+                        format="nib",
+                    ),
+                ),
                 # fixed image normalization
                 (OpClip(), dict(key="data.input.img", clip=(-62, 301))),
-                (OpZScoreNorm(), dict(key="data.input.img", mean=104.0, std=75.3)),  # kits normalization
+                (
+                    OpZScoreNorm(),
+                    dict(key="data.input.img", mean=104.0, std=75.3),
+                ),  # kits normalization
                 # transposing so the depth channel will be first
                 (
                     OpLambda(partial(np.moveaxis, source=-1, destination=0)),
                     dict(key="data.input.img"),
                 ),  # convert image from shape [H, W, D] to shape [D, H, W]
                 (OpPrepareClinical(), dict()),  # process clinical data
-                (OpResizeTo(channels_first=False), dict(key="data.input.img", output_shape=resize_to)),
+                (
+                    OpResizeTo(channels_first=False),
+                    dict(key="data.input.img", output_shape=resize_to),
+                ),
             ],
         )
         return static_pipeline
@@ -228,7 +265,10 @@ class KNIGHT:
                         translate=(RandInt(-15, 15), RandInt(-15, 15)),
                     ),
                 ),
-                (OpRandApply(OpAugGaussian(), 0.3), dict(key="data.input.img", std=0.01)),
+                (
+                    OpRandApply(OpAugGaussian(), 0.3),
+                    dict(key="data.input.img", std=0.01),
+                ),
                 # add channel dimension -> [C=1, D, H, W]
                 (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="data.input.img")),
             ],
@@ -276,14 +316,22 @@ class KNIGHT:
 
         # Create dataset
         if sample_ids is not None:
-            static_pipeline = KNIGHT.static_pipeline(data_path, resize_to=resize_to, test=test)
+            static_pipeline = KNIGHT.static_pipeline(
+                data_path, resize_to=resize_to, test=test
+            )
             cacher = SamplesCacher(
-                "cache", static_pipeline, cache_dirs=[f"{cache_dir}/data"], restart_cache=reset_cache, workers=num_workers
+                "cache",
+                static_pipeline,
+                cache_dirs=[f"{cache_dir}/data"],
+                restart_cache=reset_cache,
+                workers=8,
             )
             dataset = DatasetDefault(
                 sample_ids=sample_ids,
                 static_pipeline=static_pipeline,
-                dynamic_pipeline=val_dynamic_pipeline if test else train_dynamic_pipeline,
+                dynamic_pipeline=val_dynamic_pipeline
+                if test
+                else train_dynamic_pipeline,
                 cacher=cacher,
             )
             print("- Load and cache data:")
@@ -291,10 +339,16 @@ class KNIGHT:
             print("- Load and cache data: Done")
             return dataset
 
-        static_pipeline = KNIGHT.static_pipeline(data_path, resize_to=resize_to, test=("test" in split))
+        static_pipeline = KNIGHT.static_pipeline(
+            data_path, resize_to=resize_to, test=("test" in split)
+        )
         if "train" in split:
             train_cacher = SamplesCacher(
-                "train_cache", static_pipeline, cache_dirs=[f"{cache_dir}/train"], restart_cache=reset_cache, workers=num_workers
+                "train_cache",
+                static_pipeline,
+                cache_dirs=[f"{cache_dir}/train"],
+                restart_cache=reset_cache,
+                workers=num_workers,
             )
 
             train_dataset = DatasetDefault(
@@ -315,7 +369,11 @@ class KNIGHT:
             print("Validation Data:", {"attrs": "bold"})
 
             val_cacher = SamplesCacher(
-                "val_cache", static_pipeline, cache_dirs=[f"{cache_dir}/val"], restart_cache=reset_cache, workers=num_workers
+                "val_cache",
+                static_pipeline,
+                cache_dirs=[f"{cache_dir}/val"],
+                restart_cache=reset_cache,
+                workers=num_workers,
             )
             ## Create dataset
             validation_dataset = DatasetDefault(

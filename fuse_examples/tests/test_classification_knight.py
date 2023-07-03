@@ -34,17 +34,22 @@ import imaging.classification.knight.baseline.fuse_baseline as baseline
 
 
 class KnightTestTestCase(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.root = tempfile.mkdtemp()
 
-    def test_eval(self):
+    def test_eval(self) -> None:
         dir_path = pathlib.Path(__file__).parent.resolve()
-        target_filename = os.path.join(dir_path, "../imaging/classification/knight/eval/example/example_targets.csv")
+        target_filename = os.path.join(
+            dir_path,
+            "../imaging/classification/knight/eval/example/example_targets.csv",
+        )
         task1_prediction_filename = os.path.join(
-            dir_path, "../imaging/classification/knight/eval/example/example_task1_predictions.csv"
+            dir_path,
+            "../imaging/classification/knight/eval/example/example_task1_predictions.csv",
         )
         task2_prediction_filename = os.path.join(
-            dir_path, "../imaging/classification/knight/eval/example/example_task2_predictions.csv"
+            dir_path,
+            "../imaging/classification/knight/eval/example/example_task2_predictions.csv",
         )
         eval(
             target_filename=target_filename,
@@ -53,7 +58,7 @@ class KnightTestTestCase(unittest.TestCase):
             output_dir=self.root,
         )
 
-    def test_make_targets(self):
+    def test_make_targets(self) -> None:
         dir_path = pathlib.Path(__file__).parent.resolve()
         data_path = os.path.join(self.root, "data")
         create_dir(data_path)
@@ -63,12 +68,19 @@ class KnightTestTestCase(unittest.TestCase):
             "https://raw.github.com/neheller/KNIGHT/main/knight/data/knight.json",
             data_path,
         )
-        split = os.path.join(dir_path, "../imaging/classification/knight/baseline/splits_final.pkl")
+        split = os.path.join(
+            dir_path, "../imaging/classification/knight/baseline/splits_final.pkl"
+        )
         create_dir(os.path.dirname(output_filename))
-        make_targets_file(data_path=data_path, split=split, output_filename=output_filename)
+        make_targets_file(
+            data_path=data_path, split=split, output_filename=output_filename
+        )
 
-    @unittest.skipIf("KNIGHT_DATA" not in os.environ, "define environment variable 'KNIGHT_DATA' to run this test")
-    def test_train(self):
+    @unittest.skipIf(
+        "KNIGHT_DATA" not in os.environ,
+        "define environment variable 'KNIGHT_DATA' to run this test",
+    )
+    def test_train(self) -> None:
         os.environ["KNIGHT_CACHE"] = os.path.join(self.root, "train", "cache")
         os.environ["KNIGHT_RESULTS"] = os.path.join(self.root, "train", "results")
         config = """
@@ -97,7 +109,7 @@ class KnightTestTestCase(unittest.TestCase):
 
         run_in_subprocess(baseline.main, cfg_path, timeout=4000)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         # Delete temporary directories
         shutil.rmtree(self.root)
 

@@ -6,10 +6,12 @@ from os.path import abspath, join, dirname
 from glob import glob
 from collections import namedtuple
 
-SCRIPT_RUNNER_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "script_runner")
+SCRIPT_RUNNER_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "script_runner"
+)
 
 
-def get_script_runner_path(postfix="_DETACHED"):
+def get_script_runner_path(postfix: str = "_DETACHED") -> str:
     return SCRIPT_RUNNER_PATH + postfix + ".sh"
 
 
@@ -22,8 +24,8 @@ class RemoteExecution:
         conda_env: str,
         password: str,
         user: Optional[str] = None,
-        allow_manual_password_typing=True,
-        verbose=0,
+        allow_manual_password_typing: bool = True,
+        verbose: int = 0,
     ):
         self._conda_env = conda_env
 
@@ -31,7 +33,9 @@ class RemoteExecution:
             if allow_manual_password_typing:
                 password = getpass.getpass(prompt="password:")
             else:
-                raise Exception("No password provided (and allow_manual_password_typing is disabled)")
+                raise Exception(
+                    "No password provided (and allow_manual_password_typing is disabled)"
+                )
         self._password = password
 
         if user is None:
@@ -58,12 +62,12 @@ class RemoteExecution:
 
     def run_remote_python_command(
         self,
-        *python_args,
+        *python_args: list,
         machine: str = None,
         gpu: str = None,
         log_output: str = None,
-        auto_add_repo_root_dirs_to_PYTHONPATH=False,
-        verbose=0,
+        auto_add_repo_root_dirs_to_PYTHONPATH: bool = False,
+        verbose: int = 0,
     ) -> Tuple[str, str]:
         """
         connects to [machine] with ssh and runs [cmd].
@@ -102,7 +106,9 @@ class RemoteExecution:
             repo_dirs = glob(all_repos_base_dir + "/*/")
             PYTHONPATH = ":".join(repo_dirs)
         else:
-            PYTHONPATH = "/dummy"  # it is a positional arg, so we gotta give it something
+            PYTHONPATH = (
+                "/dummy"  # it is a positional arg, so we gotta give it something
+            )
 
         script_runner = get_script_runner_path()
 
@@ -124,7 +130,9 @@ class RemoteExecution:
             print("\n\n\n")
         return shout, sherr
 
-    def run_multi_machines_commands(self, commands: List[RemoteCommand], verbose=0) -> None:
+    def run_multi_machines_commands(
+        self, commands: List[RemoteCommand], verbose: int = 0
+    ) -> None:
         """
         Execute a list of RemoteCommand-s on remote machines
 
@@ -146,4 +154,6 @@ class RemoteExecution:
             raise Exception(_ERR_TEXT)
 
         for rem_cmd in commands:
-            self.run_remote_machine_command(rem_cmd.machine, rem_cmd.command, verbose=verbose)
+            self.run_remote_machine_command(
+                rem_cmd.machine, rem_cmd.command, verbose=verbose
+            )

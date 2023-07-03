@@ -57,9 +57,13 @@ class ModelMultiHead(torch.nn.Module):
         # we don't use the number of input channels.
         # it's just kept for backward compatibility
         if conv_inputs is not None:
-            self.conv_inputs = [inp[0] if isinstance(inp, Tuple) else inp for inp in conv_inputs]
+            self.conv_inputs = [
+                inp[0] if isinstance(inp, Tuple) else inp for inp in conv_inputs
+            ]
         if backbone_args is not None:
-            self.backbone_args = [inp[0] if isinstance(inp, Tuple) else inp for inp in backbone_args]
+            self.backbone_args = [
+                inp[0] if isinstance(inp, Tuple) else inp for inp in backbone_args
+            ]
 
         self.backbone = backbone
         self.key_out_features = key_out_features
@@ -69,7 +73,9 @@ class ModelMultiHead(torch.nn.Module):
 
     def forward(self, batch_dict: NDict) -> Dict:
         if self.conv_inputs is not None:
-            conv_input = torch.cat([batch_dict[conv_input] for conv_input in self.conv_inputs], 1)
+            conv_input = torch.cat(
+                [batch_dict[conv_input] for conv_input in self.conv_inputs], 1
+            )
             backbone_features = self.backbone(conv_input)
         else:
             backbone_args = [batch_dict[inp] for inp in self.backbone_args]

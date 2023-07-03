@@ -12,11 +12,16 @@ from fuse.data.ops.ops_common_for_testing import OpApplyTypesImaging
 
 
 class OpIncrForTest(OpReversibleBase):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: dict):
         super().__init__(**kwargs)
 
     def __call__(
-        self, sample_dict: NDict, op_id: Optional[str], incr_value: int, key_in: str, key_out: str
+        self,
+        sample_dict: NDict,
+        op_id: Optional[str],
+        incr_value: int,
+        key_in: str,
+        key_out: str,
     ) -> Union[None, dict, List[dict]]:
         # save for reverse
         sample_dict[op_id] = {"key_out": key_out, "incr_value": incr_value}
@@ -26,7 +31,13 @@ class OpIncrForTest(OpReversibleBase):
 
         return sample_dict
 
-    def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
+    def reverse(
+        self,
+        sample_dict: NDict,
+        key_to_reverse: str,
+        key_to_follow: str,
+        op_id: Optional[str],
+    ) -> dict:
         # not really reverse, but help the test
         orig_args = sample_dict[op_id]
 
@@ -40,7 +51,7 @@ class OpIncrForTest(OpReversibleBase):
 
 
 class TestOpsCommon(unittest.TestCase):
-    def test_op_repeat(self):
+    def test_op_repeat(self) -> None:
         """
         Test OpRepeat __call__() and reverse()
         """
@@ -60,21 +71,31 @@ class TestOpsCommon(unittest.TestCase):
         self.assertEqual(sample_dict["data.val.c"], 11)
         self.assertEqual(sample_dict["data.val.d"], 14)
 
-        op_repeat.reverse(sample_dict, key_to_follow="data.val.d", key_to_reverse="data.val.d", op_id="_.test_repeat")
+        op_repeat.reverse(
+            sample_dict,
+            key_to_follow="data.val.d",
+            key_to_reverse="data.val.d",
+            op_id="_.test_repeat",
+        )
         self.assertEqual(sample_dict["data.val.a"], 5)
         self.assertEqual(sample_dict["data.val.b"], 8)
         self.assertEqual(sample_dict["data.val.c"], 11)
         self.assertEqual(sample_dict["data.val.d"], 8)
 
         sample_dict["data.val.e"] = 48
-        op_repeat.reverse(sample_dict, key_to_follow="data.val.d", key_to_reverse="data.val.e", op_id="_.test_repeat")
+        op_repeat.reverse(
+            sample_dict,
+            key_to_follow="data.val.d",
+            key_to_reverse="data.val.e",
+            op_id="_.test_repeat",
+        )
         self.assertEqual(sample_dict["data.val.a"], 5)
         self.assertEqual(sample_dict["data.val.b"], 8)
         self.assertEqual(sample_dict["data.val.c"], 11)
         self.assertEqual(sample_dict["data.val.d"], 8)
         self.assertEqual(sample_dict["data.val.e"], 42)
 
-    def test_op_lambda(self):
+    def test_op_lambda(self) -> None:
         """
         Test OpLambda __call__() and reverse()
         """
@@ -93,15 +114,25 @@ class TestOpsCommon(unittest.TestCase):
         sample_dict = op_repeat(sample_dict, "_.test_repeat", key="data.val.a")
         self.assertEqual(sample_dict["data.val.a"], 14)
 
-        op_repeat.reverse(sample_dict, key_to_follow="data.val.a", key_to_reverse="data.val.a", op_id="_.test_repeat")
+        op_repeat.reverse(
+            sample_dict,
+            key_to_follow="data.val.a",
+            key_to_reverse="data.val.a",
+            op_id="_.test_repeat",
+        )
         self.assertEqual(sample_dict["data.val.a"], 5)
 
         sample_dict["data.val.b"] = 51
-        op_repeat.reverse(sample_dict, key_to_follow="data.val.a", key_to_reverse="data.val.b", op_id="_.test_repeat")
+        op_repeat.reverse(
+            sample_dict,
+            key_to_follow="data.val.a",
+            key_to_reverse="data.val.b",
+            op_id="_.test_repeat",
+        )
         self.assertEqual(sample_dict["data.val.a"], 5)
         self.assertEqual(sample_dict["data.val.b"], 42)
 
-    def test_op_lambda_with_kwargs(self):
+    def test_op_lambda_with_kwargs(self) -> None:
         """
         Test OpLambda __call__() with kwargs
         """
@@ -113,15 +144,15 @@ class TestOpsCommon(unittest.TestCase):
         sample_dict = op_repeat(sample_dict, "_.test_repeat", key="data.val.a", y=5)
         self.assertEqual(sample_dict["data.val.a"], 20)
 
-    def test_op_func(self):
+    def test_op_func(self) -> None:
         """
         Test OpFunc __call__()
         """
 
-        def func_single_output(a, b, c):
+        def func_single_output(a, b, c):  # type: ignore
             return a + b + c
 
-        def func_multi_output(a, b, c):
+        def func_multi_output(a, b, c):  # type: ignore
             return a + b, a + c
 
         single_output_op = OpFunc(func=func_single_output)
@@ -153,7 +184,7 @@ class TestOpsCommon(unittest.TestCase):
         self.assertEqual(sample_dict["data.out"], 14)
         self.assertEqual(sample_dict["data.more"], 7)
 
-    def test_op_apply_patterns(self):
+    def test_op_apply_patterns(self) -> None:
         """
         Test OpRApplyPatterns __call__() and reverse()
         """
@@ -195,7 +226,7 @@ class TestOpsCommon(unittest.TestCase):
         self.assertEqual(sample_dict["data.val.img_for_testing"], 4)
         self.assertEqual(sample_dict["model.seg_for_testing"], 2)
 
-    def test_op_apply_types(self):
+    def test_op_apply_types(self) -> None:
         """
         Test OpApplyTypes __call__() and reverse()
         """

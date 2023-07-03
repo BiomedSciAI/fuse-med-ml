@@ -1,19 +1,24 @@
+# type: ignore
 import cv2
-
+from torch import Tensor
 from fuse.data.ops.op_base import OpBase
 from fuseimg.utils.typing.key_types_imaging import DataTypeImaging
 from fuseimg.data.ops.ops_common_imaging import OpApplyTypesImaging
 from fuse.utils.ndict import NDict
 
-# import SimpleITK as sitk
 
-
-def no_op(input_tensor):
+def no_op(input_tensor: Tensor) -> Tensor:
     return input_tensor
 
 
 def draw_grid_3d_op(
-    input_tensor, start_slice=0, end_slice=None, line_color=255, thickness=10, type_=cv2.LINE_4, pxstep=50
+    input_tensor,
+    start_slice=0,
+    end_slice=None,
+    line_color=255,
+    thickness=10,
+    type_=cv2.LINE_4,
+    pxstep=50,
 ):
     """
     Draws a grid pattern.

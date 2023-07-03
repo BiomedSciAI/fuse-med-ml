@@ -10,7 +10,13 @@ from fuse.data.utils.sample import (
     get_specific_sample_from_potentially_morphed,
 )
 from fuse.data.ops.op_base import OpBase  # DataTypeForTesting,
-from fuse.data.ops.ops_common import OpApplyPatterns, OpLambda, OpFunc, OpRepeat, OpKeepKeypaths
+from fuse.data.ops.ops_common import (
+    OpApplyPatterns,
+    OpLambda,
+    OpFunc,
+    OpRepeat,
+    OpKeepKeypaths,
+)
 from fuse.data.ops.ops_aug_common import OpRandApply, OpSample, OpSampleAndRepeat
 from fuse.data.ops.ops_read import OpReadDataframe
 from fuse.data.ops.ops_cast import OpToTensor, OpToNumpy

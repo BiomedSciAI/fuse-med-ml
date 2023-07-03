@@ -40,7 +40,7 @@ class MetricMultiClassDefault(MetricWithCollectorBase):
         metric_func: Callable,
         class_names: Optional[Sequence[str]] = None,
         class_weights: Optional[Sequence[float]] = None,
-        **kwargs,
+        **kwargs: dict,
     ):
         """
         :param pred: prediction key to collect
@@ -86,7 +86,9 @@ class MetricMultiClassDefault(MetricWithCollectorBase):
                     if isinstance(cls_res, dict):
                         is_dict = True
                         for sub_metric_name in cls_res:
-                            metric_results[f"{sub_metric_name}.{cls_name}"] = cls_res[sub_metric_name]
+                            metric_results[f"{sub_metric_name}.{cls_name}"] = cls_res[
+                                sub_metric_name
+                            ]
                     else:
                         assert (
                             is_dict is False
@@ -104,7 +106,9 @@ class MetricMultiClassDefault(MetricWithCollectorBase):
                             weights = None
                         else:
                             weights = self._class_weights[indices]
-                        metric_results[f"{key}.macro_avg"] = np.average(all_classes_elem[indices], weights=weights)
+                        metric_results[f"{key}.macro_avg"] = np.average(
+                            all_classes_elem[indices], weights=weights
+                        )
                 else:
                     all_classes = np.array(all_classes)
                     indices = ~np.isnan(all_classes)
@@ -112,7 +116,9 @@ class MetricMultiClassDefault(MetricWithCollectorBase):
                         weights = None
                     else:
                         weights = self._sum_weights[indices]
-                    metric_results["macro_avg"] = np.average(all_classes[indices], weights=weights)
+                    metric_results["macro_avg"] = np.average(
+                        all_classes[indices], weights=weights
+                    )
             except:
                 track = traceback.format_exc()
                 print(f"Error in metric: {type(self).__name__} - {track}")
@@ -134,7 +140,7 @@ class MetricAUCROC(MetricMultiClassDefault):
         target: str,
         class_names: Optional[Sequence[str]] = None,
         max_fpr: Optional[float] = None,
-        **kwargs,
+        **kwargs: dict,
     ):
         """
         See MetricMultiClassDefault for the missing params
@@ -142,7 +148,9 @@ class MetricAUCROC(MetricMultiClassDefault):
                         If not ``None``, the standardized partial AUC over the range [0, max_fpr] is returned.
         """
         auc_roc = partial(MetricsLibClass.auc_roc, max_fpr=max_fpr)
-        super().__init__(pred, target, metric_func=auc_roc, class_names=class_names, **kwargs)
+        super().__init__(
+            pred, target, metric_func=auc_roc, class_names=class_names, **kwargs
+        )
 
 
 class MetricAUCROCMultLabel(MetricDefault):
@@ -156,14 +164,16 @@ class MetricAUCROCMultLabel(MetricDefault):
         target: str,
         max_fpr: Optional[float] = None,
         average: str = "micro",
-        **kwargs,
+        **kwargs: dict,
     ):
         """
         See MetricMultiClassDefault for the missing params
         :param max_fpr: float > 0 and <= 1, default=None
                         If not ``None``, the standardized partial AUC over the range [0, max_fpr] is returned.
         """
-        auc_roc = partial(MetricsLibClass.auc_roc_mult_binary_label, average=average, max_fpr=max_fpr)
+        auc_roc = partial(
+            MetricsLibClass.auc_roc_mult_binary_label, average=average, max_fpr=max_fpr
+        )
         super().__init__(pred=pred, target=target, metric_func=auc_roc, **kwargs)
 
 
@@ -179,7 +189,7 @@ class MetricROCCurve(MetricDefault):
         output_filename: Optional[str] = None,
         class_names: Optional[List[str]] = None,
         sample_weight: Optional[str] = None,
-        **kwargs,
+        **kwargs: dict,
     ) -> None:
         """
         :param pred:                key for predicted output (e.g., class scores after softmax)
@@ -189,8 +199,18 @@ class MetricROCCurve(MetricDefault):
         :param sample_weight:       Optional, key for  sample weight
         :param kwargs:              super class arguments
         """
-        roc = partial(MetricsLibClass.roc_curve, class_names=class_names, output_filename=output_filename)
-        super().__init__(pred=pred, target=target, sample_weight=sample_weight, metric_func=roc, **kwargs)
+        roc = partial(
+            MetricsLibClass.roc_curve,
+            class_names=class_names,
+            output_filename=output_filename,
+        )
+        super().__init__(
+            pred=pred,
+            target=target,
+            sample_weight=sample_weight,
+            metric_func=roc,
+            **kwargs,
+        )
 
 
 class MetricAUCPR(MetricMultiClassDefault):
@@ -198,8 +218,16 @@ class MetricAUCPR(MetricMultiClassDefault):
     Compute Area Under Precision Recall Curve score using sklearn (one vs rest)
     """
 
-    def __init__(self, pred: str, target: str, class_names: Optional[Sequence[str]] = None, **kwargs):
-        super().__init__(pred, target, MetricsLibClass.auc_pr, class_names=class_names, **kwargs)
+    def __init__(
+        self,
+        pred: str,
+        target: str,
+        class_names: Optional[Sequence[str]] = None,
+        **kwargs: dict,
+    ):
+        super().__init__(
+            pred, target, MetricsLibClass.auc_pr, class_names=class_names, **kwargs
+        )
 
 
 class MetricAccuracy(MetricDefault):
@@ -207,13 +235,23 @@ class MetricAccuracy(MetricDefault):
     Compute accuracy over all the samples
     """
 
-    def __init__(self, pred: str, target: str, sample_weight: Optional[str] = None, **kwargs):
+    def __init__(
+        self,
+        pred: str,
+        target: str,
+        sample_weight: Optional[str] = None,
+        **kwargs: dict,
+    ):
         """
         See MetricDefault for the missing params
         :param sample_weight: weight per sample for the final accuracy score. Keep None if not required.
         """
         super().__init__(
-            pred=pred, target=target, sample_weight=sample_weight, metric_func=MetricsLibClass.accuracy, **kwargs
+            pred=pred,
+            target=target,
+            sample_weight=sample_weight,
+            metric_func=MetricsLibClass.accuracy,
+            **kwargs,
         )
 
 
@@ -229,7 +267,7 @@ class MetricConfusion(MetricMultiClassDefault):
         class_names: Optional[Sequence[str]] = None,
         metrics: Sequence[str] = ("sensitivity",),
         operation_point: Union[float, Sequence[Tuple[int, float]], str, None] = tuple(),
-        **kwargs,
+        **kwargs: dict,
     ):
         """
         See MetricMultiClassDefault for the missing params
@@ -255,13 +293,20 @@ class MetricConfusionMatrix(MetricDefault):
     """
 
     def __init__(
-        self, cls_pred: str, target: str, class_names: Sequence[str], sample_weight: Optional[str] = None, **kwargs
+        self,
+        cls_pred: str,
+        target: str,
+        class_names: Sequence[str],
+        sample_weight: Optional[str] = None,
+        **kwargs: dict,
     ) -> None:
         """
         See super class
         :param cls_pred: key to class predictions
         """
-        conf_matrix_func = partial(MetricsLibClass.confusion_matrix, class_names=class_names)
+        conf_matrix_func = partial(
+            MetricsLibClass.confusion_matrix, class_names=class_names
+        )
         super().__init__(
             pred=None,
             cls_pred=cls_pred,
@@ -281,8 +326,13 @@ class MetricBSS(MetricDefault):
 
     """
 
-    def __init__(self, pred: str, target: str, **kwargs):
+    def __init__(self, pred: str, target: str, **kwargs: dict):
         """
         See super class
         """
-        super().__init__(pred=pred, target=target, metric_func=MetricsLibClass.multi_class_bss, **kwargs)
+        super().__init__(
+            pred=pred,
+            target=target,
+            metric_func=MetricsLibClass.multi_class_bss,
+            **kwargs,
+        )

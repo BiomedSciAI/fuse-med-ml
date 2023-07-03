@@ -90,7 +90,7 @@ class DatasetWrapSeqToDict(DatasetDefault):
         sample_keys: Union[Sequence[str], str],
         cache_dir: Optional[str] = None,
         sample_ids: Optional[Sequence] = None,
-        **kwargs,
+        **kwargs: dict,
     ):
         """
         :param name: name of the data extracted from dataset, typically: 'train', 'validation;, 'test'
@@ -103,9 +103,18 @@ class DatasetWrapSeqToDict(DatasetDefault):
         if sample_ids is None:
             sample_ids = [(name, i) for i in range(len(dataset))]
 
-        static_pipeline = PipelineDefault(name="staticp", ops_and_kwargs=[(OpReadDataset(dataset, sample_keys), {})])
+        static_pipeline = PipelineDefault(
+            name="staticp", ops_and_kwargs=[(OpReadDataset(dataset, sample_keys), {})]
+        )
         if cache_dir is not None:
-            cacher = SamplesCacher("dataset_test_cache", static_pipeline, cache_dir, restart_cache=True)
+            cacher = SamplesCacher(
+                "dataset_test_cache", static_pipeline, cache_dir, restart_cache=True
+            )
         else:
             cacher = None
-        super().__init__(sample_ids=sample_ids, static_pipeline=static_pipeline, cacher=cacher, **kwargs)
+        super().__init__(
+            sample_ids=sample_ids,
+            static_pipeline=static_pipeline,
+            cacher=cacher,
+            **kwargs,
+        )

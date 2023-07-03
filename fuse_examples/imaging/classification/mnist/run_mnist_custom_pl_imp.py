@@ -34,8 +34,14 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
 
 from fuse.eval.evaluator import EvaluatorDefault
-from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
-from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
+from fuse.eval.metrics.classification.metrics_thresholding_common import (
+    MetricApplyThresholds,
+)
+from fuse.eval.metrics.classification.metrics_classification_common import (
+    MetricAccuracy,
+    MetricAUCROC,
+    MetricROCCurve,
+)
 
 from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.collates import CollateDefault
@@ -65,10 +71,12 @@ from fuse_examples.imaging.classification.mnist import lenet
 class LightningModuleMnist(pl.LightningModule):
     """
     Implementation of pl.LightningModule
-    Demonstrates how to use FuseMedML with your own PyTorch lightining implementaiton.
+    Demonstrates how to use FuseMedML with your own PyTorch Lightning >=2.0.0 implementation.
     """
 
-    def __init__(self, model_dir: str, opt_lr: float, opt_weight_decay: float, **kwargs):
+    def __init__(
+        self, model_dir: str, opt_lr: float, opt_weight_decay: float, **kwargs: dict
+    ):
         """
         :param model_dir: location for checkpoints and logs
         :param opt_lr: learning rate for Adam optimizer
@@ -93,25 +101,47 @@ class LightningModuleMnist(pl.LightningModule):
             model=torch_model,
             model_inputs=["data.image"],
             post_forward_processing_function=perform_softmax,
-            model_outputs=["model.logits.classification", "model.output.classification"],
+            model_outputs=[
+                "model.logits.classification",
+                "model.output.classification",
+            ],
         )
 
         # losses
         self._losses = {
             "cls_loss": LossDefault(
-                pred="model.logits.classification", target="data.label", callable=F.cross_entropy, weight=1.0
+                pred="model.logits.classification",
+                target="data.label",
+                callable=F.cross_entropy,
             ),
         }
 
         # metrics
         self._train_metrics = OrderedDict(
             [
-                ("operation_point", MetricApplyThresholds(pred="model.output.classification")),  # will apply argmax
-                ("accuracy", MetricAccuracy(pred="results:metrics.operation_point.cls_pred", target="data.label")),
+                (
+                    "operation_point",
+                    MetricApplyThresholds(pred="model.output.classification"),
+                ),  # will apply argmax
+                (
+                    "accuracy",
+                    MetricAccuracy(
+                        pred="results:metrics.operation_point.cls_pred",
+                        target="data.label",
+                    ),
+                ),
             ]
         )
 
-        self._validation_metrics = copy.deepcopy(self._train_metrics)  # use the same metrics in validation as well
+        self._validation_metrics = copy.deepcopy(
+            self._train_metrics
+        )  # use the same metrics in validation as well
+
+        # In Lightning >=2.0.0 they deprecated 'Callback.training_epoch_end' thus we need to manage and store
+        #   the steps outputs manually.
+        #   see: https://github.com/Lightning-AI/lightning/pull/16520
+        self.training_step_losses = []
+        self.validation_step_losses = []
 
     ## forward
     def forward(self, batch_dict: NDict) -> NDict:
@@ -126,6 +156,7 @@ class LightningModuleMnist(pl.LightningModule):
         # given the batch_dict and FuseMedML style losses - collect the required values to compute the metrics on epoch_end
         fuse_pl.step_metrics(self._train_metrics, batch_dict)
 
+        self.training_step_losses.append(batch_dict["losses"])  # Lightning >=2.0.0
         # return the total_loss, the losses and drop everything else
         return {"loss": total_loss, "losses": batch_dict["losses"]}
 
@@ -137,31 +168,41 @@ class LightningModuleMnist(pl.LightningModule):
         # given the batch_dict and FuseMedML style losses - collect the required values to compute the metrics on epoch_end
         fuse_pl.step_metrics(self._validation_metrics, batch_dict)
 
+        self.validation_step_losses.append(batch_dict["losses"])  # Lightning >=2.0.0
+
         # return just the losses and drop everything else
         return {"losses": batch_dict["losses"]}
 
     def predict_step(self, batch_dict: NDict, batch_idx: int) -> dict:
         if self._prediction_keys is None:
             raise Exception(
-                "Error: predict_step expectes list of prediction keys to extract from batch_dict. Please specify it using set_predictions_keys() method "
+                "Error: predict_step expects list of prediction keys to extract from batch_dict. Please specify it using set_predictions_keys() method "
             )
         # run forward function and store the outputs in batch_dict["model"]
         batch_dict = self.forward(batch_dict)
-        # extract the requried keys - defined in self.set_predictions_keys()
+        # extract the required keys - defined in self.set_predictions_keys()
         return fuse_pl.step_extract_predictions(self._prediction_keys, batch_dict)
 
     ## Epoch end
-    def training_epoch_end(self, step_outputs) -> None:
+    def on_train_epoch_end(self) -> None:
         # calc average epoch loss and log it
-        fuse_pl.epoch_end_compute_and_log_losses(self, "train", [e["losses"] for e in step_outputs])
-        # evaluate  and log it
+        fuse_pl.epoch_end_compute_and_log_losses(
+            self, "train", self.training_step_losses
+        )
+        self.training_step_losses.clear()  # free memory
+        # evaluate and log it
         fuse_pl.epoch_end_compute_and_log_metrics(self, "train", self._train_metrics)
 
-    def validation_epoch_end(self, step_outputs) -> None:
+    def on_validation_epoch_end(self) -> None:
         # calc average epoch loss and log it
-        fuse_pl.epoch_end_compute_and_log_losses(self, "validation", [e["losses"] for e in step_outputs])
-        # evaluate  and log it
-        fuse_pl.epoch_end_compute_and_log_metrics(self, "validation", self._validation_metrics)
+        fuse_pl.epoch_end_compute_and_log_losses(
+            self, "validation", self.validation_step_losses
+        )
+        self.validation_step_losses.clear()  # free memory
+        # evaluate and log it
+        fuse_pl.epoch_end_compute_and_log_metrics(
+            self, "validation", self._validation_metrics
+        )
 
     def configure_callbacks(self) -> Sequence[pl.Callback]:
         """Create callbacks to monitor the metrics and print epoch summary"""
@@ -174,11 +215,17 @@ class LightningModuleMnist(pl.LightningModule):
     def configure_optimizers(self) -> Any:
         """See pl.LightningModule.configure_optimizers return value for all options"""
         # create optimizer
-        optimizer = optim.Adam(self._model.parameters(), lr=self._opt_lr, weight_decay=self._opt_weight_decay)
+        optimizer = optim.Adam(
+            self._model.parameters(),
+            lr=self._opt_lr,
+            weight_decay=self._opt_weight_decay,
+        )
 
         # create learning scheduler
         lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
-        lr_sch_config = dict(scheduler=lr_scheduler, monitor="validation.losses.total_loss")
+        lr_sch_config = dict(
+            scheduler=lr_scheduler, monitor="validation.losses.total_loss"
+        )
         return dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
 
     def set_predictions_keys(self, keys: List[str]) -> None:
@@ -220,12 +267,10 @@ TRAIN_COMMON_PARAMS["data.validation_num_workers"] = 8
 # ===============
 # PL Trainer
 # ===============
-TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 2
+TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 5
 TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
-# use "dp" strategy temp when working with multiple GPUS - workaround for pytorch lightning issue: https://github.com/Lightning-AI/lightning/issues/11807
-TRAIN_COMMON_PARAMS["trainer.strategy"] = "dp" if TRAIN_COMMON_PARAMS["trainer.num_devices"] > 1 else None
-TRAIN_COMMON_PARAMS["trainer.ckpt_path"] = None  # path to the checkpoint you wish continue the training from
+TRAIN_COMMON_PARAMS["trainer.strategy"] = "auto"  # Lightning 2.0
 
 # ===============
 # PL Module
@@ -242,13 +287,19 @@ def perform_softmax(logits: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
 #################################
 # Train Template
 #################################
-def run_train(paths: dict, train_params: dict):
+def run_train(paths: dict, train_params: dict) -> None:
     # ==============================================================================
     # Logger(s)
     # ==============================================================================
-    fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
-    lightning_csv_logger = CSVLogger(save_dir=paths["model_dir"], name="lightning_csv_logs")
-    lightning_tb_logger = TensorBoardLogger(save_dir=paths["model_dir"], name="lightning_tb_logs")
+    fuse_logger_start(
+        output_path=paths["model_dir"], console_verbose_level=logging.INFO
+    )
+    lightning_csv_logger = CSVLogger(
+        save_dir=paths["model_dir"], name="lightning_csv_logs"
+    )
+    lightning_tb_logger = TensorBoardLogger(
+        save_dir=paths["model_dir"], name="lightning_tb_logs"
+    )
     print("Fuse Train")
 
     # ==============================================================================
@@ -300,19 +351,18 @@ def run_train(paths: dict, train_params: dict):
         opt_weight_decay=train_params["pl_module.opt_weight_decay"],
     )
 
-    # create lightining trainer.
+    # create lightning trainer.
     pl_trainer = pl.Trainer(
         default_root_dir=paths["model_dir"],
         max_epochs=train_params["trainer.num_epochs"],
         accelerator=train_params["trainer.accelerator"],
         strategy=train_params["trainer.strategy"],
         devices=train_params["trainer.num_devices"],
-        auto_select_gpus=True,
         logger=[lightning_csv_logger, lightning_tb_logger],
     )
 
     # train
-    pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=train_params["trainer.ckpt_path"])
+    pl_trainer.fit(pl_module, train_dataloader, validation_dataloader)
     print("Train: Done")
 
 
@@ -324,19 +374,24 @@ INFER_COMMON_PARAMS["infer_filename"] = "infer_file.gz"
 INFER_COMMON_PARAMS["checkpoint"] = "best_epoch.ckpt"
 INFER_COMMON_PARAMS["trainer.num_devices"] = 1  # infer should use single device
 INFER_COMMON_PARAMS["trainer.accelerator"] = "gpu"
-INFER_COMMON_PARAMS["trainer.strategy"] = None
 
 ######################################
 # Inference Template
 ######################################
 
 
-def run_infer(paths: dict, infer_common_params: dict):
+def run_infer(paths: dict, infer_common_params: dict) -> None:
     create_dir(paths["inference_dir"])
-    infer_file = os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])
-    checkpoint_file = os.path.join(paths["model_dir"], infer_common_params["checkpoint"])
+    infer_file = os.path.join(
+        paths["inference_dir"], infer_common_params["infer_filename"]
+    )
+    checkpoint_file = os.path.join(
+        paths["model_dir"], infer_common_params["checkpoint"]
+    )
     #### Logger
-    fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
+    fuse_logger_start(
+        output_path=paths["model_dir"], console_verbose_level=logging.INFO
+    )
 
     print("Fuse Inference")
     print(f"infer_filename={infer_file}")
@@ -346,7 +401,10 @@ def run_infer(paths: dict, infer_common_params: dict):
     validation_dataset = MNIST.dataset(paths["cache_dir"], train=False)
     # dataloader
     validation_dataloader = DataLoader(
-        dataset=validation_dataset, collate_fn=CollateDefault(), batch_size=2, num_workers=2
+        dataset=validation_dataset,
+        collate_fn=CollateDefault(),
+        batch_size=2,
+        num_workers=2,
     )
 
     # load pytorch lightning module
@@ -364,11 +422,11 @@ def run_infer(paths: dict, infer_common_params: dict):
         default_root_dir=paths["model_dir"],
         accelerator=infer_common_params["trainer.accelerator"],
         devices=infer_common_params["trainer.num_devices"],
-        strategy=infer_common_params["trainer.strategy"],
-        auto_select_gpus=True,
         logger=None,
     )
-    predictions = pl_trainer.predict(pl_module, validation_dataloader, return_predictions=True)
+    predictions = pl_trainer.predict(
+        pl_module, validation_dataloader, return_predictions=True
+    )
 
     # convert list of batch outputs into a dataframe
     infer_df = fuse_pl.convert_predictions_to_dataframe(predictions)
@@ -385,9 +443,11 @@ EVAL_COMMON_PARAMS["infer_filename"] = INFER_COMMON_PARAMS["infer_filename"]
 ######################################
 # Eval Template
 ######################################
-def run_eval(paths: dict, eval_common_params: dict):
+def run_eval(paths: dict, eval_common_params: dict) -> NDict:
     create_dir(paths["eval_dir"])
-    infer_file = os.path.join(paths["inference_dir"], eval_common_params["infer_filename"])
+    infer_file = os.path.join(
+        paths["inference_dir"], eval_common_params["infer_filename"]
+    )
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
 
     print("Fuse Eval")
@@ -397,8 +457,16 @@ def run_eval(paths: dict, eval_common_params: dict):
 
     metrics = OrderedDict(
         [
-            ("operation_point", MetricApplyThresholds(pred="model.output.classification")),  # will apply argmax
-            ("accuracy", MetricAccuracy(pred="results:metrics.operation_point.cls_pred", target="data.label")),
+            (
+                "operation_point",
+                MetricApplyThresholds(pred="model.output.classification"),
+            ),  # will apply argmax
+            (
+                "accuracy",
+                MetricAccuracy(
+                    pred="results:metrics.operation_point.cls_pred", target="data.label"
+                ),
+            ),
             (
                 "roc",
                 MetricROCCurve(
@@ -408,7 +476,14 @@ def run_eval(paths: dict, eval_common_params: dict):
                     output_filename=os.path.join(paths["eval_dir"], "roc_curve.png"),
                 ),
             ),
-            ("auc", MetricAUCROC(pred="model.output.classification", target="data.label", class_names=class_names)),
+            (
+                "auc",
+                MetricAUCROC(
+                    pred="model.output.classification",
+                    target="data.label",
+                    class_names=class_names,
+                ),
+            ),
         ]
     )
 
@@ -416,7 +491,13 @@ def run_eval(paths: dict, eval_common_params: dict):
     evaluator = EvaluatorDefault()
 
     # run
-    results = evaluator.eval(ids=None, data=infer_file, metrics=metrics, output_dir=paths["eval_dir"])
+    results = evaluator.eval(
+        ids=None,
+        data=infer_file,
+        metrics=metrics,
+        output_dir=paths["eval_dir"],
+        silent=False,
+    )
 
     return results
 

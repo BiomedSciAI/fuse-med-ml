@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Hashable, List, Dict
+from typing import Optional, Sequence, Hashable, List, Dict, Callable, Any
 from fuse.eval.metrics.libs.ensembling import Ensembling
 from fuse.eval.metrics.utils import PerSampleData
 
@@ -20,9 +20,9 @@ class MetricEnsemble(MetricDefault):
         output_pred_key: Optional[str] = "preds",
         output_target_key: Optional[str] = "target",
         rename_in_output: Optional[Dict[str, str]] = None,
-        scores_normalize_func=None,
-        dropna=False,
-        **kwargs,
+        scores_normalize_func: Optional[Callable] = None,
+        dropna: bool = False,
+        **kwargs: dict,
     ):
         """
         Model ensembling metric.
@@ -56,7 +56,9 @@ class MetricEnsemble(MetricDefault):
         )
         for i, key in enumerate(pred_keys):
             kwargs["pred" + str(i)] = key
-        super().__init__(metric_func=ensemble, target=target, extract_ids=True, **kwargs)
+        super().__init__(
+            metric_func=ensemble, target=target, extract_ids=True, **kwargs
+        )
 
     def _ensemble(
         self,
@@ -68,10 +70,10 @@ class MetricEnsemble(MetricDefault):
         output_target_key: Optional[str] = "target",
         keys_for_output: Optional[List[str]] = None,
         rename_in_output: Optional[Dict[str, str]] = None,
-        scores_normalize_func=None,
-        dropna=False,
-        **kwargs,
-    ):
+        scores_normalize_func: Callable = None,
+        dropna: bool = False,
+        **kwargs: dict,
+    ) -> Dict[str, Any]:
         preds = [np.asarray(kwargs[k]) for k in kwargs if k.startswith("pred")]
         if dropna:
             nan_mat = np.isnan(np.concatenate(preds, axis=1))

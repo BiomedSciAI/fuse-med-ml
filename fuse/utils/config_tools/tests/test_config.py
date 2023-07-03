@@ -24,7 +24,7 @@ import os
 
 
 class TestConfig(unittest.TestCase):
-    def test_config_no_py_extension(self):
+    def test_config_no_py_extension(self) -> None:
         """ """
         _curr_dir = os.path.dirname(os.path.abspath(__file__))
         _reference_ans = {"test": 240, "banana": 123, "dvivonim": 10}
