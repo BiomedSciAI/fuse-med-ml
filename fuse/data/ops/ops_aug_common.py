@@ -161,3 +161,14 @@ class OpRepeatAndSample(OpRepeat):
         :param kwargs_per_step_to_add: sequence of arguments (kwargs format) specific for a single repetition. those arguments will be added/overide the kwargs provided in __call__() function.
         """
         super().__init__(OpSample(op), kwargs_per_step_to_add)
+
+
+class OpVolumentation(OpBase):
+    def __init__(self, compose):
+        super().__init__()
+        self.compose = compose
+    
+    def __call__(self, sample_dict: NDict, key) -> NDict:
+        img = {"image":sample_dict[key]}
+        sample_dict[key] = self.compose(**img)["image"]
+        return sample_dict

@@ -70,10 +70,10 @@ class ModelMultiHead(torch.nn.Module):
     def forward(self, batch_dict: NDict) -> Dict:
         if self.conv_inputs is not None:
             conv_input = torch.cat([batch_dict[conv_input] for conv_input in self.conv_inputs], 1)
-            backbone_features = self.backbone.forward(conv_input)
+            backbone_features = self.backbone(conv_input)
         else:
             backbone_args = [batch_dict[inp] for inp in self.backbone_args]
-            backbone_features = self.backbone.forward(*backbone_args)
+            backbone_features = self.backbone(*backbone_args)
 
         batch_dict[self.key_out_features] = backbone_features
 
