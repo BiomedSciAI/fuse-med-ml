@@ -205,15 +205,18 @@ class OpFunc(OpReversibleBase):
     ) -> Union[None, dict, List[dict]]:
         """
         See super class
-        :param inputs: dictionary that map between the key_name of a value stored in sample_dict the the input argument name in func
+        :param inputs: dictionary that map between the key_name of a value stored in sample_dict the the input argument name in func. use None for the entire sample_dict
         :param outputs: sequence of key_names to store each return value of func.
 
         """
         # extract inputs from sample dict
         kwargs_from_sample_dict = {}
-        for input_key_name, func_arg_name in inputs.items():
-            value = sample_dict[input_key_name]
-            kwargs_from_sample_dict[func_arg_name] = value
+        if inputs is None:
+            kwargs_from_sample_dict["sample_dict"] = sample_dict
+        else:
+            for input_key_name, func_arg_name in inputs.items():
+                value = sample_dict[input_key_name]
+                kwargs_from_sample_dict[func_arg_name] = value
 
         # all kwargs
         all_kwargs = copy.copy(kwargs)
