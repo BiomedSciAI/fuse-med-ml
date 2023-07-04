@@ -47,7 +47,8 @@ class BackboneResnet(ResNet):
 
         """
         # init parameters per required backbone
-        init_parameters = {"resnet18": [BasicBlock, [2, 2, 2, 2]], "resnet50": [Bottleneck, [3, 4, 6, 3]]}[name]
+        init_parameters = {"resnet18": [BasicBlock, [2, 2, 2, 2]], "resnet34": [BasicBlock, [3, 4, 6, 3]],
+                           "resnet50": [Bottleneck, [3, 4, 6, 3]]}[name]
         # init original model
         super().__init__(*init_parameters)
 
