@@ -26,7 +26,12 @@ from fuse.eval.metrics.metrics_common import MetricDefault
 
 class MetricDelongsTest(MetricMultiClassDefault):
     def __init__(
-        self, pred1: str, pred2: str, target: str, class_names: Optional[Sequence[str]] = None, **kwargs: dict
+        self,
+        pred1: str,
+        pred2: str,
+        target: str,
+        class_names: Optional[Sequence[str]] = None,
+        **kwargs: dict
     ):
         # :param pred1: key name for the predictions of model 1
         # :param pred2: key name for the predictions of model 2
@@ -52,13 +57,23 @@ class MetricContingencyTable(MetricDefault):
         :param var2: key name for the second variable
         """
         super().__init__(
-            pred=None, target=None, metric_func=ModelComparison.contingency_table, var1=var1, var2=var2, **kwargs
+            pred=None,
+            target=None,
+            metric_func=ModelComparison.contingency_table,
+            var1=var1,
+            var2=var2,
+            **kwargs
         )
 
 
 class MetricMcnemarsTest(MetricMultiClassDefault):
     def __init__(
-        self, pred1: str, pred2: str, target: Optional[str] = None, exact: Optional[bool] = True, **kwargs: dict
+        self,
+        pred1: str,
+        pred2: str,
+        target: Optional[str] = None,
+        exact: Optional[bool] = True,
+        **kwargs: dict
     ):
         """
         McNemar's statistical test for comparing two model's predictions or accuracies

@@ -26,7 +26,9 @@ class Config:
             elif callable(conf):
                 ans = conf(ans)
             else:
-                raise Exception(f"config element #{idx} is not a valid type. It has type={type(conf)}")
+                raise Exception(
+                    f"config element #{idx} is not a valid type. It has type={type(conf)}"
+                )
         return ans
 
 
@@ -34,5 +36,7 @@ def get_config_function(script_path: str) -> Any:
     ans = runpy.run_path(script_path)
     func_name = "load_config"
     if func_name not in ans:
-        raise Exception(f"Expected to have load_config(conf:dict) -> dict defined in {script_path}")
+        raise Exception(
+            f"Expected to have load_config(conf:dict) -> dict defined in {script_path}"
+        )
     return ans[func_name]

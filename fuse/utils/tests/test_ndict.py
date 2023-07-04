@@ -129,15 +129,25 @@ class TestNDict(unittest.TestCase):
         nested_dict = NDict(
             {
                 "a": numpy.array([[0, 1, 2], [3, 4, 5], [6, 7, 8]]),
-                "b": {"c": torch.tensor([[10, 11, 12], [13, 14, 15], [16, 17, 18]]), "d": [0, 1, 2], "f": 4},
+                "b": {
+                    "c": torch.tensor([[10, 11, 12], [13, 14, 15], [16, 17, 18]]),
+                    "d": [0, 1, 2],
+                    "f": 4,
+                },
             }
         )
         indices = numpy.array([True, False, True])
         nested_dict_indices = nested_dict.indices(indices)
 
         # verify
-        self.assertTrue((nested_dict_indices["a"] == numpy.array([[0, 1, 2], [6, 7, 8]])).all())
-        self.assertTrue((nested_dict_indices["b.c"] == torch.tensor([[10, 11, 12], [16, 17, 18]])).all())
+        self.assertTrue(
+            (nested_dict_indices["a"] == numpy.array([[0, 1, 2], [6, 7, 8]])).all()
+        )
+        self.assertTrue(
+            (
+                nested_dict_indices["b.c"] == torch.tensor([[10, 11, 12], [16, 17, 18]])
+            ).all()
+        )
         self.assertTrue((nested_dict_indices["b.d"] == [0, 2]))
         self.assertTrue((nested_dict_indices["b.f"] == 4))
 
@@ -149,9 +159,17 @@ class TestNDict(unittest.TestCase):
         ndict["a.b.c.c3"] = "x3"
 
         # verify
-        self.assertDictEqual(ndict.get_sub_dict("a").to_dict(), {"b.c.c1": "x1", "b.c.c2": "x2", "b.c.c3": "x3"})
-        self.assertDictEqual(ndict.get_sub_dict("a.b").to_dict(), {"c.c1": "x1", "c.c2": "x2", "c.c3": "x3"})
-        self.assertDictEqual(ndict.get_sub_dict("a.b.c").to_dict(), {"c1": "x1", "c2": "x2", "c3": "x3"})
+        self.assertDictEqual(
+            ndict.get_sub_dict("a").to_dict(),
+            {"b.c.c1": "x1", "b.c.c2": "x2", "b.c.c3": "x3"},
+        )
+        self.assertDictEqual(
+            ndict.get_sub_dict("a.b").to_dict(),
+            {"c.c1": "x1", "c.c2": "x2", "c.c3": "x3"},
+        )
+        self.assertDictEqual(
+            ndict.get_sub_dict("a.b.c").to_dict(), {"c1": "x1", "c2": "x2", "c3": "x3"}
+        )
         self.assertEqual(ndict.get_sub_dict("a.b.c.c1"), None)
         self.assertEqual(ndict.get_sub_dict("a.q.q"), None)
 

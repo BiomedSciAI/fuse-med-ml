@@ -9,7 +9,9 @@ def num_available_cores(verbose: bool = True) -> int:
         try:
             ans = len(os.sched_getaffinity(0))
             if verbose:
-                print(f"num_available_cores:: spotted affinity which restricts available cores. Returning {ans} cores")
+                print(
+                    f"num_available_cores:: spotted affinity which restricts available cores. Returning {ans} cores"
+                )
             return ans
         except Exception:
             pass
@@ -20,7 +22,9 @@ def num_available_cores(verbose: bool = True) -> int:
     return ans
 
 
-def get_chunks_ranges(total: int, *, chunk_size: int = None, parts: int = None) -> List[Tuple[int, int]]:
+def get_chunks_ranges(
+    total: int, *, chunk_size: int = None, parts: int = None
+) -> List[Tuple[int, int]]:
     """
     Creates "chunks" of work, useful when creating worker functions for run_multiprocessed
      where each workers gets a range ("chunk") to work on.
@@ -35,7 +39,9 @@ def get_chunks_ranges(total: int, *, chunk_size: int = None, parts: int = None) 
         and get_chunks_ranges(10, parts=2) would return [(0,5),(5,10)]
     """
 
-    assert (chunk_size is not None) ^ (parts is not None), "Exactly one of chunk_size or parts must be provided"
+    assert (chunk_size is not None) ^ (
+        parts is not None
+    ), "Exactly one of chunk_size or parts must be provided"
 
     if chunk_size is not None:
         if chunk_size >= total:

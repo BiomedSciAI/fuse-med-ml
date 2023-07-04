@@ -45,7 +45,9 @@ def set_cuda_visible_devices(list_of_gpu_ids: List[int]) -> None:
 
 
 def choose_and_enable_multiple_gpus(
-    num_gpus_needed: int, force_gpus: Optional[List[int]] = None, use_cpu_if_fail: bool = False
+    num_gpus_needed: int,
+    force_gpus: Optional[List[int]] = None,
+    use_cpu_if_fail: bool = False,
 ) -> int:
     """
     Look for free gpus and set CUDA_VISIBLE_DEVICES accordingly
@@ -59,7 +61,8 @@ def choose_and_enable_multiple_gpus(
         if override_num_gpus != "default":
             num_gpus_needed = min(override_num_gpus, num_gpus_needed)
             logging.getLogger("Fuse").info(
-                f"Manager - debug mode - override num_gpus to {num_gpus_needed}", {"color": "red"}
+                f"Manager - debug mode - override num_gpus to {num_gpus_needed}",
+                {"color": "red"},
             )
 
         if num_gpus_needed == 0:
@@ -82,8 +85,12 @@ def choose_and_enable_multiple_gpus(
             logging.getLogger("Fuse").info("selecting GPUs %s" % str(selected_gpu_ids))
             set_cuda_visible_devices(selected_gpu_ids)
 
-        torch.backends.cudnn.benchmark = False  # to prevent gpu illegal instruction exceptions
-        torch.multiprocessing.set_sharing_strategy("file_system")  # to prevent a bug of too many open file descriptors
+        torch.backends.cudnn.benchmark = (
+            False  # to prevent gpu illegal instruction exceptions
+        )
+        torch.multiprocessing.set_sharing_strategy(
+            "file_system"
+        )  # to prevent a bug of too many open file descriptors
     except Exception as e:
         if use_cpu_if_fail:
             lgr = logging.getLogger("Fuse")
@@ -145,7 +152,9 @@ def deallocate_gpu() -> None:
 
 
 def run_nvidia_smi() -> str:
-    process = subprocess.Popen("nvidia-smi", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    process = subprocess.Popen(
+        "nvidia-smi", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+    )
     nvidia_smi_output, stderr = process.communicate()
     status = process.poll()
     if status != 0:

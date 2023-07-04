@@ -32,7 +32,9 @@ class MNIST:
     MNIST_DATASET_VER = 0
 
     @staticmethod
-    def dataset(cache_dir: Optional[str] = None, train: bool = True, sample_ids: Sequence = None) -> DatasetDefault:
+    def dataset(
+        cache_dir: Optional[str] = None, train: bool = True, sample_ids: Sequence = None
+    ) -> DatasetDefault:
         """
         Get mnist dataset - each sample includes: 'data.image', 'data.label' and 'data.sample_id'
         :param cache_dir: optional - destination to cache mnist
@@ -41,10 +43,14 @@ class MNIST:
         :param sample_ids: Optional list of sample ids. If None, then all data is used.
         """
 
-        transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+        transform = transforms.Compose(
+            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+        )
 
         # Create dataset
-        torch_dataset = datasets.MNIST(cache_dir, download=cache_dir is not None, train=train, transform=transform)
+        torch_dataset = datasets.MNIST(
+            cache_dir, download=cache_dir is not None, train=train, transform=transform
+        )
 
         # wrapping torch dataset
         name_str = "train" if train else "test"

@@ -54,10 +54,14 @@ class BackboneResnet(ResNet):
 
         # load pretrained parameters if required
         if weights is not None and pretrained:
-            raise Exception("Use only one method to load pre-trained weights. Two were given!")
+            raise Exception(
+                "Use only one method to load pre-trained weights. Two were given!"
+            )
 
         if pretrained:
-            print("Warning: not supported by new torchvision version - use weights instead")
+            print(
+                "Warning: not supported by new torchvision version - use weights instead"
+            )
             from torch.hub import load_state_dict_from_url
             from torchvision.models.resnet import model_urls
 
@@ -85,9 +89,13 @@ class BackboneResnet(ResNet):
             # modify the first convolution layer to support any number of input channels
             if self.in_channels == 1:
                 self.conv1.in_channels = 1
-                self.conv1.weight = nn.Parameter(self.conv1.weight.sum(dim=1, keepdim=True))
+                self.conv1.weight = nn.Parameter(
+                    self.conv1.weight.sum(dim=1, keepdim=True)
+                )
             else:
-                self.conv1 = nn.Conv2d(self.in_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
+                self.conv1 = nn.Conv2d(
+                    self.in_channels, 64, kernel_size=7, stride=2, padding=3, bias=False
+                )
 
     def forward(self, x: Tensor) -> Tensor:  # type: ignore
         """

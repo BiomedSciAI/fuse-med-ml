@@ -3,7 +3,7 @@
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+   You may obtain a copy of the License at
 
    http://www.apache.org/licenses/LICENSE-2.0
 
@@ -102,7 +102,9 @@ def start_clearml_logger(
 
 
 def model_default_callbacks(
-    model_dir: str, best_epoch_source: Union[Dict, List[Dict], None], log_lr: bool = True
+    model_dir: str,
+    best_epoch_source: Union[Dict, List[Dict], None],
+    log_lr: bool = True,
 ) -> List[pl.Callback]:
     """
     Create list of pl.callbacks that saves checkpoints using (pl.callbacks.ModelCheckpoint), print per epoch summary (fuse.dl.lightning.pl_epoch_summary.ModelEpochSummary) and log learning rate (lightning.pytorch.callbacks.LearningRateMonitor).
@@ -152,10 +154,8 @@ def convert_predictions_to_dataframe(predictions: List[NDict]) -> pd.DataFrame:
     predictions_per_sample = []
     for elem in predictions:
         predictions_per_sample += uncollate(elem)
-    if isinstance(predictions_per_sample[0], NDict):
-        keys = predictions_per_sample[0].keypaths()
-    else:  # dict
-        keys = predictions_per_sample[0].keys()
+
+    keys = predictions_per_sample[0].keys()
 
     for key in keys:
         values[key] = [elem[key] for elem in predictions_per_sample]
@@ -199,7 +199,9 @@ def step_metrics(metrics: OrderedDict[str, MetricBase], batch_dict: NDict) -> No
         metric.collect(batch_dict)
 
 
-def step_extract_predictions(prediction_keys: Sequence[str], batch_dict: NDict) -> Dict[str, Any]:
+def step_extract_predictions(
+    prediction_keys: Sequence[str], batch_dict: NDict
+) -> Dict[str, Any]:
     """
     Extract the specified predictions from batch_dict (torch Tensors will be detached, moved to cpu and coverted to numpy)
     :param prediction_keys: the keys to extract
@@ -220,7 +222,10 @@ def step_extract_predictions(prediction_keys: Sequence[str], batch_dict: NDict) 
 
 
 def epoch_end_compute_and_log_losses(
-    pl_module: pl.LightningModule, mode: str, batch_losses: Sequence[NDict], sep: str = "."
+    pl_module: pl.LightningModule,
+    mode: str,
+    batch_losses: Sequence[NDict],
+    sep: str = ".",
 ) -> None:
     """
     On epoch end average out the batch losses and log the averaged losses
@@ -229,20 +234,32 @@ def epoch_end_compute_and_log_losses(
     :param batch_losses: list of batch_dict["losses"] as added by 'epoch_losses'
     :return: None
     """
-    keys = batch_losses[0].keys()
-    for key in keys:
-        losses = []
-        for elem in batch_losses:
+    losses = {}
+    for elem in batch_losses:
+        for key in elem:
+            if key not in losses:
+                losses[key] = []
             if isinstance(elem[key], torch.Tensor):
-                losses.extend(elem[key].detach().cpu().tolist())
+                losses(key).extend(elem[key].detach().cpu().tolist())
             else:
-                losses.append(elem[key])
-        loss = mean(losses)
-        pl_module.log(f"{mode}{sep}losses.{key}", loss, on_epoch=True, sync_dist=True, rank_zero_only=True)
+                losses[key].append(elem[key])
+
+    for key in losses:
+        loss = mean(losses[key])
+        pl_module.log(
+            f"{mode}{sep}losses.{key}",
+            loss,
+            on_epoch=True,
+            sync_dist=True,
+            rank_zero_only=True,
+        )
 
 
 def epoch_end_compute_and_log_metrics(
-    pl_module: pl.LightningModule, mode: str, metrics: OrderedDict[str, MetricBase], sep: str = "."
+    pl_module: pl.LightningModule,
+    mode: str,
+    metrics: OrderedDict[str, MetricBase],
+    sep: str = ".",
 ) -> None:
     """
     On epoch end compute and log per epoch metrics
@@ -259,7 +276,9 @@ def epoch_end_compute_and_log_metrics(
             metric_result = metric.eval(epoch_results)
         except:
             track = traceback.format_exc()
-            print(f"Metric {metric_name} process() func failed. Setting results to None")
+            print(
+                f"Metric {metric_name} process() func failed. Setting results to None"
+            )
             print(track)
             metric_result = None
 
@@ -267,6 +286,14 @@ def epoch_end_compute_and_log_metrics(
         metric.reset()
 
     # log metrics
-    for key in epoch_results.keypaths():
-        if epoch_results[key] is not None and not isinstance(epoch_results[key], (PerSampleData)):
-            pl_module.log(f"{mode}{sep}{key}", epoch_results[key], on_epoch=True, sync_dist=True, rank_zero_only=True)
+    for key in epoch_results.keys():
+        if epoch_results[key] is not None and not isinstance(
+            epoch_results[key], (PerSampleData)
+        ):
+            pl_module.log(
+                f"{mode}{sep}{key}",
+                epoch_results[key],
+                on_epoch=True,
+                sync_dist=True,
+                rank_zero_only=True,
+            )

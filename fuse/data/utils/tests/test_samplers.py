@@ -44,17 +44,25 @@ class TestSamplers(unittest.TestCase):
     def test_balanced_dataset(self) -> None:
         Seed.set_seed(1234)
 
-        transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+        transform = transforms.Compose(
+            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+        )
         # Create dataset
-        mnist_data_path = os.environ.get("MNIST_DATA_PATH", tempfile.mkdtemp(prefix="mnist"))
-        torch_dataset = torchvision.datasets.MNIST(mnist_data_path, download=True, train=True, transform=transform)
+        mnist_data_path = os.environ.get(
+            "MNIST_DATA_PATH", tempfile.mkdtemp(prefix="mnist")
+        )
+        torch_dataset = torchvision.datasets.MNIST(
+            mnist_data_path, download=True, train=True, transform=transform
+        )
         print(f"torch dataset size = {len(torch_dataset)}")
 
         num_classes = 10
         num_samples = len(torch_dataset)
 
         # wrapping torch dataset
-        dataset = DatasetWrapSeqToDict(name="test", dataset=torch_dataset, sample_keys=("data.image", "data.label"))
+        dataset = DatasetWrapSeqToDict(
+            name="test", dataset=torch_dataset, sample_keys=("data.image", "data.label")
+        )
         dataset.create()
         print(dataset.summary())
         batch_sampler = BatchSamplerDefault(
@@ -71,7 +79,11 @@ class TestSamplers(unittest.TestCase):
 
         # Create dataloader
         dataloader = DataLoader(
-            dataset=dataset, collate_fn=CollateDefault(), batch_sampler=batch_sampler, shuffle=False, drop_last=False
+            dataset=dataset,
+            collate_fn=CollateDefault(),
+            batch_sampler=batch_sampler,
+            shuffle=False,
+            drop_last=False,
         )
         iter1 = iter(dataloader)
         for _ in tqdm(range(len(dataloader))):
@@ -95,17 +107,25 @@ class TestSamplers(unittest.TestCase):
     def test_not_equalbalance_dataset(self) -> None:
         Seed.set_seed(1234)
 
-        transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+        transform = transforms.Compose(
+            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+        )
         # Create dataset
-        mnist_data_path = os.environ.get("MNIST_DATA_PATH", tempfile.mkdtemp(prefix="mnist"))
-        torch_dataset = torchvision.datasets.MNIST(mnist_data_path, download=True, train=True, transform=transform)
+        mnist_data_path = os.environ.get(
+            "MNIST_DATA_PATH", tempfile.mkdtemp(prefix="mnist")
+        )
+        torch_dataset = torchvision.datasets.MNIST(
+            mnist_data_path, download=True, train=True, transform=transform
+        )
         print(f"torch dataset size = {len(torch_dataset)}")
 
         num_classes = 10
         probs = 1 / num_classes
 
         # wrapping torch dataset
-        dataset = DatasetWrapSeqToDict(name="test", dataset=torch_dataset, sample_keys=("data.image", "data.label"))
+        dataset = DatasetWrapSeqToDict(
+            name="test", dataset=torch_dataset, sample_keys=("data.image", "data.label")
+        )
         dataset.create()
 
         balanced_class_weights = [1] * 5 + [3] * 5
@@ -122,7 +142,11 @@ class TestSamplers(unittest.TestCase):
         # Create dataloader
         labels = np.zeros(num_classes)
         dataloader = DataLoader(
-            dataset=dataset, collate_fn=CollateDefault(), batch_sampler=batch_sampler, shuffle=False, drop_last=False
+            dataset=dataset,
+            collate_fn=CollateDefault(),
+            batch_sampler=batch_sampler,
+            shuffle=False,
+            drop_last=False,
         )
         iter1 = iter(dataloader)
         num_items = 0
@@ -159,11 +183,17 @@ class TestSamplers(unittest.TestCase):
 
         # create sampler
         batch_sampler = BatchSamplerDefault(
-            dataset, batch_size=3, balanced_class_name="data.class", num_balanced_classes=3, workers=0
+            dataset,
+            batch_size=3,
+            balanced_class_name="data.class",
+            num_balanced_classes=3,
+            workers=0,
         )
 
         # Use the collate function
-        dl = DataLoader(dataset, collate_fn=CollateDefault(), batch_sampler=batch_sampler)
+        dl = DataLoader(
+            dataset, collate_fn=CollateDefault(), batch_sampler=batch_sampler
+        )
         batch = next(iter(dl))
 
         # verify

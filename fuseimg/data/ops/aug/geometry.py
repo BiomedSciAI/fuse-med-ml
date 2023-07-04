@@ -116,7 +116,11 @@ class OpAugCropAndResize2D(OpBase):
         self._verify_arguments = verify_arguments
 
     def __call__(
-        self, sample_dict: NDict, key: str, scale: Tuple[float, float], channels: Optional[List[int]] = None
+        self,
+        sample_dict: NDict,
+        key: str,
+        scale: Tuple[float, float],
+        channels: Optional[List[int]] = None,
     ) -> Union[None, dict, List[dict]]:
         """
         :param key: key to a tensor stored in sample_dict: 2D tensor representing an image to augment, shape [num_channels, height, width] or [height, width]
@@ -156,13 +160,22 @@ class OpAugCropAndResize2D(OpBase):
                 padding = [[0, 0], [0, 0]]
                 for dim in range(2):
                     if scale[dim] > 1.0:
-                        padding[dim][0] = (cropped_shape[dim] - aug_channel_tensor.shape[dim]) // 2
-                        padding[dim][1] = (cropped_shape[dim] - aug_channel_tensor.shape[dim]) - padding[dim][0]
+                        padding[dim][0] = (
+                            cropped_shape[dim] - aug_channel_tensor.shape[dim]
+                        ) // 2
+                        padding[dim][1] = (
+                            cropped_shape[dim] - aug_channel_tensor.shape[dim]
+                        ) - padding[dim][0]
                 aug_channel_tensor_pad = TTF.pad(
-                    aug_channel_tensor.unsqueeze(0), (padding[1][0], padding[0][0], padding[1][1], padding[0][1])
+                    aug_channel_tensor.unsqueeze(0),
+                    (padding[1][0], padding[0][0], padding[1][1], padding[0][1]),
                 )
-                aug_channel_tensor_cropped = TTF.center_crop(aug_channel_tensor_pad, cropped_shape)
-                aug_channel_tensor = TTF.resize(aug_channel_tensor_cropped, aug_channel_tensor.shape).squeeze(0)
+                aug_channel_tensor_cropped = TTF.center_crop(
+                    aug_channel_tensor_pad, cropped_shape
+                )
+                aug_channel_tensor = TTF.resize(
+                    aug_channel_tensor_cropped, aug_channel_tensor.shape
+                ).squeeze(0)
                 # set the augmented channel
                 aug_tensor[channel] = aug_channel_tensor
 
@@ -212,9 +225,13 @@ class OpAugSqueeze3Dto2D(OpBase):
             aug_input = aug_input.permute((0, 3, 1, 2))
             # aug_input shape is [channels, axis_3, axis_1, axis_2]
         else:
-            raise Exception(f"Error: axis squeeze must be 1, 2, or 3, got {axis_squeeze}")
+            raise Exception(
+                f"Error: axis squeeze must be 1, 2, or 3, got {axis_squeeze}"
+            )
 
-        aug_output = aug_input.reshape((aug_input.shape[0] * aug_input.shape[1],) + aug_input.shape[2:])
+        aug_output = aug_input.reshape(
+            (aug_input.shape[0] * aug_input.shape[1],) + aug_input.shape[2:]
+        )
 
         sample_dict[key] = aug_output
         return sample_dict
@@ -232,7 +249,9 @@ class OpAugUnsqueeze3DFrom2D(OpBase):
         super().__init__()
         self._verify_arguments = verify_arguments
 
-    def __call__(self, sample_dict: NDict, key: str, axis_squeeze: int, channels: int) -> NDict:
+    def __call__(
+        self, sample_dict: NDict, key: str, axis_squeeze: int, channels: int
+    ) -> NDict:
         """
         :param key: key to a tensor stored in sample_dict and squeezed by OpAugSqueeze3Dto2D
         :param axis_squeeze: axis squeeze as specified in OpAugSqueeze3Dto2D
@@ -249,7 +268,9 @@ class OpAugUnsqueeze3DFrom2D(OpBase):
                 len(aug_input.shape) == 3
             ), f"Error: OpAugUnsqueeze3DFrom2D expects tensor with 3 dimensions. got {aug_input.shape}"
 
-        aug_output = aug_input.reshape((channels, aug_input.shape[0] // channels) + aug_input.shape[1:])
+        aug_output = aug_input.reshape(
+            (channels, aug_input.shape[0] // channels) + aug_input.shape[1:]
+        )
 
         if axis_squeeze == 1:
             pass
@@ -262,7 +283,9 @@ class OpAugUnsqueeze3DFrom2D(OpBase):
             aug_output = aug_output.permute((0, 2, 3, 1))
             # aug_input shape is [channels, axis 1, axis 2, axis 3]
         else:
-            raise Exception(f"Error: axis squeeze must be 1, 2, or 3, got {axis_squeeze}")
+            raise Exception(
+                f"Error: axis squeeze must be 1, 2, or 3, got {axis_squeeze}"
+            )
 
         sample_dict[key] = aug_output
         return sample_dict
@@ -327,7 +350,13 @@ class OpResizeTo(OpBase):
         super().__init__()
         self._channels_first = channels_first
 
-    def __call__(self, sample_dict: NDict, output_shape: Tuple[int], key: str, **kwargs: Dict[str, Any]) -> NDict:
+    def __call__(
+        self,
+        sample_dict: NDict,
+        output_shape: Tuple[int],
+        key: str,
+        **kwargs: Dict[str, Any],
+    ) -> NDict:
         """
         :param key: key to a numpy array or tensor stored in the sample_dict in a H x W x C format.
         :param kwargs: additional arguments to pass to the resize function
@@ -343,7 +372,9 @@ class OpResizeTo(OpBase):
             aug_input = np.transpose(aug_input, axes=perm)
 
         # Apply Resize
-        aug_output = skimage.transform.resize(image=aug_input, output_shape=output_shape, **kwargs)
+        aug_output = skimage.transform.resize(
+            image=aug_input, output_shape=output_shape, **kwargs
+        )
 
         if self._channels_first:
             # Permutes back HxWxC -> CxHxW
@@ -384,7 +415,14 @@ class OpResizeTo(OpBase):
 
 
 class OpRotation3D(OpBase):
-    def __call__(self, sample_dict: NDict, key: str, z_rot: float = 0.0, y_rot: float = 0.0, x_rot: float = 0) -> NDict:
+    def __call__(
+        self,
+        sample_dict: NDict,
+        key: str,
+        z_rot: float = 0.0,
+        y_rot: float = 0.0,
+        x_rot: float = 0,
+    ) -> NDict:
         """
         rotates an input tensor around an axis, when for example z_rot is chosen,
         the rotation is in the x-y plane.

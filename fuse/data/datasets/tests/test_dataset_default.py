@@ -36,7 +36,9 @@ class OpFakeLoad(OpBase):
     def __init__(self) -> None:
         super().__init__()
 
-    def __call__(self, sample_dict: NDict, **kwargs: dict) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, **kwargs: dict
+    ) -> Union[None, dict, List[dict]]:
         sid = get_sample_id(sample_dict)
         if "case_1" == sid:
             sample_dict.merge(_generate_sample_1())
@@ -65,7 +67,9 @@ class OpPrintContents(OpBase):
     def __init__(self) -> None:
         super().__init__()
 
-    def __call__(self, sample_dict: NDict, **kwargs: dict) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, **kwargs: dict
+    ) -> Union[None, dict, List[dict]]:
         sid = get_sample_id(sample_dict)
         print(f"sid={sid}")
         for k in sample_dict.keypaths():
@@ -109,7 +113,9 @@ class TestDatasetDefault(unittest.TestCase):
 
         orig_sample_ids = ["case_1", "case_2", "case_3", "case_4"]
         ################ cached + sample morphing
-        cacher = SamplesCacher("dataset_test_cache", static_pl, cache_dirs, restart_cache=True)
+        cacher = SamplesCacher(
+            "dataset_test_cache", static_pl, cache_dirs, restart_cache=True
+        )
 
         ds_cached = DatasetDefault(
             orig_sample_ids,
@@ -142,10 +148,13 @@ class TestDatasetDefault(unittest.TestCase):
         sample_from_not_cached = ds_not_cached[3]
 
         self.assertEqual(
-            sample_from_cached["data"]["cc"]["img"].sum(), sample_from_not_cached["data"]["cc"]["img"].sum()
+            sample_from_cached["data"]["cc"]["img"].sum(),
+            sample_from_not_cached["data"]["cc"]["img"].sum(),
         )
 
-        self.assertEqual(sample_from_cached["data"]["cc"]["img"].sum(), 49948.825007353706)
+        self.assertEqual(
+            sample_from_cached["data"]["cc"]["img"].sum(), 49948.825007353706
+        )
         banana = 123
 
     def test_cache_samples_no_sample_morphing(self) -> None:
@@ -174,7 +183,9 @@ class TestDatasetDefault(unittest.TestCase):
 
         orig_sample_ids = ["case_1", "case_2"]
         ################ cached + no sample morphing
-        cacher = SamplesCacher("dataset_test_cache", static_pl, cache_dirs, restart_cache=True)
+        cacher = SamplesCacher(
+            "dataset_test_cache", static_pl, cache_dirs, restart_cache=True
+        )
 
         ds_cached = DatasetDefault(
             orig_sample_ids,
@@ -207,10 +218,13 @@ class TestDatasetDefault(unittest.TestCase):
         sample_from_not_cached = ds_not_cached[1]
 
         self.assertEqual(
-            sample_from_cached["data"]["cc"]["img"].sum(), sample_from_not_cached["data"]["cc"]["img"].sum()
+            sample_from_cached["data"]["cc"]["img"].sum(),
+            sample_from_not_cached["data"]["cc"]["img"].sum(),
         )
 
-        self.assertEqual(sample_from_cached["data"]["cc"]["img"].sum(), 50012.88698394645)
+        self.assertEqual(
+            sample_from_cached["data"]["cc"]["img"].sum(), 50012.88698394645
+        )
         banana = 123
 
     def tearDown(self) -> None:

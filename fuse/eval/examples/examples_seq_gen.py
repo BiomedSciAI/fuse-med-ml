@@ -44,7 +44,16 @@ def example_seq_gen_0(seed: int = 1234) -> Dict[str, Any]:
     data = pd.DataFrame(data)
 
     metrics = OrderedDict(
-        [("perplexity", CI(MetricPerplexity(preds="pred", target="label"), stratum=None, num_of_bootstraps=10))]
+        [
+            (
+                "perplexity",
+                CI(
+                    MetricPerplexity(preds="pred", target="label"),
+                    stratum=None,
+                    num_of_bootstraps=10,
+                ),
+            )
+        ]
     )
 
     evaluator = EvaluatorDefault()
@@ -81,7 +90,9 @@ def example_seq_gen_1(seed: int = 1234) -> Dict[str, Any]:
     ds = DatasetDefault(sample_ids=len(data), dynamic_pipeline=dynamic_pipeline)
     ds.create()
     dl = DataLoader(ds, collate_fn=CollateDefault(), batch_size=100)
-    metrics = OrderedDict([("perplexity", MetricPerplexity(preds="pred", target="label"))])
+    metrics = OrderedDict(
+        [("perplexity", MetricPerplexity(preds="pred", target="label"))]
+    )
 
     evaluator = EvaluatorDefault()
     results = evaluator.eval(ids=None, data=dl, metrics=metrics, batch_size=0)

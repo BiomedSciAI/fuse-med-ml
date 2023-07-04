@@ -24,7 +24,9 @@ import torch.nn as nn
 
 
 class Checkpoint:
-    def __init__(self, net: Union[nn.Module, dict], epoch_idx: int, learning_rate: float):
+    def __init__(
+        self, net: Union[nn.Module, dict], epoch_idx: int, learning_rate: float
+    ):
         if isinstance(net, nn.Module):
             self.net_state_dict = net.state_dict()
         else:
@@ -35,7 +37,11 @@ class Checkpoint:
         pass
 
     def as_dict(self) -> None:
-        return {"net_state_dict": self.net_state_dict, "epoch_idx": self.epoch_idx, "learning_rate": self.learning_rate}
+        return {
+            "net_state_dict": self.net_state_dict,
+            "epoch_idx": self.epoch_idx,
+            "learning_rate": self.learning_rate,
+        }
 
     def save_to_file(self, file_name: str) -> None:
         torch.save(self.as_dict(), file_name)

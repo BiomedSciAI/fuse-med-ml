@@ -29,7 +29,9 @@ class PrettyDataframeTestCase(unittest.TestCase):
         pass
 
     def test_normal_strings(self) -> None:
-        df = pd.DataFrame({"A": ["abc", "de", "efg"], "B": ["a", "abcde", "abc"], "C": [1, 2.5, 1.5]})
+        df = pd.DataFrame(
+            {"A": ["abc", "de", "efg"], "B": ["a", "abcde", "abc"], "C": [1, 2.5, 1.5]}
+        )
 
         col_width = 25
         df_as_string = get_pretty_dataframe(df)

@@ -42,7 +42,9 @@ class MetricApplyThresholds(MetricMultiClassDefault):
         ids: Sequence[Hashable],
         operation_point: Union[float, Sequence[Tuple[int, float]], str, None] = None,
     ) -> Dict[str, Any]:
-        pred_thresholded = Thresholding.apply_thresholds(pred=pred, operation_point=operation_point)
+        pred_thresholded = Thresholding.apply_thresholds(
+            pred=pred, operation_point=operation_point
+        )
         # make sure to return the per-sample metric result for the relevant sample ids:
         per_sample_data = PerSampleData(data=pred_thresholded, ids=ids)
 

@@ -9,12 +9,14 @@ class LossExtractFromBatchDict(torch.nn.Module):
     Useful in cases that the model is the one that set the loss
     """
 
-    def __init__(self, key: str) -> None:
+    def __init__(self, key: str, weight: float = 1.0) -> None:
         """
-        Where to read the loss from
+        :param key: batch_dict key to read the loss from
+        :param weight: loss weight, the returned value will be multiplication of loss and weight
         """
         super().__init__()
         self.key = key
+        self.weight = weight
 
     def forward(self, batch_dict: NDict) -> torch.Tensor:
-        return batch_dict[self.key]
+        return batch_dict[self.key] * self.weight

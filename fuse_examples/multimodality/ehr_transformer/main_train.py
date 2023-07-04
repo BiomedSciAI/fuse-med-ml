@@ -19,7 +19,12 @@ from fuse.eval.metrics.classification.metrics_classification_common import Metri
 from fuse.dl.losses import LossDefault
 from fuse.utils import NDict
 
-from fuse_examples.multimodality.ehr_transformer.model import Embed, TransformerEncoder, Bert, BertConfig
+from fuse_examples.multimodality.ehr_transformer.model import (
+    Embed,
+    TransformerEncoder,
+    Bert,
+    BertConfig,
+)
 from fuse_examples.multimodality.ehr_transformer.dataset import PhysioNetCinC
 
 
@@ -36,7 +41,11 @@ def filter_gender_label_unknown(batch_dict: NDict) -> NDict:
 
 
 def data(
-    dataset_cfg: dict, target_key: str, batch_size: int, data_loader_train: dict, data_loader_valid: dict
+    dataset_cfg: dict,
+    target_key: str,
+    batch_size: int,
+    data_loader_train: dict,
+    data_loader_valid: dict,
 ) -> Tuple[Any, DataLoader, DataLoader]:
     """
     return token to index mapper and train and validation dataloaders for MIMICC II
@@ -50,7 +59,15 @@ def data(
 
     dl_train = DataLoader(
         ds_train,
-        collate_fn=CollateDefault(keep_keys=["data.sample_id", "Target", "Indexes", "Gender", "NextVisitLabels"]),
+        collate_fn=CollateDefault(
+            keep_keys=[
+                "data.sample_id",
+                "Target",
+                "Indexes",
+                "Gender",
+                "NextVisitLabels",
+            ]
+        ),
         batch_sampler=BatchSamplerDefault(
             ds_train,
             balanced_class_name=target_key,
@@ -62,7 +79,15 @@ def data(
     )
     dl_valid = DataLoader(
         ds_valid,
-        collate_fn=CollateDefault(keep_keys=["data.sample_id", "Target", "Indexes", "Gender", "NextVisitLabels"]),
+        collate_fn=CollateDefault(
+            keep_keys=[
+                "data.sample_id",
+                "Target",
+                "Indexes",
+                "Gender",
+                "NextVisitLabels",
+            ]
+        ),
         **data_loader_valid,
     )
 
@@ -104,7 +129,9 @@ def model(
             model_outputs=["model.z", None],
         )
     elif encoder_type == "bert":
-        bert_config = BertConfig(vocab_size_or_config_json_file=vocab_size, **bert_config_kwargs)
+        bert_config = BertConfig(
+            vocab_size_or_config_json_file=vocab_size, **bert_config_kwargs
+        )
 
         encoder_model = ModelWrapSeqToDict(
             model=Bert(config=bert_config),
@@ -122,7 +149,13 @@ def model(
 
     # append auxiliary head for gender
     if aux_gender_classification:
-        models_sequence.append(Head1D(head_name="gender", conv_inputs=[("model.z", z_dim)], **classifier_gender_head))
+        models_sequence.append(
+            Head1D(
+                head_name="gender",
+                conv_inputs=[("model.z", z_dim)],
+                **classifier_gender_head,
+            )
+        )
 
     if aux_next_vis_classification:
         models_sequence.append(
@@ -180,7 +213,10 @@ def train(
     #  Loss
     losses = {
         "ce": LossDefault(
-            pred="model.logits.cls", target=target_key, callable=F.cross_entropy, weight=target_loss_weight
+            pred="model.logits.cls",
+            target=target_key,
+            callable=F.cross_entropy,
+            weight=target_loss_weight,
         ),
     }
 
@@ -200,7 +236,9 @@ def train(
         )
 
         train_metrics["gender_auc"] = MetricAUCROC(
-            pred="model.output.gender", target="Gender", batch_pre_collect_process_func=filter_gender_label_unknown
+            pred="model.output.gender",
+            target="Gender",
+            batch_pre_collect_process_func=filter_gender_label_unknown,
         )
 
     # auxiliary gender loss and metric
@@ -225,7 +263,10 @@ def train(
 
     if lr_scheduler is not None:
         optimizers_and_lr_schs["lr_scheduler"] = lr_scheduler(optimizer)
-        if isinstance(optimizers_and_lr_schs["lr_scheduler"], torch.optim.lr_scheduler.ReduceLROnPlateau):
+        if isinstance(
+            optimizers_and_lr_schs["lr_scheduler"],
+            torch.optim.lr_scheduler.ReduceLROnPlateau,
+        ):
             optimizers_and_lr_schs["monitor"] = "validation.losses.total_loss"
 
     #  Train

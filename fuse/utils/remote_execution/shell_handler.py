@@ -52,7 +52,10 @@ class ShellHandler:
             else:
                 # get rid of 'coloring and formatting' special characters
                 shout.append(
-                    re.compile(r"(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]").sub("", line).replace("\b", "").replace("\r", "")
+                    re.compile(r"(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]")
+                    .sub("", line)
+                    .replace("\b", "")
+                    .replace("\r", "")
                 )
 
         # first and last lines of shout/sherr contain a prompt

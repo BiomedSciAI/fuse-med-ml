@@ -37,7 +37,12 @@ import fuse.utils.gpu as GPU
 from fuse.utils.rand.seed import Seed
 
 
-def run_isic(root: str, train_common_params: dict, infer_common_params: dict, eval_common_params: dict) -> None:
+def run_isic(
+    root: str,
+    train_common_params: dict,
+    infer_common_params: dict,
+    eval_common_params: dict,
+) -> None:
     model_dir = os.path.join(root, "model_dir")
     paths = {
         "model_dir": model_dir,
@@ -56,7 +61,9 @@ def run_isic(root: str, train_common_params: dict, infer_common_params: dict, ev
     # Must use GPU due a long running time
     GPU.choose_and_enable_multiple_gpus(1, use_cpu_if_fail=False)
 
-    Seed.set_seed(0, False)  # previous test (in the pipeline) changed the deterministic behavior to True
+    Seed.set_seed(
+        0, False
+    )  # previous test (in the pipeline) changed the deterministic behavior to True
 
     run_train(paths, train_common_params)
     run_infer(paths, infer_common_params)
@@ -81,9 +88,16 @@ class ClassificationISICTestCase(unittest.TestCase):
         self.train_common_params["model_type"] = "Transformer"
         self.train_common_params["model"] = dict(
             token_dim=token_dim,
-            projection_kwargs=dict(image_shape=[300, 300], patch_shape=[30, 30], channels=3),
+            projection_kwargs=dict(
+                image_shape=[300, 300], patch_shape=[30, 30], channels=3
+            ),
             transformer_kwargs=dict(
-                depth=12, heads=12, mlp_dim=token_dim * 4, dim_head=64, dropout=0.0, emb_dropout=0.0
+                depth=12,
+                heads=12,
+                mlp_dim=token_dim * 4,
+                dim_head=64,
+                dropout=0.0,
+                emb_dropout=0.0,
             ),
         )
 
@@ -91,7 +105,11 @@ class ClassificationISICTestCase(unittest.TestCase):
         self.infer_common_params["model_type"] = self.train_common_params["model_type"]
         self.infer_common_params["model"] = self.train_common_params["model"]
         run_in_subprocess(
-            run_isic, self.root, self.train_common_params, self.infer_common_params, self.eval_common_params
+            run_isic,
+            self.root,
+            self.train_common_params,
+            self.infer_common_params,
+            self.eval_common_params,
         )
 
     def test_runner_resnet18(self) -> None:
@@ -109,7 +127,11 @@ class ClassificationISICTestCase(unittest.TestCase):
         self.infer_common_params["model_type"] = self.train_common_params["model_type"]
         self.infer_common_params["model"] = self.train_common_params["model"]
         run_in_subprocess(
-            run_isic, self.root, self.train_common_params, self.infer_common_params, self.eval_common_params
+            run_isic,
+            self.root,
+            self.train_common_params,
+            self.infer_common_params,
+            self.eval_common_params,
         )
 
     def test_runner_inception(self) -> None:
@@ -127,7 +149,11 @@ class ClassificationISICTestCase(unittest.TestCase):
         self.infer_common_params["model_type"] = self.train_common_params["model_type"]
         self.infer_common_params["model"] = self.train_common_params["model"]
         run_in_subprocess(
-            run_isic, self.root, self.train_common_params, self.infer_common_params, self.eval_common_params
+            run_isic,
+            self.root,
+            self.train_common_params,
+            self.infer_common_params,
+            self.eval_common_params,
         )
 
     def tearDown(self) -> None:
