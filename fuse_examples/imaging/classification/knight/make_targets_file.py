@@ -26,7 +26,9 @@ from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import save_dataframe
 
 
-def make_targets_file(data_path: str, split: Union[str, dict], output_filename: str) -> None:
+def make_targets_file(
+    data_path: str, split: Union[str, dict], output_filename: str
+) -> None:
     """
     Automatically make targets file in the requested format
     :param data_path: path to the original data downloaded from https://github.com/neheller/KNIGHT
@@ -38,7 +40,9 @@ def make_targets_file(data_path: str, split: Union[str, dict], output_filename: 
     fuse_logger_start(console_verbose_level=logging.INFO)
     lgr = logging.getLogger("Fuse")
     lgr.info("KNIGHT: make targets file", {"attrs": ["bold", "underline"]})
-    lgr.info(f"targets_filename={os.path.abspath(output_filename)}", {"color": "magenta"})
+    lgr.info(
+        f"targets_filename={os.path.abspath(output_filename)}", {"color": "magenta"}
+    )
 
     # Data
     # read train/val splits file.

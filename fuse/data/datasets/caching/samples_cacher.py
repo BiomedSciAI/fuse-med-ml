@@ -16,16 +16,30 @@ from typing import Hashable, List, Optional, Sequence, Union, Callable, Any, Tup
 
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 from collections import OrderedDict
-from fuse.data.datasets.caching.object_caching_handlers import _object_requires_hdf5_recurse
+from fuse.data.datasets.caching.object_caching_handlers import (
+    _object_requires_hdf5_recurse,
+)
 from fuse.utils.ndict import NDict
 import os
 import psutil
-from fuse.utils.file_io.file_io import load_hdf5, save_hdf5_safe, load_pickle, save_pickle_safe
-from fuse.data import get_sample_id, create_initial_sample, get_specific_sample_from_potentially_morphed
+from fuse.utils.file_io.file_io import (
+    load_hdf5,
+    save_hdf5_safe,
+    load_pickle,
+    save_pickle_safe,
+)
+from fuse.data import (
+    get_sample_id,
+    create_initial_sample,
+    get_specific_sample_from_potentially_morphed,
+)
 import hashlib
 from fuse.utils.file_io import delete_directory_tree
 from glob import glob
-from fuse.utils.multiprocessing.run_multiprocessed import run_multiprocessed, get_from_global_storage
+from fuse.utils.multiprocessing.run_multiprocessed import (
+    run_multiprocessed,
+    get_from_global_storage,
+)
 from fuse.data.datasets.sample_caching_audit import SampleCachingAudit
 from fuse.data.utils.sample import get_initial_sample_id, set_initial_sample_id
 from warnings import warn
@@ -80,7 +94,9 @@ class SamplesCacher:
             self._write_dir_logic = custom_write_dir_callable
 
         if custom_read_dirs_callable is None:
-            self._read_dirs_logic = partial(default_read_dirs_logic, cache_dirs=self._cache_dirs)
+            self._read_dirs_logic = partial(
+                default_read_dirs_logic, cache_dirs=self._cache_dirs
+            )
         else:
             self._read_dirs_logic = custom_read_dirs_callable
 
@@ -89,14 +105,19 @@ class SamplesCacher:
 
         self._pipeline_desc_text = str(pipeline)
         if use_pipeline_hash:
-            self._pipeline_desc_hash = "hash_" + hashlib.md5(self._pipeline_desc_text.encode("utf-8")).hexdigest()
+            self._pipeline_desc_hash = (
+                "hash_"
+                + hashlib.md5(self._pipeline_desc_text.encode("utf-8")).hexdigest()
+            )
         else:
             self._pipeline_desc_hash = "hash_fixed"
 
         self._verbose = verbose
 
         if self._verbose > 0:
-            print(f"pipeline description hash for [{unique_name}] is: {self._pipeline_desc_hash}")
+            print(
+                f"pipeline description hash for [{unique_name}] is: {self._pipeline_desc_hash}"
+            )
 
         self._restart_cache = restart_cache
         if self._restart_cache:
@@ -123,14 +144,21 @@ class SamplesCacher:
                     continue
                 if os.path.basename(found_dir) != self._pipeline_desc_hash:
                     new_desc = self._pipeline_desc_text
-                    new_file = os.path.join(found_dir, f"pipeline_{self._pipeline_desc_hash}_desc.txt")
+                    new_file = os.path.join(
+                        found_dir, f"pipeline_{self._pipeline_desc_hash}_desc.txt"
+                    )
                     with open(new_file, "wt") as f:
                         f.write(new_desc)
 
-                    pipeline_desc_file = os.path.join(found_dir, f"pipeline_{os.path.basename(found_dir)}_desc.txt")
+                    pipeline_desc_file = os.path.join(
+                        found_dir, f"pipeline_{os.path.basename(found_dir)}_desc.txt"
+                    )
                     if os.path.exists(pipeline_desc_file):
                         print("*** Old pipeline description:", pipeline_desc_file)
-                        print("*** New pipeline description (does not match old pipeline):", new_file)
+                        print(
+                            "*** New pipeline description (does not match old pipeline):",
+                            new_file,
+                        )
 
                     raise Exception(
                         f"Found samples cache for pipeline hash {os.path.basename(found_dir)} which is different from the current loaded pipeline hash {self._pipeline_desc_hash} !!\n"
@@ -168,7 +196,9 @@ class SamplesCacher:
         ans = [os.path.join(x, self._pipeline_desc_hash) for x in ans]
         return ans
 
-    def cache_samples(self, orig_sample_ids: List[Any]) -> List[Tuple[str, Union[None, List[str]], str]]:
+    def cache_samples(
+        self, orig_sample_ids: List[Any]
+    ) -> List[Tuple[str, Union[None, List[str]], str]]:
         """
         Go over all of orig_sample_ids, and cache resulting samples
         returns information that helps to map from original sample id to the resulting sample id
@@ -187,9 +217,13 @@ class SamplesCacher:
 
         read_dirs = self._get_read_dirs()
         for curr_read_dir in read_dirs:
-            fullpath_filename = os.path.join(curr_read_dir, "full_sets_info", hash_filename)
+            fullpath_filename = os.path.join(
+                curr_read_dir, "full_sets_info", hash_filename
+            )
             if os.path.isfile(fullpath_filename):
-                print(f"entire samples set {hash_filename} already cached. Found {os.path.abspath(fullpath_filename)}")
+                print(
+                    f"entire samples set {hash_filename} already cached. Found {os.path.abspath(fullpath_filename)}"
+                )
                 return load_pickle(fullpath_filename)
 
         orig_sid_to_final = OrderedDict()
@@ -211,7 +245,9 @@ class SamplesCacher:
         set_info_dir = os.path.join(write_dir, "full_sets_info")
         os.makedirs(set_info_dir, exist_ok=True)
 
-        pipeline_desc_file = os.path.join(write_dir, f"pipeline_{self._pipeline_desc_hash}_desc.txt")
+        pipeline_desc_file = os.path.join(
+            write_dir, f"pipeline_{self._pipeline_desc_hash}_desc.txt"
+        )
         if not os.path.exists(pipeline_desc_file):
             with open(pipeline_desc_file, "wt") as f:
                 f.write(self._pipeline_desc_text)
@@ -240,7 +276,9 @@ class SamplesCacher:
         orig_sample_id is the original sample_id that was provided, regardless if it turned out to become None, the same sample_id, or different sample_id(s)
         """
         orig_sample_id_str = str(orig_sample_id)
-        if orig_sample_id_str.startswith("<") and orig_sample_id_str.endswith(">"):  # and '0x' in orig_sample_id_str
+        if orig_sample_id_str.startswith("<") and orig_sample_id_str.endswith(
+            ">"
+        ):  # and '0x' in orig_sample_id_str
             # <__main__.SomeClass at 0x7fc3e6645e20>
             raise Exception(
                 f"You must implement a proper __str__ for orig_sample_id. String representations like <__main__.SomeClass at 0x7fc3e6645e20> are not descriptibe enough and also not persistent between runs. Got: {orig_sample_id_str}"
@@ -249,7 +287,9 @@ class SamplesCacher:
         ans = "out_info_for_orig_sample@" + ans
         return ans
 
-    def load_sample(self, sample_id: Hashable, keys: Optional[Sequence[str]] = None) -> NDict:
+    def load_sample(
+        self, sample_id: Hashable, keys: Optional[Sequence[str]] = None
+    ) -> NDict:
         """
         :param sample_id: the sample_id of the sample to load
         :param keys: optionally, provide a subset of the keys to load in this sample.
@@ -262,18 +302,24 @@ class SamplesCacher:
         if audit_required:
             initial_sample_id = get_initial_sample_id(sample_from_cache)
             fresh_sample = self._load_sample_using_pipeline(initial_sample_id, keys)
-            fresh_sample = get_specific_sample_from_potentially_morphed(fresh_sample, sample_id)
+            fresh_sample = get_specific_sample_from_potentially_morphed(
+                fresh_sample, sample_id
+            )
 
             self._audit.audit(sample_from_cache, fresh_sample)
 
         return sample_from_cache
 
-    def _load_sample_using_pipeline(self, sample_id: Hashable, keys: Optional[Sequence[str]] = None) -> NDict:
+    def _load_sample_using_pipeline(
+        self, sample_id: Hashable, keys: Optional[Sequence[str]] = None
+    ) -> NDict:
         sample_dict = create_initial_sample(sample_id)
         result_sample = self._pipeline(sample_dict)
         return result_sample
 
-    def _load_sample_from_cache(self, sample_id: Hashable, keys: Optional[Sequence[str]] = None) -> NDict:
+    def _load_sample_from_cache(
+        self, sample_id: Hashable, keys: Optional[Sequence[str]] = None
+    ) -> NDict:
         """
         TODO: add comments
         """
@@ -289,7 +335,9 @@ class SamplesCacher:
                     loaded_sample.merge(loaded_sample_hdf5_part)
                 return loaded_sample
 
-        raise Exception(f"Expected to find a cached sample for sample_id={sample_id} but could not find any!")
+        raise Exception(
+            f"Expected to find a cached sample for sample_id={sample_id} but could not find any!"
+        )
 
     @staticmethod
     def _cache_worker(orig_sample_id: Any) -> Any:
@@ -339,21 +387,29 @@ class SamplesCacher:
             for curr_sample in result_sample:
                 curr_sample_id = get_sample_id(curr_sample)
                 output_info.append(curr_sample_id)
-                output_sample_hash = SamplesCacher.get_final_sample_id_hash(curr_sample_id)
+                output_sample_hash = SamplesCacher.get_final_sample_id_hash(
+                    curr_sample_id
+                )
 
                 requiring_hdf5_keys = _object_requires_hdf5_recurse(curr_sample)
                 if len(requiring_hdf5_keys) > 0:
                     requiring_hdf5_dict = curr_sample.get_multi(requiring_hdf5_keys)
                     requiring_hdf5_dict = requiring_hdf5_dict.flatten()
 
-                    hdf5_filename = os.path.join(write_dir, output_sample_hash + ".hdf5")
+                    hdf5_filename = os.path.join(
+                        write_dir, output_sample_hash + ".hdf5"
+                    )
                     save_hdf5_safe(hdf5_filename, **requiring_hdf5_dict)
 
                     # remove all hdf5 entries from the sample_dict that will be pickled
                     for k in requiring_hdf5_dict:
                         _ = curr_sample.pop(k)
 
-                save_pickle_safe(curr_sample, os.path.join(write_dir, output_sample_hash + ".pkl.gz"), compress=True)
+                save_pickle_safe(
+                    curr_sample,
+                    os.path.join(write_dir, output_sample_hash + ".pkl.gz"),
+                    compress=True,
+                )
         else:
             output_info = None
             # requiring_hdf5_keys = None
@@ -362,7 +418,9 @@ class SamplesCacher:
         return output_info
 
 
-def _get_available_write_location(cache_dirs: List[str], max_allowed_used_space: Optional[float] = None) -> str:
+def _get_available_write_location(
+    cache_dirs: List[str], max_allowed_used_space: Optional[float] = None
+) -> str:
     """
     :param cache_dirs: write directories. Directories are checked in order that they are provided.
     :param max_allowed_used_space: set to a value between 0.0 to 1.0.

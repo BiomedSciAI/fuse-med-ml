@@ -33,7 +33,9 @@ from fuse_examples.imaging.classification.mnist.simple_mnist_starter import (
 
 
 def run_mnist(root: str) -> None:
-    Seed.set_seed(0, False)  # previous test (in the pipeline) changed the deterministic behavior to True
+    Seed.set_seed(
+        0, False
+    )  # previous test (in the pipeline) changed the deterministic behavior to True
     try:
         run_train(PARAMS_DICT)
     except:

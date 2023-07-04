@@ -41,7 +41,14 @@ from functools import partial
 ## Constants
 # Constants that defines the expected format of the prediction and target files and list the classes for task 1 and task @
 EXPECTED_TASK1_PRED_KEYS = {"case_id", "NoAT-score", "CanAT-score"}
-EXPECTED_TASK2_PRED_KEYS = {"case_id", "B-score", "LR-score", "IR-score", "HR-score", "VHR-score"}
+EXPECTED_TASK2_PRED_KEYS = {
+    "case_id",
+    "B-score",
+    "LR-score",
+    "IR-score",
+    "HR-score",
+    "VHR-score",
+}
 EXPECTED_TARGET_KEYS = {"case_id", "Task1-target", "Task2-target"}
 PRED_CASE_ID_NAME = "case_id"
 TARGET_CASE_ID_NAME = "case_id"
@@ -93,7 +100,9 @@ def post_processing(sample_dict: NDict, task1: bool = True, task2: bool = True) 
     return sample_dict
 
 
-def decode_results(results: NDict, output_dir: str, task1: bool, task2: bool) -> Tuple[OrderedDict, str]:
+def decode_results(
+    results: NDict, output_dir: str, task1: bool, task2: bool
+) -> Tuple[OrderedDict, str]:
     """
     Gets the results computed by the dictionary and summarize it in a markdown text and dictionary.
     The dictionary will be saved in <output_dir>/results.csv and the markdown text in <output_dir>/results.md
@@ -120,7 +129,9 @@ def decode_results(results: NDict, output_dir: str, task1: bool, task2: bool) ->
             "Task2-AUC-CI"
         ] = f"[{results['task2_auc.macro_avg.conf_lower']:.3f}-{results['task2_auc.macro_avg.conf_upper']:.3f}]"
         for cls_name in TASK2_CLASS_NAMES:
-            results_table[f"Task2-AUC-{cls_name}VsRest"] = f"{results[f'task2_auc.{cls_name}.org']:.3f}"
+            results_table[
+                f"Task2-AUC-{cls_name}VsRest"
+            ] = f"{results[f'task2_auc.{cls_name}.org']:.3f}"
             results_table[
                 f"Task2-AUC-{cls_name}VsRest-CI"
             ] = f"[{results[f'task2_auc.{cls_name}.conf_lower']:.3f}-{results[f'task2_auc.{cls_name}.conf_upper']:.3f}]"
@@ -130,27 +141,40 @@ def decode_results(results: NDict, output_dir: str, task1: bool, task2: bool) ->
     ## task 1
     if task1:
         results_text += "# Task 1 - adjuvant treatment candidacy classification\n"
-        results_text += f"AUC: {results_table['Task1-AUC']} {results_table['Task1-AUC-CI']}\n"
+        results_text += (
+            f"AUC: {results_table['Task1-AUC']} {results_table['Task1-AUC-CI']}\n"
+        )
         results_text += "## ROC Curve\n"
-        results_text += '<br/>\n<img src="task1_roc.png" alt="drawing" width="40%"/>\n<br/>\n'
+        results_text += (
+            '<br/>\n<img src="task1_roc.png" alt="drawing" width="40%"/>\n<br/>\n'
+        )
 
     ## task 2
     if task2:
         results_text += "\n# Task 2 - risk categories classification\n"
-        results_text += f"AUC: {results_table['Task2-AUC']} {results_table['Task2-AUC-CI']}\n"
+        results_text += (
+            f"AUC: {results_table['Task2-AUC']} {results_table['Task2-AUC-CI']}\n"
+        )
 
         results_text += "## Multi-Class AUC\n"
-        table_columns = ["AUC"] + [f"AUC-{cls_name}VsRest" for cls_name in TASK2_CLASS_NAMES]
+        table_columns = ["AUC"] + [
+            f"AUC-{cls_name}VsRest" for cls_name in TASK2_CLASS_NAMES
+        ]
         results_text += "\n|"
         results_text += "".join([f" {column} |" for column in table_columns])
         results_text += "\n|"
         results_text += "".join([" ------ |" for column in table_columns])
         results_text += "\n|"
         results_text += "".join(
-            [f" {results_table[f'Task2-{column}']} {results_table[f'Task2-{column}-CI']} |" for column in table_columns]
+            [
+                f" {results_table[f'Task2-{column}']} {results_table[f'Task2-{column}-CI']} |"
+                for column in table_columns
+            ]
         )
         results_text += "\n## ROC Curve\n"
-        results_text += '<br/>\n<img src="task2_roc.png" alt="drawing" width="40%"/>\n<br/>\n'
+        results_text += (
+            '<br/>\n<img src="task2_roc.png" alt="drawing" width="40%"/>\n<br/>\n'
+        )
 
     # save files
     with open(os.path.join(output_dir, "results.md"), "w") as output_file:
@@ -225,7 +249,9 @@ def eval(
             }
         )
         # read files
-        task1_pred_df = pd.read_csv(task1_prediction_filename, dtype={PRED_CASE_ID_NAME: object})
+        task1_pred_df = pd.read_csv(
+            task1_prediction_filename, dtype={PRED_CASE_ID_NAME: object}
+        )
         # verify input
         assert set(task1_pred_df.keys()).issubset(
             EXPECTED_TASK1_PRED_KEYS
@@ -257,7 +283,9 @@ def eval(
             }
         )
         # read files
-        task2_pred_df = pd.read_csv(task2_prediction_filename, dtype={PRED_CASE_ID_NAME: object})
+        task2_pred_df = pd.read_csv(
+            task2_prediction_filename, dtype={PRED_CASE_ID_NAME: object}
+        )
         # verify input
         assert set(task2_pred_df.keys()).issubset(
             EXPECTED_TASK2_PRED_KEYS
@@ -277,7 +305,10 @@ def eval(
     # analyze
     evaluator = EvaluatorDefault()
     results = evaluator.eval(
-        ids=list(dataframes_dict[case_ids_source]["id"]), data=dataframes_dict, metrics=metrics, output_dir=None
+        ids=list(dataframes_dict[case_ids_source]["id"]),
+        data=dataframes_dict,
+        metrics=metrics,
+        output_dir=None,
     )
 
     # output
@@ -295,8 +326,12 @@ if __name__ == "__main__":
         dir_path = pathlib.Path(__file__).parent.resolve()
         # no arguments - set arguments inline - see details in function eval()
         target_filename = os.path.join(dir_path, "example/example_targets.csv")
-        task1_prediction_filename = os.path.join(dir_path, "example/example_task1_predictions.csv")
-        task2_prediction_filename = os.path.join(dir_path, "example/example_task2_predictions.csv")
+        task1_prediction_filename = os.path.join(
+            dir_path, "example/example_task1_predictions.csv"
+        )
+        task2_prediction_filename = os.path.join(
+            dir_path, "example/example_task2_predictions.csv"
+        )
         output_dir = "example/result"
     else:
         # get arguments from sys.argv

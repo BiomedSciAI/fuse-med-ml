@@ -46,14 +46,18 @@ class ClassifierFCN(nn.Module):
 
         for i in range(len(layers_description)):
             curr_layer_size = layers_description[i]
-            layer_list.append(nn.Conv2d(last_layer_size, curr_layer_size, kernel_size=1, stride=1))
+            layer_list.append(
+                nn.Conv2d(last_layer_size, curr_layer_size, kernel_size=1, stride=1)
+            )
             layer_list.append(nn.ReLU())
             if dropout_rate is not None and dropout_rate > 0:
                 layer_list.append(nn.Dropout(p=dropout_rate))
             last_layer_size = curr_layer_size
 
         if num_classes is not None:
-            layer_list.append(nn.Conv2d(last_layer_size, num_classes, kernel_size=1, stride=1))
+            layer_list.append(
+                nn.Conv2d(last_layer_size, num_classes, kernel_size=1, stride=1)
+            )
 
         self.classifier = nn.Sequential(*layer_list)
 
@@ -85,14 +89,18 @@ class ClassifierFCN3D(nn.Module):
         last_layer_size = in_ch
 
         for curr_layer_size in layers_description:
-            layer_list.append(nn.Conv3d(last_layer_size, curr_layer_size, kernel_size=1, stride=1))
+            layer_list.append(
+                nn.Conv3d(last_layer_size, curr_layer_size, kernel_size=1, stride=1)
+            )
             layer_list.append(nn.ReLU())
             if dropout_rate is not None and dropout_rate > 0:
                 layer_list.append(nn.Dropout(p=dropout_rate))
             last_layer_size = curr_layer_size
 
         if num_classes is not None:
-            layer_list.append(nn.Conv3d(last_layer_size, num_classes, kernel_size=1, stride=1))
+            layer_list.append(
+                nn.Conv3d(last_layer_size, num_classes, kernel_size=1, stride=1)
+            )
 
         self.classifier = nn.Sequential(*layer_list)
 
@@ -131,7 +139,11 @@ class ClassifierMLP(nn.Module):
             last_layer_size = curr_layer_size
 
         if num_classes is not None:
-            layer_list.append(nn.Linear(in_features=last_layer_size, out_features=num_classes, bias=bias))
+            layer_list.append(
+                nn.Linear(
+                    in_features=last_layer_size, out_features=num_classes, bias=bias
+                )
+            )
 
         self.classifier = nn.Sequential(*layer_list)
 

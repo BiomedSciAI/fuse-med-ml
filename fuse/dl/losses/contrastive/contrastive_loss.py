@@ -19,7 +19,13 @@ def softcrossentropyloss(target: Tensor, logits: Tensor) -> Tensor:
 
 
 def supervised_contrastive_loss(
-    feat_xi: Tensor, feat_xj: Tensor, yi: Tensor, yj: Tensor, symm: bool = False, alpha: float = 0.5, temp: float = 0.2
+    feat_xi: Tensor,
+    feat_xj: Tensor,
+    yi: Tensor,
+    yj: Tensor,
+    symm: bool = False,
+    alpha: float = 0.5,
+    temp: float = 0.2,
 ) -> Tensor:
     """
     :param feat_i:               feature in the shape [Batch_size, embed dim]
@@ -113,7 +119,13 @@ class SupervisedContrastiveLoss(LossBase):
         target_j = batch_dict[self.target_j]
 
         loss_obj = supervised_contrastive_loss(
-            feat_i, feat_j, target_i, target_j, symm=self.symm, alpha=self.alpha, temp=self.temp
+            feat_i,
+            feat_j,
+            target_i,
+            target_j,
+            symm=self.symm,
+            alpha=self.alpha,
+            temp=self.temp,
         )
         if self.weight is not None:
             loss_obj *= self.weight

@@ -113,7 +113,9 @@ def run_train(paths: NDict, train: NDict) -> None:
     )
     folds = dataset_balanced_division_to_folds(
         dataset=dataset_all,
-        output_split_filename=os.path.join(paths["data_misc_dir"], paths["data_split_filename"]),
+        output_split_filename=os.path.join(
+            paths["data_misc_dir"], paths["data_split_filename"]
+        ),
         id="data.patientID",
         keys_to_balance=["data.gt.classification"],
         nfolds=train["num_folds"],
@@ -135,7 +137,9 @@ def run_train(paths: NDict, train: NDict) -> None:
         train=True,
     )
 
-    validation_dataset = PICAI.dataset(paths=paths, cfg=train, reset_cache=False, sample_ids=validation_sample_ids)
+    validation_dataset = PICAI.dataset(
+        paths=paths, cfg=train, reset_cache=False, sample_ids=validation_sample_ids
+    )
 
     ## Create sampler
     lgr.info("- Create sampler:")
@@ -158,7 +162,9 @@ def run_train(paths: NDict, train: NDict) -> None:
         drop_last=False,
         batch_sampler=sampler,
         collate_fn=CollateDefault(
-            special_handlers_keys={"data.input.img": CollateDefault.pad_all_tensors_to_same_size},
+            special_handlers_keys={
+                "data.input.img": CollateDefault.pad_all_tensors_to_same_size
+            },
             raise_error_key_missing=False,
         ),
         num_workers=train["num_workers"],
@@ -192,7 +198,9 @@ def run_train(paths: NDict, train: NDict) -> None:
     )
     train_metrics = {}
 
-    validation_metrics = copy.deepcopy(train_metrics)  # use the same metrics in validation as well
+    validation_metrics = copy.deepcopy(
+        train_metrics
+    )  # use the same metrics in validation as well
 
     # either a dict with arguments to pass to ModelCheckpoint or list dicts for multiple ModelCheckpoint callbacks (to monitor and save checkpoints for more then one metric).
     best_epoch_source = dict(
@@ -207,7 +215,11 @@ def run_train(paths: NDict, train: NDict) -> None:
     lgr.info("Train:", {"attrs": "bold"})
 
     # create optimizer
-    optimizer = optim.Adam(model.parameters(), lr=train["learning_rate"], weight_decay=train["weight_decay"])
+    optimizer = optim.Adam(
+        model.parameters(),
+        lr=train["learning_rate"],
+        weight_decay=train["weight_decay"],
+    )
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
     lr_sch_config = dict(scheduler=scheduler, monitor="validation.losses.total_loss")
@@ -237,7 +249,12 @@ def run_train(paths: NDict, train: NDict) -> None:
     )
 
     # train from scratch
-    pl_trainer.fit(pl_module, train_dataloader, validation_dataloader, ckpt_path=train["trainer"]["ckpt_path"])
+    pl_trainer.fit(
+        pl_module,
+        train_dataloader,
+        validation_dataloader,
+        ckpt_path=train["trainer"]["ckpt_path"],
+    )
     lgr.info("Train: Done", {"attrs": "bold"})
 
 
@@ -286,10 +303,16 @@ def run_infer(infer: NDict, paths: NDict, train: NDict) -> None:
     )
     # load python lightning module
     pl_module = LightningModuleDefault.load_from_checkpoint(
-        checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True
+        checkpoint_file,
+        model_dir=paths["model_dir"],
+        model=model,
+        map_location="cpu",
+        strict=True,
     )
     # set the prediction keys to extract (the ones used be the evaluation function).
-    pl_module.set_predictions_keys(["model.seg", "data.gt.seg"])  # which keys to extract and dump into file
+    pl_module.set_predictions_keys(
+        ["model.seg", "data.gt.seg"]
+    )  # which keys to extract and dump into file
     lgr.info("Test Data: Done", {"attrs": "bold"})
     # create lightining trainer.
     pl_trainer = Trainer(
@@ -300,7 +323,9 @@ def run_infer(infer: NDict, paths: NDict, train: NDict) -> None:
         num_sanity_val_steps=-1,
     )
     # create a trainer instance
-    predictions = pl_trainer.predict(pl_module, infer_dataloader, return_predictions=True)
+    predictions = pl_trainer.predict(
+        pl_module, infer_dataloader, return_predictions=True
+    )
 
     with open(Path(infer_file).parents[0] / "infer.pickle", "wb") as f:
         pickle.dump(predictions, f)
@@ -334,8 +359,12 @@ def run_eval(paths: NDict, infer: NDict) -> None:
             for i, sample in enumerate(fold["id"]):
                 sample_dict = {}
                 sample_dict["id"] = sample
-                sample_dict["model.seg"] = np.expand_dims(fold["model.seg"][i][1], axis=0)
-                sample_dict["model.seg"] = np.where(sample_dict["model.seg"] > 0.7, 1, 0)
+                sample_dict["model.seg"] = np.expand_dims(
+                    fold["model.seg"][i][1], axis=0
+                )
+                sample_dict["model.seg"] = np.where(
+                    sample_dict["model.seg"] > 0.7, 1, 0
+                )
                 sample_dict["data.gt.seg"] = fold["data.gt.seg"][i]
                 yield sample_dict
 

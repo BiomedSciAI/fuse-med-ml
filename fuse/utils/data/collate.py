@@ -83,7 +83,9 @@ class CollateToBatchList(Callable):
             keys |= set(sample.keypaths())
         return list(keys)
 
-    def _collect_values_to_list(self, samples: List[str], key: str) -> Tuple[List, bool]:
+    def _collect_values_to_list(
+        self, samples: List[str], key: str
+    ) -> Tuple[List, bool]:
         """
         collect values of given key into a list
         :param samples: list of samples
@@ -100,7 +102,9 @@ class CollateToBatchList(Callable):
                 has_error = True
                 has_missing_values = True
                 if self._raise_error_key_missing:
-                    raise Exception(f"Error: key {key} does not exist in sample {index}: {sample}")
+                    raise Exception(
+                        f"Error: key {key} does not exist in sample {index}: {sample}"
+                    )
                 else:
                     value = None
 
@@ -148,6 +152,8 @@ def uncollate(batch: Dict) -> List[Dict]:
                     )
                     raise
             else:
-                samples[sample_index][key] = values  # broadcast single value for all batch
+                samples[sample_index][
+                    key
+                ] = values  # broadcast single value for all batch
 
     return samples

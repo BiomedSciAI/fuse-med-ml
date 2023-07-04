@@ -69,7 +69,9 @@ class OpNormalizeAgainstSelf(OpBase):
         return sample_dict
 
 
-op_normalize_against_self_img = OpApplyTypesImaging({DataTypeImaging.IMAGE: (OpNormalizeAgainstSelf(), {})})
+op_normalize_against_self_img = OpApplyTypesImaging(
+    {DataTypeImaging.IMAGE: (OpNormalizeAgainstSelf(), {})}
+)
 
 
 class OpToIntImageSpace(OpBase):
@@ -95,7 +97,9 @@ class OpToIntImageSpace(OpBase):
         return sample_dict
 
 
-op_to_int_image_space_img = OpApplyTypesImaging({DataTypeImaging.IMAGE: (OpToIntImageSpace(), {})})
+op_to_int_image_space_img = OpApplyTypesImaging(
+    {DataTypeImaging.IMAGE: (OpToIntImageSpace(), {})}
+)
 
 
 class OpToRange(OpBase):

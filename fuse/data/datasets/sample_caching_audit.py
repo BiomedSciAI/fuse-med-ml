@@ -71,7 +71,9 @@ class SampleCachingAudit:
         if self._audit_rate is not None:
             # progress audit units passed so far
             if self._audit_units == "minutes":
-                self._audit_units_passed_since_last_audit += (time() - self._prev_time) / 60.0
+                self._audit_units_passed_since_last_audit += (
+                    time() - self._prev_time
+                ) / 60.0
                 self._prev_time = time()
             elif self._audit_units == "samples":
                 self._audit_units_passed_since_last_audit += 1

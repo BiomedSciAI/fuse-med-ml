@@ -100,7 +100,9 @@ class RandBool(ParamSamplerBase):
 
 
 class Choice(ParamSamplerBase):
-    def __init__(self, seq: Sequence, probabilities: Optional[List[float]] = None, k: int = 0):
+    def __init__(
+        self, seq: Sequence, probabilities: Optional[List[float]] = None, k: int = 0
+    ):
         """
         Random choice out of a sequence
         Return a k sized list of population elements chosen with replacement
@@ -174,7 +176,9 @@ def draw_samples_recursively(data: Any) -> Any:
 
     # if a tuple  return a copy of the tuple try to sample each element recursively
     if isinstance(data, Tuple):
-        data_tuple = tuple((draw_samples_recursively(data[ii]) for ii in range(len(data))))
+        data_tuple = tuple(
+            (draw_samples_recursively(data[ii]) for ii in range(len(data)))
+        )
         return data_tuple
 
     # if ParamSamplerBase, sample a number

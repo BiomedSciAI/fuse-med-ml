@@ -65,7 +65,11 @@ def is_header_missing(f: str) -> bool:
 def get_src_files(dirname: str) -> List[str]:
     src_files = []
     for cur, _dirs, files in os.walk(dirname):
-        [src_files.append(path.join(cur, f)) for f in files if is_preamble_required_file(f)]
+        [
+            src_files.append(path.join(cur, f))
+            for f in files
+            if is_preamble_required_file(f)
+        ]
 
     return [f for f in src_files if is_header_missing(f)]
 

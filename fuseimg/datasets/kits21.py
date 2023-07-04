@@ -62,11 +62,19 @@ class OpKits21SampleIDDecode(OpReversibleBase):
 
         return sample_dict
 
-    def reverse(self, sample_dict: dict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
+    def reverse(
+        self,
+        sample_dict: dict,
+        key_to_reverse: str,
+        key_to_follow: str,
+        op_id: Optional[str],
+    ) -> dict:
         return sample_dict
 
 
-def my_resize(input_tensor: torch.Tensor, resize_to: Tuple[int, int, int]) -> torch.Tensor:
+def my_resize(
+    input_tensor: torch.Tensor, resize_to: Tuple[int, int, int]
+) -> torch.Tensor:
     """
     Custom resize operation for the CT image
     """
@@ -119,7 +127,9 @@ class KITS21:
         elif isinstance(cases, int):
             cases = [cases]
         elif not isinstance(cases, list):
-            raise Exception("Unsupported args! please provide None, int or list of ints")
+            raise Exception(
+                "Unsupported args! please provide None, int or list of ints"
+            )
 
         dl_dir = path
 
@@ -167,11 +177,26 @@ class KITS21:
                     dict(),
                 ),  # will save image and seg path to "data.input.img_path", "data.gt.seg_path"
                 # loading data
-                (OpLoadImage(data_path), dict(key_in="data.input.img_path", key_out="data.input.img", format="nib")),
-                (OpLoadImage(data_path), dict(key_in="data.gt.seg_path", key_out="data.gt.seg", format="nib")),
+                (
+                    OpLoadImage(data_path),
+                    dict(
+                        key_in="data.input.img_path",
+                        key_out="data.input.img",
+                        format="nib",
+                    ),
+                ),
+                (
+                    OpLoadImage(data_path),
+                    dict(
+                        key_in="data.gt.seg_path", key_out="data.gt.seg", format="nib"
+                    ),
+                ),
                 # fixed image normalization
                 (OpClip(), dict(key="data.input.img", clip=(-500, 500))),
-                (OpToRange(), dict(key="data.input.img", from_range=(-500, 500), to_range=(0, 1))),
+                (
+                    OpToRange(),
+                    dict(key="data.input.img", from_range=(-500, 500), to_range=(0, 1)),
+                ),
                 # transposing so the depth channel will be first
                 (
                     OpLambda(partial(np.moveaxis, source=-1, destination=0)),
@@ -194,15 +219,21 @@ class KITS21:
                 # resize image to (110, 256, 256)
                 (
                     OpRepeat(
-                        OpLambda(func=partial(my_resize, resize_to=(110, 256, 256))), kwargs_per_step_to_add=repeat_for
+                        OpLambda(func=partial(my_resize, resize_to=(110, 256, 256))),
+                        kwargs_per_step_to_add=repeat_for,
                     ),
                     dict(),
                 ),
                 # Numpy to tensor
-                (OpRepeat(OpToTensor(), kwargs_per_step_to_add=repeat_for), dict(dtype=torch.float32)),
+                (
+                    OpRepeat(OpToTensor(), kwargs_per_step_to_add=repeat_for),
+                    dict(dtype=torch.float32),
+                ),
                 # affine transformation per slice but with the same arguments
                 (
-                    OpSampleAndRepeat(OpAugAffine2D(), kwargs_per_step_to_add=repeat_for),
+                    OpSampleAndRepeat(
+                        OpAugAffine2D(), kwargs_per_step_to_add=repeat_for
+                    ),
                     dict(
                         rotate=Uniform(-180.0, 180.0),
                         scale=Uniform(0.8, 1.2),

@@ -39,7 +39,10 @@ class LightningModuleDefault(pl.LightningModule):
         validation_losses: Optional[List[Tuple[str, Dict[str, LossBase]]]] = None,
         train_metrics: Optional[OrderedDict[str, MetricBase]] = None,
         validation_metrics: Optional[
-            Union[OrderedDict[str, MetricBase], List[Tuple[str, OrderedDict[str, MetricBase]]]]
+            Union[
+                OrderedDict[str, MetricBase],
+                List[Tuple[str, OrderedDict[str, MetricBase]]],
+            ]
         ] = None,
         test_metrics: Optional[OrderedDict[str, MetricBase]] = None,
         optimizers_and_lr_schs: Any = None,
@@ -93,7 +96,9 @@ class LightningModuleDefault(pl.LightningModule):
         super().__init__(**kwargs)
 
         if (save_arguments or save_model) and (model_dir is None):
-            raise Exception("Error: saving arguments or saving model requires a model_dir to be supplied as well.")
+            raise Exception(
+                "Error: saving arguments or saving model requires a model_dir to be supplied as well."
+            )
 
         # create model_dir
         if model_dir is not None:
@@ -130,7 +135,9 @@ class LightningModuleDefault(pl.LightningModule):
         self._validation_losses = validation_losses
 
         self._train_metrics = train_metrics if train_metrics is not None else {}
-        self._validation_metrics = validation_metrics if validation_metrics is not None else {}
+        self._validation_metrics = (
+            validation_metrics if validation_metrics is not None else {}
+        )
 
         # convert all use-cases to the same format that supports multiple val dataloaders: List[Tuple[str, OrderedDict[str, MetricBase]]]
         if isinstance(self._validation_metrics, dict):
@@ -151,7 +158,9 @@ class LightningModuleDefault(pl.LightningModule):
         self._prediction_keys = None
         self._sep = tensorboard_sep
 
-        self._validation_step_outputs = {i: [] for i, _ in enumerate(self._validation_metrics)}
+        self._validation_step_outputs = {
+            i: [] for i, _ in enumerate(self._validation_metrics)
+        }
         self._training_step_outputs = []
         self._test_step_outputs = []
 
@@ -174,7 +183,9 @@ class LightningModuleDefault(pl.LightningModule):
         # return the total_loss
         return total_loss
 
-    def validation_step(self, batch_dict: NDict, batch_idx: int, dataloader_idx: int = 0) -> None:
+    def validation_step(
+        self, batch_dict: NDict, batch_idx: int, dataloader_idx: int = 0
+    ) -> None:
         # add step number to batch_dict
         batch_dict["global_step"] = self.global_step
         # run forward function and store the outputs in batch_dict["model"]
@@ -188,7 +199,10 @@ class LightningModuleDefault(pl.LightningModule):
         # given the batch_dict and FuseMedML style metrics - collect the required values to compute the metrics on epoch_end
         step_metrics(self._validation_metrics[dataloader_idx][1], batch_dict)
         # aggregate losses
-        self._validation_step_outputs[dataloader_idx].append({"losses": batch_dict["losses"]})
+        if losses:  # if there are losses, collect the results
+            self._validation_step_outputs[dataloader_idx].append(
+                {"losses": batch_dict["losses"]}
+            )
 
     def test_step(self, batch_dict: NDict, batch_idx: int) -> None:
         # add step number to batch_dict
@@ -219,9 +233,13 @@ class LightningModuleDefault(pl.LightningModule):
         if self._log_unit == "epoch":
             self.log("step", float(self.current_epoch), on_epoch=True, sync_dist=True)
         # calc average epoch loss and log it
-        epoch_end_compute_and_log_losses(self, "train", [e["losses"] for e in step_outputs], sep=self._sep)
+        epoch_end_compute_and_log_losses(
+            self, "train", [e["losses"] for e in step_outputs], sep=self._sep
+        )
         # evaluate  and log it
-        epoch_end_compute_and_log_metrics(self, "train", self._train_metrics, sep=self._sep)
+        epoch_end_compute_and_log_metrics(
+            self, "train", self._train_metrics, sep=self._sep
+        )
         # reset state
         self._training_step_outputs.clear()
 
@@ -236,11 +254,17 @@ class LightningModuleDefault(pl.LightningModule):
             else:
                 prefix = f"validation.{self._validation_metrics[dataloader_idx][0]}"
             # calc average epoch loss and log it
-            epoch_end_compute_and_log_losses(self, prefix, [e["losses"] for e in step_outputs], sep=self._sep)
+            epoch_end_compute_and_log_losses(
+                self, prefix, [e["losses"] for e in step_outputs], sep=self._sep
+            )
             # evaluate  and log it
-            epoch_end_compute_and_log_metrics(self, prefix, self._validation_metrics[dataloader_idx][1], sep=self._sep)
+            epoch_end_compute_and_log_metrics(
+                self, prefix, self._validation_metrics[dataloader_idx][1], sep=self._sep
+            )
         # reset state
-        self._validation_step_outputs = {i: [] for i, _ in enumerate(self._validation_metrics)}
+        self._validation_step_outputs = {
+            i: [] for i, _ in enumerate(self._validation_metrics)
+        }
 
     def on_test_epoch_end(self) -> None:
         step_outputs = self._test_step_outputs
@@ -248,9 +272,13 @@ class LightningModuleDefault(pl.LightningModule):
         if self._log_unit == "epoch":
             self.log("step", self.current_epoch, on_epoch=True, sync_dist=True)
         # calc average epoch loss and log it
-        epoch_end_compute_and_log_losses(self, "test", [e["losses"] for e in step_outputs], sep=self._sep)
+        epoch_end_compute_and_log_losses(
+            self, "test", [e["losses"] for e in step_outputs], sep=self._sep
+        )
         # evaluate  and log it
-        epoch_end_compute_and_log_metrics(self, "test", self._test_metrics, sep=self._sep)
+        epoch_end_compute_and_log_metrics(
+            self, "test", self._test_metrics, sep=self._sep
+        )
         # reset state
         self._test_step_outputs.clear()
 

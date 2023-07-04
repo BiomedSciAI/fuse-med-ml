@@ -34,8 +34,14 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
 
 from fuse.eval.evaluator import EvaluatorDefault
-from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
-from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
+from fuse.eval.metrics.classification.metrics_thresholding_common import (
+    MetricApplyThresholds,
+)
+from fuse.eval.metrics.classification.metrics_classification_common import (
+    MetricAccuracy,
+    MetricAUCROC,
+    MetricROCCurve,
+)
 
 from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.data.utils.collates import CollateDefault
@@ -68,7 +74,9 @@ class LightningModuleMnist(pl.LightningModule):
     Demonstrates how to use FuseMedML with your own PyTorch Lightning >=2.0.0 implementation.
     """
 
-    def __init__(self, model_dir: str, opt_lr: float, opt_weight_decay: float, **kwargs: dict):
+    def __init__(
+        self, model_dir: str, opt_lr: float, opt_weight_decay: float, **kwargs: dict
+    ):
         """
         :param model_dir: location for checkpoints and logs
         :param opt_lr: learning rate for Adam optimizer
@@ -93,23 +101,41 @@ class LightningModuleMnist(pl.LightningModule):
             model=torch_model,
             model_inputs=["data.image"],
             post_forward_processing_function=perform_softmax,
-            model_outputs=["model.logits.classification", "model.output.classification"],
+            model_outputs=[
+                "model.logits.classification",
+                "model.output.classification",
+            ],
         )
 
         # losses
         self._losses = {
-            "cls_loss": LossDefault(pred="model.logits.classification", target="data.label", callable=F.cross_entropy),
+            "cls_loss": LossDefault(
+                pred="model.logits.classification",
+                target="data.label",
+                callable=F.cross_entropy,
+            ),
         }
 
         # metrics
         self._train_metrics = OrderedDict(
             [
-                ("operation_point", MetricApplyThresholds(pred="model.output.classification")),  # will apply argmax
-                ("accuracy", MetricAccuracy(pred="results:metrics.operation_point.cls_pred", target="data.label")),
+                (
+                    "operation_point",
+                    MetricApplyThresholds(pred="model.output.classification"),
+                ),  # will apply argmax
+                (
+                    "accuracy",
+                    MetricAccuracy(
+                        pred="results:metrics.operation_point.cls_pred",
+                        target="data.label",
+                    ),
+                ),
             ]
         )
 
-        self._validation_metrics = copy.deepcopy(self._train_metrics)  # use the same metrics in validation as well
+        self._validation_metrics = copy.deepcopy(
+            self._train_metrics
+        )  # use the same metrics in validation as well
 
         # In Lightning >=2.0.0 they deprecated 'Callback.training_epoch_end' thus we need to manage and store
         #   the steps outputs manually.
@@ -160,17 +186,23 @@ class LightningModuleMnist(pl.LightningModule):
     ## Epoch end
     def on_train_epoch_end(self) -> None:
         # calc average epoch loss and log it
-        fuse_pl.epoch_end_compute_and_log_losses(self, "train", self.training_step_losses)
+        fuse_pl.epoch_end_compute_and_log_losses(
+            self, "train", self.training_step_losses
+        )
         self.training_step_losses.clear()  # free memory
         # evaluate and log it
         fuse_pl.epoch_end_compute_and_log_metrics(self, "train", self._train_metrics)
 
     def on_validation_epoch_end(self) -> None:
         # calc average epoch loss and log it
-        fuse_pl.epoch_end_compute_and_log_losses(self, "validation", self.validation_step_losses)
+        fuse_pl.epoch_end_compute_and_log_losses(
+            self, "validation", self.validation_step_losses
+        )
         self.validation_step_losses.clear()  # free memory
         # evaluate and log it
-        fuse_pl.epoch_end_compute_and_log_metrics(self, "validation", self._validation_metrics)
+        fuse_pl.epoch_end_compute_and_log_metrics(
+            self, "validation", self._validation_metrics
+        )
 
     def configure_callbacks(self) -> Sequence[pl.Callback]:
         """Create callbacks to monitor the metrics and print epoch summary"""
@@ -183,11 +215,17 @@ class LightningModuleMnist(pl.LightningModule):
     def configure_optimizers(self) -> Any:
         """See pl.LightningModule.configure_optimizers return value for all options"""
         # create optimizer
-        optimizer = optim.Adam(self._model.parameters(), lr=self._opt_lr, weight_decay=self._opt_weight_decay)
+        optimizer = optim.Adam(
+            self._model.parameters(),
+            lr=self._opt_lr,
+            weight_decay=self._opt_weight_decay,
+        )
 
         # create learning scheduler
         lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
-        lr_sch_config = dict(scheduler=lr_scheduler, monitor="validation.losses.total_loss")
+        lr_sch_config = dict(
+            scheduler=lr_scheduler, monitor="validation.losses.total_loss"
+        )
         return dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
 
     def set_predictions_keys(self, keys: List[str]) -> None:
@@ -253,9 +291,15 @@ def run_train(paths: dict, train_params: dict) -> None:
     # ==============================================================================
     # Logger(s)
     # ==============================================================================
-    fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
-    lightning_csv_logger = CSVLogger(save_dir=paths["model_dir"], name="lightning_csv_logs")
-    lightning_tb_logger = TensorBoardLogger(save_dir=paths["model_dir"], name="lightning_tb_logs")
+    fuse_logger_start(
+        output_path=paths["model_dir"], console_verbose_level=logging.INFO
+    )
+    lightning_csv_logger = CSVLogger(
+        save_dir=paths["model_dir"], name="lightning_csv_logs"
+    )
+    lightning_tb_logger = TensorBoardLogger(
+        save_dir=paths["model_dir"], name="lightning_tb_logs"
+    )
     print("Fuse Train")
 
     # ==============================================================================
@@ -338,10 +382,16 @@ INFER_COMMON_PARAMS["trainer.accelerator"] = "gpu"
 
 def run_infer(paths: dict, infer_common_params: dict) -> None:
     create_dir(paths["inference_dir"])
-    infer_file = os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])
-    checkpoint_file = os.path.join(paths["model_dir"], infer_common_params["checkpoint"])
+    infer_file = os.path.join(
+        paths["inference_dir"], infer_common_params["infer_filename"]
+    )
+    checkpoint_file = os.path.join(
+        paths["model_dir"], infer_common_params["checkpoint"]
+    )
     #### Logger
-    fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
+    fuse_logger_start(
+        output_path=paths["model_dir"], console_verbose_level=logging.INFO
+    )
 
     print("Fuse Inference")
     print(f"infer_filename={infer_file}")
@@ -351,7 +401,10 @@ def run_infer(paths: dict, infer_common_params: dict) -> None:
     validation_dataset = MNIST.dataset(paths["cache_dir"], train=False)
     # dataloader
     validation_dataloader = DataLoader(
-        dataset=validation_dataset, collate_fn=CollateDefault(), batch_size=2, num_workers=2
+        dataset=validation_dataset,
+        collate_fn=CollateDefault(),
+        batch_size=2,
+        num_workers=2,
     )
 
     # load pytorch lightning module
@@ -371,7 +424,9 @@ def run_infer(paths: dict, infer_common_params: dict) -> None:
         devices=infer_common_params["trainer.num_devices"],
         logger=None,
     )
-    predictions = pl_trainer.predict(pl_module, validation_dataloader, return_predictions=True)
+    predictions = pl_trainer.predict(
+        pl_module, validation_dataloader, return_predictions=True
+    )
 
     # convert list of batch outputs into a dataframe
     infer_df = fuse_pl.convert_predictions_to_dataframe(predictions)
@@ -390,7 +445,9 @@ EVAL_COMMON_PARAMS["infer_filename"] = INFER_COMMON_PARAMS["infer_filename"]
 ######################################
 def run_eval(paths: dict, eval_common_params: dict) -> NDict:
     create_dir(paths["eval_dir"])
-    infer_file = os.path.join(paths["inference_dir"], eval_common_params["infer_filename"])
+    infer_file = os.path.join(
+        paths["inference_dir"], eval_common_params["infer_filename"]
+    )
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
 
     print("Fuse Eval")
@@ -400,8 +457,16 @@ def run_eval(paths: dict, eval_common_params: dict) -> NDict:
 
     metrics = OrderedDict(
         [
-            ("operation_point", MetricApplyThresholds(pred="model.output.classification")),  # will apply argmax
-            ("accuracy", MetricAccuracy(pred="results:metrics.operation_point.cls_pred", target="data.label")),
+            (
+                "operation_point",
+                MetricApplyThresholds(pred="model.output.classification"),
+            ),  # will apply argmax
+            (
+                "accuracy",
+                MetricAccuracy(
+                    pred="results:metrics.operation_point.cls_pred", target="data.label"
+                ),
+            ),
             (
                 "roc",
                 MetricROCCurve(
@@ -411,7 +476,14 @@ def run_eval(paths: dict, eval_common_params: dict) -> NDict:
                     output_filename=os.path.join(paths["eval_dir"], "roc_curve.png"),
                 ),
             ),
-            ("auc", MetricAUCROC(pred="model.output.classification", target="data.label", class_names=class_names)),
+            (
+                "auc",
+                MetricAUCROC(
+                    pred="model.output.classification",
+                    target="data.label",
+                    class_names=class_names,
+                ),
+            ),
         ]
     )
 
@@ -419,7 +491,13 @@ def run_eval(paths: dict, eval_common_params: dict) -> NDict:
     evaluator = EvaluatorDefault()
 
     # run
-    results = evaluator.eval(ids=None, data=infer_file, metrics=metrics, output_dir=paths["eval_dir"], silent=False)
+    results = evaluator.eval(
+        ids=None,
+        data=infer_file,
+        metrics=metrics,
+        output_dir=paths["eval_dir"],
+        silent=False,
+    )
 
     return results
 

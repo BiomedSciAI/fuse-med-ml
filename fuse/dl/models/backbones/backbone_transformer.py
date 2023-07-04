@@ -28,11 +28,18 @@ class Transformer(nn.Module):
     ):
         super().__init__()
         self.num_cls_tokens = num_cls_tokens
-        self.pos_embedding = nn.Parameter(torch.randn(1, num_tokens + num_cls_tokens, token_dim))
+        self.pos_embedding = nn.Parameter(
+            torch.randn(1, num_tokens + num_cls_tokens, token_dim)
+        )
         self.cls_tokens = nn.Parameter(torch.randn(1, num_cls_tokens, token_dim))
         self.dropout = nn.Dropout(emb_dropout)
         self.transformer = _Transformer(
-            dim=token_dim, depth=depth, heads=heads, dim_head=dim_head, mlp_dim=mlp_dim, dropout=dropout
+            dim=token_dim,
+            depth=depth,
+            heads=heads,
+            dim_head=dim_head,
+            mlp_dim=mlp_dim,
+            dropout=dropout,
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -141,7 +148,10 @@ class CrossAttentionTransformerEncoder(nn.Module):
             max_seq_len=max_seq_len_a,
             **kwargs_wrapper_a if kwargs_wrapper_a else dict(),
             attn_layers=Encoder(
-                dim=emb_dim, depth=depth_a, heads=heads_a, **kwargs_encoder_a if kwargs_encoder_a else dict()
+                dim=emb_dim,
+                depth=depth_a,
+                heads=heads_a,
+                **kwargs_encoder_a if kwargs_encoder_a else dict(),
             ),
         )
         self.enc_b = TransformerWrapper(
@@ -149,22 +159,31 @@ class CrossAttentionTransformerEncoder(nn.Module):
             max_seq_len=max_seq_len_b,
             **kwargs_wrapper_b if kwargs_wrapper_b else dict(),
             attn_layers=Encoder(
-                dim=emb_dim, depth=depth_b, heads=heads_b, **kwargs_encoder_b if kwargs_encoder_b else dict()
+                dim=emb_dim,
+                depth=depth_b,
+                heads=heads_b,
+                **kwargs_encoder_b if kwargs_encoder_b else dict(),
             ),
         )
 
         # cross attention module(s)
         if self._context in ["seq_a", "seq_b"]:
             self.cross_attn = CrossAttender(
-                dim=emb_dim, depth=depth_cross_attn, **kwargs_cross_attn if kwargs_cross_attn else dict()
+                dim=emb_dim,
+                depth=depth_cross_attn,
+                **kwargs_cross_attn if kwargs_cross_attn else dict(),
             )
 
         else:  # both
             self.cross_attn_a_as_context = CrossAttender(
-                dim=emb_dim, depth=depth_cross_attn, **kwargs_cross_attn if kwargs_cross_attn else dict()
+                dim=emb_dim,
+                depth=depth_cross_attn,
+                **kwargs_cross_attn if kwargs_cross_attn else dict(),
             )
             self.cross_attn_b_as_context = CrossAttender(
-                dim=emb_dim, depth=depth_cross_attn, **kwargs_cross_attn if kwargs_cross_attn else dict()
+                dim=emb_dim,
+                depth=depth_cross_attn,
+                **kwargs_cross_attn if kwargs_cross_attn else dict(),
             )
 
         self.last_linear = nn.Linear(emb_dim, output_dim)

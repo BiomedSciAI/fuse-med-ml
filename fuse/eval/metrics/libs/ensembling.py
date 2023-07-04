@@ -9,7 +9,9 @@ class Ensembling:
     """
 
     @staticmethod
-    def ensemble(preds: Sequence[np.ndarray], method: Optional[str] = "average") -> Dict:
+    def ensemble(
+        preds: Sequence[np.ndarray], method: Optional[str] = "average"
+    ) -> Dict:
         """
         :param preds: sequence of numpy arrays / floats of shape [NUM_CLASSES]
         :params method: Ensembling method. 'average', or 'voting'
@@ -23,11 +25,15 @@ class Ensembling:
         if method.lower() in ("average", "mean"):
             preds_ensembled = np.nanmean(preds, 1)
         elif method.lower() in ("vote", "voting"):
-            assert len(preds.shape) == 2 or (len(preds.shape) == 3 and preds.shape[2] == 1)
+            assert len(preds.shape) == 2 or (
+                len(preds.shape) == 3 and preds.shape[2] == 1
+            )
             if len(preds.shape) == 3:
                 preds = np.squeeze(preds)
             preds_ensembled = scipy.stats.mode(preds, axis=1)[0]
         else:
-            raise ValueError("'average' or 'voting' methods are supported for ensembling")
+            raise ValueError(
+                "'average' or 'voting' methods are supported for ensembling"
+            )
 
         return preds_ensembled

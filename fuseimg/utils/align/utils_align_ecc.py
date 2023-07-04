@@ -25,7 +25,10 @@ import cv2
 
 class AlignMapECC(AlignMapBase):
     def __init__(
-        self, transformation_type: str = "homography", num_iterations: int = 600, termination_eps: float = 1e-4
+        self,
+        transformation_type: str = "homography",
+        num_iterations: int = 600,
+        termination_eps: float = 1e-4,
     ):
         transformation_type = transformation_type.lower()
         assert transformation_type in ["homography", "affine"]
@@ -56,16 +59,25 @@ class AlignMapECC(AlignMapBase):
         img1 = ((img1 > 0) * 255).astype(np.uint8)
         img2 = ((img2 > 0) * 255).astype(np.uint8)
 
-        criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, self.num_iterations, self.termination_eps)
+        criteria = (
+            cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT,
+            self.num_iterations,
+            self.termination_eps,
+        )
 
-        s, M = cv2.findTransformECC(img1, img2, M, transformation, criteria=criteria, inputMask=mask)
+        s, M = cv2.findTransformECC(
+            img1, img2, M, transformation, criteria=criteria, inputMask=mask
+        )
 
         self.transformation_matrix = M
 
         # Apply the alignment on img1 and the inverse alignment on img2
         if transformation == cv2.MOTION_AFFINE:
             self.img1_aligned = cv2.warpAffine(
-                img1_original, self.transformation_matrix, (img2.shape[1], img2.shape[0]), flags=cv2.INTER_LINEAR
+                img1_original,
+                self.transformation_matrix,
+                (img2.shape[1], img2.shape[0]),
+                flags=cv2.INTER_LINEAR,
             )
             self.img2_aligned = cv2.warpAffine(
                 img2_original,
@@ -75,7 +87,10 @@ class AlignMapECC(AlignMapBase):
             )
         else:
             self.img1_aligned = cv2.warpPerspective(
-                img1_original, self.transformation_matrix, (img2.shape[1], img2.shape[0]), flags=cv2.INTER_LINEAR
+                img1_original,
+                self.transformation_matrix,
+                (img2.shape[1], img2.shape[0]),
+                flags=cv2.INTER_LINEAR,
             )
             self.img2_aligned = cv2.warpPerspective(
                 img2_original,
@@ -88,7 +103,9 @@ class AlignMapECC(AlignMapBase):
 
     def translate_xy(self, x, y):
         if self.transformation_matrix is None:
-            raise Exception("No transformation matrix found - need to run 'align' first!")
+            raise Exception(
+                "No transformation matrix found - need to run 'align' first!"
+            )
 
         if self.transformation_type == "homography":
             wx = (

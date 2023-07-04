@@ -26,11 +26,19 @@ from fuse.eval.metrics.metrics_common import MetricPerBatchDefault
 
 
 class MetricPerplexity(MetricPerBatchDefault):
-    def __init__(self, preds: str, target: str, ignore_index: Optional[int] = None, **kwargs: dict) -> None:
+    def __init__(
+        self,
+        preds: str,
+        target: str,
+        ignore_index: Optional[int] = None,
+        **kwargs: dict,
+    ) -> None:
         super().__init__(
             preds=preds,
             target=target,
-            metric_per_batch_func=partial(_perplexity_update, ignore_index=ignore_index),
+            metric_per_batch_func=partial(
+                _perplexity_update, ignore_index=ignore_index
+            ),
             result_aggregate_func=_perplexity_compute,
             post_keys_to_collect=["log_probs", "token_num"],
             **kwargs,
@@ -40,7 +48,9 @@ class MetricPerplexity(MetricPerBatchDefault):
 # Copied internal function https://github.com/Lightning-AI/metrics/blob/825d17f32ee0b9a2a8024c89d4a09863d7eb45c3/src/torchmetrics/functional/text/perplexity.py#L68
 # copied and not imported to not be affected by internal interface modifications.
 def _perplexity_update(
-    preds: Union[torch.Tensor, np.ndarray], target: Union[torch.Tensor, np.ndarray], ignore_index: Optional[int] = None
+    preds: Union[torch.Tensor, np.ndarray],
+    target: Union[torch.Tensor, np.ndarray],
+    ignore_index: Optional[int] = None,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Compute intermediate statistics for Perplexity.
     Args:
@@ -64,8 +74,12 @@ def _perplexity_update(
     if not isinstance(target, torch.Tensor):
         return {"log_probs": None, "token_num": None}
 
-    assert len(preds.shape) == 3, f"Error: expected num dims is 3, got shape {preds.shape}"
-    assert len(target.shape) == 2, f"Error: expected num dims is 2, got shape {target.shape}"
+    assert (
+        len(preds.shape) == 3
+    ), f"Error: expected num dims is 3, got shape {preds.shape}"
+    assert (
+        len(target.shape) == 2
+    ), f"Error: expected num dims is 2, got shape {target.shape}"
     # to save GPU memory
     preds = preds.detach()
     target = target.detach()
@@ -75,7 +89,9 @@ def _perplexity_update(
 
     if ignore_index is not None:
         mask = target.ne(ignore_index)
-        target = target.where(target != ignore_index, torch.tensor(0, device=target.device))
+        target = target.where(
+            target != ignore_index, torch.tensor(0, device=target.device)
+        )
     else:
         mask = torch.ones_like(target, dtype=torch.bool)
 

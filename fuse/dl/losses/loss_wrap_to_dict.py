@@ -11,7 +11,11 @@ class LossWrapToDict(torch.nn.Module):
     """
 
     def __init__(
-        self, *, loss_module: torch.nn.Module, loss_arg_to_batch_key: Dict[str, str], weight: float = 1.0
+        self,
+        *,
+        loss_module: torch.nn.Module,
+        loss_arg_to_batch_key: Dict[str, str],
+        weight: float = 1.0,
     ) -> None:
         """
         :param loss_module: the loss module to wrap
@@ -25,7 +29,10 @@ class LossWrapToDict(torch.nn.Module):
 
     def forward(self, batch_dict: NDict) -> torch.Tensor:
         # collect arguments for loss module
-        loss_kwargs = {arg: batch_dict[batch_key] for arg, batch_key in self.loss_arg_to_batch_key.items()}
+        loss_kwargs = {
+            arg: batch_dict[batch_key]
+            for arg, batch_key in self.loss_arg_to_batch_key.items()
+        }
         # run loss function
         loss = self._loss_module(**loss_kwargs)
         return self._weight * loss
@@ -45,7 +52,9 @@ def usage_example() -> torch.Tensor:
     # this maps every forward argument to the relevant key in the batch_dict
     loss_arg_to_batch_key = {"input": "model.logits", "target": "data.gt"}
     # wrapping the loss
-    wrapped_loss = LossWrapToDict(loss_module=loss, loss_arg_to_batch_key=loss_arg_to_batch_key)
+    wrapped_loss = LossWrapToDict(
+        loss_module=loss, loss_arg_to_batch_key=loss_arg_to_batch_key
+    )
     # running the wrapped loss with the batch_dict
     loss_result = wrapped_loss(batch_dict)
     print(f"the output loss is: {loss_result}")

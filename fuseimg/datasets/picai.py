@@ -2,7 +2,11 @@ from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuseimg.data.ops.color import OpNormalizeAgainstSelf
 
-from fuseimg.data.ops.aug.geometry import OpAugAffine2D, OpAugSqueeze3Dto2D, OpAugUnsqueeze3DFrom2D
+from fuseimg.data.ops.aug.geometry import (
+    OpAugAffine2D,
+    OpAugSqueeze3Dto2D,
+    OpAugUnsqueeze3DFrom2D,
+)
 from fuse.data import PipelineDefault, OpToTensor, OpRepeat
 from fuse.data.ops.ops_common import OpLambda, OpLookup, OpToOneHot
 
@@ -45,7 +49,9 @@ class OpLoadPICAIImage(OpBase):
     Loads a medical image
     """
 
-    def __init__(self, dir_path: str, seuqences: Sequence[str] = ["_t2w"], **kwargs: dict):
+    def __init__(
+        self, dir_path: str, seuqences: Sequence[str] = ["_t2w"], **kwargs: dict
+    ):
         super().__init__(**kwargs)
         self._dir_path = dir_path
         self._sequences = seuqences
@@ -64,7 +70,9 @@ class OpLoadPICAIImage(OpBase):
         try:
             for seq in self._sequences:
                 img_filename = os.path.join(
-                    self._dir_path, sample_dict[key_in].split("_")[0], sample_dict[key_in] + seq + ".mha"
+                    self._dir_path,
+                    sample_dict[key_in].split("_")[0],
+                    sample_dict[key_in] + seq + ".mha",
                 )
 
                 image_data, image_header = load(img_filename)
@@ -112,13 +120,21 @@ class OpLoadPICAISegmentation(OpBase):
             nii_data = my_img.get_fdata()
         else:
             img_filename = os.path.join(
-                self._data_dir, sample_dict[key_in].split("_")[0], sample_dict[key_in] + "_t2w.mha"
+                self._data_dir,
+                sample_dict[key_in].split("_")[0],
+                sample_dict[key_in] + "_t2w.mha",
             )
             image_data, image_header = load(img_filename)
             nii_data = np.zeros(image_data.shape)
         unique_labels = np.unique(nii_data)
         if sample_dict[gt] not in unique_labels:
-            print(sample_dict[key_in], "ISUP is", sample_dict[gt], "but unique labels are", unique_labels)
+            print(
+                sample_dict[key_in],
+                "ISUP is",
+                sample_dict[gt],
+                "but unique labels are",
+                unique_labels,
+            )
             return None
         # TODO - generate different map according to different ISUP in cancer segmentation?
         # else:
@@ -169,7 +185,11 @@ class PICAI:
 
     @staticmethod
     def static_pipeline(
-        data_source: pd.DataFrame, data_dir: str, seg_dir: str, target: str, repeat_images: Sequence[NDict]
+        data_source: pd.DataFrame,
+        data_dir: str,
+        seg_dir: str,
+        target: str,
+        repeat_images: Sequence[NDict],
     ) -> PipelineDefault:
         """
         Get suggested static pipeline (which will be cached), typically loading the data plus design choices that we won't experiment with.
@@ -181,8 +201,14 @@ class PICAI:
             "cmmd_static",
             [
                 # decoding sample ID
-                (OpPICAISampleIDDecode(), dict()),  # will save image and seg path to "data.input.img_path"
-                (OpLoadPICAIImage(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img")),
+                (
+                    OpPICAISampleIDDecode(),
+                    dict(),
+                ),  # will save image and seg path to "data.input.img_path"
+                (
+                    OpLoadPICAIImage(data_dir),
+                    dict(key_in="data.input.img_path", key_out="data.input.img"),
+                ),
                 (
                     OpReadDataframe(
                         data_source,
@@ -206,18 +232,32 @@ class PICAI:
                     ),
                     dict(),
                 ),
-                (OpLookup(bool_map), dict(key_in="data.gt.classification", key_out="data.gt.classification")),
+                (
+                    OpLookup(bool_map),
+                    dict(
+                        key_in="data.gt.classification",
+                        key_out="data.gt.classification",
+                    ),
+                ),
                 (
                     OpToOneHot(len(bool_map)),
-                    dict(key_in="data.gt.classification", key_out="data.gt.classification_one_hot"),
+                    dict(
+                        key_in="data.gt.classification",
+                        key_out="data.gt.classification_one_hot",
+                    ),
                 ),
                 (
                     OpLoadPICAISegmentationWholeGland(data_dir, seg_dir),
-                    dict(key_in="data.input.img_path", key_out="data.gt.seg", gt="data.gt.subtype"),
+                    dict(
+                        key_in="data.input.img_path",
+                        key_out="data.gt.seg",
+                        gt="data.gt.subtype",
+                    ),
                 ),
                 (
                     OpRepeat(
-                        OpLambda(partial(np.transpose, axes=[2, 0, 1])), kwargs_per_step_to_add=repeat_images_with_seg
+                        OpLambda(partial(np.transpose, axes=[2, 0, 1])),
+                        kwargs_per_step_to_add=repeat_images_with_seg,
                     ),
                     dict(),
                 ),
@@ -239,8 +279,16 @@ class PICAI:
                     {},
                 ),
                 # (OpNormalizeAgainstSelf(), dict(key="data.input.img_t2w")),
-                (OpRepeat((OpNormalizeAgainstSelf()), kwargs_per_step_to_add=repeat_images), dict()),
-                (OpRepeat((OpToNumpy()), kwargs_per_step_to_add=repeat_images), dict(dtype=np.float32)),
+                (
+                    OpRepeat(
+                        (OpNormalizeAgainstSelf()), kwargs_per_step_to_add=repeat_images
+                    ),
+                    dict(),
+                ),
+                (
+                    OpRepeat((OpToNumpy()), kwargs_per_step_to_add=repeat_images),
+                    dict(dtype=np.float32),
+                ),
                 # (OpResizeAndPad2D(), dict(key="data.input.img", resize_to=(2200, 1200), padding=(60, 60))),
             ],
         )
@@ -259,28 +307,52 @@ class PICAI:
         repeat_images_with_seg = repeat_images + [dict(key="data.gt.seg")]
         ops = []
         ops += [
-            (OpRepeat((OpToTensor()), kwargs_per_step_to_add=repeat_images), dict(dtype=torch.float32)),
+            (
+                OpRepeat((OpToTensor()), kwargs_per_step_to_add=repeat_images),
+                dict(dtype=torch.float32),
+            ),
             (OpToTensor(), dict(key="data.gt.seg", dtype=torch.int32)),
-            (OpRepeat((OpLambda(partial(torch.unsqueeze, dim=0))), kwargs_per_step_to_add=repeat_images_with_seg), {}),
+            (
+                OpRepeat(
+                    (OpLambda(partial(torch.unsqueeze, dim=0))),
+                    kwargs_per_step_to_add=repeat_images_with_seg,
+                ),
+                {},
+            ),
         ]
         if train:
             ops += [
                 # affine augmentation - will apply the same affine transformation on each slice
-                (OpRepeat((OpAugSqueeze3Dto2D()), kwargs_per_step_to_add=repeat_images_with_seg), dict(axis_squeeze=1)),
+                (
+                    OpRepeat(
+                        (OpAugSqueeze3Dto2D()),
+                        kwargs_per_step_to_add=repeat_images_with_seg,
+                    ),
+                    dict(axis_squeeze=1),
+                ),
                 (
                     OpRandApply(
-                        OpSampleAndRepeat(OpAugAffine2D(), kwargs_per_step_to_add=repeat_images_with_seg),
+                        OpSampleAndRepeat(
+                            OpAugAffine2D(),
+                            kwargs_per_step_to_add=repeat_images_with_seg,
+                        ),
                         aug_params["apply_aug_prob"],
                     ),
                     dict(
                         rotate=Uniform(*aug_params["rotate"]),
                         scale=Uniform(*aug_params["scale"]),
                         flip=(aug_params["flip"], aug_params["flip"]),
-                        translate=(RandInt(*aug_params["translate"]), RandInt(*aug_params["translate"])),
+                        translate=(
+                            RandInt(*aug_params["translate"]),
+                            RandInt(*aug_params["translate"]),
+                        ),
                     ),
                 ),
                 (
-                    OpRepeat(OpAugUnsqueeze3DFrom2D(), kwargs_per_step_to_add=repeat_images_with_seg),
+                    OpRepeat(
+                        OpAugUnsqueeze3DFrom2D(),
+                        kwargs_per_step_to_add=repeat_images_with_seg,
+                    ),
                     dict(axis_squeeze=1, channels=1),
                 ),
             ]
@@ -309,7 +381,9 @@ class PICAI:
 
         input_source_gt = pd.read_csv(paths["clinical_file"])
         input_source_gt["index"] = (
-            input_source_gt["patient_id"].astype(str) + "_" + input_source_gt["study_id"].astype(str)
+            input_source_gt["patient_id"].astype(str)
+            + "_"
+            + input_source_gt["study_id"].astype(str)
         )
         all_sample_ids = input_source_gt["index"].to_list()
 
@@ -317,16 +391,24 @@ class PICAI:
             sample_ids = all_sample_ids
         if run_sample > 0:
             sample_ids = sample_ids[:run_sample]
-        repeat_images = [dict(key="data.input.img" + seq) for seq in cfg["series_config"]]
+        repeat_images = [
+            dict(key="data.input.img" + seq) for seq in cfg["series_config"]
+        ]
         static_pipeline = PICAI.static_pipeline(
-            input_source_gt, paths["data_dir"], paths["seg_dir"], cfg["target"], repeat_images
+            input_source_gt,
+            paths["data_dir"],
+            paths["seg_dir"],
+            cfg["target"],
+            repeat_images,
         )
         if train:
             dynamic_pipeline = PICAI.dynamic_pipeline(
                 train=train, repeat_images=repeat_images, aug_params=cfg["aug_params"]
             )
         else:
-            dynamic_pipeline = PICAI.dynamic_pipeline(train=train, repeat_images=repeat_images)
+            dynamic_pipeline = PICAI.dynamic_pipeline(
+                train=train, repeat_images=repeat_images
+            )
 
         cacher = SamplesCacher(
             "cache_ver",

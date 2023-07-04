@@ -35,12 +35,18 @@ from hydra import compose, initialize
 # labels should be downloaded from https://github.com/DIAGNijmegen/picai_labels
 # folder named PICAI which is the downloaded data folder with partition for images and labels
 if "PICAI_DATA_PATH" in os.environ:
-    from fuse_examples.imaging.segmentation.picai.runner import run_train, run_infer, run_eval
+    from fuse_examples.imaging.segmentation.picai.runner import (
+        run_train,
+        run_infer,
+        run_eval,
+    )
 
 
 def run_picai(root: str) -> None:
     initialize(config_path="../imaging/segmentation/picai/conf", job_name="test_app")
-    cfg = compose(config_name="config_template", overrides=["paths.working_dir=" + root])
+    cfg = compose(
+        config_name="config_template", overrides=["paths.working_dir=" + root]
+    )
     print(str(cfg))
 
     cfg = NDict(hydra.utils.instantiate(cfg))
@@ -57,7 +63,10 @@ def run_picai(root: str) -> None:
     print(results)
 
 
-@unittest.skipIf("PICAI_DATA_PATH" not in os.environ, "define environment variable 'PICAI_DATA_PATH' to run this test")
+@unittest.skipIf(
+    "PICAI_DATA_PATH" not in os.environ,
+    "define environment variable 'PICAI_DATA_PATH' to run this test",
+)
 class SegmentationPICAITestCase(unittest.TestCase):
     def setUp(self) -> None:
         self.root = tempfile.mkdtemp()

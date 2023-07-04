@@ -102,7 +102,9 @@ def start_clearml_logger(
 
 
 def model_default_callbacks(
-    model_dir: str, best_epoch_source: Union[Dict, List[Dict], None], log_lr: bool = True
+    model_dir: str,
+    best_epoch_source: Union[Dict, List[Dict], None],
+    log_lr: bool = True,
 ) -> List[pl.Callback]:
     """
     Create list of pl.callbacks that saves checkpoints using (pl.callbacks.ModelCheckpoint), print per epoch summary (fuse.dl.lightning.pl_epoch_summary.ModelEpochSummary) and log learning rate (lightning.pytorch.callbacks.LearningRateMonitor).
@@ -197,7 +199,9 @@ def step_metrics(metrics: OrderedDict[str, MetricBase], batch_dict: NDict) -> No
         metric.collect(batch_dict)
 
 
-def step_extract_predictions(prediction_keys: Sequence[str], batch_dict: NDict) -> Dict[str, Any]:
+def step_extract_predictions(
+    prediction_keys: Sequence[str], batch_dict: NDict
+) -> Dict[str, Any]:
     """
     Extract the specified predictions from batch_dict (torch Tensors will be detached, moved to cpu and coverted to numpy)
     :param prediction_keys: the keys to extract
@@ -218,7 +222,10 @@ def step_extract_predictions(prediction_keys: Sequence[str], batch_dict: NDict) 
 
 
 def epoch_end_compute_and_log_losses(
-    pl_module: pl.LightningModule, mode: str, batch_losses: Sequence[NDict], sep: str = "."
+    pl_module: pl.LightningModule,
+    mode: str,
+    batch_losses: Sequence[NDict],
+    sep: str = ".",
 ) -> None:
     """
     On epoch end average out the batch losses and log the averaged losses
@@ -239,11 +246,20 @@ def epoch_end_compute_and_log_losses(
 
     for key in losses:
         loss = mean(losses[key])
-        pl_module.log(f"{mode}{sep}losses.{key}", loss, on_epoch=True, sync_dist=True, rank_zero_only=True)
+        pl_module.log(
+            f"{mode}{sep}losses.{key}",
+            loss,
+            on_epoch=True,
+            sync_dist=True,
+            rank_zero_only=True,
+        )
 
 
 def epoch_end_compute_and_log_metrics(
-    pl_module: pl.LightningModule, mode: str, metrics: OrderedDict[str, MetricBase], sep: str = "."
+    pl_module: pl.LightningModule,
+    mode: str,
+    metrics: OrderedDict[str, MetricBase],
+    sep: str = ".",
 ) -> None:
     """
     On epoch end compute and log per epoch metrics
@@ -260,7 +276,9 @@ def epoch_end_compute_and_log_metrics(
             metric_result = metric.eval(epoch_results)
         except:
             track = traceback.format_exc()
-            print(f"Metric {metric_name} process() func failed. Setting results to None")
+            print(
+                f"Metric {metric_name} process() func failed. Setting results to None"
+            )
             print(track)
             metric_result = None
 
@@ -269,5 +287,13 @@ def epoch_end_compute_and_log_metrics(
 
     # log metrics
     for key in epoch_results.keys():
-        if epoch_results[key] is not None and not isinstance(epoch_results[key], (PerSampleData)):
-            pl_module.log(f"{mode}{sep}{key}", epoch_results[key], on_epoch=True, sync_dist=True, rank_zero_only=True)
+        if epoch_results[key] is not None and not isinstance(
+            epoch_results[key], (PerSampleData)
+        ):
+            pl_module.log(
+                f"{mode}{sep}{key}",
+                epoch_results[key],
+                on_epoch=True,
+                sync_dist=True,
+                rank_zero_only=True,
+            )
