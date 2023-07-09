@@ -229,7 +229,7 @@ class TestNDict(unittest.TestCase):
 
         self.assertEqual(ndict["a.b.c"], 42)
 
-    def test_print_tree(self) -> None:
+    def test_get_tree(self) -> None:
         """
         basic test to check that print_tree() function runs
 
@@ -246,7 +246,13 @@ class TestNDict(unittest.TestCase):
         ndict["a.d"] = 23
         ndict["e"] = 10
 
-        ndict.print_tree(print_values=True)
+        gts = ["--- e -> 10\n--- a\n------ d -> 23\n------ b\n--------- c -> 42",
+               "--- e -> 10\n--- a\n------ b\n--------- c -> 42\n------ d -> 23",
+                "--- a\n------ b\n--------- c -> 42\n------ d -> 23\n--- e -> 10",
+                "--- a\n------ d -> 23\n------ b\n--------- c -> 42\n--- e -> 10"]
+        ans = ndict.get_tree(print_values=True)
+        self.assertIn(ans, gts)
+        print(ans)
 
     def test_unflatten(self) -> None:
         ndict = NDict()
