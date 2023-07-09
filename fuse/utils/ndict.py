@@ -440,16 +440,18 @@ class NDict(dict):
         level += 1
         for key in keys:
             if type(data_dict[key]) == dict:
-                res += " ".join(["---" * level, key+"\n"])
+                res += " ".join(["---" * level, key + "\n"])
                 res += NDict._get_tree_str_static(
                     data_dict[key], level, print_values=print_values
                 )
             else:
                 if print_values:
-                    res += " ".join(["---" * level, key, "->", str(data_dict[key])+"\n"])
+                    res += " ".join(
+                        ["---" * level, key, "->", str(data_dict[key]) + "\n"]
+                    )
                 else:
-                    res += " ".join(["---" * level, key+"\n"])
-        
+                    res += " ".join(["---" * level, key + "\n"])
+
         return res
 
     def describe(self) -> None:
