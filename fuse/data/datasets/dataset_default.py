@@ -47,6 +47,7 @@ class DatasetDefault(DatasetBase):
         dynamic_pipeline: Optional[PipelineDefault] = None,
         cacher: Optional[SamplesCacher] = None,
         allow_uncached_sample_morphing: bool = False,
+        allow_multi_samples: bool = False,
     ):
         """
         :param sample_ids: list of sample_ids included in dataset. Or:
@@ -62,6 +63,8 @@ class DatasetDefault(DatasetBase):
                                 changing it will NOT trigger recaching of the static_pipeline part.
         :param cacher: optional SamplesCacher instance which will be used for caching samples to speed up samples loading
         :param allow_uncached_sample_morphing:  when enabled, allows an Op, to return None, or to return multiple samples (in a list)
+        :param allow_multi_samples: when enables allows an op to sample_id to be mapped to a list of samples (op can split sample to multiple samples).
+                                    In such case __getitem__ will return either NDict or a list of NDicts
 
         """
         super().__init__()
@@ -85,6 +88,7 @@ class DatasetDefault(DatasetBase):
 
         # self._orig_sample_ids = sample_ids
         self._allow_uncached_sample_morphing = allow_uncached_sample_morphing
+        self._allow_multi_samples = allow_multi_samples
 
         # verify unique names for dynamic pipelines
         if dynamic_pipeline is not None and static_pipeline is not None:
@@ -241,7 +245,7 @@ class DatasetDefault(DatasetBase):
             if not self._allow_uncached_sample_morphing:
                 sample = create_initial_sample(sample_id)
                 sample = self._static_pipeline(sample)
-                if not isinstance(sample, dict):
+                if not isinstance(sample, dict) and not self._allow_multi_samples:
                     raise Exception(
                         f'By default when caching is disabled sample morphing is not allowed, and the output of the static pipeline is expected to be a dict. Instead got {type(sample)}. You can use "allow_uncached_sample_morphing=True" to allow this, but be aware it is slow and should be used only for debugging'
                     )
@@ -257,9 +261,9 @@ class DatasetDefault(DatasetBase):
             sample, until_op_id=collect_marker_info["op_id"]
         )
 
-        if not isinstance(sample, dict):
+        if not isinstance(sample, dict) and not self._allow_multi_samples:
             raise Exception(
-                f"The final output of dataset static (+optional dynamic) pipelines is expected to be a dict. Instead got {type(sample)}"
+                f"The final output of dataset static (+optional dynamic) pipelines is expected to be a dict. Instead got {type(sample)}, make sure that each op returns sample_dict at the end of the __call__ function"
             )
 
         # get just required keys
@@ -420,3 +424,26 @@ class DatasetDefault(DatasetBase):
 
         # grab the specified data
         self._final_sample_ids = itemgetter(*indices)(self._final_sample_ids)
+
+
+if __name__ == "__main__":
+
+    def split_samples(sample_dict: NDict, key_in: str, key_out: str) -> List[NDict]:
+        list_of_samples = []
+        for i in range(10):
+            sample = copy.deepcopy(sample_dict)
+            sample[key_out] = (sample[key_in], i)
+            list_of_samples.append(sample)
+
+        return list_of_samples
+
+    static_pipeline = PipelineDefault(
+        "mypipeline",
+        [(split_samples, dict(key_in="data.sample_id", key_out="data.sub_sample_id"))],
+    )
+    ds = DatasetDefault(
+        sample_ids=100, static_pipeline=static_pipeline, allow_multi_samples=True
+    )
+    ds.create()
+    print(ds[0])
+    print(ds[1])
