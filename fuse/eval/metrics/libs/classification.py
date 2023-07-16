@@ -36,6 +36,7 @@ class MetricsLibClass:
         target: Sequence[Union[np.ndarray, int]],
         sample_weight: Optional[Sequence[Union[np.ndarray, float]]] = None,
         pos_class_index: int = -1,
+        ignore_index: int = None,
         max_fpr: Optional[float] = None,
     ) -> float:
         """
@@ -48,14 +49,23 @@ class MetricsLibClass:
                         If not ``None``, the standardized partial AUC over the range [0, max_fpr] is returned.
         :return auc Receiver operating characteristic score
         """
+        target = np.asarray(target)
         if not isinstance(pred[0], np.ndarray) or len(pred[0].shape) == 0:
             pred = [np.array(p) for p in pred]
             pos_class_index = 1
             y_score = np.asarray(pred)
         else:
+            pred = np.array(pred)
+            pred = pred.reshape(-1, pred.shape[-1])
+            target = target.reshape(-1)
             if pos_class_index < 0:
-                pos_class_index = pred[0].shape[0] - 1
+                pos_class_index = pred.shape[1] - 1
             y_score = np.asarray(pred)[:, pos_class_index]
+
+        if ignore_index is not None:
+            filter_entries = target != ignore_index
+            y_score = y_score[filter_entries]
+            target = target[filter_entries]
 
         return metrics.roc_auc_score(
             y_score=y_score,
