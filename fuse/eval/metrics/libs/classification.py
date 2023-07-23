@@ -36,7 +36,7 @@ class MetricsLibClass:
         target: Sequence[Union[np.ndarray, int]],
         sample_weight: Optional[Sequence[Union[np.ndarray, float]]] = None,
         pos_class_index: int = -1,
-        ignore_index: int = None,
+        ignore_index: Optional[int] = None,
         max_fpr: Optional[float] = None,
     ) -> float:
         """
@@ -45,11 +45,14 @@ class MetricsLibClass:
         :param target: target per sample. Each element is an integer in range [0 - num_classes)
         :param sample_weight: Optional - weight per sample for a weighted auc. Each element is  float in range [0-1]
         :param pos_class_index: the class to compute the metrics in one vs rest manner - set to 1 in binary classification
+        :param ignore_index: Specifies a target value that is ignored and does not contribute to the computed metric.
         :param max_fpr: float > 0 and <= 1, default=None
                         If not ``None``, the standardized partial AUC over the range [0, max_fpr] is returned.
         :return auc Receiver operating characteristic score
         """
         target = np.asarray(target)
+        if sample_weight is not None:
+            sample_weight = np.asarray(sample_weight)
         if not isinstance(pred[0], np.ndarray) or len(pred[0].shape) == 0:
             pred = [np.array(p) for p in pred]
             pos_class_index = 1
@@ -61,15 +64,19 @@ class MetricsLibClass:
             if pos_class_index < 0:
                 pos_class_index = pred.shape[1] - 1
             y_score = np.asarray(pred)[:, pos_class_index]
+            if sample_weight is not None:
+                sample_weight = sample_weight.reshape(-1)
 
         if ignore_index is not None:
             filter_entries = target != ignore_index
             y_score = y_score[filter_entries]
             target = target[filter_entries]
+            if sample_weight is not None:
+                sample_weight = sample_weight[filter_entries]
 
         return metrics.roc_auc_score(
             y_score=y_score,
-            y_true=np.asarray(target) == pos_class_index,
+            y_true=target == pos_class_index,
             sample_weight=sample_weight,
             max_fpr=max_fpr,
         )
