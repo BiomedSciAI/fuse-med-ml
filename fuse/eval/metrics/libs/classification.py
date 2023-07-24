@@ -53,11 +53,18 @@ class MetricsLibClass:
         target = np.asarray(target)
         if sample_weight is not None:
             sample_weight = np.asarray(sample_weight)
-        if not isinstance(pred[0], np.ndarray) or len(pred[0].shape) == 0:
-            pred = [np.array(p) for p in pred]
+        single_pred = pred[0]  # should be either a scalar or 1d numpy.ndarray
+        if (
+            not isinstance(single_pred, np.ndarray)
+            or (len(single_pred.shape) == 0)
+            or (single_pred.shape[0] == 1)
+        ):
+            # case 1: single prediction
+            # pred = [np.array(p) for p in pred] # is needed ??
             pos_class_index = 1
             y_score = np.asarray(pred)
         else:
+            # case 2: multiple predictions - select the one that matches pos_class
             pred = np.array(pred)
             pred = pred.reshape(-1, pred.shape[-1])
             target = target.reshape(-1)

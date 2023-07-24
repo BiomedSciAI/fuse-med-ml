@@ -199,7 +199,8 @@ class MetricCollector(MetricBase):
         ), f"ERROR, Fuse Metrics only supports gathering of torch.Tensor at this time. You tried gathering {type(data)}"
 
         # if data is 1d, torch.vstack will add another dimension which we do not want
-        if len(data.shape) == 1:
+        is_1d = len(data.shape) == 1
+        if is_1d:
             data = data[:, None]  # add dim to the end
 
         # gather
@@ -209,6 +210,8 @@ class MetricCollector(MetricBase):
 
         # stack
         stacked_data = torch.vstack(data_list)
+        if is_1d:
+            stacked_data = stacked_data.reshape(-1)  # revert back to original 1d
 
         return stacked_data
 
