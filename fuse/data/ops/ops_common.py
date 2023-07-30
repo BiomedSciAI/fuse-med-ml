@@ -137,7 +137,7 @@ class OpLambda(OpReversibleBase):
             value = self._func(value, **kwargs)
             sample_dict[key] = value
         else:
-            sample_dict = self._func(sample_dict)
+            sample_dict = self._func(sample_dict, **kwargs)
 
         return sample_dict
 
