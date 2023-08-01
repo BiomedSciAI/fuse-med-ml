@@ -25,6 +25,7 @@ load datasets from fuse.
 """
 import copy
 from typing import OrderedDict, Any, Tuple, Optional
+from jsonargparse import CLI
 
 import torch.nn.functional as F
 import torch.optim as optim
@@ -44,25 +45,12 @@ from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
 from fuse.dl.lightning.pl_module import LightningModuleDefault
+from fuse.dl.lightning.pl_funcs import start_clearml_logger
 
 from fuseimg.datasets.mnist import MNIST
 from fuse_examples.imaging.classification.mnist import lenet
 
 import torch
-
-## Paths and Hyperparameters ############################################
-PARAMS_DICT = {
-    "paths.data_dir": "_examples/mnist",
-    "data.batch_size": 100,
-    "data.num_workers": 8,
-    "trainer.num_epochs": 3,
-    "trainer.num_devices": 1,
-    "trainer.accelerator": "gpu",
-    "trainer.ckpt_path": None,
-    "opt.lr": 1e-4,
-    "opt.weight_decay": 0.001,
-}
-
 
 def perform_softmax(logits: Any) -> Tuple[torch.Tensor, torch.Tensor]:
     cls_preds = F.softmax(logits, dim=1)
@@ -73,7 +61,7 @@ def perform_softmax(logits: Any) -> Tuple[torch.Tensor, torch.Tensor]:
 class FuseLitLenet(LightningModuleDefault):
     def __init__(
         self, model_dir: Optional[str], save_model: bool, lr: float, weight_decay: float
-    ):  # paths, params):
+    ):
         """
         Initialize the model. We inheret from LightningModuleDefault to get functions necessary for lightning trainer.
         We also wrap the torch model so that it can train using keys from the fuse NDict batch dict.
@@ -189,22 +177,34 @@ class MNISTDataModule(pl.LightningDataModule):
 
 
 ## Training #############################################################
-def run_train(params: dict) -> None:
+def run_train(
+        data_dir="_examples/mnist",
+        batch_size=100,
+        num_workers=8,
+        num_epochs=3,
+        num_devices=2,
+        num_nodes=1,
+        accelerator="gpu",
+        ckpt_path=None,
+        lr=1e-4,
+        weight_decay=0.001,
+        ) -> None:
+    start_clearml_logger(project_name="shatz_root/test_dist", task_name=f"num_nodes={num_nodes} : num_devices={num_devices}")
 
     # initialize model
     model = FuseLitLenet(
         model_dir=None,
         save_model=False,
-        lr=params["opt.lr"],
-        weight_decay=params["opt.weight_decay"],
+        lr=lr,
+        weight_decay=weight_decay,
     )
 
     # initialize data module
-    distributed = True if params["trainer.num_devices"] > 1 else None
+    distributed = True if num_devices > 1 else None
     mnist_dm = MNISTDataModule(
-        data_dir=params["paths.data_dir"],
-        batch_size=params["data.batch_size"],
-        num_workers=params["data.num_workers"],
+        data_dir=data_dir,
+        batch_size=batch_size,
+        num_workers=num_workers,
         distributed=distributed,
     )
 
@@ -219,15 +219,15 @@ def run_train(params: dict) -> None:
 
     # create pl trainer
     pl_trainer = pl.Trainer(
-        max_epochs=params["trainer.num_epochs"],
-        accelerator=params["trainer.accelerator"],
-        devices=params["trainer.num_devices"],
+        max_epochs=num_epochs,
+        accelerator=accelerator,
+        devices=num_devices,
+        num_nodes=num_nodes,
         **kwargs,
     )
 
     # train model
     pl_trainer.fit(model, mnist_dm)
 
-
 if __name__ == "__main__":
-    run_train(params=PARAMS_DICT)
+    CLI(run_train)
