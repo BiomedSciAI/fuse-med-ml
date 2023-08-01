@@ -52,6 +52,7 @@ from fuse_examples.imaging.classification.mnist import lenet
 
 import torch
 
+
 def perform_softmax(logits: Any) -> Tuple[torch.Tensor, torch.Tensor]:
     cls_preds = F.softmax(logits, dim=1)
     return logits, cls_preds
@@ -178,18 +179,21 @@ class MNISTDataModule(pl.LightningDataModule):
 
 ## Training #############################################################
 def run_train(
-        data_dir="_examples/mnist",
-        batch_size=100,
-        num_workers=8,
-        num_epochs=3,
-        num_devices=2,
-        num_nodes=1,
-        accelerator="gpu",
-        ckpt_path=None,
-        lr=1e-4,
-        weight_decay=0.001,
-        ) -> None:
-    start_clearml_logger(project_name="shatz_root/test_dist", task_name=f"num_nodes={num_nodes} : num_devices={num_devices}")
+    data_dir: str = "_examples/mnist",
+    batch_size: int = 100,
+    num_workers: int = 8,
+    num_epochs: int = 3,
+    num_devices: int = 2,
+    num_nodes: int = 1,
+    accelerator: str = "gpu",
+    ckpt_path: Optional[str] = None,
+    lr: float = 1e-4,
+    weight_decay: float = 0.001,
+) -> None:
+    start_clearml_logger(
+        project_name="shatz_root/test_dist",
+        task_name=f"num_nodes={num_nodes} : num_devices={num_devices}",
+    )
 
     # initialize model
     model = FuseLitLenet(
@@ -228,6 +232,7 @@ def run_train(
 
     # train model
     pl_trainer.fit(model, mnist_dm)
+
 
 if __name__ == "__main__":
     CLI(run_train)
