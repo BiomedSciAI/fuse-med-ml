@@ -1,5 +1,6 @@
 #!/bin/bash
 source ~/.bashrc
+source /dccstor/fuse_med_ml/cicd/env.sh
 
 # check if current env already exist
 find_in_conda_env(){
