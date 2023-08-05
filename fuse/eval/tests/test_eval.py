@@ -93,12 +93,18 @@ class TestEval(unittest.TestCase):
 
     def test_eval_example_6(self) -> None:
         results = example_6()
-        self.assertAlmostEqual(results["metrics.delongs_test.p_value.macro_avg"], 0.3173, places=4)
-        self.assertAlmostEqual(results["metrics.delongs_test.z.macro_avg"], 1.000, places=3)
+        self.assertAlmostEqual(
+            results["metrics.delongs_test.p_value.macro_avg"], 0.3173, places=4
+        )
+        self.assertAlmostEqual(
+            results["metrics.delongs_test.z.macro_avg"], 1.000, places=3
+        )
 
     def test_eval_example_7(self) -> None:
         results = example_7()
-        self.assertAlmostEqual(results["metrics.delongs_test.p_value"], 0.09453, places=5)
+        self.assertAlmostEqual(
+            results["metrics.delongs_test.p_value"], 0.09453, places=5
+        )
         self.assertAlmostEqual(results["metrics.delongs_test.z"], 1.672, places=3)
 
     def test_eval_example_8(self) -> None:
@@ -112,7 +118,9 @@ class TestEval(unittest.TestCase):
             import fuse.data
             import torchvision
         except ImportError:
-            warn(" test_eval_example_8: requires fuse-med-ml-data and torchvision packages")
+            warn(
+                " test_eval_example_8: requires fuse-med-ml-data and torchvision packages"
+            )
             return
 
         results = example_9()
@@ -120,7 +128,9 @@ class TestEval(unittest.TestCase):
 
     def test_eval_example_10(self) -> None:
         results = example_10()
-        self.assertAlmostEqual(results["metrics.mcnemars_test.statistic"], 1.0, places=1)
+        self.assertAlmostEqual(
+            results["metrics.mcnemars_test.statistic"], 1.0, places=1
+        )
         self.assertAlmostEqual(results["metrics.mcnemars_test.p_value"], 1.0, places=5)
 
     def test_eval_example_11(self) -> None:
@@ -133,8 +143,12 @@ class TestEval(unittest.TestCase):
 
     def test_eval_example_18(self) -> None:
         results = example_18()
-        self.assertAlmostEqual(results["metrics.multi_label_auc_micro"], 0.5067, places=3)
-        self.assertAlmostEqual(results["metrics.multi_label_auc_macro"], 0.5063, places=3)
+        self.assertAlmostEqual(
+            results["metrics.multi_label_auc_micro"], 0.5067, places=3
+        )
+        self.assertAlmostEqual(
+            results["metrics.multi_label_auc_macro"], 0.5063, places=3
+        )
 
     def test_eval_example_seg_0(self) -> None:
         results = example_seg_0()
@@ -171,22 +185,40 @@ class TestEval(unittest.TestCase):
         self.assertAlmostEqual(results["metrics.recall_bbox_car"], 0.9318, places=3)
         self.assertAlmostEqual(results["metrics.precision_bbox_person"], 1.0, places=3)
         self.assertAlmostEqual(results["metrics.iou_polygon_car"], 0.8776, places=3)
-        self.assertAlmostEqual(results["metrics.recall_polygon_person"], 0.60416, places=3)
+        self.assertAlmostEqual(
+            results["metrics.recall_polygon_person"], 0.60416, places=3
+        )
         self.assertAlmostEqual(results["metrics.recall_polygon_car"], 0.8068, places=3)
-        self.assertAlmostEqual(results["metrics.precision_polygon_person"], 0.875, places=3)
-        self.assertAlmostEqual(results["metrics.precision_polygon_car"], 0.875, places=3)
+        self.assertAlmostEqual(
+            results["metrics.precision_polygon_person"], 0.875, places=3
+        )
+        self.assertAlmostEqual(
+            results["metrics.precision_polygon_car"], 0.875, places=3
+        )
 
     def test_eval_example_13(self) -> None:
         results = example_13()
-        self.assertAlmostEqual(results["metrics.reliability"]["avg_accuracy"], 0.566, places=2)
-        self.assertAlmostEqual(results["metrics.reliability"]["avg_confidence"], 0.441, places=2)
+        self.assertAlmostEqual(
+            results["metrics.reliability"]["avg_accuracy"], 0.566, places=2
+        )
+        self.assertAlmostEqual(
+            results["metrics.reliability"]["avg_confidence"], 0.441, places=2
+        )
         self.assertAlmostEqual(results["metrics.ece"]["ece"], 0.126, places=2)
         self.assertAlmostEqual(results["metrics.ece"]["mce"], 0.800, places=2)
         self.assertAlmostEqual(results["metrics.find_temperature"], 0.8076, places=3)
-        self.assertAlmostEqual(results["metrics.ece_calibrated"]["ece"], 0.123, places=2)
-        self.assertAlmostEqual(results["metrics.ece_calibrated"]["mce"], 0.300, places=2)
-        self.assertAlmostEqual(results["metrics.reliability_calibrated"]["avg_accuracy"], 0.566, places=2)
-        self.assertAlmostEqual(results["metrics.reliability_calibrated"]["avg_confidence"], 0.485, places=2)
+        self.assertAlmostEqual(
+            results["metrics.ece_calibrated"]["ece"], 0.123, places=2
+        )
+        self.assertAlmostEqual(
+            results["metrics.ece_calibrated"]["mce"], 0.300, places=2
+        )
+        self.assertAlmostEqual(
+            results["metrics.reliability_calibrated"]["avg_accuracy"], 0.566, places=2
+        )
+        self.assertAlmostEqual(
+            results["metrics.reliability_calibrated"]["avg_confidence"], 0.485, places=2
+        )
 
     def test_eval_example_14(self) -> None:
         results = example_14()

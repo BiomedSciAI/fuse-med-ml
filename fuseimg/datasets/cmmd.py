@@ -2,7 +2,11 @@ from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuseimg.data.ops.image_loader import OpLoadImage
 from fuseimg.data.ops.color import OpNormalizeAgainstSelf
-from fuseimg.data.ops.shape_ops import OpFlipBrightSideOnLeft2D, OpFindBiggestNonEmptyBbox2D, OpResizeAndPad2D
+from fuseimg.data.ops.shape_ops import (
+    OpFlipBrightSideOnLeft2D,
+    OpFindBiggestNonEmptyBbox2D,
+    OpResizeAndPad2D,
+)
 from fuse.data import PipelineDefault, OpToTensor
 from fuse.data.ops.ops_common import OpLambda
 from fuseimg.data.ops.aug.color import OpAugColor
@@ -55,7 +59,9 @@ class CMMD:
     CMMD_DATASET_VER = 0
 
     @staticmethod
-    def static_pipeline(data_dir: str, data_source: pd.DataFrame, target: str) -> PipelineDefault:
+    def static_pipeline(
+        data_dir: str, data_source: pd.DataFrame, target: str
+    ) -> PipelineDefault:
         """
         Get suggested static pipeline (which will be cached), typically loading the data plus design choices that we won't experiment with.
         :param data_path: path to original kits21 data (can be downloaded by KITS21.download())
@@ -64,13 +70,28 @@ class CMMD:
             "cmmd_static",
             [
                 # decoding sample ID
-                (OpCMMDSampleIDDecode(), dict()),  # will save image and seg path to "data.input.img_path"
-                (OpLoadImage(data_dir), dict(key_in="data.input.img_path", key_out="data.input.img", format="dcm")),
+                (
+                    OpCMMDSampleIDDecode(),
+                    dict(),
+                ),  # will save image and seg path to "data.input.img_path"
+                (
+                    OpLoadImage(data_dir),
+                    dict(
+                        key_in="data.input.img_path",
+                        key_out="data.input.img",
+                        format="dcm",
+                    ),
+                ),
                 (OpFlipBrightSideOnLeft2D(), dict(key="data.input.img")),
                 (OpFindBiggestNonEmptyBbox2D(), dict(key="data.input.img")),
                 (OpToNumpy(), dict(key="data.input.img", dtype=np.float32)),
                 (OpNormalizeAgainstSelf(), dict(key="data.input.img")),
-                (OpResizeAndPad2D(), dict(key="data.input.img", resize_to=(2200, 1200), padding=(60, 60))),
+                (
+                    OpResizeAndPad2D(),
+                    dict(
+                        key="data.input.img", resize_to=(2200, 1200), padding=(60, 60)
+                    ),
+                ),
                 (
                     OpReadDataframe(
                         data_source,
@@ -78,7 +99,9 @@ class CMMD:
                         key_name="data.input.img_path",
                         columns_to_extract=["ID1", "file", "classification", "subtype"],
                         rename_columns=dict(
-                            ID1="data.patientID", classification="data.gt.classification", subtype="data.gt.subtype"
+                            ID1="data.patientID",
+                            classification="data.gt.classification",
+                            subtype="data.gt.subtype",
                         ),
                     ),
                     dict(),
@@ -128,7 +151,9 @@ class CMMD:
         return dynamic_pipeline
 
     @staticmethod
-    def merge_clinical_data_with_dicom_tags(data_dir: str, data_misc_dir: str, target: str) -> str:
+    def merge_clinical_data_with_dicom_tags(
+        data_dir: str, data_misc_dir: str, target: str
+    ) -> str:
         """
         Creates a csv file that contains label for each image ( instead of patient as in dataset given file)
         by reading metadata ( breast side and view ) from the dicom files and merging it with the input csv
@@ -152,7 +177,11 @@ class CMMD:
         for patient in os.listdir(os.path.join(data_dir, "CMMD")):
             path = os.path.join(data_dir, "CMMD", patient)
             for dicom_file in glob.glob(os.path.join(path, "**/*.dcm"), recursive=True):
-                file = dicom_file[len(data_dir) + 1 :] if dicom_file.startswith(data_dir) else ""
+                file = (
+                    dicom_file[len(data_dir) + 1 :]
+                    if dicom_file.startswith(data_dir)
+                    else ""
+                )
                 dcm = pydicom.dcmread(os.path.join(data_dir, file))
                 scans.append(
                     {
@@ -163,11 +192,23 @@ class CMMD:
                     }
                 )
         dicom_tags = pd.DataFrame(scans)
-        merged_clinical_data = pd.merge(clinical_data, dicom_tags, how="outer", on=["ID1", "LeftRight"])
-        merged_clinical_data = merged_clinical_data[merged_clinical_data[target].notna()]
-        merged_clinical_data["classification"] = np.where(merged_clinical_data["classification"] == "Benign", 0, 1)
+        merged_clinical_data = pd.merge(
+            clinical_data, dicom_tags, how="outer", on=["ID1", "LeftRight"]
+        )
+        merged_clinical_data = merged_clinical_data[
+            merged_clinical_data[target].notna()
+        ]
+        merged_clinical_data["classification"] = np.where(
+            merged_clinical_data["classification"] == "Benign", 0, 1
+        )
         merged_clinical_data["subtype"] = merged_clinical_data["subtype"].replace(
-            {"Luminal A": 0, "Luminal B": 1, "HER2-enriched": 2, "triple negative": 3, np.nan: "4"}
+            {
+                "Luminal A": 0,
+                "Luminal B": 1,
+                "HER2-enriched": 2,
+                "triple negative": 3,
+                np.nan: "4",
+            }
         )
         merged_clinical_data = merged_clinical_data.dropna()
         merged_clinical_data.to_csv(combined_file_path)
@@ -198,7 +239,9 @@ class CMMD:
         :return: DatasetDefault object
         """
 
-        input_source_gt, all_sample_ids = CMMD.merge_clinical_data_with_dicom_tags(data_dir, data_misc_dir, target)
+        input_source_gt, all_sample_ids = CMMD.merge_clinical_data_with_dicom_tags(
+            data_dir, data_misc_dir, target
+        )
 
         if sample_ids is None:
             sample_ids = all_sample_ids

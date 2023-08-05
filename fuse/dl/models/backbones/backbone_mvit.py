@@ -44,8 +44,42 @@ class BackboneMViT(nn.Module):
         super(BackboneMViT, self).__init__()
         config: Dict[str, List] = {
             "num_heads": [1, 2, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 8, 8],
-            "input_channels": [96, 96, 192, 192, 384, 384, 384, 384, 384, 384, 384, 384, 384, 384, 384, 768],
-            "output_channels": [96, 192, 192, 384, 384, 384, 384, 384, 384, 384, 384, 384, 384, 384, 768, 768],
+            "input_channels": [
+                96,
+                96,
+                192,
+                192,
+                384,
+                384,
+                384,
+                384,
+                384,
+                384,
+                384,
+                384,
+                384,
+                384,
+                384,
+                768,
+            ],
+            "output_channels": [
+                96,
+                192,
+                192,
+                384,
+                384,
+                384,
+                384,
+                384,
+                384,
+                384,
+                384,
+                384,
+                384,
+                384,
+                768,
+                768,
+            ],
             "kernel_q": [
                 [3, 3, 3],
                 [3, 3, 3],
@@ -152,7 +186,9 @@ class BackboneMViT(nn.Module):
 
         if in_channels == 1:
             self.model.conv_proj.in_channels = 1
-            self.model.conv_proj.weight = torch.nn.Parameter(self.model.conv_proj.weight.sum(dim=1, keepdim=True))
+            self.model.conv_proj.weight = torch.nn.Parameter(
+                self.model.conv_proj.weight.sum(dim=1, keepdim=True)
+            )
         self.model.head = nn.Identity()
 
     def forward(self, x: Tensor) -> Tensor:

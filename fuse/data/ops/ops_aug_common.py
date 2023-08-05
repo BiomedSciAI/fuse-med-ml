@@ -19,7 +19,9 @@ class OpRandApply(OpReversibleBase):
         self._op = op
         self._param_sampler = RandBool(probability=probability)
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs: dict) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, op_id: Optional[str], **kwargs: dict
+    ) -> Union[None, dict, List[dict]]:
         """
         See super class
         """
@@ -29,13 +31,21 @@ class OpRandApply(OpReversibleBase):
             sample_dict = op_call(self._op, sample_dict, f"{op_id}.apply", **kwargs)
         return sample_dict
 
-    def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
+    def reverse(
+        self,
+        sample_dict: NDict,
+        key_to_reverse: str,
+        key_to_follow: str,
+        op_id: Optional[str],
+    ) -> dict:
         """
         See super class
         """
         apply = sample_dict[op_id]
         if apply:
-            sample_dict = op_reverse(self._op, sample_dict, key_to_reverse, key_to_follow, f"{op_id}.apply")
+            sample_dict = op_reverse(
+                self._op, sample_dict, key_to_reverse, key_to_follow, f"{op_id}.apply"
+            )
 
         return sample_dict
 
@@ -63,14 +73,22 @@ class OpSample(OpReversibleBase):
         super().__init__()
         self._op = op
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs: dict) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, op_id: Optional[str], **kwargs: dict
+    ) -> Union[None, dict, List[dict]]:
         """
         See super class
         """
         sampled_kwargs = draw_samples_recursively(kwargs)
         return op_call(self._op, sample_dict, op_id, **sampled_kwargs)
 
-    def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
+    def reverse(
+        self,
+        sample_dict: NDict,
+        key_to_reverse: str,
+        key_to_follow: str,
+        op_id: Optional[str],
+    ) -> dict:
         """
         See super class
         """

@@ -47,7 +47,9 @@ from fuse.eval.metrics.classification.metrics_model_comparison_common import (
     MetricDelongsTest,
     MetricMcnemarsTest,
 )
-from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
+from fuse.eval.metrics.classification.metrics_thresholding_common import (
+    MetricApplyThresholds,
+)
 from fuse.eval.metrics.classification.metrics_calibration_common import (
     MetricReliabilityDiagram,
     MetricECE,
@@ -115,7 +117,9 @@ def example_1() -> Dict[str, Any]:
             (
                 "auc",
                 MetricAUCROC(
-                    pred="pred.array", target="target.Task1-target", pre_collect_process_func=pre_collect_process
+                    pred="pred.array",
+                    target="target.Task1-target",
+                    pre_collect_process_func=pre_collect_process,
                 ),
             ),
         ]
@@ -139,21 +143,32 @@ def example_2() -> NDict:
     """
     # path to prediction and target files
     dir_path = pathlib.Path(__file__).parent.resolve()
-    prediction_fold0_filename = os.path.join(dir_path, "inputs/example2_predictions_fold0.csv")
-    prediction_fold1_filename = os.path.join(dir_path, "inputs/example2_predictions_fold1.csv")
+    prediction_fold0_filename = os.path.join(
+        dir_path, "inputs/example2_predictions_fold0.csv"
+    )
+    prediction_fold1_filename = os.path.join(
+        dir_path, "inputs/example2_predictions_fold1.csv"
+    )
     targets_filename = os.path.join(dir_path, "inputs/example2_targets.csv")
 
     # define data
-    data = {"pred": [prediction_fold0_filename, prediction_fold1_filename], "target": targets_filename}
+    data = {
+        "pred": [prediction_fold0_filename, prediction_fold1_filename],
+        "target": targets_filename,
+    }
 
     # list of metrics
     metrics = OrderedDict(
         [
-            ("auc", MetricAUCROC(pred="pred.CanAT-score", target="target.Task1-target")),
+            (
+                "auc",
+                MetricAUCROC(pred="pred.CanAT-score", target="target.Task1-target"),
+            ),
             (
                 "auc_per_fold",
                 GroupAnalysis(
-                    MetricAUCROC(pred="pred.CanAT-score", target="target.Task1-target"), group="pred.evaluator_fold"
+                    MetricAUCROC(pred="pred.CanAT-score", target="target.Task1-target"),
+                    group="pred.evaluator_fold",
                 ),
             ),
         ]
@@ -174,12 +189,30 @@ def example_3() -> NDict:
         "pred": [0.1, 0.2, 0.6, 0.7, 0.8, 0.3, 0.6, 0.2, 0.7, 0.9],
         "target": [0, 0, 1, 1, 1, 0, 0, 1, 1, 1],
         "id": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-        "gender": ["female", "female", "female", "female", "female", "male", "male", "male", "male", "male"],
+        "gender": [
+            "female",
+            "female",
+            "female",
+            "female",
+            "female",
+            "male",
+            "male",
+            "male",
+            "male",
+            "male",
+        ],
     }
     data = pd.DataFrame(data)
 
     metrics = OrderedDict(
-        [("auc_per_group", GroupAnalysis(MetricAUCROC(pred="pred", target="target"), group="gender"))]
+        [
+            (
+                "auc_per_group",
+                GroupAnalysis(
+                    MetricAUCROC(pred="pred", target="target"), group="gender"
+                ),
+            )
+        ]
     )
 
     evaluator = EvaluatorDefault()
@@ -242,13 +275,23 @@ def example_5() -> NDict:
     data_df = pd.DataFrame(data)
 
     # list of metrics
-    metric_model_test = MetricConfusion(pred="results:metrics.apply_thresh_a.cls_pred", target="target")
-    metric_model_reference = MetricConfusion(pred="results:metrics.apply_thresh_b.cls_pred", target="target")
+    metric_model_test = MetricConfusion(
+        pred="results:metrics.apply_thresh_a.cls_pred", target="target"
+    )
+    metric_model_reference = MetricConfusion(
+        pred="results:metrics.apply_thresh_b.cls_pred", target="target"
+    )
 
     metrics = OrderedDict(
         [
-            ("apply_thresh_a", MetricApplyThresholds(pred="model_a_pred", operation_point=0.5)),
-            ("apply_thresh_b", MetricApplyThresholds(pred="model_b_pred", operation_point=0.5)),
+            (
+                "apply_thresh_a",
+                MetricApplyThresholds(pred="model_a_pred", operation_point=0.5),
+            ),
+            (
+                "apply_thresh_b",
+                MetricApplyThresholds(pred="model_b_pred", operation_point=0.5),
+            ),
             (
                 "compare_a_to_b",
                 PairedBootstrap(
@@ -302,7 +345,10 @@ def example_6() -> NDict:
             (
                 "delongs_test",
                 MetricDelongsTest(
-                    target="target.target", class_names=["negative", "positive"], pred1="pred.pred1", pred2="pred.pred2"
+                    target="target.target",
+                    class_names=["negative", "positive"],
+                    pred1="pred.pred1",
+                    pred2="pred.pred2",
                 ),
             ),
         ]
@@ -321,8 +367,12 @@ def example_7() -> NDict:
     Three different sources: dataframe per model prediction and a target dataframe
     """
     target = np.array([0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1])
-    pred1 = np.array([0.1, 0.2, 0.05, 0.3, 0.1, 0.6, 0.6, 0.7, 0.8, 0.99, 0.8, 0.67, 0.5])
-    pred2 = np.array([0.3, 0.6, 0.2, 0.1, 0.1, 0.9, 0.23, 0.7, 0.9, 0.4, 0.77, 0.3, 0.89])
+    pred1 = np.array(
+        [0.1, 0.2, 0.05, 0.3, 0.1, 0.6, 0.6, 0.7, 0.8, 0.99, 0.8, 0.67, 0.5]
+    )
+    pred2 = np.array(
+        [0.3, 0.6, 0.2, 0.1, 0.1, 0.9, 0.23, 0.7, 0.9, 0.4, 0.77, 0.3, 0.89]
+    )
 
     ids = np.arange(0, len(target))
 
@@ -343,7 +393,12 @@ def example_7() -> NDict:
     # list of metrics
     metrics = OrderedDict(
         [
-            ("delongs_test", MetricDelongsTest(target="target.target", pred1="pred1.output", pred2="pred2.output")),
+            (
+                "delongs_test",
+                MetricDelongsTest(
+                    target="target.target", pred1="pred1.output", pred2="pred2.output"
+                ),
+            ),
         ]
     )
 
@@ -361,7 +416,9 @@ def example_8() -> NDict:
     # path to prediction and target files
     dir_path = pathlib.Path(__file__).parent.resolve()
     prediction_filename = os.path.join(dir_path, "inputs/example7_predictions.csv")
-    targets_filename = os.path.join(dir_path, "inputs/example1_targets.csv")  # same target file as in example1
+    targets_filename = os.path.join(
+        dir_path, "inputs/example1_targets.csv"
+    )  # same target file as in example1
     data = {"target": targets_filename, "pred": prediction_filename}
 
     class_names = ["B", "LR", "IR", "HR", "VHR"]
@@ -412,7 +469,9 @@ def example_8() -> NDict:
             (
                 "accuracy",
                 MetricAccuracy(
-                    pred="pred.output_class", target="target.Task2-target", pre_collect_process_func=pre_collect_process
+                    pred="pred.output_class",
+                    target="target.Task2-target",
+                    pre_collect_process_func=pre_collect_process,
                 ),
             ),  # default operation point is argmax
             (
@@ -427,7 +486,9 @@ def example_8() -> NDict:
             (
                 "bss",
                 MetricBSS(
-                    pred="pred.output", target="target.Task2-target", pre_collect_process_func=pre_collect_process
+                    pred="pred.output",
+                    target="target.Task2-target",
+                    pre_collect_process_func=pre_collect_process,
                 ),
             ),
             (
@@ -465,7 +526,9 @@ def example_9() -> NDict:
     # Create dataset
     # mnist download path - MNIST_DATA_PATH defined in cicd pipeline
     mnist_data_path = os.environ.get("MNIST_DATA_PATH", mkdtemp(prefix="mnist"))
-    torch_dataset = torchvision.datasets.MNIST(mnist_data_path, download=True, train=False)
+    torch_dataset = torchvision.datasets.MNIST(
+        mnist_data_path, download=True, train=False
+    )
 
     # define iterator
     def data_iter() -> NDict:
@@ -526,7 +589,11 @@ def example_10() -> NDict:
         [
             (
                 "mcnemars_test",
-                MetricMcnemarsTest(pred1="data.cls_pred1", pred2="data.cls_pred2", target="data.ground_truth"),
+                MetricMcnemarsTest(
+                    pred1="data.cls_pred1",
+                    pred2="data.cls_pred2",
+                    target="data.ground_truth",
+                ),
             ),
         ]
     )
@@ -579,7 +646,9 @@ def example_12() -> NDict:
     Then, we apply the accuracy metric on the class predictions vs. targets.
     """
     target = np.array([0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1])
-    pred = np.array([0.3, 0.6, 0.2, 0.1, 0.1, 0.9, 0.23, 0.7, 0.9, 0.4, 0.77, 0.3, 0.89])
+    pred = np.array(
+        [0.3, 0.6, 0.2, 0.1, 0.1, 0.9, 0.23, 0.7, 0.9, 0.4, 0.77, 0.3, 0.89]
+    )
 
     ids = np.arange(0, len(target))
 
@@ -595,8 +664,16 @@ def example_12() -> NDict:
 
     metrics = OrderedDict(
         [
-            ("apply_thresh", MetricApplyThresholds(pred="pred.pred", operation_point=0.5)),
-            ("acc", MetricAccuracy(pred="results:metrics.apply_thresh.cls_pred", target="target.target")),
+            (
+                "apply_thresh",
+                MetricApplyThresholds(pred="pred.pred", operation_point=0.5),
+            ),
+            (
+                "acc",
+                MetricAccuracy(
+                    pred="results:metrics.apply_thresh.cls_pred", target="target.target"
+                ),
+            ),
         ]
     )
     # read files
@@ -622,7 +699,9 @@ def example_13() -> NDict:
     # path to prediction and target files
     dir_path = pathlib.Path(__file__).parent.resolve()
     prediction_filename = os.path.join(dir_path, "inputs/example7_predictions.csv")
-    targets_filename = os.path.join(dir_path, "inputs/example1_targets.csv")  # same target file as in example1
+    targets_filename = os.path.join(
+        dir_path, "inputs/example1_targets.csv"
+    )  # same target file as in example1
     data = {"target": targets_filename, "pred": prediction_filename}
 
     class_names = ["B", "LR", "IR", "HR", "VHR"]
@@ -669,7 +748,9 @@ def example_13() -> NDict:
             (
                 "find_temperature",
                 MetricFindTemperature(
-                    pred="pred.logits", target="target.Task2-target", pre_collect_process_func=pre_collect_process
+                    pred="pred.logits",
+                    target="target.Task2-target",
+                    pre_collect_process_func=pre_collect_process,
                 ),
             ),
             (
@@ -721,7 +802,10 @@ def example_14() -> NDict:
     dir_path = pathlib.Path(__file__).parent.resolve()
     inference_file_name = "test_set_infer.gz"
     model_dirs = [
-        os.path.join(dir_path, "inputs/ensemble/mnist/test_dir", str(i), inference_file_name) for i in range(5)
+        os.path.join(
+            dir_path, "inputs/ensemble/mnist/test_dir", str(i), inference_file_name
+        )
+        for i in range(5)
     ]
     output_file = "ensemble_output.gz"
     # define data
@@ -746,7 +830,9 @@ def example_14() -> NDict:
             ),
             (
                 "apply_thresh",
-                MetricApplyThresholds(pred="results:metrics.ensemble.preds", operation_point=None),
+                MetricApplyThresholds(
+                    pred="results:metrics.ensemble.preds", operation_point=None
+                ),
             ),
             (
                 "accuracy",
@@ -773,12 +859,30 @@ def example_15() -> NDict:
         "pred": [0.1, 0.2, 0.6, 0.7, 0.8, 0.3, 0.6, 0.2, 0.7, 0.9],
         "event_times": [0, 0, 1, 1, 1, 0, 0, 1, 1, 1],
         "id": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-        "gender": ["female", "female", "female", "female", "female", "male", "male", "male", "male", "male"],
+        "gender": [
+            "female",
+            "female",
+            "female",
+            "female",
+            "female",
+            "male",
+            "male",
+            "male",
+            "male",
+            "male",
+        ],
     }
     data = pd.DataFrame(data)
 
     metrics = OrderedDict(
-        [("cindex_per_group", GroupAnalysis(MetricCIndex(pred="pred", event_times="event_times"), group="gender"))]
+        [
+            (
+                "cindex_per_group",
+                GroupAnalysis(
+                    MetricCIndex(pred="pred", event_times="event_times"), group="gender"
+                ),
+            )
+        ]
     )
 
     evaluator = EvaluatorDefault()
@@ -797,7 +901,18 @@ def example_16() -> NDict:
         "event_observed": 1 - np.asarray([0, 0, 1, 1, 1, 0, 0, 1, 1, 1]),
         "event_times": [1] * 10,
         "id": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-        "gender": ["female", "female", "female", "female", "female", "male", "male", "male", "male", "male"],
+        "gender": [
+            "female",
+            "female",
+            "female",
+            "female",
+            "female",
+            "male",
+            "male",
+            "male",
+            "male",
+            "male",
+        ],
     }
     data = pd.DataFrame(data)
 
@@ -806,7 +921,11 @@ def example_16() -> NDict:
             (
                 "cindex_per_group",
                 GroupAnalysis(
-                    MetricCIndex(pred="pred", event_times="event_times", event_observed="event_observed"),
+                    MetricCIndex(
+                        pred="pred",
+                        event_times="event_times",
+                        event_observed="event_observed",
+                    ),
                     group="gender",
                 ),
             )
@@ -843,7 +962,11 @@ def example_17() -> NDict:
         [
             (
                 "c_index_test",
-                MetricCIndex(pred="data.pred", event_times="data.event_times", event_observed="data.event_observed"),
+                MetricCIndex(
+                    pred="data.pred",
+                    event_times="data.event_times",
+                    event_observed="data.event_observed",
+                ),
             ),
         ]
     )
@@ -879,11 +1002,15 @@ def example_18() -> NDict:
         [
             (
                 "multi_label_auc_micro",
-                MetricAUCROCMultLabel(pred="pred.pred", target="target.target", average="micro"),
+                MetricAUCROCMultLabel(
+                    pred="pred.pred", target="target.target", average="micro"
+                ),
             ),
             (
                 "multi_label_auc_macro",
-                MetricAUCROCMultLabel(pred="pred.pred", target="target.target", average="macro"),
+                MetricAUCROCMultLabel(
+                    pred="pred.pred", target="target.target", average="macro"
+                ),
             ),
         ]
     )

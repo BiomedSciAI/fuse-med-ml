@@ -41,7 +41,11 @@ def typedElementFromSample(sample_dict, key_pattern, td):
         for k in all_keys
         if td.get_type(sample_dict, k) != DataTypeBasic.UNKNOWN
     }
-    keymap = {td.get_type(sample_dict, k): k for k in all_keys if td.get_type(sample_dict, k) != DataTypeBasic.UNKNOWN}
+    keymap = {
+        td.get_type(sample_dict, k): k
+        for k in all_keys
+        if td.get_type(sample_dict, k) != DataTypeBasic.UNKNOWN
+    }
     elem = TypedElement(**content)
     return elem, keymap
 

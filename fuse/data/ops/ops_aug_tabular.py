@@ -51,7 +51,9 @@ class OpAugOneHot(OpBase):
 
         supported_modes = ["default", "ranking"]
         if mode not in supported_modes:
-            raise Exception(f"mode ({mode}) should be in supported modes ({supported_modes}).")
+            raise Exception(
+                f"mode ({mode}) should be in supported modes ({supported_modes})."
+            )
 
         if mode != "default" and idx is not None:
             raise Exception("specify idx only in default mode")

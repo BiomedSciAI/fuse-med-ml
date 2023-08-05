@@ -39,12 +39,17 @@ class KnightTestTestCase(unittest.TestCase):
 
     def test_eval(self) -> None:
         dir_path = pathlib.Path(__file__).parent.resolve()
-        target_filename = os.path.join(dir_path, "../imaging/classification/knight/eval/example/example_targets.csv")
+        target_filename = os.path.join(
+            dir_path,
+            "../imaging/classification/knight/eval/example/example_targets.csv",
+        )
         task1_prediction_filename = os.path.join(
-            dir_path, "../imaging/classification/knight/eval/example/example_task1_predictions.csv"
+            dir_path,
+            "../imaging/classification/knight/eval/example/example_task1_predictions.csv",
         )
         task2_prediction_filename = os.path.join(
-            dir_path, "../imaging/classification/knight/eval/example/example_task2_predictions.csv"
+            dir_path,
+            "../imaging/classification/knight/eval/example/example_task2_predictions.csv",
         )
         eval(
             target_filename=target_filename,
@@ -63,11 +68,18 @@ class KnightTestTestCase(unittest.TestCase):
             "https://raw.github.com/neheller/KNIGHT/main/knight/data/knight.json",
             data_path,
         )
-        split = os.path.join(dir_path, "../imaging/classification/knight/baseline/splits_final.pkl")
+        split = os.path.join(
+            dir_path, "../imaging/classification/knight/baseline/splits_final.pkl"
+        )
         create_dir(os.path.dirname(output_filename))
-        make_targets_file(data_path=data_path, split=split, output_filename=output_filename)
+        make_targets_file(
+            data_path=data_path, split=split, output_filename=output_filename
+        )
 
-    @unittest.skipIf("KNIGHT_DATA" not in os.environ, "define environment variable 'KNIGHT_DATA' to run this test")
+    @unittest.skipIf(
+        "KNIGHT_DATA" not in os.environ,
+        "define environment variable 'KNIGHT_DATA' to run this test",
+    )
     def test_train(self) -> None:
         os.environ["KNIGHT_CACHE"] = os.path.join(self.root, "train", "cache")
         os.environ["KNIGHT_RESULTS"] = os.path.join(self.root, "train", "results")

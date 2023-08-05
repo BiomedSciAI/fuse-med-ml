@@ -1,6 +1,16 @@
 import math
 import numbers
-from typing import Any, Callable, Dict, List, Optional, OrderedDict, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    OrderedDict,
+    Sequence,
+    Tuple,
+    Union,
+)
 from fuse.data.key_types import TypeDetectorBase
 import copy
 from enum import Enum
@@ -46,7 +56,9 @@ class OpRepeat(OpReversibleBase):
         self._op = op
         self._kwargs_per_step_to_add = kwargs_per_step_to_add
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs: Any) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, op_id: Optional[str], **kwargs: Any
+    ) -> Union[None, dict, List[dict]]:
         """
         See super class
         """
@@ -55,7 +67,9 @@ class OpRepeat(OpReversibleBase):
             step_kwargs = copy.copy(kwargs)
             step_kwargs.update(step_kwargs_to_add)
             full_step_id = f"{op_id}_{step_index}"
-            sample_dict[full_step_id + "_debug_info.op_name"] = self._op.__class__.__name__
+            sample_dict[
+                full_step_id + "_debug_info.op_name"
+            ] = self._op.__class__.__name__
             sample_dict = op_call(self._op, sample_dict, full_step_id, **step_kwargs)
 
             assert not isinstance(
@@ -69,12 +83,24 @@ class OpRepeat(OpReversibleBase):
 
         return sample_dict
 
-    def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
+    def reverse(
+        self,
+        sample_dict: NDict,
+        key_to_reverse: str,
+        key_to_follow: str,
+        op_id: Optional[str],
+    ) -> dict:
         """
         See super class
         """
         for step_index in reversed(range(len(self._kwargs_per_step_to_add))):
-            sample_dict = op_reverse(self._op, sample_dict, key_to_reverse, key_to_follow, f"{op_id}_{step_index}")
+            sample_dict = op_reverse(
+                self._op,
+                sample_dict,
+                key_to_reverse,
+                key_to_follow,
+                f"{op_id}_{step_index}",
+            )
 
         return sample_dict
 
@@ -87,13 +113,19 @@ class OpLambda(OpReversibleBase):
     OpLambda(func=lambda x: torch.tensor(x))
     """
 
-    def __init__(self, func: Callable, func_reverse: Optional[Callable] = None, **kwargs: Any):
+    def __init__(
+        self, func: Callable, func_reverse: Optional[Callable] = None, **kwargs: Any
+    ):
         super().__init__(**kwargs)
         self._func = func
         self._func_reverse = func_reverse
 
     def __call__(
-        self, sample_dict: NDict, op_id: Optional[str], key: Optional[str] = None, **kwargs: Any
+        self,
+        sample_dict: NDict,
+        op_id: Optional[str],
+        key: Optional[str] = None,
+        **kwargs: Any,
     ) -> Union[None, dict, List[dict]]:
         """
         More details in super class
@@ -105,11 +137,17 @@ class OpLambda(OpReversibleBase):
             value = self._func(value, **kwargs)
             sample_dict[key] = value
         else:
-            sample_dict = self._func(sample_dict)
+            sample_dict = self._func(sample_dict, **kwargs)
 
         return sample_dict
 
-    def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
+    def reverse(
+        self,
+        sample_dict: NDict,
+        key_to_reverse: str,
+        key_to_follow: str,
+        op_id: Optional[str],
+    ) -> dict:
         """
         See super class
         """
@@ -167,15 +205,18 @@ class OpFunc(OpReversibleBase):
     ) -> Union[None, dict, List[dict]]:
         """
         See super class
-        :param inputs: dictionary that map between the key_name of a value stored in sample_dict the the input argument name in func
+        :param inputs: dictionary that map between the key_name of a value stored in sample_dict the the input argument name in func. use None for the entire sample_dict
         :param outputs: sequence of key_names to store each return value of func.
 
         """
         # extract inputs from sample dict
         kwargs_from_sample_dict = {}
-        for input_key_name, func_arg_name in inputs.items():
-            value = sample_dict[input_key_name]
-            kwargs_from_sample_dict[func_arg_name] = value
+        if inputs is None:
+            kwargs_from_sample_dict["sample_dict"] = sample_dict
+        else:
+            for input_key_name, func_arg_name in inputs.items():
+                value = sample_dict[input_key_name]
+                kwargs_from_sample_dict[func_arg_name] = value
 
         # all kwargs
         all_kwargs = copy.copy(kwargs)
@@ -218,7 +259,9 @@ class OpApplyPatterns(OpReversibleBase):
         super().__init__()
         self._patterns_dict = Patterns(patterns_dict, (None, None))
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs: Any) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, op_id: Optional[str], **kwargs: Any
+    ) -> Union[None, dict, List[dict]]:
         """
         See super class
         """
@@ -230,7 +273,9 @@ class OpApplyPatterns(OpReversibleBase):
 
             op_kwargs = copy.copy(kwargs)
             op_kwargs.update(op_kwargs_to_add)
-            sample_dict = op_call(op, sample_dict, f"{op_id}_{key}", key=key, **op_kwargs)
+            sample_dict = op_call(
+                op, sample_dict, f"{op_id}_{key}", key=key, **op_kwargs
+            )
 
             assert not isinstance(
                 sample_dict, list
@@ -243,7 +288,13 @@ class OpApplyPatterns(OpReversibleBase):
 
         return sample_dict
 
-    def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
+    def reverse(
+        self,
+        sample_dict: NDict,
+        key_to_reverse: str,
+        key_to_follow: str,
+        op_id: Optional[str],
+    ) -> dict:
         """
         See super class
         """
@@ -251,7 +302,9 @@ class OpApplyPatterns(OpReversibleBase):
         if op is None:
             return
 
-        sample_dict = op_reverse(op, sample_dict, key_to_reverse, key_to_follow, f"{op_id}_{key_to_follow}")
+        sample_dict = op_reverse(
+            op, sample_dict, key_to_reverse, key_to_follow, f"{op_id}_{key_to_follow}"
+        )
 
         return sample_dict
 
@@ -268,7 +321,11 @@ class OpApplyTypes(OpReversibleBase):
     op_apply_type = OpApplyTypes(types_dict)
     """
 
-    def __init__(self, type_to_op_dict: Dict[Enum, Tuple[OpBase, dict]], type_detector: TypeDetectorBase):
+    def __init__(
+        self,
+        type_to_op_dict: Dict[Enum, Tuple[OpBase, dict]],
+        type_detector: TypeDetectorBase,
+    ):
         """
         :param type_to_op_dict: map a type (See enum DataType) to a pair of op and correspending arguments (will be added/override the arguments provided in __call__() function)
         """
@@ -276,7 +333,9 @@ class OpApplyTypes(OpReversibleBase):
         self._type_to_op_dict = type_to_op_dict
         self._type_detector = type_detector
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str], **kwargs: Any) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, op_id: Optional[str], **kwargs: Any
+    ) -> Union[None, dict, List[dict]]:
         """
         See super class
         """
@@ -294,7 +353,9 @@ class OpApplyTypes(OpReversibleBase):
                 raise Exception(
                     'OpApplyTypes::"key" is already found in kwargs. Are you calling OpApplyTypes from within OpApplyTypes? it is not supported.'
                 )
-            sample_dict = op_call(op, sample_dict, f"{op_id}_{key}", key=key, **op_kwargs)
+            sample_dict = op_call(
+                op, sample_dict, f"{op_id}_{key}", key=key, **op_kwargs
+            )
 
             assert not isinstance(
                 sample_dict, list
@@ -307,7 +368,13 @@ class OpApplyTypes(OpReversibleBase):
 
         return sample_dict
 
-    def reverse(self, sample_dict: NDict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
+    def reverse(
+        self,
+        sample_dict: NDict,
+        key_to_reverse: str,
+        key_to_follow: str,
+        op_id: Optional[str],
+    ) -> dict:
         """
         See super class
         """
@@ -316,7 +383,9 @@ class OpApplyTypes(OpReversibleBase):
         if op is None:
             return
 
-        sample_dict = op_reverse(op, sample_dict, key_to_reverse, key_to_follow, f"{op_id}_{key_to_follow}")
+        sample_dict = op_reverse(
+            op, sample_dict, key_to_reverse, key_to_follow, f"{op_id}_{key_to_follow}"
+        )
 
         return sample_dict
 
@@ -356,10 +425,18 @@ class OpCollectMarker(OpReversibleBase):
         """
         return {"name": self._name, "static_keys_deps": self._static_keys_deps}
 
-    def __call__(self, sample_dict: dict, op_id: Optional[str], **kwargs: Any) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: dict, op_id: Optional[str], **kwargs: Any
+    ) -> Union[None, dict, List[dict]]:
         return sample_dict
 
-    def reverse(self, sample_dict: dict, key_to_reverse: str, key_to_follow: str, op_id: Optional[str]) -> dict:
+    def reverse(
+        self,
+        sample_dict: dict,
+        key_to_reverse: str,
+        key_to_follow: str,
+        op_id: Optional[str],
+    ) -> dict:
         return sample_dict
 
 
@@ -373,7 +450,9 @@ class OpKeepKeypaths(OpBase):
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
 
-    def __call__(self, sample_dict: NDict, keep_keypaths: List[str]) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, keep_keypaths: List[str]
+    ) -> Union[None, dict, List[dict]]:
         prev_sample_dict = sample_dict
         sample_dict = NDict()
         for k in keep_keypaths:
@@ -388,7 +467,9 @@ class OpDeleteKeypaths(OpBase):
     A case where this is useful is if you want to limit the amount of data that gets transferred by multiprocessing by DataLoader workers.
     """
 
-    def __call__(self, sample_dict: NDict, keypaths: List[str]) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, keypaths: List[str]
+    ) -> Union[None, dict, List[dict]]:
         for k in keypaths:
             del sample_dict[k]
 
@@ -411,7 +492,9 @@ class OpLookup(OpBase):
         self._map = map
         self._not_exist_error = not_exist_error
 
-    def __call__(self, sample_dict: NDict, key_in: str, key_out: str) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, key_in: str, key_out: str
+    ) -> Union[None, dict, List[dict]]:
         """
         :param key_in: key to a value
         :param key_out: key to store the converted value
@@ -437,7 +520,9 @@ class OpToOneHot(OpBase):
         super().__init__()
         self._num_classes = num_classes
 
-    def __call__(self, sample_dict: NDict, key_in: str, key_out: str) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, key_in: str, key_out: str
+    ) -> Union[None, dict, List[dict]]:
         """
         :param key_in: key to a class number (int)
         :param key_out: key to store the one hot vector
@@ -478,8 +563,12 @@ class OpOverrideNaN(OpBase):
     """
 
     def __call__(self, sample_dict: NDict, key: str, value_to_fill: Any) -> NDict:
-        assert key in sample_dict, f"Error: missing {key}, available keys {sample_dict.keypaths()} "
-        if isinstance(sample_dict[key], numbers.Number) and math.isnan(sample_dict[key]):
+        assert (
+            key in sample_dict
+        ), f"Error: missing {key}, available keys {sample_dict.keypaths()} "
+        if isinstance(sample_dict[key], numbers.Number) and math.isnan(
+            sample_dict[key]
+        ):
             sample_dict[key] = value_to_fill
         return sample_dict
 
@@ -500,7 +589,9 @@ class OpCond(OpBase):
         super().__init__()
         self._op = op
 
-    def __call__(self, sample_dict: NDict, condition: Union[str, bool], **kwargs: Any) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, condition: Union[str, bool], **kwargs: Any
+    ) -> Union[None, dict, List[dict]]:
         """
         :param condition:instruct if to call the inner op. Can either a boolean or a key to sample_dict used to extract the boolean
         """
@@ -515,7 +606,9 @@ class OpCond(OpBase):
 class OpSet(OpBase):
     """Add/override key-value pair into sample_dict"""
 
-    def __call__(self, sample_dict: NDict, key: str, value: Any) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, key: str, value: Any
+    ) -> Union[None, dict, List[dict]]:
         """
         :param key: where to store the value
         :param value: the value to store
@@ -527,7 +620,9 @@ class OpSet(OpBase):
 class OpSetIfNotExist(OpBase):
     """Add key-value pair into sample_dict only if the key doesn't already exist"""
 
-    def __call__(self, sample_dict: NDict, key: str, value: Any) -> Union[None, dict, List[dict]]:
+    def __call__(
+        self, sample_dict: NDict, key: str, value: Any
+    ) -> Union[None, dict, List[dict]]:
         """
         :param key: where to store the value
         :param value: the value to store
@@ -547,7 +642,12 @@ class OpReplaceElements(OpBase):
     """
 
     def __call__(
-        self, sample_dict: NDict, key_in: str, find_val: Any, replace_with_val: Any, key_out: str = None
+        self,
+        sample_dict: NDict,
+        key_in: str,
+        find_val: Any,
+        replace_with_val: Any,
+        key_out: str = None,
     ) -> NDict:
         """
         Args:
@@ -556,7 +656,9 @@ class OpReplaceElements(OpBase):
         replace_with_val: the value that will be used to replace "find_val" elements
         key_out: if None, the modification will be inplace in "key_in" (faster), other wise, the name of the key to write to
         """
-        assert key_in in sample_dict, f"Error: missing {key_in}, available keys {sample_dict.keypaths()} "
+        assert (
+            key_in in sample_dict
+        ), f"Error: missing {key_in}, available keys {sample_dict.keypaths()} "
 
         input_obj = sample_dict[key_in]
 
@@ -574,7 +676,9 @@ class OpReplaceElements(OpBase):
         elif isinstance(sample_dict[key_in], str):
             sample_dict[key_out] = input_obj.replace(find_val, replace_with_val)
         elif isinstance(input_obj, (list, tuple)):
-            sample_dict[key_out] = [x if x != find_val else replace_with_val for x in input_obj]
+            sample_dict[key_out] = [
+                x if x != find_val else replace_with_val for x in input_obj
+            ]
         else:
             raise Exception(f"Unsupported object type {type(input_obj)}")
 

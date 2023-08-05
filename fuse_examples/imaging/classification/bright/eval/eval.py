@@ -5,7 +5,9 @@ from typing import List, Tuple, Union
 from collections import OrderedDict
 
 import csv
-from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
+from fuse.eval.metrics.classification.metrics_thresholding_common import (
+    MetricApplyThresholds,
+)
 from fuse.utils.ndict import NDict
 import pandas as pd
 import numpy as np
@@ -13,7 +15,10 @@ import numpy as np
 from fuse.utils.file_io.file_io import create_or_reset_dir
 
 from fuse.eval.evaluator import EvaluatorDefault
-from fuse.eval.metrics.classification.metrics_classification_common import MetricBSS, MetricConfusion
+from fuse.eval.metrics.classification.metrics_classification_common import (
+    MetricBSS,
+    MetricConfusion,
+)
 from fuse.eval.metrics.metrics_common import CI
 
 
@@ -39,8 +44,19 @@ EXPECTED_TASK2_PRED_KEYS = {
 EXPECTED_TARGET_KEYS = {"image_name", "Task1-target", "Task2-target"}
 PRED_SAMPLE_DESC_NAME = "image_name"
 TARGET_SAMPLE_DESC_NAME = "image_name"
-TASK1_CLASS_NAMES = ("Noncancerous", "Precancerous", "Cancerous")  # must be aligned with task1 targets
-TASK2_CLASS_NAMES = ("PB", "UDH", "FEA", "ADH", "DCIS", "IC")  # must be aligned with task2 targets
+TASK1_CLASS_NAMES = (
+    "Noncancerous",
+    "Precancerous",
+    "Cancerous",
+)  # must be aligned with task1 targets
+TASK2_CLASS_NAMES = (
+    "PB",
+    "UDH",
+    "FEA",
+    "ADH",
+    "DCIS",
+    "IC",
+)  # must be aligned with task2 targets
 
 
 def process(sample_dict: NDict) -> dict:
@@ -98,12 +114,16 @@ def decode_results(results: dict, output_dir: str) -> Tuple[OrderedDict, str]:
         "Task1-F1-CI"
     ] = f"[{results['task1_f1.f1.macro_avg.conf_lower']:.3f}-{results['task1_f1.f1.macro_avg.conf_upper']:.3f}]"
     for cls_name in TASK1_CLASS_NAMES:
-        results_table[f"Task1-F1-{cls_name}VsRest"] = f"{results[f'task1_f1.f1.{cls_name}.org']:.3f}"
+        results_table[
+            f"Task1-F1-{cls_name}VsRest"
+        ] = f"{results[f'task1_f1.f1.{cls_name}.org']:.3f}"
         results_table[
             f"Task1-F1-{cls_name}VsRest-CI"
         ] = f"[{results[f'task1_f1.f1.{cls_name}.conf_lower']:.3f}-{results[f'task1_f1.f1.{cls_name}.conf_upper']:.3f}]"
     results_table["Task1-BSS"] = f"{results['task1_bss.org']:.3f}"
-    results_table["Task1-BSS-CI"] = f"[{results['task1_bss.conf_lower']:.3f}-{results['task1_bss.conf_upper']:.3f}]"
+    results_table[
+        "Task1-BSS-CI"
+    ] = f"[{results['task1_bss.conf_lower']:.3f}-{results['task1_bss.conf_upper']:.3f}]"
 
     ## task2
     results_table["Task2-F1"] = f"{results['task2_f1.f1.macro_avg.org']:.3f}"
@@ -111,12 +131,16 @@ def decode_results(results: dict, output_dir: str) -> Tuple[OrderedDict, str]:
         "Task2-F1-CI"
     ] = f"[{results['task2_f1.f1.macro_avg.conf_lower']:.3f}-{results['task2_f1.f1.macro_avg.conf_upper']:.3f}]"
     for cls_name in TASK2_CLASS_NAMES:
-        results_table[f"Task2-F1-{cls_name}VsRest"] = f"{results[f'task2_f1.f1.{cls_name}.org']:.3f}"
+        results_table[
+            f"Task2-F1-{cls_name}VsRest"
+        ] = f"{results[f'task2_f1.f1.{cls_name}.org']:.3f}"
         results_table[
             f"Task2-F1-{cls_name}VsRest-CI"
         ] = f"[{results[f'task2_f1.f1.{cls_name}.conf_lower']:.3f}-{results[f'task2_f1.f1.{cls_name}.conf_upper']:.3f}]"
     results_table["Task2-BSS"] = f"{results['task2_bss.org']:.3f}"
-    results_table["Task2-BSS-CI"] = f"[{results['task2_bss.conf_lower']:.3f}-{results['task2_bss.conf_upper']:.3f}]"
+    results_table[
+        "Task2-BSS-CI"
+    ] = f"[{results['task2_bss.conf_lower']:.3f}-{results['task2_bss.conf_upper']:.3f}]"
 
     # mark down text
     results_text = ""
@@ -132,11 +156,16 @@ def decode_results(results: dict, output_dir: str) -> Tuple[OrderedDict, str]:
     results_text += "".join([" ------ |" for column in table_columns])
     results_text += "\n|"
     results_text += "".join(
-        [f" {results_table[f'Task1-{column}']} {results_table[f'Task1-{column}-CI']} |" for column in table_columns]
+        [
+            f" {results_table[f'Task1-{column}']} {results_table[f'Task1-{column}-CI']} |"
+            for column in table_columns
+        ]
     )
 
     results_text += "\n## BSS\n"
-    results_text += f"BSS: {results_table['Task1-BSS']} {results_table['Task1-BSS-CI']}\n"
+    results_text += (
+        f"BSS: {results_table['Task1-BSS']} {results_table['Task1-BSS-CI']}\n"
+    )
 
     ## task 2
     results_text += "\n# Task 2 - 6-class WSI classification\n"
@@ -150,11 +179,16 @@ def decode_results(results: dict, output_dir: str) -> Tuple[OrderedDict, str]:
     results_text += "".join([" ------ |" for column in table_columns])
     results_text += "\n|"
     results_text += "".join(
-        [f" {results_table[f'Task2-{column}']} {results_table[f'Task2-{column}-CI']} |" for column in table_columns]
+        [
+            f" {results_table[f'Task2-{column}']} {results_table[f'Task2-{column}-CI']} |"
+            for column in table_columns
+        ]
     )
 
     results_text += "\n## BSS\n"
-    results_text += f"BSS: {results_table['Task2-BSS']} {results_table['Task2-BSS-CI']}\n"
+    results_text += (
+        f"BSS: {results_table['Task2-BSS']} {results_table['Task2-BSS-CI']}\n"
+    )
 
     # save files
     with open(os.path.join(output_dir, "results.md"), "w") as output_file:
@@ -194,7 +228,10 @@ def eval(
     metrics = OrderedDict(
         [
             # task 1
-            ("task1_op", MetricApplyThresholds(pred="task1_pred.predicted_label")),  # will apply argmax
+            (
+                "task1_op",
+                MetricApplyThresholds(pred="task1_pred.predicted_label"),
+            ),  # will apply argmax
             (
                 "task1_f1",
                 CI(
@@ -211,12 +248,19 @@ def eval(
             (
                 "task1_bss",
                 CI(
-                    MetricBSS(pred="task1_pred.array", target="target.Task1-target", pre_collect_process_func=process),
+                    MetricBSS(
+                        pred="task1_pred.array",
+                        target="target.Task1-target",
+                        pre_collect_process_func=process,
+                    ),
                     stratum="target.Task1-target",
                 ),
             ),
             # task 2
-            ("task2_op", MetricApplyThresholds(pred="task2_pred.predicted_label")),  # will apply argmax
+            (
+                "task2_op",
+                MetricApplyThresholds(pred="task2_pred.predicted_label"),
+            ),  # will apply argmax
             (
                 "task2_f1",
                 CI(
@@ -233,15 +277,23 @@ def eval(
             (
                 "task2_bss",
                 CI(
-                    MetricBSS(pred="task2_pred.array", target="target.Task2-target", pre_collect_process_func=process),
+                    MetricBSS(
+                        pred="task2_pred.array",
+                        target="target.Task2-target",
+                        pre_collect_process_func=process,
+                    ),
                     stratum="target.Task2-target",
                 ),
             ),
         ]
     )
     # read files
-    task1_pred_df = pd.read_csv(task1_prediction_filename, dtype={PRED_SAMPLE_DESC_NAME: object})
-    task2_pred_df = pd.read_csv(task2_prediction_filename, dtype={PRED_SAMPLE_DESC_NAME: object})
+    task1_pred_df = pd.read_csv(
+        task1_prediction_filename, dtype={PRED_SAMPLE_DESC_NAME: object}
+    )
+    task2_pred_df = pd.read_csv(
+        task2_prediction_filename, dtype={PRED_SAMPLE_DESC_NAME: object}
+    )
     target_df = pd.read_csv(target_filename, dtype={TARGET_SAMPLE_DESC_NAME: object})
 
     # verify input
@@ -262,7 +314,11 @@ def eval(
     evaluator = EvaluatorDefault()
     results = evaluator.eval(
         ids=list(target_df["id"]),
-        data={"task1_pred": task1_pred_df, "task2_pred": task2_pred_df, "target": target_df},
+        data={
+            "task1_pred": task1_pred_df,
+            "task2_pred": task2_pred_df,
+            "target": target_df,
+        },
         metrics=metrics,
         output_dir=None,
     )
@@ -282,8 +338,12 @@ if __name__ == "__main__":
     if len(sys.argv) == 1:
         dir_path = pathlib.Path(__file__).parent.resolve()
         target_filename = os.path.join(dir_path, "validation_targets.csv")
-        task1_prediction_filename = os.path.join(dir_path, "baseline/validation_baseline_task1_predictions.csv")
-        task2_prediction_filename = os.path.join(dir_path, "baseline/validation_baseline_task2_predictions.csv")
+        task1_prediction_filename = os.path.join(
+            dir_path, "baseline/validation_baseline_task1_predictions.csv"
+        )
+        task2_prediction_filename = os.path.join(
+            dir_path, "baseline/validation_baseline_task2_predictions.csv"
+        )
         output_dir = os.path.join(dir_path, "baseline/validation_results")
         eval(
             target_filename=target_filename,

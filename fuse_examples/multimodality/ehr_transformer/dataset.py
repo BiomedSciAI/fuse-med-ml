@@ -67,11 +67,15 @@ class OpAddBMI(OpBase):
 
     def __call__(self, sample_dict: NDict) -> Any:
 
-        if (self._key_height in sample_dict["StaticDetails"]) & (self._key_weight in sample_dict["StaticDetails"]):
+        if (self._key_height in sample_dict["StaticDetails"]) & (
+            self._key_weight in sample_dict["StaticDetails"]
+        ):
             height = sample_dict["StaticDetails." + self._key_height]
             weight = sample_dict["StaticDetails." + self._key_weight]
             if ~np.isnan(height) & ~np.isnan(weight):
-                sample_dict["StaticDetails." + self._key_bmi] = 10000 * weight / (height * height)
+                sample_dict["StaticDetails." + self._key_bmi] = (
+                    10000 * weight / (height * height)
+                )
 
         return sample_dict
 
@@ -113,7 +117,13 @@ class OpGenerateFinalTrajectoryOfVisits(OpBase):
         - computation of positional indexes of sentences for further embedding
     """
 
-    def __init__(self, max_len: int, vocab: dict, embed_static_in_all_visits: int, static_variables_to_embed: list):
+    def __init__(
+        self,
+        max_len: int,
+        vocab: dict,
+        embed_static_in_all_visits: int,
+        static_variables_to_embed: list,
+    ):
 
         super().__init__()
         self._max_len = max_len
@@ -177,7 +187,9 @@ class OpGenerateFinalTrajectoryOfVisits(OpBase):
 
         # outcomes of next visit prediction
         sample_dict["NextVisitTokens"] = d_visits_sentences[next_visit]
-        sample_dict["NextVisitTokenIds"] = seq_translate(sample_dict["NextVisitTokens"], self._vocab)
+        sample_dict["NextVisitTokenIds"] = seq_translate(
+            sample_dict["NextVisitTokens"], self._vocab
+        )
         sample_dict["NextVisitLabels"] = np.zeros(len(self._vocab))
         sample_dict["NextVisitLabels"][sample_dict["NextVisitTokenIds"]] = 1.0
 
@@ -201,13 +213,17 @@ class OpMapToCategorical(OpBase):
         # on defined bins mapping static clinical characteristics
         # (Age, Gender, ICU type, Height, etc)
         for k in sample_dict["StaticDetails"]:
-            sample_dict[f"StaticDetails.{k}"] = k + "_" + str(np.digitize(sample_dict["StaticDetails"][k], bins[k]))
+            sample_dict[f"StaticDetails.{k}"] = (
+                k + "_" + str(np.digitize(sample_dict["StaticDetails"][k], bins[k]))
+            )
 
         # mapping labs exams and clinical characteristics captured
         # during patients' stay in ICU
         if not sample_dict["Visits"].empty:
             sample_dict["Visits"]["Value"] = sample_dict["Visits"].apply(
-                lambda row: row["Parameter"] + "_" + str(np.digitize(row["Value"], bins[row["Parameter"]]))
+                lambda row: row["Parameter"]
+                + "_"
+                + str(np.digitize(row["Value"], bins[row["Parameter"]]))
                 if row["Parameter"] in bins
                 else special_tokens["unknown"],
                 axis=1,
@@ -235,7 +251,9 @@ class PhysioNetCinC:
             for f in csv_files:
                 patient_id = os.path.splitext(os.path.basename(f))[0]
                 df_file = pd.read_csv(f)
-                df_file = df_file.drop(df_file[(df_file["Parameter"] == "RecordID")].index).reset_index(drop=True)
+                df_file = df_file.drop(
+                    df_file[(df_file["Parameter"] == "RecordID")].index
+                ).reset_index(drop=True)
                 df_file["PatientId"] = patient_id
                 df = pd.concat([df, df_file], axis=0)
         df.reset_index(inplace=True, drop=True)
@@ -246,9 +264,9 @@ class PhysioNetCinC:
         outcomes = ["Outcomes-a.txt", "Outcomes-b.txt"]
         for o in outcomes:
             o_file = os.path.join(raw_data_path + "/" + o)
-            df_outcomes = pd.concat([df_outcomes, pd.read_csv(o_file)[["RecordID", "In-hospital_death"]]]).reset_index(
-                drop=True
-            )
+            df_outcomes = pd.concat(
+                [df_outcomes, pd.read_csv(o_file)[["RecordID", "In-hospital_death"]]]
+            ).reset_index(drop=True)
 
         df_outcomes["RecordID"] = df_outcomes["RecordID"].astype(str)
         df_outcomes.rename(columns={"RecordID": "PatientId"}, inplace=True)
@@ -268,18 +286,28 @@ class PhysioNetCinC:
         # drop records with measurements below or equal
         # to zero for tests with only positive values
         for v in VALID_TESTS_ABOVE_ZERO:
-            df = df.drop(df[(df["Parameter"] == v) & (df["Value"] <= 0)].index).reset_index(drop=True)
+            df = df.drop(
+                df[(df["Parameter"] == v) & (df["Value"] <= 0)].index
+            ).reset_index(drop=True)
 
         # drop gender values below zero
-        df = df.drop(df[(df["Parameter"] == "Gender") & (df["Value"] < 0)].index).reset_index(drop=True)
+        df = df.drop(
+            df[(df["Parameter"] == "Gender") & (df["Value"] < 0)].index
+        ).reset_index(drop=True)
 
         # drop records with invalid Height and Weight values
-        df = df.drop(df[(df["Parameter"] == "Weight") & (df["Value"] < 20)].index).reset_index(drop=True)
-        df = df.drop(df[(df["Parameter"] == "Height") & (df["Value"] < 100)].index).reset_index(drop=True)
+        df = df.drop(
+            df[(df["Parameter"] == "Weight") & (df["Value"] < 20)].index
+        ).reset_index(drop=True)
+        df = df.drop(
+            df[(df["Parameter"] == "Height") & (df["Value"] < 100)].index
+        ).reset_index(drop=True)
         return df
 
     @staticmethod
-    def _drop_bad_patients(df: pd.DataFrame, min_hours: int, min_num_of_visits: int) -> pd.DataFrame:
+    def _drop_bad_patients(
+        df: pd.DataFrame, min_hours: int, min_num_of_visits: int
+    ) -> pd.DataFrame:
         """
         Drop records of patients that have the less than
         min_hours reported in ICU and  patient that have less
@@ -310,7 +338,9 @@ class PhysioNetCinC:
         return df_fixed
 
     @staticmethod
-    def _combine_data_by_patients(df_records: pd.DataFrame, df_outcomes: pd.DataFrame) -> pd.DataFrame:
+    def _combine_data_by_patients(
+        df_records: pd.DataFrame, df_outcomes: pd.DataFrame
+    ) -> pd.DataFrame:
         """
         Combine all available information : static details,
         visits and target outcome in one data frame of patients
@@ -328,7 +358,9 @@ class PhysioNetCinC:
         for pat_id, df_pat_records in df_records.groupby("PatientId"):
             patient_ids += [pat_id]
             # extract static patients details
-            static_info_ind = (df_pat_records["Time"] == "00:00") & (df_pat_records["Parameter"].isin(static_fields))
+            static_info_ind = (df_pat_records["Time"] == "00:00") & (
+                df_pat_records["Parameter"].isin(static_fields)
+            )
             df_pat_static = df_pat_records[static_info_ind]
             static_details += [dict(zip(df_pat_static.Parameter, df_pat_static.Value))]
 
@@ -336,17 +368,23 @@ class PhysioNetCinC:
             df_pat_dynamic_exams = df_pat_records[~static_info_ind]
             visits += [df_pat_dynamic_exams.copy()]
 
-            label = df_outcomes[df_outcomes["PatientId"] == pat_id]["In-hospital_death"].values[0]
+            label = df_outcomes[df_outcomes["PatientId"] == pat_id][
+                "In-hospital_death"
+            ].values[0]
             target += [label]
 
         list_of_tuples = list(zip(patient_ids, static_details, visits, target))
-        df_patients = pd.DataFrame(list_of_tuples, columns=["PatientId", "StaticDetails", "Visits", "Target"])
+        df_patients = pd.DataFrame(
+            list_of_tuples, columns=["PatientId", "StaticDetails", "Visits", "Target"]
+        )
 
         return df_patients
 
     @staticmethod
     def _generate_percentiles(
-        dataset: DatasetDefault, num_percentiles: int, categorical_max_num_of_values: int
+        dataset: DatasetDefault,
+        num_percentiles: int,
+        categorical_max_num_of_values: int,
     ) -> dict:
         """
 
@@ -359,7 +397,9 @@ class PhysioNetCinC:
         :return: dictionary of calculated percentiles (bins)
         """
 
-        df = ExportDataset.export_to_dataframe(dataset, keys=["StaticDetails", "Visits"], workers=1)
+        df = ExportDataset.export_to_dataframe(
+            dataset, keys=["StaticDetails", "Visits"], workers=1
+        )
 
         # Extracting static and dynamic parts of the dataset
         df_static = pd.DataFrame(df["StaticDetails"].to_list())
@@ -378,7 +418,9 @@ class PhysioNetCinC:
         # calculate percentiles for categorical parameters
         # (Gender, etc) update percentiles according to categories
         d_percentile = dict()
-        percentiles = range(0, 100 + int(100 / num_percentiles), int(100 / num_percentiles))
+        percentiles = range(
+            0, 100 + int(100 / num_percentiles), int(100 / num_percentiles)
+        )
         for k in d_all_values.keys():
             values = np.array(d_all_values[k])
             values = values[~np.isnan(values)]
@@ -421,7 +463,10 @@ class PhysioNetCinC:
 
     @staticmethod
     def _load_and_process_df(
-        raw_data_path: str, raw_data_pkl: str, min_hours_in_hospital: int, min_number_of_visits: int
+        raw_data_path: str,
+        raw_data_pkl: str,
+        min_hours_in_hospital: int,
+        min_number_of_visits: int,
     ) -> Tuple[pd.DataFrame, list]:
         """
         Applies all stages for generation patients' data frame.
@@ -446,10 +491,14 @@ class PhysioNetCinC:
 
             # drop patients with less than minimum hours in hospital and less
             # than minimum number of visits
-            df_raw_data = PhysioNetCinC._drop_bad_patients(df_raw_data, min_hours_in_hospital, min_number_of_visits)
+            df_raw_data = PhysioNetCinC._drop_bad_patients(
+                df_raw_data, min_hours_in_hospital, min_number_of_visits
+            )
             patient_ids = np.unique(df_raw_data["PatientId"].values)
 
-            df_patients = PhysioNetCinC._combine_data_by_patients(df_raw_data, df_outcomes)
+            df_patients = PhysioNetCinC._combine_data_by_patients(
+                df_raw_data, df_outcomes
+            )
 
             if raw_data_pkl is not None:
                 with open(raw_data_pkl, "wb") as f:
@@ -481,7 +530,10 @@ class PhysioNetCinC:
             (OpConvertVisitToSentence(), dict()),
             (
                 OpGenerateFinalTrajectoryOfVisits(
-                    max_len, token2idx, embed_static_in_all_visits, static_variables_to_embed
+                    max_len,
+                    token2idx,
+                    embed_static_in_all_visits,
+                    static_variables_to_embed,
                 ),
                 dict(),
             ),
@@ -562,7 +614,12 @@ class PhysioNetCinC:
         # additional features (e.g. BMI)
         dynamic_pipeline_ops = [
             (OpReadDataframe(df_patients, key_column="PatientId"), {}),
-            (OpAddBMI(key_in_height="Height", key_in_weight="Weight", key_out_bmi="BMI"), dict()),
+            (
+                OpAddBMI(
+                    key_in_height="Height", key_in_weight="Weight", key_out_bmi="BMI"
+                ),
+                dict(),
+            ),
         ]
         dynamic_pipeline = PipelineDefault("cinc_dynamic", dynamic_pipeline_ops)
 
@@ -599,7 +656,11 @@ class PhysioNetCinC:
         # update pipeline with Op using calculated percentiles
         dynamic_pipeline_ops = dynamic_pipeline_ops + [
             *PhysioNetCinC._process_dynamic_pipeline(
-                dict_percentiles, static_variables_to_embed, embed_static_in_all_visits, token2idx, max_len_seq
+                dict_percentiles,
+                static_variables_to_embed,
+                embed_static_in_all_visits,
+                token2idx,
+                max_len_seq,
             )
         ]
         dynamic_pipeline = PipelineDefault("cinc_dynamic", dynamic_pipeline_ops)

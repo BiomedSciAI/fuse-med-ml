@@ -22,19 +22,19 @@ from typing import Optional, Dict, Union
 from fuse.utils.misc.misc import get_pretty_dataframe
 
 import pytorch_lightning as pl
-from pytorch_lightning import Callback
+from pytorch_lightning.callbacks import Checkpoint
 
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 import torch
 import pandas as pd
 
 
-class ModelEpochSummary(Callback):
+class ModelEpochSummary(Checkpoint):
     """
         Model Checkpointing Display
         ===================
 
-        Automatically display (print to screen and log to a file) best vs current epoch metircs and losses.
+        Automatically display (print to screen and log to a file) best vs current epoch metrics and losses.
 
         Example:
     Stats for epoch: 9 (best epoch is 7 for source validation.metrics.accuracy!)
@@ -83,13 +83,17 @@ class ModelEpochSummary(Callback):
         self._best_epoch_index = None
 
     @rank_zero_only
-    def print_epoch_summary_table(self, epoch_metrics: dict, epoch_source_index: int) -> None:
+    def print_epoch_summary_table(
+        self, epoch_metrics: dict, epoch_source_index: int
+    ) -> None:
         """
         Generate, print and log the epoch summary table.
         Decorator makes sure it runs only once in a DDP strategy.
         """
 
-        def get_value_as_float_str(dict: Dict[str, Union[float, int]], key: str) -> Union[None, str]:
+        def get_value_as_float_str(
+            dict: Dict[str, Union[float, int]], key: str
+        ) -> Union[None, str]:
             val_as_str = "N/A"
             try:
                 value = dict[key]
@@ -99,22 +103,26 @@ class ModelEpochSummary(Callback):
             return val_as_str
 
         stats_table = pd.DataFrame(
-            columns=["", f"Best Epoch ({self._best_epoch_index})", f"Current Epoch ({epoch_source_index})"]
+            columns=[
+                "",
+                f"Best Epoch ({self._best_epoch_index})",
+                f"Current Epoch ({epoch_source_index})",
+            ]
         )
         idx = 0
 
         eval_keys = sorted(epoch_metrics.keys())
         for evaluator_name in eval_keys:
             current_str = get_value_as_float_str(epoch_metrics, evaluator_name)
-            best_so_far_str = get_value_as_float_str(self._best_epoch_metrics, evaluator_name)
+            best_so_far_str = get_value_as_float_str(
+                self._best_epoch_metrics, evaluator_name
+            )
 
             stats_table.loc[idx] = [f"{evaluator_name}", best_so_far_str, current_str]
             idx += 1
 
         if self._best_epoch_index == epoch_source_index:
-            epoch_title = (
-                f"Stats for epoch: {epoch_source_index} (Currently the best epoch for source {self._monitor}!)"
-            )
+            epoch_title = f"Stats for epoch: {epoch_source_index} (Currently the best epoch for source {self._monitor}!)"
             print(epoch_title)
         else:
             epoch_title = f"Stats for epoch: {epoch_source_index} (Best epoch is {self._best_epoch_index} for source {self._monitor})"
@@ -124,22 +132,29 @@ class ModelEpochSummary(Callback):
         print(f"Model: {self._dirpath}")
 
         try:
-            op = "w" if epoch_source_index == 0 else "a"  # we want to have all stats in one file per epoch
+            op = (
+                "w" if epoch_source_index == 0 else "a"
+            )  # we want to have all stats in one file per epoch
             with open(os.path.join(self._dirpath, self._filename), op) as sfile:
                 sfile.write(epoch_title)
                 sfile.write(stats_as_str)
         except Exception as error:
-            print(f"Cannot write epoch summary to file {self._dirpath}/{self._filename}")
+            print(
+                f"Cannot write epoch summary to file {self._dirpath}/{self._filename}"
+            )
             print(error)
 
-    def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_train_epoch_end(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"
+    ) -> None:
         """Print summary at the end of the validation stage."""
         monitor_candidates = monitor_candidates = deepcopy(trainer.callback_metrics)
         current_epoch_metrics = monitor_candidates
         if self._monitor is not None:
             monitor_op = {"min": torch.lt, "max": torch.gt}[self._mode]
             if self._best_epoch_metrics is None or monitor_op(
-                current_epoch_metrics[self._monitor], self._best_epoch_metrics[self._monitor]
+                current_epoch_metrics[self._monitor],
+                self._best_epoch_metrics[self._monitor],
             ):
                 self._best_epoch_metrics = current_epoch_metrics
                 self._best_epoch_index = trainer.current_epoch

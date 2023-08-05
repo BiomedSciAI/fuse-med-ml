@@ -47,6 +47,8 @@ class MetricVis2DImage(MetricWithCollectorBase):
         super().reset()
         self._op_vis.reset(f"epoch_{self._epoch}")
 
-    def eval(self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None) -> None:
+    def eval(
+        self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None
+    ) -> None:
         # Do nothing - the logic run pre sample in pre_collect_process func
         pass

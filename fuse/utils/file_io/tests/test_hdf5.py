@@ -66,10 +66,16 @@ class TestHDF5IO(unittest.TestCase):
         self.assertAlmostEqual(loaded_hdf5_all["data.mlo.img"].sum(), 599511.3034792768)
 
         self.assertEqual(len(loaded_hdf5_partial.keys()), 4)
-        self.assertAlmostEqual(loaded_hdf5_partial["data.cc.img"].sum(), 9991.398330095684)
+        self.assertAlmostEqual(
+            loaded_hdf5_partial["data.cc.img"].sum(), 9991.398330095684
+        )
         self.assertEqual(loaded_hdf5_partial["data.cc.seg"].sum(), 9005579)
-        self.assertAlmostEqual(loaded_hdf5_partial["data.mlo.img"].sum(), 20010.11375657579)
-        self.assertAlmostEqual(loaded_hdf5_partial["data.clinical_info_input"].sum(), 507.3055890687598)
+        self.assertAlmostEqual(
+            loaded_hdf5_partial["data.mlo.img"].sum(), 20010.11375657579
+        )
+        self.assertAlmostEqual(
+            loaded_hdf5_partial["data.clinical_info_input"].sum(), 507.3055890687598
+        )
 
     def tearDown(self) -> None:
         pass

@@ -9,7 +9,8 @@ from fuse.eval.metrics.metrics_common import MetricPerSampleDefault
 
 
 def average_sample_results(
-    metric_result: List[Dict[int, float]], class_weights: Optional[Dict[int, float]] = None
+    metric_result: List[Dict[int, float]],
+    class_weights: Optional[Dict[int, float]] = None,
 ) -> Dict[str, float]:
     """
     Calculates average result per class and average result over classes on a specific metric
@@ -132,7 +133,13 @@ class Metric2DHausdorff(MetricPerSampleDefault):
     used for sematric and binary segmentation
     """
 
-    def __init__(self, pred: str, target: str, class_weights: Optional[Dict[int, float]] = None, **kwargs: dict):
+    def __init__(
+        self,
+        pred: str,
+        target: str,
+        class_weights: Optional[Dict[int, float]] = None,
+        **kwargs: dict
+    ):
         """
         See super class for the missing params
         :param class_weights: weight per segmentation class , we assume sum of total weights is 1 and each element is in 0-1 range

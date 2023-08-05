@@ -30,10 +30,15 @@ from fuseimg.datasets.knight import KNIGHT
 from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import save_dataframe
 
-from fuse_examples.imaging.classification.knight.eval.eval import TASK1_CLASS_NAMES, TASK2_CLASS_NAMES
+from fuse_examples.imaging.classification.knight.eval.eval import (
+    TASK1_CLASS_NAMES,
+    TASK2_CLASS_NAMES,
+)
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 import pytorch_lightning as pl
-from fuse_examples.imaging.classification.knight.baseline.fuse_baseline import make_model
+from fuse_examples.imaging.classification.knight.baseline.fuse_baseline import (
+    make_model,
+)
 
 
 def make_predictions_file(
@@ -64,8 +69,12 @@ def make_predictions_file(
     # Logger
     fuse_logger_start(console_verbose_level=logging.INFO)
     lgr = logging.getLogger("Fuse")
-    lgr.info("KNIGHT: make predictions file in FuseMedML", {"attrs": ["bold", "underline"]})
-    lgr.info(f"predictions_filename={os.path.abspath(output_filename)}", {"color": "magenta"})
+    lgr.info(
+        "KNIGHT: make predictions file in FuseMedML", {"attrs": ["bold", "underline"]}
+    )
+    lgr.info(
+        f"predictions_filename={os.path.abspath(output_filename)}", {"color": "magenta"}
+    )
 
     # Data
     # read train/val splits file.
@@ -143,14 +152,20 @@ if __name__ == "__main__":
     predictions_key_name = "model.output.head_0"
     task_num = 1  # 1 or 2
 
-    use_data = {"imaging": True, "clinical": True}  # specify whether to use imaging, clinical data or both
+    use_data = {
+        "imaging": True,
+        "clinical": True,
+    }  # specify whether to use imaging, clinical data or both
     num_classes = 2
     imaging_dropout = 0.5
     clinical_dropout = 0.0
     fused_dropout = 0.5
 
     model = make_model(
-        use_data=use_data, num_classes=num_classes, imaging_dropout=imaging_dropout, fused_dropout=fused_dropout
+        use_data=use_data,
+        num_classes=num_classes,
+        imaging_dropout=imaging_dropout,
+        fused_dropout=fused_dropout,
     )
 
     make_predictions_file(

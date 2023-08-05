@@ -47,16 +47,24 @@ class BackboneResnet(ResNet):
 
         """
         # init parameters per required backbone
-        init_parameters = {"resnet18": [BasicBlock, [2, 2, 2, 2]], "resnet50": [Bottleneck, [3, 4, 6, 3]]}[name]
+        init_parameters = {
+            "resnet18": [BasicBlock, [2, 2, 2, 2]],
+            "resnet34": [BasicBlock, [3, 4, 6, 3]],
+            "resnet50": [Bottleneck, [3, 4, 6, 3]],
+        }[name]
         # init original model
         super().__init__(*init_parameters)
 
         # load pretrained parameters if required
         if weights is not None and pretrained:
-            raise Exception("Use only one method to load pre-trained weights. Two were given!")
+            raise Exception(
+                "Use only one method to load pre-trained weights. Two were given!"
+            )
 
         if pretrained:
-            print("Warning: not supported by new torchvision version - use weights instead")
+            print(
+                "Warning: not supported by new torchvision version - use weights instead"
+            )
             from torch.hub import load_state_dict_from_url
             from torchvision.models.resnet import model_urls
 
@@ -69,7 +77,9 @@ class BackboneResnet(ResNet):
             elif isinstance(weights, dict):
                 self.load_state_dict(weights, strict=False)
             else:
-                raise Exception(f"Got unexpected type for 'weights' ({type(weights)}) !")
+                raise Exception(
+                    f"Got unexpected type for 'weights' ({type(weights)}) !"
+                )
 
         del self.fc
 
@@ -86,9 +96,13 @@ class BackboneResnet(ResNet):
             # modify the first convolution layer to support any number of input channels
             if self.in_channels == 1:
                 self.conv1.in_channels = 1
-                self.conv1.weight = nn.Parameter(self.conv1.weight.sum(dim=1, keepdim=True))
+                self.conv1.weight = nn.Parameter(
+                    self.conv1.weight.sum(dim=1, keepdim=True)
+                )
             else:
-                self.conv1 = nn.Conv2d(self.in_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
+                self.conv1 = nn.Conv2d(
+                    self.in_channels, 64, kernel_size=7, stride=2, padding=3, bias=False
+                )
 
     def forward(self, x: Tensor) -> Tensor:  # type: ignore
         """

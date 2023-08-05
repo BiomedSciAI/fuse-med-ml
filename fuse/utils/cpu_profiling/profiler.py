@@ -75,6 +75,8 @@ class Profiler:
         print(f"profiling results for {self.txt} :")
         self.s = StringIO()
         sortby = "cumulative"
-        self.ps = pstats.Stats(self.pr, stream=self.s).sort_stats(sortby).reverse_order()
+        self.ps = (
+            pstats.Stats(self.pr, stream=self.s).sort_stats(sortby).reverse_order()
+        )
         self.ps.print_stats()
         print(self.s.getvalue())

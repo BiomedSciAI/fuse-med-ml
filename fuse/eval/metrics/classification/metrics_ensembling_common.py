@@ -56,7 +56,9 @@ class MetricEnsemble(MetricDefault):
         )
         for i, key in enumerate(pred_keys):
             kwargs["pred" + str(i)] = key
-        super().__init__(metric_func=ensemble, target=target, extract_ids=True, **kwargs)
+        super().__init__(
+            metric_func=ensemble, target=target, extract_ids=True, **kwargs
+        )
 
     def _ensemble(
         self,

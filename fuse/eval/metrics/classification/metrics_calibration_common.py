@@ -36,7 +36,9 @@ class MetricReliabilityDiagram(MetricMultiClassDefault):
             num_quantiles=num_quantiles,
             output_filename=output_filename,
         )
-        super().__init__(pred=pred, target=target, metric_func=reliability_diagram, **kwargs)
+        super().__init__(
+            pred=pred, target=target, metric_func=reliability_diagram, **kwargs
+        )
 
 
 class MetricECE(MetricMultiClassDefault):
@@ -47,7 +49,12 @@ class MetricECE(MetricMultiClassDefault):
     """
 
     def __init__(
-        self, pred: str, target: str, num_bins: Optional[int] = 10, num_quantiles: Optional[int] = None, **kwargs: dict
+        self,
+        pred: str,
+        target: str,
+        num_bins: Optional[int] = 10,
+        num_quantiles: Optional[int] = None,
+        **kwargs: dict
     ):
         """
         :param pred: key name for the model prediction scores
@@ -66,7 +73,9 @@ class MetricFindTemperature(MetricMultiClassDefault):
     """
 
     def __init__(self, pred: str, target: str, **kwargs: dict):
-        super().__init__(pred=pred, target=target, metric_func=Calibration.find_temperature, **kwargs)
+        super().__init__(
+            pred=pred, target=target, metric_func=Calibration.find_temperature, **kwargs
+        )
         """
         :param pred: key name for the model prediction scores
         :param target: key name for the ground truth target values
@@ -80,9 +89,15 @@ class MetricApplyTemperature(MetricMultiClassDefault):
     See: https://arxiv.org/pdf/1706.04599.pdf
     """
 
-    def __init__(self, pred: str, temperature: Union[float, str, None] = None, **kwargs: dict):
+    def __init__(
+        self, pred: str, temperature: Union[float, str, None] = None, **kwargs: dict
+    ):
         super().__init__(
-            pred=pred, target=None, temperature=temperature, metric_func=Calibration.apply_temperature, **kwargs
+            pred=pred,
+            target=None,
+            temperature=temperature,
+            metric_func=Calibration.apply_temperature,
+            **kwargs
         )
         """
         :param pred: key name for the model prediction scores

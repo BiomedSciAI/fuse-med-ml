@@ -24,7 +24,16 @@ import copy
 import types
 import numpy
 import torch
-from typing import Any, Callable, Iterator, Optional, Sequence, Union, List, MutableMapping
+from typing import (
+    Any,
+    Callable,
+    Iterator,
+    Optional,
+    Sequence,
+    Union,
+    List,
+    MutableMapping,
+)
 
 
 class NDict(dict):
@@ -49,7 +58,9 @@ class NDict(dict):
     """
 
     def __init__(
-        self, dict_like: Union[dict, tuple, types.GeneratorType, NDict, None] = None, already_flat: bool = False
+        self,
+        dict_like: Union[dict, tuple, types.GeneratorType, NDict, None] = None,
+        already_flat: bool = False,
     ):
         """
         :param dict_like: the data with which to populate the nested dictionary, in case of NDict it acts as view constructor,
@@ -133,7 +144,7 @@ class NDict(dict):
     def items(self) -> dict_items:
         return self._stored.items()
 
-    def merge(self, other: NDict) -> None:
+    def merge(self, other: MutableMapping) -> None:
         """
         inplace merge between self and other.
         """
@@ -375,6 +386,9 @@ class NDict(dict):
 
         return res
 
+    def update(self, dict_like: MutableMapping) -> None:
+        self.merge(dict_like)
+
     def print_tree(self, print_values: bool = False) -> None:
         """
         print the inner structure of the nested dict with a tree-like structure.
@@ -401,28 +415,44 @@ class NDict(dict):
             --------- target -> this_is_a_target_seq
 
         """
+        print(self.get_tree(print_values=print_values))
+
+    def get_tree(self, print_values: bool = False) -> str:
+        """
+        returns a string of the NDict object in a tree-like structure. See 'print_tree'.
+        """
         unflatten_dict = self.unflatten()
-        self._print_tree_static(unflatten_dict, print_values=print_values)
+        tree = self._get_tree_str_static(unflatten_dict, print_values=print_values)
+        return tree[:-1] if len(tree) > 0 else tree
 
     @staticmethod
-    def _print_tree_static(data_dict: dict, level: int = 0, print_values: bool = False) -> None:
+    def _get_tree_str_static(
+        data_dict: dict, level: int = 0, print_values: bool = False
+    ) -> None:
         """
         static-method to print the inner structure of a dict in a tree-like structure.
 
         :param level: current recursive level inside the ndict
         :param print_values: set to True in order to also print ndict's stored values
         """
+        res = ""
         keys = data_dict.keys()
         level += 1
         for key in keys:
             if type(data_dict[key]) == dict:
-                print("---" * level, key)
-                NDict._print_tree_static(data_dict[key], level, print_values=print_values)
+                res += " ".join(["---" * level, key + "\n"])
+                res += NDict._get_tree_str_static(
+                    data_dict[key], level, print_values=print_values
+                )
             else:
                 if print_values:
-                    print("---" * level, key, "->", data_dict[key])
+                    res += " ".join(
+                        ["---" * level, key, "->", str(data_dict[key]) + "\n"]
+                    )
                 else:
-                    print("---" * level, key)
+                    res += " ".join(["---" * level, key + "\n"])
+
+        return res
 
     def describe(self) -> None:
         for k in self.keys():

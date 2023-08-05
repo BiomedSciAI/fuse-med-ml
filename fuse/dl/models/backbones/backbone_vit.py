@@ -27,36 +27,53 @@ class ProjectPatchesTokenizer(nn.Module):
         strict: bool = True,
     ):
         super().__init__()
-        assert len(image_shape) == len(patch_shape), "patch and image must have identical dimensions"
+        assert len(image_shape) == len(
+            patch_shape
+        ), "patch and image must have identical dimensions"
         np_image_shape = np.array(image_shape)
         np_patch_shape = np.array(patch_shape)
 
         # when shapes not divisible and strict=False, handling is similar to pytorch strided convolution
         # see here: https://pytorch.org/docs/stable/generated/torch.nn.Conv1d.html#torch.nn.Conv1d
         if strict:
-            assert (np_image_shape % np_patch_shape == 0).all(), "Image dimensions must be divisible by the patch size."
+            assert (
+                np_image_shape % np_patch_shape == 0
+            ).all(), "Image dimensions must be divisible by the patch size."
         self.num_tokens = int(np.prod(np_image_shape // np_patch_shape))
         patch_shape = tuple(patch_shape)
         self.image_dim = len(image_shape)
         if self.image_dim == 1:
             self.proj_layer = nn.Conv1d(
-                in_channels=channels, out_channels=token_dim, kernel_size=patch_shape, stride=patch_shape
+                in_channels=channels,
+                out_channels=token_dim,
+                kernel_size=patch_shape,
+                stride=patch_shape,
             )
         elif self.image_dim == 2:
             self.proj_layer = nn.Conv2d(
-                in_channels=channels, out_channels=token_dim, kernel_size=patch_shape, stride=patch_shape
+                in_channels=channels,
+                out_channels=token_dim,
+                kernel_size=patch_shape,
+                stride=patch_shape,
             )
         elif self.image_dim == 3:
             self.proj_layer = nn.Conv3d(
-                in_channels=channels, out_channels=token_dim, kernel_size=patch_shape, stride=patch_shape
+                in_channels=channels,
+                out_channels=token_dim,
+                kernel_size=patch_shape,
+                stride=patch_shape,
             )
         else:
             raise NotImplementedError("only supports 1D/2D/3D images")
 
     def forward(self, x: Tensor) -> Tensor:
-        assert len(x.shape) == self.image_dim + 2, "input should be [batch, channels] + image_shape"
+        assert (
+            len(x.shape) == self.image_dim + 2
+        ), "input should be [batch, channels] + image_shape"
         x = self.proj_layer(x)
-        x = x.flatten(start_dim=2, end_dim=-1)  # x.shape == (batch_size, token_dim, num_tokens)
+        x = x.flatten(
+            start_dim=2, end_dim=-1
+        )  # x.shape == (batch_size, token_dim, num_tokens)
         x = x.transpose(1, 2)  # x.shape == (batch_size, num_tokens, token_dim)
         return x
 
@@ -66,16 +83,22 @@ class ViT(nn.Module):
     Projects a 1D/2D/3D image into tokens, and then runs it through a transformer
     """
 
-    def __init__(self, token_dim: int, projection_kwargs: dict, transformer_kwargs: dict):
+    def __init__(
+        self, token_dim: int, projection_kwargs: dict, transformer_kwargs: dict
+    ):
         """
         :param token_dim: the dimension of each token in the transformer
         :param projection_kwargs: positional arguments for the ProjectPatchesTokenizer class
         :param transformer_kwargs: positional arguments for the Transformer class
         """
         super().__init__()
-        self.projection_layer = ProjectPatchesTokenizer(token_dim=token_dim, **projection_kwargs)
+        self.projection_layer = ProjectPatchesTokenizer(
+            token_dim=token_dim, **projection_kwargs
+        )
         num_tokens = self.projection_layer.num_tokens
-        self.transformer = Transformer(num_tokens=num_tokens, token_dim=token_dim, **transformer_kwargs)
+        self.transformer = Transformer(
+            num_tokens=num_tokens, token_dim=token_dim, **transformer_kwargs
+        )
 
     def forward(self, x: Tensor, pool: str = "none") -> Tensor:
         """
@@ -92,30 +115,75 @@ class ViT(nn.Module):
 
 
 def vit_tiny(
-    image_shape: Sequence[int] = (224, 224), patch_shape: Sequence[int] = (16, 16), channels: int = 3
+    image_shape: Sequence[int] = (224, 224),
+    patch_shape: Sequence[int] = (16, 16),
+    channels: int = 3,
 ) -> nn.Module:
     token_dim = 192
-    projection_kwargs = dict(image_shape=image_shape, patch_shape=patch_shape, channels=channels)
-    transformer_kwargs = dict(depth=12, heads=3, mlp_dim=token_dim * 4, dim_head=64, dropout=0.0, emb_dropout=0.0)
-    return ViT(token_dim=token_dim, projection_kwargs=projection_kwargs, transformer_kwargs=transformer_kwargs)
+    projection_kwargs = dict(
+        image_shape=image_shape, patch_shape=patch_shape, channels=channels
+    )
+    transformer_kwargs = dict(
+        depth=12,
+        heads=3,
+        mlp_dim=token_dim * 4,
+        dim_head=64,
+        dropout=0.0,
+        emb_dropout=0.0,
+    )
+    return ViT(
+        token_dim=token_dim,
+        projection_kwargs=projection_kwargs,
+        transformer_kwargs=transformer_kwargs,
+    )
 
 
 def vit_small(
-    image_shape: Sequence[int] = (224, 224), patch_shape: Sequence[int] = (16, 16), channels: int = 3
+    image_shape: Sequence[int] = (224, 224),
+    patch_shape: Sequence[int] = (16, 16),
+    channels: int = 3,
 ) -> nn.Module:
     token_dim = 384
-    projection_kwargs = dict(image_shape=image_shape, patch_shape=patch_shape, channels=channels)
-    transformer_kwargs = dict(depth=12, heads=6, mlp_dim=token_dim * 4, dim_head=64, dropout=0.0, emb_dropout=0.0)
-    return ViT(token_dim=token_dim, projection_kwargs=projection_kwargs, transformer_kwargs=transformer_kwargs)
+    projection_kwargs = dict(
+        image_shape=image_shape, patch_shape=patch_shape, channels=channels
+    )
+    transformer_kwargs = dict(
+        depth=12,
+        heads=6,
+        mlp_dim=token_dim * 4,
+        dim_head=64,
+        dropout=0.0,
+        emb_dropout=0.0,
+    )
+    return ViT(
+        token_dim=token_dim,
+        projection_kwargs=projection_kwargs,
+        transformer_kwargs=transformer_kwargs,
+    )
 
 
 def vit_base(
-    image_shape: Sequence[int] = (224, 224), patch_shape: Sequence[int] = (16, 16), channels: int = 3
+    image_shape: Sequence[int] = (224, 224),
+    patch_shape: Sequence[int] = (16, 16),
+    channels: int = 3,
 ) -> nn.Module:
     token_dim = 768
-    projection_kwargs = dict(image_shape=image_shape, patch_shape=patch_shape, channels=channels)
-    transformer_kwargs = dict(depth=12, heads=12, mlp_dim=token_dim * 4, dim_head=64, dropout=0.0, emb_dropout=0.0)
-    return ViT(token_dim=token_dim, projection_kwargs=projection_kwargs, transformer_kwargs=transformer_kwargs)
+    projection_kwargs = dict(
+        image_shape=image_shape, patch_shape=patch_shape, channels=channels
+    )
+    transformer_kwargs = dict(
+        depth=12,
+        heads=12,
+        mlp_dim=token_dim * 4,
+        dim_head=64,
+        dropout=0.0,
+        emb_dropout=0.0,
+    )
+    return ViT(
+        token_dim=token_dim,
+        projection_kwargs=projection_kwargs,
+        transformer_kwargs=transformer_kwargs,
+    )
 
 
 def usage_example() -> Tensor:

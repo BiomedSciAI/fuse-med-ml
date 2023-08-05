@@ -60,28 +60,45 @@ def isic_2019_dataloaders(
         validation_sample_ids += folds[fold]
 
     train_dataset = ISIC.dataset(
-        data_path, cache_path, samples_ids=train_sample_ids, append_dyn_pipeline=append_dyn_pipeline, train=True
+        data_path,
+        cache_path,
+        samples_ids=train_sample_ids,
+        append_dyn_pipeline=append_dyn_pipeline,
+        train=True,
     )
 
     print("- Create sampler:")
     sampler = BatchSamplerDefault(
-        dataset=train_dataset, balanced_class_name="data.label", num_balanced_classes=8, batch_size=batch_size
+        dataset=train_dataset,
+        balanced_class_name="data.label",
+        num_balanced_classes=8,
+        batch_size=batch_size,
     )
     print("- Create sampler: Done")
 
     # Create dataloader
     train_dataloader = DataLoader(
-        dataset=train_dataset, batch_sampler=sampler, collate_fn=CollateDefault(), num_workers=num_workers
+        dataset=train_dataset,
+        batch_sampler=sampler,
+        collate_fn=CollateDefault(),
+        num_workers=num_workers,
     )
 
     # dataset
     validation_dataset = ISIC.dataset(
-        data_path, cache_path, samples_ids=validation_sample_ids, append_dyn_pipeline=append_dyn_pipeline, train=False
+        data_path,
+        cache_path,
+        samples_ids=validation_sample_ids,
+        append_dyn_pipeline=append_dyn_pipeline,
+        train=False,
     )
 
     # dataloader
     validation_dataloader = DataLoader(
-        dataset=validation_dataset, batch_size=batch_size, collate_fn=CollateDefault(), num_workers=num_workers
+        dataset=validation_dataset,
+        batch_size=batch_size,
+        collate_fn=CollateDefault(),
+        num_workers=num_workers,
     )
 
     return train_dataloader, validation_dataloader

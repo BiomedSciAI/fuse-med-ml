@@ -122,7 +122,10 @@ class MetricCollector(MetricBase):
         if not isinstance(batch, NDict):
             batch = NDict(batch)
 
-        if self._pre_collect_process_func is not None or self._post_collect_process_func is not None:
+        if (
+            self._pre_collect_process_func is not None
+            or self._post_collect_process_func is not None
+        ):
             samples = uncollate(batch)
             for sample in samples:
                 if self._pre_collect_process_func is not None:
@@ -137,7 +140,9 @@ class MetricCollector(MetricBase):
                     sample_to_collect[name] = value
 
                 if self._post_collect_process_func is not None:
-                    sample_to_collect = self._post_collect_process_func(**sample_to_collect)
+                    sample_to_collect = self._post_collect_process_func(
+                        **sample_to_collect
+                    )
                     if self._post_keys_to_collect is None:
                         sample_to_collect = {"post_args": sample_to_collect}
 
@@ -158,7 +163,9 @@ class MetricCollector(MetricBase):
                 batch_to_collect[name] = value
 
             if self._batch_post_collect_process_func is not None:
-                batch_to_collect = self._batch_post_collect_process_func(**batch_to_collect)
+                batch_to_collect = self._batch_post_collect_process_func(
+                    **batch_to_collect
+                )
                 if self._post_keys_to_collect is None:
                     batch_to_collect = {"post_args": batch_to_collect}
 
@@ -192,7 +199,8 @@ class MetricCollector(MetricBase):
         ), f"ERROR, Fuse Metrics only supports gathering of torch.Tensor at this time. You tried gathering {type(data)}"
 
         # if data is 1d, torch.vstack will add another dimension which we do not want
-        if len(data.shape) == 1:
+        is_1d = len(data.shape) == 1
+        if is_1d:
             data = data[:, None]  # add dim to the end
 
         # gather
@@ -202,6 +210,8 @@ class MetricCollector(MetricBase):
 
         # stack
         stacked_data = torch.vstack(data_list)
+        if is_1d:
+            stacked_data = stacked_data.reshape(-1)  # revert back to original 1d
 
         return stacked_data
 
@@ -228,7 +238,9 @@ class MetricCollector(MetricBase):
         return pd.Series(result.flatten())
 
     @staticmethod
-    def _df_dict_apply_kwargs(data: pd.Series, func: Callable, batch: bool = False, post: bool = False) -> pd.Series:
+    def _df_dict_apply_kwargs(
+        data: pd.Series, func: Callable, batch: bool = False, post: bool = False
+    ) -> pd.Series:
         if batch:
             kwargs = {}
             for k, v in data.to_dict().items():
@@ -265,18 +277,24 @@ class MetricCollector(MetricBase):
         self.reset()
 
         if self._pre_collect_process_func is not None:
-            pre_collect_process = lambda x: self._df_dict_apply(x, self._pre_collect_process_func)
+            pre_collect_process = lambda x: self._df_dict_apply(
+                x, self._pre_collect_process_func
+            )
             data = data.apply(pre_collect_process, axis=1)
 
         data_to_collect = pd.DataFrame(data=None, columns=self._keys_to_collect)
         for name, key in self._keys_to_collect.items():
             if key not in data.keys():
-                raise Exception(f"Error key {key} wasn't found. Available keys {data.keys()}")
+                raise Exception(
+                    f"Error key {key} wasn't found. Available keys {data.keys()}"
+                )
 
             data_to_collect[name] = data[key]
 
         if self._post_collect_process_func is not None:
-            post_collect_process = lambda x: self._df_dict_apply_kwargs(x, self._post_collect_process_func, post=True)
+            post_collect_process = lambda x: self._df_dict_apply_kwargs(
+                x, self._post_collect_process_func, post=True
+            )
             data_to_collect = data_to_collect.apply(post_collect_process, axis=1)
 
         if self._batch_post_collect_process_func is not None:
@@ -303,7 +321,10 @@ class MetricCollector(MetricBase):
         """
         See super class
         """
-        if self._post_collect_process_func is None and self._batch_post_collect_process_func is None:
+        if (
+            self._post_collect_process_func is None
+            and self._batch_post_collect_process_func is None
+        ):
             self._collected_data = {name: [] for name in self._keys_to_collect}
         else:
             # collect everything you get from post_collect_process_args
@@ -382,11 +403,19 @@ class MetricWithCollectorBase(MetricBase):
                 to collect from the results dictionary: add a "results:" prefix to the key name
         """
         super().__init__()
-        self._keys_to_collect = {n: k for n, k in kwargs.items() if isinstance(k, str) and not k.startswith("results:")}
-        self._keys_from_results = {
-            n: k[len("results:") :] for n, k in kwargs.items() if isinstance(k, str) and k.startswith("results:")
+        self._keys_to_collect = {
+            n: k
+            for n, k in kwargs.items()
+            if isinstance(k, str) and not k.startswith("results:")
         }
-        self._value_args = {n: k for n, k in kwargs.items() if k is not None and not isinstance(k, str)}
+        self._keys_from_results = {
+            n: k[len("results:") :]
+            for n, k in kwargs.items()
+            if isinstance(k, str) and k.startswith("results:")
+        }
+        self._value_args = {
+            n: k for n, k in kwargs.items() if k is not None and not isinstance(k, str)
+        }
         self._collector = (
             MetricCollector(
                 pre_collect_process_func,
@@ -424,7 +453,9 @@ class MetricWithCollectorBase(MetricBase):
         if self._collect_data_flag:
             return self._collector.reset()
 
-    def _extract_arguments(self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None) -> Dict:
+    def _extract_arguments(
+        self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None
+    ) -> Dict:
         """
         extract keyworded arguments and value arguments from collected data and results dict
         """
@@ -454,7 +485,9 @@ class MetricWithCollectorBase(MetricBase):
         return arg_dict
 
     @abstractmethod
-    def eval(self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None) -> None:
+    def eval(
+        self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None
+    ) -> None:
         """
         See super class
         """
@@ -467,7 +500,13 @@ class MetricDefault(MetricWithCollectorBase):
     Can be used for any metric getting as an input list of prediction, list of targets and optionally additional parameters
     """
 
-    def __init__(self, metric_func: Callable, pred: Optional[str] = None, target: Optional[str] = None, **kwargs: Any):
+    def __init__(
+        self,
+        metric_func: Callable,
+        pred: Optional[str] = None,
+        target: Optional[str] = None,
+        **kwargs: Any,
+    ):
         """
         :param pred: prediction key to collect
         :param target: target key to collect
@@ -486,7 +525,9 @@ class MetricDefault(MetricWithCollectorBase):
         super().__init__(pred=pred, target=target, **kwargs)
         self._metric_func = metric_func
 
-    def eval(self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None) -> Union[Dict, Any]:
+    def eval(
+        self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None
+    ) -> Union[Dict, Any]:
         """
         See super class
         """
@@ -505,7 +546,12 @@ class MetricPerSampleDefault(MetricWithCollectorBase):
     """
 
     def __init__(
-        self, pred: str, target: str, metric_per_sample_func: Callable, result_aggregate_func: Callable, **kwargs: Any
+        self,
+        pred: str,
+        target: str,
+        metric_per_sample_func: Callable,
+        result_aggregate_func: Callable,
+        **kwargs: Any,
     ):
         """
         :param pred: prediction key to collect
@@ -516,10 +562,17 @@ class MetricPerSampleDefault(MetricWithCollectorBase):
         :param kwargs: additional kw arguments for MetricWithCollectorBase
         """
 
-        super().__init__(pred=pred, target=target, post_collect_process_func=metric_per_sample_func, **kwargs)
+        super().__init__(
+            pred=pred,
+            target=target,
+            post_collect_process_func=metric_per_sample_func,
+            **kwargs,
+        )
         self._result_aggregate_func = result_aggregate_func
 
-    def eval(self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None) -> Union[Dict, Any]:
+    def eval(
+        self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None
+    ) -> Union[Dict, Any]:
         """
         See super class
         """
@@ -540,7 +593,13 @@ class MetricPerBatchDefault(MetricWithCollectorBase):
     Can be used for any metric getting as an input list of prediction, list of targets and optionally additional parameters
     """
 
-    def __init__(self, *, metric_per_batch_func: Callable, result_aggregate_func: Callable, **kwargs: Any):
+    def __init__(
+        self,
+        *,
+        metric_per_batch_func: Callable,
+        result_aggregate_func: Callable,
+        **kwargs: Any,
+    ):
         """
         :param pred: prediction key to collect
         :param target: target key to collect
@@ -550,10 +609,14 @@ class MetricPerBatchDefault(MetricWithCollectorBase):
         :param kwargs: additional kw arguments for MetricWithCollectorBase
         """
 
-        super().__init__(batch_post_collect_process_func=metric_per_batch_func, **kwargs)
+        super().__init__(
+            batch_post_collect_process_func=metric_per_batch_func, **kwargs
+        )
         self._result_aggregate_func = result_aggregate_func
 
-    def eval(self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None) -> Union[Dict, Any]:
+    def eval(
+        self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None
+    ) -> Union[Dict, Any]:
         """
         See super class
         """
@@ -596,7 +659,9 @@ class GroupAnalysis(MetricWithCollectorBase):
         self._metric.reset()
         return super().reset()
 
-    def eval(self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None) -> Dict[str, Any]:
+    def eval(
+        self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None
+    ) -> Dict[str, Any]:
         """
         See super class
         :return: a dictionary of the following format {'mean': <>, 'std': <>, 'median': <>, <group 0>: <>, <group 1>: <>, ...}
@@ -617,7 +682,9 @@ class GroupAnalysis(MetricWithCollectorBase):
         for group_value in unique_groups:
             group_ids = ids[groups == group_value]
 
-            group_analysis_results[str(group_value)] = self._metric.eval(results, group_ids)
+            group_analysis_results[str(group_value)] = self._metric.eval(
+                results, group_ids
+            )
 
         # compute stats
         group_results_list = list(group_analysis_results.values())
@@ -654,7 +721,13 @@ class Filter(MetricWithCollectorBase):
     Evaluate a sub-group of data. This utility will filter non relevant samples and will call to the given metric.
     """
 
-    def __init__(self, metric: MetricBase, filter: str, cond: Optional[callable] = None, **super_kwargs: Any) -> None:
+    def __init__(
+        self,
+        metric: MetricBase,
+        filter: str,
+        cond: Optional[callable] = None,
+        **super_kwargs: Any,
+    ) -> None:
         """
         :param metric: metric to filter samples for
         :param filter: key to extract filter
@@ -680,7 +753,9 @@ class Filter(MetricWithCollectorBase):
         self._metric.reset()
         return super().reset()
 
-    def eval(self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None) -> Dict[str, Any]:
+    def eval(
+        self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None
+    ) -> Dict[str, Any]:
         """
         See super class
         :return: a dictionary of the following format {'mean': <>, 'std': <>, 'median': <>, <group 0>: <>, <group 1>: <>, ...}
@@ -758,7 +833,9 @@ class CI(MetricWithCollectorBase):
         self._metric.reset()
         return super().reset()
 
-    def eval(self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None) -> Dict[str, Any]:
+    def eval(
+        self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None
+    ) -> Dict[str, Any]:
         """
         See super class
         :return: dictionary of format - {'org': <>, 'mean': <>, 'std': <>, 'conf_interval': <>, 'conf_lower': <>, 'conf_upper': <>}
@@ -778,7 +855,9 @@ class CI(MetricWithCollectorBase):
         boot_results = []
         ci_results = {}
 
-        stratum_id = np.array(data["stratum"]) if "stratum" in data else np.ones(len(ids))
+        stratum_id = (
+            np.array(data["stratum"]) if "stratum" in data else np.ones(len(ids))
+        )
         unique_strata = np.unique(stratum_id)
 
         for _ in range(self._num_of_bootstraps):
@@ -795,22 +874,32 @@ class CI(MetricWithCollectorBase):
             for key, orig_val in original_sample_results.items():
                 sampled_vals = [sample[key] for sample in boot_results]
                 try:
-                    ci_results[key] = self._compute_stats(self._ci_method, orig_val, sampled_vals, self._conf_interval)
+                    ci_results[key] = self._compute_stats(
+                        self._ci_method, orig_val, sampled_vals, self._conf_interval
+                    )
                 except:
                     ci_results[key] = orig_val
         elif isinstance(original_sample_results, float):
             ci_results = self._compute_stats(
-                self._ci_method, original_sample_results, boot_results, self._conf_interval
+                self._ci_method,
+                original_sample_results,
+                boot_results,
+                self._conf_interval,
             )
 
         return ci_results
 
     @staticmethod
     def _compute_stats(
-        ci_method: str, orig: Union[float, np.ndarray], samples: Sequence[Union[float, np.ndarray]], confidence: float
+        ci_method: str,
+        orig: Union[float, np.ndarray],
+        samples: Sequence[Union[float, np.ndarray]],
+        confidence: float,
     ) -> Dict[str, Union[np.ndarray, float]]:
         "Compute and package into dictionary CI results"
-        confidence_lower, confidence_upper = CI.compute_confidence_interval(ci_method, orig, samples, confidence)
+        confidence_lower, confidence_upper = CI.compute_confidence_interval(
+            ci_method, orig, samples, confidence
+        )
         return {
             "org": orig,
             "mean": np.mean(samples),
@@ -845,4 +934,7 @@ class CI(MetricWithCollectorBase):
             return bootstrap_statistic_low, bootstrap_statistic_high
 
         assert method == "PIVOTAL"
-        return 2 * org_statistic - bootstrap_statistic_high, 2 * org_statistic - bootstrap_statistic_low
+        return (
+            2 * org_statistic - bootstrap_statistic_high,
+            2 * org_statistic - bootstrap_statistic_low,
+        )

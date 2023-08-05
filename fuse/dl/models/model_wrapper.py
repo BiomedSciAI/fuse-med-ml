@@ -84,7 +84,10 @@ class ModelWrapSeqToDict(nn.Module):
                 for input_arg_name, input_batch_dict_key in self.model_inputs.items()
             }
         else:
-            model_input = [batch_dict[input_batch_dict_key] for input_batch_dict_key in self.model_inputs]
+            model_input = [
+                batch_dict[input_batch_dict_key]
+                for input_batch_dict_key in self.model_inputs
+            ]
 
         # convert input to model expected input
         if self.pre_forward_processing_function is not None:

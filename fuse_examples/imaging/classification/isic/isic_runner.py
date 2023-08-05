@@ -30,11 +30,21 @@ from torchvision.models.resnet import ResNet18_Weights
 
 from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.backbones.backbone_resnet import BackboneResnet
-from fuse.dl.models.heads.head_global_pooling_classifier import HeadGlobalPoolingClassifier
-from fuse.dl.models.backbones.backbone_inception_resnet_v2 import BackboneInceptionResnetV2
+from fuse.dl.models.heads.head_global_pooling_classifier import (
+    HeadGlobalPoolingClassifier,
+)
+from fuse.dl.models.backbones.backbone_inception_resnet_v2 import (
+    BackboneInceptionResnetV2,
+)
 
-from fuse.eval.metrics.classification.metrics_thresholding_common import MetricApplyThresholds
-from fuse.eval.metrics.classification.metrics_classification_common import MetricAccuracy, MetricAUCROC, MetricROCCurve
+from fuse.eval.metrics.classification.metrics_thresholding_common import (
+    MetricApplyThresholds,
+)
+from fuse.eval.metrics.classification.metrics_classification_common import (
+    MetricAccuracy,
+    MetricAUCROC,
+    MetricROCCurve,
+)
 
 from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.utils_logger import fuse_logger_start
@@ -76,12 +86,14 @@ NUM_WORKERS = 8
 ##########################################
 # Modality
 ##########################################
-multimodality = False  # Set: 'False' to use only imaging, 'True' to use imaging & meta-data
+multimodality = (
+    False  # Set: 'False' to use only imaging, 'True' to use imaging & meta-data
+)
 
 ##########################################
 # Model Type
 ##########################################
-model_type = "CNN"  # Set: 'Transformer' to use ViT/MMViT, 'CNN' to use InceptionResNet or Resnet18
+model_type = "Transformer"  # Set: 'Transformer' to use ViT/MMViT, 'CNN' to use InceptionResNet or Resnet18
 
 ##########################################
 # Output Paths
@@ -89,7 +101,11 @@ model_type = "CNN"  # Set: 'Transformer' to use ViT/MMViT, 'CNN' to use Inceptio
 
 
 ROOT = "./_examples/isic/"
-DATA = os.environ["ISIC19_DATA_PATH"] if "ISIC19_DATA_PATH" in os.environ else os.path.join(ROOT, "data_dir")
+DATA = (
+    os.environ["ISIC19_DATA_PATH"]
+    if "ISIC19_DATA_PATH" in os.environ
+    else os.path.join(ROOT, "data_dir")
+)
 modality = "multimodality" if multimodality else "imaging"
 model_dir = os.path.join(ROOT, f"model_dir_{modality}")
 PATHS = {
@@ -109,19 +125,23 @@ TRAIN_COMMON_PARAMS = {}
 # ============
 # Data
 # ============
-TRAIN_COMMON_PARAMS["data.batch_size"] = 32  # effective batch size = batch_size * num_gpus
+TRAIN_COMMON_PARAMS[
+    "data.batch_size"
+] = 32  # effective batch size = batch_size * num_gpus
 TRAIN_COMMON_PARAMS["data.num_workers"] = NUM_WORKERS
 TRAIN_COMMON_PARAMS["data.num_folds"] = 5
 TRAIN_COMMON_PARAMS["data.train_folds"] = [0, 1, 2]
 TRAIN_COMMON_PARAMS["data.validation_folds"] = [3]
 TRAIN_COMMON_PARAMS["data.infer_folds"] = [4]
-TRAIN_COMMON_PARAMS["data.samples_ids"] = {"all": None, "golden": FULL_GOLDEN_MEMBERS}["golden"]
+TRAIN_COMMON_PARAMS["data.samples_ids"] = {"all": None, "golden": FULL_GOLDEN_MEMBERS}[
+    "golden"
+]
 
 
 # ===============
 # PL Trainer
 # ===============
-TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 10
+TRAIN_COMMON_PARAMS["trainer.num_epochs"] = 2
 TRAIN_COMMON_PARAMS["trainer.num_devices"] = NUM_GPUS
 TRAIN_COMMON_PARAMS["trainer.accelerator"] = "gpu"
 
@@ -138,15 +158,26 @@ if model_type == "CNN":
     TRAIN_COMMON_PARAMS["model"] = dict(
         dropout_rate=0.5,
         layers_description=(256,),
-        tabular_data_inputs=[("data.input.clinical.all", 19)] if multimodality else None,
+        tabular_data_inputs=[("data.input.clinical.all", 19)]
+        if multimodality
+        else None,
         tabular_layers_description=(128,) if multimodality else tuple(),
     )
 elif model_type == "Transformer":
     token_dim = 768
     TRAIN_COMMON_PARAMS["model"] = dict(
         token_dim=token_dim,
-        projection_kwargs=dict(image_shape=[300, 300], patch_shape=[30, 30], channels=3),
-        transformer_kwargs=dict(depth=12, heads=12, mlp_dim=token_dim * 4, dim_head=64, dropout=0.0, emb_dropout=0.0),
+        projection_kwargs=dict(
+            image_shape=[300, 300], patch_shape=[30, 30], channels=3
+        ),
+        transformer_kwargs=dict(
+            depth=12,
+            heads=12,
+            mlp_dim=token_dim * 4,
+            dim_head=64,
+            dropout=0.0,
+            emb_dropout=0.0,
+        ),
     )
 
 TRAIN_COMMON_PARAMS["model_type"] = model_type
@@ -158,7 +189,13 @@ def perform_softmax(logits: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
 
 
 class MMViT(ViT):
-    def __init__(self, token_dim: int, projection_kwargs: dict, transformer_kwargs: dict, multimodality: bool):
+    def __init__(
+        self,
+        token_dim: int,
+        projection_kwargs: dict,
+        transformer_kwargs: dict,
+        multimodality: bool,
+    ):
         super().__init__(token_dim, projection_kwargs, transformer_kwargs)
         self.multimodality = multimodality
         num_tokens = self.projection_layer.num_tokens
@@ -166,10 +203,14 @@ class MMViT(ViT):
         self._head = nn.Linear(token_dim, 8)
         if self.multimodality:
             # change pos embedding to accept additional token for multimodal
-            self.transformer.pos_embedding = nn.Parameter(torch.randn(1, num_tokens + 2, token_dim))
+            self.transformer.pos_embedding = nn.Parameter(
+                torch.randn(1, num_tokens + 2, token_dim)
+            )
 
     # This forward can be Multimodal or just Imaging
-    def forward(self, img_x: torch.Tensor, clinical_x: torch.Tensor = None) -> torch.Tensor:
+    def forward(
+        self, img_x: torch.Tensor, clinical_x: torch.Tensor = None
+    ) -> torch.Tensor:
         img_x = self.projection_layer(img_x)
         if self.multimodality:
             clinical_x = clinical_x.unsqueeze(1)
@@ -188,6 +229,7 @@ def create_transformer_model(
     token_dim: int,
     projection_kwargs: dict,
     transformer_kwargs: dict,
+    backbone_ckpt_path: Optional[str] = None,
 ) -> ModelWrapSeqToDict:
     torch_model = MMViT(
         token_dim=token_dim,
@@ -195,9 +237,17 @@ def create_transformer_model(
         transformer_kwargs=transformer_kwargs,
         multimodality=multimodality,
     )
+    if backbone_ckpt_path:
+        print(f"Got a backbone checkpoint path @ {backbone_ckpt_path}! Loading it...")
+        state_dict = torch.load(backbone_ckpt_path)
+        torch_model.load_state_dict(state_dict)
+        print("Backbone has been loaded successfully!")
+
     model = ModelWrapSeqToDict(
         model=torch_model,
-        model_inputs=["data.input.img", "data.input.clinical.all"] if multimodality else ["data.input.img"],
+        model_inputs=["data.input.img", "data.input.clinical.all"]
+        if multimodality
+        else ["data.input.img"],
         post_forward_processing_function=perform_softmax,
         model_outputs=["model.logits.head_0", "model.output.head_0"],
     )
@@ -219,11 +269,18 @@ def create_cnn_model(
     """
     if backbone_type == "Resnet18":
         if backbone_ckpt_path:
-            print(f"Found a backbone checkpoint path @ {backbone_ckpt_path} ! Loading it...")
+            print(
+                f"Got a backbone checkpoint path @ {backbone_ckpt_path} ! Loading it..."
+            )
             state_dict = torch.load(backbone_ckpt_path)
-            backbone = BackboneResnet(weights=state_dict, in_channels=3, name="resnet18")
+            backbone = BackboneResnet(
+                weights=state_dict, in_channels=3, name="resnet18"
+            )
+            print("Backbone model has been loaded successfully!")
         else:
-            backbone = BackboneResnet(weights=ResNet18_Weights.IMAGENET1K_V1, in_channels=3, name="resnet18")
+            backbone = BackboneResnet(
+                weights=ResNet18_Weights.IMAGENET1K_V1, in_channels=3, name="resnet18"
+            )
         header_conv_inputs = [("model.backbone_features", 512)]
     elif backbone_type == "InceptionResnetV2":
         backbone = BackboneInceptionResnetV2(input_channels_num=3, logical_units_num=43)
@@ -280,7 +337,9 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     # ==============================================================================
     # Logger
     # ==============================================================================
-    fuse_logger_start(output_path=paths["model_dir"], console_verbose_level=logging.INFO)
+    fuse_logger_start(
+        output_path=paths["model_dir"], console_verbose_level=logging.INFO
+    )
     lgr = logging.getLogger("Fuse")
     lgr.info("Fuse Train", {"attrs": ["bold", "underline"]})
 
@@ -300,14 +359,14 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     # ==============================================================================
     # Model
     # ==============================================================================
-    backbone_ckpt_path = os.path.join(paths["model_dir"], "backbone.pth")
     lgr.info("Model:", {"attrs": "bold"})
     model_type = train_common_params["model_type"]
+    backbone_ckpt_path = os.path.join(paths["model_dir"], f"backbone_{model_type}.pth")
+    if os.path.isfile(backbone_ckpt_path):
+        train_common_params["model"]["backbone_ckpt_path"] = backbone_ckpt_path
     if model_type == "Transformer":
         model = create_transformer_model(**train_common_params["model"])
     elif model_type == "CNN":
-        if os.path.isfile(backbone_ckpt_path):
-            train_common_params["model"]["backbone_ckpt_path"] = backbone_ckpt_path
         model = create_cnn_model(**train_common_params["model"])
 
     lgr.info("Model: Done", {"attrs": "bold"})
@@ -316,7 +375,12 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     #  Loss
     # ====================================================================================
     losses = {
-        "cls_loss": LossDefault(pred="model.logits.head_0", target="data.label", callable=F.cross_entropy, weight=1.0),
+        "cls_loss": LossDefault(
+            pred="model.logits.head_0",
+            target="data.label",
+            callable=F.cross_entropy,
+            weight=1.0,
+        ),
     }
 
     # ====================================================================================
@@ -325,25 +389,44 @@ def run_train(paths: dict, train_common_params: dict) -> None:
     class_names = ["MEL", "NV", "BCC", "AK", "BKL", "DF", "VASC", "SCC"]
     train_metrics = OrderedDict(
         [
-            ("op", MetricApplyThresholds(pred="model.output.head_0")),  # will apply argmax
-            ("auc", MetricAUCROC(pred="model.output.head_0", target="data.label", class_names=class_names)),
-            ("accuracy", MetricAccuracy(pred="results:metrics.op.cls_pred", target="data.label")),
+            (
+                "op",
+                MetricApplyThresholds(pred="model.output.head_0"),
+            ),  # will apply argmax
+            (
+                "auc",
+                MetricAUCROC(
+                    pred="model.output.head_0",
+                    target="data.label",
+                    class_names=class_names,
+                ),
+            ),
+            (
+                "accuracy",
+                MetricAccuracy(pred="results:metrics.op.cls_pred", target="data.label"),
+            ),
         ]
     )
 
-    validation_metrics = copy.deepcopy(train_metrics)  # use the same metrics in validation as well
+    validation_metrics = copy.deepcopy(
+        train_metrics
+    )  # use the same metrics in validation as well
 
     best_epoch_source = dict(monitor="validation.metrics.auc.macro_avg", mode="max")
 
     # create optimizer
     optimizer = optim.Adam(
-        model.parameters(), lr=train_common_params["opt.lr"], weight_decay=train_common_params["opt.weight_decay"]
+        model.parameters(),
+        lr=train_common_params["opt.lr"],
+        weight_decay=train_common_params["opt.weight_decay"],
     )
 
     # create learning scheduler
     lr_scheduler = {
         "ReduceLROnPlateau": optim.lr_scheduler.ReduceLROnPlateau(optimizer),
-        "CosineAnnealing": optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=1),
+        "CosineAnnealing": optim.lr_scheduler.CosineAnnealingWarmRestarts(
+            optimizer, T_0=1
+        ),
     }["ReduceLROnPlateau"]
     lr_sch_config = dict(scheduler=lr_scheduler, monitor="validation.losses.total_loss")
 
@@ -379,7 +462,12 @@ def run_train(paths: dict, train_common_params: dict) -> None:
 
     # Save backbone weights
     print(f"Saving backbone weights @ {backbone_ckpt_path}")
-    torch.save(pl_module._model.backbone.state_dict(), backbone_ckpt_path)
+    if model_type == "CNN":
+        torch.save(pl_module._model.backbone.state_dict(), backbone_ckpt_path)
+    else:
+        torch.save(pl_module._model.model.state_dict(), backbone_ckpt_path)
+    # Workaround so it'll aggregate to inference mode in the first run.
+    TRAIN_COMMON_PARAMS["model"]["backbone_ckpt_path"] = backbone_ckpt_path
 
     lgr.info("Train: Done", {"attrs": "bold"})
 
@@ -407,24 +495,34 @@ INFER_COMMON_PARAMS["model_type"] = TRAIN_COMMON_PARAMS["model_type"]
 @rank_zero_only
 def run_infer(paths: dict, infer_common_params: dict) -> None:
     create_dir(paths["inference_dir"])
-    infer_file = os.path.join(paths["inference_dir"], infer_common_params["infer_filename"])
-    checkpoint_file = os.path.join(paths["model_dir"], infer_common_params["checkpoint"])
+    infer_file = os.path.join(
+        paths["inference_dir"], infer_common_params["infer_filename"]
+    )
+    checkpoint_file = os.path.join(
+        paths["model_dir"], infer_common_params["checkpoint"]
+    )
 
     ## Logger
-    fuse_logger_start(output_path=paths["inference_dir"], console_verbose_level=logging.INFO)
+    fuse_logger_start(
+        output_path=paths["inference_dir"], console_verbose_level=logging.INFO
+    )
     lgr = logging.getLogger("Fuse")
     lgr.info("Fuse Inference", {"attrs": ["bold", "underline"]})
     lgr.info(f"infer_filename={infer_file}", {"color": "magenta"})
 
     ## Data
-    folds = load_pickle(paths["data_split_filename"])  # assume exists and created in train func
+    folds = load_pickle(
+        paths["data_split_filename"]
+    )  # assume exists and created in train func
 
     infer_sample_ids = []
     for fold in infer_common_params["data.infer_folds"]:
         infer_sample_ids += folds[fold]
 
     # Create dataset
-    infer_dataset = ISIC.dataset(paths["data_dir"], paths["cache_dir"], samples_ids=infer_sample_ids, train=False)
+    infer_dataset = ISIC.dataset(
+        paths["data_dir"], paths["cache_dir"], samples_ids=infer_sample_ids, train=False
+    )
 
     # dataloader
     infer_dataloader = DataLoader(
@@ -442,10 +540,16 @@ def run_infer(paths: dict, infer_common_params: dict) -> None:
         model = create_cnn_model(**infer_common_params["model"])
 
     pl_module = LightningModuleDefault.load_from_checkpoint(
-        checkpoint_file, model_dir=paths["model_dir"], model=model, map_location="cpu", strict=True
+        checkpoint_file,
+        model_dir=paths["model_dir"],
+        model=model,
+        map_location="cpu",
+        strict=True,
     )
     # set the prediction keys to extract (the ones used be the evaluation function).
-    pl_module.set_predictions_keys(["model.output.head_0", "data.label"])  # which keys to extract and dump into file
+    pl_module.set_predictions_keys(
+        ["model.output.head_0", "data.label"]
+    )  # which keys to extract and dump into file
 
     # create a trainer instance
     pl_trainer = pl.Trainer(
@@ -454,7 +558,9 @@ def run_infer(paths: dict, infer_common_params: dict) -> None:
         devices=infer_common_params["trainer.num_devices"],
         max_epochs=0,
     )
-    predictions = pl_trainer.predict(pl_module, infer_dataloader, return_predictions=True)
+    predictions = pl_trainer.predict(
+        pl_module, infer_dataloader, return_predictions=True
+    )
 
     # convert list of batch outputs into a dataframe
     infer_df = convert_predictions_to_dataframe(predictions)
@@ -473,7 +579,9 @@ EVAL_COMMON_PARAMS["infer_filename"] = INFER_COMMON_PARAMS["infer_filename"]
 ######################################
 @rank_zero_only
 def run_eval(paths: dict, eval_common_params: dict) -> None:
-    infer_file = os.path.join(paths["inference_dir"], eval_common_params["infer_filename"])
+    infer_file = os.path.join(
+        paths["inference_dir"], eval_common_params["infer_filename"]
+    )
 
     fuse_logger_start(output_path=None, console_verbose_level=logging.INFO)
     lgr = logging.getLogger("Fuse")
@@ -482,15 +590,23 @@ def run_eval(paths: dict, eval_common_params: dict) -> None:
     # metrics
     metrics = OrderedDict(
         [
-            ("op", MetricApplyThresholds(pred="model.output.head_0")),  # will apply argmax
+            (
+                "op",
+                MetricApplyThresholds(pred="model.output.head_0"),
+            ),  # will apply argmax
             ("auc", MetricAUCROC(pred="model.output.head_0", target="data.label")),
-            ("accuracy", MetricAccuracy(pred="results:metrics.op.cls_pred", target="data.label")),
+            (
+                "accuracy",
+                MetricAccuracy(pred="results:metrics.op.cls_pred", target="data.label"),
+            ),
             (
                 "roc",
                 MetricROCCurve(
                     pred="model.output.head_0",
                     target="data.label",
-                    output_filename=os.path.join(paths["inference_dir"], "roc_curve.png"),
+                    output_filename=os.path.join(
+                        paths["inference_dir"], "roc_curve.png"
+                    ),
                 ),
             ),
         ]
@@ -500,7 +616,13 @@ def run_eval(paths: dict, eval_common_params: dict) -> None:
     evaluator = EvaluatorDefault()
 
     # run
-    results = evaluator.eval(ids=None, data=infer_file, metrics=metrics, output_dir=paths["eval_dir"], silent=False)
+    results = evaluator.eval(
+        ids=None,
+        data=infer_file,
+        metrics=metrics,
+        output_dir=paths["eval_dir"],
+        silent=False,
+    )
 
     return results
 

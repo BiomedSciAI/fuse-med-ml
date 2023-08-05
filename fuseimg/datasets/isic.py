@@ -86,7 +86,9 @@ class ISIC:
     }
 
     @staticmethod
-    def download(data_path: str, sample_ids_to_download: Optional[Sequence[str]] = None) -> None:
+    def download(
+        data_path: str, sample_ids_to_download: Optional[Sequence[str]] = None
+    ) -> None:
         """
         Download images and metadata from ISIC challenge.
         Doesn't download again if data exists.
@@ -97,22 +99,31 @@ class ISIC:
         create_dir(os.path.join(data_path, "ISIC2019"))
         path = os.path.join(data_path, "ISIC2019/ISIC_2019_Training_Input")
         if not os.path.exists(path):
-            print("\nExtract ISIC-2019 training input ... (this may take a few minutes)")
+            print(
+                "\nExtract ISIC-2019 training input ... (this may take a few minutes)"
+            )
 
             url = "https://isic-challenge-data.s3.amazonaws.com/2019/ISIC_2019_Training_Input.zip"
             filename = os.path.join(data_path, "ISIC_2019_Training_Input.zip")
             print(f"Extract to {path}")
             if not os.path.exists(filename):
-                wget.download(url, os.path.join(data_path, "ISIC_2019_Training_Input.zip"))
+                wget.download(
+                    url, os.path.join(data_path, "ISIC_2019_Training_Input.zip")
+                )
 
             if sample_ids_to_download is not None:
-                members = [os.path.join("ISIC_2019_Training_Input", m + ".jpg") for m in sample_ids_to_download]
+                members = [
+                    os.path.join("ISIC_2019_Training_Input", m + ".jpg")
+                    for m in sample_ids_to_download
+                ]
             else:
                 members = None
 
             with ZipFile(filename, "r") as zipObj:
                 # Extract all the contents of zip file in current directory
-                zipObj.extractall(path=os.path.join(data_path, "ISIC2019"), members=members)
+                zipObj.extractall(
+                    path=os.path.join(data_path, "ISIC2019"), members=members
+                )
 
             print("Extracting ISIC-2019 training input: done")
 
@@ -122,7 +133,10 @@ class ISIC:
             print("\nExtract ISIC-2019 training gt ... (this may take a few minutes)")
 
             url = "https://isic-challenge-data.s3.amazonaws.com/2019/ISIC_2019_Training_GroundTruth.csv"
-            wget.download(url, os.path.join(data_path, "ISIC2019/ISIC_2019_Training_GroundTruth.csv"))
+            wget.download(
+                url,
+                os.path.join(data_path, "ISIC2019/ISIC_2019_Training_GroundTruth.csv"),
+            )
 
             print("Extracting ISIC-2019 training gt: done")
 
@@ -132,7 +146,9 @@ class ISIC:
             print("\nExtract ISIC-2019 metadata ... (this may take a few minutes)")
 
             url = "https://isic-challenge-data.s3.amazonaws.com/2019/ISIC_2019_Training_Metadata.csv"
-            wget.download(url, os.path.join(data_path, "ISIC2019/ISIC_2019_Training_Metadata.csv"))
+            wget.download(
+                url, os.path.join(data_path, "ISIC2019/ISIC_2019_Training_Metadata.csv")
+            )
 
             print("Extracting ISIC-2019 metadata: done")
 
@@ -143,13 +159,19 @@ class ISIC:
         """
         images_path = os.path.join(data_path, "ISIC2019/ISIC_2019_Training_Input")
 
-        samples = [f.split(".")[0] for f in os.listdir(images_path) if f.split(".")[-1] == "jpg"]
+        samples = [
+            f.split(".")[0]
+            for f in os.listdir(images_path)
+            if f.split(".")[-1] == "jpg"
+        ]
         return samples
 
     @staticmethod
     def static_pipeline(data_path: str) -> PipelineDefault:
         rename_cls_labels = {c: f"data.cls_labels.{c}" for c in ISIC.CLASS_NAMES}
-        rename_cls_labels["image"] = "data.cls_labels.sample_id"  # also extract image (sample_id)
+        rename_cls_labels[
+            "image"
+        ] = "data.cls_labels.sample_id"  # also extract image (sample_id)
         rename_metadata = {
             "age_approx": "data.input.clinical.age_approx",
             "anatom_site_general": "data.input.clinical.anatom_site_general",
@@ -164,15 +186,22 @@ class ISIC:
                 (OpISICSampleIDDecode(), dict()),
                 # Load Image
                 (
-                    OpLoadImage(os.path.join(data_path, "ISIC2019/ISIC_2019_Training_Input")),
+                    OpLoadImage(
+                        os.path.join(data_path, "ISIC2019/ISIC_2019_Training_Input")
+                    ),
                     dict(key_in="data.input.img_path", key_out="data.input.img"),
                 ),
                 # Normalize Images to range [0, 1]
-                (OpToRange(), dict(key="data.input.img", from_range=(0, 255), to_range=(0, 1))),
+                (
+                    OpToRange(),
+                    dict(key="data.input.img", from_range=(0, 255), to_range=(0, 1)),
+                ),
                 # Read labels into sample_dict. Each class will have a different entry.
                 (
                     OpReadDataframe(
-                        data_filename=os.path.join(data_path, "ISIC2019/ISIC_2019_Training_GroundTruth.csv"),
+                        data_filename=os.path.join(
+                            data_path, "ISIC2019/ISIC_2019_Training_GroundTruth.csv"
+                        ),
                         key_column="data.cls_labels.sample_id",
                         columns_to_extract=list(rename_cls_labels.keys()),
                         rename_columns=rename_cls_labels,
@@ -182,16 +211,30 @@ class ISIC:
                 # Read metadata into sample_dict
                 (
                     OpReadDataframe(
-                        data_filename=os.path.join(data_path, "ISIC2019/ISIC_2019_Training_Metadata.csv"),
+                        data_filename=os.path.join(
+                            data_path, "ISIC2019/ISIC_2019_Training_Metadata.csv"
+                        ),
                         key_column="data.input.clinical.sample_id",
                         columns_to_extract=list(rename_metadata.keys()),
                         rename_columns=rename_metadata,
                     ),
                     dict(),
                 ),
-                (OpOverrideNaN(), dict(key="data.input.clinical.anatom_site_general", value_to_fill="N/A")),
-                (OpOverrideNaN(), dict(key="data.input.clinical.sex", value_to_fill="N/A")),
-                (OpOverrideNaN(), dict(key="data.input.clinical.age_approx", value_to_fill=-1.0)),
+                (
+                    OpOverrideNaN(),
+                    dict(
+                        key="data.input.clinical.anatom_site_general",
+                        value_to_fill="N/A",
+                    ),
+                ),
+                (
+                    OpOverrideNaN(),
+                    dict(key="data.input.clinical.sex", value_to_fill="N/A"),
+                ),
+                (
+                    OpOverrideNaN(),
+                    dict(key="data.input.clinical.age_approx", value_to_fill=-1.0),
+                ),
                 # Squeeze labels into sample_dict['data.label']
                 (OpLambda(func=derive_label), dict()),
                 # Encode meta-data
@@ -222,7 +265,12 @@ class ISIC:
             # Resize images to 300x300x3
             (
                 OpResizeTo(channels_first=True),
-                dict(key="data.input.img", output_shape=(300, 300, 3), mode="reflect", anti_aliasing=True),
+                dict(
+                    key="data.input.img",
+                    output_shape=(300, 300, 3),
+                    mode="reflect",
+                    anti_aliasing=True,
+                ),
             ),
             # Convert to tensor for the augmentation process
             (OpToTensor(), dict(key="data.input.img", dtype=torch.float)),
@@ -264,7 +312,11 @@ class ISIC:
                 # switch age class with prob, except from unknowns
                 (
                     OpRandApply(OpAugOneHot(), probability=0.05),
-                    dict(key="data.input.clinical.encoding.age", mode="ranking", freeze_indices=[6]),
+                    dict(
+                        key="data.input.clinical.encoding.age",
+                        mode="ranking",
+                        freeze_indices=[6],
+                    ),
                 ),
             ]
 
@@ -273,7 +325,10 @@ class ISIC:
             (
                 OpConcat(),
                 dict(
-                    keys_in=[f"data.input.clinical.encoding.{c}" for c in ["site", "sex", "age"]],
+                    keys_in=[
+                        f"data.input.clinical.encoding.{c}"
+                        for c in ["site", "sex", "age"]
+                    ],
                     key_out="data.input.clinical.all",
                 ),
             ),
@@ -323,7 +378,10 @@ class ISIC:
         )
 
         my_dataset = DatasetDefault(
-            sample_ids=samples_ids, static_pipeline=static_pipeline, dynamic_pipeline=dynamic_pipeline, cacher=cacher
+            sample_ids=samples_ids,
+            static_pipeline=static_pipeline,
+            dynamic_pipeline=dynamic_pipeline,
+            cacher=cacher,
         )
 
         my_dataset.create()
@@ -415,7 +473,11 @@ class ISICDataModule(pl.LightningDataModule):
         # assign train/val datasets
         if stage == "fit":
             self._train_dataset = ISIC.dataset(
-                self._data_dir, self._cache_dir, num_workers=self._num_workers, train=True, samples_ids=self._train_ids
+                self._data_dir,
+                self._cache_dir,
+                num_workers=self._num_workers,
+                train=True,
+                samples_ids=self._train_ids,
             )
             self._validation_dataset = ISIC.dataset(
                 self._data_dir,
@@ -428,7 +490,11 @@ class ISICDataModule(pl.LightningDataModule):
         # assign prediction (infer) dataset
         if stage == "predict":
             self._predict_dataset = ISIC.dataset(
-                self._data_dir, self._cache_dir, num_workers=self._num_workers, train=False, samples_ids=self._infer_ids
+                self._data_dir,
+                self._cache_dir,
+                num_workers=self._num_workers,
+                train=False,
+                samples_ids=self._infer_ids,
             )
 
     def train_dataloader(self) -> DataLoader:
@@ -503,7 +569,14 @@ class OpEncodeMetaData(OpBase):
 
         self._items_to_encode = items_to_encode
 
-    def __call__(self, sample_dict: NDict, key_site: str, key_sex: str, key_age: str, out_prefix: str) -> NDict:
+    def __call__(
+        self,
+        sample_dict: NDict,
+        key_site: str,
+        key_sex: str,
+        key_age: str,
+        out_prefix: str,
+    ) -> NDict:
         """
         :param key_site: sample_dict's key for patient's anatom site data
         :param key_sex: sample_dict's key for patient's sex data
