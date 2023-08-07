@@ -45,7 +45,6 @@ from fuse.data.utils.samplers import BatchSamplerDefault
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
 from fuse.dl.lightning.pl_module import LightningModuleDefault
-from fuse.dl.lightning.pl_funcs import start_clearml_logger
 
 from fuseimg.datasets.mnist import MNIST
 from fuse_examples.imaging.classification.mnist import lenet
@@ -183,17 +182,13 @@ def run_train(
     batch_size: int = 100,
     num_workers: int = 8,
     num_epochs: int = 3,
-    num_devices: int = 2,
+    num_devices: int = 1,
     num_nodes: int = 1,
     accelerator: str = "gpu",
     ckpt_path: Optional[str] = None,
     lr: float = 1e-4,
     weight_decay: float = 0.001,
 ) -> None:
-    start_clearml_logger(
-        project_name="shatz_root/test_dist",
-        task_name=f"num_nodes={num_nodes} : num_devices={num_devices}",
-    )
 
     # initialize model
     model = FuseLitLenet(
