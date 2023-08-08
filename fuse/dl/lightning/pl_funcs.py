@@ -74,11 +74,12 @@ def start_clearml_logger(
     task = None
 
     # check if we are in a distributed setting (if we are, must check that we are also on global rank 0)
-    distributed = ("NODE_RANK" in os.environ) and ("LOCAL_RANK" in os.environ)
+
+    # RANK is global rank
+    distributed = "RANK" in os.environ
     if distributed:
-        node_rank = int(os.environ["NODE_RANK"])
-        local_rank = int(os.environ["LOCAL_RANK"])
-        if (node_rank == 0) and (local_rank == 0):
+        rank = int(os.environ["RANK"])
+        if rank == 0:
             bool_start_logger = True
     else:
         # if not in a distributed setting, we can just start logger

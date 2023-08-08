@@ -26,10 +26,7 @@ from fuseimg.datasets.mnist import MNIST
 
 from fuse.utils.rand.seed import Seed
 
-from fuse_examples.imaging.classification.mnist.simple_mnist_starter import (
-    PARAMS_DICT,
-    run_train,
-)
+from fuse_examples.imaging.classification.mnist.simple_mnist_starter import run_train
 
 
 def run_mnist(root: str) -> None:
@@ -37,7 +34,7 @@ def run_mnist(root: str) -> None:
         0, False
     )  # previous test (in the pipeline) changed the deterministic behavior to True
     try:
-        run_train(PARAMS_DICT)
+        run_train(num_epochs=1)
     except:
         raise Exception("Training MNIST Failed.")
 
