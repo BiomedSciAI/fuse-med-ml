@@ -135,7 +135,10 @@ class MetricCollector(MetricBase):
                 for name, key in self._keys_to_collect.items():
                     value = sample[key]
                     if isinstance(value, torch.Tensor):
-                        value = value.detach().cpu().numpy()
+                        value = value.detach()
+                        if value.dtype == torch.bfloat16:
+                            value = value.to(torch.float)
+                        value = value.cpu().numpy()
 
                     sample_to_collect[name] = value
 
@@ -171,7 +174,10 @@ class MetricCollector(MetricBase):
 
             for name, value in batch_to_collect.items():
                 if isinstance(value, torch.Tensor):
-                    value = value.detach().cpu().numpy()
+                    value = value.detach()
+                    if value.dtype == torch.bfloat16:
+                        value = value.to(torch.float)
+                    value = value.cpu().numpy()
                 self._collected_data[name].extend(value)
 
         # extract ids and store it in self._collected_ids
