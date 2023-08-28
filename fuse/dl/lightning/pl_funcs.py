@@ -73,6 +73,8 @@ def start_clearml_logger(
     bool_start_logger = False
     task = None
 
+    # check if we are in a distributed setting (if we are, must check that we are also on global rank 0)
+
     # RANK is global rank
     distributed = "RANK" in os.environ
     if distributed:

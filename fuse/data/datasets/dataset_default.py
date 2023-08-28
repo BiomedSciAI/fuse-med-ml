@@ -190,6 +190,9 @@ class DatasetDefault(DatasetBase):
 
         return copy.deepcopy(self._final_sample_ids)
 
+    def set_final_sample_ids(self, final_sample_ids: List[Any]) -> None:
+        self._final_sample_ids = final_sample_ids
+
     def __getitem__(self, item: Union[int, Hashable]) -> NDict:
         """
         Get sample, read from cache if possible
