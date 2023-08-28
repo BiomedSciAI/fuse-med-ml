@@ -163,7 +163,9 @@ def convert_predictions_to_dataframe(predictions: List[NDict]) -> pd.DataFrame:
     return df
 
 
-def step_losses(losses: Dict[str, LossBase], batch_dict: NDict, optimize: bool = False) -> torch.Tensor:
+def step_losses(
+    losses: Dict[str, LossBase], batch_dict: NDict, optimize: bool = False
+) -> torch.Tensor:
     """
     Compute losses per step (batch) in pl.LightningModule.<training/validation/test>_step()
     :param losses: dict of FuseMedML style losses
