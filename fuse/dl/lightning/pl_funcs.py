@@ -257,7 +257,7 @@ def epoch_end_compute_and_log_losses(
                 if value.dtype == torch.bfloat16:
                     value = value.to(torch.float)
                 value = value.cpu()
-                losses(key).extend(value.tolist())
+                losses[key].extend(value.tolist())
             else:
                 losses[key].append(value)
 
