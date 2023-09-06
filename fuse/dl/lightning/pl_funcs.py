@@ -74,11 +74,12 @@ def start_clearml_logger(
     task = None
 
     # check if we are in a distributed setting (if we are, must check that we are also on global rank 0)
-    distributed = ("NODE_RANK" in os.environ) and ("LOCAL_RANK" in os.environ)
+
+    # RANK is global rank
+    distributed = "RANK" in os.environ
     if distributed:
-        node_rank = int(os.environ["NODE_RANK"])
-        local_rank = int(os.environ["LOCAL_RANK"])
-        if (node_rank == 0) and (local_rank == 0):
+        rank = int(os.environ["RANK"])
+        if rank == 0:
             bool_start_logger = True
     else:
         # if not in a distributed setting, we can just start logger
@@ -164,24 +165,28 @@ def convert_predictions_to_dataframe(predictions: List[NDict]) -> pd.DataFrame:
     return df
 
 
-def step_losses(losses: Dict[str, LossBase], batch_dict: NDict) -> torch.Tensor:
+def step_losses(
+    losses: Dict[str, LossBase], batch_dict: NDict, optimize: bool = False
+) -> torch.Tensor:
     """
     Compute losses per step (batch) in pl.LightningModule.<training/validation/test>_step()
     :param losses: dict of FuseMedML style losses
     :param batch_dict: FuseMedML batch_dict including data and model outputs
+    :param optimize: if set to True, will optimize the running time by avoiding from collecting the losses (which is used for logging)
     :return: total_loss (sum all losses results). The values for tracking purpose will be stored in batch_dict['losses']
     """
     total_loss = None
     for loss_name, loss_function in losses.items():
         current_loss_result = loss_function(batch_dict)
-        batch_dict["losses." + loss_name] = current_loss_result.data.item()
+        if not optimize:
+            batch_dict["losses." + loss_name] = current_loss_result.data.item()
         # sum all losses for backward
         if total_loss is None:
             total_loss = current_loss_result
         else:
             total_loss += current_loss_result
 
-    if total_loss is not None:
+    if total_loss is not None and not optimize:
         batch_dict["losses.total_loss"] = total_loss.data.item()
 
     return total_loss
@@ -210,12 +215,19 @@ def step_extract_predictions(
     outputs = {}
     sample_ids = batch_dict[get_sample_id_key()]
     if isinstance(sample_ids, torch.Tensor):
-        sample_ids = list(sample_ids.detach().cpu().numpy())
+        sample_ids = sample_ids.detach()
+        if sample_ids.dtype == torch.bfloat16:
+            sample_ids = sample_ids.to(torch.float)
+        sample_ids = sample_ids.cpu().numpy()
+        sample_ids = list(sample_ids)
     outputs["id"] = sample_ids
     for key in prediction_keys:
         output = batch_dict[key]
         if isinstance(output, torch.Tensor):
-            output = output.detach().cpu().numpy()
+            output = output.detach()
+            if output.dtype == torch.bfloat16:
+                output = output.to(torch.float)
+            output = output.cpu().numpy()
         outputs[key] = output
 
     return outputs
@@ -239,10 +251,15 @@ def epoch_end_compute_and_log_losses(
         for key in elem:
             if key not in losses:
                 losses[key] = []
-            if isinstance(elem[key], torch.Tensor):
-                losses(key).extend(elem[key].detach().cpu().tolist())
+            value = elem[key]
+            if isinstance(value, torch.Tensor):
+                value = value.detach()
+                if value.dtype == torch.bfloat16:
+                    value = value.to(torch.float)
+                value = value.cpu()
+                losses[key].extend(value.tolist())
             else:
-                losses[key].append(elem[key])
+                losses[key].append(value)
 
     for key in losses:
         loss = mean(losses[key])

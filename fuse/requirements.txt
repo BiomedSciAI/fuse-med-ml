@@ -30,3 +30,4 @@ vit-pytorch
 lifelines
 clearml
 x-transformers
+jsonargparse

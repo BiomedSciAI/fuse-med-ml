@@ -190,6 +190,16 @@ class DatasetDefault(DatasetBase):
 
         return copy.deepcopy(self._final_sample_ids)
 
+    def set_final_sample_ids(self, final_sample_ids: List[Any]) -> None:
+        self._final_sample_ids = final_sample_ids
+
+    def add_sample_ids_and_recreate(
+        self, added_sample_ids: List[Any], **kwargs: Dict
+    ) -> None:
+        self._orig_sample_ids = self._final_sample_ids + added_sample_ids
+        self._created = False
+        self.create(**kwargs)
+
     def __getitem__(self, item: Union[int, Hashable]) -> NDict:
         """
         Get sample, read from cache if possible

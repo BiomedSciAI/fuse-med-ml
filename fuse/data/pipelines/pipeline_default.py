@@ -115,6 +115,9 @@ class PipelineDefault(OpReversibleBase):
             )
         return "".join(text)  # this is faster than accumulate_str+=new_str
 
+    def __len__(self) -> int:
+        return len(self._ops_and_kwargs)
+
     def __call__(
         self,
         sample_dict: NDict,
