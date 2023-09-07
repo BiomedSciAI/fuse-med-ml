@@ -1,5 +1,6 @@
 import math
 import numbers
+import random
 from typing import (
     Any,
     Callable,
@@ -614,6 +615,24 @@ class OpSet(OpBase):
         :param value: the value to store
         """
         sample_dict[key] = value
+        return sample_dict
+
+
+class OpSetRandomChoice(OpBase):
+    """Choose random value from a list and add/override key-value pair into sample_dict"""
+
+    def __init__(self, seed: int) -> None:
+        super().__init__()
+        self._rng = random.Random(seed)
+
+    def __call__(
+        self, sample_dict: NDict, key: str, values: List[Any]
+    ) -> Union[None, dict, List[dict]]:
+        """
+        :param key: where to store the value
+        :param values: list of possible values
+        """
+        sample_dict[key] = self._rng.choice(values)
         return sample_dict
 
 
