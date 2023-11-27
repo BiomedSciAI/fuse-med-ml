@@ -163,8 +163,8 @@ class OpCast(OpReversibleBase):
     def __call__(
         self,
         sample_dict: NDict,
-        op_id: Optional[str],
         key: Union[str, Sequence[str]],
+        op_id: Optional[str] = None,
         **kwargs: dict,
     ) -> Union[None, dict, List[dict]]:
         """
