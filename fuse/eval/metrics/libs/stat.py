@@ -9,7 +9,9 @@ class Stat:
 
     @staticmethod
     def pearson_correlation(
-        pred: Union[np.ndarray, Sequence], target: Union[np.ndarray, Sequence], mask: Union[np.ndarray, Sequence, None] = None
+        pred: Union[np.ndarray, Sequence],
+        target: Union[np.ndarray, Sequence],
+        mask: Union[np.ndarray, Sequence, None] = None,
     ) -> float:
         """
         Pearson correlation coefficient measuring the linear relationship between two datasets/vectors.
@@ -22,7 +24,7 @@ class Stat:
         if isinstance(target, Sequence):
             target = np.array(target)
         if isinstance(mask, Sequence):
-            mask = np.array(mask).astype('bool')
+            mask = np.array(mask).astype("bool")
         if mask is not None:
             pred = pred[mask]
             target = target[mask]

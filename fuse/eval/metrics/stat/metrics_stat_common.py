@@ -23,7 +23,13 @@ class MetricUniqueValues(MetricWithCollectorBase):
 
 
 class MetricPearsonCorrelation(MetricDefault):
-    def __init__(self, pred: str, target: str, mask: Optional[str], **kwargs: dict) -> None:
+    def __init__(
+        self, pred: str, target: str, mask: Optional[str], **kwargs: dict
+    ) -> None:
         super().__init__(
-            pred=pred, target=target, mask=mask, metric_func=Stat.pearson_correlation, **kwargs
+            pred=pred,
+            target=target,
+            mask=mask,
+            metric_func=Stat.pearson_correlation,
+            **kwargs
         )
