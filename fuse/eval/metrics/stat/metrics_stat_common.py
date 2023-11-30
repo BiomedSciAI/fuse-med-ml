@@ -3,6 +3,7 @@ from collections import Counter
 from fuse.eval.metrics.metrics_common import MetricDefault, MetricWithCollectorBase
 from fuse.eval.metrics.libs.stat import Stat
 
+
 class MetricUniqueValues(MetricWithCollectorBase):
     """
     Collect the all the categorical values and the number of occurrences
@@ -23,4 +24,6 @@ class MetricUniqueValues(MetricWithCollectorBase):
 
 class MetricPearsonCorrelation(MetricDefault):
     def __init__(self, pred: str, target: str, **kwargs: dict) -> None:
-        super().__init__(pred=pred, target=target, metric_func=Stat.pearson_correlation, **kwargs)
+        super().__init__(
+            pred=pred, target=target, metric_func=Stat.pearson_correlation, **kwargs
+        )

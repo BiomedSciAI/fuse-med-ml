@@ -23,6 +23,7 @@ import pandas as pd
 from collections import OrderedDict
 from fuse.eval.evaluator import EvaluatorDefault
 
+
 def example_pearson_correlation() -> float:
     """
     Pearson correlation coefficient
@@ -34,9 +35,9 @@ def example_pearson_correlation() -> float:
         "id": range(sz),
     }
     np.random.seed(0)
-    data["x1"] = 100*np.ones((sz))+10*np.random.randn((sz))
+    data["x1"] = 100 * np.ones((sz)) + 10 * np.random.randn((sz))
     np.random.seed(0)
-    data["x2"] = -10*np.ones((sz))+3*np.random.randn((sz))
+    data["x2"] = -10 * np.ones((sz)) + 3 * np.random.randn((sz))
 
     data_df = pd.DataFrame(data)
 

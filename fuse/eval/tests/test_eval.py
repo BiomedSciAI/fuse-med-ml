@@ -52,6 +52,7 @@ from fuse.eval.examples.examples_seq_gen import example_seq_gen_0, example_seq_g
 
 from fuse.eval.examples.examples_stats import example_pearson_correlation
 
+
 class TestEval(unittest.TestCase):
     def test_eval_example_0(self) -> None:
         results = example_0()
@@ -236,6 +237,7 @@ class TestEval(unittest.TestCase):
     def test_pearson_correlation(self) -> None:
         res = example_pearson_correlation()
         self.assertAlmostEqual(res["metrics.pearsonr"], 1.0, places=2)
+
 
 if __name__ == "__main__":
     unittest.main()
