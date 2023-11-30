@@ -50,6 +50,7 @@ from fuse.eval.examples.examples_segmentation import (
 
 from fuse.eval.examples.examples_seq_gen import example_seq_gen_0, example_seq_gen_1
 
+from fuse.eval.examples.examples_stats import example_pearson_correlation
 
 class TestEval(unittest.TestCase):
     def test_eval_example_0(self) -> None:
@@ -232,6 +233,9 @@ class TestEval(unittest.TestCase):
         results = example_seq_gen_1(seed=1234)
         self.assertAlmostEqual(results["metrics.perplexity"], 162.87, places=2)
 
+    def test_pearson_correlation(self) -> None:
+        res = example_pearson_correlation()
+        self.assertAlmostEqual(res["metrics.pearsonr"], 1.0, places=2)
 
 if __name__ == "__main__":
     unittest.main()
