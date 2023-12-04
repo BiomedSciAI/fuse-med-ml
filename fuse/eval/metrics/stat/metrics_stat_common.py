@@ -24,7 +24,7 @@ class MetricUniqueValues(MetricWithCollectorBase):
 
 class MetricPearsonCorrelation(MetricDefault):
     def __init__(
-        self, pred: str, target: str, mask: Optional[str], **kwargs: dict
+        self, pred: str, target: str, mask: Optional[str] = None, **kwargs: dict
     ) -> None:
         super().__init__(
             pred=pred,

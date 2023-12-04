@@ -35,9 +35,9 @@ def example_pearson_correlation() -> float:
         "id": range(sz),
     }
     np.random.seed(0)
-    data["x1"] = 100 * np.ones((sz)) + 10 * np.random.randn((sz))
-    np.random.seed(0)
-    data["x2"] = -10 * np.ones((sz)) + 3 * np.random.randn((sz))
+    rand_vec = np.random.randn((sz))
+    data["x1"] = 100 * np.ones((sz)) + 10 * rand_vec
+    data["x2"] = -10 * np.ones((sz)) + 3 * rand_vec
 
     data_df = pd.DataFrame(data)
 
