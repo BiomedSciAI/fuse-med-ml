@@ -65,7 +65,7 @@ def grep_value_from_setup(key):
 
 
 project = grep_value_from_setup('name')
-copyright = '2019, IBM Research Haifa Labs - MLHLS'
+copyright = '2023'
 author = grep_value_from_setup('author')
 
 # The full version, including alpha/beta/rc tags
