@@ -88,7 +88,7 @@ extensions = [
 	# 'sphinx.ext.mathjax',		# required for math in Jupyter Notebook
 	'm2r2',  # work with markdown files. requires pip install m2r2
 	'sphinx.ext.napoleon',  # parse Google/numpy docstring
-	# 'sphinx.ext.autosummary',	# Automated index.rst toctree
+	# 'sphinx.ext.autosummary',	# Automated index.rst toctreee
 ]
 
 # autosummary_generate = True		# create api docs with autosummary
