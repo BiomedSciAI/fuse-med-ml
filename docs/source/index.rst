@@ -1,4 +1,4 @@
-Readme File
+Welcome to Fuse-Med-ML
 ===========
 
-.. mdinclude:: ../../README.md
+.. include:: ../../README.md
