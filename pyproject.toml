@@ -1,4 +1,0 @@
-[project]
-dynamic = ["dependencies"]
-[tool.setuptools.dynamic]
-dependencies = {file = ["fuse/requirements.txt"]}
