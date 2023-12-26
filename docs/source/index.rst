@@ -16,13 +16,11 @@ fuse-med-ml
 ===========
 
 .. toctree::
-   :maxdepth: 4
+   :titlesonly:
+   :maxdepth: 5
+   :glob:
 
-   fuse
-   fuse_examples
-   fuseimg
-   run_all_unit_tests
-   setup
+   fuse-med-ml
 
 
 
