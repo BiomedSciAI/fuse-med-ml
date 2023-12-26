@@ -1,4 +1,4 @@
-.. mdinclude:: ../../fuse-med-ml/fuseimg/README.md
+.. mdinclude:: ../../fuseimg/README.md
 
 fuseimg package
 ===============
