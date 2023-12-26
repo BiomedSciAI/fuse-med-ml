@@ -1,5 +1,3 @@
-fuse.dl package
-===============
 .. mdinclude:: ../../fuse/dl/README.md
 
 Subpackages

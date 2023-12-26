@@ -1,8 +1,5 @@
 .. mdinclude:: ../../fuseimg/README.md
 
-fuseimg package
-===============
-
 Subpackages
 -----------
 
