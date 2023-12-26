@@ -4,4 +4,7 @@ fuse-med-ml
 .. toctree::
    :maxdepth: 4
 
-   fuse-med-ml
+   fuse.dl
+   fuse_examples
+   fuseimg
+
