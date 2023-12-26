@@ -53,7 +53,7 @@ sys.path.insert(0, os.path.abspath(os.path.join("..", "..")))
 
 
 # Take from setup.py file
-def grep_value_from_setup(key):
+def grep_value_from_setup(key:str) -> str:
     import re
 
     setup_file = os.path.normpath(
@@ -159,8 +159,8 @@ html_sidebars = {
 
 
 # Add module's README for each module HTML page
-def add_modules_readme():
-    def get_rst_file_name_from_package_source(package_source_path):
+def add_modules_readme() -> str: 
+    def get_rst_file_name_from_package_source(package_source_path:str) -> str:
         rst_file_name = package_source_path.split(os.sep)
         rst_file_name = [
             directory for directory in rst_file_name if not directory.startswith(".")
@@ -171,8 +171,8 @@ def add_modules_readme():
         return rst_file_name
 
     def get_edited_rast_file(
-        rst_source_path, include_text, remove_original_header=True
-    ):
+        rst_source_path:str, include_text:str, remove_original_header:bool=True
+    )->str:
         with open(rst_source_path, "r") as fh:
             rst_source_lines = fh.read().splitlines()
 

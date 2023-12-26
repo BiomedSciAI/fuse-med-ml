@@ -24,7 +24,6 @@ from fuse.dl.models.backbones.backbone_transformer import (
     CrossAttentionTransformerEncoder,
 )
 
-
 class TestCrossAttentionTransformerEncoder(unittest.TestCase):
     def test_all_contexts(self) -> None:
         """
@@ -66,10 +65,9 @@ class TestCrossAttentionTransformerEncoder(unittest.TestCase):
         batch_size = random.randint(1, 10)
         s1 = torch.randint(0, model_params["num_tokens_a"], (batch_size, seq_a_len))
         s2 = torch.randint(0, model_params["num_tokens_b"], (batch_size, seq_b_len))
-
         # processing sample
         output = model(s1, s2)
-
+        print(output.shape)
         # validation
         assert output.shape[0] == batch_size
         if output[:, 0].shape[1] != model_params["output_dim"]:
