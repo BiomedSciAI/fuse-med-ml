@@ -1,3 +1,5 @@
+.. mdinclude:: ../../fuse/dl/README.md
+   
 fuse package
 ============
 

@@ -1,4 +1,5 @@
-.. mdinclude:: ../../fuse/dl/README.md
+fuse.dl package
+===============
 
 Subpackages
 -----------
