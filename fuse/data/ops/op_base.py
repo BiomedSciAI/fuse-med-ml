@@ -106,7 +106,6 @@ class OpReversibleBase(OpBase):
 def op_call(
     op: OpBase, sample_dict: NDict, op_id: str, **kwargs: dict
 ) -> Union[None, dict, List[dict]]:
-
     if inspect.isclass(op):
         raise Exception(
             f"Error: expected an instance object, not a class object for {op}\n"

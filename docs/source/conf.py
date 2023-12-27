@@ -1,37 +1,3 @@
-"""
-# Configuration file for the Sphinx documentation builder.
-#
-# For the full list of built-in configuration values, see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
-
-# -- Project information -----------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
-
-project = 'Fuse-Med-ML'
-copyright = '2023, Rakesh'
-author = 'Rakesh'
-release = 'latest'
-
-# -- General configuration ---------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
-
-extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.napoleon'
-]
-
-templates_path = ['_templates']
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
-
-
-
-# -- Options for HTML output -------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
-
-html_theme = 'sphinx_rtd_theme'
-html_static_path = ['_static']
-"""
 # Configuration file for the Sphinx documentation builder.
 #
 # This file only contains a selection of the most common options. For a full
@@ -53,7 +19,7 @@ sys.path.insert(0, os.path.abspath(os.path.join("..", "..")))
 
 
 # Take from setup.py file
-def grep_value_from_setup(key:str) -> str:
+def grep_value_from_setup(key: str) -> str:
     import re
 
     setup_file = os.path.normpath(
@@ -159,8 +125,8 @@ html_sidebars = {
 
 
 # Add module's README for each module HTML page
-def add_modules_readme() -> str: 
-    def get_rst_file_name_from_package_source(package_source_path:str) -> str:
+def add_modules_readme() -> str:
+    def get_rst_file_name_from_package_source(package_source_path: str) -> str:
         rst_file_name = package_source_path.split(os.sep)
         rst_file_name = [
             directory for directory in rst_file_name if not directory.startswith(".")
@@ -171,8 +137,8 @@ def add_modules_readme() -> str:
         return rst_file_name
 
     def get_edited_rast_file(
-        rst_source_path:str, include_text:str, remove_original_header:bool=True
-    )->str:
+        rst_source_path: str, include_text: str, remove_original_header: bool = True
+    ) -> str:
         with open(rst_source_path, "r") as fh:
             rst_source_lines = fh.read().splitlines()
 
@@ -190,7 +156,7 @@ def add_modules_readme() -> str:
     README_FILE_NAME = "README.md"
 
     source_code_dir = os.path.join(
-        "..", "..", "causallib"
+        "..", "..", "fuse-med-ml"
     )  # causallib source code directory
     source_html_dir = "."  # sphinx's docs source directory
 

@@ -137,7 +137,6 @@ def dataset_balanced_division_to_folds(
     verify_folds_total_size: bool = True,
     **kwargs: dict,
 ) -> dict:
-
     """
     Split dataset to folds.
     Support balancing, exclusion and radom seed (with a small improvement could support no mixture criterion).

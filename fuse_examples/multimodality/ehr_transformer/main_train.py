@@ -107,7 +107,6 @@ def model(
     aux_next_vis_classification: bool,
     classifier_next_vis_head: dict,
 ) -> torch.nn.Module:
-
     """
     Create transformer based model with 3 classification heads
     :param embed: arguments for Embed constructor

@@ -114,7 +114,6 @@ class OpToRange(OpBase):
         from_range: Tuple[float, float],
         to_range: Tuple[float, float],
     ) -> NDict:
-
         from_range_start = from_range[0]
         from_range_end = from_range[1]
         to_range_start = to_range[0]

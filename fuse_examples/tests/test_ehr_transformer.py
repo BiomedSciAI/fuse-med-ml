@@ -42,7 +42,6 @@ if "CINC_TEST_DATA_PATH" in os.environ:
 
 
 def init_test_environment(root: str) -> DictConfig:
-
     with open(TEST_PARAMS["CONFIG_PATH"], "r") as file:
         cfg = yaml.safe_load(file)
 
@@ -58,7 +57,6 @@ def init_test_environment(root: str) -> DictConfig:
 
 
 def run_ehr_transformer(cfg: DictConfig) -> None:
-
     try:
         main_train(cfg)
 
