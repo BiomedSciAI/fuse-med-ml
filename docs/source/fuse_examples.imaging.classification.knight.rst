@@ -1,5 +1,5 @@
-fuse\_examples.imaging.classification.knight package
-====================================================
+
+.. mdinclude:: ../../fuse_examples/imaging/classification/knight/README.md
 
 Subpackages
 -----------

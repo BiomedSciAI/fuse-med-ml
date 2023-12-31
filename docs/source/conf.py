@@ -127,7 +127,8 @@ html_sidebars = {
 # Add module's README for each module HTML page
 def add_modules_readme() -> str:
     def get_rst_file_name_from_package_source(package_source_path: str) -> str:
-        rst_file_name = package_source_path.split(os.sep)
+        rst_source_path = os.path.relpath(package_source_path, os.getcwd())
+        rst_file_name = rst_source_path.split(os.sep)
         rst_file_name = [
             directory for directory in rst_file_name if not directory.startswith(".")
         ]
@@ -141,7 +142,6 @@ def add_modules_readme() -> str:
     ) -> str:
         with open(rst_source_path, "r") as fh:
             rst_source_lines = fh.read().splitlines()
-
         if not any([include_text in line for line in rst_source_lines]):
             # Add link to readme only if not already exists
             rst_source_lines.insert(3, include_text)
@@ -154,22 +154,25 @@ def add_modules_readme() -> str:
 
     README_FILE_NAME = "README.md"
 
-    source_code_dir = os.path.join("..", "..", "fuse-med-ml")
-    source_html_dir = "."  # sphinx's docs source directory
+    # source_code_dir = os.path.join("..", "..", "fuse-med-ml")
+    source_html_dir = os.getcwd() + "/docs/source/"  # sphinx's docs source directory
 
-    for dir_name, subdir_list, file_names in os.walk(source_code_dir):
+    for dir_name, subdir_list, file_names in os.walk(os.getcwd()):
         if README_FILE_NAME in file_names:  # Current dir has a readme file
             # Get README file path:
             # source_path = os.path.relpath(dir_name, os.path.join(source_code_dir, ".."))
             source_path = os.path.normpath(dir_name)
+
             readme_file_path = os.path.join(source_path, README_FILE_NAME)
 
             # Construct the corresponding module rst file:
             rst_source_file = get_rst_file_name_from_package_source(source_path)
 
             # Edit the rst file to include the path to the readme:
+            path_to_be_added = os.path.relpath(readme_file_path, os.getcwd())
+
             try:
-                include_text = INCLUDE_TEXT + readme_file_path + "\n"
+                include_text = INCLUDE_TEXT + "../../" + path_to_be_added + "\n"
                 content = get_edited_rast_file(rst_source_file, include_text, True)
 
                 with open(rst_source_file, "w") as f:

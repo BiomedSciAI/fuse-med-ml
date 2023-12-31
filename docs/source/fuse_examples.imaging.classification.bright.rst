@@ -1,5 +1,5 @@
-fuse\_examples.imaging.classification.bright package
-====================================================
+
+.. mdinclude:: ../../fuse_examples/imaging/classification/bright/README.md
 
 Subpackages
 -----------

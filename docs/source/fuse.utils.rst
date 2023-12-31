@@ -1,5 +1,5 @@
-fuse.utils package
-==================
+
+.. mdinclude:: ../../fuse/utils/README.md
 
 Subpackages
 -----------

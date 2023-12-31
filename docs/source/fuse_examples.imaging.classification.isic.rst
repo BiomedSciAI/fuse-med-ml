@@ -1,5 +1,5 @@
-fuse\_examples.imaging.classification.isic package
-==================================================
+
+.. mdinclude:: ../../fuse_examples/imaging/classification/isic/README.md
 
 Submodules
 ----------

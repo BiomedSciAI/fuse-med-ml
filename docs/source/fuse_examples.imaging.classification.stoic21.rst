@@ -1,5 +1,5 @@
-fuse\_examples.imaging.classification.stoic21 package
-=====================================================
+
+.. mdinclude:: ../../fuse_examples/imaging/classification/stoic21/README.md
 
 Submodules
 ----------

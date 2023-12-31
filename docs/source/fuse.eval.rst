@@ -1,5 +1,5 @@
-fuse.eval package
-=================
+
+.. mdinclude:: ../../fuse/eval/README.md
 
 Subpackages
 -----------

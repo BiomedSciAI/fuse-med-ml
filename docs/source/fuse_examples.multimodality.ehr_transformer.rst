@@ -1,5 +1,5 @@
-fuse\_examples.multimodality.ehr\_transformer package
-=====================================================
+
+.. mdinclude:: ../../fuse_examples/multimodality/ehr_transformer/README.md
 
 Submodules
 ----------

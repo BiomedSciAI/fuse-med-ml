@@ -1,6 +1,6 @@
+
 .. mdinclude:: ../../fuseimg/README.md
 
-Subpackages
 -----------
 
 .. toctree::

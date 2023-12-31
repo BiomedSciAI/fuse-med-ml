@@ -1,5 +1,5 @@
-fuse\_examples.imaging.classification.cmmd package
-==================================================
+
+.. mdinclude:: ../../fuse_examples/imaging/classification/cmmd/README.md
 
 Submodules
 ----------
