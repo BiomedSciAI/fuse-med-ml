@@ -6,7 +6,7 @@
 Welcome to Fuse-Med-ML's documentation!
 =====================================
 .. mdinclude:: ../../README.md
-	
+
 
 fuse-med-ml
 ===========
@@ -16,8 +16,7 @@ fuse-med-ml
 
    fuse
    fuseimg
-
-
+   fuse_examples
 
 Indices and tables
 ==================
@@ -25,4 +24,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-

@@ -6,4 +6,4 @@ fuse-med-ml
 
    fuse
    fuseimg
-
+   fuse_examples
