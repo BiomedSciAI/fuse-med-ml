@@ -150,16 +150,13 @@ def add_modules_readme() -> str:
 
         return rst_source_lines
 
-    # source_code_dir = os.path.join("..", "..", "fuse-med-ml")  # causallib source code directory
-    source_html_dir = "."  # sphinx's docs source directory
-
-
-"""
     INCLUDE_TEXT = ".. mdinclude:: "
-    # INCLUDE_TEXT += "../../"
 
     README_FILE_NAME = "README.md"
-------
+
+    source_code_dir = os.path.join("..", "..", "fuse-med-ml")
+    source_html_dir = "."  # sphinx's docs source directory
+
     for dir_name, subdir_list, file_names in os.walk(source_code_dir):
         if README_FILE_NAME in file_names:  # Current dir has a readme file
             # Get README file path:
@@ -182,5 +179,5 @@ def add_modules_readme() -> str:
             except FileNotFoundError:
                 print("Could not find file {}".format(rst_source_file))
 
-"""
+
 add_modules_readme()
