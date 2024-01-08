@@ -275,7 +275,6 @@ class BackboneInceptionResnetV2(nn.Module):
             str
         ] = "http://data.lip6.fr/cadene/pretrainedmodels/inceptionresnetv2-520b38e4.pth",
     ) -> None:
-
         super().__init__()
         self.logical_units_num = logical_units_num
         self.intra_block_cut_level = intra_block_cut_level

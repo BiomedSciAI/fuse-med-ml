@@ -80,7 +80,6 @@ class CollateDefault(CollateToBatchList):
 
         # collect values
         for key in keys:
-
             # skip keys
             if key in self._skip_keys:
                 continue

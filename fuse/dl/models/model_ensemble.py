@@ -51,7 +51,6 @@ class ModelEnsemble(torch.nn.Module):
             net.eval()
 
     def load_state_dict(self, *net_state_dicts: List[Dict], strict: bool) -> None:
-
         for idx, net_state_dict in enumerate(net_state_dicts):
             self.nets[idx].load_state_dict(net_state_dict, strict=strict)
 
