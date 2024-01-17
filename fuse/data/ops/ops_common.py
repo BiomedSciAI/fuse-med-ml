@@ -702,3 +702,56 @@ class OpReplaceElements(OpBase):
             raise Exception(f"Unsupported object type {type(input_obj)}")
 
         return sample_dict
+
+class OpReplaceAnyElements(OpBase):
+    """
+    Replace any element from a given list of elements with a requested value
+
+    For example, given the tensor [0,1,2,3,4,3,2,1,0], the list [0,2,4] and new value -100 - will return [-100,1,-100,3,-100,3,-100,1,-100].
+    This is useful, for example, when converting a set of token IDs to -100 to make a metric ignore certain elements (e.g. all special tokens).
+    """
+
+    def __call__(
+        self,
+        sample_dict: NDict,
+        key_in: str,
+        find_any_val: List,
+        replace_with_val: Any,
+        key_out: str = None,
+    ) -> NDict:
+        """
+        Args:
+        key_in: the input numpy array, tensor, list or str
+        find_any_val: a list of values to will be replaces
+        replace_with_val: the value that will be used to replace "find_any_val" elements
+        key_out: if None, the modification will be inplace in "key_in" (faster), other wise, the name of the key to write to
+        """
+        assert (
+            key_in in sample_dict
+        ), f"Error: missing {key_in}, available keys {sample_dict.keypaths()} "
+
+        input_obj = sample_dict[key_in]
+
+        if key_out is not None:
+            if torch.is_tensor(input_obj):
+                input_obj = input_obj.clone()
+            elif isinstance(input_obj, np.ndarray):
+                input_obj = input_obj.copy()
+        else:
+            key_out = key_in
+
+        find_any_set = set(find_any_val)
+        if torch.is_tensor(input_obj) or isinstance(input_obj, np.ndarray):
+            output_obj = input_obj
+            output_obj[(output_obj[...,None] == torch.tensor(find_any_val)).any(-1).nonzero()] = replace_with_val
+            sample_dict[key_out] = output_obj
+        elif isinstance(sample_dict[key_in], str):
+            sample_dict[key_out] = re.sub(find_any_val, replace_with_val, input_obj)
+        elif isinstance(input_obj, (list, tuple)):
+            sample_dict[key_out] = [
+                replace_with_val if x in find_any_set else x for x in input_obj
+            ]
+        else:
+            raise Exception(f"Unsupported object type {type(input_obj)}")
+
+        return sample_dict
