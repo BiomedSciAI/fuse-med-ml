@@ -715,7 +715,7 @@ class OpReplaceAnyElements(OpBase):
         self,
         sample_dict: NDict,
         key_in: str,
-        find_any_val: List,
+        find_any_val: List[Any],
         replace_with_val: Any,
         key_out: str = None,
     ) -> NDict:
@@ -746,7 +746,7 @@ class OpReplaceAnyElements(OpBase):
             output_obj[(output_obj[...,None] == torch.tensor(find_any_val)).any(-1).nonzero()] = replace_with_val
             sample_dict[key_out] = output_obj
         elif isinstance(sample_dict[key_in], str):
-            sample_dict[key_out] = re.sub(find_any_val, replace_with_val, input_obj)
+            sample_dict[key_out] = input_obj.translate(str.maketrans({x: replace_with_val for x in find_any_val}))
         elif isinstance(input_obj, (list, tuple)):
             sample_dict[key_out] = [
                 replace_with_val if x in find_any_set else x for x in input_obj
