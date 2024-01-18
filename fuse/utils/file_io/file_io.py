@@ -322,6 +322,7 @@ def read_dataframe(filename: str) -> pd.DataFrame:
 
     assert file_type in [
         "csv",
+        "tsv",
         "hd5",
         "hdf5",
         "hdf",
