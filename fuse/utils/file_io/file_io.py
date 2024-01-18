@@ -334,6 +334,8 @@ def read_dataframe(filename: str) -> pd.DataFrame:
         df = pd.read_pickle(filename)
     elif file_type == "csv":
         df = pd.read_csv(filename)
+    elif file_type == "tsv":
+        df = pd.read_csv(filename, sep="\t")
     elif file_type in ["hd5", "hdf5", "hdf"]:
         df = pd.read_hdf(filename)
     elif file_type == "xslx":
