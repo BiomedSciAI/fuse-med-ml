@@ -703,6 +703,7 @@ class OpReplaceElements(OpBase):
 
         return sample_dict
 
+
 class OpReplaceAnyElements(OpBase):
     """
     Replace any element from a given list of elements with a requested value
@@ -743,10 +744,14 @@ class OpReplaceAnyElements(OpBase):
         find_any_set = set(find_any_val)
         if torch.is_tensor(input_obj) or isinstance(input_obj, np.ndarray):
             output_obj = input_obj
-            output_obj[(output_obj[...,None] == torch.tensor(find_any_val)).any(-1).nonzero()] = replace_with_val
+            output_obj[
+                (output_obj[..., None] == torch.tensor(find_any_val)).any(-1).nonzero()
+            ] = replace_with_val
             sample_dict[key_out] = output_obj
         elif isinstance(sample_dict[key_in], str):
-            sample_dict[key_out] = input_obj.translate(str.maketrans({x: replace_with_val for x in find_any_val}))
+            sample_dict[key_out] = input_obj.translate(
+                str.maketrans({x: replace_with_val for x in find_any_val})
+            )
         elif isinstance(input_obj, (list, tuple)):
             sample_dict[key_out] = [
                 replace_with_val if x in find_any_set else x for x in input_obj
