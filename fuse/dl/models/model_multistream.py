@@ -66,7 +66,6 @@ class ModelMultistream(torch.nn.Module):
         self.add_module("heads", self.heads)
 
     def forward(self, batch_dict: NDict) -> Dict:
-
         # Forward pass through multiple streams
         # -------------------------------------
         if self.split_logic is None:

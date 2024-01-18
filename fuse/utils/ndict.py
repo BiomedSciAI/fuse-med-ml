@@ -326,7 +326,6 @@ class NDict(dict):
         return repr(self._stored)
 
     def __contains__(self, key: str) -> bool:
-
         if key in self._stored:
             return True
 
@@ -375,7 +374,6 @@ class NDict(dict):
 
     @staticmethod
     def _unflatten_static(data_dict: NDict) -> dict:
-
         res = dict()
         for top_key in data_dict.top_level_keys():
             value = data_dict[top_key]

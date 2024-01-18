@@ -226,7 +226,6 @@ class OpToNumpy(OpCast):
     """
 
     def _cast(self, value: Any, dtype: Optional[np.dtype] = None) -> np.ndarray:
-
         return Cast.to_numpy(value, dtype)
 
 
