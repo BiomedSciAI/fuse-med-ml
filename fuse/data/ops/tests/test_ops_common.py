@@ -1,6 +1,6 @@
 import unittest
 
-from typing import Optional, OrderedDict, Union, List
+from typing import Optional, OrderedDict, Union, List, Any
 
 import torch
 
@@ -281,7 +281,7 @@ class TestOpsCommon(unittest.TestCase):
         test op_replace_element on each of possible inputs it supports: string, list, tensor
         """
 
-        def _apply_op_replace(input, to_replace, replace_with):
+        def _apply_op_replace(input: Any, to_replace: Any, replace_with: str) -> Any:
             sample_dict = NDict({})
             sample_dict["data.input"] = input
             sample_dict = op_call(
@@ -321,7 +321,9 @@ class TestOpsCommon(unittest.TestCase):
         test op_replace_any_element on each of possible inputs it supports: string, list, tensor
         """
 
-        def _apply_op_replace(input, to_replace, replace_with):
+        def _apply_op_replace_any(
+            input: Any, to_replace: Any, replace_with: str
+        ) -> Any:
             sample_dict = NDict({})
             sample_dict["data.input"] = input
             sample_dict = op_call(
@@ -341,7 +343,7 @@ class TestOpsCommon(unittest.TestCase):
         replace_with = "X"
         expected_result = "aXXXXa"
 
-        res = _apply_op_replace(input, to_replace, replace_with)
+        res = _apply_op_replace_any(input, to_replace, replace_with)
         self.assertEqual(res, expected_result)
 
         # input is a list
@@ -349,11 +351,11 @@ class TestOpsCommon(unittest.TestCase):
         to_replace = [2, 3]
         replace_with = 0
         expected_result = [1, 0, 0, 0, 1]
-        res = _apply_op_replace(input, to_replace, replace_with)
+        res = _apply_op_replace_any(input, to_replace, replace_with)
         self.assertEqual(res, expected_result)
 
         # input is a tensor
-        res = _apply_op_replace(torch.tensor(input), to_replace, replace_with)
+        res = _apply_op_replace_any(torch.tensor(input), to_replace, replace_with)
         self.assertTrue(torch.equal(res, torch.tensor(expected_result)))
 
 
