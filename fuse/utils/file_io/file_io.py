@@ -291,6 +291,7 @@ def save_dataframe(df: pd.DataFrame, filename: str, **kwargs: dict) -> None:
 
     assert file_type in [
         "csv",
+        "tsv",
         "hd5",
         "hdf5",
         "hdf",
@@ -304,6 +305,8 @@ def save_dataframe(df: pd.DataFrame, filename: str, **kwargs: dict) -> None:
         df.to_pickle(filename, **kwargs)
     elif file_type == "csv":
         df.to_csv(filename, **kwargs)
+    elif file_type == "tsv":
+        df.to_csv(filename, sep="\t" ** kwargs)
     elif file_type in ["hd5", "hdf5", "hdf"]:
         df.to_hdf(filename, **kwargs)
     elif file_type == "xslx":
@@ -322,6 +325,7 @@ def read_dataframe(filename: str) -> pd.DataFrame:
 
     assert file_type in [
         "csv",
+        "tsv",
         "hd5",
         "hdf5",
         "hdf",
@@ -334,6 +338,8 @@ def read_dataframe(filename: str) -> pd.DataFrame:
         df = pd.read_pickle(filename)
     elif file_type == "csv":
         df = pd.read_csv(filename)
+    elif file_type == "tsv":
+        df = pd.read_csv(filename, sep="\t")
     elif file_type in ["hd5", "hdf5", "hdf"]:
         df = pd.read_hdf(filename)
     elif file_type == "xslx":
