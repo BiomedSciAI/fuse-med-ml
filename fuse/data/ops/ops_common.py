@@ -718,7 +718,7 @@ class OpReplaceAnyElements(OpBase):
         key_in: str,
         find_any_val: List[Any],
         replace_with_val: Any,
-        key_out: str = None,
+        key_out: Optional[str] = None,
     ) -> NDict:
         """
         Args:
