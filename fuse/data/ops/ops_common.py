@@ -706,9 +706,9 @@ class OpReplaceElements(OpBase):
 
 class OpReplaceAnyElements(OpBase):
     """
-    Replace any element from a given list of elements with a requested value
+    Replace any element from a given list with a requested value if appears key_in
 
-    For example, given the tensor [0,1,2,3,4,3,2,1,0], the list [0,2,4] and new value -100 - will return [-100,1,-100,3,-100,3,-100,1,-100].
+    For example, given the key_in tensor [0,1,2,3,4,3,2,1,0], the list [0,2,4], and new value -100 - will return [-100,1,-100,3,-100,3,-100,1,-100].
     This is useful, for example, when converting a set of token IDs to -100 to make a metric ignore certain elements (e.g. all special tokens).
     """
 
