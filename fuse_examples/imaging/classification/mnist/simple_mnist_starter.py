@@ -189,7 +189,6 @@ def run_train(
     lr: float = 1e-4,
     weight_decay: float = 0.001,
 ) -> None:
-
     # initialize model
     model = FuseLitLenet(
         model_dir=None,

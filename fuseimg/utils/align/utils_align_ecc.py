@@ -41,7 +41,6 @@ class AlignMapECC(AlignMapBase):
         self.img2_aligned = None
 
     def align(self, img1, img2, mask=None):
-
         if self.transformation_type == "affine":
             transformation = cv2.MOTION_AFFINE
             M = np.eye(2, 3, dtype=np.float32)

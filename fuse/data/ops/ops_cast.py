@@ -163,8 +163,8 @@ class OpCast(OpReversibleBase):
     def __call__(
         self,
         sample_dict: NDict,
-        op_id: Optional[str],
         key: Union[str, Sequence[str]],
+        op_id: Optional[str] = None,
         **kwargs: dict,
     ) -> Union[None, dict, List[dict]]:
         """
@@ -226,7 +226,6 @@ class OpToNumpy(OpCast):
     """
 
     def _cast(self, value: Any, dtype: Optional[np.dtype] = None) -> np.ndarray:
-
         return Cast.to_numpy(value, dtype)
 
 

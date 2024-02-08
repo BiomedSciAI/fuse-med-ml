@@ -4,7 +4,6 @@ import os
 
 
 def num_available_cores(verbose: bool = True) -> int:
-
     if hasattr(os, "sched_getaffinity"):
         try:
             ans = len(os.sched_getaffinity(0))

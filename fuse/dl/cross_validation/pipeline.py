@@ -81,7 +81,6 @@ def train_wrapper(
     func: Callable,
     params: dict,
 ) -> None:
-
     paths_train = paths.copy()
 
     # set parameters specific to this fold:
@@ -118,7 +117,6 @@ def infer_wrapper(
     func: Callable,
     params: dict,
 ) -> None:
-
     paths_infer = paths.copy()
 
     # set parameters specific to this fold, and generate data:
@@ -156,7 +154,6 @@ def eval_wrapper(
     func: Callable,
     params: dict,
 ) -> None:
-
     paths_eval = paths.copy()
 
     if sample_ids_per_fold is None:  # test mode
