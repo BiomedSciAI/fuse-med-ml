@@ -196,7 +196,7 @@ class CollateDefault(CollateToBatchList):
         input_ids_list: List[torch.Tensor], pad_token_id: int
     ) -> torch.Tensor:
         """
-        Crop padding of a batch of input_ids tensors to the minimum length possible.
+        Crop padding of a batch of input_ids 1D tensors to the minimum length possible.
 
         Args:
             input_ids_list (list of torch.Tensor): List of input_ids tensors, where each tensor represents a sequence.
