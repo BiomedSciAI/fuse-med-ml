@@ -206,7 +206,6 @@ class EvaluatorDefault:
             result_data = result_data.set_index(keys=id_key, drop=False)
 
         elif isinstance(data, str):  # data is path to a file
-
             result_data = read_dataframe(data)
             # make sure "id" column exist and set it as index
             if id_key not in result_data.keys():
@@ -233,7 +232,6 @@ class EvaluatorDefault:
             df_list = []
             all_ids = set()
             for key, data_elem in data.items():
-
                 try:
                     data_elem_df = self.read_data(data_elem, ids_df, id_key=id_key)
                     all_ids = all_ids.union(set(data_elem_df.index))

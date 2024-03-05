@@ -31,7 +31,6 @@ class Conv3DSimple(nn.Conv3d):
         stride: int = 1,
         padding: int = 1,
     ) -> None:
-
         super().__init__(
             in_channels=in_planes,
             out_channels=out_planes,
@@ -47,7 +46,6 @@ class Conv3DSimple(nn.Conv3d):
 
 
 class BasicBlock(nn.Module):
-
     expansion = 1
 
     def __init__(
