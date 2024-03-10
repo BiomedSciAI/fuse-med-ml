@@ -44,7 +44,12 @@ class LightningModuleDefault(pl.LightningModule):
                 List[Tuple[str, OrderedDict[str, MetricBase]]],
             ]
         ] = None,
-        test_metrics: Optional[OrderedDict[str, MetricBase]] = None,
+        test_metrics: Optional[
+            Union[
+                OrderedDict[str, MetricBase],
+                List[Tuple[str, OrderedDict[str, MetricBase]]],
+            ]
+        ] = None,
         optimizers_and_lr_schs: Any = None,
         callbacks: Optional[Sequence[pl.Callback]] = None,
         best_epoch_source: Optional[Union[Dict, List[Dict]]] = None,
@@ -67,7 +72,9 @@ class LightningModuleDefault(pl.LightningModule):
         :param validation_metrics: ordereddict of FuseMedML style metrics - used for validation set (must be different instances of metrics (from train_metrics!)
                                    In case of multiple validation dataloaders,  validation_metrics should be list of tuples (that keeps the same dataloaders list order),
                                    Each tuple built from validation dataloader name and corresponding metrics dict.
-        :param test_metrics: dict of FuseMedML style metrics - used for test set (must be different instances of metrics (from train_metrics and validation_metrics!)
+        :param test_metrics: ordereddict of FuseMedML style metrics - used for test set (must be different instances of metrics (from train_metrics)
+                                   In case of multiple test dataloaders, test_metrics should be list of tuples (that keeps the same dataloaders list order),
+                                   Each tuple built from test dataloader name and corresponding metrics dict.
         :param optimizers_and_lr_schs: see pl.LightningModule.configure_optimizers return value for all options
         :param callbacks: see pl.LightningModule.configure_callbacks return value for details
         :param best_epoch_source: Create list of pl.callbacks that saves checkpoints using (pl.callbacks.ModelCheckpoint) and print per epoch summary (fuse.dl.lightning.pl_epoch_summary.ModelEpochSummary).
@@ -140,6 +147,8 @@ class LightningModuleDefault(pl.LightningModule):
         )
         if test_metrics is None:
             self._test_metrics = self._validation_metrics
+        else:
+            self._test_metrics = test_metrics
         # convert all use-cases to the same format that supports multiple val dataloaders: List[Tuple[str, OrderedDict[str, MetricBase]]]
         if isinstance(self._validation_metrics, dict):
             self._validation_metrics = [(None, self._validation_metrics)]
