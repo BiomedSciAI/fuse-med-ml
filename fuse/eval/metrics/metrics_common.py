@@ -602,8 +602,9 @@ class MetricPerBatchDefault(MetricWithCollectorBase):
     def __init__(
         self,
         *,
-        metric_per_batch_func: Callable,
+        metric_per_batch_func: Optional[Callable],
         result_aggregate_func: Callable,
+        metric_per_batch_func_pre_collect: Optional[Callable] = None,
         **kwargs: Any,
     ):
         """
@@ -616,7 +617,9 @@ class MetricPerBatchDefault(MetricWithCollectorBase):
         """
 
         super().__init__(
-            batch_post_collect_process_func=metric_per_batch_func, **kwargs
+            batch_post_collect_process_func=metric_per_batch_func,
+            batch_pre_collect_process_func=metric_per_batch_func_pre_collect,
+            **kwargs,
         )
         self._result_aggregate_func = result_aggregate_func
 
