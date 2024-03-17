@@ -44,6 +44,7 @@ class MetricPerplexity(MetricPerBatchDefault):
                 targets_key=target,
             ),
             result_aggregate_func=_perplexity_compute,
+            collect_ids=False,
             **kwargs,
         )
 
