@@ -100,7 +100,7 @@ class MetricCollector(MetricBase):
         :param post_keys_to_collect: specify the keys you want to collect after post_collect_process. Required only if post_collect_process_func or batch_post_collect_process_func are specified.
                                      if None, will aggregate list of post_collect_process_func returned values
         :param collect_distributed: if True, in multi gpu training, will collect the samples from all gpus - otherwise only rank0 will be reported.
-        :param collect_ids: if True will not collect ids and will not support permutation of data (which used to compute confidence interval)
+        :param collect_ids: if False will not collect ids and will not support permutation of data (which used to compute confidence interval)
         :param keys_to_collect: specify the keys you want to collect from the source data
         """
         super().__init__()
@@ -445,7 +445,7 @@ class MetricWithCollectorBase(MetricBase):
         :param batch_post_collect_process_func: Optional callable - see details in MetricCollector.__init__
         :param post_keys_to_collect: Optional keys to collect from post_collect_process func results - see details in MetricCollector.__init__
         :param external_data_collector: Optional - in a case space optimization required and there by using shared collector for few metrics
-        :param collect_ids: if True will not collect ids and will not support permutation of data (which used to compute confidence interval)
+        :param collect_ids: if False will not collect ids and will not support permutation of data (which used to compute confidence interval)
         :param extract_ids: self._extract_arguments packs all arguments for a underlying function. Set to True, to pack also the ids (under the name 'ids')
         :param collect_distributed: if True, in multi gpu training, will collect the samples from all gpus - otherwise only rank0 will be reported.
         :param kwargs: specify keywords and value arguments you want to collect from the source data.
