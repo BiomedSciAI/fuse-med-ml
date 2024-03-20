@@ -16,7 +16,6 @@ from typing import Any, Dict
 from collections import OrderedDict
 
 from fuse.eval.metrics.sequence_gen.metrics_seq_gen_common import MetricPerplexity
-from fuse.eval.metrics.metrics_common import CI
 
 from fuse.eval.evaluator import EvaluatorDefault
 
@@ -47,11 +46,7 @@ def example_seq_gen_0(seed: int = 1234) -> Dict[str, Any]:
         [
             (
                 "perplexity",
-                CI(
-                    MetricPerplexity(preds="pred", target="label"),
-                    stratum=None,
-                    num_of_bootstraps=10,
-                ),
+                MetricPerplexity(preds="pred", target="label"),
             )
         ]
     )
