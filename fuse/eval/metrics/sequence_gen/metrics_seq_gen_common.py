@@ -16,7 +16,7 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Dict
 from functools import partial
 from copy import copy
 import torch
@@ -45,7 +45,7 @@ class MetricCountSeqAndTokens(MetricPerBatchDefault):
         :param kwargs: additional super class arguments
         """
         super().__init__(
-            seq_num="seq_num",  # collect log_probs - output of  _count_seq_and_tokens_update
+            seq_num="seq_num",  # collect seq_num - output of  _count_seq_and_tokens_update
             token_num="token_num",  # collect token_num - output of  _count_seq_and_tokens_update
             metric_per_batch_func=None,
             metric_per_batch_func_pre_collect=partial(
@@ -67,7 +67,7 @@ class MetricCountSeqAndTokens(MetricPerBatchDefault):
         self,
         seq_num: List[np.ndarray],
         token_num: List[np.ndarray],
-    ) -> float:
+    ) -> dict:
 
         seq_num_total = sum(seq_num)
         token_num_total = sum(token_num)
@@ -83,7 +83,7 @@ def _count_seq_and_tokens_update(
     batch_dict: dict,
     encoder_input_key: str,
     ignore_index: Optional[int] = None,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> Dict[str, torch.Tensor]:
     """Count number of sequences and tokens
     Args:
         encoder_input_key:
