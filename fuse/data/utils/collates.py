@@ -135,7 +135,7 @@ class CollateDefault(CollateToBatchList):
             batch_dict[key] = self._special_handlers_keys[key](collected_values)
         elif isinstance(
             collected_values[0],
-            (torch.Tensor, np.ndarray, float, int, str, bytes), #, tuple),
+            (torch.Tensor, np.ndarray, float, int, str, bytes),  # , tuple),
         ):
             # batch with default PyTorch implementation
             batch_dict[key] = default_collate(collected_values)
