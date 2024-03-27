@@ -61,7 +61,7 @@ def get_shared_mem_file_path(file_path: str) -> str:
         return dest
 
 
-def get_shared_memory_info_for_our_files(verbose:bool = True) -> int:
+def get_shared_memory_info_for_our_files(verbose: bool = True) -> int:
     found = glob(f"{SHM_BASE_DIR}{SHARED_MEM_FILES_PREFIX}*")
     print(f"found {len(found)} shared memory files:")
     if 0 == len(found):
