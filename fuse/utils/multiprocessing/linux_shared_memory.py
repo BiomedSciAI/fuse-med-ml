@@ -14,7 +14,7 @@ SHM_BASE_DIR = "/dev/shm/"
 G_lock = FileLock(join(SHM_BASE_DIR, "our_shared_mem_file_lock"))  # Lock()
 
 
-def get_shared_mem_file_path(file_path: str):
+def get_shared_mem_file_path(file_path: str) -> str:
     """
     copies the file (if needed) to /dev/shm/[filename] which effectively make linux os to load it into RAM
     every following access to the file will actually be on RAM which is much faster
@@ -61,7 +61,7 @@ def get_shared_mem_file_path(file_path: str):
         return dest
 
 
-def get_shared_memory_info_for_our_files():
+def get_shared_memory_info_for_our_files(verbose:bool = True) -> int:
     found = glob(f"{SHM_BASE_DIR}{SHARED_MEM_FILES_PREFIX}*")
     print(f"found {len(found)} shared memory files:")
     if 0 == len(found):
@@ -69,13 +69,16 @@ def get_shared_memory_info_for_our_files():
     total_bytes = 0
     for fn in found:
         curr_size = os.stat(fn).st_size
-        print(f"{curr_size} bytes, {fn}")
+        if verbose:
+            print(f"{curr_size} bytes, {fn}")
         total_bytes += curr_size
 
-    print(f"total size found {curr_size/(1024**2):.2f} Mbs")
+    if verbose:
+        print(f"total size found {curr_size/(1024**2):.2f} Mbs")
+    return total_bytes
 
 
-def delete_all_of_our_shared_memory_files():
+def delete_all_of_our_shared_memory_files() -> None:
     found = glob(f"{SHM_BASE_DIR}{SHARED_MEM_FILES_PREFIX}*")
     print(f"found {len(found)} shared memory files:")
     if 0 == len(found):
