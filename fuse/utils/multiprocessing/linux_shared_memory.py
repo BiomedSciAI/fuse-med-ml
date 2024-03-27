@@ -9,7 +9,7 @@ SHARED_MEM_FILES_PREFIX = "OUR_SHARED_MEM_@"
 SHARED_MEM_ACTIVE_ENV_VAR = 'ACTIVATE_OUR_SHARED_MEM'
 SHM_BASE_DIR = '/dev/shm/'
 
-G_lock = FileLock(join(SHM_BASE_DIR, 'out_shared_mem_file_lock')) #Lock()
+G_lock = FileLock(join(SHM_BASE_DIR, 'our_shared_mem_file_lock')) #Lock()
 
 def get_shared_mem_file_path(file_path:str):
     """
