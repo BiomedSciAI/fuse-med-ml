@@ -1,5 +1,5 @@
 import os
-from os.path import join, basename
+from os.path import join, realpath, dirname
 import shutil
 
 # from multiprocessing import Lock
@@ -37,7 +37,7 @@ def get_shared_mem_file_path(file_path: str) -> str:
         ), f"file_path does not point to a file: file_path={file_path}"
 
         src_file_size_bytes = os.stat(file_path).st_size
-        dest = join(SHM_BASE_DIR, SHARED_MEM_FILES_PREFIX + basename(file_path))
+        dest = join(SHM_BASE_DIR, SHARED_MEM_FILES_PREFIX+realpath(file_path))
 
         if os.path.isfile(dest):
             # it already exists, let's see if the size matches
@@ -57,12 +57,18 @@ def get_shared_mem_file_path(file_path: str) -> str:
             )
 
         print(f"get_shared_mem_location:copying {file_path} to {dest}")
-        shutil.copyfile(file_path, dest)
+        os.makedirs(dirname(dest), exist_ok=True)
+        shutil.copyfile(file_path, dest) #note - this fails without exception if the directory at destination isn't found
         return dest
 
 
+def get_all_shared_mem_files():
+    found = glob(f"{SHM_BASE_DIR}/{SHARED_MEM_FILES_PREFIX}/**/*", recursive = True)
+    found = [x for x in found if os.path.isfile(x)]
+    return found
+
 def get_shared_memory_info_for_our_files(verbose: bool = True) -> int:
-    found = glob(f"{SHM_BASE_DIR}{SHARED_MEM_FILES_PREFIX}*")
+    found = get_all_shared_mem_files()
     print(f"found {len(found)} shared memory files:")
     if 0 == len(found):
         return
@@ -79,7 +85,7 @@ def get_shared_memory_info_for_our_files(verbose: bool = True) -> int:
 
 
 def delete_all_of_our_shared_memory_files() -> None:
-    found = glob(f"{SHM_BASE_DIR}{SHARED_MEM_FILES_PREFIX}*")
+    found = get_all_shared_mem_files()
     print(f"found {len(found)} shared memory files:")
     if 0 == len(found):
         return
@@ -90,3 +96,4 @@ def delete_all_of_our_shared_memory_files() -> None:
 
 if __name__ == "__main__":
     get_shared_memory_info_for_our_files()
+
