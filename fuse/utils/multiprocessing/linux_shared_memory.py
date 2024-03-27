@@ -4,6 +4,7 @@ import shutil
 #from multiprocessing import Lock
 from filelock import FileLock
 from glob import glob
+import psutil
 
 SHARED_MEM_FILES_PREFIX = "OUR_SHARED_MEM_@"
 SHARED_MEM_ACTIVE_ENV_VAR = 'ACTIVATE_OUR_SHARED_MEM'
@@ -42,6 +43,10 @@ def get_shared_mem_file_path(file_path:str):
             #we found it, but size does not match, so we need to delete it first, and then copy
             print(f'get_shared_mem_location:size mismatch (src bytes {src_file_size_bytes} , dest bytes {dest_file_size_bytes}) - deleting dest')
             os.remove(dest) #remove this file
+        
+        available_memory = psutil.virtual_memory().available
+        if available_memory < src_file_size_bytes:
+            raise Exception(f'get_shared_mem_file_path:requested file size {src_file_size_bytes} bytes is bigger than available RAM {available_memory}')
         
         print(f'get_shared_mem_location:copying {file_path} to {dest}')
         shutil.copyfile(file_path, dest)
