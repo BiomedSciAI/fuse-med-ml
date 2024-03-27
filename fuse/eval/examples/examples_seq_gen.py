@@ -15,8 +15,10 @@ import pandas as pd
 from typing import Any, Dict
 from collections import OrderedDict
 
-from fuse.eval.metrics.sequence_gen.metrics_seq_gen_common import MetricPerplexity
-from fuse.eval.metrics.metrics_common import CI
+from fuse.eval.metrics.sequence_gen.metrics_seq_gen_common import (
+    MetricPerplexity,
+    MetricCountSeqAndTokens,
+)
 
 from fuse.eval.evaluator import EvaluatorDefault
 
@@ -47,11 +49,7 @@ def example_seq_gen_0(seed: int = 1234) -> Dict[str, Any]:
         [
             (
                 "perplexity",
-                CI(
-                    MetricPerplexity(preds="pred", target="label"),
-                    stratum=None,
-                    num_of_bootstraps=10,
-                ),
+                MetricPerplexity(preds="pred", target="label"),
             )
         ]
     )
@@ -92,6 +90,46 @@ def example_seq_gen_1(seed: int = 1234) -> Dict[str, Any]:
     dl = DataLoader(ds, collate_fn=CollateDefault(), batch_size=100)
     metrics = OrderedDict(
         [("perplexity", MetricPerplexity(preds="pred", target="label"))]
+    )
+
+    evaluator = EvaluatorDefault()
+    results = evaluator.eval(ids=None, data=dl, metrics=metrics, batch_size=0)
+    print(results)
+
+    return results
+
+
+def example_seq_gen_2() -> Dict[str, Any]:
+    """
+    Example/Test for perplexity metric - batch mode
+    """
+
+    encoder_input_tokens = torch.arange(5000).reshape(10, 500)
+    data = {
+        "encoder_input_tokens": list(encoder_input_tokens),
+        "id": list(range(10)),
+    }
+    data = pd.DataFrame(data)
+
+    # Working with pytorch dataloader mode
+    dynamic_pipeline = PipelineDefault(
+        "test",
+        [
+            (OpReadDataframe(data, key_column="id"), dict()),
+        ],
+    )
+    ds = DatasetDefault(sample_ids=len(data), dynamic_pipeline=dynamic_pipeline)
+    ds.create()
+    dl = DataLoader(ds, collate_fn=CollateDefault())
+    metrics = OrderedDict(
+        [
+            (
+                "count",
+                MetricCountSeqAndTokens(
+                    encoder_input="encoder_input_tokens", ignore_index=4999
+                ),
+            )
+        ]
     )
 
     evaluator = EvaluatorDefault()

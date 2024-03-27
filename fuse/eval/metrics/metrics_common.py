@@ -86,6 +86,7 @@ class MetricCollector(MetricBase):
         batch_post_collect_process_func: Optional[Callable] = None,
         post_keys_to_collect: Optional[List[str]] = None,
         collect_distributed: bool = True,
+        collect_ids: bool = True,
         **keys_to_collect: Dict[str, str],
     ):
         """
@@ -99,6 +100,7 @@ class MetricCollector(MetricBase):
         :param post_keys_to_collect: specify the keys you want to collect after post_collect_process. Required only if post_collect_process_func or batch_post_collect_process_func are specified.
                                      if None, will aggregate list of post_collect_process_func returned values
         :param collect_distributed: if True, in multi gpu training, will collect the samples from all gpus - otherwise only rank0 will be reported.
+        :param collect_ids: if False will not collect ids and will not support permutation of data (which used to compute confidence interval)
         :param keys_to_collect: specify the keys you want to collect from the source data
         """
         super().__init__()
@@ -111,6 +113,7 @@ class MetricCollector(MetricBase):
         self._post_keys_to_collect = copy.copy(post_keys_to_collect)
         self._id_keys = MetricCollector.DEFAULT_ID_KEYS
         self._collect_distributed = collect_distributed
+        self._to_collect_ids = collect_ids
 
         # reset
         self.reset()
@@ -181,17 +184,18 @@ class MetricCollector(MetricBase):
                 self._collected_data[name].extend(value)
 
         # extract ids and store it in self._collected_ids
-        ids = None
-        for key in self._id_keys:
-            if key in batch:
-                ids = batch[key]
-                # collect distributed
-                if dist.is_initialized() and self._collect_distributed:
-                    ids = self.sync_ids(ids)
-                break
+        if self._to_collect_ids:
+            ids = None
+            for key in self._id_keys:
+                if key in batch:
+                    ids = batch[key]
+                    # collect distributed
+                    if dist.is_initialized() and self._collect_distributed:
+                        ids = self.sync_ids(ids)
+                    break
 
-        if ids is not None:
-            self._collected_ids.extend(ids)
+            if ids is not None:
+                self._collected_ids.extend(ids)
 
     @staticmethod
     def sync_tensor_data_and_concat(data: torch.Tensor) -> torch.Tensor:
@@ -239,15 +243,41 @@ class MetricCollector(MetricBase):
         return data_list
 
     @staticmethod
-    def _df_dict_apply(data: pd.Series, func: Callable) -> pd.Series:
-        result = func(NDict(data.to_dict()))
-        return pd.Series(result.flatten())
+    def _df_dict_apply(
+        data: pd.Series, func: Callable, batch: bool = False
+    ) -> pd.Series:
+        if batch:
+            # expand sample to batch
+            data_dict = {}
+            for k, v in data.to_dict().items():
+                if isinstance(v, torch.Tensor):
+                    data_dict[k] = v.unsqueeze(0)
+                elif isinstance(v, np.ndarray):
+                    data_dict[k] = np.expand_dims(v, axis=0)
+                else:
+                    data_dict[k] = [v]
+        else:
+            data_dict = data.to_dict()
+
+        result = func(NDict(data_dict))
+
+        if batch:
+            # squeeze batch back to sample
+            result_sample = {}
+            for k, v in result.items():
+                if isinstance(v, (torch.Tensor, np.ndarray, list)):
+                    result_sample[k] = v[0]
+                else:
+                    result_sample[k] = v
+            result = result_sample
+        return pd.Series(result)
 
     @staticmethod
     def _df_dict_apply_kwargs(
         data: pd.Series, func: Callable, batch: bool = False, post: bool = False
     ) -> pd.Series:
         if batch:
+            # expand sample to batch
             kwargs = {}
             for k, v in data.to_dict().items():
                 if isinstance(v, torch.Tensor):
@@ -266,6 +296,7 @@ class MetricCollector(MetricBase):
                 result = {"post_args": result}
 
         if batch:
+            # squeeze batch back to sample
             result_sample = {}
             for k, v in result.items():
                 if isinstance(v, (torch.Tensor, np.ndarray, list)):
@@ -285,6 +316,12 @@ class MetricCollector(MetricBase):
         if self._pre_collect_process_func is not None:
             pre_collect_process = lambda x: self._df_dict_apply(
                 x, self._pre_collect_process_func
+            )
+            data = data.apply(pre_collect_process, axis=1)
+
+        if self._batch_pre_collect_process_func is not None:
+            pre_collect_process = lambda x: self._df_dict_apply(
+                x, self._batch_pre_collect_process_func, batch=True
             )
             data = data.apply(pre_collect_process, axis=1)
 
@@ -311,17 +348,20 @@ class MetricCollector(MetricBase):
 
         for name in data_to_collect.keys():
             values = data_to_collect.loc[:, name]
-            self._collected_data[name].extend(values)
+            self._collected_data[name].extend(
+                [v.numpy() if isinstance(v, torch.Tensor) else v for v in values]
+            )
 
         # extract ids and store it in self._collected_ids
-        ids = None
-        for key in self._id_keys:
-            if key in data.keys():
-                ids = list(data[key])
-                break
+        if self._to_collect_ids:
+            ids = None
+            for key in self._id_keys:
+                if key in data.keys():
+                    ids = list(data[key])
+                    break
 
-        if ids is not None:
-            self._collected_ids.extend(ids)
+            if ids is not None:
+                self._collected_ids.extend(ids)
 
     def reset(self) -> None:
         """
@@ -338,8 +378,10 @@ class MetricCollector(MetricBase):
                 self._collected_data = {name: [] for name in self._post_keys_to_collect}
             else:
                 self._collected_data = {"post_args": []}
-
-        self._collected_ids = []  # the original collected ids
+        if self._to_collect_ids:
+            self._collected_ids = []  # the original collected ids
+        else:
+            self._collected_ids = None
 
         self._sampled_ids = None  # the required ids - set by sample() method
 
@@ -354,7 +396,7 @@ class MetricCollector(MetricBase):
         Get collected data - collected data dictionary and collected ids.
         each element in the dictionary will be a list of values from all samples
         """
-        if ids is None:
+        if ids is None or self._to_collect_ids is False:
             return copy.copy(self._collected_data)
         else:
             # convert required ids to permutation
@@ -391,6 +433,7 @@ class MetricWithCollectorBase(MetricBase):
         batch_post_collect_process_func: Optional[Callable] = None,
         post_keys_to_collect: Optional[Sequence[str]] = None,
         external_data_collector: Optional[MetricCollector] = None,
+        collect_ids: bool = True,
         extract_ids: bool = False,
         collect_distributed: bool = True,
         **kwargs: Any,
@@ -402,6 +445,7 @@ class MetricWithCollectorBase(MetricBase):
         :param batch_post_collect_process_func: Optional callable - see details in MetricCollector.__init__
         :param post_keys_to_collect: Optional keys to collect from post_collect_process func results - see details in MetricCollector.__init__
         :param external_data_collector: Optional - in a case space optimization required and there by using shared collector for few metrics
+        :param collect_ids: if False will not collect ids and will not support permutation of data (which used to compute confidence interval)
         :param extract_ids: self._extract_arguments packs all arguments for a underlying function. Set to True, to pack also the ids (under the name 'ids')
         :param collect_distributed: if True, in multi gpu training, will collect the samples from all gpus - otherwise only rank0 will be reported.
         :param kwargs: specify keywords and value arguments you want to collect from the source data.
@@ -430,6 +474,7 @@ class MetricWithCollectorBase(MetricBase):
                 batch_post_collect_process_func,
                 post_keys_to_collect=post_keys_to_collect,
                 collect_distributed=collect_distributed,
+                collect_ids=collect_ids,
                 **self._keys_to_collect,
             )
             if external_data_collector is None
@@ -602,8 +647,9 @@ class MetricPerBatchDefault(MetricWithCollectorBase):
     def __init__(
         self,
         *,
-        metric_per_batch_func: Callable,
+        metric_per_batch_func: Optional[Callable],
         result_aggregate_func: Callable,
+        metric_per_batch_func_pre_collect: Optional[Callable] = None,
         **kwargs: Any,
     ):
         """
@@ -616,7 +662,9 @@ class MetricPerBatchDefault(MetricWithCollectorBase):
         """
 
         super().__init__(
-            batch_post_collect_process_func=metric_per_batch_func, **kwargs
+            batch_post_collect_process_func=metric_per_batch_func,
+            batch_pre_collect_process_func=metric_per_batch_func_pre_collect,
+            **kwargs,
         )
         self._result_aggregate_func = result_aggregate_func
 

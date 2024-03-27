@@ -110,7 +110,6 @@ class TestDatasets(unittest.TestCase):
         self.assertTrue(5 in dict(results["metrics.age"]))
 
     def test_isic(self) -> None:
-
         create_dir(self.isic_cache_dir)
         dataset = ISIC.dataset(
             self.isic_data_dir,

@@ -39,7 +39,6 @@ class OpLoadImage(OpReversibleBase):
         if (format == "infer" and img_filename_suffix in ["nii"]) or (
             format in ["nii", "nib"]
         ):
-
             img = nib.load(img_filename)
             img_np = img.get_fdata()
             sample_dict[key_out] = img_np

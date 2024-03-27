@@ -59,14 +59,12 @@ class OpAddBMI(OpBase):
     """
 
     def __init__(self, key_in_height: str, key_in_weight: str, key_out_bmi: str):
-
         super().__init__()
         self._key_height = key_in_height
         self._key_weight = key_in_weight
         self._key_bmi = key_out_bmi
 
     def __call__(self, sample_dict: NDict) -> Any:
-
         if (self._key_height in sample_dict["StaticDetails"]) & (
             self._key_weight in sample_dict["StaticDetails"]
         ):
@@ -89,13 +87,11 @@ class OpConvertVisitToSentence(OpBase):
     """
 
     def __call__(self, sample_dict: NDict) -> Any:
-
         df_visits = sample_dict["Visits"]
 
         d_visit_sentences = OrderedDict()
 
         for visit_time, df_visit in df_visits.groupby("Time", sort=True):
-
             d_visit_sentences[visit_time] = []
 
             d_visit_sentences[visit_time].extend(df_visit["Value"].to_list())
@@ -124,7 +120,6 @@ class OpGenerateFinalTrajectoryOfVisits(OpBase):
         embed_static_in_all_visits: int,
         static_variables_to_embed: list,
     ):
-
         super().__init__()
         self._max_len = max_len
         self._vocab = vocab
@@ -132,7 +127,6 @@ class OpGenerateFinalTrajectoryOfVisits(OpBase):
         self._embed_static_in_all_visits = embed_static_in_all_visits
 
     def __call__(self, sample_dict: NDict) -> Any:
-
         d_visits_sentences = sample_dict["VisitSentences"]
         n_visits = len(d_visits_sentences)
 
@@ -208,7 +202,6 @@ class OpMapToCategorical(OpBase):
     """
 
     def __call__(self, sample_dict: NDict, bins: dict) -> Any:
-
         # convert continuous measurements to categorical ones based
         # on defined bins mapping static clinical characteristics
         # (Age, Gender, ICU type, Height, etc)
@@ -323,7 +316,6 @@ class PhysioNetCinC:
         count_dropped_short_time = 0
         count_dropped_min_visits = 0
         for pat_id, df_pat_records in df.groupby("PatientId"):
-
             hours = df_pat_records["Time"].str.split(":", n=1, expand=True)[0].values
             if max(hours.astype(int)) < min_hours:
                 df_fixed.drop(df_pat_records.index, inplace=True)

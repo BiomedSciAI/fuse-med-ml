@@ -1,13 +1,22 @@
 import unittest
 
-from typing import Optional, OrderedDict, Union, List
+from typing import Optional, OrderedDict, Union, List, Any
+
+import torch
 
 from fuse.utils.ndict import NDict
 
 from fuse.data.ops.op_base import OpBase, OpReversibleBase, op_call
 from fuse.data.key_types_for_testing import DataTypeForTesting
 
-from fuse.data.ops.ops_common import OpApplyPatterns, OpFunc, OpLambda, OpRepeat
+from fuse.data.ops.ops_common import (
+    OpApplyPatterns,
+    OpFunc,
+    OpLambda,
+    OpRepeat,
+    OpReplaceAnyElements,
+    OpReplaceElements,
+)
 from fuse.data.ops.ops_common_for_testing import OpApplyTypesImaging
 
 
@@ -266,6 +275,88 @@ class TestOpsCommon(unittest.TestCase):
         )
         self.assertEqual(sample_dict["data.val.img_for_testing"], 4)
         self.assertEqual(sample_dict["model.a_seg_for_testing"], 2)
+
+    def test_op_replace_element(self) -> None:
+        """
+        test op_replace_element on each of possible inputs it supports: string, list, tensor
+        """
+
+        def _apply_op_replace(input: Any, to_replace: Any, replace_with: str) -> Any:
+            sample_dict = NDict({})
+            sample_dict["data.input"] = input
+            sample_dict = op_call(
+                OpReplaceElements(),
+                sample_dict,
+                "_.test_replace_element",
+                key_in="data.input",
+                key_out="data.out",
+                find_val=to_replace,
+                replace_with_val=replace_with,
+            )
+            return sample_dict["data.out"]
+
+        # input is a string
+        input = "abccba"
+        to_replace = "b"
+        replace_with = "X"
+        expected_result = "aXccXa"
+
+        res = _apply_op_replace(input, to_replace, replace_with)
+        self.assertEqual(res, expected_result)
+
+        # input is a list
+        input = [1, 2, 3, 2, 1]
+        to_replace = 2
+        replace_with = 0
+        expected_result = [1, 0, 3, 0, 1]
+        res = _apply_op_replace(input, to_replace, replace_with)
+        self.assertEqual(res, expected_result)
+
+        # input is a tensor
+        res = _apply_op_replace(torch.tensor(input), to_replace, replace_with)
+        self.assertTrue(torch.equal(res, torch.tensor(expected_result)))
+
+    def test_op_replace_any_element(self) -> None:
+        """
+        test op_replace_any_element on each of possible inputs it supports: string, list, tensor
+        """
+
+        def _apply_op_replace_any(
+            input: Any, to_replace: Any, replace_with: str
+        ) -> Any:
+            sample_dict = NDict({})
+            sample_dict["data.input"] = input
+            sample_dict = op_call(
+                OpReplaceAnyElements(),
+                sample_dict,
+                "_.test_replace_element",
+                key_in="data.input",
+                key_out="data.out",
+                find_any_val=to_replace,
+                replace_with_val=replace_with,
+            )
+            return sample_dict["data.out"]
+
+        # input is a string
+        input = "abccba"
+        to_replace = "bc"
+        replace_with = "X"
+        expected_result = "aXXXXa"
+
+        res = _apply_op_replace_any(input, to_replace, replace_with)
+        self.assertEqual(res, expected_result)
+
+        # input is a list
+        input = [1, 2, 3, 2, 1]
+        to_replace = [2, 3]
+        replace_with = 0
+        expected_result = [1, 0, 0, 0, 1]
+        res = _apply_op_replace_any(input, to_replace, replace_with)
+        self.assertEqual(res, expected_result)
+
+        # input is a tensor
+        res = _apply_op_replace_any(torch.tensor(input), to_replace, replace_with)
+        self.assertTrue(torch.equal(res, torch.tensor(expected_result)))
 
 
 if __name__ == "__main__":

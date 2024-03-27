@@ -103,7 +103,7 @@ class PipelineDefault(OpReversibleBase):
 
     def __str__(self) -> str:
         text = []
-        for (op_id, op_kwargs) in zip(self._op_ids, self._ops_and_kwargs):
+        for op_id, op_kwargs in zip(self._op_ids, self._ops_and_kwargs):
             op, kwargs = op_kwargs
             text.append(
                 str(op_id)
@@ -146,7 +146,6 @@ class PipelineDefault(OpReversibleBase):
                 samples_to_process_next = []
 
                 for sample in samples_to_process:
-
                     sample = op_call(op, sample, f"{op_id}.{sub_op_id}", **op_kwargs)
 
                     # three options for return value:

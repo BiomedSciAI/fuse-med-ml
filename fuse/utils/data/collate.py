@@ -55,7 +55,6 @@ class CollateToBatchList(Callable):
 
         # collect values
         for key in keys:
-
             # skip keys
             if key in self._skip_keys:
                 continue
@@ -142,7 +141,6 @@ def uncollate(batch: Dict) -> List[Dict]:
     for key in batch.keys():
         values = batch[key]
         for sample_index in range(batch_size):
-
             if isinstance(values, (np.ndarray, torch.Tensor, list)):
                 try:
                     samples[sample_index][key] = values[sample_index]

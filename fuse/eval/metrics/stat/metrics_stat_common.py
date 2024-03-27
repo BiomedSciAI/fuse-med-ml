@@ -1,6 +1,7 @@
 from typing import Any, Dict, Hashable, Optional, Sequence
 from collections import Counter
-from fuse.eval.metrics.metrics_common import MetricWithCollectorBase
+from fuse.eval.metrics.metrics_common import MetricDefault, MetricWithCollectorBase
+from fuse.eval.metrics.libs.stat import Stat
 
 
 class MetricUniqueValues(MetricWithCollectorBase):
@@ -19,3 +20,16 @@ class MetricUniqueValues(MetricWithCollectorBase):
         counter = Counter(values)
 
         return list(counter.items())
+
+
+class MetricPearsonCorrelation(MetricDefault):
+    def __init__(
+        self, pred: str, target: str, mask: Optional[str] = None, **kwargs: dict
+    ) -> None:
+        super().__init__(
+            pred=pred,
+            target=target,
+            mask=mask,
+            metric_func=Stat.pearson_correlation,
+            **kwargs
+        )
