@@ -47,9 +47,14 @@ def get_function_call_str(
     args_flat_str += "@".join(
         ["{}@{}".format(str(k), value_to_string(kwargs[k])) for k in use_keys]
     )
-    args_flat_str += "@" + str(
+
+    module_str = str(
         inspect.getmodule(func)
     )  # adding full (including scope) name of the function, for the case of multiple functions with the same name
+    if " from " in module_str:
+        module_str = module_str.split(" from ")[0]
+    args_flat_str += "@" + module_str
+
     if _include_code:
         args_flat_str += "@" + inspect.getsource(
             func
