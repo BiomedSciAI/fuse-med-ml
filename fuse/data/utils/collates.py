@@ -223,7 +223,7 @@ class CollateDefault(CollateToBatchList):
             This function assumes that the input_ids tensors are already padded, and it crops the sequences
             to the minimum length by removing trailing padding tokens.
         """
-        min_length = min(
+        min_length = max(
             len(ids) - (ids == pad_token_id).sum().item() for ids in input_ids_list
         )
         cropped_sequences = [ids[:min_length] for ids in input_ids_list]
