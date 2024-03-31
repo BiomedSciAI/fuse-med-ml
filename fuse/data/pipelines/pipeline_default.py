@@ -138,7 +138,7 @@ class PipelineDefault(OpReversibleBase):
             if self._verbose:
                 context = Timer(
                     f"Pipeline {self._name}: op {type(op).__name__}, op_id {sub_op_id}",
-                    self._verbose,
+                    # self._verbose,
                 )
             else:
                 context = DummyContext()
