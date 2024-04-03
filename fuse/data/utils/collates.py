@@ -134,7 +134,7 @@ class CollateDefault(CollateToBatchList):
             batch_dict[key] = self._special_handlers_keys[key](collected_values)
         elif isinstance(
             collected_values[0],
-            (torch.Tensor, np.ndarray, float, int, str, bytes, tuple),
+            (torch.Tensor, np.ndarray, float, int, str, bytes),  # tuple),
         ):
             # batch with default PyTorch implementation
             batch_dict[key] = default_collate(collected_values)
@@ -184,7 +184,7 @@ class CollateDefault(CollateToBatchList):
 
         if min_size_per_dim is not None:
             assert isinstance(min_size_per_dim, tuple)
-            assert len(min_size_per_dim) == len(min_size_per_dim)
+            assert len(min_size_per_dim) == len(max_per_dim)
             assert all(
                 [(x > 0) or (x == -1) for x in min_size_per_dim]
             ), "allowed values for elements in min_size_per_dim are only positive integer or -1"
