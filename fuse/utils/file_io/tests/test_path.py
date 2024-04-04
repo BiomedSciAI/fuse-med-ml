@@ -45,7 +45,7 @@ class TestPath(unittest.TestCase):
         self.assertEqual(ans, "/a/b/c/de/fg/123.456.7zip")
 
         ans = path.get_extension("/a/b/c/de/fg/123.456.7zip")
-        self.assertEqual(ans, "7zip")
+        self.assertEqual(ans, ".7zip")
 
         ans = path.remove_extension("/a/b/c/de/fg/123.456.7zip")
         self.assertEqual(ans, "/a/b/c/de/fg/123.456")
