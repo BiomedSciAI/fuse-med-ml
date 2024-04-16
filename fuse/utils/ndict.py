@@ -437,7 +437,7 @@ class NDict(dict):
         keys = data_dict.keys()
         level += 1
         for key in keys:
-            if type(data_dict[key]) == dict:
+            if isinstance(data_dict[key], dict):
                 res += " ".join(["---" * level, key + "\n"])
                 res += NDict._get_tree_str_static(
                     data_dict[key], level, print_values=print_values
