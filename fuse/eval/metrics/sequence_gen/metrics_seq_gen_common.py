@@ -40,7 +40,7 @@ class MetricCountSeqAndTokens(MetricPerBatchDefault):
     ) -> None:
         """
         :param encoder_input: key to the encoder_input
-        :param decoder_input: key to the encoder_input
+        :param decoder_input: key to the decoder_input
         :param ignore_index: token_id to ignore (not to count), typically pad token id
         :param state: the sequence count and token count to continue for. Should be restored when we continue training.
                     use get_state() to get the state and save it upon checkpointing,

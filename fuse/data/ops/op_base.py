@@ -135,7 +135,7 @@ def op_call(
             + f"error in __call__ method of op={op}, op_id={op_id}, sample_id={get_sample_id(sample_dict)} - more details below"
             + "*************************************************************************************************************************************\n"
         )
-        print(traceback.print_exc())
+        traceback.print_exc()
         raise
 
 
