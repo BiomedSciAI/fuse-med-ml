@@ -21,8 +21,9 @@ from fuse.data.ops.op_base import OpBase, OpReversibleBase, op_call, op_reverse
 from fuse.utils.misc.context import DummyContext
 from fuse.utils.ndict import NDict
 from fuse.utils.cpu_profiling.timer import Timer
-
+import os
 import copy
+import threading
 
 
 class PipelineDefault(OpReversibleBase):
@@ -137,7 +138,7 @@ class PipelineDefault(OpReversibleBase):
         for sub_op_id, (op, op_kwargs) in zip(self._op_ids, self._ops_and_kwargs):
             if self._verbose:
                 context = Timer(
-                    f"Pipeline {self._name}: op {type(op).__name__}, op_id {sub_op_id}",
+                    f"PID={os.getpid()} thread={threading.get_ident()} Pipeline {self._name}: op {type(op).__name__}, op_id {sub_op_id}",
                     # self._verbose,
                 )
             else:

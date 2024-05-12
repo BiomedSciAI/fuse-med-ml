@@ -153,6 +153,7 @@ class CollateDefault(CollateToBatchList):
         values: List[torch.Tensor],
         pad_val: float = 0.0,
         min_size_per_dim: Optional[Tuple] = None,
+        verbose: bool = False,
     ) -> torch.Tensor:
         """
         pad tensors and create a batch - the shape will be the max size per dim
