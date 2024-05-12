@@ -184,6 +184,9 @@ class LightningModuleDefault(pl.LightningModule):
         batch_dict["global_step"] = self.global_step
         # run forward function and store the outputs in batch_dict["model"]
         batch_dict = self.forward(batch_dict)
+        # workaround for fsdp
+        if not isinstance(batch_dict, NDict):
+            batch_dict = NDict(batch_dict)
         # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss and save losses values in batch_dict["losses"]
         total_loss = step_losses(self._losses, batch_dict)
         # given the batch_dict and FuseMedML style metrics - collect the required values to compute the metrics on epoch_end
@@ -200,6 +203,9 @@ class LightningModuleDefault(pl.LightningModule):
         batch_dict["global_step"] = self.global_step
         # run forward function and store the outputs in batch_dict["model"]
         batch_dict = self.forward(batch_dict)
+        # workaround for fsdp
+        if not isinstance(batch_dict, NDict):
+            batch_dict = NDict(batch_dict)
         if self._validation_losses is not None:
             losses = self._validation_losses[dataloader_idx][1]
         else:
@@ -221,6 +227,9 @@ class LightningModuleDefault(pl.LightningModule):
         batch_dict["global_step"] = self.global_step
         # run forward function and store the outputs in batch_dict["model"]
         batch_dict = self.forward(batch_dict)
+        # workaround for fsdp
+        if not isinstance(batch_dict, NDict):
+            batch_dict = NDict(batch_dict)
         # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss (ignored) and save losses values in batch_dict["losses"]
         if self._validation_losses is not None:
             losses = self._validation_losses[dataloader_idx][1]
@@ -243,6 +252,9 @@ class LightningModuleDefault(pl.LightningModule):
             )
         # run forward function and store the outputs in batch_dict["model"]
         batch_dict = self.forward(batch_dict)
+        # workaround for fsdp
+        if not isinstance(batch_dict, NDict):
+            batch_dict = NDict(batch_dict)
         # extract the required keys - defined in self.set_predictions_keys()
         return step_extract_predictions(self._prediction_keys, batch_dict)
 
