@@ -1,4 +1,4 @@
-from typing import List, Dict, Callable, Any, _UnionGenericAlias
+from typing import List, Dict, Callable, Any  # , _UnionGenericAlias
 
 
 import inspect
@@ -111,7 +111,7 @@ class InterfaceValidator:
             self._validate_signature(method_name, curr_validate_args)
 
     def _validate_signature(
-        self, method_name: str, validate_args: Dict[str, _UnionGenericAlias]
+        self, method_name: str, validate_args: Dict[str, Any]
     ) -> None:
         """
         raises an exception if a signature mismatch is found

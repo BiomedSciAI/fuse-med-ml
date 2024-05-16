@@ -51,7 +51,7 @@ class TestPath(unittest.TestCase):
         self.assertEqual(ans, "/a/b/c/de/fg/123.456")
 
         ans = path.get_valid_filename("test 1 2 3 he^^llo")
-        self.assertEqual(ans, "test_1_2_3_he@@llo")
+        self.assertEqual(ans, "test_1_2_3_he^^llo")
 
     def tearDown(self) -> None:
         pass
