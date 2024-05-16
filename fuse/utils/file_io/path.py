@@ -67,5 +67,4 @@ def get_valid_filename(s: str) -> str:
     modifies an input string into a string that is valid as a filename in linux
     """
     s = str(s).strip().replace(" ", "_")
-    # return re.sub(r"(?u)[^-\w.]", "@", s)
     return re.sub(r"[\\:\"*?<>|]", "@", s)
