@@ -89,7 +89,7 @@ def make_predictions_file(
         split = {"test": list(data.case_id)}
 
     dataset = KNIGHT.dataset(data_path, cache_path, split, reset_cache=reset_cache)
-    if type(dataset) == tuple and len(dataset) == 2:
+    if isinstance(dataset, tuple) and len(dataset) == 2:
         dataset = dataset[1]
     dl = DataLoader(
         dataset=dataset,
