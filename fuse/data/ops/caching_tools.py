@@ -81,7 +81,9 @@ def value_to_string(val: Any, warn_on_types: Optional[Sequence] = None) -> str:
 
 
 def convert_func_call_into_kwargs_only(
-    func: Callable, *args: list, **kwargs: dict
+    func: Callable,
+    *args: list,
+    **kwargs: dict,
 ) -> dict:
     """
     considers positional and kwargs (including their default values !)
