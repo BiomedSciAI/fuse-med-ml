@@ -83,6 +83,7 @@ class validate_signature_impl(object):
 
 class InterfaceValidator:
     def __init__(self, verbose: bool = False):
+        super().__init__()
         self.__dict__["_properly_initialized_InterfaceValidator"] = True
         self._verbose_signature_validation = verbose
         if not hasattr(self, "_validate_methods"):
