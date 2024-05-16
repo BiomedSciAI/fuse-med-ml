@@ -62,7 +62,7 @@ class validate_signature_impl(object):
         self.fn = fn
         self._args_to_validate = args
 
-    def __set_name__(self, owner: any, name: str) -> None:
+    def __set_name__(self, owner: Any, name: str) -> None:
         # do something with owner, i.e.
         curr_func = self.fn
         print(f"decorating {curr_func} and using {owner}")
@@ -99,7 +99,7 @@ class InterfaceValidator:
 
             if getattr(type(self), method_name) == getattr(curr_bases[0], method_name):
                 raise Exception(
-                    f'a class that inherited from InsilicoLabModel did not override interface method "{method_name}" !'
+                    f'a class that inherited from InterfaceValidator did not override interface method "{method_name}" !'
                 )
 
             curr_method = getattr(self, method_name)
@@ -117,8 +117,7 @@ class InterfaceValidator:
         """
         curr_method = getattr(self, method_name)
         actual_method = curr_method
-        # if hasattr(curr_method, '__wrapped__'): #the standard functools.wraps does not keep type annotations!
-        #    actual_method = getattr(curr_method, '__wrapped__')
+
         func_details = inspect.getfullargspec(actual_method)
 
         pos_args = [x for x in func_details.args if x != "self"]
@@ -148,7 +147,7 @@ class InterfaceValidator:
                     f"in class {self.__class__.__name__} method {method_name} arg {arg_name} validated ok."
                 )
 
-    def __setattr__(self, name: str, value: any) -> None:
+    def __setattr__(self, name: str, value: Any) -> None:
         if not hasattr(self, "_properly_initialized_InterfaceValidator"):
             raise Exception(
                 "When you inherit from InterfaceValidator you must call super().__init__() in your constructor as the first thing you do."

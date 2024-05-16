@@ -134,7 +134,7 @@ class CollateDefault(CollateToBatchList):
             batch_dict[key] = self._special_handlers_keys[key](collected_values)
         elif isinstance(
             collected_values[0],
-            (torch.Tensor, np.ndarray, float, int, str, bytes),  # tuple),
+            (torch.Tensor, np.ndarray, float, int, str, bytes),
         ):
             # batch with default PyTorch implementation
             batch_dict[key] = default_collate(collected_values)
@@ -153,7 +153,6 @@ class CollateDefault(CollateToBatchList):
         values: List[torch.Tensor],
         pad_val: float = 0.0,
         min_size_per_dim: Optional[Tuple] = None,
-        verbose: bool = False,
     ) -> torch.Tensor:
         """
         pad tensors and create a batch - the shape will be the max size per dim
@@ -161,7 +160,7 @@ class CollateDefault(CollateToBatchList):
         pad_val: constant value for padding
         min_size_per_dim: defines, per dimension, the minimal size in the post-collated tensor (excluding the batch dimension, which you shouldn't provide)
             this can be useful to prevent OOM due to memory fragmentation
-            for example, you can use min_size_per_dim = (1000, -1) to make sure that the final collated tensor second dimension is at least 1000
+            for example, you can use min_size_per_dim = (1000, -1) to make sure that the final collated tensor first dimension is at least 1000
 
         :return: torch.stack of padded tensors
         """
@@ -180,12 +179,12 @@ class CollateDefault(CollateToBatchList):
                 len(value.shape) == num_dims
             ), f"Expecting all tensors to have the same dim size, got {len(value.shape)} and {num_dims}"
 
-        # get max per dim
+        # get max per dim - this is the ovserved actual max from the batch
         max_per_dim = np.amax(np.stack([value.shape for value in values]), axis=0)
 
         if min_size_per_dim is not None:
             assert isinstance(min_size_per_dim, tuple)
-            assert len(min_size_per_dim) >= len(max_per_dim)
+            assert len(min_size_per_dim) == len(max_per_dim)
             assert all(
                 [(x > 0) or (x == -1) for x in min_size_per_dim]
             ), "allowed values for elements in min_size_per_dim are only positive integer or -1"

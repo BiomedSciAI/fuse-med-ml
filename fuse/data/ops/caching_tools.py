@@ -100,9 +100,6 @@ def convert_func_call_into_kwargs_only(
     # convert positional args into kwargs
     # uses the fact that zip stops on the smallest length ( so only as much as len(args))
     for curr_pos_arg, pos_arg_name in zip(args, inspect.getfullargspec(func).args):
-        # if (not _allow_positional_args) and (curr_pos_arg!='self'):
-        #     raise Exception(f'positional args are not allowed - found in {func} the following positional arg: {curr_pos_arg}')
-
         my_kwargs[pos_arg_name] = curr_pos_arg
 
     my_kwargs.update(kwargs)
