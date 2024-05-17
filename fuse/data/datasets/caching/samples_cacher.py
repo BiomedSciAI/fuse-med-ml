@@ -12,7 +12,7 @@ limitations under the License.
 Created on June 30, 2021
 """
 from functools import partial
-from typing import Hashable, List, Optional, Sequence, Union, Callable, Any, Tuple
+from typing import Hashable, List, Optional, Sequence, Union, Callable, Any, Tuple, Dict
 
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 from collections import OrderedDict
@@ -43,6 +43,7 @@ from fuse.utils.multiprocessing.run_multiprocessed import (
 from fuse.data.datasets.sample_caching_audit import SampleCachingAudit
 from fuse.data.utils.sample import get_initial_sample_id, set_initial_sample_id
 from warnings import warn
+import numpy as np
 
 
 class SamplesCacher:
@@ -311,14 +312,18 @@ class SamplesCacher:
         return sample_from_cache
 
     def _load_sample_using_pipeline(
-        self, sample_id: Hashable, keys: Optional[Sequence[str]] = None
+        self,
+        sample_id: Hashable,
+        keys: Optional[Sequence[str]] = None,  # FIXME: noticed that keys is ignored !
     ) -> NDict:
         sample_dict = create_initial_sample(sample_id)
         result_sample = self._pipeline(sample_dict)
         return result_sample
 
     def _load_sample_from_cache(
-        self, sample_id: Hashable, keys: Optional[Sequence[str]] = None
+        self,
+        sample_id: Hashable,
+        keys: Optional[Sequence[str]] = None,  # FIXME: noticed that keys is ignored !
     ) -> NDict:
         """
         TODO: add comments
@@ -332,6 +337,27 @@ class SamplesCacher:
                 loaded_sample = NDict(load_pickle(extension_less + ".pkl.gz"))
                 if os.path.isfile(extension_less + ".hdf5"):
                     loaded_sample_hdf5_part = load_hdf5(extension_less + ".hdf5")
+                    stored_ndarrays_list = [
+                        k
+                        for k in loaded_sample_hdf5_part.keys()
+                        if ("@RESERVED_LIST@" in k) or ("@RESERVED_TUPLE@" in k)
+                    ]  # in these cases the ndarrays were originally stored as a list or tuple of ndarrays
+                    for seq_key in stored_ndarrays_list:
+                        seq_key_clean = seq_key.replace("@RESERVED_LIST@", "").replace(
+                            "@RESERVED_TUPLE@", ""
+                        )
+                        curr_sequence_length = loaded_sample_hdf5_part.pop(seq_key)[0]
+                        curr_seq = []
+                        for i in range(curr_sequence_length):
+                            curr_seq.append(
+                                loaded_sample_hdf5_part.pop(
+                                    seq_key_clean + f"@RESERVED_ELEM@{i}"
+                                )
+                            )
+                        if "@RESERVED_TUPLE@" in seq_key:
+                            curr_seq = tuple(curr_seq)
+                        loaded_sample_hdf5_part[seq_key_clean] = curr_seq
+
                     loaded_sample.merge(loaded_sample_hdf5_part)
                 return loaded_sample
 
@@ -399,10 +425,17 @@ class SamplesCacher:
                     hdf5_filename = os.path.join(
                         write_dir, output_sample_hash + ".hdf5"
                     )
-                    save_hdf5_safe(hdf5_filename, **requiring_hdf5_dict)
+
+                    requiring_hdf5_dict_final = NDict()
+                    for k, obj in requiring_hdf5_dict.items():
+                        requiring_hdf5_dict_final.update(
+                            _convert_to_sequence_for_hdf5_if_needed(k, obj)
+                        )
+
+                    save_hdf5_safe(hdf5_filename, **requiring_hdf5_dict_final)
 
                     # remove all hdf5 entries from the sample_dict that will be pickled
-                    for k in requiring_hdf5_dict:
+                    for k in requiring_hdf5_dict.keys():
                         _ = curr_sample.pop(k)
 
                 save_pickle_safe(
@@ -416,6 +449,28 @@ class SamplesCacher:
 
         save_pickle_safe(output_info, os.path.join(write_dir, was_processed_fn))
         return output_info
+
+
+def _convert_to_sequence_for_hdf5_if_needed(key: str, data: Any) -> Dict:
+    ans = {}
+    if isinstance(data, (list, tuple)):
+        if isinstance(data, list):
+            ans[key + "@RESERVED_LIST@"] = np.array(
+                [len(data)]
+            )  # to mark that this case is a list, and its length
+        elif isinstance(data, tuple):
+            ans[key + "@RESERVED_TUPLE@"] = np.array(
+                [len(data)]
+            )  # to mark that this case is a tuple, and its length
+        else:
+            assert False  # should not get here
+
+        for i, elem in enumerate(data):
+            ans[key + f"@RESERVED_ELEM@{i}"] = elem
+    else:
+        ans = {key: data}
+
+    return ans
 
 
 def _get_available_write_location(

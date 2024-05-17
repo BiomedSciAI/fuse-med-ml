@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Any
 import numpy as np
 from fuse.utils.ndict import NDict
 import torch
@@ -51,14 +51,31 @@ def _object_requires_hdf5_recurse(curr: NDict, str_base: str = "") -> List[str]:
 #     return None
 
 
-def _object_requires_hdf5_single(obj, minimal_ndarray_size=100):  # type: ignore
-    ans = isinstance(obj, np.ndarray) and (obj.size > minimal_ndarray_size)
+_error_msg_torch_tensors = "You need to cast to numpy ndarray in the dynamic pipeline as it takes a lot of time pickling torch.Tensor"
+
+
+def _object_requires_hdf5_single(obj, minimal_ndarray_size=100) -> bool:  # type: ignore
+    if _valid_ndarray(obj, minimal_ndarray_size):
+        return True
 
     if isinstance(obj, torch.Tensor):
-        raise Exception(
-            "You need to cast to tensor in the dynamic pipeline as it takes a lot of time pickling torch.Tensor"
-        )
+        raise Exception(_error_msg_torch_tensors)
+
+    if isinstance(obj, (list, tuple)):
+        if any(
+            [_valid_ndarray(x, minimal_ndarray_size) for x in obj]
+        ):  # _valid_ndarray(obj[0], minimal_ndarray_size):
+            assert all(
+                [isinstance(x, np.ndarray) for x in obj]
+            ), f"first element in {type(obj)} is a numpy array but not all of the rest are! This is not supported."
+            return True
+        if any([torch.is_tensor(x) for x in obj]):
+            raise Exception(_error_msg_torch_tensors)
 
     # if ans:
     #    print(f'found hfd5 requiring object! shape={obj.shape}, size={obj.size}')
-    return ans
+    return False
+
+
+def _valid_ndarray(obj: Any, minimal_ndarray_size: int) -> bool:
+    return isinstance(obj, np.ndarray) and (obj.size > minimal_ndarray_size)
