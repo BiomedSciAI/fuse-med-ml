@@ -184,9 +184,9 @@ class CollateDefault(CollateToBatchList):
 
         if min_size_per_dim is not None:
             assert isinstance(min_size_per_dim, tuple)
-            if len(min_size_per_dim) >= len(max_per_dim):
+            if len(min_size_per_dim) < len(max_per_dim):
                 raise Exception(
-                    f" length for min_size_per_dim={min_size_per_dim} to be >= max_per_dim={max_per_dim} but found length {len(min_size_per_dim)} and {len(max_per_dim)} respectively ! "
+                    f" length for min_size_per_dim={min_size_per_dim} expected to be >= max_per_dim={max_per_dim} but found length {len(min_size_per_dim)} and {len(max_per_dim)} respectively ! "
                 )
             assert all(
                 [(x > 0) or (x == -1) for x in min_size_per_dim]
