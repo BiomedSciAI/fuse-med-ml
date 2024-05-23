@@ -2,6 +2,7 @@ import numpy as np
 from typing import Sequence, Union
 from scipy.stats import pearsonr
 
+
 class Stat:
     """
     Statistical metrics
@@ -39,6 +40,6 @@ class Stat:
         statistic, p_value = pearsonr(pred, target)
 
         results = {}
-        results['statistic'] = statistic
-        results['p_value'] = p_value
+        results["statistic"] = statistic
+        results["p_value"] = p_value
         return results
