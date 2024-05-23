@@ -203,7 +203,7 @@ def _perplexity_update(
         preds = preds[mask]
         count = mask.sum()
     else:
-        count = target.shape[0]
+        count = torch.tensor(target.shape[0])
 
     preds = torch.gather(preds, 1, target.view(-1, 1)).squeeze(1)
     # avoid from overflow
@@ -211,7 +211,6 @@ def _perplexity_update(
         preds = preds.to(torch.float32)
         preds = torch.clamp(preds, min=1e-10)
     total_log_probs = -preds.log().sum()
-    count = mask.sum()
 
     return {"log_probs": total_log_probs.unsqueeze(0), "token_num": count.unsqueeze(0)}
 
