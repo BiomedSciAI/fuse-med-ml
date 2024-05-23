@@ -93,7 +93,7 @@ def _count_seq_and_tokens_update(
         encoder_input_key:
             key to encoder_input
         decoder_input_key:
-            key to encoder_input
+            key to decoder_input
         ignore_index:
             Token not to count, typically padding
     Returns:
