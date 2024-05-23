@@ -194,8 +194,10 @@ def _perplexity_update(
     preds = preds.detach()
     target = target.detach()
 
-    preds = preds.view(-1, preds.shape[-1])
-    target = target.view(-1)
+    # reshape attempts to create a view, and COPIES the data if fails.
+    # an issue to consider:  use view and alert the user if it fails?
+    preds = preds.reshape(-1, preds.shape[-1])
+    target = target.reshape(-1)
 
     if ignore_index is not None:
         mask = target.ne(ignore_index)
