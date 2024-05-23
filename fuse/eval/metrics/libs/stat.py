@@ -1,6 +1,6 @@
 import numpy as np
 from typing import Sequence, Union
-
+from scipy.stats import pearsonr
 
 class Stat:
     """
@@ -12,7 +12,7 @@ class Stat:
         pred: Union[np.ndarray, Sequence],
         target: Union[np.ndarray, Sequence],
         mask: Union[np.ndarray, Sequence, None] = None,
-    ) -> float:
+    ) -> dict:
         """
         Pearson correlation coefficient measuring the linear relationship between two datasets/vectors.
         :param pred: prediction values
@@ -36,11 +36,9 @@ class Stat:
                 f"expected 1D vectors. got pred shape: {pred.shape}, target shape: {target.shape}"
             )
 
-        mean_pred = np.mean(pred)
-        mean_target = np.mean(target)
+        statistic, p_value = pearsonr(pred, target)
 
-        r = np.sum((pred - mean_pred) * (target - mean_target)) / np.sqrt(
-            np.sum((pred - mean_pred) ** 2) * np.sum((target - mean_target) ** 2)
-        )
-
-        return r
+        results = {}
+        results['statistic'] = statistic
+        results['p_value'] = p_value
+        return results
