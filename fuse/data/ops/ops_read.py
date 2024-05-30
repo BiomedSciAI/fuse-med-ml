@@ -148,6 +148,11 @@ class OpReadHDF5(OpBase):
         if self._columns_to_extract is None:
             self._columns_to_extract = self._h5.keys()
 
+        self._num_samples = len(self._h5[self._columns_to_extract[0]])
+
+    def num_samples(self) -> int:
+        return self._num_samples
+
     def __call__(self, sample_dict: NDict) -> Union[None, dict, List[dict]]:
 
         index = sample_dict[self._key_index]
