@@ -245,7 +245,7 @@ class TestEval(unittest.TestCase):
 
     def test_pearson_correlation(self) -> None:
         res = example_pearson_correlation()
-        self.assertAlmostEqual(res["metrics.pearsonr"], 1.0, places=2)
+        self.assertAlmostEqual(res["metrics.pearsonr.statistic"], 1.0, places=2)
 
 
 if __name__ == "__main__":
