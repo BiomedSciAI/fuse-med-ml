@@ -66,12 +66,7 @@ class CollateDefault(CollateToBatchList):
         self._keep_keys = keep_keys
         self._add_to_batch_dict = add_to_batch_dict
 
-        self._post_collate_special_handlers_keys = None
-        if post_collate_special_handlers_keys is not None:
-            self._post_collate_special_handlers_keys = {}
-            self._post_collate_special_handlers_keys.update(
-                post_collate_special_handlers_keys
-            )
+        self._post_collate_special_handlers_keys = post_collate_special_handlers_keys
 
     def __call__(self, samples: List[Dict]) -> Dict:
         """
@@ -117,8 +112,8 @@ class CollateDefault(CollateToBatchList):
             batch_dict.update(self._add_to_batch_dict)
 
         if self._post_collate_special_handlers_keys is not None:
-            for key in self._post_collate_special_handlers_keys:
-                self._post_collate_special_handlers_keys[keys](batch_dict)
+            for callable in self._post_collate_special_handlers_keys:
+                callable(batch_dict)
 
         return batch_dict
 

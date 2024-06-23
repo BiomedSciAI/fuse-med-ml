@@ -160,7 +160,10 @@ class MetricCollector(MetricBase):
             batch_to_collect = {}
 
             for name, key in self._keys_to_collect.items():
-                value = batch[key]
+                try:
+                    value = batch[key]
+                except:
+                    print(self._keys_to_collect)
 
                 # collect distributed
                 if dist.is_initialized() and self._collect_distributed:
