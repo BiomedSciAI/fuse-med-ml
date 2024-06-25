@@ -20,6 +20,7 @@ Created on June 30, 2021
 from typing import Hashable, List, Optional, Dict, Union
 from fuse.utils.file_io.file_io import read_dataframe
 import pandas as pd
+import h5py
 
 from fuse.data import OpBase
 from fuse.utils.ndict import NDict
@@ -113,3 +114,50 @@ class OpReadDataframe(OpBase):
         :return: list of  dataframe index values
         """
         return list(self.data.keys())
+
+
+class OpReadHDF5(OpBase):
+    """
+    Op reading data from hd5f based dataset
+    """
+
+    def __init__(
+        self,
+        data_filename: Optional[str] = None,
+        columns_to_extract: Optional[List[str]] = None,
+        rename_columns: Optional[Dict[str, str]] = None,
+        key_index: str = "data.sample_id",
+        key_column: str = "sample_id",
+    ):
+        """
+        :param data_filename: path to hdf5 file
+        :param columns_to_extract: list of columns to extract - dataset keys to extract. When None (default) all columns are extracted
+        :param rename_columns: rename columns
+        :param key_index: name of value in sample_dict which will be used as the key/index
+        :param key_column: name of the column which use as key/index. In case of None, the original dataframe index will be used to extract the values for a single sample.
+        """
+        # store input
+        self._data_filename = data_filename
+        self._columns_to_extract = columns_to_extract
+        self._rename_columns = rename_columns if rename_columns is not None else {}
+        self._key_index = key_index
+        self._key_column = key_column
+
+        self._h5 = h5py.File(self._data_filename, "r")
+
+        if self._columns_to_extract is None:
+            self._columns_to_extract = self._h5.keys()
+
+        self._num_samples = len(self._h5[self._columns_to_extract[0]])
+
+    def num_samples(self) -> int:
+        return self._num_samples
+
+    def __call__(self, sample_dict: NDict) -> Union[None, dict, List[dict]]:
+
+        index = sample_dict[self._key_index]
+        for column in self._columns_to_extract:
+            key_to_store = self._rename_columns.get(column, column)
+            sample_dict[key_to_store] = self._h5[column][index]
+
+        return sample_dict

@@ -22,6 +22,7 @@ from fuse.data.utils.sample import get_sample_id
 from fuse.utils.ndict import NDict
 from fuse.data.ops.hashable_class import HashableClass
 import inspect
+import traceback
 
 
 class OpBase(HashableClass):
@@ -134,6 +135,7 @@ def op_call(
             + f"error in __call__ method of op={op}, op_id={op_id}, sample_id={get_sample_id(sample_dict)} - more details below"
             + "*************************************************************************************************************************************\n"
         )
+        traceback.print_exc()
         raise
 
 

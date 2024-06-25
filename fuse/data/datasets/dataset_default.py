@@ -53,7 +53,7 @@ class DatasetDefault(DatasetBase):
                 - An integer that describes only the size of the dataset. This is useful in massive datasets
                     (for example 100M samples). In such case, multiple functionalities will not be supported, mainly -
                     cacher, allow_uncached_sample_morphing and get_all_sample_ids
-                - None. In this case, the dataset will not deal with sample ids. it is the user's respobsibility to handle
+                - None. In this case, the dataset will not deal with sample ids. it is the user's responsibility to handle
                     iterations w.r.t the length of the dataset, as well as the index passed to __getitem__
                     this is useful for massive datasets, but when the sample ids are not expected to be running integets from 0 to a given length.
 

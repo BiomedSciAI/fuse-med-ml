@@ -130,6 +130,15 @@ class TestCollate(unittest.TestCase):
         values = CollateDefault.pad_all_tensors_to_same_size([a, b, c])
         self.assertListEqual(list(values.shape), [3, 3, 3, 3])
 
+    def test_pad_all_tensors_to_same_size_with_min_size_per_dim(self) -> None:
+        a = torch.ones((1, 2, 3))
+        b = torch.ones((3, 2, 1))
+        c = torch.ones((1, 3, 2))
+        values = CollateDefault.pad_all_tensors_to_same_size(
+            [a, b, c], min_size_per_dim=(100, 100, -1)
+        )
+        self.assertListEqual(list(values.shape), [3, 100, 100, 3])
+
 
 if __name__ == "__main__":
     unittest.main()

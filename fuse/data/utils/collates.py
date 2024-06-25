@@ -16,7 +16,7 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from typing import Any, Callable, Dict, List, Sequence, Optional
+from typing import Any, Callable, Dict, List, Sequence, Optional, Tuple
 
 import numpy as np
 import torch
@@ -142,7 +142,7 @@ class CollateDefault(CollateToBatchList):
             batch_dict[key] = self._special_handlers_keys[key](collected_values)
         elif isinstance(
             collected_values[0],
-            (torch.Tensor, np.ndarray, float, int, str, bytes),  # , tuple),
+            (torch.Tensor, np.ndarray, float, int, str, bytes),
         ):
             # batch with default PyTorch implementation
             batch_dict[key] = default_collate(collected_values)
@@ -158,12 +158,18 @@ class CollateDefault(CollateToBatchList):
 
     @staticmethod
     def pad_all_tensors_to_same_size(
-        values: List[torch.Tensor], pad_val: float = 0.0
+        values: List[torch.Tensor],
+        pad_val: float = 0.0,
+        min_size_per_dim: Optional[Tuple] = None,
     ) -> torch.Tensor:
         """
         pad tensors and create a batch - the shape will be the max size per dim
         values: list of tensor - all should have the same number of dimensions
         pad_val: constant value for padding
+        min_size_per_dim: defines, per dimension, the minimal size in the post-collated tensor (excluding the batch dimension, which you shouldn't provide)
+            this can be useful to prevent OOM due to memory fragmentation
+            for example, you can use min_size_per_dim = (1000, -1) to make sure that the final collated tensor first dimension is at least 1000
+
         :return: torch.stack of padded tensors
         """
 
@@ -172,6 +178,7 @@ class CollateDefault(CollateToBatchList):
             values[0], torch.Tensor
         ), f"Expecting just tensors, got {type(values[0])}"
         num_dims = len(values[0].shape)
+
         for value in values:
             assert isinstance(
                 value, torch.Tensor
@@ -180,8 +187,19 @@ class CollateDefault(CollateToBatchList):
                 len(value.shape) == num_dims
             ), f"Expecting all tensors to have the same dim size, got {len(value.shape)} and {num_dims}"
 
-        # get max per dim
+        # get max per dim - this is the ovserved actual max from the batch
         max_per_dim = np.amax(np.stack([value.shape for value in values]), axis=0)
+
+        if min_size_per_dim is not None:
+            assert isinstance(min_size_per_dim, tuple)
+            assert len(min_size_per_dim) == len(max_per_dim)
+            assert all(
+                [(x > 0) or (x == -1) for x in min_size_per_dim]
+            ), "allowed values for elements in min_size_per_dim are only positive integer or -1"
+            max_per_dim = [
+                max(actual, minimal_requested) if minimal_requested != -1 else actual
+                for (actual, minimal_requested) in zip(max_per_dim, min_size_per_dim)
+            ]
 
         # pad
         def _pad_size(value: torch.Tensor, dim: int) -> List[int]:
