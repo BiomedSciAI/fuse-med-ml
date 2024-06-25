@@ -1,6 +1,6 @@
 # All requirements
 # python>=3.7
-numpy>=1.18.5,2.0
+numpy>=1.18.5,<2.0
 pandas>=1.2
 tqdm>=4.52.0
 scipy>=1.5.4
