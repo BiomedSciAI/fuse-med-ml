@@ -365,9 +365,9 @@ class MetricMCC(MetricDefault):
 
     def mcc_wrapper(
         self,
-        pred: Optional[str] = None,
-        target: Optional[str] = None,
-        sample_weight: Optional[str] = None,
+        pred: Union[List, np.ndarray],
+        target: Union[List, np.ndarray],
+        sample_weight: Optional[Union[List, np.ndarray, None]] = None,
         **kwargs: dict,
     ) -> float:
         """
@@ -404,9 +404,9 @@ class MetricBalAccuracy(MetricDefault):
 
     def balanced_acc_wrapper(
         self,
-        pred: Optional[str] = None,
-        target: Optional[str] = None,
-        sample_weight: Optional[str] = None,
+        pred: Union[List, np.ndarray],
+        target: Union[List, np.ndarray],
+        sample_weight: Optional[Union[List, np.ndarray, None]] = None,
         **kwargs: dict,
     ) -> float:
         """
