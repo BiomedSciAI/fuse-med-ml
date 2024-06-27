@@ -257,7 +257,7 @@ class CollateDefault(CollateToBatchList):
         return batched_sequences
 
     @staticmethod
-    def match_length_to_target_key(
+    def crop_length_to_match_target_key(
         batch_dict: dict, target_key: str, keys_to_match: List[str]
     ) -> None:
         """
