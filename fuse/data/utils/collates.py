@@ -43,6 +43,7 @@ class CollateDefault(CollateToBatchList):
         keep_keys: Sequence[str] = tuple(),
         raise_error_key_missing: bool = True,
         special_handlers_keys: Optional[Dict[str, Callable]] = None,
+        post_collate_special_handlers_keys: Optional[List[Callable]] = None,
         add_to_batch_dict: Optional[Dict[str, Any]] = None,
     ):
         """
@@ -51,6 +52,7 @@ class CollateDefault(CollateToBatchList):
         :param special_handlers_keys: per key specify a callable which gets as an input list of values and convert it to a batch.
                                       The rest of the keys will be converted to batch using PyTorch default collate_fn()
                                       Example of such Callable can be seen in the CollateDefault.pad_all_tensors_to_same_size.
+        :param post_collate_special_handlers_keys: specify a callable which gets the batch_dict as an input and applies post processing to the batched tensors.
         :param raise_error_key_missing: if False, will not raise an error if there are keys that do not exist in some of the samples. Instead will set those values to None.
         :param add_to_batch_dict: optional, fixed items to add to batch_dict
         """
@@ -63,6 +65,8 @@ class CollateDefault(CollateToBatchList):
         ] = CollateDefault.just_collect_to_list
         self._keep_keys = keep_keys
         self._add_to_batch_dict = add_to_batch_dict
+
+        self._post_collate_special_handlers_keys = post_collate_special_handlers_keys
 
     def __call__(self, samples: List[Dict]) -> Dict:
         """
@@ -106,6 +110,10 @@ class CollateDefault(CollateToBatchList):
 
         if self._add_to_batch_dict is not None:
             batch_dict.update(self._add_to_batch_dict)
+
+        if self._post_collate_special_handlers_keys is not None:
+            for callable in self._post_collate_special_handlers_keys:
+                callable(batch_dict)
 
         return batch_dict
 
@@ -247,3 +255,22 @@ class CollateDefault(CollateToBatchList):
         cropped_sequences = [ids[:min_length] for ids in input_ids_list]
         batched_sequences = torch.stack(cropped_sequences, dim=0)
         return batched_sequences
+
+    @staticmethod
+    def crop_length_to_match_target_key(
+        batch_dict: dict, target_key: str, keys_to_match: List[str]
+    ) -> None:
+        """
+        Match the 1st dimension (typically the sequence length) of tensors in batch_dict, specified by keys, to a target tensor.
+
+        Args:
+            :param batch_dict: input dictionary with batched tensors with expected shape (B, L, *) where B is the batch dimension and L is a sequential dimension. L may vary across the elements in the batch_dict. * is any number of additional dimensions.
+            :param target_key: key in batch_dict of the tensors with desired sequential dimension, L'.
+            :param keys_to_match: list of keys in batch_dict with tensors who's 1st dimension should be converted to match the target_key tensor. The tensors to match should have 1st dimenions L >= L'.
+
+        Returns:
+            None, elements are modified in the batch_dict.
+        """
+        target_length = batch_dict[target_key].shape[1]
+        for key in keys_to_match:
+            batch_dict[key] = batch_dict[key][:, :target_length]
