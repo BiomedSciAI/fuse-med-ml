@@ -353,6 +353,8 @@ class MetricMCC(MetricDefault):
     ):
         """
         See MetricDefault for the missing params
+        :param pred: class label predictions
+        :param target: ground truth labels
         :param sample_weight: weight per sample for the final accuracy score. Keep None if not required.
         """
         super().__init__(
@@ -392,6 +394,8 @@ class MetricBalAccuracy(MetricDefault):
     ):
         """
         See MetricDefault for the missing params
+        :param pred: class label predictions
+        :param target: ground truth labels
         :param sample_weight: weight per sample for the final accuracy score. Keep None if not required.
         """
         super().__init__(
