@@ -268,7 +268,7 @@ class MetricsLibClass:
             if metric in ["sensitivity", "recall", "tpr"]:
                 res[metric] = tp / (tp + fn)
             elif metric in ["specificity", "selectivity", "tnr"]:
-                res[metric] = tp / (tn + fp)
+                res[metric] = tn / (tn + fp)
             elif metric in ["precision", "ppv"]:
                 if tp + fp != 0:
                     res[metric] = tp / (tp + fp)
