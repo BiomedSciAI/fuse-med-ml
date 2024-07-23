@@ -20,11 +20,11 @@ class Stat:
         :param mask: optional boolean mask. if it is provided, the metric will be applied only to the masked samples
         """
         if isinstance(pred, Sequence):
-            pred = np.array(pred)
+            pred = np.concatenate(pred)
         if isinstance(target, Sequence):
-            target = np.array(target)
+            target = np.concatenate(target)
         if isinstance(mask, Sequence):
-            mask = np.array(mask).astype("bool")
+            mask = np.concatenate(mask).astype("bool")
         if mask is not None:
             pred = pred[mask]
             target = target[mask]
