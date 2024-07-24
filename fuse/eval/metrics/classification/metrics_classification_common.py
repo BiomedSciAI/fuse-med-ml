@@ -25,6 +25,7 @@ import numpy as np
 
 from fuse.eval.metrics.metrics_common import MetricDefault, MetricWithCollectorBase
 from fuse.eval.metrics.libs.classification import MetricsLibClass
+from sklearn.metrics import matthews_corrcoef, balanced_accuracy_score
 
 
 class MetricMultiClassDefault(MetricWithCollectorBase):
@@ -336,3 +337,85 @@ class MetricBSS(MetricDefault):
             metric_func=MetricsLibClass.multi_class_bss,
             **kwargs,
         )
+
+
+class MetricMCC(MetricDefault):
+    """
+    Compute Mathews correlation coef for predictions
+    """
+
+    def __init__(
+        self,
+        pred: Optional[str] = None,
+        target: Optional[str] = None,
+        sample_weight: Optional[str] = None,
+        **kwargs: dict,
+    ):
+        """
+        See MetricDefault for the missing params
+        :param pred: class label predictions
+        :param target: ground truth labels
+        :param sample_weight: weight per sample for the final accuracy score. Keep None if not required.
+        """
+        super().__init__(
+            pred=pred,
+            target=target,
+            sample_weight=sample_weight,
+            metric_func=self.mcc_wrapper,
+            **kwargs,
+        )
+
+    def mcc_wrapper(
+        self,
+        pred: Union[List, np.ndarray],
+        target: Union[List, np.ndarray],
+        sample_weight: Optional[Union[List, np.ndarray, None]] = None,
+        **kwargs: dict,
+    ) -> float:
+        """
+        for matching MetricDefault expected input format to that of sklearn
+        """
+        res_dict = {"y_true": target, "y_pred": pred, "sample_weight": sample_weight}
+        score = matthews_corrcoef(**res_dict)
+        return score
+
+
+class MetricBalAccuracy(MetricDefault):
+    """
+    Compute Balanced accuracy for predictions
+    """
+
+    def __init__(
+        self,
+        pred: Optional[str] = None,
+        target: Optional[str] = None,
+        sample_weight: Optional[str] = None,
+        **kwargs: dict,
+    ):
+        """
+        See MetricDefault for the missing params
+        :param pred: class label predictions
+        :param target: ground truth labels
+        :param sample_weight: weight per sample for the final accuracy score. Keep None if not required.
+        """
+        super().__init__(
+            pred=pred,
+            target=target,
+            sample_weight=sample_weight,
+            metric_func=self.balanced_acc_wrapper,
+            **kwargs,
+        )
+
+    def balanced_acc_wrapper(
+        self,
+        pred: Union[List, np.ndarray],
+        target: Union[List, np.ndarray],
+        sample_weight: Optional[Union[List, np.ndarray, None]] = None,
+        **kwargs: dict,
+    ) -> float:
+        """
+        for matching MetricDefault expected input format to that of sklearn
+        """
+        res_dict = {"y_true": target, "y_pred": pred, "sample_weight": sample_weight}
+        score = balanced_accuracy_score(**res_dict)
+        return score

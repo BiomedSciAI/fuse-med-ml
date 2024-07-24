@@ -158,22 +158,22 @@ def time_display(seconds: int, granularity: int = 3) -> str:
 
 def get_pretty_dataframe(df: pd.DataFrame, col_width: int = 25) -> str:
     # check is col_width needs to be widen (so that dashes are in one line)
-    max_val_width = np.vectorize(len)(
-        df.values.astype(str)
-    ).max()  # get maximum length of all values
-    max_col_width = max(
-        [len(x) for x in df.columns]
-    )  # get the maximum lengths of all column names
-    col_width = max(max_col_width, max_val_width, col_width)
+    max_val_width_per_col = np.vectorize(len)(df.values.astype(str)).max(
+        axis=0
+    )  # get maximum length of all values
+    col_name_widths = [len(x) for x in df.columns]  # get column names length
+    col_widths = [
+        max(max(x), col_width) for x in zip(max_val_width_per_col, col_name_widths)
+    ]
 
-    dashes = (col_width + 2) * len(df.columns.values)
+    dashes = sum(col_widths) + 2 * len(df.columns.values)
     df_as_string = f"\n{'-' * dashes}\n"
-    for col in df.columns.values:
-        df_as_string += f"| {col:{col_width}}"
+    for col, col_w in zip(df.columns.values, col_widths):
+        df_as_string += f"| {col:{col_w}}"
     df_as_string += f"|\n{'-' * dashes}\n"
     for idx, row in df.iterrows():
-        for col in df.columns.values:
-            df_as_string += f"| {row[col]:{col_width}}"
+        for i_col, col in enumerate(df.columns.values):
+            df_as_string += f"| {row[col]:{col_widths[i_col]}}"
 
         df_as_string += f"|\n{'-' * dashes}\n"
     return df_as_string
