@@ -20,7 +20,9 @@ class Stat:
         :param target: target values
         :param mask: optional boolean mask. if it is provided, the metric will be applied only to the masked samples
         """
-        assert len(pred) > 0
+        if 0 == len(pred):
+            return dict(statistic=float("nan"), p_value=float("nan"))
+
         if isinstance(pred, Sequence):
             if np.isscalar(pred[0]):
                 pred = np.array(pred)
