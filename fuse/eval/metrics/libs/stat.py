@@ -20,12 +20,24 @@ class Stat:
         :param target: target values
         :param mask: optional boolean mask. if it is provided, the metric will be applied only to the masked samples
         """
+        if 0 == len(pred):
+            return dict(statistic=float("nan"), p_value=float("nan"))
+
         if isinstance(pred, Sequence):
-            pred = np.array(pred)
+            if np.isscalar(pred[0]):
+                pred = np.array(pred)
+            else:
+                pred = np.concatenate(pred)
         if isinstance(target, Sequence):
-            target = np.array(target)
+            if np.isscalar(target[0]):
+                target = np.array(target)
+            else:
+                target = np.concatenate(target)
         if isinstance(mask, Sequence):
-            mask = np.array(mask).astype("bool")
+            if np.isscalar(mask[0]):
+                mask = np.array(mask).astype("bool")
+            else:
+                mask = np.concatenate(mask).astype("bool")
         if mask is not None:
             pred = pred[mask]
             target = target[mask]

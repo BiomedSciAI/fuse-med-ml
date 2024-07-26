@@ -179,7 +179,11 @@ def step_losses(
     for loss_name, loss_function in losses.items():
         current_loss_result = loss_function(batch_dict)
         if not optimize:
-            batch_dict["losses." + loss_name] = current_loss_result.data.item()
+            batch_dict["losses." + loss_name] = (
+                current_loss_result.data.item()
+                if torch.is_tensor(current_loss_result)
+                else current_loss_result
+            )
         # sum all losses for backward
         if total_loss is None:
             total_loss = current_loss_result
@@ -187,7 +191,9 @@ def step_losses(
             total_loss += current_loss_result
 
     if total_loss is not None and not optimize:
-        batch_dict["losses.total_loss"] = total_loss.data.item()
+        batch_dict["losses.total_loss"] = (
+            total_loss.data.item() if torch.is_tensor(total_loss) else total_loss
+        )
 
     return total_loss
 
