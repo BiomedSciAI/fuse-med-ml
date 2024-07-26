@@ -37,14 +37,14 @@ class Cast:
         value: Any,
         dtype: Optional[torch.dtype] = None,
         device: Optional[torch.device] = None,
-        ignore_None: bool = False,
+        ignore_none: bool = False,
     ) -> Tensor:
         """
         Convert many types to tensor
         """
         if isinstance(value, torch.Tensor) and dtype is None and device is None:
             pass  # do nothing
-        elif ignore_None and (value is None):
+        elif ignore_none and (value is None):
             pass  # do nothing
         elif isinstance(value, (torch.Tensor)):
             value = value.to(dtype=dtype, device=device)
@@ -216,9 +216,9 @@ class OpToTensor(OpCast):
         value: Any,
         dtype: Optional[torch.dtype] = None,
         device: Optional[torch.device] = None,
-        ignore_None: bool = False,
+        ignore_none: bool = False,
     ) -> Tensor:
-        return Cast.to_tensor(value, dtype, device, ignore_None=ignore_None)
+        return Cast.to_tensor(value, dtype, device, ignore_none=ignore_none)
 
 
 class OpToNumpy(OpCast):
