@@ -182,7 +182,7 @@ class OpRepeatAndSample(OpRepeat):
         super().__init__(OpSample(op), kwargs_per_step_to_add)
 
 
-class OpRandCrop(OpBase):
+class OpRandCropSeq(OpBase):
     """
     Crops a given string based on a randomly generated ratio between 0 and crop_max_ratio.
 
@@ -191,31 +191,34 @@ class OpRandCrop(OpBase):
 
     def __init__(
         self,
+        seed: int,
         crop_max_ratio: float = 0.3,
-        crop_both_sides: bool = True,
-        crop_left_only: bool = False,
-        crop_right_only: bool = False,
+        right_only: bool = False,
+        left_only: bool = False,
+        both_sides: bool = True,
     ):
         """
         :param crop_max_ratio: The maximum ratio of the string length that can be cropped in total.
                 A random ratio between 0 and crop_max_ratio will be generated for cropping.
 
-        :param crop_both_sides : If True, crop the string from both sides.
+        :param both_sides : If True, crop the string from both sides.
 
-        :param crop_left_only : If True, crop the string from the left side only.
+        :param left_only : If True, crop the string from the left side only.
 
-        :param crop_right_only : If True, crop the string from the right side only.
+        :param right_only : If True, crop the string from the right side only.
 
         """
         super().__init__()
 
         assert 0 <= crop_max_ratio <= 1.0
-        assert any([crop_both_sides, crop_left_only, crop_right_only])
+        assert any([both_sides, left_only, right_only])
 
-        self.crop_both_sides = crop_both_sides
-        self.crop_left_only = crop_left_only
-        self.crop_right_only = crop_right_only
+        self.crop_both_sides = both_sides
+        self.crop_left_only = left_only
+        self.crop_right_only = right_only
         self.crop_max_ratio = crop_max_ratio
+
+        self._random_generator = random.Random(seed)
 
     def __call__(
         self,
@@ -225,11 +228,11 @@ class OpRandCrop(OpBase):
     ) -> dict:
         input_string = sample_dict[string_key_in]
         length = len(input_string)
-        crop_ratio = random.uniform(0, self.crop_max_ratio)
+        crop_ratio = self._random_generator.uniform(0, self.crop_max_ratio)
         crop_length = int(length * crop_ratio)
 
         if self.crop_both_sides:
-            left_crop_length = crop_length // 2
+            left_crop_length = self._random_generator.randint(0, crop_length)
             right_crop_length = crop_length - left_crop_length
             new_string = input_string[
                 left_crop_length : -(right_crop_length)
