@@ -1,3 +1,4 @@
+import random
 from typing import List, Optional, Sequence, Union
 
 
@@ -179,3 +180,70 @@ class OpRepeatAndSample(OpRepeat):
         :param kwargs_per_step_to_add: sequence of arguments (kwargs format) specific for a single repetition. those arguments will be added/overide the kwargs provided in __call__() function.
         """
         super().__init__(OpSample(op), kwargs_per_step_to_add)
+
+
+class OpRandCrop(OpBase):
+    """
+    Crops a given string based on a randomly generated ratio between 0 and crop_max_ratio.
+
+    Can be used as an augmentation method for cropping a protein/any other input
+    """
+
+    def __init__(
+        self,
+        crop_max_ratio: float = 0.3,
+        crop_both_sides: bool = True,
+        crop_left_only: bool = False,
+        crop_right_only: bool = False,
+    ):
+        """
+        :param crop_max_ratio: The maximum ratio of the string length that can be cropped in total.
+                A random ratio between 0 and crop_max_ratio will be generated for cropping.
+
+        :param crop_both_sides : If True, crop the string from both sides.
+
+        :param crop_left_only : If True, crop the string from the left side only.
+
+        :param crop_right_only : If True, crop the string from the right side only.
+
+        """
+        super().__init__()
+
+        assert 0 <= crop_max_ratio <= 1.0
+        assert any([crop_both_sides, crop_left_only, crop_right_only])
+
+        self.crop_both_sides = crop_both_sides
+        self.crop_left_only = crop_left_only
+        self.crop_right_only = crop_right_only
+        self.crop_max_ratio = crop_max_ratio
+
+    def __call__(
+        self,
+        sample_dict: NDict,
+        string_key_in: str,
+        string_key_out: str,
+    ) -> dict:
+        input_string = sample_dict[string_key_in]
+        length = len(input_string)
+        crop_ratio = random.uniform(0, self.crop_max_ratio)
+        crop_length = int(length * crop_ratio)
+
+        if self.crop_both_sides:
+            left_crop_length = crop_length // 2
+            right_crop_length = crop_length - left_crop_length
+            new_string = input_string[
+                left_crop_length : -(right_crop_length)
+                if right_crop_length != 0
+                else None
+            ]
+        elif self.crop_left_only:
+            new_string = input_string[crop_length:]
+        elif self.crop_right_only:
+            new_string = input_string[:-crop_length]
+        else:
+            raise ValueError(
+                "Invalid crop configuration. Choose one of the crop options."
+            )
+
+        sample_dict[string_key_out] = new_string
+        return sample_dict
