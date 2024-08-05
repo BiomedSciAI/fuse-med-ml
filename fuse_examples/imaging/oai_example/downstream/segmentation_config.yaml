@@ -1,0 +1,44 @@
+defaults:  
+  - _self_  
+  - override hydra/hydra_logging: disabled  
+  - override hydra/job_logging: disabled  
+  
+hydra:  
+  output_subdir: null  
+  run:  
+    dir: .
+    
+task : segmentation
+batch_size : 2
+accumulate_grad_batches : 1
+precision : 32
+backbone : unet3d
+num_classes : 7
+resize_to : [40, 224,224]
+csv_path : /dccstor/mm_hcls2/oai/code/data/seg_ds.csv
+
+
+results_dir : /dccstor/mm_hcls2/oai/results
+n_workers : 24
+clearml : True
+clearml_project_name : OAI/downstream
+
+experiment : debug
+
+include_background : false
+sigmoid : True
+softmax : False
+
+aug : True
+grad_clip : 0
+learning_rate : 0.001
+num_warmup_steps : 8 # before scheduler
+n_epochs : 3000
+weight_decay : 0.001
+reset_cache : False
+debug : False
+ckpt_path : no_path
+pretrained : True
+log_grad_norm : False
+tags : [segmentation]
+test_ckpt : null
