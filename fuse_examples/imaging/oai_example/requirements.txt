@@ -20,7 +20,6 @@ pytorch_lightning
 random
 scipy
 sklearn
-subprocess
 sys
 torch
 typing

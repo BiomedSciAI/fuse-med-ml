@@ -1,13 +1,13 @@
-defaults:  
-  - _self_  
-  - override hydra/hydra_logging: disabled  
-  - override hydra/job_logging: disabled  
-  
-hydra:  
-  output_subdir: null  
-  run:  
+defaults:
+  - _self_
+  - override hydra/hydra_logging: disabled
+  - override hydra/job_logging: disabled
+
+hydra:
+  output_subdir: null
+  run:
     dir: .
-    
+
 task : segmentation
 batch_size : 2
 accumulate_grad_batches : 1
@@ -15,10 +15,10 @@ precision : 32
 backbone : unet3d
 num_classes : 7
 resize_to : [40, 224,224]
-csv_path : /dccstor/mm_hcls2/oai/code/data/seg_ds.csv
+csv_path : /oai/code/data/seg_ds.csv
+split_pth : null #fill
 
-
-results_dir : /dccstor/mm_hcls2/oai/results
+results_dir : /oai/results
 n_workers : 24
 clearml : True
 clearml_project_name : OAI/downstream
@@ -39,6 +39,7 @@ reset_cache : False
 debug : False
 ckpt_path : no_path
 pretrained : True
+pretrained_pth : null # if pretrained=True a path need to be filled. can download from https://github.com/MrGiovanni/SuPreM
 log_grad_norm : False
 tags : [segmentation]
 test_ckpt : null

@@ -1,8 +1,7 @@
 experiment : dino_oai
-# experiment : xmodel_res18_siam_ct_mri_2D_lr_5e-4_noAug_alwaysPair #_adamW+cosin+wd #vit_ct_mr_norm_clsValidation #experiment name
 cache_name : DESS_TSE_cache
-model_dir : /dccstor/mm_hcls2/oai/results/
-csv_path : /dccstor/mm_hcls2/oai/code/data/relevant_dicoms.csv
+model_dir : /oai/results/
+csv_path : /oai/code/data/relevant_dicoms.csv
 clearml_project_name : OAI/Dino #Liver/Dino
 
 resize_to : [224,224] #[40, 512, 512] # only resize if for_classification flag is true (validation)
@@ -16,14 +15,15 @@ train_acc: False
 im2D : True
 
 n_workers : 16
-backbone : unet3d # vit or res183D/ for 2D res50/res18 /vit_small/modalityVIT
-pretrained: False # [vit 768] or [res18 512]
+backbone : unet3d
+pretrained: False
+pretrained_pth : null # if pretrained=True a path need to be filled. can download from https://github.com/MrGiovanni/SuPreM
 patch_shape : [4,16,16] # for vit
 projection: 2048
 
 momentum_teacher : 0.9995
 n_crops : 4 # 4, orig Dino 6 local 2 global
-out_dim : 512 
+out_dim : 512
 cls_dim: 256
 n_epochs : 70
 learning_rate :  0.001 #0.004

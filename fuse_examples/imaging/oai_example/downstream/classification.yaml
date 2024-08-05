@@ -1,11 +1,11 @@
-defaults:  
-  - _self_  
-  - override hydra/hydra_logging: disabled  
-  - override hydra/job_logging: disabled  
-  
-hydra:  
-  output_subdir: null  
-  run:  
+defaults:
+  - _self_
+  - override hydra/hydra_logging: disabled
+  - override hydra/job_logging: disabled
+
+hydra:
+  output_subdir: null
+  run:
     dir: .
 
 # task : imorfics_regression
@@ -13,13 +13,13 @@ task : classification
 reg_targets : []
 cls_targets : [V00COHORT,gender]
 
-batch_size : 8 
-backbone : unet3d 
+batch_size : 8
+backbone : unet3d
 
 resize_to : [40, 224,224]
-csv_path : /dccstor/mm_hcls2/oai/code/data/relevant_dicoms.csv
+csv_path : /oai/code/data/relevant_dicoms.csv
 
-results_dir : /dccstor/mm_hcls2/oai/results
+results_dir : /oai/results
 n_workers : 24
 clearml : True
 clearml_project_name : OAI/downstream
@@ -35,4 +35,5 @@ reset_cache : False
 debug : False
 ckpt_path : no_path
 pretrained : True
+pretrained_pth : null # if pretrained=True a path need to be filled. can download from https://github.com/MrGiovanni/SuPreM
 log_grad_norm : False
