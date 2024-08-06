@@ -5,20 +5,20 @@ Brief description of your project.
 ## Project Structure
 
 │
-├── data/
-│   ├── data_ops.py
-│   ├── oai_ds.py
-│   └── seg_ds.py
-│
-├── downstream/
-│   ├── classification.yaml
-│   ├── classification.py
-│   ├── segmentation.yaml
-│   └── segmentation.py
-│
-├── self_supervised/
-│   ├── dino.yaml
-│   └── dino.py
+├── data/ <br>
+│   ├── data_ops.py  <br>
+│   ├── oai_ds.py  <br>
+│   └── seg_ds.py  <br>
+│  <br>
+├── downstream/  <br>
+│   ├── classification.yaml  <br>
+│   ├── classification.py  <br>
+│   ├── segmentation.yaml  <br>
+│   └── segmentation.py <br>
+│ <br>
+├── self_supervised/ <br>
+│   ├── dino.yaml <br>
+│   └── dino.py <br>
 
 
 
@@ -58,10 +58,5 @@ Pretrained weights can be downloaded from [SuPreM GitHub repository](https://git
 
 (Add instructions on how to run each type of training)
 
-## Data Pipeline
 
-The data pipeline and operators are defined in the `data/` folder. Refer to `pipeline.py` and `operators.py` for details on data processing.
 
-## Additional Information
-
-(Add any other relevant information, dependencies, or instructions)
