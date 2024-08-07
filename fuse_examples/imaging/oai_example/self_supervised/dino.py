@@ -11,12 +11,10 @@ from lightly.models.utils import deactivate_requires_grad
 from lightly.models.utils import update_momentum
 
 import os
-from torch.utils.data.dataloader import DataLoader
 from glob import glob
 from fuse.data.utils.collates import CollateDefault
 from fuse.dl.models.backbones.backbone_vit import vit_base
-import pytorch_lightning as pl
-
+from fuse.utils import NDict
 from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data.dataloader import DataLoader
@@ -80,18 +78,18 @@ class DINO(pl.LightningModule):
         self.learning_rate = cfg.learning_rate
         self.current_step = 0
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = self.student_backbone(x).flatten(start_dim=1)
         z = self.student_head(y)
         return z
 
-    def forward_teacher(self, x):
+    def forward_teacher(self, x: torch.Tensor) -> torch.Tensor:
         y = self.teacher_backbone(x).flatten(start_dim=1)
 
         z = self.teacher_head(y)
         return z, y
 
-    def training_step(self, batch_dict, batch_idx):
+    def training_step(self, batch_dict: NDict, batch_idx: int):
         momentum = cosine_schedule(
             self.current_epoch, self.cfg.n_epochs, self.cfg.momentum_teacher, 1
         )
@@ -120,10 +118,10 @@ class DINO(pl.LightningModule):
 
         return dino_loss
 
-    def on_after_backward(self):
+    def on_after_backward(self) -> None:
         self.student_head.cancel_last_layer_gradients(current_epoch=self.current_epoch)
 
-    def validation_step(self, batch_dict, batch_idx):
+    def validation_step(self, batch_dict: NDict, batch_idx: int):
         views = [batch_dict[f"crop_{i}"] for i in range(self.cfg.n_crops)]
         views = [view.to(self.device) for view in views]
         global_views = views[:2]

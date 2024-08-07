@@ -8,40 +8,33 @@ hydra:
   run:
     dir: .
 
-task : segmentation
-batch_size : 2
-accumulate_grad_batches : 1
-precision : 32
+task : classification
+cls_targets : [V00COHORT,gender]
+train_folds : [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+val_folds : [16,17,18,19]
+test_folds : []
+batch_size : 8
 backbone : unet3d
-num_classes : 7 # including background
+precision : 32
 resize_to : [40, 224,224]
-csv_path : /dccstor/mm_hcls2/oai/code/data/seg_oai.csv #fill
+csv_path : /dccstor/mm_hcls2/oai/code/data/relevant_dicoms.csv #fill
 results_dir : /dccstor/mm_hcls2/oai/results #fill
-train_folds : [train]
-val_folds : [valid]
-test_folds : [test]
-split_pth : null #fill
 
 n_workers : 24
+
 clearml : false
 clearml_project_name : OAI/downstream
 
 experiment : debug_example
 
-include_background : false
-sigmoid : True
-softmax : False
-
-aug : True
 grad_clip : 0
 learning_rate : 0.001
-n_epochs : 3000
+n_epochs : 400
 weight_decay : 0.001
 reset_cache : False
 debug : False
+ckpt_path : no_path
+test_ckpt : null # if not null - an evaluation on the test set will be performed using the test_ckpt
 pretrained : True
 pretrained_pth : /dccstor/mm_hcls2/oai/code/archs/weights/supervised_suprem_unet_2100.pth # if pretrained=True a path need to be filled. can download from https://github.com/MrGiovanni/SuPreM
 log_grad_norm : False
-tags : [segmentation]
-init_weights : no_path
-test_ckpt : null # if not null - an evaluation on the test set will be performed using the test_ckpt

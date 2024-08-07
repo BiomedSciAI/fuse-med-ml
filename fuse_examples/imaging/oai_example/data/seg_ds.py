@@ -1,4 +1,3 @@
-from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuse.data import PipelineDefault, OpToTensor
@@ -7,7 +6,7 @@ from fuseimg.data.ops.image_loader import OpLoadImage
 from fuse.data.ops.ops_read import OpReadDataframe
 
 from functools import partial
-from typing import Hashable, Optional, Sequence, Union
+from typing import Hashable, Optional, Sequence, Union, Tuple
 import torch
 import pandas as pd
 import os
@@ -22,7 +21,6 @@ from data_ops import (
     OpSegToOneHot,
     OpRandomCrop,
 )
-from volumentations import *
 
 
 class SegOAI:
@@ -31,7 +29,7 @@ class SegOAI:
         return SegOAI.get_existing_sample_ids(df)
 
     @staticmethod
-    def get_existing_sample_ids(df):
+    def get_existing_sample_ids(df: pd.DataFrame):
         """
         get all the sample ids that have a zip file in the specified path
         """
@@ -54,7 +52,7 @@ class SegOAI:
 
     @staticmethod
     def dynamic_pipeline(
-        validation: bool = False, resize_to: Sequence = [40, 224, 224]
+        validation: bool = False, resize_to: Tuple[int, int, int] = [40, 224, 224]
     ):
         """
         Get suggested dynamic pipeline. including pre-processing that might be modified and augmentation operations.
@@ -65,7 +63,7 @@ class SegOAI:
         # augmentation
 
         if validation:
-            if resize_to != None:
+            if resize_to is not None:
                 dynamic_pipeline.extend(
                     [
                         (OpResize3D(), dict(key="img", shape=resize_to)),
@@ -83,7 +81,6 @@ class SegOAI:
                     (OpRandomCrop(), dict(key=["img", "seg"], scale=[0.7, 1.0])),
                     (OpResize3D(), dict(key="img", shape=resize_to)),
                     (OpResize3D(), dict(key="seg", shape=resize_to, segmentation=True)),
-                    # (OpRandomCrop(), dict(key=["img","seg"], scale=None, res_shape=resize_to)),
                     (OpRandomFlip(), dict(key=["img", "seg"])),
                 ]
             )
@@ -108,7 +105,7 @@ class SegOAI:
         sample_ids: Optional[Sequence[Hashable]] = None,
         resize_to: tuple = (40, 224, 224),
         validation: bool = False,
-    ):
+    ) -> DatasetDefault:
         """
         Creates Fuse Dataset single object (either for training, validation and test or user defined set)
 
@@ -135,9 +132,9 @@ class SegOAI:
             validation=validation, resize_to=resize_to
         )
 
-        if cache_dir != None:
+        if cache_dir is not None:
             cacher = SamplesCacher(
-                f"oai",
+                "oai",
                 static_pipeline,
                 cache_dirs=[cache_dir],
                 restart_cache=reset_cache,

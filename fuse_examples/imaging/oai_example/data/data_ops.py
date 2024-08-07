@@ -8,6 +8,7 @@ import pydicom
 from scipy.ndimage import zoom
 import torch.nn.functional as F
 from typing import Tuple
+from volumentations import Compose
 
 
 class OpLoadData(OpBase):
@@ -115,7 +116,7 @@ class OpResize3D(OpBase):
 
 
 class OpDinoCrops(OpBase):
-    def __call__(self, sample_dict: NDict, key, n_crops) -> NDict:
+    def __call__(self, sample_dict: NDict, key: str, n_crops: int) -> NDict:
         """ """
         img = sample_dict[key]
         for i in range(n_crops):
@@ -131,7 +132,7 @@ class OpRandomCrop(OpBase):
     def __call__(
         self,
         sample_dict: NDict,
-        key,
+        key: str,
         scale=(0.4, 1.0),
         on_depth: bool = True,
         res_shape=None,
@@ -165,7 +166,7 @@ class OpRandomCrop(OpBase):
 
 
 class OpRandomFlip(OpBase):
-    def __call__(self, sample_dict: NDict, key) -> NDict:
+    def __call__(self, sample_dict: NDict, key: str) -> NDict:
         """ """
         if isinstance(key, str):
             key = [key]
@@ -184,18 +185,22 @@ class OpRandomFlip(OpBase):
 
 
 class OpVolumentation(OpBase):
-    def __init__(self, compose):
+    def __init__(self, compose: Compose):
         super().__init__()
         self.compose = compose
 
-    def __call__(self, sample_dict: NDict, key) -> NDict:
+    def __call__(self, sample_dict: NDict, key: str) -> NDict:
         img = {"image": sample_dict[key]}
         sample_dict[key] = self.compose(**img)["image"]
         return sample_dict
 
 
 class OpMask3D(OpBase):
-    def __init__(self, mask_percentage: float = 0.3, cuboid_size=[2, 2, 2]):
+    def __init__(
+        self,
+        mask_percentage: float = 0.3,
+        cuboid_size: Tuple[int, int, int] = [2, 2, 2],
+    ):
         super().__init__()
         self.mask_percentage = mask_percentage
         self.cuboid_size = cuboid_size
@@ -235,7 +240,7 @@ class OpSegToOneHot(OpBase):
         super().__init__()
         self.n_classes = n_classes
 
-    def __call__(self, sample_dict: NDict, key) -> NDict:
+    def __call__(self, sample_dict: NDict, key: str) -> NDict:
         seg_tensor = sample_dict[key]
         seg_tensor = seg_tensor.squeeze(0).long()
         one_hot = F.one_hot(seg_tensor, num_classes=self.n_classes)

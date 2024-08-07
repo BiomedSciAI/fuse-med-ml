@@ -1,8 +1,6 @@
-from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuse.data import PipelineDefault, OpToTensor
-from fuse.data.ops.ops_common import OpLambda
 from fuseimg.data.ops.aug.geometry import OpAugAffine2D
 from fuse.data.ops.ops_aug_common import OpSample, OpRandApply
 from fuse.data.ops.ops_read import OpReadDataframe
@@ -27,16 +25,16 @@ from data_ops import (
     OpRandomCrop,
     OpRandomFlip,
 )
-from volumentations import *
+from volumentations import Compose, RandomRotate90, GaussianNoise, Flip, Rotate
 
 
 class OAI:
     @staticmethod
-    def sample_ids(df):
+    def sample_ids(df: pd.DataFrame):
         return OAI.get_existing_sample_ids(df)
 
     @staticmethod
-    def get_existing_sample_ids(df):
+    def get_existing_sample_ids(df: pd.DataFrame):
         """
         get all the sample ids that have a zip file in the specified path
         """
@@ -44,9 +42,7 @@ class OAI:
         return existing_files
 
     @staticmethod
-    def static_pipeline(
-        df: pd.DataFrame, columns_to_extract, resize_to=None
-    ) -> PipelineDefault:
+    def static_pipeline(df: pd.DataFrame) -> PipelineDefault:
         # to_extract =
         static_pipeline = PipelineDefault(
             "static",
@@ -56,7 +52,7 @@ class OAI:
                     OpReadDataframe(
                         df,
                         key_column="accession_number",
-                        columns_to_extract=columns_to_extract,
+                        # columns_to_extract=columns_to_extract,
                     ),
                     dict(),
                 ),
@@ -65,10 +61,6 @@ class OAI:
                 #
             ],
         )
-        for col in columns_to_extract:
-            if col in ["accession_number", "path", "V00COHORT", "gender"]:
-                continue
-            static_pipeline.extend([(OpToTensor(), dict(key=col, dtype=torch.float32))])
         return static_pipeline
 
     @staticmethod
@@ -260,7 +252,6 @@ class OAI:
     @staticmethod
     def dataset(
         csv_path: Union[str, pd.DataFrame],
-        columns_to_extract: list = ["accession_number", "interview_age", "path"],
         cache_dir: str = None,
         reset_cache: bool = True,
         num_workers: int = 10,
@@ -270,7 +261,7 @@ class OAI:
         validation: bool = False,
         n_crops: int = 4,
         mae_cfg: dict = None,
-    ):
+    ) -> DatasetDefault:
         """
         Creates Fuse Dataset single object (either for training, validation and test or user defined set)
 
@@ -292,7 +283,7 @@ class OAI:
         if sample_ids is None:
             sample_ids = OAI.sample_ids(df)
 
-        static_pipeline = OAI.static_pipeline(df, columns_to_extract)
+        static_pipeline = OAI.static_pipeline(df)
         dynamic_pipeline = OAI.dynamic_pipeline(
             mae_cfg=mae_cfg,
             for_classification=for_classification,
@@ -301,9 +292,9 @@ class OAI:
             resize_to=resize_to,
         )
 
-        if cache_dir != None:
+        if cache_dir is not None:
             cacher = SamplesCacher(
-                f"oai",
+                "oai",
                 static_pipeline,
                 cache_dirs=[cache_dir],
                 restart_cache=reset_cache,
