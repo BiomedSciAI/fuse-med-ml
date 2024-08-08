@@ -3,11 +3,8 @@ import os
 from glob import glob
 import pandas as pd
 from fuse.dl.models import ModelMultiHead
-from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
-from fuse.dl.models.backbones.backbone_resnet import BackboneResnet
 from fuse.dl.models.heads.heads_3D import Head3D
 
-import torch.nn.functional as F
 import torch.nn as nn
 import torch
 from torch.utils.data.dataloader import DataLoader
@@ -20,11 +17,9 @@ from fuse.eval.metrics.classification.metrics_classification_common import (
 from fuse.eval.metrics.classification.metrics_thresholding_common import (
     MetricApplyThresholds,
 )
-from fuse.eval.metrics.metrics_common import MetricDefault
 import torch.optim as optim
 from fuse.utils.rand.seed import Seed
 import logging
-import sys
 import copy
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.lightning.pl_module import LightningModuleDefault
@@ -34,17 +29,15 @@ import hydra
 from omegaconf import DictConfig
 from clearml import Task
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # noqa
-from data.oai_ds import OAI
+from fuse_examples.imaging.oai_example.data.oai_ds import OAI
 from fuse.dl.models.backbones.backbone_unet3d import UNet3D
-from sklearn.metrics import mean_absolute_error
 
 torch.set_float32_matmul_precision("medium")
 torch.use_deterministic_algorithms(False)
 
 
 @hydra.main(version_base="1.2", config_path=".", config_name="classification_config")
-def main(cfg: DictConfig):
+def main(cfg: DictConfig) -> None:
     cfg = hydra.utils.instantiate(cfg)
     results_path = cfg.results_dir
 
@@ -82,10 +75,10 @@ def main(cfg: DictConfig):
     if cfg.backbone == "unet3d":
         backbone = UNet3D(for_cls=True)
 
-        if os.path.exists(cfg.ckpt_path):
-            print(f"LOADING ckpt from {cfg.ckpt_path}")
+        if os.path.exists(cfg.backbone_init_weights):
+            print(f"LOADING ckpt from {cfg.backbone_init_weights}")
             state_dict = torch.load(
-                open(cfg.ckpt_path, "rb"), map_location=torch.device("cpu")
+                open(cfg.backbone_init_weights, "rb"), map_location=torch.device("cpu")
             )
             state_dict = {
                 k.replace("teacher_backbone.", ""): v
@@ -143,7 +136,7 @@ def main(cfg: DictConfig):
         for_classification=True,
         validation=True,
         resize_to=cfg.resize_to,
-    )    
+    )
     test_ds = OAI.dataset(
         test_df,
         for_classification=True,
@@ -169,7 +162,7 @@ def main(cfg: DictConfig):
         num_workers=cfg.n_workers,
         collate_fn=CollateDefault(),
         generator=rand_gen,
-    )    
+    )
     test_dl = DataLoader(
         dataset=test_ds,
         shuffle=False,
@@ -181,15 +174,14 @@ def main(cfg: DictConfig):
         generator=rand_gen,
     )
     heads = [
-            Head3D(
-                head_name=f"head_{target}",
-                mode="classification",
-                conv_inputs=conv_inputs,
-                num_outputs=len(stats["classes"]),
-            )
-            for target, stats in cls_targets.items()
-        ]
-
+        Head3D(
+            head_name=f"head_{target}",
+            mode="classification",
+            conv_inputs=conv_inputs,
+            num_outputs=len(stats["classes"]),
+        )
+        for target, stats in cls_targets.items()
+    ]
 
     model = ModelMultiHead(conv_inputs=(("img", 1),), backbone=backbone, heads=heads)
 
@@ -285,7 +277,9 @@ def main(cfg: DictConfig):
     ## Training
     ##############################################################################
     ckpt_path = None
-    if os.path.isfile(os.path.join(model_dir, "last.ckpt")):
+    if os.path.isfile(cfg.ckpt_path):
+        ckpt_path = cfg.ckpt_path
+    elif os.path.isfile(os.path.join(model_dir, "last.ckpt")):
         ckpt_path = os.path.join(model_dir, "last.ckpt")
         print(f"LOADING CHECKPOINT FROM {ckpt_path}")
 
@@ -318,12 +312,13 @@ def main(cfg: DictConfig):
         # enable_checkpointing=False,
     )
 
-    if cfg.test_ckpt != None:
+    if os.path.exists(cfg.test_ckpt):
         print(f"Test using ckpt: {cfg.test_ckpt}")
         pl_trainer.validate(pl_module, test_dl, ckpt_path=cfg.test_ckpt)
     else:
         print(f"Training using ckpt: {ckpt_path}")
         pl_trainer.fit(pl_module, train_dl, val_dl, ckpt_path=ckpt_path)
+
 
 if __name__ == "__main__":
     main()

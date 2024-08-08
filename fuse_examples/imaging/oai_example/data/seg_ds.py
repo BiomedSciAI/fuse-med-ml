@@ -9,12 +9,7 @@ from functools import partial
 from typing import Hashable, Optional, Sequence, Union, Tuple
 import torch
 import pandas as pd
-import os
-import sys
-
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # noqa
-
-from data_ops import (
+from fuse_examples.imaging.oai_example.data.data_ops import (
     OpNormalizeMRI,
     OpResize3D,
     OpRandomFlip,
@@ -25,11 +20,11 @@ from data_ops import (
 
 class SegOAI:
     @staticmethod
-    def sample_ids(df):
+    def sample_ids(df: pd.DataFrame) -> list:
         return SegOAI.get_existing_sample_ids(df)
 
     @staticmethod
-    def get_existing_sample_ids(df: pd.DataFrame):
+    def get_existing_sample_ids(df: pd.DataFrame) -> list:
         """
         get all the sample ids that have a zip file in the specified path
         """
@@ -53,7 +48,7 @@ class SegOAI:
     @staticmethod
     def dynamic_pipeline(
         validation: bool = False, resize_to: Tuple[int, int, int] = [40, 224, 224]
-    ):
+    ) -> PipelineDefault:
         """
         Get suggested dynamic pipeline. including pre-processing that might be modified and augmentation operations.
         :param train : True iff we request dataset for train purpouse

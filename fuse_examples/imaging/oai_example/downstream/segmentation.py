@@ -24,10 +24,7 @@ from pytorch_lightning.callbacks import LearningRateMonitor
 import hydra
 from omegaconf import DictConfig
 from clearml import Task
-import sys
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # noqa
-from data.seg_ds import SegOAI
+from fuse_examples.imaging.oai_example.data.seg_ds import SegOAI
 from fuse.dl.models.backbones.backbone_unet3d import UNet3D
 
 # from fuse.dl.lightning.pl_funcs import step_losses, step_metrics
@@ -37,7 +34,7 @@ torch.use_deterministic_algorithms(False)
 
 
 @hydra.main(version_base="1.2", config_path=".", config_name="segmentation_config")
-def main(cfg: DictConfig):
+def main(cfg: DictConfig) -> None:
     cfg = hydra.utils.instantiate(cfg)
     results_path = cfg.results_dir
 
@@ -70,10 +67,10 @@ def main(cfg: DictConfig):
     if cfg.backbone == "unet3d":
         backbone = UNet3D(for_cls=False)
 
-        if os.path.exists(cfg.init_weights):
-            print(f"LOADING ckpt from {cfg.init_weights}")
+        if os.path.exists(cfg.backbone_init_weights):
+            print(f"LOADING ckpt from {cfg.backbone_init_weights}")
             state_dict = torch.load(
-                open(cfg.init_weights, "rb"), map_location=torch.device("cpu")
+                open(cfg.backbone_init_weights, "rb"), map_location=torch.device("cpu")
             )
             state_dict = {
                 k.replace("teacher_backbone.", ""): v
@@ -234,7 +231,9 @@ def main(cfg: DictConfig):
     ## Training
     ##############################################################################
     ckpt_path = None
-    if os.path.isfile(os.path.join(model_dir, "last.ckpt")):
+    if os.path.isfile(cfg.ckpt_path):
+        ckpt_path = cfg.ckpt_path
+    elif os.path.isfile(os.path.join(model_dir, "last.ckpt")):
         ckpt_path = os.path.join(model_dir, "last.ckpt")
         print(f"LOADING CHECKPOINT FROM {ckpt_path}")
 
@@ -267,42 +266,7 @@ def main(cfg: DictConfig):
         precision=cfg.precision,
         # enable_checkpointing=False,
     )
-    if cfg.test_ckpt is not None:
-
-        # def validation_step(
-        #     self, batch_dict, batch_idx: int, dataloader_idx: int = 0
-        # ) -> None:
-        #     # add step number to batch_dict
-        #     batch_dict["global_step"] = self.global_step
-        #     shape = batch_dict["img"].shape
-        #     batch_dict["img"] = torch.cat(
-        #         torch.split(batch_dict["img"], 40, dim=2), dim=0
-        #     )
-        #     # run forward function and store the outputs in batch_dict["model"]
-        #     batch_dict = self.forward(batch_dict)
-        #     batch_dict["model.logits.head_seg"] = (
-        #         batch_dict["model.logits.head_seg"]
-        #         .permute(1, 0, 2, 3, 4)
-        #         .reshape(7, -1, 384, 384)
-        #         .unsqueeze(0)
-        #     )
-        #     # batch_dict["model.logits.head_seg"] = torch.cat([batch_dict["model.logits.head_seg"][0],batch_dict["model.logits.head_seg"][1]], dim=1).unsqueeze(0)
-        #     if self._validation_losses is not None:
-        #         losses = self._validation_losses[dataloader_idx][1]
-        #     else:
-        #         losses = self._losses
-        #     # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss (ignored) and save losses values in batch_dict["losses"]
-        #     _ = step_losses(losses, batch_dict)
-        #     # given the batch_dict and FuseMedML style metrics - collect the required values to compute the metrics on epoch_end
-        #     step_metrics(self._validation_metrics[dataloader_idx][1], batch_dict)
-        #     # aggregate losses
-        #     if losses:  # if there are losses, collect the results
-        #         self._validation_step_outputs[dataloader_idx].append(
-        #             {"losses": batch_dict["losses"]}
-        #         )
-
-        # pl_module.validation_step = validation_step.__get__(pl_module)
-
+    if os.path.exists(cfg.test_ckpt):
         print(f"Test using ckpt: {cfg.test_ckpt}")
         pl_trainer.validate(pl_module, test_dl, ckpt_path=cfg.test_ckpt)
     else:

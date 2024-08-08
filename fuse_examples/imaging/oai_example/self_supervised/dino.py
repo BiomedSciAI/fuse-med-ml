@@ -9,7 +9,7 @@ from lightly.models.modules import DINOProjectionHead
 from lightly.utils.scheduler import cosine_schedule
 from lightly.models.utils import deactivate_requires_grad
 from lightly.models.utils import update_momentum
-
+from typing import Any
 import os
 from glob import glob
 from fuse.data.utils.collates import CollateDefault
@@ -21,10 +21,7 @@ from torch.utils.data.dataloader import DataLoader
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 
 from fuse.dl.models.backbones.backbone_unet3d import UNet3D
-import sys
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # noqa
-from data.oai_ds import OAI
+from fuse_examples.imaging.oai_example.data.oai_ds import OAI
 from omegaconf import DictConfig
 import hydra
 from clearml import Task
@@ -33,7 +30,7 @@ torch.set_float32_matmul_precision("high")
 
 
 class DINO(pl.LightningModule):
-    def __init__(self, cfg):
+    def __init__(self, cfg: Any):
         super().__init__()
 
         # self.automatic_optimization=False
@@ -56,7 +53,9 @@ class DINO(pl.LightningModule):
                 }
                 backbone.load_state_dict(state_dict, strict=False)
 
-            def hook(module, input, output):
+            def hook(
+                module: torch.nn.Module, input: Any, output: torch.Tensor
+            ) -> torch.Tensor:
                 return torch.nn.AdaptiveMaxPool3d(output_size=1)(output).squeeze()
 
             backbone.register_forward_hook(hook)
@@ -89,7 +88,7 @@ class DINO(pl.LightningModule):
         z = self.teacher_head(y)
         return z, y
 
-    def training_step(self, batch_dict: NDict, batch_idx: int):
+    def training_step(self, batch_dict: NDict, batch_idx: int) -> torch.Tensor:
         momentum = cosine_schedule(
             self.current_epoch, self.cfg.n_epochs, self.cfg.momentum_teacher, 1
         )
@@ -121,7 +120,7 @@ class DINO(pl.LightningModule):
     def on_after_backward(self) -> None:
         self.student_head.cancel_last_layer_gradients(current_epoch=self.current_epoch)
 
-    def validation_step(self, batch_dict: NDict, batch_idx: int):
+    def validation_step(self, batch_dict: NDict, batch_idx: int) -> torch.Tensor:
         views = [batch_dict[f"crop_{i}"] for i in range(self.cfg.n_crops)]
         views = [view.to(self.device) for view in views]
         global_views = views[:2]
@@ -145,7 +144,7 @@ class DINO(pl.LightningModule):
 
         return dino_loss
 
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> tuple:
         optimizer = torch.optim.Adam(
             filter(lambda p: p.requires_grad, self.parameters()), lr=self.learning_rate
         )
@@ -158,7 +157,7 @@ class DINO(pl.LightningModule):
 
 
 @hydra.main(version_base="1.2", config_path=".", config_name="dino")
-def main(cfg: DictConfig):
+def main(cfg: DictConfig) -> None:
     cfg = hydra.utils.instantiate(cfg)
 
     device_count = torch.cuda.device_count()
@@ -231,9 +230,10 @@ def main(cfg: DictConfig):
     )
     cfg.len_dl = len(train_dl)
 
-    ckpt_path = glob(f"{logging_path}/*.ckpt")
-    if len(ckpt_path) > 0:
-        ckpt_path = sorted(ckpt_path)[-1]
+    if os.path.exists(cfg.ckpt_pth):
+        ckpt_path = cfg.ckpt_pth
+    elif len(glob(f"{logging_path}/*.ckpt")) > 0:
+        ckpt_path = sorted(glob(f"{logging_path}/*.ckpt"))[-1]
     else:
         ckpt_path = None
 

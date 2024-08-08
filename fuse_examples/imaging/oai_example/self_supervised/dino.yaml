@@ -18,6 +18,8 @@ n_workers : 16
 backbone : unet3d
 pretrained: False
 pretrained_pth : null # if pretrained=True a path need to be filled. can download from https://github.com/MrGiovanni/SuPreM
+ckpt_pth : no_path
+
 patch_shape : [4,16,16] # for vit
 projection: 2048
 

@@ -7,15 +7,11 @@ from fuse.data.ops.ops_read import OpReadDataframe
 
 from fuse.data.ops.ops_common import OpLambda, OpRepeat
 from functools import partial
-from typing import Hashable, Optional, Sequence, Union
+from typing import Hashable, Optional, Sequence, Union, List
 import torch
 import pandas as pd
 from fuse.utils.rand.param_sampler import Uniform, RandInt
-import os
-import sys
-
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # noqa
-from data_ops import (
+from fuse_examples.imaging.oai_example.data.data_ops import (
     OpLoadData,
     OpNormalizeMRI,
     OpResize3D,
@@ -30,11 +26,11 @@ from volumentations import Compose, RandomRotate90, GaussianNoise, Flip, Rotate
 
 class OAI:
     @staticmethod
-    def sample_ids(df: pd.DataFrame):
+    def sample_ids(df: pd.DataFrame) -> List:
         return OAI.get_existing_sample_ids(df)
 
     @staticmethod
-    def get_existing_sample_ids(df: pd.DataFrame):
+    def get_existing_sample_ids(df: pd.DataFrame) -> List:
         """
         get all the sample ids that have a zip file in the specified path
         """
@@ -65,12 +61,12 @@ class OAI:
 
     @staticmethod
     def dynamic_pipeline(
-        n_crops=2,
-        mae_cfg=None,
+        n_crops: int = 2,
+        mae_cfg: dict = None,
         for_classification: bool = True,
         validation: bool = False,
         resize_to: Sequence = [40, 224, 224],
-    ):
+    ) -> PipelineDefault:
         """
         Get suggested dynamic pipeline. including pre-processing that might be modified and augmentation operations.
         :param train : True iff we request dataset for train purpouse

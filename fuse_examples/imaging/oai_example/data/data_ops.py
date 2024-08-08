@@ -7,21 +7,21 @@ import random
 import pydicom
 from scipy.ndimage import zoom
 import torch.nn.functional as F
-from typing import Tuple
+from typing import Tuple, Union, List
 from volumentations import Compose
 
 
 class OpLoadData(OpBase):
     """
-    loads a zip and select a sequence and a station from it
+    loads 3D image from a folder of dicom files.
+    Folder should have only dicom files and they should be names in the order of the sequence.
     """
 
-    def __init__(self, im2D: bool = False, path_key: str = None, **kwargs):
-        super().__init__(**kwargs)
-        self.im2D = im2D
+    def __init__(self, path_key: str = None):
+        super().__init__()
         self.path_key = path_key
 
-    def __call__(self, sample_dict: NDict) -> NDict:
+    def __call__(self, sample_dict: NDict) -> Union[None, dict, List[dict]]:
         """ """
         folder_path = sample_dict[self.path_key]
         dicom_files = [f for f in os.listdir(folder_path)]
@@ -49,16 +49,12 @@ class OpLoadData(OpBase):
 
 
 class OpNormalizeMRI(OpBase):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    # def __call__(self, sample_dict: NDict, key: str):
     def __call__(
         self,
         sample_dict: NDict,
         key: str,
         to_range: Tuple[float, float],
-    ):
+    ) -> Union[None, dict, List[dict]]:
 
         img = sample_dict[key]
         img = np.clip(
@@ -86,17 +82,13 @@ class OpNormalizeMRI(OpBase):
 
 
 class OpResize3D(OpBase):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    # def __call__(self, sample_dict: NDict, key: str):
     def __call__(
         self,
         sample_dict: NDict,
         key: str,
         shape: Tuple[int, int, int],
         segmentation: bool = False,
-    ):
+    ) -> Union[None, dict, List[dict]]:
         depth, height, width = sample_dict[key].shape
         depth_factor = shape[0] / depth
         height_factor = shape[1] / height
@@ -116,7 +108,21 @@ class OpResize3D(OpBase):
 
 
 class OpDinoCrops(OpBase):
-    def __call__(self, sample_dict: NDict, key: str, n_crops: int) -> NDict:
+    """
+    This function takes in a dictionary containing an image and a key, and returns a new dictionary with multiple crops of the original image.
+
+    Parameters:
+        sample_dict (NDict): A dictionary containing an image and a key.
+        key (str): The key of the image in the dictionary.
+        n_crops (int): The number of crops to create.
+
+    Returns:
+        NDict: A new dictionary with multiple crops of the original image.
+    """
+
+    def __call__(
+        self, sample_dict: NDict, key: str, n_crops: int
+    ) -> Union[None, dict, List[dict]]:
         """ """
         img = sample_dict[key]
         for i in range(n_crops):
@@ -129,14 +135,28 @@ class OpDinoCrops(OpBase):
 
 
 class OpRandomCrop(OpBase):
+    """
+    Resizes the input image or volume to the specified size.
+
+    Args:
+        sample_dict (NDict): A dictionary containing the input image or volume.
+        key (str): The key of the input image or volume in the sample_dict.
+        scale (tuple, optional): A tuple specifying the minimum and maximum scaling factors. Defaults to (0.4, 1.0).
+        on_depth (bool, optional): A boolean flag indicating whether to crop also the depth dimension. Defaults to True.
+        res_shape (list, optional): A list specifying the target resolution. If provided, overrides the scale parameter. Defaults to None.
+
+    Returns:
+        NDict: A dictionary containing the resized image or volume.
+    """
+
     def __call__(
         self,
         sample_dict: NDict,
         key: str,
-        scale=(0.4, 1.0),
+        scale: Tuple[float, float] = (0.4, 1.0),
         on_depth: bool = True,
-        res_shape=None,
-    ) -> NDict:
+        res_shape: List = None,
+    ) -> Union[None, dict, List[dict]]:
         """ """
         if isinstance(key, str):
             key = [key]
@@ -166,7 +186,7 @@ class OpRandomCrop(OpBase):
 
 
 class OpRandomFlip(OpBase):
-    def __call__(self, sample_dict: NDict, key: str) -> NDict:
+    def __call__(self, sample_dict: NDict, key: str) -> Union[None, dict, List[dict]]:
         """ """
         if isinstance(key, str):
             key = [key]
@@ -189,7 +209,7 @@ class OpVolumentation(OpBase):
         super().__init__()
         self.compose = compose
 
-    def __call__(self, sample_dict: NDict, key: str) -> NDict:
+    def __call__(self, sample_dict: NDict, key: str) -> Union[None, dict, List[dict]]:
         img = {"image": sample_dict[key]}
         sample_dict[key] = self.compose(**img)["image"]
         return sample_dict
@@ -200,12 +220,12 @@ class OpMask3D(OpBase):
         self,
         mask_percentage: float = 0.3,
         cuboid_size: Tuple[int, int, int] = [2, 2, 2],
-    ):
+    ) -> Union[None, dict, List[dict]]:
         super().__init__()
         self.mask_percentage = mask_percentage
         self.cuboid_size = cuboid_size
 
-    def __call__(self, sample_dict: NDict, key) -> NDict:
+    def __call__(self, sample_dict: NDict, key: str) -> NDict:
         img = sample_dict[key]
 
         depth, height, width = img.shape
@@ -240,7 +260,7 @@ class OpSegToOneHot(OpBase):
         super().__init__()
         self.n_classes = n_classes
 
-    def __call__(self, sample_dict: NDict, key: str) -> NDict:
+    def __call__(self, sample_dict: NDict, key: str) -> Union[None, dict, List[dict]]:
         seg_tensor = sample_dict[key]
         seg_tensor = seg_tensor.squeeze(0).long()
         one_hot = F.one_hot(seg_tensor, num_classes=self.n_classes)
