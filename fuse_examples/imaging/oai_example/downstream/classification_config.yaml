@@ -1,0 +1,42 @@
+defaults:
+  - _self_
+  - override hydra/hydra_logging: disabled
+  - override hydra/job_logging: disabled
+
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+
+task : classification
+cls_targets : [V00COHORT,gender]
+train_folds : [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+val_folds : [16,17,18,19]
+test_folds : []
+batch_size : 8
+backbone : unet3d
+precision : 32
+resize_to : [40, 224,224]
+csv_path : /dccstor/mm_hcls2/oai/code/data/relevant_dicoms.csv #fill
+results_dir : /dccstor/mm_hcls2/oai/results #fill
+
+n_workers : 24
+
+clearml : false
+clearml_project_name : OAI/downstream
+
+experiment : debug_example
+
+grad_clip : 0
+learning_rate : 0.001
+n_epochs : 400
+weight_decay : 0.001
+reset_cache : False
+debug : False
+test_ckpt : no_path # if not null - an evaluation on the test set will be performed using the test_ckpt
+pretrained : True
+pretrained_pth : /dccstor/mm_hcls2/oai/code/archs/weights/supervised_suprem_unet_2100.pth # if pretrained=True a path need to be filled. can download from https://github.com/MrGiovanni/SuPreM
+backbone_init_weights : no_path
+ckpt_path : no_path
+
+log_grad_norm : False
