@@ -1,3 +1,4 @@
+import random
 from typing import List, Optional, Sequence, Union
 
 
@@ -179,3 +180,73 @@ class OpRepeatAndSample(OpRepeat):
         :param kwargs_per_step_to_add: sequence of arguments (kwargs format) specific for a single repetition. those arguments will be added/overide the kwargs provided in __call__() function.
         """
         super().__init__(OpSample(op), kwargs_per_step_to_add)
+
+
+class OpRandCropSeq(OpBase):
+    """
+    Crops a given string based on a randomly generated ratio between 0 and crop_max_ratio.
+
+    Can be used as an augmentation method for cropping a protein/any other input
+    """
+
+    def __init__(
+        self,
+        seed: int,
+        crop_max_ratio: float = 0.3,
+        crop_mode: str = "both",
+    ):
+        """
+        :param crop_max_ratio: The maximum ratio of the string length that can be cropped in total.
+                A random ratio between 0 and crop_max_ratio will be generated for cropping.
+                If crop_max_ratio = 0 the original string will be returned, if crop_max_ratio=1.0 all string will be cropped
+
+        :param crop_mode: can be one of "both", "right_only", "left_only".
+                            If "both", crop the string from both sides.
+                            If "left_only", crop the string from the left side only.
+                            If "right_only", crop the string from the right side only.
+
+        """
+        super().__init__()
+
+        assert 0 <= crop_max_ratio <= 1.0
+
+        self.crop_mode = crop_mode
+        self.crop_max_ratio = crop_max_ratio
+
+        self._random_generator = random.Random(seed)
+
+    def __call__(
+        self,
+        sample_dict: NDict,
+        string_key_in: str,
+        string_key_out: str,
+    ) -> dict:
+        """
+        :param string_key_in - key that stores the string to crop, so sample_dict[string_key_in]: str
+        :param string_key_out - key to store the cropped string
+
+        """
+        input_string = sample_dict[string_key_in]
+        length = len(input_string)
+        crop_ratio = self._random_generator.uniform(0, self.crop_max_ratio)
+        crop_length = int(length * crop_ratio)
+
+        if self.crop_mode == "both":
+            left_crop_length = self._random_generator.randint(0, crop_length)
+            right_crop_length = crop_length - left_crop_length
+            new_string = input_string[
+                left_crop_length : -(right_crop_length)
+                if right_crop_length != 0
+                else None
+            ]
+        elif self.crop_mode == "left_only":
+            new_string = input_string[crop_length:]
+        elif self.crop_mode == "right_only":
+            new_string = input_string[:-crop_length]
+        else:
+            raise ValueError(
+                "Invalid crop configuration. Choose one of the crop options."
+            )
+
+        sample_dict[string_key_out] = new_string
+        return sample_dict
