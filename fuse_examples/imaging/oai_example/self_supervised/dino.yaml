@@ -1,26 +1,22 @@
-experiment : dino_oai
-cache_name : DESS_TSE_cache
-model_dir : /oai/results/
-csv_path : /oai/code/data/relevant_dicoms.csv
-clearml_project_name : OAI/Dino #Liver/Dino
+experiment : try_dino
+model_dir : /dccstor/mm_hcls2/oai/results/
+csv_path : /dccstor/mm_hcls2/oai/code/data/relevant_dicoms.csv #fill
+clearml_project_name : OAI/Dino
 
-resize_to : [224,224] #[40, 512, 512] # only resize if for_classification flag is true (validation)
-batch_size : 4 #10 for res18, 4 for vit
+resize_to : [224,224]
+batch_size : 4
 batch_size_eval : 8
 precision : 32
-
+train_folds : [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
+val_folds : [19]
 reset_cache : False
 debug : False
-train_acc: False
-im2D : True
 
 n_workers : 16
 backbone : unet3d
-pretrained: False
-pretrained_pth : null # if pretrained=True a path need to be filled. can download from https://github.com/MrGiovanni/SuPreM
-ckpt_pth : no_path
+suprem_weights : /dccstor/mm_hcls2/oai/code/archs/weights/supervised_suprem_unet_2100.pth # if pretrained=True a path need to be filled. can download from https://github.com/MrGiovanni/SuPreM
+resume_training_from : null #resume training from checkpoint
 
-patch_shape : [4,16,16] # for vit
 projection: 2048
 
 momentum_teacher : 0.9995
@@ -28,7 +24,7 @@ n_crops : 4 # 4, orig Dino 6 local 2 global
 out_dim : 512
 cls_dim: 256
 n_epochs : 70
-learning_rate :  0.001 #0.004
+learning_rate :  0.002
 cls_learning_rate : 0.0001
 clip_grad : 3.0
 warmup_teacher_temp : 0.04

@@ -1,19 +1,20 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from typing import Tuple
 
 # Based on the architecture from https://github.com/MrGiovanni/ModelsGenesis
 torch.use_deterministic_algorithms(False)
 
 
 class ContBatchNorm3d(nn.modules.batchnorm._BatchNorm):
-    def _check_input_dim(self, input):
+    def _check_input_dim(self, input: torch.Tensor) -> None:
 
         if input.dim() != 5:
             raise ValueError("expected 5D input (got {}D input)".format(input.dim()))
         # super(ContBatchNorm3d, self)._check_input_dim(input)
 
-    def forward(self, input):
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
         self._check_input_dim(input)
         return F.batch_norm(
             input,
@@ -28,7 +29,7 @@ class ContBatchNorm3d(nn.modules.batchnorm._BatchNorm):
 
 
 class LUConv(nn.Module):
-    def __init__(self, in_chan, out_chan, act):
+    def __init__(self, in_chan: int, out_chan: int, act: str):
         super(LUConv, self).__init__()
         self.conv1 = nn.Conv3d(in_chan, out_chan, kernel_size=3, padding=1)
         self.bn1 = ContBatchNorm3d(out_chan)
@@ -42,12 +43,14 @@ class LUConv(nn.Module):
         else:
             raise
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         out = self.activation(self.bn1(self.conv1(x)))
         return out
 
 
-def _make_nConv(in_channel, depth, act, double_chnnel=False):
+def _make_nConv(
+    in_channel: int, depth: int, act: str, double_chnnel: bool = False
+) -> nn.Module:
     if double_chnnel:
         layer1 = LUConv(in_channel, 32 * (2 ** (depth + 1)), act)
         layer2 = LUConv(32 * (2 ** (depth + 1)), 32 * (2 ** (depth + 1)), act)
@@ -76,13 +79,13 @@ def _make_nConv(in_channel, depth, act, double_chnnel=False):
 
 
 class DownTransition(nn.Module):
-    def __init__(self, in_channel, depth, act):
+    def __init__(self, in_channel: int, depth: int, act: str):
         super(DownTransition, self).__init__()
         self.ops = _make_nConv(in_channel, depth, act)
         self.maxpool = nn.MaxPool3d(2)
         self.current_depth = depth
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         if self.current_depth == 3:
             out = self.ops(x)
             out_before_pool = out
@@ -93,13 +96,13 @@ class DownTransition(nn.Module):
 
 
 class UpTransition(nn.Module):
-    def __init__(self, inChans, outChans, depth, act):
+    def __init__(self, inChans: int, outChans: int, depth: int, act: str):
         super(UpTransition, self).__init__()
         self.depth = depth
         self.up_conv = nn.ConvTranspose3d(inChans, outChans, kernel_size=2, stride=2)
         self.ops = _make_nConv(inChans + outChans // 2, depth, act, double_chnnel=True)
 
-    def forward(self, x, skip_x):
+    def forward(self, x: torch.Tensor, skip_x: torch.Tensor) -> torch.Tensor:
         out_up_conv = self.up_conv(x)
         concat = torch.cat((out_up_conv, skip_x), 1)
         out = self.ops(concat)
@@ -107,13 +110,13 @@ class UpTransition(nn.Module):
 
 
 class OutputTransition(nn.Module):
-    def __init__(self, inChans, n_labels):
+    def __init__(self, inChans: int, n_labels: int):
 
         super(OutputTransition, self).__init__()
         self.final_conv = nn.Conv3d(inChans, n_labels, kernel_size=1)
         self.sigmoid = nn.Sigmoid()
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         out = self.sigmoid(self.final_conv(x))
         return out
 
@@ -121,7 +124,7 @@ class OutputTransition(nn.Module):
 class UNet3D(nn.Module):
     # the number of convolutions in each layer corresponds
     # to what is in the actual prototxt, not the intent
-    def __init__(self, n_class=1, act="relu", for_cls=False):
+    def __init__(self, n_class: int = 1, act: str = "relu", for_cls: bool = False):
         super(UNet3D, self).__init__()
         self.for_cls = for_cls
         self.down_tr64 = DownTransition(1, 0, act)
@@ -134,7 +137,7 @@ class UNet3D(nn.Module):
             self.up_tr64 = UpTransition(128, 128, 0, act)
             # self.out_tr = OutputTransition(64, n_class)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         self.out64, self.skip_out64 = self.down_tr64(x)
         self.out128, self.skip_out128 = self.down_tr128(self.out64)
         self.out256, self.skip_out256 = self.down_tr256(self.out128)

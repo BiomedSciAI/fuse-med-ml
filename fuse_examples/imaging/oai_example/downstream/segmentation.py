@@ -27,16 +27,26 @@ from clearml import Task
 from fuse_examples.imaging.oai_example.data.seg_ds import SegOAI
 from fuse.dl.models.backbones.backbone_unet3d import UNet3D
 
-# from fuse.dl.lightning.pl_funcs import step_losses, step_metrics
 
 torch.set_float32_matmul_precision("medium")
-torch.use_deterministic_algorithms(False)
 
 
 @hydra.main(version_base="1.2", config_path=".", config_name="segmentation_config")
 def main(cfg: DictConfig) -> None:
     cfg = hydra.utils.instantiate(cfg)
     results_path = cfg.results_dir
+    assert (
+        sum(
+            cfg[weights] is not None
+            for weights in [
+                "suprem_weights",
+                "dino_weights",
+                "resume_training_from",
+                "test_ckpt",
+            ]
+        )
+        == 1
+    ), "only one weights/ckpt path can be used at a time"
 
     model_dir = os.path.join(results_path, cfg.experiment)
     if not os.path.isdir(model_dir):
@@ -63,23 +73,24 @@ def main(cfg: DictConfig) -> None:
 
         task.connect(cfg)
         task.add_tags(cfg.tags)
-
+    # Model definition:
+    ##############################################################################
     if cfg.backbone == "unet3d":
         backbone = UNet3D(for_cls=False)
 
-        if os.path.exists(cfg.backbone_init_weights):
-            print(f"LOADING ckpt from {cfg.backbone_init_weights}")
+        if cfg.dino_weights is not None:
+            print(f"LOADING ckpt from {cfg.dino_weights}")
             state_dict = torch.load(
-                open(cfg.backbone_init_weights, "rb"), map_location=torch.device("cpu")
+                open(cfg.dino_weights, "rb"), map_location=torch.device("cpu")
             )
             state_dict = {
                 k.replace("teacher_backbone.", ""): v
                 for k, v in state_dict["state_dict"].items()
                 if "teacher_backbone." in k
             }
-        elif cfg.pretrained:
+        elif cfg.suprem_weights is not None:
             state_dict = torch.load(
-                cfg.pretrained_pth, map_location=torch.device("cpu")
+                cfg.suprem_weights, map_location=torch.device("cpu")
             )
             state_dict = {
                 k.replace("module.backbone.", ""): v
@@ -124,10 +135,6 @@ def main(cfg: DictConfig) -> None:
     dfs = {}
     for _set in ["train", "val", "test"]:
         dfs[_set] = df_all[df_all.fold.isin(cfg[f"{_set}_folds"])]
-    #     set_ids = open(f"{cfg.split_pth}/{_set}.txt", "r").readlines()
-    #     set_ids = [int(x.split("_")[0]) for x in set_ids]
-    #     dfs[_set] = df_all[df_all["PatientID"].isin(set_ids)]
-    #     print(f"{_set} samples = {len(dfs[_set])}")
 
     train_ds = SegOAI.dataset(
         dfs["train"], validation=(not cfg.aug), resize_to=cfg.resize_to
@@ -146,7 +153,7 @@ def main(cfg: DictConfig) -> None:
         num_workers=cfg.n_workers,
     )
 
-    valid_dl = DataLoader(
+    val_dl = DataLoader(
         dataset=val_ds,
         shuffle=False,
         drop_last=False,
@@ -231,11 +238,8 @@ def main(cfg: DictConfig) -> None:
     ## Training
     ##############################################################################
     ckpt_path = None
-    if os.path.isfile(cfg.ckpt_path):
+    if cfg.resume_training_from is not None:
         ckpt_path = cfg.ckpt_path
-    elif os.path.isfile(os.path.join(model_dir, "last.ckpt")):
-        ckpt_path = os.path.join(model_dir, "last.ckpt")
-        print(f"LOADING CHECKPOINT FROM {ckpt_path}")
 
     # create instance of PL module - FuseMedML generic version
     pl_module = LightningModuleDefault(
@@ -266,12 +270,12 @@ def main(cfg: DictConfig) -> None:
         precision=cfg.precision,
         # enable_checkpointing=False,
     )
-    if os.path.exists(cfg.test_ckpt):
+    if cfg.test_ckpt is not None:
         print(f"Test using ckpt: {cfg.test_ckpt}")
         pl_trainer.validate(pl_module, test_dl, ckpt_path=cfg.test_ckpt)
     else:
-        print(f"Training using ckpt: {ckpt_path}")
-        pl_trainer.fit(pl_module, train_dl, valid_dl, ckpt_path=ckpt_path)
+        # print(f"Training using ckpt: {ckpt_path}")
+        pl_trainer.fit(pl_module, train_dl, val_dl, ckpt_path=ckpt_path)
 
 
 if __name__ == "__main__":

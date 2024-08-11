@@ -5,3 +5,5 @@ scikit-image
 medpy
 transformers
 monai
+lightly
+volumentations

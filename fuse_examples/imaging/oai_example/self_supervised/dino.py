@@ -43,9 +43,9 @@ class DINO(pl.LightningModule):
             input_dim = 768
         elif cfg.backbone == "unet3d":
             backbone = UNet3D(for_cls=True)
-            if cfg.pretrained:
+            if cfg.suprem_weights is not None:
                 state_dict = torch.load(
-                    cfg.pretrained_pth, map_location=torch.device("cpu")
+                    cfg.suprem_weights, map_location=torch.device("cpu")
                 )
                 state_dict = {
                     k.replace("module.backbone.", ""): v
@@ -98,8 +98,6 @@ class DINO(pl.LightningModule):
         views = [batch_dict[f"crop_{i}"] for i in range(self.cfg.n_crops)]
         views = [view.to(self.device) for view in views]
         global_views = views[:2]
-        if self.current_step == 0:
-            self.log_images(global_views)
 
         teacher_out, t_embs = zip(
             *[self.forward_teacher(view) for view in global_views]
@@ -159,6 +157,13 @@ class DINO(pl.LightningModule):
 @hydra.main(version_base="1.2", config_path=".", config_name="dino")
 def main(cfg: DictConfig) -> None:
     cfg = hydra.utils.instantiate(cfg)
+    assert (
+        sum(
+            cfg[weights] is not None
+            for weights in ["suprem_weights", "resume_training_from"]
+        )
+        == 1
+    ), "only one weights/ckpt path can be used at a time"
 
     device_count = torch.cuda.device_count()
     logging_path = os.path.join(cfg.model_dir, cfg.experiment)
@@ -190,12 +195,11 @@ def main(cfg: DictConfig) -> None:
         cfg.logger = logger
 
     all_data_df = pd.read_csv(cfg.csv_path)
-    train_split = all_data_df[all_data_df["fold"].isin(list(range(19)))]
-    val_split = all_data_df[all_data_df["fold"].isin([19])]
+    train_split = all_data_df[all_data_df["fold"].isin(cfg.train_folds)]
+    val_split = all_data_df[all_data_df["fold"].isin(cfg.val_folds)]
 
     train_ds = OAI.dataset(
         train_split,
-        columns_to_extract=["accession_number", "path"],
         for_classification=False,
         resize_to=cfg.resize_to,
         n_crops=cfg.n_crops,
@@ -203,7 +207,6 @@ def main(cfg: DictConfig) -> None:
     )
     val_ds = OAI.dataset(
         val_split,
-        columns_to_extract=["accession_number", "path"],
         for_classification=False,
         resize_to=cfg.resize_to,
         n_crops=cfg.n_crops,
@@ -230,8 +233,8 @@ def main(cfg: DictConfig) -> None:
     )
     cfg.len_dl = len(train_dl)
 
-    if os.path.exists(cfg.ckpt_pth):
-        ckpt_path = cfg.ckpt_pth
+    if cfg.resume_training_from is not None:
+        ckpt_path = cfg.resume_training_from
     elif len(glob(f"{logging_path}/*.ckpt")) > 0:
         ckpt_path = sorted(glob(f"{logging_path}/*.ckpt"))[-1]
     else:
