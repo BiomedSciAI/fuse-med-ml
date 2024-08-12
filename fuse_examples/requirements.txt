@@ -6,4 +6,4 @@ medpy
 transformers
 monai
 lightly
-volumentations
+volumentations-3D
