@@ -1,4 +1,4 @@
-experiment : try_dino
+experiment : oai_dino
 model_dir : /dccstor/mm_hcls2/oai/results/
 csv_path : /dccstor/mm_hcls2/oai/code/data/relevant_dicoms.csv #fill
 clearml_project_name : OAI/Dino

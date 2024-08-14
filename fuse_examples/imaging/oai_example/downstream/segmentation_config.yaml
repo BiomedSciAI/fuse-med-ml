@@ -18,15 +18,14 @@ resize_to : [40, 224,224]
 csv_path : /dccstor/mm_hcls2/oai/code/data/seg_oai.csv #fill
 results_dir : /dccstor/mm_hcls2/oai/results #fill
 train_folds : [train]
-val_folds : [valid]
+val_folds : [val]
 test_folds : [test]
 split_pth : null #fill
 
 n_workers : 24
 clearml : false
 clearml_project_name : OAI/downstream
-
-experiment : debug_example
+experiment : oai_segmentation
 
 include_background : false
 sigmoid : True

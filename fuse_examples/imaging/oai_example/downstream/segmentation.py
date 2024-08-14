@@ -268,7 +268,6 @@ def main(cfg: DictConfig) -> None:
         deterministic=False,
         accumulate_grad_batches=cfg.accumulate_grad_batches,
         precision=cfg.precision,
-        # enable_checkpointing=False,
     )
     if cfg.test_ckpt is not None:
         print(f"Test using ckpt: {cfg.test_ckpt}")

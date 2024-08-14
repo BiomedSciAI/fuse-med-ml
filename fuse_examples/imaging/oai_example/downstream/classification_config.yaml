@@ -25,7 +25,7 @@ n_workers : 24
 clearml : false
 clearml_project_name : OAI/downstream
 
-experiment : debug_example
+experiment : oai_classification
 
 grad_clip : 0
 learning_rate : 0.001
