@@ -13,6 +13,7 @@ cls_targets : [V00COHORT,gender]
 train_folds : [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
 val_folds : [16,17,18,19]
 test_folds : []
+cuda_devices : [0]
 batch_size : 8
 backbone : unet3d
 precision : 32

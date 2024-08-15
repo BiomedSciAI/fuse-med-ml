@@ -39,6 +39,8 @@ torch.set_float32_matmul_precision("medium")
 def main(cfg: DictConfig) -> None:
     cfg = hydra.utils.instantiate(cfg)
     results_path = cfg.results_dir
+    os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(cfg.cuda_devices)
+
     assert (
         sum(
             cfg[weights] is not None
@@ -49,7 +51,7 @@ def main(cfg: DictConfig) -> None:
                 "test_ckpt",
             ]
         )
-        == 1
+        <= 1
     ), "only one weights/ckpt path can be used at a time"
     model_dir = os.path.join(results_path, cfg.experiment)
     if not os.path.isdir(model_dir):

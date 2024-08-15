@@ -20,6 +20,7 @@ results_dir : /dccstor/mm_hcls2/oai/results #fill
 train_folds : [train]
 val_folds : [val]
 test_folds : [test]
+cuda_devices : [0]
 split_pth : null #fill
 
 n_workers : 24

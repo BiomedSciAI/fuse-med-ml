@@ -157,12 +157,14 @@ class DINO(pl.LightningModule):
 @hydra.main(version_base="1.2", config_path=".", config_name="dino")
 def main(cfg: DictConfig) -> None:
     cfg = hydra.utils.instantiate(cfg)
+    os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(cfg.cuda_devices)
+
     assert (
         sum(
             cfg[weights] is not None
             for weights in ["suprem_weights", "resume_training_from"]
         )
-        == 1
+        <= 1
     ), "only one weights/ckpt path can be used at a time"
 
     device_count = torch.cuda.device_count()
