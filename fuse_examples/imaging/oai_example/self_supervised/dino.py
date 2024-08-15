@@ -152,7 +152,7 @@ class DINO(pl.LightningModule):
         return [optimizer], [lr_scheduler]
 
 
-@hydra.main(version_base="1.2", config_path=".", config_name="dino")
+@hydra.main(version_base="1.2", config_path=".", config_name="dino_config")
 def main(cfg: DictConfig) -> None:
     cfg = hydra.utils.instantiate(cfg)
     os.environ["CUDA_VISIBLE_DEVICES"] = ",".join([str(x) for x in cfg.cuda_devices])
