@@ -39,7 +39,7 @@ torch.set_float32_matmul_precision("medium")
 def main(cfg: DictConfig) -> None:
     cfg = hydra.utils.instantiate(cfg)
     results_path = cfg.results_dir
-    os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(cfg.cuda_devices)
+    os.environ["CUDA_VISIBLE_DEVICES"] = ",".join([str(x) for x in cfg.cuda_devices])
 
     assert (
         sum(

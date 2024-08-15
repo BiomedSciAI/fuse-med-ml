@@ -157,7 +157,7 @@ class DINO(pl.LightningModule):
 @hydra.main(version_base="1.2", config_path=".", config_name="dino")
 def main(cfg: DictConfig) -> None:
     cfg = hydra.utils.instantiate(cfg)
-    os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(cfg.cuda_devices)
+    os.environ["CUDA_VISIBLE_DEVICES"] = ",".join([str(x) for x in cfg.cuda_devices])
 
     assert (
         sum(
