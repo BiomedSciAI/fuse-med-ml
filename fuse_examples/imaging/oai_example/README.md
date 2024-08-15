@@ -93,6 +93,6 @@ You can track the progress of your training/testing using one of the following m
    tensorboard --logdir=<path_to_experiments_directory>
    ```
 2. ClearML:
-    If ClearML is installed and enabled in your config file (`clearml : true`), you can use it to monitor your results.
+    If ClearML is installed and enabled in your config file (`clearml : True`), you can use it to monitor your results.
 
     Choose the method that best suits your workflow and preferences.

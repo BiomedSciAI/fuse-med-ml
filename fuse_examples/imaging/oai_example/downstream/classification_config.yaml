@@ -18,12 +18,12 @@ batch_size : 8
 backbone : unet3d
 precision : 32
 resize_to : [40, 224,224]
-csv_path : /dccstor/mm_hcls2/oai/code/data/relevant_dicoms.csv #fill
-results_dir : /dccstor/mm_hcls2/oai/results #fill
+csv_path : data/relevant_dicoms.csv #fill
+results_dir : results #fill
 
 n_workers : 24
 
-clearml : false
+clearml : False
 clearml_project_name : OAI/downstream
 
 experiment : oai_classification
@@ -34,7 +34,7 @@ n_epochs : 400
 weight_decay : 0.001
 reset_cache : False
 debug : False
-suprem_weights : /dccstor/mm_hcls2/oai/code/archs/weights/supervised_suprem_unet_2100.pth # if pretrained=True a path need to be filled. can download from https://github.com/MrGiovanni/SuPreM
+suprem_weights : weights/supervised_suprem_unet_2100.pth # if pretrained=True a path need to be filled. can download from https://github.com/MrGiovanni/SuPreM
 dino_weights : null
 resume_training_from : null #resume training from checkpoint
 test_ckpt : null # if not null - an evaluation on the test set will be performed using the test_ckpt

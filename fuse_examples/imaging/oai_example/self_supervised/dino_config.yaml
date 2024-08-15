@@ -1,6 +1,6 @@
 experiment : oai_dino
-model_dir : /dccstor/mm_hcls2/oai/results/
-csv_path : /dccstor/mm_hcls2/oai/code/data/relevant_dicoms.csv #fill
+model_dir : results/
+csv_path : data/relevant_dicoms.csv #fill
 clearml_project_name : OAI/Dino
 
 resize_to : [224,224]
@@ -15,7 +15,7 @@ debug : False
 
 n_workers : 16
 backbone : unet3d
-suprem_weights : /dccstor/mm_hcls2/oai/code/archs/weights/supervised_suprem_unet_2100.pth # if pretrained=True a path need to be filled. can download from https://github.com/MrGiovanni/SuPreM
+suprem_weights : weights/supervised_suprem_unet_2100.pth # if pretrained=True a path need to be filled. can download from https://github.com/MrGiovanni/SuPreM
 resume_training_from : null #resume training from checkpoint
 
 projection: 2048
@@ -38,4 +38,4 @@ norm_last_layer : True
 use_bn_in_head : False #Whether to use batch normalizations in projection head (Default: False)
 freeze_last_layer : 1 #Number of epochs during which we keep the output layer fixed. Typically doing so during the first epoch helps training. Try increasing this value if the loss does not decrease.
 
-clearml : True
+clearml : False
