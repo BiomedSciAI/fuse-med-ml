@@ -122,8 +122,6 @@ class DINO(pl.LightningModule):
         views = [batch_dict[f"crop_{i}"] for i in range(self.cfg.n_crops)]
         views = [view.to(self.device) for view in views]
         global_views = views[:2]
-        if self.current_step == 0:
-            self.log_images(global_views)
 
         teacher_out, t_embs = zip(
             *[self.forward_teacher(view) for view in global_views]
