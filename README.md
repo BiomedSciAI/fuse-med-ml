@@ -223,7 +223,7 @@ $ pip install fuse-med-ml[all,examples]
 # Examples
 
 * Easy access "Hello World" [colab notebook](https://colab.research.google.com/github/BiomedSciAI/fuse-med-ml/blob/master/fuse_examples/imaging/hello_world/hello_world.ipynb)
-* classification
+* Classification
     * [**MNIST**](./fuse_examples/imaging/classification/mnist/)  - a simple example, including training, inference and evaluation over [MNIST dataset](http://yann.lecun.com/exdb/mnist/)
     * [**STOIC**](./fuse_examples/imaging/classification/stoic21/) - severe COVID-19 classifier baseline given a Computed-Tomography (CT), age group and gender. [Challenge description](https://stoic2021.grand-challenge.org/)
 
@@ -232,6 +232,9 @@ $ pip install fuse-med-ml[all,examples]
     * [**Skin Lesion**](./fuse_examples/imaging/classification/isic/) - skin lesion classification , including training, inference and evaluation over the public dataset introduced in [ISIC challenge](https://challenge.isic-archive.com/landing/2019)
     * [**Breast Cancer Lesion Classification**](./fuse_examples/imaging/classification/cmmd) - lesions classification of tumor ( benign, malignant) in breast mammography over the public dataset introduced in [The Chinese Mammography Database (CMMD)](https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508)
     * [**Mortality prediction for ICU patients**](./fuse_examples/multimodality/ehr_transformer) - Example of EHR transformer applied to the data of Intensive Care Units patients for in-hospital mortality prediction. The dataset is from [PhysioNet Computing in Cardiology Challenge (2012)](https://physionet.org/content/challenge-2012/1.0.0/)
+* Pre-training
+    * [**Medical Imaging Pre-training and Downstream Task Validation**](./fuse_examples/imaging/oai_example) - pre-training a model on 3D MRI medical imaging and then using it for classification and segmentation downstream tasks.
+   
 
 ## Walkthrough template
 * [**Walkthrough Template**](./fuse/dl/templates/walkthrough_template.py) - includes several TODO notes, marking the minimal scope of code required to get your pipeline up and running. The template also includes useful explanations and tips.
