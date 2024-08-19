@@ -888,7 +888,7 @@ class CI(MetricWithCollectorBase):
         return super().reset()
 
     @staticmethod
-    def _convert_tuples(ids: List[Tuple[str, int]]) -> np.ndarray:
+    def _convert_tuples(ids: List[Tuple[Any, ...]]) -> np.ndarray:
 
         sample_tuple = ids[0]
         dtype_tuple = []
