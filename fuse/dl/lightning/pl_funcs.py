@@ -55,6 +55,7 @@ def start_clearml_logger(
     auto_resource_monitoring: bool = True,
     auto_connect_streams: Union[bool, Mapping[str, bool]] = True,
     deferred_init: bool = False,
+    offline_mode: bool = False,
 ) -> TaskInstance:
     """
     Just a fuse function to quickly start the clearml logger. It sets up patches to pytorch lightning logging hooks so it doesn't need to be passed to any lightning logger.
@@ -86,6 +87,10 @@ def start_clearml_logger(
         bool_start_logger = True
 
     if bool_start_logger:
+        if offline_mode:  # Use the set_offline class method before initializing a Task
+            Task.set_offline(offline_mode=True)
+            os.environ["CLEARML_OFFLINE_MODE"] = "1"
+
         task = Task.init(
             project_name=project_name,
             task_name=task_name,

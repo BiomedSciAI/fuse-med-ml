@@ -136,6 +136,7 @@ class OpReadHDF5(OpBase):
         :param key_index: name of value in sample_dict which will be used as the key/index
         :param key_column: name of the column which use as key/index. In case of None, the original dataframe index will be used to extract the values for a single sample.
         """
+        super().__init__()
         # store input
         self._data_filename = data_filename
         self._columns_to_extract = columns_to_extract
@@ -146,7 +147,7 @@ class OpReadHDF5(OpBase):
         self._h5 = h5py.File(self._data_filename, "r")
 
         if self._columns_to_extract is None:
-            self._columns_to_extract = self._h5.keys()
+            self._columns_to_extract = list(self._h5.keys())
 
         self._num_samples = len(self._h5[self._columns_to_extract[0]])
 
