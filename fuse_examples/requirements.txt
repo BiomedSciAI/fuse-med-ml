@@ -5,3 +5,5 @@ scikit-image
 medpy
 transformers
 monai
+lightly==1.3.0
+volumentations-3D
