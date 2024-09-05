@@ -176,6 +176,9 @@ class LightningModuleDefault(pl.LightningModule):
 
     ## forward
     def forward(self, batch_dict: NDict) -> NDict:
+        # workaround for fsdp
+        if not isinstance(batch_dict, NDict):
+            batch_dict = NDict(batch_dict)
         return self._model(batch_dict)
 
     ## Step
