@@ -1,9 +1,10 @@
 from fuse.utils import NDict
 from fuse.data import OpBase, get_sample_id
-from fusedrug.data.tokenizer.modulartokenizer.modular_tokenizer import ModularTokenizer
-from fusedrug.data.tokenizer.modulartokenizer.inject_utils import (
+from fuse.data.tokenizers.modular_tokenizer.modular_tokenizer import ModularTokenizer
+from fuse.data.tokenizers.modular_tokenizer.inject_utils import (
     InjectorToModularTokenizerLib,
 )
+
 
 from warnings import warn
 from collections import defaultdict

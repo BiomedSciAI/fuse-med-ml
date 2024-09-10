@@ -3,7 +3,7 @@ from tokenizers import Encoding
 import torch
 import re
 from fuse.utils import NDict
-from fusedrug.data.tokenizer.modulartokenizer.modular_tokenizer import (
+from fuse.data.tokenizers.modular_tokenizer.modular_tokenizer import (
     TypedInput,
     list_to_tokenizer_string,
 )

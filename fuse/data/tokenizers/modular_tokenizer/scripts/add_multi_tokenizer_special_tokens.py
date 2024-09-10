@@ -1,6 +1,6 @@
 import click
 from typing import Union, List
-from fusedrug.data.tokenizer.modulartokenizer.modular_tokenizer import ModularTokenizer
+from fuse.data.tokenizers.modular_tokenizer.modular_tokenizer import ModularTokenizer
 
 
 @click.command()

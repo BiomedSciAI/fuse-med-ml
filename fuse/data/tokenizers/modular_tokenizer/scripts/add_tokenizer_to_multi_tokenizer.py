@@ -1,6 +1,6 @@
 import hydra
 from omegaconf import DictConfig, OmegaConf
-from fusedrug.data.tokenizer.modulartokenizer.modular_tokenizer import ModularTokenizer
+from fuse.data.tokenizers.modular_tokenizer.modular_tokenizer import ModularTokenizer
 from typing import Dict, Any
 
 

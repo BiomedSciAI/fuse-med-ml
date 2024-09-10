@@ -13,9 +13,7 @@ import omegaconf
 import copy
 import traceback
 import re
-from fusedrug.data.tokenizer.modulartokenizer.special_tokens import (
-    special_wrap_input,
-)
+from fuse.data.tokenizers.modular_tokenizer.special_tokens import special_wrap_input
 
 
 TypedInput = collections.namedtuple(
