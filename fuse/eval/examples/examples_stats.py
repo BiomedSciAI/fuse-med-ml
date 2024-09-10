@@ -17,7 +17,7 @@ Created on Nov 30, 2023
 
 """
 
-from fuse.eval.metrics.stat.metrics_stat_common import MetricPearsonCorrelation
+from fuse.eval.metrics.regression.metrics import MetricPearsonCorrelation
 import numpy as np
 import pandas as pd
 from collections import OrderedDict
