@@ -1,13 +1,7 @@
 from typing import Any, Dict, Hashable, Optional, Sequence
 from collections import Counter
 from fuse.eval.metrics.metrics_common import MetricWithCollectorBase
-from fuse.eval.metrics.regression.metrics import (  # noqa: F401
-    MetricPearsonCorrelation,
-    MetricSpearmanCorrelation,
-    MetricMAE,
-    MetricMSE,
-    MetricRMSE,
-)
+from fuse.eval.metrics.regression.metrics import MetricPearsonCorrelation  # noqa: F401
 
 
 class MetricUniqueValues(MetricWithCollectorBase):
