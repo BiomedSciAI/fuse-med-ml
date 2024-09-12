@@ -31,3 +31,4 @@ lifelines
 clearml
 x-transformers
 jsonargparse
+click
