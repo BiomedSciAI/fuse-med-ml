@@ -17,7 +17,7 @@ Created on June 30, 2021
 """
 
 import pytorch_lightning as pl
-from typing import Optional, Union, Tuple
+from typing import Optional, Union, Tuple, Callable
 from collections import OrderedDict
 import os
 
@@ -54,7 +54,7 @@ class LightningModuleDefault(pl.LightningModule):
         callbacks: Optional[Sequence[pl.Callback]] = None,
         best_epoch_source: Optional[Union[Dict, List[Dict]]] = None,
         save_hyperparameters_kwargs: Optional[dict] = None,
-        save_model: bool = True,
+        save_model: bool = False,
         save_arguments: bool = False,
         tensorboard_sep: str = ".",
         log_unit: str = None,
@@ -329,6 +329,8 @@ class LightningModuleDefault(pl.LightningModule):
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
         """See pl.LightningModule.configure_optimizers return value for all options"""
+        if isinstance(self._optimizers_and_lr_schs, Callable):
+            return self._optimizers_and_lr_schs(self)
         return self._optimizers_and_lr_schs
 
     def set_predictions_keys(self, keys: List[str]) -> None:
