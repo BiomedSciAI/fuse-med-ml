@@ -50,7 +50,7 @@ class LightningModuleDefault(pl.LightningModule):
                 List[Tuple[str, OrderedDict[str, MetricBase]]],
             ]
         ] = None,
-        optimizers_and_lr_schs: Any = None,
+        optimizers_and_lr_schs: Union[dict, Callable] = None,
         callbacks: Optional[Sequence[pl.Callback]] = None,
         best_epoch_source: Optional[Union[Dict, List[Dict]]] = None,
         save_hyperparameters_kwargs: Optional[dict] = None,
@@ -63,7 +63,6 @@ class LightningModuleDefault(pl.LightningModule):
         """
         :param model_dir: location for checkpoints and logs
         :param model: Pytorch model to use
-        :param optimizers_and_lr_schs: see pl.LightningModule.configure_optimizers for details and relevant options
         :param losses: dict of FuseMedML style losses
                Will be used for both train and validation unless validation_losses is specified.
         :param validation_losses: Optional, typically used when there are multiple validation dataloaders - each with a different loss
@@ -75,7 +74,7 @@ class LightningModuleDefault(pl.LightningModule):
         :param test_metrics: ordereddict of FuseMedML style metrics - used for test set (must be different instances of metrics (from train_metrics)
                                    In case of multiple test dataloaders, test_metrics should be list of tuples (that keeps the same dataloaders list order),
                                    Each tuple built from test dataloader name and corresponding metrics dict.
-        :param optimizers_and_lr_schs: see pl.LightningModule.configure_optimizers return value for all options
+        :param optimizers_and_lr_schs: either a callable that follows pl.LightningModule.configure_optimizers prototype or just the output of such a function.
         :param callbacks: see pl.LightningModule.configure_callbacks return value for details
         :param best_epoch_source: Create list of pl.callbacks that saves checkpoints using (pl.callbacks.ModelCheckpoint) and print per epoch summary (fuse.dl.lightning.pl_epoch_summary.ModelEpochSummary).
                                   Either a dict with arguments to pass to ModelCheckpoint or list dicts for multiple ModelCheckpoint callbacks (to monitor and save checkpoints for more then one metric).
