@@ -512,23 +512,34 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
 
     @classmethod
     def from_pretrained(
-        cls, identifier: str, pad_token: str = "<PAD>", max_size: Optional[int] = None
+        cls,
+        identifier: str,
+        pad_token: str = "<PAD>",
+        max_size: Optional[int] = None,
+        force_download: bool = False,
+        resume_download: Optional[bool] = None,
+        proxies: Optional[Dict] = None,
+        token: Optional[Union[str, bool]] = None,
+        cache_dir: Optional[Union[str, Path]] = None,
+        local_files_only: bool = False,
+        revision: Optional[str] = None,
     ) -> "ModularTokenizerOp":
         if not os.path.isdir(identifier):
             # Try to download from hub
             try:
-                # Download the entire repo
+                # Download 'tokenizer' folder from repo
                 identifier = snapshot_download(
                     repo_id=str(identifier),
-                    # revision=revision,
-                    # cache_dir=cache_dir,
-                    # force_download=force_download,
-                    # proxies=proxies,
-                    # resume_download=resume_download,
-                    # token=token,
-                    # local_files_only=local_files_only,
+                    revision=revision,
+                    cache_dir=cache_dir,
+                    force_download=force_download,
+                    proxies=proxies,
+                    resume_download=resume_download,
+                    token=token,
+                    local_files_only=local_files_only,
                     allow_patterns="tokenizer/",
                 )
+                # Redirecting identifier to the downloaded folder
                 identifier = os.path.join(identifier, "tokenizer")
             except Exception as e:
                 raise Exception(
@@ -557,7 +568,6 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
         allow_patterns: Optional[Union[List[str], str]] = None,
         ignore_patterns: Optional[Union[List[str], str]] = None,
         delete_patterns: Optional[Union[List[str], str]] = None,
-        model_card_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
         api = HfApi(token=token)
         repo_id = api.create_repo(
