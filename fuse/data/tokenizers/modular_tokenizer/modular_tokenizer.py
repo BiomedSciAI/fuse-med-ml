@@ -6,7 +6,6 @@ from warnings import warn
 from typing import Optional, List, Set, Union, Tuple, Any, Iterator
 import json
 import transformers
-from pathlib import Path
 import os
 from omegaconf import OmegaConf
 import collections
@@ -683,7 +682,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerFast):
                     os.makedirs(os.path.dirname(out_path))
                 tokenizer_inst.save(out_path)
 
-    def save(self, path: Union[str, Path]) -> None:
+    def save(self, path: str) -> None:
         """Saves all information needed to reconstruct the modular tokenizer to path.
         After saving, path will contain the following:
         - json files: modular json files (i.e. that have common special tokens, and that all map to consistent ID space)
@@ -719,7 +718,6 @@ class ModularTokenizer(transformers.PreTrainedTokenizerFast):
                     return tokenizers_info_cfg
             raise Exception(f"name {name} not found")
 
-        path = str(path)
         if path.endswith(".json") or path.endswith(".yaml"):
             path = os.path.dirname(path)
 

@@ -542,7 +542,7 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
 
     def save_pretrained(self, save_directory: Union[str, Path]) -> None:
         print(f"Saving @ {save_directory=}")
-        self._tokenizer.save(path=save_directory)
+        self._tokenizer.save(path=str(save_directory))
 
     @validate_hf_hub_args
     def push_to_hub(
