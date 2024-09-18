@@ -527,7 +527,9 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
         """Load pre-trained tokenizer from HF repo_id or a local dirpath.
 
         Args:
-            identifier (str): repo_id or local dirpath.
+            identifier (str): A repo_id or local dirpath.
+            pad_token (str, optional): A string of the pad token. Defaults to "<PAD>".
+            max_size (Optional[int], optional): Sequences below this size will be padded, and above this size will be truncated. Defaults to None.
             * For other args see `snapshot_download()`
         """
         if not os.path.isdir(identifier):
