@@ -524,6 +524,12 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
         local_files_only: bool = False,
         revision: Optional[str] = None,
     ) -> "ModularTokenizerOp":
+        """Load pre-trained tokenizer from HF repo_id or a local dirpath.
+
+        Args:
+            identifier (str): repo_id or local dirpath.
+            * For other args see `snapshot_download()`
+        """
         if not os.path.isdir(identifier):
             # Try to download from hub
             try:
