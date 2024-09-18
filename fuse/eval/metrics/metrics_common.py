@@ -163,7 +163,11 @@ class MetricCollector(MetricBase):
                 value = batch[key]
 
                 # collect distributed
-                if dist.is_initialized() and self._collect_distributed:
+                if (
+                    dist.is_initialized()
+                    and dist.get_world_size() > 1
+                    and self._collect_distributed
+                ):
                     value = self.sync_tensor_data_and_concat(value)
 
                 batch_to_collect[name] = value
