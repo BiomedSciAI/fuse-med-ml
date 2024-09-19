@@ -151,6 +151,8 @@ class LightningModuleDefault(pl.LightningModule):
         # convert all use-cases to the same format that supports multiple val dataloaders: List[Tuple[str, OrderedDict[str, MetricBase]]]
         if isinstance(self._validation_metrics, dict):
             self._validation_metrics = [(None, self._validation_metrics)]
+        if isinstance(self._test_metrics, dict):
+            self._test_metrics = [(None, self._test_metrics)]
 
         if log_unit not in [None, "optimizer_step", "epoch"]:
             raise Exception(f"Error: unexpected log_unit {log_unit}")
