@@ -44,3 +44,4 @@ suprem_weights : /dccstor/mm_hcls2/oai/code/archs/weights/supervised_suprem_unet
 dino_weights : null
 resume_training_from : null #resume training from checkpoint
 test_ckpt : null # if not null - an evaluation on the test set will be performed using the test_ckpt
+save_test_results : true

@@ -1,5 +1,6 @@
 from fuse.utils.utils_logger import fuse_logger_start
 import os
+import dill
 from glob import glob
 import pandas as pd
 from fuse.dl.models import ModelMultiHead
@@ -19,6 +20,7 @@ from fuse.utils.rand.seed import Seed
 import logging
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.lightning.pl_module import LightningModuleDefault
+from fuse.dl.lightning.pl_funcs import step_extract_predictions
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import LearningRateMonitor
 import hydra
@@ -274,6 +276,16 @@ def main(cfg: DictConfig) -> None:
     if cfg.test_ckpt is not None:
         print(f"Test using ckpt: {cfg.test_ckpt}")
         pl_trainer.validate(pl_module, test_dl, ckpt_path=cfg.test_ckpt)
+        if cfg.save_test_results:
+            def predict_step(self, batch_dict, batch_idx: int) -> dict:
+                batch_dict = self.forward(batch_dict)
+                batch_dict["model.logits.head_seg"] = batch_dict["model.logits.head_seg"].argmax(axis=0).to(torch.uint8)
+                return step_extract_predictions(self._prediction_keys, batch_dict)
+            pl_module.predict_step = predict_step.__get__(pl_module)
+            pl_module.set_predictions_keys(["model.logits.head_seg","idx"])
+            output = pl_trainer.predict(pl_module, test_dl, ckpt_path=cfg.test_ckpt)
+            with open(f'{model_dir}/output.pkl', 'wb') as f:
+                dill.dump(output, f, protocol=4)
     else:
         # print(f"Training using ckpt: {ckpt_path}")
         pl_trainer.fit(pl_module, train_dl, val_dl, ckpt_path=ckpt_path)
