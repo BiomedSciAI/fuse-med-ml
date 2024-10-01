@@ -41,7 +41,7 @@ Each training type has its own `config.yaml` file. Make sure to set the followin
 - `test_ckpt`: Path to the checkpoint for testing. If set to "null", the model will train using the train and validation sets. If a path is provided, it will perform evaluation on the test set using the given checkpoint.
 
 To load pretrained weights or start from certain checkpoint you need to set only <b>one</b> of the following:
-- `suprem_weights`: Path to the backbone pretrained weights from SupRem (download from https://github.com/MrGiovanni/SuPreM)
+- `suprem_weights`: Path to the backbone pretrained weights from SuPreM (download from https://github.com/MrGiovanni/SuPreM)
 - `dino_weights`: Path to the backbone pretrained weights from Dino
 - `resume_training_from`: Path to training checkpoint
 - `test_ckpt`: If set, the test set as defined in `test_folds` will be evaluated using this checkpoint
@@ -93,6 +93,6 @@ You can track the progress of your training/testing using one of the following m
    tensorboard --logdir=<path_to_experiments_directory>
    ```
 2. ClearML:
-    If ClearML is installed and enabled in your config file (`clearml : true`), you can use it to monitor your results.
+    If ClearML is installed and enabled in your config file (`clearml : True`), you can use it to monitor your results.
 
     Choose the method that best suits your workflow and preferences.
