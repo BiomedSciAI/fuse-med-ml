@@ -186,6 +186,24 @@ class ModularTokenizerWithoutInjectOp(OpBase):
         """
         return self._tokenizer.get_expected_max_len(override_max_len=override_max_len)
 
+    def add_new_special_tokens(self, new_special_tokens: list[str], output_path=None):
+        """add new special tokens if they are not in the tokenizer.  
+        Skipps allready existing special tokens. 
+        If the output_path is given, the updated tokenizer will be saved to this location.
+
+        Args:
+            new_special_tokens (list[str]): the tokens to add
+            output_path (_type_, optional): path to where to save the undated tokenizer. Defaults to None.
+        Returns:
+            `int`: The number of tokens that were created in the vocabulary
+            
+        Will raise an exception if any of the tokens are allready in the tokenizer as _regular_ tokens.
+        """
+        
+        tokenizer = self._tokenizer
+        num_new_tokens = tokenizer.add_special_tokens(new_special_tokens)
+        return num_new_tokens
+
     def __call__(
         self,
         sample_dict: NDict,
@@ -340,7 +358,7 @@ class ModularTokenizerWithoutInjectOp(OpBase):
 
 
 # backward compatibility
-FastModularTokenizer = ModularTokenizerWithoutInjectOp
+FastModularTokenizer = ModularTokenizerWithoutInjectOpi
 
 
 class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
