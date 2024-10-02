@@ -189,7 +189,6 @@ class ModularTokenizerWithoutInjectOp(OpBase):
     def add_new_special_tokens(self, new_special_tokens: list[str]):
         """add new special tokens if they are not in the tokenizer.  
         Skipps allready existing special tokens. 
-        If the output_path is given, the updated tokenizer will be saved to this location.
 
         Args:
             new_special_tokens (list[str]): the tokens to add
