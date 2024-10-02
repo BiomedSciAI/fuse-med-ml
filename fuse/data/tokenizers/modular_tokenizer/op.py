@@ -116,7 +116,7 @@ class ModularTokenizerWithoutInjectOp(OpBase):
     def get_min_max_sentinels(
         self,
         sentinel_prefix: Optional[str] = "<SENTINEL_ID_",
-        integer_find_regex: Optional[str] = "\d{1,}",
+        integer_find_regex: Optional[str] = r"\d{1,}",
     ) -> Tuple[int, int]:
         """
         returns a Tuple [min encountered sentinel name, max encountered sentinel name]
