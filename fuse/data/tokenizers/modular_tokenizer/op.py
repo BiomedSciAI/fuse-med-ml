@@ -357,7 +357,7 @@ class ModularTokenizerWithoutInjectOp(OpBase):
 
 
 # backward compatibility
-FastModularTokenizer = ModularTokenizerWithoutInjectOpi
+FastModularTokenizer = ModularTokenizerWithoutInjectOp
 
 
 class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
