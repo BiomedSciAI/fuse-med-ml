@@ -2,7 +2,12 @@ from typing import List, Optional, Union
 from fuse.eval.metrics.libs.stat import Stat
 from fuse.eval.metrics.metrics_common import MetricDefault
 import numpy as np
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import (
+    mean_absolute_error,
+    mean_squared_error,
+    r2_score,
+    root_mean_squared_error,
+)
 
 
 class MetricPearsonCorrelation(MetricDefault):
@@ -107,26 +112,23 @@ class MetricRMSE(MetricDefault):
         super().__init__(
             pred=pred,
             target=target,
-            metric_func=self.mse,
+            metric_func=self.rmse,
             **kwargs,
         )
 
-    def mse(
+    def rmse(
         self,
         pred: Union[List, np.ndarray],
         target: Union[List, np.ndarray],
         **kwargs: dict,
     ) -> float:
-
         pred = np.array(pred).flatten()
         target = np.array(target).flatten()
-
         assert len(pred) == len(
             target
         ), f"Expected pred and target to have the dimensions but found: {len(pred)} elements in pred and {len(target)} in target"
 
-        squared_diff = (pred - target) ** 2
-        return squared_diff.mean()
+        return root_mean_squared_error(y_true=target, y_pred=pred)
 
 
 class MetricR2(MetricDefault):
