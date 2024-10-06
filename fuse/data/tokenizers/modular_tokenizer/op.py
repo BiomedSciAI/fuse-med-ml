@@ -116,7 +116,7 @@ class ModularTokenizerWithoutInjectOp(OpBase):
     def get_min_max_sentinels(
         self,
         sentinel_prefix: Optional[str] = "<SENTINEL_ID_",
-        integer_find_regex: Optional[str] = "\d{1,}",
+        integer_find_regex: Optional[str] = r"\d{1,}",
     ) -> Tuple[int, int]:
         """
         returns a Tuple [min encountered sentinel name, max encountered sentinel name]
@@ -185,6 +185,22 @@ class ModularTokenizerWithoutInjectOp(OpBase):
             Optional[int]: _description_
         """
         return self._tokenizer.get_expected_max_len(override_max_len=override_max_len)
+
+    def add_new_special_tokens(self, new_special_tokens: list[str]) -> int:
+        """add new special tokens if they are not in the tokenizer.
+        Skipps allready existing special tokens.
+
+        Args:
+            new_special_tokens (list[str]): the tokens to add
+        Returns:
+            `int`: The number of tokens that were created in the vocabulary
+
+        Will raise an exception if any of the tokens are allready in the tokenizer as _regular_ tokens.
+        """
+
+        tokenizer = self._tokenizer
+        num_new_tokens = tokenizer.add_special_tokens(new_special_tokens)
+        return num_new_tokens
 
     def __call__(
         self,
