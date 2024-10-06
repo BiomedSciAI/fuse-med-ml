@@ -32,7 +32,7 @@ create_env() {
     fi
 
     # Python version
-    PYTHON_VER=3.8
+    PYTHON_VER=3.9
     ENV_NAME="fuse_$PYTHON_VER-CUDA-$force_cuda_version-$(echo -n $requirements | sha256sum | awk '{print $1;}')"
     echo $ENV_NAME
 

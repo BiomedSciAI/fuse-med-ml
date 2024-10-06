@@ -178,7 +178,7 @@ Note - in general, we find it helpful to follow the same directory structure sho
 
 # Installation
 
-FuseMedML is tested on Python >= 3.7 and PyTorch >= 1.5
+FuseMedML is tested on Python >= 3.9 and PyTorch >= 2.0
 
 ## We recommend using a Conda environment
 
@@ -234,7 +234,7 @@ $ pip install fuse-med-ml[all,examples]
     * [**Mortality prediction for ICU patients**](./fuse_examples/multimodality/ehr_transformer) - Example of EHR transformer applied to the data of Intensive Care Units patients for in-hospital mortality prediction. The dataset is from [PhysioNet Computing in Cardiology Challenge (2012)](https://physionet.org/content/challenge-2012/1.0.0/)
 * Pre-training
     * [**Medical Imaging Pre-training and Downstream Task Validation**](./fuse_examples/imaging/oai_example) - pre-training a model on 3D MRI medical imaging and then using it for classification and segmentation downstream tasks.
-   
+
 
 ## Walkthrough template
 * [**Walkthrough Template**](./fuse/dl/templates/walkthrough_template.py) - includes several TODO notes, marking the minimal scope of code required to get your pipeline up and running. The template also includes useful explanations and tips.
