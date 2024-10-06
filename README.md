@@ -178,7 +178,7 @@ Note - in general, we find it helpful to follow the same directory structure sho
 
 # Installation
 
-FuseMedML is tested on Python >= 3.7 and PyTorch >= 1.5
+FuseMedML is tested on Python >= 3.9 and PyTorch >= 2.0
 
 ## We recommend using a Conda environment
 
