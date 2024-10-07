@@ -1,4 +1,4 @@
-from typing import Optional, List, Tuple, Dict, Union
+from typing import Optional, List, Tuple, Dict
 from tokenizers import Encoding
 import torch
 import re
