@@ -372,8 +372,7 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
     supported syntax/format:
 
     for text following <@TOKENIZER-TYPE=SCALARS_LITERALS> supports the following format:
-    ',' separated float values and/or <MASK> tokens -
-        for example: "2.7,3.99,-12.9" or "<MASK><MASK>" or "2.19,<MASK>,3.19,<MASK>"
+    ',' separated float values 
 
     for text following <@TOKENIZER-TYPE=SCALARS_FROM_DICT> is expected to be a key to the sample NDict
         for example: "blah.boo.banana"  or "data.input.encoder_input"
@@ -437,9 +436,7 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
         on_unknown: Optional[str] = "warn",
         verbose: Optional[int] = 1,
         validate_ends_with_eos: Optional[bool] = None,
-        key_out_scalars_indices: Optional[str] = None,
-        key_out_scalars_values: Optional[str] = None,
-        key_out_masked_scalars_indices: Optional[str] = None,
+        key_out_scalars: Optional[str] = None,
     ) -> NDict:
         """_summary_
 
@@ -458,10 +455,10 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
             verbose (Optional[int], optional): verbosity level. 0: no notification, 1: warning notification, 2: warning with partial data, 3: warning
                 with full data. Defaults to 1.
             validate_ends_with_eos (Optional[bool], optional): if not None, overrides self._validate_ends_with_eos
-            key_out_scalars_inputs_indices:str optional
-                if provided, will write to sample_dict in this key a 1D torch tensor with indices of all inputs scalar elements.
-            key_out_scalars_inputs_values:str optional
-                if provided, will write to sample_dict in this key a 1D torch tensor with indices of all inputs scalar values.
+            key_out_scalars:str optional
+                if provided, will write to:
+                        `sample_dict[f'{key_out_scalars}.values]` - a 1D torch tensor with all the scalars values
+                        `sample_dict[f'{key_out_scalars}.valid_mask]` - a 1D torch boolean tensor representing which elements have scalar values
 
         Returns:
             NDict: _description_
@@ -495,34 +492,15 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
             per_meta_encoding_including_placeholders=sample_dict[
                 key_in + ".per_meta_part_encoding"
             ],
+            token_ids=sample_dict[key_out_tokens_ids],
             sample_dict=sample_dict,
         )
 
-        if key_out_scalars_indices is not None:
-            sample_dict[key_out_scalars_indices] = prepared_data["scalars_indices"]
-        else:
-            if prepared_data["scalars_indices"] is not None:
-                raise Exception(
-                    "non None scalars_indices found but no key_out_scalars_indices found"
-                )
-
-        if key_out_scalars_values is not None:
-            sample_dict[key_out_scalars_values] = prepared_data["scalars_values"]
-        else:
-            if prepared_data["scalars_values"] is not None:
-                raise Exception(
-                    "non None scalars_value found but no key_out_scalars_values found"
-                )
-
-        if key_out_masked_scalars_indices is not None:
-            sample_dict[key_out_masked_scalars_indices] = prepared_data[
-                "scalars_masked_indices"
+        if key_out_scalars is not None:
+            sample_dict[key_out_scalars + ".values"] = prepared_data["scalars_values"]
+            sample_dict[key_out_scalars + ".valid_mask"] = prepared_data[
+                "scalars_valid_mask"
             ]
-        else:
-            if prepared_data["scalars_masked_indices"] is not None:
-                raise Exception(
-                    "non None scalars_masked_indices found but no key_out_masked_scalars_indices found"
-                )
 
         return sample_dict
 
