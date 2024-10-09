@@ -1,4 +1,4 @@
-from typing import Optional, List, Tuple, Dict
+from typing import Optional, List, Tuple, Dict, Union
 from tokenizers import Encoding
 import torch
 import re
@@ -45,7 +45,7 @@ class InjectorToModularTokenizerLib:
     @staticmethod
     def build_placeholder_meta_tokenization(
         *,
-        sequence: str,
+        sequence: Union[str, list, tuple],
         sample_dict: Optional[NDict] = None,
     ) -> Tuple[str, List[str]]:
         """
@@ -92,7 +92,7 @@ class InjectorToModularTokenizerLib:
 
                 if tokenizer_type == "SCALARS_LITERALS":
                     values = subseq.split(",")
-                    # validate that all values can be converted to fload
+                    # validate that all values can be converted to float
                     try:
                         [float(x) for x in values]
                     except:
@@ -145,10 +145,11 @@ class InjectorToModularTokenizerLib:
 
         """
         ## both `all_scalars_values` and `all_scalars_valid_mask` will contain torch tensors, which will be concatanated in the end of this function
-        all_scalars_values = (
-            []
-        )  # one scalar for every element, `scalar_default_unfound_value` is used for elements that aren't scalars
-        all_scalars_valid_mask = []  # for each element, whether it's a scalar or not
+
+        # one scalar for every element, `scalar_default_unfound_value` is used for elements that aren't scalars
+        all_scalars_values = []
+        # for each element, whether it's a scalar or not
+        all_scalars_valid_mask = []
         scalar_default_unfound_value = -1000.0
 
         for tokenizer_name, curr_str_data, curr_placeholder_encoding in zip(
