@@ -122,7 +122,7 @@ class InjectorToModularTokenizerLib:
         return "".join(with_placeholders), hints_and_subseq
 
     @staticmethod
-    def prepare_info_for_model_step(
+    def build_scalars(
         *,
         per_meta_tokenizer_data: List[str],
         per_meta_encoding_including_placeholders: List[Encoding],

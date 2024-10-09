@@ -487,7 +487,7 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
             + ".per_meta_part_encoding",  # using the key_in as base for the name because key_out_* are optional
         )
 
-        prepared_data = InjectorToModularTokenizerLib.prepare_info_for_model_step(
+        prepared_data = InjectorToModularTokenizerLib.build_scalars(
             per_meta_tokenizer_data=per_meta_orig,
             per_meta_encoding_including_placeholders=sample_dict[
                 key_in + ".per_meta_part_encoding"
