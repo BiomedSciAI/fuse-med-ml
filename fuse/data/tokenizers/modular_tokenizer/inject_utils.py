@@ -236,11 +236,12 @@ class InjectorToModularTokenizerLib:
                     ),
                 ]
             )
-        elif full_query_len > all_scalars_values.shape[0]:
-            print('warning: scalars sequence had to be cropped. The full (including all subtokenizers) length was {all_scalars_values.shape[0]} after cropping it is {full_query_len}')
+        elif full_query_len < all_scalars_values.shape[0]:
+            print(
+                "warning: scalars sequence had to be cropped. The full (including all subtokenizers) length was {all_scalars_values.shape[0]} after cropping it is {full_query_len}"
+            )
             all_scalars_values = all_scalars_values[:full_query_len]
             all_scalars_valid_mask = all_scalars_valid_mask[:full_query_len]
-        
 
         return {
             "scalars_values": all_scalars_values,  # 1d - its length is the number of actual scalars (provided) found
