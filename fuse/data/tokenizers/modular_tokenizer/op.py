@@ -30,7 +30,7 @@ class ModularTokenizerWithoutInjectOp(OpBase):
         validate_ends_with_eos: Optional[bool] = True,
         eos: Optional[str] = "<EOS>",
         verbose: Optional[bool] = False,
-        on_unknown_default_value: str = "warn",
+        on_unknown_default_value: Optional[str] = None,
         **kwargs: Any,
     ) -> None:
         """
@@ -62,7 +62,13 @@ class ModularTokenizerWithoutInjectOp(OpBase):
 
         self._validate_ends_with_eos = validate_ends_with_eos
         self._eos = eos
-        self._on_unknown_default_value = on_unknown_default_value
+        if on_unknown_default_value is not None:
+            self._on_unknown_default_value = on_unknown_default_value
+        else:
+            self._on_unknown_default_value = "warn"
+
+        if on_unknown_default_value not in ["warn", "raise"]:
+            raise ValueError(f"Doesn't support {on_unknown_default_value=}!")
 
         if self._validate_ends_with_eos:
             eos_id = self._tokenizer.token_to_id(self._eos)
@@ -538,6 +544,7 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
         identifier: str,
         pad_token: str = "<PAD>",
         max_size: Optional[int] = None,
+        on_unknown_default_value: Optional[str] = None,
         force_download: bool = False,
         resume_download: Optional[bool] = None,
         proxies: Optional[Dict] = None,
@@ -577,7 +584,10 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
                 ) from e
 
         tokenizer_op = cls(
-            tokenizer_path=identifier, pad_token=pad_token, max_size=max_size
+            tokenizer_path=identifier,
+            pad_token=pad_token,
+            max_size=max_size,
+            on_unknown_default_value=on_unknown_default_value,
         )
         return tokenizer_op
 
