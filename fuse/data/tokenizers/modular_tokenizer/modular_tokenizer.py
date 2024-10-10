@@ -868,19 +868,12 @@ class ModularTokenizer(transformers.PreTrainedTokenizerFast):
         # we update the special tokens but do not save here.  remember to save yourself.
         self.update_special_tokens(
             special_tokens=new_tokenize_special_tokens,
-            # save_tokenizer_path=self.cfg_raw["data"]["tokenizer"]["out_path"],
         )
 
     def add_tokenizers(
         self,
     ) -> None:
         raise Exception("Not implemented")
-        # self.build_inner_decoder()
-        # if self._max_possible_token_id is not None:
-        #     if self._get_max_mapped_id() > self._max_possible_token_id:
-        #         raise Exception(
-        #             f"tokenizer remapping resulted in IDs greater (max_id={self._get_max_mapped_id()}) than max_possible_id ({self._max_possible_token_id}). Reinitialize the modular tokenizer with larger max_possible_id"
-        #         )
 
     def _encode_single_type(
         self,
@@ -1059,10 +1052,6 @@ class ModularTokenizer(transformers.PreTrainedTokenizerFast):
         merged_encoding = Encoding.merge(encoded_list)
 
         max_len = self.get_expected_max_len(override_max_len=max_len)
-        # if max_len is None:
-        #     if self.max_len is not None:
-        #         max_len = self.max_len
-
         if max_len is not None:
             if len(merged_encoding) > max_len:
                 overflow_info += f"OVERALL:{len(merged_encoding)}=>{max_len}|"
