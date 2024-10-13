@@ -30,6 +30,7 @@ class ModularTokenizerWithoutInjectOp(OpBase):
         validate_ends_with_eos: Optional[bool] = True,
         eos: Optional[str] = "<EOS>",
         verbose: Optional[bool] = False,
+        on_unknown_default_value: str = "warn",
         **kwargs: Any,
     ) -> None:
         """
@@ -41,6 +42,7 @@ class ModularTokenizerWithoutInjectOp(OpBase):
             validate_ends_with_eos: during encoder request (a _call_ to the op) will make sure that it ends with the provided eos token, and raise exception otherwise.
                 having an eos (end of sentence) token in the end is useful for multiple scenarios, for example in a generative transformer (like T5 encoder-decoder)
             verbose:
+            on_unknown_default_value: User can define the default behavior of unknown token here in the constructor. In addition, this value can be overwritten in the __call__
         """
         super().__init__(**kwargs)
 
@@ -60,6 +62,10 @@ class ModularTokenizerWithoutInjectOp(OpBase):
 
         self._validate_ends_with_eos = validate_ends_with_eos
         self._eos = eos
+        self._on_unknown_default_value = on_unknown_default_value
+
+        if on_unknown_default_value not in ["warn", "raise"]:
+            raise ValueError(f"Doesn't support {on_unknown_default_value=}!")
 
         if self._validate_ends_with_eos:
             eos_id = self._tokenizer.token_to_id(self._eos)
@@ -211,7 +217,7 @@ class ModularTokenizerWithoutInjectOp(OpBase):
         key_out_attention_mask: Optional[str] = None,
         convert_attention_mask_to_bool: Optional[bool] = True,
         max_seq_len: Optional[int] = None,
-        on_unknown: Optional[str] = "warn",
+        on_unknown: Optional[str] = None,
         verbose: Optional[int] = 1,
         validate_ends_with_eos: Optional[bool] = None,
         additional_caller_info_text: Optional[str] = "",
@@ -230,7 +236,7 @@ class ModularTokenizerWithoutInjectOp(OpBase):
             key_out_attention_mask (Optional[str], optional): _description_. Defaults to None.
             convert_attention_mask_to_bool (Optional[bool], optional): _description_. Defaults to True.
             max_seq_len (Optional[int], optional): set maximum sequence len dynamically, used for both padding and truncation.. Defaults to None.
-            on_unknown (Optional[str], optional): What happens if unknown tokens (i.e. ones mapped to <UNK>) are encountered: 'raise' or 'warn'. Defaults to "warn".
+            on_unknown (Optional[str], optional): What happens if unknown tokens (i.e. ones mapped to <UNK>) are encountered: 'raise' or 'warn'. Defaults to "warn". The default value can be determined in the constructor itself.
             verbose (Optional[int], optional): verbosity level. 0: no notification, 1: warning notification, 2: warning with partial data, 3: warning
                 with full data. Defaults to 1.
             validate_ends_with_eos (Optional[bool], optional): if not None, overrides self._validate_ends_with_eos
@@ -243,7 +249,6 @@ class ModularTokenizerWithoutInjectOp(OpBase):
         Returns:
             NDict: _description_
         """
-
         data = sample_dict[key_in]
         if not isinstance(data, (list, str)):
             # data is a list of named tuples of type collections.namedtuple("TypedInput", ["input_type", "input_string", "max_len"])
@@ -262,6 +267,10 @@ class ModularTokenizerWithoutInjectOp(OpBase):
                 raise Exception(
                     f"validate_ends_with_eos was set to {validate_ends_with_eos}, but about to encode a string that does not end with {self._eos}. The str end was: {last_seq}"
                 )
+
+        if on_unknown is None:
+            # Use tokenizer instance default value
+            on_unknown = self._on_unknown_default_value
 
         if isinstance(data, str):
             _ans = self._tokenizer.encode(
@@ -510,6 +519,7 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
         identifier: str,
         pad_token: str = "<PAD>",
         max_size: Optional[int] = None,
+        on_unknown_default_value: str = "warn",
         force_download: bool = False,
         resume_download: Optional[bool] = None,
         proxies: Optional[Dict] = None,
@@ -549,7 +559,10 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
                 ) from e
 
         tokenizer_op = cls(
-            tokenizer_path=identifier, pad_token=pad_token, max_size=max_size
+            tokenizer_path=identifier,
+            pad_token=pad_token,
+            max_size=max_size,
+            on_unknown_default_value=on_unknown_default_value,
         )
         return tokenizer_op
 
