@@ -7,6 +7,7 @@ from fuse.data.tokenizers.modular_tokenizer.modular_tokenizer import (
     TypedInput,
     list_to_tokenizer_string,
 )
+from warnings import warn
 
 
 class InjectorToModularTokenizerLib:
@@ -28,17 +29,15 @@ class InjectorToModularTokenizerLib:
     supported syntax/format:
 
     for text following <@TOKENIZER-TYPE=SCALARS_LITERALS> supports the following format:
-    ',' separated float values and/or <MASK> tokens -
-        for example: "2.7,3.99,-12.9" or "<MASK><MASK>" or "2.19,<MASK>,3.19,<MASK>"
+    ',' separated float values. For example: "2.7,3.99,-12.9"
 
     for text following <@TOKENIZER-TYPE=SCALARS_FROM_DICT> is expected to be a key to the sample NDict
         for example: "blah.boo.banana"  or "data.input.encoder_input"
-        note: in SCALARS_FROM_DICT you can't describe masked scalars (outputs) you can only describe inputs
 
     example usage:
 
     encoder_input:
-    <@TOKENIZER-TYPE=AA><MOLECULAR_WEIGHT_IN_SOME_UNIT><@TOKENIZER-TYPE=SCALARS_LITERALS>0.3<@TOKENIZER-TYPE=AA><BINDING_AFFINITY_NANOMOLAR><@TOKENIZER-TYPE=SCALARS_LITERALS><MASK><@TOKENIZER-TYPE=AA><SEQUENCE_NATURAL_START>ISGGDAIYSSTGRCSLGFNVRSGSTYYFLTAGICTDGATTWWANSARTTVLGTTSGSSFPNNDYGIVRYTNTTIPKDGTVGGQDITSAANATVGMAVTRRGSTTGTISGSVTALNATVNYGGGDVVYGMIRTNVCAEPGDSGGPLYSGTRAIGLTSGGSGNCSSGGTTFFQPVTEALVAYGVSVY<SEQUENCE_NATURAL_END>
+    <@TOKENIZER-TYPE=AA><MOLECULAR_WEIGHT_IN_SOME_UNIT><@TOKENIZER-TYPE=SCALARS_LITERALS>0.3<@TOKENIZER-TYPE=AA><BINDING_AFFINITY_NANOMOLAR><MASK><@TOKENIZER-TYPE=AA><SEQUENCE_NATURAL_START>ISGGDAIYSSTGRCSLGFNVRSGSTYYFLTAGICTDGATTWWANSARTTVLGTTSGSSFPNNDYGIVRYTNTTIPKDGTVGGQDITSAANATVGMAVTRRGSTTGTISGSVTALNATVNYGGGDVVYGMIRTNVCAEPGDSGGPLYSGTRAIGLTSGGSGNCSSGGTTFFQPVTEALVAYGVSVY<SEQUENCE_NATURAL_END>
     labels:
     <@TOKENIZER-TYPE=AA><MOLECULAR_WEIGHT_IN_SOME_UNIT><@TOKENIZER-TYPE=SCALARS_LITERALS>0.3<@TOKENIZER-TYPE=AA><BINDING_AFFINITY_NANOMOLAR><@TOKENIZER-TYPE=SCALARS_LITERALS>12.4<@TOKENIZER-TYPE=AA><SEQUENCE_NATURAL_START>ISGGDAIYSSTGRCSLGFNVRSGSTYYFLTAGICTDGATTWWANSARTTVLGTTSGSSFPNNDYGIVRYTNTTIPKDGTVGGQDITSAANATVGMAVTRRGSTTGTISGSVTALNATVNYGGGDVVYGMIRTNVCAEPGDSGGPLYSGTRAIGLTSGGSGNCSSGGTTFFQPVTEALVAYGVSVY<SEQUENCE_NATURAL_END>
 
@@ -67,16 +66,15 @@ class InjectorToModularTokenizerLib:
                 )
             if len(sequence) > 0:
                 if isinstance(sequence[0], TypedInput):
-                    sequence_str = list_to_tokenizer_string(
+                    sequence = list_to_tokenizer_string(
                         sequence
                     )  # currently supporting it in this simple way. Consider optimizing if it causes a bottleneck.
                 else:
                     raise Exception(
                         f"Expected sequence to be either string or a list of TypedInput elements. Got a list, but the first element is of type {type(sequence[0])}"
                     )
-        else:
-            sequence_str = sequence
-        hints_and_subseq = re.split("<@TOKENIZER-TYPE=([^>]*)>", sequence_str)[
+
+        hints_and_subseq = re.split("<@TOKENIZER-TYPE=([^>]*)>", sequence)[
             1:
         ]  # the first element is blank - removing it
         assert (
@@ -91,19 +89,18 @@ class InjectorToModularTokenizerLib:
             if tokenizer_type.startswith("SCALARS_"):
                 with_placeholders.append(
                     "<@TOKENIZER-TYPE=AA>"
-                )  # won't use AA tokens, just an arbitrary one to be able to use a token like <SCALAR>
+                )  # AA tokenizer selection is arbitrary, we only take the special token <SCALAR> from it
 
-                if (
-                    tokenizer_type == "SCALARS_LITERALS"
-                ):  # note: masking is only supported in literals (not in "from dict")
+                if tokenizer_type == "SCALARS_LITERALS":
                     values = subseq.split(",")
-                    # seq = "<SCALAR>" * len(values)
-                    seq = "".join(
-                        [
-                            "<MASKED_SCALAR>" if x == "<MASK>" else "<SCALAR>"
-                            for x in values
-                        ]
-                    )
+                    # validate that all values can be converted to float
+                    try:
+                        [float(x) for x in values]
+                    except:
+                        raise ValueError(
+                            f'expected a string with "," separated values that can each be converted to float. Got {subseq}'
+                        )
+                    seq = "<SCALAR>" * len(values)
                 elif tokenizer_type == "SCALARS_FROM_DICT":
                     if sample_dict is None:
                         raise Exception(
@@ -126,11 +123,13 @@ class InjectorToModularTokenizerLib:
         return "".join(with_placeholders), hints_and_subseq
 
     @staticmethod
-    def prepare_info_for_model_step(
+    def build_scalars(
         *,
         per_meta_tokenizer_data: List[str],
         per_meta_encoding_including_placeholders: List[Encoding],
+        token_ids: List[int],
         sample_dict: Optional[NDict] = None,
+        crop_report: str = "warn",
     ) -> Dict:
         """
         since we:
@@ -144,13 +143,18 @@ class InjectorToModularTokenizerLib:
             per_meta_encoding_including_placeholders: a list of Encoding elements. This is used to extract per tokenizer final tokens num (after all of the padding and cropping logic was already done)
             sample_dict: a fuse sample_dict - optional.
                 needed only if the meta tokenizer instruction uses a syntax of lookup from the dictionary
-
+            crop_report: one of None (no action), 'warn' - print a warning, 'raise' - raise an exception
+                will be triggered if cropping happened
 
         """
-        scalars_indices = []
-        scalars_values = []
-        scalars_masked_indices = []
-        prev_index_end = -1
+        assert crop_report in ["warn", "raise", None]
+        ## both `all_scalars_values` and `all_scalars_valid_mask` will contain torch tensors, which will be concatanated in the end of this function
+
+        # one scalar for every element, `scalar_default_unfound_value` is used for elements that aren't scalars
+        all_scalars_values = []
+        # for each element, whether it's a scalar or not
+        all_scalars_valid_mask = []
+        scalar_default_unfound_value = -1000.0
 
         for tokenizer_name, curr_str_data, curr_placeholder_encoding in zip(
             per_meta_tokenizer_data[::2],
@@ -165,41 +169,29 @@ class InjectorToModularTokenizerLib:
                             f"should match expected length. Found length {len(curr_str_data)} but placeholders length was {len(curr_placeholder_encoding.ids)}"
                         )
 
-                    curr_indices = []
-                    curr_data = []
-
-                    for i, val in enumerate(curr_str_data):
-                        if val != "<MASK>":
-                            curr_indices.append(i + prev_index_end + 1)
-                            curr_data.append(float(val))
-                        else:
-                            scalars_masked_indices.append(i + prev_index_end + 1)
-
-                    if len(curr_indices) > 0:
-                        curr_indices = torch.tensor(curr_indices, dtype=torch.int64)
-                        curr_data = torch.tensor(curr_data, dtype=torch.float32)
-
-                        scalars_indices.append(curr_indices)
-                        scalars_values.append(curr_data)
-
-                        assert len(curr_data.shape) == 1
-
-                    prev_index_end += len(curr_str_data)
+                    curr_scalar_values = [float(val) for val in curr_str_data]
+                    curr_scalar_values = torch.tensor(
+                        curr_scalar_values, dtype=torch.float32
+                    )
+                    all_scalars_values.append(curr_scalar_values)
+                    all_scalars_valid_mask.append(
+                        torch.full_like(
+                            curr_scalar_values, fill_value=True, dtype=torch.bool
+                        )
+                    )
                 elif "SCALARS_FROM_DICT" == tokenizer_name:
                     if sample_dict is None:
                         raise Exception(
                             "SCALARS_FROM_DICT used but the provided sample_dict is None"
                         )
-                    curr_data = sample_dict[curr_str_data]
-                    assert len(curr_data.shape) == 1
-                    curr_indices = torch.arange(
-                        prev_index_end + 1, prev_index_end + 1 + curr_data.shape[0]
+                    curr_scalar_values = sample_dict[curr_str_data]
+                    assert len(curr_scalar_values.shape) == 1
+                    all_scalars_values.append(curr_scalar_values)
+                    all_scalars_valid_mask.append(
+                        torch.full_like(
+                            curr_scalar_values, fill_value=True, dtype=torch.bool
+                        )
                     )
-
-                    scalars_indices.append(curr_indices)
-                    scalars_values.append(curr_data)
-
-                    prev_index_end += curr_data.shape[0]
 
                 else:
                     raise Exception(
@@ -209,24 +201,58 @@ class InjectorToModularTokenizerLib:
             elif tokenizer_name.startswith("VECTORS_"):
                 raise NotImplementedError
             else:
-                prev_index_end += len(curr_placeholder_encoding.ids)
+                # prev_index_end += len(curr_placeholder_encoding.ids)
+                curr_scalar_values = torch.full(
+                    (len(curr_placeholder_encoding.ids),),
+                    fill_value=scalar_default_unfound_value,
+                )
+                all_scalars_values.append(curr_scalar_values)
+                all_scalars_valid_mask.append(
+                    torch.full_like(
+                        curr_scalar_values, fill_value=False, dtype=torch.bool
+                    )
+                )
 
-        if len(scalars_indices) > 0:
-            scalars_indices = torch.concat(scalars_indices)
-            scalars_values = torch.concat(scalars_values)
-        else:
-            scalars_indices = None
-            scalars_values = None
+        all_scalars_values = torch.concat(all_scalars_values)
+        all_scalars_valid_mask = torch.concat(all_scalars_valid_mask)
 
-        if len(scalars_masked_indices) > 0:
-            scalars_masked_indices = torch.tensor(
-                scalars_masked_indices, dtype=torch.int64
+        assert all_scalars_values.shape == all_scalars_valid_mask.shape
+
+        # pad if needed
+        full_query_len = len(token_ids)
+        if full_query_len > all_scalars_values.shape[0]:
+            pad_len = full_query_len - all_scalars_values.shape[0]
+            all_scalars_values = torch.concat(
+                [
+                    all_scalars_values,
+                    torch.full(
+                        (pad_len,),
+                        fill_value=scalar_default_unfound_value,
+                        dtype=all_scalars_values.dtype,
+                    ),
+                ]
             )
-        else:
-            scalars_masked_indices = None
+            all_scalars_valid_mask = torch.concat(
+                [
+                    all_scalars_valid_mask,
+                    torch.full(
+                        (pad_len,), fill_value=False, dtype=all_scalars_valid_mask.dtype
+                    ),
+                ]
+            )
+        elif full_query_len < all_scalars_values.shape[0]:
+            if crop_report in ["warn", "raise"]:
+                _msg = f"warning: scalars sequence had to be cropped. The full (including all subtokenizers) length was {all_scalars_values.shape[0]} after cropping it is {full_query_len}"
+                if crop_report == "warn":
+                    warn(_msg)
+                elif crop_report == "raise":
+                    raise Exception(_msg)
+                else:
+                    assert False, "should not get here"
+            all_scalars_values = all_scalars_values[:full_query_len]
+            all_scalars_valid_mask = all_scalars_valid_mask[:full_query_len]
 
         return {
-            "scalars_indices": scalars_indices,  # 1d - its length is the number of actual scalars (provided) found
-            "scalars_values": scalars_values,  # 1d - values of provided scalars
-            "scalars_masked_indices": scalars_masked_indices,  # 1d - indices of masked scalars
+            "scalars_values": all_scalars_values,  # 1d - its length is the number of actual scalars (provided) found
+            "scalars_valid_mask": all_scalars_valid_mask,  # 1d - values of provided scalars
         }
