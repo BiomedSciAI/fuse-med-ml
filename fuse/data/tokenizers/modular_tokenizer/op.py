@@ -30,7 +30,7 @@ class ModularTokenizerWithoutInjectOp(OpBase):
         validate_ends_with_eos: Optional[bool] = True,
         eos: Optional[str] = "<EOS>",
         verbose: Optional[bool] = False,
-        on_unknown_default_value: Optional[str] = None,
+        on_unknown_default_value: str = "warn",
         **kwargs: Any,
     ) -> None:
         """
@@ -62,10 +62,7 @@ class ModularTokenizerWithoutInjectOp(OpBase):
 
         self._validate_ends_with_eos = validate_ends_with_eos
         self._eos = eos
-        if on_unknown_default_value is not None:
-            self._on_unknown_default_value = on_unknown_default_value
-        else:
-            self._on_unknown_default_value = "warn"
+        self._on_unknown_default_value = on_unknown_default_value
 
         if on_unknown_default_value not in ["warn", "raise"]:
             raise ValueError(f"Doesn't support {on_unknown_default_value=}!")
@@ -272,7 +269,7 @@ class ModularTokenizerWithoutInjectOp(OpBase):
                 )
 
         if on_unknown is None:
-            # Use tokenizer instance defautl value
+            # Use tokenizer instance default value
             on_unknown = self._on_unknown_default_value
 
         if isinstance(data, str):
@@ -522,7 +519,7 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
         identifier: str,
         pad_token: str = "<PAD>",
         max_size: Optional[int] = None,
-        on_unknown_default_value: Optional[str] = None,
+        on_unknown_default_value: str = "warn",
         force_download: bool = False,
         resume_download: Optional[bool] = None,
         proxies: Optional[Dict] = None,
