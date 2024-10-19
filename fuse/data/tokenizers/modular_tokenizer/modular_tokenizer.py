@@ -1,3 +1,4 @@
+from torch import Tensor
 from typing import Dict
 from collections.abc import Iterable
 from tokenizers import Tokenizer, Encoding
@@ -1148,6 +1149,9 @@ class ModularTokenizer(transformers.PreTrainedTokenizerFast):
         Returns:
             str: _description_
         """
+        if isinstance(ids, Tensor):
+            # Tokens in 'self.decoder_dict' are integers, and not singletons
+            ids = ids.tolist()
 
         if skip_special_tokens:
             ret_val = [
