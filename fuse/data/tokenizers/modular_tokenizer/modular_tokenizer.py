@@ -1150,7 +1150,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerFast):
             str: _description_
         """
         if isinstance(ids, Tensor):
-            # Tokens in 'self.decoder_dict' are integers, and not singletons
+            # Tokens in 'self.decoder_dict' are integers, and not tensors scalars
             ids = ids.tolist()
 
         if skip_special_tokens:
