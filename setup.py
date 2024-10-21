@@ -65,11 +65,11 @@ setup(
         "all": all_requirements,
         "examples": fuse_examples_requirements,
     },
-    python_requires=">=3.7",
+    python_requires=">=3.9",
     classifiers=[
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
     ],
 )
