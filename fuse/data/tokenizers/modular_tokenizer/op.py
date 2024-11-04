@@ -30,6 +30,7 @@ class ModularTokenizerWithoutInjectOp(OpBase):
         validate_ends_with_eos: Optional[bool] = True,
         eos: Optional[str] = "<EOS>",
         verbose: Optional[bool] = False,
+        on_unknown_default_value: str = "warn",
         **kwargs: Any,
     ) -> None:
         """
@@ -41,6 +42,7 @@ class ModularTokenizerWithoutInjectOp(OpBase):
             validate_ends_with_eos: during encoder request (a _call_ to the op) will make sure that it ends with the provided eos token, and raise exception otherwise.
                 having an eos (end of sentence) token in the end is useful for multiple scenarios, for example in a generative transformer (like T5 encoder-decoder)
             verbose:
+            on_unknown_default_value: User can define the default behavior of unknown token here in the constructor. In addition, this value can be overwritten in the __call__
         """
         super().__init__(**kwargs)
 
@@ -60,6 +62,10 @@ class ModularTokenizerWithoutInjectOp(OpBase):
 
         self._validate_ends_with_eos = validate_ends_with_eos
         self._eos = eos
+        self._on_unknown_default_value = on_unknown_default_value
+
+        if on_unknown_default_value not in ["warn", "raise"]:
+            raise ValueError(f"Doesn't support {on_unknown_default_value=}!")
 
         if self._validate_ends_with_eos:
             eos_id = self._tokenizer.token_to_id(self._eos)
@@ -116,7 +122,7 @@ class ModularTokenizerWithoutInjectOp(OpBase):
     def get_min_max_sentinels(
         self,
         sentinel_prefix: Optional[str] = "<SENTINEL_ID_",
-        integer_find_regex: Optional[str] = "\d{1,}",
+        integer_find_regex: Optional[str] = r"\d{1,}",
     ) -> Tuple[int, int]:
         """
         returns a Tuple [min encountered sentinel name, max encountered sentinel name]
@@ -186,6 +192,22 @@ class ModularTokenizerWithoutInjectOp(OpBase):
         """
         return self._tokenizer.get_expected_max_len(override_max_len=override_max_len)
 
+    def add_new_special_tokens(self, new_special_tokens: list[str]) -> int:
+        """add new special tokens if they are not in the tokenizer.
+        Skipps allready existing special tokens.
+
+        Args:
+            new_special_tokens (list[str]): the tokens to add
+        Returns:
+            `int`: The number of tokens that were created in the vocabulary
+
+        Will raise an exception if any of the tokens are allready in the tokenizer as _regular_ tokens.
+        """
+
+        tokenizer = self._tokenizer
+        num_new_tokens = tokenizer.add_special_tokens(new_special_tokens)
+        return num_new_tokens
+
     def __call__(
         self,
         sample_dict: NDict,
@@ -195,7 +217,7 @@ class ModularTokenizerWithoutInjectOp(OpBase):
         key_out_attention_mask: Optional[str] = None,
         convert_attention_mask_to_bool: Optional[bool] = True,
         max_seq_len: Optional[int] = None,
-        on_unknown: Optional[str] = "warn",
+        on_unknown: Optional[str] = None,
         verbose: Optional[int] = 1,
         validate_ends_with_eos: Optional[bool] = None,
         additional_caller_info_text: Optional[str] = "",
@@ -214,7 +236,7 @@ class ModularTokenizerWithoutInjectOp(OpBase):
             key_out_attention_mask (Optional[str], optional): _description_. Defaults to None.
             convert_attention_mask_to_bool (Optional[bool], optional): _description_. Defaults to True.
             max_seq_len (Optional[int], optional): set maximum sequence len dynamically, used for both padding and truncation.. Defaults to None.
-            on_unknown (Optional[str], optional): What happens if unknown tokens (i.e. ones mapped to <UNK>) are encountered: 'raise' or 'warn'. Defaults to "warn".
+            on_unknown (Optional[str], optional): What happens if unknown tokens (i.e. ones mapped to <UNK>) are encountered: 'raise' or 'warn'. Defaults to "warn". The default value can be determined in the constructor itself.
             verbose (Optional[int], optional): verbosity level. 0: no notification, 1: warning notification, 2: warning with partial data, 3: warning
                 with full data. Defaults to 1.
             validate_ends_with_eos (Optional[bool], optional): if not None, overrides self._validate_ends_with_eos
@@ -227,7 +249,6 @@ class ModularTokenizerWithoutInjectOp(OpBase):
         Returns:
             NDict: _description_
         """
-
         data = sample_dict[key_in]
         if not isinstance(data, (list, str)):
             # data is a list of named tuples of type collections.namedtuple("TypedInput", ["input_type", "input_string", "max_len"])
@@ -246,6 +267,10 @@ class ModularTokenizerWithoutInjectOp(OpBase):
                 raise Exception(
                     f"validate_ends_with_eos was set to {validate_ends_with_eos}, but about to encode a string that does not end with {self._eos}. The str end was: {last_seq}"
                 )
+
+        if on_unknown is None:
+            # Use tokenizer instance default value
+            on_unknown = self._on_unknown_default_value
 
         if isinstance(data, str):
             _ans = self._tokenizer.encode(
@@ -356,8 +381,7 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
     supported syntax/format:
 
     for text following <@TOKENIZER-TYPE=SCALARS_LITERALS> supports the following format:
-    ',' separated float values and/or <MASK> tokens -
-        for example: "2.7,3.99,-12.9" or "<MASK><MASK>" or "2.19,<MASK>,3.19,<MASK>"
+    ',' separated float values
 
     for text following <@TOKENIZER-TYPE=SCALARS_FROM_DICT> is expected to be a key to the sample NDict
         for example: "blah.boo.banana"  or "data.input.encoder_input"
@@ -421,9 +445,7 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
         on_unknown: Optional[str] = "warn",
         verbose: Optional[int] = 1,
         validate_ends_with_eos: Optional[bool] = None,
-        key_out_scalars_indices: Optional[str] = None,
-        key_out_scalars_values: Optional[str] = None,
-        key_out_masked_scalars_indices: Optional[str] = None,
+        key_out_scalars: Optional[str] = None,
     ) -> NDict:
         """_summary_
 
@@ -442,10 +464,10 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
             verbose (Optional[int], optional): verbosity level. 0: no notification, 1: warning notification, 2: warning with partial data, 3: warning
                 with full data. Defaults to 1.
             validate_ends_with_eos (Optional[bool], optional): if not None, overrides self._validate_ends_with_eos
-            key_out_scalars_inputs_indices:str optional
-                if provided, will write to sample_dict in this key a 1D torch tensor with indices of all inputs scalar elements.
-            key_out_scalars_inputs_values:str optional
-                if provided, will write to sample_dict in this key a 1D torch tensor with indices of all inputs scalar values.
+            key_out_scalars:str optional
+                if provided, will write to:
+                        `sample_dict[f'{key_out_scalars}.values]` - a 1D torch tensor with all the scalars values
+                        `sample_dict[f'{key_out_scalars}.valid_mask]` - a 1D torch boolean tensor representing which elements have scalar values
 
         Returns:
             NDict: _description_
@@ -474,39 +496,20 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
             + ".per_meta_part_encoding",  # using the key_in as base for the name because key_out_* are optional
         )
 
-        prepared_data = InjectorToModularTokenizerLib.prepare_info_for_model_step(
+        prepared_data = InjectorToModularTokenizerLib.build_scalars(
             per_meta_tokenizer_data=per_meta_orig,
             per_meta_encoding_including_placeholders=sample_dict[
                 key_in + ".per_meta_part_encoding"
             ],
+            token_ids=sample_dict[key_out_tokens_ids],
             sample_dict=sample_dict,
         )
 
-        if key_out_scalars_indices is not None:
-            sample_dict[key_out_scalars_indices] = prepared_data["scalars_indices"]
-        else:
-            if prepared_data["scalars_indices"] is not None:
-                raise Exception(
-                    "non None scalars_indices found but no key_out_scalars_indices found"
-                )
-
-        if key_out_scalars_values is not None:
-            sample_dict[key_out_scalars_values] = prepared_data["scalars_values"]
-        else:
-            if prepared_data["scalars_values"] is not None:
-                raise Exception(
-                    "non None scalars_value found but no key_out_scalars_values found"
-                )
-
-        if key_out_masked_scalars_indices is not None:
-            sample_dict[key_out_masked_scalars_indices] = prepared_data[
-                "scalars_masked_indices"
+        if key_out_scalars is not None:
+            sample_dict[key_out_scalars + ".values"] = prepared_data["scalars_values"]
+            sample_dict[key_out_scalars + ".valid_mask"] = prepared_data[
+                "scalars_valid_mask"
             ]
-        else:
-            if prepared_data["scalars_masked_indices"] is not None:
-                raise Exception(
-                    "non None scalars_masked_indices found but no key_out_masked_scalars_indices found"
-                )
 
         return sample_dict
 
@@ -516,6 +519,7 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
         identifier: str,
         pad_token: str = "<PAD>",
         max_size: Optional[int] = None,
+        on_unknown_default_value: str = "warn",
         force_download: bool = False,
         resume_download: Optional[bool] = None,
         proxies: Optional[Dict] = None,
@@ -555,7 +559,10 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
                 ) from e
 
         tokenizer_op = cls(
-            tokenizer_path=identifier, pad_token=pad_token, max_size=max_size
+            tokenizer_path=identifier,
+            pad_token=pad_token,
+            max_size=max_size,
+            on_unknown_default_value=on_unknown_default_value,
         )
         return tokenizer_op
 
