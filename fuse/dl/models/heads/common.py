@@ -23,7 +23,6 @@ from torch import Tensor
 import torch
 
 
-
 class ClassifierFCN(nn.Module):
     """
     Sequence of (Conv2D 1X1 , ReLU, Dropout). The length of the sequence and layers size defined by layers_description
@@ -233,9 +232,7 @@ class ModularPooling1D(nn.Module):
 
         if pooling in ["mean", "avg"]:  # pools the mean value of none-pad elements
 
-            def _mean_pool(
-                inputs: Tensor, last_valid_indices: Tensor
-            ) -> Tensor:
+            def _mean_pool(inputs: Tensor, last_valid_indices: Tensor) -> Tensor:
                 inputs = inputs.cumsum(dim=self.pool_dim)
                 outputs = self._extract_indices(
                     inputs, last_valid_indices, dim=self.pool_dim
@@ -247,9 +244,7 @@ class ModularPooling1D(nn.Module):
 
         elif pooling == "last":  # pools the last element that is not a PAD value
 
-            def _last_pool(
-                inputs: Tensor, last_valid_indices: Tensor
-            ) -> Tensor:
+            def _last_pool(inputs: Tensor, last_valid_indices: Tensor) -> Tensor:
                 return self._extract_indices(
                     inputs, last_valid_indices, dim=self.pool_dim
                 )
@@ -259,9 +254,7 @@ class ModularPooling1D(nn.Module):
         else:
             raise NotImplementedError
 
-    def _extract_indices(
-        self, inputs: Tensor, indices: Tensor, dim: int = 1
-    ) -> Tensor:
+    def _extract_indices(self, inputs: Tensor, indices: Tensor, dim: int = 1) -> Tensor:
         assert (
             dim == 1
         ), "extract indices for pooling head not implemented for dim != 1 yet"
