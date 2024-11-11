@@ -164,7 +164,7 @@ class EncoderEmbeddingOutputHead(nn.Module):
     ):
         """
         NOTE: This is work in progress. Do not use for now.
-        
+
         This class applies a multi-layer MLP to an input and allows to apply a pooling operation to the sequence dimension - prior to applying the MLP.
         This is usefull for extracting a single representation for embeddings of an entire sequence.
         Args:
