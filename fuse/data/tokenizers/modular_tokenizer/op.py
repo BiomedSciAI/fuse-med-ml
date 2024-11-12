@@ -240,6 +240,7 @@ class ModularTokenizerWithoutInjectOp(OpBase):
             verbose (Optional[int], optional): verbosity level. 0: no notification, 1: warning notification, 2: warning with partial data, 3: warning
                 with full data. Defaults to 1.
             validate_ends_with_eos (Optional[bool], optional): if not None, overrides self._validate_ends_with_eos
+            additional_caller_info_text (Optional[str]): information about the caller to add to error messages
             key_out_encoding_per_meta: optional key out. If set to a string will put in it the per-meta-instruction encoded parts as a list of Encoding elements
 
         Raises:
@@ -446,6 +447,7 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
         verbose: Optional[int] = 1,
         validate_ends_with_eos: Optional[bool] = None,
         key_out_scalars: Optional[str] = None,
+        additional_caller_info_text: Optional[str] = "",
     ) -> NDict:
         """_summary_
 
@@ -468,6 +470,7 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
                 if provided, will write to:
                         `sample_dict[f'{key_out_scalars}.values]` - a 1D torch tensor with all the scalars values
                         `sample_dict[f'{key_out_scalars}.valid_mask]` - a 1D torch boolean tensor representing which elements have scalar values
+            additional_caller_info_text (Optional[str]): information about the caller to add to error messages
 
         Returns:
             NDict: _description_
@@ -492,6 +495,7 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
             on_unknown=on_unknown,
             verbose=verbose,
             validate_ends_with_eos=validate_ends_with_eos,
+            additional_caller_info_text=additional_caller_info_text,
             key_out_encoding_per_meta=key_in
             + ".per_meta_part_encoding",  # using the key_in as base for the name because key_out_* are optional
         )
