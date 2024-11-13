@@ -4,12 +4,9 @@ import dill
 from glob import glob
 import pandas as pd
 from fuse.dl.models import ModelMultiHead
-from fuse.utils import NDict
 
-from fuse.dl.models.heads.head_dense_segmentation import HeadDenseSegmentation
 
-from monai.losses import GeneralizedDiceLoss
-import torch.nn as nn
+from monai.losses import DiceLoss
 import torch
 from torch.utils.data.dataloader import DataLoader
 from fuse.data.utils.collates import CollateDefault
@@ -20,21 +17,30 @@ from fuse.utils.rand.seed import Seed
 import logging
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.lightning.pl_module import LightningModuleDefault
-from fuse.dl.lightning.pl_funcs import step_extract_predictions
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import LearningRateMonitor
 import hydra
 from omegaconf import DictConfig
 from clearml import Task
 from fuse_examples.imaging.oai_example.data.seg_ds import SegOAI
-from fuse.dl.models.backbones.backbone_unet3d import UNet3D
-
+from fuse.dl.models.backbones.backbone_effiunet import Effi_UNet
+from fuse.dl.lightning.pl_funcs import (
+    step_losses,
+    step_metrics,
+    step_extract_predictions,
+)
 
 torch.set_float32_matmul_precision("medium")
+torch.use_deterministic_algorithms(False)
+
+
+def remove_blobs(pred_tensor):
+    # FILL with post-processing algorithm on the predicted segmentation
+    return pred_tensor
 
 
 @hydra.main(version_base="1.2", config_path=".", config_name="segmentation_config")
-def main(cfg: DictConfig) -> None:
+def main(cfg: DictConfig):
     cfg = hydra.utils.instantiate(cfg)
     results_path = cfg.results_dir
     os.environ["CUDA_VISIBLE_DEVICES"] = ",".join([str(x) for x in cfg.cuda_devices])
@@ -43,7 +49,7 @@ def main(cfg: DictConfig) -> None:
         sum(
             cfg[weights] is not None
             for weights in [
-                "suprem_weights",
+                "imagenet_weights",
                 "dino_weights",
                 "mae_weights",
                 "resume_training_from",
@@ -54,6 +60,8 @@ def main(cfg: DictConfig) -> None:
     ), "only one weights/ckpt path can be used at a time"
 
     model_dir = os.path.join(results_path, cfg.experiment)
+    cache_dir = os.path.join(results_path, cfg.task)
+
     if not os.path.isdir(model_dir):
         os.makedirs(model_dir)
 
@@ -78,48 +86,47 @@ def main(cfg: DictConfig) -> None:
 
         task.connect(cfg)
         task.add_tags(cfg.tags)
-    # Model definition:
-    ##############################################################################
-    if cfg.backbone == "unet3d":
-        backbone = UNet3D(for_cls=False)
 
+    if cfg.backbone.startswith("efficientnet"):
+
+        backbone = Effi_UNet(
+            cfg.backbone,
+            in_channels=1,
+            classes=cfg.num_classes,
+            encoder_weights="imagenet",
+        )
         if cfg.dino_weights is not None:
             print(f"LOADING ckpt from {cfg.dino_weights}")
             state_dict = torch.load(
                 open(cfg.dino_weights, "rb"), map_location=torch.device("cpu")
             )
             state_dict = {
-                k.replace("teacher_backbone.", ""): v
+                k.replace("student_backbone", "encoder"): v
                 for k, v in state_dict["state_dict"].items()
-                if "teacher_backbone." in k
+                if "student_backbone." in k
             }
-        elif cfg.suprem_weights is not None:
-            state_dict = torch.load(
-                cfg.suprem_weights, map_location=torch.device("cpu")
-            )
-            state_dict = {
-                k.replace("module.backbone.", ""): v
-                for k, v in state_dict["net"].items()
-            }
+        elif cfg.imagenet_weights is not None:
+            pass
         elif cfg.mae_weights is not None:
             state_dict = torch.load(cfg.mae_weights, map_location=torch.device("cpu"))
             state_dict = {
                 k.replace("_model.backbone.", ""): v
                 for k, v in state_dict["state_dict"].items()
+                if "classifier" not in k
             }
+
         else:
+            backbone = Effi_UNet(
+                cfg.backbone,
+                in_channels=1,
+                classes=cfg.num_classes,
+                encoder_weights=None,
+            )
             state_dict = backbone.state_dict()
 
         backbone.load_state_dict(state_dict, strict=False)
-        conv_inputs = [("model.backbone_features", 512)]
 
-    heads = [
-        HeadDenseSegmentation(
-            head_name="head_seg",
-            conv_inputs=conv_inputs,
-            shared_classifier_head=nn.Conv3d(64, cfg.num_classes, kernel_size=1),
-        )
-    ]
+    heads = []
 
     model = ModelMultiHead(conv_inputs=(("img", 1),), backbone=backbone, heads=heads)
 
@@ -143,15 +150,46 @@ def main(cfg: DictConfig) -> None:
     ## FuseMedML dataset preparation
     ##############################################################################
     df_all = pd.read_csv(cfg.csv_path)
+    # create row for each of the slices
     dfs = {}
-    for _set in ["train", "val", "test"]:
-        dfs[_set] = df_all[df_all.fold.isin(cfg[f"{_set}_folds"])]
+    dfs["train"] = df_all[df_all.fold.isin(cfg.train_folds)]
+    dfs["train"] = pd.concat([dfs["train"].assign(slice=i) for i in range(160)])
+    dfs["train"]["idx"] = range(len(dfs["train"]))
+    dfs["val"] = df_all[df_all.fold.isin(cfg.val_folds)]
+    dfs["val"]["idx"] = range(len(dfs["val"]))
+
+    dfs["test"] = df_all[df_all.fold.isin(cfg.test_folds)]
+    dfs["test"]["idx"] = range(len(dfs["test"]))
+
+    print(f"train samples = {len(dfs['train'])}")
+    print(f"val samples = {len(dfs['val'])}")
 
     train_ds = SegOAI.dataset(
-        dfs["train"], validation=(not cfg.aug), resize_to=cfg.resize_to
+        dfs["train"],
+        cache_dir=f"{cache_dir}/train",
+        validation=(not cfg.aug),
+        resize_to=None,
+        num_classes=cfg.num_classes,
+        im2D=True,
+        num_workers=cfg.n_workers,
     )
-    val_ds = SegOAI.dataset(dfs["val"], validation=True, resize_to=cfg.resize_to)
-    test_ds = SegOAI.dataset(dfs["test"], validation=True, resize_to=cfg.resize_to)
+    val_ds = SegOAI.dataset(
+        dfs["val"],
+        validation=True,
+        resize_to=None,
+        num_classes=cfg.num_classes,
+        im2D=False,
+        num_workers=cfg.n_workers // 8,
+    )
+    test_ds = SegOAI.dataset(
+        dfs["test"],
+        validation=True,
+        resize_to=None,
+        num_classes=cfg.num_classes,
+        im2D=False,
+        num_workers=cfg.n_workers // 8,
+    )
+    # test_ds = SegOAI.dataset(dfs["test"], validation=True, resize_to=None, num_classes=cfg.num_classes, im2D=True)
     ## Create dataloader
 
     train_dl = DataLoader(
@@ -164,13 +202,13 @@ def main(cfg: DictConfig) -> None:
         num_workers=cfg.n_workers,
     )
 
-    val_dl = DataLoader(
+    valid_dl = DataLoader(
         dataset=val_ds,
         shuffle=False,
         drop_last=False,
         batch_sampler=None,
         batch_size=1,
-        num_workers=cfg.n_workers,
+        num_workers=cfg.n_workers // 8,
         collate_fn=CollateDefault(),
         generator=rand_gen,
     )
@@ -180,21 +218,22 @@ def main(cfg: DictConfig) -> None:
         drop_last=False,
         batch_sampler=None,
         batch_size=1,
-        num_workers=cfg.n_workers,
+        num_workers=cfg.n_workers // 8,
         collate_fn=CollateDefault(),
         generator=rand_gen,
     )
 
     # Loss definition:
     ##############################################################################
-    callable_loss = GeneralizedDiceLoss(
+    # callable_loss = GeneralizedDiceLoss(include_background=cfg.include_background,  sigmoid=cfg.sigmoid, softmax=cfg.softmax)
+    callable_loss = DiceLoss(
         include_background=cfg.include_background,
         sigmoid=cfg.sigmoid,
         softmax=cfg.softmax,
     )
     losses = {
         "generalized_dice_loss": LossDefault(
-            pred="model.logits.head_seg",
+            pred="model.backbone_features",
             target="seg",
             callable=callable_loss,
             weight=1.0,
@@ -203,15 +242,20 @@ def main(cfg: DictConfig) -> None:
 
     # Metrics definition:
     ##############################################################################
-    def pre_process_for_dice(sample: NDict) -> NDict:
-        sample["model.logits.head_seg"] = sample["model.logits.head_seg"].argmax(axis=0)
+    def pre_process_for_dice(sample: dict):
+        sample["model.backbone_features"] = sample["model.backbone_features"].argmax(
+            axis=0
+        )
+        sample["model.backbone_features"] = remove_blobs(
+            sample["model.backbone_features"]
+        )
         sample["seg"] = sample["seg"].argmax(axis=0)
         return sample
 
     train_metrics = {}
     val_metrics = {
         "dice": MetricDice(
-            pred="model.logits.head_seg",
+            pred="model.backbone_features",
             target="seg",
             pre_collect_process_func=pre_process_for_dice,
         )
@@ -239,7 +283,6 @@ def main(cfg: DictConfig) -> None:
     optimizers_and_lr_schs["lr_scheduler"] = lr_sch_config
 
     # CallBacks
-
     callbacks = [
         # BackboneFinetuning(unfreeze_backbone_at_epoch=8,),
         LearningRateMonitor(logging_interval="epoch"),
@@ -249,8 +292,9 @@ def main(cfg: DictConfig) -> None:
     ## Training
     ##############################################################################
     ckpt_path = None
-    if cfg.resume_training_from is not None:
-        ckpt_path = cfg.ckpt_path
+    if os.path.isfile(os.path.join(model_dir, "last.ckpt")):
+        ckpt_path = os.path.join(model_dir, "last.ckpt")
+        print(f"LOADING CHECKPOINT FROM {ckpt_path}")
 
     # create instance of PL module - FuseMedML generic version
     pl_module = LightningModuleDefault(
@@ -266,6 +310,37 @@ def main(cfg: DictConfig) -> None:
         save_model=False,
         log_unit="epoch",
     )
+
+    def validation_step(
+        self, batch_dict, batch_idx: int, dataloader_idx: int = 0
+    ) -> None:
+        # add step number to batch_dict
+        batch_dict["global_step"] = self.global_step
+        batch_dict["img"] = (
+            batch_dict["img"].squeeze(0).permute(1, 0, 2, 3)
+        )  # (160,1,384,384)
+        # run forward function and store the outputs in batch_dict["model"]
+        batch_dict = self.forward(batch_dict)  # [1, 7, 160, 384, 384]
+        batch_dict["model.backbone_features"] = (
+            batch_dict["model.backbone_features"].permute(1, 0, 2, 3).unsqueeze(0)
+        )
+        # batch_dict["model.backbone_features"] = remove_small_objects(batch_dict["model.backbone_features"], 10)
+        if self._validation_losses is not None:
+            losses = self._validation_losses[dataloader_idx][1]
+        else:
+            losses = self._losses
+        # given the batch_dict and FuseMedML style losses - compute the losses, return the total loss (ignored) and save losses values in batch_dict["losses"]
+        _ = step_losses(losses, batch_dict)
+        # given the batch_dict and FuseMedML style metrics - collect the required values to compute the metrics on epoch_end
+        step_metrics(self._validation_metrics[dataloader_idx][1], batch_dict)
+        # aggregate losses
+        if losses:  # if there are losses, collect the results
+            self._validation_step_outputs[dataloader_idx].append(
+                {"losses": batch_dict["losses"]}
+            )
+
+    pl_module.validation_step = validation_step.__get__(pl_module)
+
     # create lightining trainer.
     devices = torch.cuda.device_count()
     pl_trainer = pl.Trainer(
@@ -279,27 +354,36 @@ def main(cfg: DictConfig) -> None:
         deterministic=False,
         accumulate_grad_batches=cfg.accumulate_grad_batches,
         precision=cfg.precision,
+        # enable_checkpointing=False,
+        # limit_train_batches=3,
     )
     if cfg.test_ckpt is not None:
+
         print(f"Test using ckpt: {cfg.test_ckpt}")
         pl_trainer.validate(pl_module, test_dl, ckpt_path=cfg.test_ckpt)
         if cfg.save_test_results:
 
             def predict_step(self, batch_dict: dict, batch_idx: int) -> dict:
+                batch_dict["img"] = (
+                    batch_dict["img"].squeeze(0).permute(1, 0, 2, 3)
+                )  # [160,1,384,384]
                 batch_dict = self.forward(batch_dict)
-                batch_dict["model.logits.head_seg"] = (
-                    batch_dict["model.logits.head_seg"].argmax(axis=0).to(torch.uint8)
-                )
+                batch_dict["model.backbone_features"] = (
+                    batch_dict["model.backbone_features"]
+                    .permute(1, 0, 2, 3)
+                    .argmax(axis=0)
+                    .to(torch.uint8)
+                )  # [1,160,384,384]
                 return step_extract_predictions(self._prediction_keys, batch_dict)
 
             pl_module.predict_step = predict_step.__get__(pl_module)
-            pl_module.set_predictions_keys(["model.logits.head_seg", "idx"])
+            pl_module.set_predictions_keys(["model.backbone_features", "idx"])
             output = pl_trainer.predict(pl_module, test_dl, ckpt_path=cfg.test_ckpt)
             with open(f"{model_dir}/output.pkl", "wb") as f:
                 dill.dump(output, f, protocol=4)
     else:
-        # print(f"Training using ckpt: {ckpt_path}")
-        pl_trainer.fit(pl_module, train_dl, val_dl, ckpt_path=ckpt_path)
+        print(f"Training using ckpt: {ckpt_path}")
+        pl_trainer.fit(pl_module, train_dl, valid_dl, ckpt_path=ckpt_path)
 
 
 if __name__ == "__main__":

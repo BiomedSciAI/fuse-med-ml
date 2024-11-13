@@ -47,6 +47,7 @@ def main(cfg: DictConfig) -> None:
             for weights in [
                 "suprem_weights",
                 "dino_weights",
+                "mae_weights",
                 "resume_training_from",
                 "test_ckpt",
             ]
@@ -105,6 +106,12 @@ def main(cfg: DictConfig) -> None:
             state_dict = {
                 k.replace("module.backbone.", ""): v
                 for k, v in state_dict["net"].items()
+            }
+        elif cfg.mae_weights is not None:
+            state_dict = torch.load(cfg.mae_weights, map_location=torch.device("cpu"))
+            state_dict = {
+                k.replace("_model.backbone.", ""): v
+                for k, v in state_dict["state_dict"].items()
             }
         else:
             state_dict = backbone.state_dict()

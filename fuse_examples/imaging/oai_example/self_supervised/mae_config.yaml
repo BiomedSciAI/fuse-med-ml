@@ -1,0 +1,47 @@
+defaults:
+  - _self_
+  - override hydra/hydra_logging: disabled
+  - override hydra/job_logging: disabled
+
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+
+task : mae
+batch_size : 32
+backbone : efficientnet-b3 # s3d , med3d, res3d
+
+resize_to : null #[40, 224,224]
+csv_path : /dccstor/mm_hcls2/oai/code/data/relevant_dicoms.csv
+
+mae_cfg :
+  mask_percentage : 0.4
+  cuboid_size : [2,2] # should have 2/3 int depending on mae2d/mae3d
+results_dir : /dccstor/mm_hcls2/oai/results
+n_workers : 24
+clearml : True
+clearml_project_name : OAI/Dino
+
+train_folds : [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
+val_folds : [19]
+cuda_devices : [0]
+
+# experiment : imorfics_easy_regression_unet3d_from_dino_lr-3
+experiment : debug_mae2d
+# experiment : res3d_kinetics400_on_ct
+# cache_name : cache_resized_to_MRI
+grad_clip : 0
+learning_rate : 0.000005
+num_warmup_steps : 8 # before scheduler
+n_epochs : 1000
+weight_decay : 0.001
+reset_cache : False
+debug : False
+ckpt_path : no_path
+pretrained : True
+log_grad_norm : False
+tags : [mae]
+
+# model_name : r3d_18
+# ckpt_path : /dccstor/mm_hcls2/liver_results/res18_ct_mri_dinoOrig_2D_noise+global0.8+local0.2+affine+color_pretrain_MR_toRange_e600/checkpoint0400.pth

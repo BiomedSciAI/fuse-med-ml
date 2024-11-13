@@ -42,6 +42,7 @@ debug : False
 tags : [segmentation]
 suprem_weights : weights/supervised_suprem_unet_2100.pth # if pretrained=True a path need to be filled. can download from https://github.com/MrGiovanni/SuPreM
 dino_weights : null
+mae_weights : null
 resume_training_from : null #resume training from checkpoint
 test_ckpt : null # if not null - an evaluation on the test set will be performed using the test_ckpt
 save_test_results : true
