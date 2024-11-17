@@ -27,7 +27,7 @@ class ModularTokenizerInput:
     ] = None  # by defualt will truncate with right direction, setting to "RAND" will randomly crop a sub-sequence of length=max_len
 
 
-# for backward compitibilty
+# for backward compatibility
 TypedInput = ModularTokenizerInput
 
 
