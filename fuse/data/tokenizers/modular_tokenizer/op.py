@@ -362,6 +362,8 @@ class ModularTokenizerWithoutInjectOp(OpBase):
                 f"{self.__class__.__name__}  Op got key_out_tokens_ids=None and key_out_tokenized_object=None, which means it will not modify anything in the sample. Is this intended?"
             )
 
+        print(encoded.ids)
+
         return sample_dict
 
 
