@@ -38,6 +38,7 @@ class OpReadDataframe(OpBase):
         data_filename: Optional[str] = None,
         columns_to_extract: Optional[List[str]] = None,
         rename_columns: Optional[Dict[str, str]] = None,
+        filters: Optional[Dict[str, Dict]] = None,
         key_name: str = "data.sample_id",
         key_column: str = "sample_id",
     ):
@@ -46,6 +47,14 @@ class OpReadDataframe(OpBase):
         :param data_filename: path to a pickled DataFrame (possible zipped)
         :param columns_to_extract: list of columns to extract from dataframe. When None (default) all columns are extracted
         :param rename_columns: rename columns from dataframe, when None (default) column names are kept
+        :param filters: Dictionary with the following content:
+            {
+                column_name: # name of the column to apply filtering to (before renaming)
+                    mode: str # keep/exclude - whether to keep or exclude rows that have the following values in column column_name
+                    values: list # list of values to keep or exclude according to mode
+            }
+            Filtering happens before renaming the columns, i.e. it understands the names defined in benchmark config 
+            (naming_conventions). If None, no filtering is applied. Default = None
         :param key_name: name of value in sample_dict which will be used as the key/index
         :param key_column: name of the column which use as key/index. In case of None, the original dataframe index will be used to extract the values for a single sample.
         """
@@ -75,9 +84,20 @@ class OpReadDataframe(OpBase):
         if self._columns_to_extract is not None:
             df = df[self._columns_to_extract]
 
+        # filter columns:
+        if filters is not None:
+            for k in filters:
+                if filters[k]["mode"].lower() == "keep":
+                    df = df[df[k].isin(filters[k]["values"])]
+                else:
+                    df = df[~df[k].isin(filters[k]["values"])]
+            df.reindex()
+
         # rename columns
         if self._rename_columns is not None:
             df = df.rename(self._rename_columns, axis=1)
+            
+        
 
         # convert to dictionary: {index -> {column -> value}}
         if self._key_column is not None:
