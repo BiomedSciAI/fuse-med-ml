@@ -41,6 +41,7 @@ class MetricMAE(MetricDefault):
         self,
         pred: str,
         target: str,
+        mask: str,
         **kwargs: dict,
     ) -> None:
         """
@@ -53,6 +54,7 @@ class MetricMAE(MetricDefault):
         super().__init__(
             pred=pred,
             target=target,
+            mask=mask,
             metric_func=self.mae,
             **kwargs,
         )
@@ -61,8 +63,10 @@ class MetricMAE(MetricDefault):
         self,
         pred: Union[List, np.ndarray],
         target: Union[List, np.ndarray],
+        mask: Optional[np.ndarray] = None,
         **kwargs: dict,
     ) -> float:
+
         return mean_absolute_error(y_true=target, y_pred=pred)
 
 
