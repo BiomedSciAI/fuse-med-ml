@@ -1,39 +1,51 @@
+import random
 from torch import Tensor
-from typing import Dict
 from collections.abc import Iterable
 from tokenizers import Tokenizer, Encoding
 import tokenizers
 from warnings import warn
-from typing import Optional, List, Set, Union, Tuple, Any, Iterator
+from typing import Optional, List, Set, Union, Tuple, Any, Iterator, Dict
 import json
 import transformers
 import os
 from omegaconf import OmegaConf
-import collections
 import omegaconf
 import copy
 import traceback
 import re
 from fuse.data.tokenizers.modular_tokenizer.special_tokens import special_wrap_input
+from dataclasses import dataclass
 
 
-TypedInput = collections.namedtuple(
-    "TypedInput", ["input_type", "input_string", "max_len"]
-)
+@dataclass
+class ModularTokenizerInput:
+    input_type: str  # sub tokenizer name
+    input_string: str  # the string to tokenize
+    max_len: Optional[int] = None  # max length used for truncation only.
+    truncate_mode: Optional[
+        str
+    ] = None  # by defualt will truncate with right direction, setting to "RAND" will randomly crop a sub-sequence of length=max_len
 
 
-def list_to_tokenizer_string(lst: List[TypedInput]) -> str:
+# for backward compatibility
+TypedInput = ModularTokenizerInput
+
+
+def list_to_tokenizer_string(lst: List[ModularTokenizerInput]) -> str:
     out = ""
     # prev_tokenizer = None
     for in_named_tuple in lst:
         curr_tokenizer = in_named_tuple.input_type
         curr_len = in_named_tuple.max_len
+        truncate_mode = in_named_tuple.truncate_mode
         # NOTE: For now we don't combine consequent strings encoded by the same tokenizer,
         # since they may have different max lengths, so we create a new entry, even if curr_tokenizer == prev_tokenizer:
         if curr_len is None:
             out += f"<@TOKENIZER-TYPE={curr_tokenizer}>"
-        else:
+        elif truncate_mode is None:
             out += f"<@TOKENIZER-TYPE={curr_tokenizer}@MAX-LEN={curr_len}>"
+        else:
+            out += f"<@TOKENIZER-TYPE={curr_tokenizer}@MAX-LEN={curr_len}@TRUNC-MODE={truncate_mode}>"
         out += in_named_tuple.input_string
         # prev_tokenizer = curr_tokenizer
     return out
@@ -47,6 +59,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerFast):
         special_tokens_list: Optional[list] = None,
         max_possible_token_id: Optional[int] = None,
         max_special_token_id: Optional[int] = None,
+        seed: int = 1234,
         **kwargs: Any,
     ) -> None:
         """Creates a modular tokenizer that combines multiple existing tokenizers, adjusting them so that:
@@ -74,6 +87,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerFast):
                 If max_special_token_id is set, when special tokens are added, they are mapped to IDs between 0 and max_special_token_id
                 (after which come regular token IDs). Once max_special_token_id is reached, no more special tokens may be added.
                 If it is not set, new special tokens may be mapped to IDs higher that regular token IDs. If Defaults to None (i.e. no limit is set).
+            seed: random generator seed - used for random truncation in random truncation mode (not the default mode)
         """
         # ModularTokenizer inherits the interface of PreTrainedTokenizerBase, but not the underlying logic, therefore super.__init__() is not called
 
@@ -192,6 +206,10 @@ class ModularTokenizer(transformers.PreTrainedTokenizerFast):
                 raise Exception(
                     f"tokenizer remapping resulted in IDs greater (max_id={self._get_max_mapped_id()}) than max_possible_id ({self._max_possible_token_id}). Reinitialize the modular tokenizer with larger max_possible_id"
                 )
+
+        # initialize random generator
+        self._rng = random.Random()
+        self._rng.seed(seed)
 
     @staticmethod
     def remap_vocab(
@@ -973,7 +991,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerFast):
 
     def encode_list(
         self,
-        typed_input_list: List,
+        typed_input_list: List[ModularTokenizerInput],
         max_len: Optional[int] = None,
         padding_token_id: Optional[int] = None,
         padding_token: Optional[str] = "<PAD>",
@@ -991,13 +1009,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerFast):
         """_summary_
 
         Args:
-            typed_input_list (List): list of collections.namedtuple("input_type", ["input_string", "max_len"]), with
-                input type: the name of input type,
-                input_string: the string to be encoded
-                max_len: maximal length of the encoding (in tokens). Only relevant for truncation, as we do not need to
-                pad individual sub-tokenizer encodings - we only pad the final encoding of the ModularTokenizer.
-                The smallest value between config-defined and tuple-defined is used. If None, the max_len
-                that was defined for the sub-tokenizer in the config is used.
+            typed_input_list (List): list of ModularTokenizerInput.
             max_len (Optional[int], optional): _description_. Defaults to None.
             padding_token_id (Optional[str], optional): _description_. Defaults to 0. TODO: default to None and infer it
             padding_token (Optional[str], optional): _description_. Defaults to "<PAD>".
@@ -1021,6 +1033,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerFast):
             input_type = inpt.input_type
             data_str = inpt.input_string
             sub_max_len = inpt.max_len
+            sub_trunc_mode = inpt.truncate_mode
             sub_encoding = self._encode_single_type(
                 data_str=data_str,
                 input_type=input_type,
@@ -1030,7 +1043,21 @@ class ModularTokenizer(transformers.PreTrainedTokenizerFast):
             if sub_max_len is not None:
                 if len(sub_encoding) > sub_max_len:
                     overflow_info += f"{input_type}:{len(sub_encoding)}=>{sub_max_len}|"
-                sub_encoding.truncate(max_length=sub_max_len)
+                    if sub_trunc_mode is None or sub_trunc_mode == "RIGHT":
+                        sub_encoding.truncate(max_length=sub_max_len)
+                    elif sub_trunc_mode == "RAND":
+                        left_truncate = self._rng.randint(
+                            sub_max_len, len(sub_encoding)
+                        )
+                        sub_encoding.truncate(
+                            max_length=left_truncate, direction="left"
+                        )
+                        sub_encoding.truncate(max_length=sub_max_len, direction="right")
+                        assert len(sub_encoding) == sub_max_len
+                    else:
+                        raise Exception(
+                            f"Error: unsupported truncate mode: {sub_trunc_mode}"
+                        )
             encoded_list.append(sub_encoding)
             sequence_ids.extend([curr_sequence_id] * len(sub_encoding))
             sequence_types.extend([input_type] * len(sub_encoding))
@@ -1128,7 +1155,6 @@ class ModularTokenizer(transformers.PreTrainedTokenizerFast):
                 raise ValueError(
                     f"Unexpected on_unknown value {on_unknown}. Should be 'warn' or 'raise'"
                 )
-
         if (not return_overflow_info) and (not also_return_split):
             return merged_encoding
         ans = [merged_encoding]
@@ -1214,23 +1240,33 @@ class ModularTokenizer(transformers.PreTrainedTokenizerFast):
         ), f"Error: expecting leading modular tokenizer hints followed by a sequence to tokenize, got {sequence}"
         # arrange as a list of TypedInput - each one will include the type and the following sequence
         encode_list_format = []
-        for tokenizer_type, subseq in zip(
+        for tokenizer_hints, subseq in zip(
             hints_and_subseq[::2], hints_and_subseq[1::2]
         ):
-            max_len_str = "@MAX-LEN="
-            curr_max_len_idx = tokenizer_type.find(max_len_str)
-            if curr_max_len_idx > 0:
-                curr_max_len = tokenizer_type[curr_max_len_idx + len(max_len_str) :]
-                try:
-                    curr_max_len = int(curr_max_len)
-                except:
-                    raise Exception(
-                        f"Had a problem casting curr_max_len={curr_max_len} to int! it was found inside modular tokenizer meta TOKENIZER-TYPE={tokenizer_type}"
-                    )
-                tokenizer_type = tokenizer_type[:curr_max_len_idx]
-            else:
-                curr_max_len = None
-            encode_list_format.append(TypedInput(tokenizer_type, subseq, curr_max_len))
+            tokenizer_hints_parts = tokenizer_hints.split("@")
+            tokenizer_type = tokenizer_hints_parts[0]
+            curr_max_len = None
+            curr_truncate_mode = None
+            for part in tokenizer_hints_parts[1:]:
+                if part.startswith("MAX-LEN="):
+                    try:
+                        curr_max_len = int(part[len("MAX-LEN=") :])
+                    except:
+                        raise Exception(
+                            f"Had a problem casting curr_max_len={part} to int! it was found inside modular tokenizer meta TOKENIZER-TYPE={tokenizer_hints}"
+                        )
+                elif part.startswith("TRUNC-MODE="):
+                    curr_truncate_mode = part[len("TRUNC-MODE=") :]
+                    assert curr_truncate_mode in [
+                        "RIGHT",
+                        "RAND",
+                    ], f"Error: unsupported modular tokenizer truncate mode {curr_truncate_mode}, it was found inside modular tokenizer meta TOKENIZER-TYPE={tokenizer_hints}"
+                else:
+                    raise Exception(f"Error, unsupported meta tokenizer hint: {part}")
+
+            encode_list_format.append(
+                TypedInput(tokenizer_type, subseq, curr_max_len, curr_truncate_mode)
+            )
 
         return self.encode_list(
             typed_input_list=encode_list_format,
