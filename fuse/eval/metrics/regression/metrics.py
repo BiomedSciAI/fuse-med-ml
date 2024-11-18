@@ -69,13 +69,6 @@ class MetricMAE(MetricDefault):
 
         if mask is not None:
 
-            # if not isinstance(mask, np.ndarray):
-            #     mask = np.array(mask).astype("bool")
-            # else:
-            #     mask = mask.astype("bool")
-
-            # target = np.array(target) if isinstance(target, list) else target
-            # pred = np.array(pred) if isinstance(pred, list) else pred
             if isinstance(pred, Sequence):
                 if np.isscalar(pred[0]):
                     pred = np.array(pred)
@@ -132,13 +125,6 @@ class MetricMSE(MetricDefault):
 
         if mask is not None:
 
-            # if not isinstance(mask, np.ndarray):
-            #     mask = np.array(mask).astype("bool")
-            # else:
-            #     mask = mask.astype("bool")
-
-            # target = np.array(target) if isinstance(target, list) else target
-            # pred = np.array(pred) if isinstance(pred, list) else pred
             if isinstance(pred, Sequence):
                 if np.isscalar(pred[0]):
                     pred = np.array(pred)
@@ -192,9 +178,6 @@ class MetricRMSE(MetricDefault):
 
         if mask is not None:
 
-            # mask = np.array(mask).astype("bool")
-            # target = np.array(target) if isinstance(target, list) else target
-            # pred = np.array(pred) if isinstance(pred, list) else pred
             if isinstance(pred, Sequence):
                 if np.isscalar(pred[0]):
                     pred = np.array(pred)
