@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Sequence
 from fuse.eval.metrics.libs.stat import Stat
 from fuse.eval.metrics.metrics_common import MetricDefault
 import numpy as np
@@ -69,13 +69,28 @@ class MetricMAE(MetricDefault):
 
         if mask is not None:
 
-            if not isinstance(mask, np.ndarray):
-                mask = np.array(mask).astype("bool")
-            else:
-                mask = mask.astype("bool")
+            # if not isinstance(mask, np.ndarray):
+            #     mask = np.array(mask).astype("bool")
+            # else:
+            #     mask = mask.astype("bool")
 
-            target = np.array(target) if isinstance(target, list) else target
-            pred = np.array(pred) if isinstance(pred, list) else pred
+            # target = np.array(target) if isinstance(target, list) else target
+            # pred = np.array(pred) if isinstance(pred, list) else pred
+            if isinstance(pred, Sequence):
+                if np.isscalar(pred[0]):
+                    pred = np.array(pred)
+                else:
+                    pred = np.concatenate(pred)
+            if isinstance(target, Sequence):
+                if np.isscalar(target[0]):
+                    target = np.array(target)
+                else:
+                    target = np.concatenate(target)
+            if isinstance(mask, Sequence):
+                if np.isscalar(mask[0]):
+                    mask = np.array(mask).astype("bool")
+                else:
+                    mask = np.concatenate(mask).astype("bool")
 
             target = target[mask]
             pred = pred[mask]
@@ -117,13 +132,28 @@ class MetricMSE(MetricDefault):
 
         if mask is not None:
 
-            if not isinstance(mask, np.ndarray):
-                mask = np.array(mask).astype("bool")
-            else:
-                mask = mask.astype("bool")
+            # if not isinstance(mask, np.ndarray):
+            #     mask = np.array(mask).astype("bool")
+            # else:
+            #     mask = mask.astype("bool")
 
-            target = np.array(target) if isinstance(target, list) else target
-            pred = np.array(pred) if isinstance(pred, list) else pred
+            # target = np.array(target) if isinstance(target, list) else target
+            # pred = np.array(pred) if isinstance(pred, list) else pred
+            if isinstance(pred, Sequence):
+                if np.isscalar(pred[0]):
+                    pred = np.array(pred)
+                else:
+                    pred = np.concatenate(pred)
+            if isinstance(target, Sequence):
+                if np.isscalar(target[0]):
+                    target = np.array(target)
+                else:
+                    target = np.concatenate(target)
+            if isinstance(mask, Sequence):
+                if np.isscalar(mask[0]):
+                    mask = np.array(mask).astype("bool")
+                else:
+                    mask = np.concatenate(mask).astype("bool")
 
             target = target[mask]
             pred = pred[mask]
@@ -162,9 +192,24 @@ class MetricRMSE(MetricDefault):
 
         if mask is not None:
 
-            mask = np.array(mask).astype("bool")
-            target = np.array(target) if isinstance(target, list) else target
-            pred = np.array(pred) if isinstance(pred, list) else pred
+            # mask = np.array(mask).astype("bool")
+            # target = np.array(target) if isinstance(target, list) else target
+            # pred = np.array(pred) if isinstance(pred, list) else pred
+            if isinstance(pred, Sequence):
+                if np.isscalar(pred[0]):
+                    pred = np.array(pred)
+                else:
+                    pred = np.concatenate(pred)
+            if isinstance(target, Sequence):
+                if np.isscalar(target[0]):
+                    target = np.array(target)
+                else:
+                    target = np.concatenate(target)
+            if isinstance(mask, Sequence):
+                if np.isscalar(mask[0]):
+                    mask = np.array(mask).astype("bool")
+                else:
+                    mask = np.concatenate(mask).astype("bool")
 
             target = target[mask]
             pred = pred[mask]
