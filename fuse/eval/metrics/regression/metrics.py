@@ -41,7 +41,7 @@ class MetricMAE(MetricDefault):
         self,
         pred: str,
         target: str,
-        mask: str,
+        mask: Optional[str] = None,
         **kwargs: dict,
     ) -> None:
         """
@@ -67,6 +67,19 @@ class MetricMAE(MetricDefault):
         **kwargs: dict,
     ) -> float:
 
+        if mask is not None:
+
+            if not isinstance(mask, np.ndarray):
+                mask = np.array(mask).astype("bool")
+            else:
+                mask = mask.astype("bool")
+
+            target = np.array(target) if isinstance(target, list) else target
+            pred = np.array(pred) if isinstance(pred, list) else pred
+
+            target = target[mask]
+            pred = pred[mask]
+
         return mean_absolute_error(y_true=target, y_pred=pred)
 
 
@@ -75,6 +88,7 @@ class MetricMSE(MetricDefault):
         self,
         pred: str,
         target: str,
+        mask: Optional[str] = None,
         **kwargs: dict,
     ) -> None:
         """
@@ -88,6 +102,7 @@ class MetricMSE(MetricDefault):
         super().__init__(
             pred=pred,
             target=target,
+            mask=mask,
             metric_func=self.mse,
             **kwargs,
         )
@@ -96,8 +111,23 @@ class MetricMSE(MetricDefault):
         self,
         pred: Union[List, np.ndarray],
         target: Union[List, np.ndarray],
+        mask: Optional[np.ndarray] = None,
         **kwargs: dict,
     ) -> float:
+
+        if mask is not None:
+
+            if not isinstance(mask, np.ndarray):
+                mask = np.array(mask).astype("bool")
+            else:
+                mask = mask.astype("bool")
+
+            target = np.array(target) if isinstance(target, list) else target
+            pred = np.array(pred) if isinstance(pred, list) else pred
+
+            target = target[mask]
+            pred = pred[mask]
+
         return mean_squared_error(y_true=target, y_pred=pred)
 
 
@@ -106,6 +136,7 @@ class MetricRMSE(MetricDefault):
         self,
         pred: str,
         target: str,
+        mask: Optional[str] = None,
         **kwargs: dict,
     ) -> None:
         """
@@ -116,6 +147,7 @@ class MetricRMSE(MetricDefault):
         super().__init__(
             pred=pred,
             target=target,
+            mask=mask,
             metric_func=self.rmse,
             **kwargs,
         )
@@ -124,10 +156,22 @@ class MetricRMSE(MetricDefault):
         self,
         pred: Union[List, np.ndarray],
         target: Union[List, np.ndarray],
+        mask: Optional[np.ndarray] = None,
         **kwargs: dict,
     ) -> float:
+
+        if mask is not None:
+
+            mask = np.array(mask).astype("bool")
+            target = np.array(target) if isinstance(target, list) else target
+            pred = np.array(pred) if isinstance(pred, list) else pred
+
+            target = target[mask]
+            pred = pred[mask]
+
         pred = np.array(pred).flatten()
         target = np.array(target).flatten()
+
         assert len(pred) == len(
             target
         ), f"Expected pred and target to have the dimensions but found: {len(pred)} elements in pred and {len(target)} in target"
