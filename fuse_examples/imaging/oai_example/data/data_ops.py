@@ -107,6 +107,38 @@ class OpResize3D(OpBase):
         return sample_dict
 
 
+class OpPickSlice(OpBase):
+    """ """
+
+    def __init__(
+        self,
+        img_key: str = "img",
+        seg_key: str = "seg",
+        slice_key: str = "slice",
+        drop_blank: bool = False,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.img_key = img_key
+        self.seg_key = seg_key
+        self.slice_key = slice_key
+        self.drop_blank = drop_blank
+
+    def __call__(self, sample_dict: NDict) -> NDict:
+
+        sample_dict[self.img_key] = sample_dict[self.img_key][
+            sample_dict[self.slice_key]
+        ]
+        sample_dict[self.seg_key] = sample_dict[self.seg_key][
+            sample_dict[self.slice_key]
+        ]
+        if self.drop_blank:
+            if sample_dict[self.seg_key][1:].max() < 1:
+                return None
+
+        return sample_dict
+
+
 class OpDinoCrops(OpBase):
     """
     This function takes in a dictionary containing an image and a key, and returns a new dictionary with multiple crops of the original image.

@@ -155,6 +155,7 @@ def main(cfg: DictConfig):
     dfs["train"] = df_all[df_all.fold.isin(cfg.train_folds)]
     dfs["train"] = pd.concat([dfs["train"].assign(slice=i) for i in range(160)])
     dfs["train"]["idx"] = range(len(dfs["train"]))
+
     dfs["val"] = df_all[df_all.fold.isin(cfg.val_folds)]
     dfs["val"]["idx"] = range(len(dfs["val"]))
 
