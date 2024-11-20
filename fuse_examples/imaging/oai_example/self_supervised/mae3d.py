@@ -25,9 +25,9 @@ from fuse.dl.models.backbones.backbone_unet3d import UNet3D
 
 torch.set_float32_matmul_precision("medium")
 torch.use_deterministic_algorithms(False)
-process = subprocess.Popen("nvidia-smi".split(), stdout=subprocess.PIPE)
-output, error = process.communicate()
-print(output.decode("utf-8"))
+# process = subprocess.Popen("nvidia-smi".split(), stdout=subprocess.PIPE)
+# output, error = process.communicate()
+# print(output.decode("utf-8"))
 
 
 @hydra.main(version_base="1.2", config_path=".", config_name="mae_config")
@@ -127,7 +127,7 @@ def main(cfg: DictConfig):
 
     ds_train = OAI.dataset(
         train_split,
-        columns_to_extract=["accession_number", "path"],
+        # columns_to_extract=["accession_number", "path"],
         for_classification=False,
         validation=False,
         mae_cfg=cfg.mae_cfg,
@@ -138,7 +138,7 @@ def main(cfg: DictConfig):
 
     ds_val = OAI.dataset(
         val_split,
-        columns_to_extract=["accession_number", "path"],
+        # columns_to_extract=["accession_number", "path"],
         for_classification=False,
         validation=True,
         mae_cfg=cfg.mae_cfg,

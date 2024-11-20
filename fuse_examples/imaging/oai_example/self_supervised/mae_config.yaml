@@ -27,10 +27,8 @@ train_folds : [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
 val_folds : [19]
 cuda_devices : [0]
 
-# experiment : imorfics_easy_regression_unet3d_from_dino_lr-3
 experiment : debug_mae2d
-# experiment : res3d_kinetics400_on_ct
-# cache_name : cache_resized_to_MRI
+
 grad_clip : 0
 learning_rate : 0.000005
 num_warmup_steps : 8 # before scheduler
@@ -42,6 +40,3 @@ ckpt_path : no_path
 pretrained : True
 log_grad_norm : False
 tags : [mae]
-
-# model_name : r3d_18
-# ckpt_path : /dccstor/mm_hcls2/liver_results/res18_ct_mri_dinoOrig_2D_noise+global0.8+local0.2+affine+color_pretrain_MR_toRange_e600/checkpoint0400.pth

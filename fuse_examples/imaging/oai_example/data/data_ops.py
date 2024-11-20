@@ -17,32 +17,40 @@ class OpLoadData(OpBase):
     Folder should have only dicom files and they should be names in the order of the sequence.
     """
 
-    def __init__(self, path_key: str = None):
-        super().__init__()
+    def __init__(self, im2D: bool=False, path_key: str=None, **kwargs):
+        super().__init__(**kwargs)
+        self.im2D = im2D
         self.path_key = path_key
-
-    def __call__(self, sample_dict: NDict) -> Union[None, dict, List[dict]]:
-        """ """
+    def __call__(self, sample_dict: NDict) -> NDict:
+        '''
+        '''
         folder_path = sample_dict[self.path_key]
         dicom_files = [f for f in os.listdir(folder_path)]
-
+    
         # Sort the DICOM files based on their file names (assuming they are numbered in order)
         dicom_files.sort()
         # Load the first DICOM file to get the image dimensions
         file_path = os.path.join(folder_path, dicom_files[0])
         dicom = pydicom.dcmread(file_path)
         rows, cols = dicom.pixel_array.shape
+        num_slices = len(dicom_files)
+        
+        if self.im2D:
+            random_idx = random.randint(0, num_slices-1)
+            dicom = pydicom.dcmread(os.path.join(folder_path,dicom_files[random_idx]))
+            sample_dict["img"] = dicom.pixel_array
+            return sample_dict
 
         # Create an empty 3D NumPy array to store the DICOM series
-        num_slices = len(dicom_files)
         dicom_array = np.zeros((num_slices, rows, cols), dtype=dicom.pixel_array.dtype)
 
+        
         # Load each DICOM file and store it in the 3D array
         for i, file_name in enumerate(dicom_files):
             file_path = os.path.join(folder_path, file_name)
             dicom = pydicom.dcmread(file_path)
             dicom_array[i] = dicom.pixel_array
-
+        
         sample_dict["img"] = dicom_array
 
         return sample_dict

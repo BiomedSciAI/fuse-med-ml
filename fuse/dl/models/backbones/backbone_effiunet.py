@@ -18,7 +18,7 @@ class Conv2dReLU(nn.Sequential):
         self,
         in_channels: int,
         out_channels: int,
-        kernel_size: List[int, int],
+        kernel_size: list,
         padding: int = 0,
         stride: int = 1,
         use_batchnorm: bool = True,
