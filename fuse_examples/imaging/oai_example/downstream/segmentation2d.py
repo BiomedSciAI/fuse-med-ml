@@ -49,7 +49,7 @@ def main(cfg: DictConfig):
         sum(
             cfg[weights] is not None
             for weights in [
-                "imagenet_weights",
+                "baseline_weights",
                 "dino_weights",
                 "mae_weights",
                 "resume_training_from",
@@ -105,7 +105,7 @@ def main(cfg: DictConfig):
                 for k, v in state_dict["state_dict"].items()
                 if "student_backbone." in k
             }
-        elif cfg.imagenet_weights is not None:
+        elif cfg.baseline_weights is not None:
             pass
         elif cfg.mae_weights is not None:
             state_dict = torch.load(cfg.mae_weights, map_location=torch.device("cpu"))
@@ -167,7 +167,7 @@ def main(cfg: DictConfig):
 
     train_ds = SegOAI.dataset(
         dfs["train"],
-        cache_dir=f"{cache_dir}/train",
+        cache_dir=f"{cache_dir}/train_cache_samples",
         validation=(not cfg.aug),
         resize_to=None,
         num_classes=cfg.num_classes,

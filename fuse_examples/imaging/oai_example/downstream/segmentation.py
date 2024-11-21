@@ -43,7 +43,7 @@ def main(cfg: DictConfig) -> None:
         sum(
             cfg[weights] is not None
             for weights in [
-                "suprem_weights",
+                "baseline_weights",
                 "dino_weights",
                 "mae_weights",
                 "resume_training_from",
