@@ -93,9 +93,9 @@ def main(cfg: DictConfig) -> None:
                 for k, v in state_dict["state_dict"].items()
                 if "teacher_backbone." in k
             }
-        elif cfg.suprem_weights is not None:
+        elif cfg.baseline_weights is not None:
             state_dict = torch.load(
-                cfg.suprem_weights, map_location=torch.device("cpu")
+                cfg.baseline_weights, map_location=torch.device("cpu")
             )
             state_dict = {
                 k.replace("module.backbone.", ""): v
