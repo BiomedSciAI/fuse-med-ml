@@ -8,3 +8,4 @@ monai
 lightly==1.3.0
 volumentations-3D
 dill
+efficientnet_pytorch
