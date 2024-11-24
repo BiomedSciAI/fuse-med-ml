@@ -77,7 +77,7 @@ def main(cfg: DictConfig):
             }
         elif cfg.pretrained:
             state_dict = torch.load(
-                "/dccstor/mm_hcls2/oai/code/archs/weights/supervised_suprem_unet_2100.pth",
+                cfg.pretrained_path,
                 map_location=torch.device("cpu"),
             )
             state_dict = {
@@ -248,7 +248,7 @@ def main(cfg: DictConfig):
         strategy="ddp" if devices > 1 else "auto",
         num_sanity_val_steps=0,
         limit_train_batches=0.2,
-        limit_val_batches=0.2,
+        # limit_val_batches=0.2,
         gradient_clip_val=cfg.grad_clip,
         deterministic=False,
         # enable_checkpointing=False,

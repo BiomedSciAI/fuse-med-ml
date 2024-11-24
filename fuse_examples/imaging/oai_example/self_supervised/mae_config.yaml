@@ -10,14 +10,14 @@ hydra:
 
 task : mae
 batch_size : 32
-backbone : efficientnet-b3 # s3d , med3d, res3d
+backbone : efficientnet-b3 # unet3d for 3d mae
 
 resize_to : null #[40, 224,224]
 csv_path : /dccstor/mm_hcls2/oai/code/data/relevant_dicoms.csv
 
 mae_cfg :
   mask_percentage : 0.4
-  cuboid_size : [2,2] # should have 2/3 int depending on mae2d/mae3d
+  cuboid_size : [2,2] # should have 2/3 dims depending on mae2d/mae3d
 results_dir : /dccstor/mm_hcls2/oai/results
 n_workers : 24
 clearml : True
@@ -31,12 +31,12 @@ experiment : debug_mae2d
 
 grad_clip : 0
 learning_rate : 0.000005
-num_warmup_steps : 8 # before scheduler
 n_epochs : 1000
 weight_decay : 0.001
 reset_cache : False
 debug : False
 ckpt_path : no_path
 pretrained : True
+pretrained_path : null # fill suprem weights path in the mae3d
 log_grad_norm : False
 tags : [mae]
