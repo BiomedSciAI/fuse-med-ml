@@ -40,7 +40,7 @@ weight_decay : 0.001
 reset_cache : False
 debug : False
 tags : [segmentation]
-baseline_weights : null # for 2d just be 'true'. for 3d case fiil path to suprem weights - can download from https://github.com/MrGiovanni/SuPreM
+baseline_weights : null # for 2d just be 'true' to load imagenet weights. for 3d case fill path to suprem weights - can download from https://github.com/MrGiovanni/SuPreM
 dino_weights : null
 mae_weights : null
 resume_training_from : null #resume training from checkpoint

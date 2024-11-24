@@ -60,7 +60,7 @@ Pretrained weights can be downloaded from [SuPreM GitHub repository](https://git
 The training process involves several main steps, including self-supervised pre-training with DINO, fine-tuning for classification, segmentation, and masked autoencoding:
 
 1. Self-supervised pre-training with DINO
-2. Fine-tuning for classification
+2. Fine-tuning for classification (classification only avalible with 3d model)
 3. Fine-tuning
 
 ### 1. Self-Supervised Pre-training
