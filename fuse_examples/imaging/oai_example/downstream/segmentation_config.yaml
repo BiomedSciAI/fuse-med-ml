@@ -12,9 +12,9 @@ task : segmentation
 batch_size : 2
 accumulate_grad_batches : 1
 precision : 32
-backbone : unet3d
+backbone : unet3d  # 2d: efficientnet-b7, 3d: unet3d
 num_classes : 7 # including background
-resize_to : [40, 224,224]
+resize_to : [40,224,224]
 csv_path : data/seg_oai.csv #fill
 results_dir : results #fill
 train_folds : [train]
@@ -40,7 +40,7 @@ weight_decay : 0.001
 reset_cache : False
 debug : False
 tags : [segmentation]
-baseline_weights : null # for 2d just be 'true' to load imagenet weights. for 3d case fill path to suprem weights - can download from https://github.com/MrGiovanni/SuPreM
+baseline_weights : null # for 2d just set 'true' to load imagenet weights. for 3d case fill path to suprem weights - can download from https://github.com/MrGiovanni/SuPreM
 dino_weights : null
 mae_weights : null
 resume_training_from : null #resume training from checkpoint

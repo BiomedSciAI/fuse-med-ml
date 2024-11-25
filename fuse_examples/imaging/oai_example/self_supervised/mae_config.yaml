@@ -10,24 +10,24 @@ hydra:
 
 task : mae
 batch_size : 32
-backbone : efficientnet-b3 # unet3d for 3d mae
+backbone : efficientnet-b7 # unet3d for 3d mae
 
-resize_to : null #[40, 224,224]
-csv_path : /dccstor/mm_hcls2/oai/code/data/relevant_dicoms.csv
+resize_to : null #[40,224,224]
+csv_path : data/relevant_dicoms.csv #fill
 
 mae_cfg :
   mask_percentage : 0.4
-  cuboid_size : [2,2] # should have 2/3 dims depending on mae2d/mae3d
-results_dir : /dccstor/mm_hcls2/oai/results
+  cuboid_size : [4,4] # should have 2/3 dims depending on mae2d/mae3d
+results_dir : results/
 n_workers : 24
-clearml : True
-clearml_project_name : OAI/Dino
+clearml : False
+clearml_project_name : OAI/Mae2d
 
 train_folds : [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
 val_folds : [19]
 cuda_devices : [0]
 
-experiment : debug_mae2d
+experiment : oai_mae2d
 
 grad_clip : 0
 learning_rate : 0.000005
