@@ -58,9 +58,7 @@ class OAI:
         return existing_files
 
     @staticmethod
-    def static_pipeline(
-        df: pd.DataFrame, im2D=False
-    ) -> PipelineDefault:
+    def static_pipeline(df: pd.DataFrame, im2D=False) -> PipelineDefault:
         max_key = "max_val" if im2D else None
         static_pipeline = PipelineDefault(
             "static",

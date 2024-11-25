@@ -18,16 +18,16 @@ class OpLoadData(OpBase):
     Folder should have only dicom files and they should be names in the order of the sequence.
     """
 
-    def __init__(self, im2D: bool=False, path_key: str=None, **kwargs):
+    def __init__(self, im2D: bool = False, path_key: str = None, **kwargs):
         super().__init__(**kwargs)
         self.im2D = im2D
         self.path_key = path_key
+
     def __call__(self, sample_dict: NDict) -> NDict:
-        '''
-        '''
+        """ """
         folder_path = sample_dict[self.path_key]
         dicom_files = [f for f in os.listdir(folder_path)]
-    
+
         # Sort the DICOM files based on their file names (assuming they are numbered in order)
         dicom_files.sort()
         # Load the first DICOM file to get the image dimensions
@@ -35,23 +35,22 @@ class OpLoadData(OpBase):
         dicom = pydicom.dcmread(file_path)
         rows, cols = dicom.pixel_array.shape
         num_slices = len(dicom_files)
-        
+
         if self.im2D:
-            random_idx = random.randint(0, num_slices-1)
-            dicom = pydicom.dcmread(os.path.join(folder_path,dicom_files[random_idx]))
+            random_idx = random.randint(0, num_slices - 1)
+            dicom = pydicom.dcmread(os.path.join(folder_path, dicom_files[random_idx]))
             sample_dict["img"] = dicom.pixel_array
             return sample_dict
 
         # Create an empty 3D NumPy array to store the DICOM series
         dicom_array = np.zeros((num_slices, rows, cols), dtype=dicom.pixel_array.dtype)
 
-        
         # Load each DICOM file and store it in the 3D array
         for i, file_name in enumerate(dicom_files):
             file_path = os.path.join(folder_path, file_name)
             dicom = pydicom.dcmread(file_path)
             dicom_array[i] = dicom.pixel_array
-        
+
         sample_dict["img"] = dicom_array
 
         return sample_dict
@@ -60,17 +59,20 @@ class OpLoadData(OpBase):
 class OpNormalizeMRI(OpBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
     def __call__(
         self,
         sample_dict: NDict,
         key: str,
         to_range: Tuple[float, float],
-        max_key: str = None
-    ):  
+        max_key: str = None,
+    ):
 
         img = sample_dict[key]
-        img = np.clip(img, *(np.percentile(img, [0,95]))) # truncate the intensities to the range of 0.5 to 99.5 percentiles 
-        if max_key == None:
+        img = np.clip(
+            img, *(np.percentile(img, [0, 95]))
+        )  # truncate the intensities to the range of 0.5 to 99.5 percentiles
+        if max_key is None:
             from_range_start = img.min()
             from_range_end = img.max()
         else:
@@ -82,7 +84,7 @@ class OpNormalizeMRI(OpBase):
         # shift to start at 0
         img -= from_range_start
         if (from_range_end - from_range_start) == 0:
-            print('MRI bad range')
+            print("MRI bad range")
             return None
         # scale to be in desired range
         img *= (to_range_end - to_range_start) / (from_range_end - from_range_start)
@@ -90,9 +92,8 @@ class OpNormalizeMRI(OpBase):
         img += to_range_start
 
         sample_dict[key] = img
-        
-        return sample_dict
 
+        return sample_dict
 
 
 class OpResize3D(OpBase):
@@ -239,7 +240,9 @@ class OpRandomFlip(OpBase):
         n_axes = len(sample_dict[key[0]].shape)
         bool_rand_vec = np.random.choice([True, False], size=n_axes)
         for k in key:
-            sample_dict[k] = np.flip(sample_dict[k], axis=np.where(bool_rand_vec)[0]).copy()
+            sample_dict[k] = np.flip(
+                sample_dict[k], axis=np.where(bool_rand_vec)[0]
+            ).copy()
 
         return sample_dict
 
@@ -256,7 +259,11 @@ class OpVolumentation(OpBase):
 
 
 class OpMask3D(OpBase):
-    def __init__(self, mask_percentage: float = 0.3, cuboid_size: Union[List[int], tuple] = (2, 2, 2)):
+    def __init__(
+        self,
+        mask_percentage: float = 0.3,
+        cuboid_size: Union[List[int], tuple] = (2, 2, 2),
+    ):
         super().__init__()
         assert 0 <= mask_percentage <= 1, "Mask percentage must be between 0 and 1"
         self.mask_percentage = mask_percentage
@@ -265,86 +272,98 @@ class OpMask3D(OpBase):
     def generate_block_positions(self, shape: tuple) -> np.ndarray:
         """Generate a grid of possible block positions"""
         if len(shape) == 3:
-            z_positions = range(0, shape[0] - self.cuboid_size[0] + 1, self.cuboid_size[0])
-            y_positions = range(0, shape[1] - self.cuboid_size[1] + 1, self.cuboid_size[1])
-            x_positions = range(0, shape[2] - self.cuboid_size[2] + 1, self.cuboid_size[2])
-            
-            positions = np.array([(z, y, x) 
-                                for z in z_positions 
-                                for y in y_positions 
-                                for x in x_positions])
+            z_positions = range(
+                0, shape[0] - self.cuboid_size[0] + 1, self.cuboid_size[0]
+            )
+            y_positions = range(
+                0, shape[1] - self.cuboid_size[1] + 1, self.cuboid_size[1]
+            )
+            x_positions = range(
+                0, shape[2] - self.cuboid_size[2] + 1, self.cuboid_size[2]
+            )
+
+            positions = np.array(
+                [
+                    (z, y, x)
+                    for z in z_positions
+                    for y in y_positions
+                    for x in x_positions
+                ]
+            )
         else:
-            y_positions = range(0, shape[0] - self.cuboid_size[0] + 1, self.cuboid_size[0])
-            x_positions = range(0, shape[1] - self.cuboid_size[1] + 1, self.cuboid_size[1])
-            
-            positions = np.array([(y, x) 
-                                for y in y_positions 
-                                for x in x_positions])
-        
+            y_positions = range(
+                0, shape[0] - self.cuboid_size[0] + 1, self.cuboid_size[0]
+            )
+            x_positions = range(
+                0, shape[1] - self.cuboid_size[1] + 1, self.cuboid_size[1]
+            )
+
+            positions = np.array([(y, x) for y in y_positions for x in x_positions])
+
         return positions
 
     def apply_block_mask(self, mask: np.ndarray, position: tuple) -> None:
         """Apply mask to a single block"""
         if len(mask.shape) == 3:
             z, y, x = position
-            mask[z:z+self.cuboid_size[0],
-                 y:y+self.cuboid_size[1],
-                 x:x+self.cuboid_size[2]] = True
+            mask[
+                z : z + self.cuboid_size[0],
+                y : y + self.cuboid_size[1],
+                x : x + self.cuboid_size[2],
+            ] = True
         else:
             y, x = position
-            mask[y:y+self.cuboid_size[0],
-                 x:x+self.cuboid_size[1]] = True
+            mask[y : y + self.cuboid_size[0], x : x + self.cuboid_size[1]] = True
 
     def __call__(self, sample_dict: NDict, key: str, out_key: str) -> NDict:
         img = sample_dict[key]
         assert len(img.shape) in [2, 3], "Input must be 2D or 3D array"
-        
+
         # Create empty mask
         mask = np.zeros_like(img, dtype=bool)
-        
+
         # Get all possible block positions
         positions = self.generate_block_positions(img.shape)
-        
+
         # Calculate number of blocks needed
         total_pixels = reduce(lambda x, y: x * y, img.shape)
         block_volume = reduce(lambda x, y: x * y, self.cuboid_size)
         num_blocks = len(positions)
         target_blocks = int(np.ceil(self.mask_percentage * total_pixels / block_volume))
-        
+
         # Randomly select blocks to mask
         selected_indices = np.random.choice(
-            num_blocks, 
-            size=min(target_blocks, num_blocks),
-            replace=False
+            num_blocks, size=min(target_blocks, num_blocks), replace=False
         )
-        
+
         # Apply masks for selected blocks
         for idx in selected_indices:
             self.apply_block_mask(mask, positions[idx])
-        
+
         # Apply the mask
         masked_image = img.copy()
         masked_image[mask] = 0
-        
+
         # Calculate actual masked percentage
-        actual_percentage = np.mean(mask)
-        
+        # actual_percentage = np.mean(mask)
+
         # Store results
         sample_dict[out_key] = masked_image
         # sample_dict[f"{out_key}_mask_percentage"] = actual_percentage
-        
+
         return sample_dict
-    
+
+
 class OpSegToOneHot(OpBase):
     def __init__(self, n_classes: int):
         super().__init__()
         self.n_classes = n_classes
-    
+
     def __call__(self, sample_dict: NDict, key) -> NDict:
         seg_tensor = sample_dict[key]
         seg_tensor = seg_tensor.squeeze(0).long()
         one_hot = F.one_hot(seg_tensor, num_classes=self.n_classes)
-        one_hot = one_hot.permute(-1,*list(range(len(one_hot.shape)-1)))
+        one_hot = one_hot.permute(-1, *list(range(len(one_hot.shape) - 1)))
 
         sample_dict[key] = one_hot
         return sample_dict

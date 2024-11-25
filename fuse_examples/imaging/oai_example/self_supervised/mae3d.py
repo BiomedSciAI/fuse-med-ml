@@ -122,7 +122,7 @@ def main(cfg: DictConfig):
     ## FuseMedML dataset preparation
     ##############################################################################
     all_data_df = pd.read_csv(cfg.csv_path)
-    all_data_df = all_data_df[["accession_number","path", "fold"]]
+    all_data_df = all_data_df[["accession_number", "path", "fold"]]
     train_split = all_data_df[all_data_df["fold"].isin(cfg.train_folds)]
     val_split = all_data_df[all_data_df["fold"].isin(cfg.val_folds)]
 
