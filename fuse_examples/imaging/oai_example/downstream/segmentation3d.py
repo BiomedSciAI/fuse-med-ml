@@ -293,7 +293,7 @@ def main(cfg: DictConfig) -> None:
                 return step_extract_predictions(self._prediction_keys, batch_dict)
 
             pl_module.predict_step = predict_step.__get__(pl_module)
-            pl_module.set_predictions_keys(["model.logits.head_seg"])
+            pl_module.set_predictions_keys(["model.logits.head_seg", "seg"])
             output = pl_trainer.predict(pl_module, test_dl, ckpt_path=cfg.test_ckpt)
             with open(f"{model_dir}/output.pkl", "wb") as f:
                 dill.dump(output, f, protocol=4)
