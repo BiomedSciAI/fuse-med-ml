@@ -407,12 +407,8 @@ class MetricCollector(MetricBase):
             required_ids = ids
             original_ids_pos = {s: i for (i, s) in enumerate(self._collected_ids)}
 
-            # permutation = [original_ids_pos[sample_id] for sample_id in required_ids]
-            permutation = [
-                original_ids_pos[(sample_id[0], int(sample_id[1]))]
-                for sample_id in required_ids
-            ]
-            # create the permuted dictionary
+            permutation = [original_ids_pos[sample_id] for sample_id in required_ids]
+
             data = {}
             for name, values in self._collected_data.items():
                 data[name] = [values[i] for i in permutation]
