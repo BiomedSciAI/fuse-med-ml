@@ -32,6 +32,10 @@ from fuse.dl.models.backbones.backbone_unet3d import UNet3D
 
 torch.set_float32_matmul_precision("medium")
 
+# def remove_blobs(batch_dict):
+#     # FILL with post-processing algorithm on the predicted segmentation
+#     return pred_tensor
+
 
 @hydra.main(version_base="1.2", config_path=".", config_name="segmentation_config")
 def main(cfg: DictConfig) -> None:
@@ -214,6 +218,7 @@ def main(cfg: DictConfig) -> None:
             pred="model.logits.head_seg",
             target="seg",
             pre_collect_process_func=pre_process_for_dice,
+            # post_collect_process_func=remove_blobs,
         )
     }
 

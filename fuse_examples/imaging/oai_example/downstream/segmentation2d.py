@@ -325,7 +325,7 @@ def main(cfg: DictConfig):
         batch_dict["model.backbone_features"] = (
             batch_dict["model.backbone_features"].permute(1, 0, 2, 3).unsqueeze(0)
         )
-        # batch_dict["model.backbone_features"] = remove_small_objects(batch_dict["model.backbone_features"], 10)
+        batch_dict["model.backbone_features"] = remove_blobs(batch_dict["model.backbone_features"])
         if self._validation_losses is not None:
             losses = self._validation_losses[dataloader_idx][1]
         else:

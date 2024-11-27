@@ -298,7 +298,7 @@ def main(cfg: DictConfig) -> None:
     ##############################################################################
     ckpt_path = None
     if cfg.resume_training_from is not None:
-        ckpt_path = cfg.ckpt_path
+        ckpt_path = cfg.resume_training_from
 
     # create instance of PL module - FuseMedML generic version
     pl_module = LightningModuleDefault(
