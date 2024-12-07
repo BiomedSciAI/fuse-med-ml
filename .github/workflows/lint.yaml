@@ -52,4 +52,4 @@ jobs:
       - uses: isort/isort-action@v2
         with:
           isort-version: 5.12.0
-        args: ["--profile", "black"]
+          flags: "--profile black"
