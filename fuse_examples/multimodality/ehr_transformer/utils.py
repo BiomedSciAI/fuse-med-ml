@@ -19,9 +19,10 @@ Created on Jan 09, 2023
 """
 
 import pickle
-import tqdm
-from typing import Optional, Sequence, List, Union, Tuple
 from collections import Counter, defaultdict
+from typing import List, Optional, Sequence, Tuple, Union
+
+import tqdm
 
 # dictionary of special tokens that will be used in a generation of
 # patients trajectory sequence

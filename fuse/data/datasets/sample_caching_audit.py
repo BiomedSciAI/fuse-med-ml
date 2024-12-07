@@ -1,6 +1,8 @@
-from typing import Optional, Any
 from time import time
+from typing import Any, Optional
+
 from deepdiff import DeepDiff
+
 from fuse.data import get_sample_id
 
 """

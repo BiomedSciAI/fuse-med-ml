@@ -15,21 +15,22 @@ limitations under the License.
 
 """
 
+import os
+import tempfile
 import unittest
+from typing import List, Optional, Union
 
-from fuse.utils.rand.seed import Seed
+import numpy as np
+
+from fuse.data import create_initial_sample, get_sample_id
+from fuse.data.datasets.caching.samples_cacher import SamplesCacher
+from fuse.data.datasets.dataset_default import DatasetDefault
+from fuse.data.ops.op_base import OpBase
 
 # from fuse.utils.file_io.file_io import SAFE_save_hdf5, load_hdf5
 from fuse.data.pipelines.pipeline_default import PipelineDefault
-from fuse.data import get_sample_id, create_initial_sample
-import numpy as np
-import tempfile
-import os
-from fuse.data.ops.op_base import OpBase
-from typing import List, Union, Optional
-from fuse.data.datasets.caching.samples_cacher import SamplesCacher
-from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.utils.ndict import NDict
+from fuse.utils.rand.seed import Seed
 
 
 class OpFakeLoad(OpBase):

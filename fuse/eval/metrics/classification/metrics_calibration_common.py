@@ -1,9 +1,9 @@
+from functools import partial
 from typing import Optional, Union
 
 from fuse.eval.metrics.libs.calibration import Calibration
-from .metrics_classification_common import MetricMultiClassDefault
 
-from functools import partial
+from .metrics_classification_common import MetricMultiClassDefault
 
 
 class MetricReliabilityDiagram(MetricMultiClassDefault):

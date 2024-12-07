@@ -1,29 +1,26 @@
+import glob
+import os
 import pickle
 from collections import OrderedDict
 from random import randrange
-from typing import Sequence, Any, Tuple, List
+from typing import Any, List, Sequence, Tuple
 
-import glob
-import os
 import numpy as np
 import pandas as pd
 
-from fuse.data import DatasetDefault, PipelineDefault, OpBase
-from fuse.data.ops.ops_read import OpReadDataframe
+from fuse.data import DatasetDefault, OpBase, PipelineDefault
 from fuse.data.ops.ops_common import OpLookup, OpSetIfNotExist
-from fuse.utils.ndict import NDict
-
-from fuse.data.utils.split import dataset_balanced_division_to_folds
+from fuse.data.ops.ops_read import OpReadDataframe
 from fuse.data.utils.export import ExportDataset
-
+from fuse.data.utils.split import dataset_balanced_division_to_folds
+from fuse.utils.ndict import NDict
 from fuse_examples.multimodality.ehr_transformer.utils import (
-    seq_translate,
-    position_idx,
-    special_tokens,
-    seq_pad,
     WordVocab,
+    position_idx,
+    seq_pad,
+    seq_translate,
+    special_tokens,
 )
-
 
 VALID_TESTS_ABOVE_ZERO = [
     "pH",

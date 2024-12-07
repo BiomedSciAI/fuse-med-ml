@@ -1,7 +1,8 @@
+from typing import Tuple
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Tuple
 
 # Based on the architecture from https://github.com/MrGiovanni/ModelsGenesis
 torch.use_deterministic_algorithms(False)
@@ -9,7 +10,6 @@ torch.use_deterministic_algorithms(False)
 
 class ContBatchNorm3d(nn.modules.batchnorm._BatchNorm):
     def _check_input_dim(self, input: torch.Tensor) -> None:
-
         if input.dim() != 5:
             raise ValueError("expected 5D input (got {}D input)".format(input.dim()))
         # super(ContBatchNorm3d, self)._check_input_dim(input)
@@ -111,7 +111,6 @@ class UpTransition(nn.Module):
 
 class OutputTransition(nn.Module):
     def __init__(self, inChans: int, n_labels: int):
-
         super(OutputTransition, self).__init__()
         self.final_conv = nn.Conv3d(inChans, n_labels, kernel_size=1)
         self.sigmoid = nn.Sigmoid()

@@ -1,4 +1,5 @@
 from enum import Enum
+
 from fuse.data.key_types import DataTypeBasic, TypeDetectorPatternsBased
 
 

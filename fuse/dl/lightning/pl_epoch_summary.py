@@ -16,17 +16,17 @@ limitations under the License.
 Created on June 30, 2021
 """
 
-from copy import deepcopy
 import os
-from typing import Optional, Dict, Union
-from fuse.utils.misc.misc import get_pretty_dataframe
+from copy import deepcopy
+from typing import Dict, Optional, Union
 
-import pytorch_lightning as pl
-from pytorch_lightning.callbacks import Checkpoint
-
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
-import torch
 import pandas as pd
+import pytorch_lightning as pl
+import torch
+from pytorch_lightning.callbacks import Checkpoint
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
+
+from fuse.utils.misc.misc import get_pretty_dataframe
 
 
 class ModelEpochSummary(Checkpoint):

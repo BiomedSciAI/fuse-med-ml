@@ -17,12 +17,13 @@ Created on June 30, 2021
 
 """
 
-from typing import Hashable, List, Optional, Dict, Union
-from fuse.utils.file_io.file_io import read_dataframe
-import pandas as pd
+from typing import Dict, Hashable, List, Optional, Union
+
 import h5py
+import pandas as pd
 
 from fuse.data import OpBase
+from fuse.utils.file_io.file_io import read_dataframe
 from fuse.utils.ndict import NDict
 
 
@@ -155,7 +156,6 @@ class OpReadHDF5(OpBase):
         return self._num_samples
 
     def __call__(self, sample_dict: NDict) -> Union[None, dict, List[dict]]:
-
         index = sample_dict[self._key_index]
         for column in self._columns_to_extract:
             key_to_store = self._rename_columns.get(column, column)

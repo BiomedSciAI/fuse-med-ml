@@ -17,9 +17,10 @@ Created on June 30, 2021
 
 """
 
+from typing import Callable, List, Optional, Sequence, Tuple, Type
+
 import torch.nn as nn
 from torch import Tensor
-from typing import Tuple, Optional, Callable, List, Sequence, Type
 
 
 class Conv3DSimple(nn.Conv3d):

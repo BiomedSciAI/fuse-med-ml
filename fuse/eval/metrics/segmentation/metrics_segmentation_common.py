@@ -1,10 +1,10 @@
+from collections import defaultdict
 from functools import partial
 from typing import Dict, List, Optional
-from collections import defaultdict
-from fuse.eval.metrics.libs.segmentation import MetricsSegmentation
 
 import numpy as np
 
+from fuse.eval.metrics.libs.segmentation import MetricsSegmentation
 from fuse.eval.metrics.metrics_common import MetricPerSampleDefault
 
 

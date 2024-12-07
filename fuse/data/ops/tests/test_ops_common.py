@@ -1,14 +1,10 @@
 import unittest
-
-from typing import Optional, OrderedDict, Union, List, Any
+from typing import Any, List, Optional, OrderedDict, Union
 
 import torch
 
-from fuse.utils.ndict import NDict
-
-from fuse.data.ops.op_base import OpBase, OpReversibleBase, op_call
 from fuse.data.key_types_for_testing import DataTypeForTesting
-
+from fuse.data.ops.op_base import OpBase, OpReversibleBase, op_call
 from fuse.data.ops.ops_common import (
     OpApplyPatterns,
     OpFunc,
@@ -18,6 +14,7 @@ from fuse.data.ops.ops_common import (
     OpReplaceElements,
 )
 from fuse.data.ops.ops_common_for_testing import OpApplyTypesImaging
+from fuse.utils.ndict import NDict
 
 
 class OpIncrForTest(OpReversibleBase):

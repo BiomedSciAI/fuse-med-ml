@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Dict, Sequence, Any
+from typing import Any, Dict, Sequence
+
 from fuse.data.patterns import Patterns
 
 

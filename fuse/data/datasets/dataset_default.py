@@ -16,27 +16,28 @@ Created on June 30, 2021
 
 """
 
-from typing import Dict, Hashable, List, Optional, Sequence, Union, Any
-
+import copy
+from collections import OrderedDict
+from operator import itemgetter
+from typing import Any, Dict, Hashable, List, Optional, Sequence, Union
 from warnings import warn
+
+import numpy as np
+
+from fuse.data import (
+    create_initial_sample,
+    get_sample_id,
+    get_specific_sample_from_potentially_morphed,
+)
+from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuse.data.datasets.dataset_base import DatasetBase
 from fuse.data.ops.ops_common import OpCollectMarker
 from fuse.data.pipelines.pipeline_default import PipelineDefault
-from fuse.data.datasets.caching.samples_cacher import SamplesCacher
-from fuse.utils.ndict import NDict
 from fuse.utils.multiprocessing.run_multiprocessed import (
-    run_multiprocessed,
     get_from_global_storage,
+    run_multiprocessed,
 )
-from fuse.data import (
-    get_sample_id,
-    create_initial_sample,
-    get_specific_sample_from_potentially_morphed,
-)
-import copy
-from collections import OrderedDict
-import numpy as np
-from operator import itemgetter
+from fuse.utils.ndict import NDict
 
 
 class DatasetDefault(DatasetBase):
