@@ -1,19 +1,19 @@
-from fuse.utils import NDict
+import os
+import re
+from collections import defaultdict
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
+from warnings import warn
+
+from huggingface_hub import HfApi, snapshot_download
+from huggingface_hub.utils import SoftTemporaryDirectory, validate_hf_hub_args
+
 from fuse.data import OpBase, get_sample_id
-from fuse.data.tokenizers.modular_tokenizer.modular_tokenizer import ModularTokenizer
 from fuse.data.tokenizers.modular_tokenizer.inject_utils import (
     InjectorToModularTokenizerLib,
 )
-from huggingface_hub import snapshot_download, HfApi
-from huggingface_hub.utils import validate_hf_hub_args, SoftTemporaryDirectory
-
-
-from warnings import warn
-from pathlib import Path
-from collections import defaultdict
-from typing import Any, Tuple, Dict, List, Optional, Union
-import os
-import re
+from fuse.data.tokenizers.modular_tokenizer.modular_tokenizer import ModularTokenizer
+from fuse.utils import NDict
 
 
 class ModularTokenizerWithoutInjectOp(OpBase):

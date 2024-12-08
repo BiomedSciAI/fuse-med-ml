@@ -19,10 +19,10 @@ Created on June 30, 2021
 
 import unittest
 
-
-from fuse.utils.ndict import NDict
 import numpy
 import torch
+
+from fuse.utils.ndict import NDict
 
 
 class TestNDict(unittest.TestCase):

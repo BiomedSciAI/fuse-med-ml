@@ -1,4 +1,5 @@
 import os
+
 from fuse.utils.config_tools import get_config_function
 
 

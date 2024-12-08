@@ -17,10 +17,11 @@ Created on June 30, 2021
 
 """
 from typing import Optional, Sequence
-from fuse.data.datasets.dataset_wrap_seq_to_dict import DatasetWrapSeqToDict
-from torchvision import transforms, datasets
+
+from torchvision import datasets, transforms
 
 from fuse.data import DatasetDefault
+from fuse.data.datasets.dataset_wrap_seq_to_dict import DatasetWrapSeqToDict
 
 
 class MNIST:

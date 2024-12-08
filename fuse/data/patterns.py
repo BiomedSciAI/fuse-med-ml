@@ -1,6 +1,6 @@
+import re
 from collections import OrderedDict
 from typing import Any, Sequence
-import re
 
 
 class Patterns:

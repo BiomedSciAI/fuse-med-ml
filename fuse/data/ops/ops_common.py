@@ -1,6 +1,8 @@
+import copy
 import math
 import numbers
 import random
+from enum import Enum
 from typing import (
     Any,
     Callable,
@@ -12,14 +14,15 @@ from typing import (
     Tuple,
     Union,
 )
-from fuse.data.key_types import TypeDetectorBase
-import copy
-from enum import Enum
-from .op_base import OpBase, OpReversibleBase, op_call, op_reverse  # DataType,
-from fuse.data.patterns import Patterns
-from fuse.utils.ndict import NDict
+
 import numpy as np
 import torch
+
+from fuse.data.key_types import TypeDetectorBase
+from fuse.data.patterns import Patterns
+from fuse.utils.ndict import NDict
+
+from .op_base import OpBase, OpReversibleBase, op_call, op_reverse  # DataType,
 
 
 class OpRepeat(OpReversibleBase):

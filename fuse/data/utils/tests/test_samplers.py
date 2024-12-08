@@ -20,21 +20,21 @@ Created on June 30, 2021
 import os
 import tempfile
 import unittest
-import pandas as pds
+
 import numpy as np
-from tqdm.std import tqdm
+import pandas as pds
 import torchvision
-from torchvision import transforms
 from torch.utils.data.dataloader import DataLoader
+from torchvision import transforms
+from tqdm.std import tqdm
 
-from fuse.utils import Seed
-
-from fuse.data.ops.ops_read import OpReadDataframe
 from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.datasets.dataset_wrap_seq_to_dict import DatasetWrapSeqToDict
-from fuse.data.utils.collates import CollateDefault
+from fuse.data.ops.ops_read import OpReadDataframe
 from fuse.data.pipelines.pipeline_default import PipelineDefault
+from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.samplers import BatchSamplerDefault
+from fuse.utils import Seed
 
 
 class TestSamplers(unittest.TestCase):

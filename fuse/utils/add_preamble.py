@@ -17,10 +17,10 @@ Created on June 30, 2021
 
 """
 
-import sys
+import fileinput
 import os
 import os.path as path
-import fileinput
+import sys
 from typing import List
 
 src_extensions = [".py"]

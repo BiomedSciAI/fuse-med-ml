@@ -18,17 +18,17 @@ Created on June 30, 2021
 """
 # FIXME: data_package
 import multiprocessing
-from fuse.utils import NDict
-import unittest
+import os
 import shutil
 import tempfile
-import os
-from fuse.utils.gpu import choose_and_enable_multiple_gpus
-from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
+import unittest
 
 import hydra
 from hydra import compose, initialize
 
+from fuse.utils import NDict
+from fuse.utils.gpu import choose_and_enable_multiple_gpus
+from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 
 # os env variable PICAI_DATA_PATH is a path to the stored dataset location
 # dataset should be download from https://zenodo.org/record/6517398#.ZGEHVXZBxD8
@@ -36,9 +36,9 @@ from hydra import compose, initialize
 # folder named PICAI which is the downloaded data folder with partition for images and labels
 if "PICAI_DATA_PATH" in os.environ:
     from fuse_examples.imaging.segmentation.picai.runner import (
-        run_train,
-        run_infer,
         run_eval,
+        run_infer,
+        run_train,
     )
 
 

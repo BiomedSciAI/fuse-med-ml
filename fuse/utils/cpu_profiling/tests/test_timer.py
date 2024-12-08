@@ -1,5 +1,6 @@
 import unittest
 from typing import Union
+
 from fuse.utils.cpu_profiling import Timer
 
 

@@ -1,5 +1,6 @@
-import numpy as np
 from typing import Sequence, Union
+
+import numpy as np
 from scipy.stats import pearsonr, spearmanr
 
 

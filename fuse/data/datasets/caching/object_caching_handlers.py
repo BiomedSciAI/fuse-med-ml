@@ -1,7 +1,9 @@
-from typing import List, Any
+from typing import Any, List
+
 import numpy as np
-from fuse.utils.ndict import NDict
 import torch
+
+from fuse.utils.ndict import NDict
 
 # TODO: support custom _object_requires_hdf5_single
 #      maybe even more flexible (knowing key name etc., patterns, explicit name, regular expr.)

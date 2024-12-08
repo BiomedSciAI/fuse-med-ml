@@ -19,9 +19,10 @@ Created on June 30, 2021
 
 from typing import Optional, Sequence
 
-from .metrics_classification_common import MetricMultiClassDefault
 from fuse.eval.metrics.libs.model_comparison import ModelComparison
 from fuse.eval.metrics.metrics_common import MetricDefault
+
+from .metrics_classification_common import MetricMultiClassDefault
 
 
 class MetricDelongsTest(MetricMultiClassDefault):

@@ -16,16 +16,16 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from typing import Any, Callable, Dict, List, Sequence, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
-from torch.utils.data._utils.collate import default_collate
 import torch.nn.functional as F
+from torch.utils.data._utils.collate import default_collate
 
+from fuse.data import get_sample_id_key
 from fuse.utils import NDict
 from fuse.utils.data.collate import CollateToBatchList
-from fuse.data import get_sample_id_key
 
 
 class CollateDefault(CollateToBatchList):

@@ -17,10 +17,11 @@ Created on June 30, 2021
 
 """
 
-from typing import Optional, Sequence, List
+from typing import List, Optional, Sequence
+
+import torch
 import torch.nn as nn
 from torch import Tensor
-import torch
 
 
 class ClassifierFCN(nn.Module):

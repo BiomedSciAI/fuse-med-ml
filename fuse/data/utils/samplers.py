@@ -18,9 +18,11 @@ Created on June 30, 2021
 """
 
 import math
+from typing import Any, Dict, List, Optional, Sequence, Union
+
 import numpy as np
-from typing import Any, List, Optional, Union, Sequence, Dict
-from torch.utils.data.sampler import Sampler, BatchSampler
+from torch.utils.data.sampler import BatchSampler, Sampler
+
 from fuse.data.datasets.dataset_base import DatasetBase
 
 

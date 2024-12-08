@@ -17,31 +17,28 @@ Created on June 30, 2021
 
 """
 
+import logging
 import os
 from typing import OrderedDict
-import logging
 
-import torch
 import pytorch_lightning as pl
+import torch
 import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
 
-from fuse.utils.utils_debug import FuseDebug
 import fuse.utils.gpu as GPU
-from fuse.utils.utils_logger import fuse_logger_start
-from fuse.utils.file_io.file_io import create_dir, save_dataframe
-
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.utils.collates import CollateDefault
 from fuse.data.utils.samplers import BatchSamplerDefault
-
-from fuse.dl.models import ModelMultiHead
-from fuse.dl.lightning.pl_module import LightningModuleDefault
 from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
-
+from fuse.dl.lightning.pl_module import LightningModuleDefault
+from fuse.dl.models import ModelMultiHead
 from fuse.eval.evaluator import EvaluatorDefault
+from fuse.utils.file_io.file_io import create_dir, save_dataframe
+from fuse.utils.utils_debug import FuseDebug
+from fuse.utils.utils_logger import fuse_logger_start
 
 ###########################################################################################################
 # Fuse

@@ -17,10 +17,10 @@ Created on June 30, 2021
 
 """
 
+import os
 import unittest
 
 from fuse.utils.config_tools import Config
-import os
 
 
 class TestConfig(unittest.TestCase):

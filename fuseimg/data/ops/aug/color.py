@@ -1,11 +1,13 @@
 from typing import List, Optional
+
+import torch
+from torch import Tensor
+
 from fuse.data.ops.op_base import OpBase
+from fuse.data.ops.ops_cast import Cast
 from fuse.utils.ndict import NDict
 from fuse.utils.rand.param_sampler import Gaussian
-from fuse.data.ops.ops_cast import Cast
 from fuseimg.data.ops.color import OpClip
-from torch import Tensor
-import torch
 
 
 class OpAugColor(OpBase):

@@ -17,17 +17,16 @@ Created on June 30, 2021
 
 """
 
-import shutil
-import unittest
-import tempfile
 import os
+import shutil
+import tempfile
+import unittest
+
+import yaml
+from omegaconf import DictConfig
 
 from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
-from omegaconf import DictConfig
-import yaml
-
 from fuse_examples.multimodality.ehr_transformer.main_train import main as main_train
-
 
 if "CINC_TEST_DATA_PATH" in os.environ:
     TEST_PARAMS = {

@@ -1,5 +1,5 @@
-from os.path import join, basename, dirname
 import re
+from os.path import basename, dirname, join
 
 
 def add_base_prefix(filepath: str, prefix: str) -> str:

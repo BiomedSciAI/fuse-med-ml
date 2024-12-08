@@ -1,7 +1,6 @@
 from typing import Dict, Optional, Tuple
 
 import numpy as np
-
 from scipy.spatial import distance
 from scipy.spatial.distance import directed_hausdorff
 

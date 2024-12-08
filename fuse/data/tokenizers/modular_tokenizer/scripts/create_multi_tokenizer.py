@@ -1,7 +1,9 @@
+from typing import Any, Dict
+
 import hydra
 from omegaconf import DictConfig, OmegaConf
+
 from fuse.data.tokenizers.modular_tokenizer.modular_tokenizer import ModularTokenizer
-from typing import Dict, Any
 
 
 @hydra.main(

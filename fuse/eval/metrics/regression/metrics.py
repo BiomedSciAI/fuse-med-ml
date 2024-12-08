@@ -1,6 +1,5 @@
-from typing import List, Optional, Union, Sequence
-from fuse.eval.metrics.libs.stat import Stat
-from fuse.eval.metrics.metrics_common import MetricDefault
+from typing import List, Optional, Sequence, Union
+
 import numpy as np
 from sklearn.metrics import (
     mean_absolute_error,
@@ -8,6 +7,9 @@ from sklearn.metrics import (
     r2_score,
     root_mean_squared_error,
 )
+
+from fuse.eval.metrics.libs.stat import Stat
+from fuse.eval.metrics.metrics_common import MetricDefault
 
 
 class MetricPearsonCorrelation(MetricDefault):
@@ -66,9 +68,7 @@ class MetricMAE(MetricDefault):
         mask: Optional[np.ndarray] = None,
         **kwargs: dict,
     ) -> float:
-
         if mask is not None:
-
             if isinstance(pred, Sequence):
                 if np.isscalar(pred[0]):
                     pred = np.array(pred)
@@ -122,9 +122,7 @@ class MetricMSE(MetricDefault):
         mask: Optional[np.ndarray] = None,
         **kwargs: dict,
     ) -> float:
-
         if mask is not None:
-
             if isinstance(pred, Sequence):
                 if np.isscalar(pred[0]):
                     pred = np.array(pred)
@@ -175,9 +173,7 @@ class MetricRMSE(MetricDefault):
         mask: Optional[np.ndarray] = None,
         **kwargs: dict,
     ) -> float:
-
         if mask is not None:
-
             if isinstance(pred, Sequence):
                 if np.isscalar(pred[0]):
                     pred = np.array(pred)
@@ -232,7 +228,6 @@ class MetricR2(MetricDefault):
         target: Union[List, np.ndarray],
         **kwargs: dict,
     ) -> float:
-
         pred = np.array(pred).flatten()
         target = np.array(target).flatten()
 

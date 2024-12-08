@@ -1,32 +1,30 @@
-from fuse.utils.utils_logger import fuse_logger_start
+import logging
 import os
 from glob import glob
-import pandas as pd
-from fuse.dl.models import ModelMultiHead
-from fuse.utils import NDict
 
-from fuse.dl.models.heads.head_dense_segmentation import HeadDenseSegmentation
-
-from monai.losses import GeneralizedDiceLoss
-import torch.nn as nn
-import torch
-from torch.utils.data.dataloader import DataLoader
-from fuse.data.utils.collates import CollateDefault
-
-from fuse.eval.metrics.segmentation.metrics_segmentation_common import MetricDice
-import torch.optim as optim
-from fuse.utils.rand.seed import Seed
-import logging
-from fuse.dl.losses.loss_default import LossDefault
-from fuse.dl.lightning.pl_module import LightningModuleDefault
-import pytorch_lightning as pl
-from pytorch_lightning.callbacks import LearningRateMonitor
 import hydra
-from omegaconf import DictConfig
+import pandas as pd
+import pytorch_lightning as pl
+import torch
+import torch.nn as nn
+import torch.optim as optim
 from clearml import Task
-from fuse_examples.imaging.oai_example.data.seg_ds import SegOAI
-from fuse.dl.models.backbones.backbone_unet3d import UNet3D
+from monai.losses import GeneralizedDiceLoss
+from omegaconf import DictConfig
+from pytorch_lightning.callbacks import LearningRateMonitor
+from torch.utils.data.dataloader import DataLoader
 
+from fuse.data.utils.collates import CollateDefault
+from fuse.dl.lightning.pl_module import LightningModuleDefault
+from fuse.dl.losses.loss_default import LossDefault
+from fuse.dl.models import ModelMultiHead
+from fuse.dl.models.backbones.backbone_unet3d import UNet3D
+from fuse.dl.models.heads.head_dense_segmentation import HeadDenseSegmentation
+from fuse.eval.metrics.segmentation.metrics_segmentation_common import MetricDice
+from fuse.utils import NDict
+from fuse.utils.rand.seed import Seed
+from fuse.utils.utils_logger import fuse_logger_start
+from fuse_examples.imaging.oai_example.data.seg_ds import SegOAI
 
 torch.set_float32_matmul_precision("medium")
 

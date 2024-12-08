@@ -17,12 +17,12 @@ Created on June 30, 2021
 
 """
 
-from typing import Union, Tuple, Callable
+from typing import Callable, Tuple, Union
 
+import cv2
 import numpy as np
 import skimage
 import torch
-import cv2
 
 
 def match_img_to_input(im: np.ndarray, input: np.ndarray) -> np.ndarray:
@@ -148,6 +148,7 @@ def align_ecc(
 
     try:
         import cv2
+
         from fuseimg.utils.align.utils_align_ecc import AlignMapECC
 
         transformation = transformation or cv2.MOTION_AFFINE

@@ -1,36 +1,35 @@
-from fuse.utils.utils_logger import fuse_logger_start
+import copy
+import logging
 import os
 from glob import glob
+
+import hydra
 import pandas as pd
-from fuse.dl.models import ModelMultiHead
-from fuse.dl.models.heads.heads_3D import Head3D
-
-import torch.nn as nn
+import pytorch_lightning as pl
 import torch
+import torch.nn as nn
+import torch.optim as optim
+from clearml import Task
+from omegaconf import DictConfig
+from pytorch_lightning.callbacks import LearningRateMonitor
 from torch.utils.data.dataloader import DataLoader
-from fuse.data.utils.collates import CollateDefault
 
+from fuse.data.utils.collates import CollateDefault
+from fuse.dl.lightning.pl_module import LightningModuleDefault
+from fuse.dl.losses.loss_default import LossDefault
+from fuse.dl.models import ModelMultiHead
+from fuse.dl.models.backbones.backbone_unet3d import UNet3D
+from fuse.dl.models.heads.heads_3D import Head3D
 from fuse.eval.metrics.classification.metrics_classification_common import (
-    MetricAUCROC,
     MetricAccuracy,
+    MetricAUCROC,
 )
 from fuse.eval.metrics.classification.metrics_thresholding_common import (
     MetricApplyThresholds,
 )
-import torch.optim as optim
 from fuse.utils.rand.seed import Seed
-import logging
-import copy
-from fuse.dl.losses.loss_default import LossDefault
-from fuse.dl.lightning.pl_module import LightningModuleDefault
-import pytorch_lightning as pl
-from pytorch_lightning.callbacks import LearningRateMonitor
-import hydra
-from omegaconf import DictConfig
-from clearml import Task
-
+from fuse.utils.utils_logger import fuse_logger_start
 from fuse_examples.imaging.oai_example.data.oai_ds import OAI
-from fuse.dl.models.backbones.backbone_unet3d import UNet3D
 
 torch.set_float32_matmul_precision("medium")
 

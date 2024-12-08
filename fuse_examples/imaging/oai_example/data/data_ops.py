@@ -1,14 +1,16 @@
+import os
+import random
+from copy import deepcopy
+from typing import List, Tuple, Union
+
+import numpy as np
+import pydicom
+import torch.nn.functional as F
+from scipy.ndimage import zoom
+from volumentations import Compose
+
 from fuse.data.ops.op_base import OpBase
 from fuse.utils import NDict
-import numpy as np
-import os
-from copy import deepcopy
-import random
-import pydicom
-from scipy.ndimage import zoom
-import torch.nn.functional as F
-from typing import Tuple, Union, List
-from volumentations import Compose
 
 
 class OpLoadData(OpBase):
@@ -55,7 +57,6 @@ class OpNormalizeMRI(OpBase):
         key: str,
         to_range: Tuple[float, float],
     ) -> Union[None, dict, List[dict]]:
-
         img = sample_dict[key]
         img = np.clip(
             img, *(np.percentile(img, [0, 95]))

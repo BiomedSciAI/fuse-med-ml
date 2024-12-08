@@ -1,10 +1,11 @@
-from typing import Sequence, Union, Dict, Optional
-import numpy as np
-import matplotlib.pyplot as plt
 import math
+from typing import Dict, Optional, Sequence, Union
+
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
-from torch import nn, optim, Tensor
 from scipy import stats
+from torch import Tensor, nn, optim
 
 
 class Calibration:

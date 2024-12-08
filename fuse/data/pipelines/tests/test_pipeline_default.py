@@ -1,12 +1,11 @@
-import unittest
-
-from fuse.utils.ndict import NDict
-from typing import Any, Union, List
 import copy
+import unittest
+from typing import Any, List, Union
 from unittest.case import expectedFailure
 
 from fuse.data.ops.op_base import OpBase, OpReversibleBase
 from fuse.data.pipelines.pipeline_default import PipelineDefault
+from fuse.utils.ndict import NDict
 
 
 class OpSetForTest(OpReversibleBase):

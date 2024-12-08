@@ -1,30 +1,30 @@
 # This file is a modifies version of the Dino example from lightly - https://github.com/lightly-ai/lightly/blob/master/examples/pytorch_lightning/dino.py
 
 import copy
-import torch
-import pytorch_lightning as pl
-import pandas as pd
-from lightly.loss import DINOLoss
-from lightly.models.modules import DINOProjectionHead
-from lightly.utils.scheduler import cosine_schedule
-from lightly.models.utils import deactivate_requires_grad
-from lightly.models.utils import update_momentum
-from typing import Any
 import os
 from glob import glob
-from fuse.data.utils.collates import CollateDefault
-from fuse.dl.models.backbones.backbone_vit import vit_base
-from fuse.utils import NDict
-from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
+from typing import Any
+
+import hydra
+import pandas as pd
+import pytorch_lightning as pl
+import torch
+from clearml import Task
+from lightly.loss import DINOLoss
+from lightly.models.modules import DINOProjectionHead
+from lightly.models.utils import deactivate_requires_grad, update_momentum
+from lightly.utils.scheduler import cosine_schedule
+from omegaconf import DictConfig
+from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data.dataloader import DataLoader
-from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 
+from fuse.data.utils.collates import CollateDefault
+from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
 from fuse.dl.models.backbones.backbone_unet3d import UNet3D
+from fuse.dl.models.backbones.backbone_vit import vit_base
+from fuse.utils import NDict
 from fuse_examples.imaging.oai_example.data.oai_ds import OAI
-from omegaconf import DictConfig
-import hydra
-from clearml import Task
 
 torch.set_float32_matmul_precision("high")
 

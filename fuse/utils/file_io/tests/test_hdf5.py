@@ -15,13 +15,14 @@ limitations under the License.
 
 """
 
+import os
+import tempfile
 import unittest
 
-from fuse.utils.rand.seed import Seed
-from fuse.utils.file_io.file_io import save_hdf5_safe, load_hdf5
 import numpy as np
-import tempfile
-import os
+
+from fuse.utils.file_io.file_io import load_hdf5, save_hdf5_safe
+from fuse.utils.rand.seed import Seed
 
 
 class TestHDF5IO(unittest.TestCase):

@@ -1,6 +1,7 @@
+from typing import Any, Dict
+
 import torch
 from torch import Tensor
-from typing import Any, Dict
 
 
 class LossWarmUp(torch.nn.Module):

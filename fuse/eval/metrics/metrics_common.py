@@ -17,17 +17,17 @@ Created on June 30, 2021
 
 """
 
-from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Hashable, Optional, Sequence, Tuple, Union, List
 import copy
-from fuse.utils import uncollate
-import torch.distributed as dist
-import pandas as pd
-import torch
-import numpy as np
-import scipy
+from abc import ABC, abstractmethod
+from typing import Any, Callable, Dict, Hashable, List, Optional, Sequence, Tuple, Union
 
-from fuse.utils import NDict
+import numpy as np
+import pandas as pd
+import scipy
+import torch
+import torch.distributed as dist
+
+from fuse.utils import NDict, uncollate
 
 
 class MetricBase(ABC):
