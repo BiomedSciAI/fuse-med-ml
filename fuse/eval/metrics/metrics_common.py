@@ -409,7 +409,6 @@ class MetricCollector(MetricBase):
 
             permutation = [original_ids_pos[sample_id] for sample_id in required_ids]
 
-            # create the permuted dictionary
             data = {}
             for name, values in self._collected_data.items():
                 data[name] = [values[i] for i in permutation]
@@ -741,15 +740,17 @@ class GroupAnalysis(MetricWithCollectorBase):
             raise Exception(
                 "Error: group analysis is supported only when a unique identifier is specified. Add key 'id' to your data"
             )
-        ids = np.array(ids)
+        # don't convert to array, this converts the tuple ids to arrays
+        # ids = np.array(ids)
 
         groups = np.array(data["group"])
         unique_groups = set(groups)
 
         group_analysis_results = {}
         for group_value in unique_groups:
-            group_ids = ids[groups == group_value]
-
+            # group_ids = ids[groups == group_value]
+            # use List comprehension instead of boolean filtering to support advance id types such as tuples
+            group_ids = [ids[i] for i in range(len(ids)) if groups[i] == group_value]
             group_analysis_results[str(group_value)] = self._metric.eval(
                 results, group_ids
             )
