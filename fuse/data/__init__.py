@@ -16,6 +16,7 @@ from fuse.data.ops.ops_common import (
     OpFunc,
     OpRepeat,
     OpKeepKeypaths,
+    OpSet,
 )
 from fuse.data.ops.ops_aug_common import OpRandApply, OpSample, OpSampleAndRepeat
 from fuse.data.ops.ops_read import OpReadDataframe
