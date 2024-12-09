@@ -1,7 +1,6 @@
 from typing import Dict, Sequence
 
 import numpy as np
-
 from pycocotools import mask as maskUtils
 
 

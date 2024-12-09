@@ -19,30 +19,31 @@ Created on June 30, 2021
 
 import os
 import pathlib
+from collections import OrderedDict
 from tempfile import mkdtemp
 from typing import Any, Dict
 
-from collections import OrderedDict
-
-import pandas as pd
 import numpy as np
-from fuse.eval.metrics.survival.metrics_survival import MetricCIndex
+import pandas as pd
 
-from fuse.utils import set_seed
-from fuse.utils.ndict import NDict
-
-from fuse.eval.metrics.metrics_common import GroupAnalysis, CI, Filter
-from fuse.eval.metrics.metrics_model_comparison import PairedBootstrap
+from fuse.eval.evaluator import EvaluatorDefault
+from fuse.eval.metrics.classification.metrics_calibration_common import (
+    MetricApplyTemperature,
+    MetricECE,
+    MetricFindTemperature,
+    MetricReliabilityDiagram,
+)
 from fuse.eval.metrics.classification.metrics_classification_common import (
+    MetricAccuracy,
     MetricAUCPR,
     MetricAUCROC,
-    MetricAccuracy,
+    MetricAUCROCMultLabel,
+    MetricBSS,
     MetricConfusion,
     MetricConfusionMatrix,
-    MetricBSS,
     MetricROCCurve,
-    MetricAUCROCMultLabel,
 )
+from fuse.eval.metrics.classification.metrics_ensembling_common import MetricEnsemble
 from fuse.eval.metrics.classification.metrics_model_comparison_common import (
     MetricDelongsTest,
     MetricMcnemarsTest,
@@ -50,14 +51,11 @@ from fuse.eval.metrics.classification.metrics_model_comparison_common import (
 from fuse.eval.metrics.classification.metrics_thresholding_common import (
     MetricApplyThresholds,
 )
-from fuse.eval.metrics.classification.metrics_calibration_common import (
-    MetricReliabilityDiagram,
-    MetricECE,
-    MetricFindTemperature,
-    MetricApplyTemperature,
-)
-from fuse.eval.metrics.classification.metrics_ensembling_common import MetricEnsemble
-from fuse.eval.evaluator import EvaluatorDefault
+from fuse.eval.metrics.metrics_common import CI, Filter, GroupAnalysis
+from fuse.eval.metrics.metrics_model_comparison import PairedBootstrap
+from fuse.eval.metrics.survival.metrics_survival import MetricCIndex
+from fuse.utils import set_seed
+from fuse.utils.ndict import NDict
 
 
 def example_0() -> Dict[str, Any]:

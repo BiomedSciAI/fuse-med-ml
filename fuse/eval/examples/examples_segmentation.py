@@ -14,28 +14,29 @@ Created on June 30, 2021
 
 import os
 import pathlib
-from typing import Any, Dict
 from collections import OrderedDict
-from pycocotools.coco import COCO
-import numpy as np
-import nibabel as nib
-from fuse.utils import set_seed, NDict
+from typing import Any, Dict
 
-from fuse.eval.metrics.segmentation.metrics_segmentation_common import (
-    MetricDice,
-    MetricIouJaccard,
-    MetricOverlap,
-    Metric2DHausdorff,
-    MetricPixelAccuracy,
-)
-from fuse.eval.metrics.segmentation.metrics_instance_segmentation_common import (
-    MetricInstanceIouJaccard,
-)
+import nibabel as nib
+import numpy as np
+from pycocotools.coco import COCO
+
+from fuse.eval.evaluator import EvaluatorDefault
 from fuse.eval.metrics.detection.metrics_detection_common import (
     MetricDetectionPrecision,
     MetricDetectionRecall,
 )
-from fuse.eval.evaluator import EvaluatorDefault
+from fuse.eval.metrics.segmentation.metrics_instance_segmentation_common import (
+    MetricInstanceIouJaccard,
+)
+from fuse.eval.metrics.segmentation.metrics_segmentation_common import (
+    Metric2DHausdorff,
+    MetricDice,
+    MetricIouJaccard,
+    MetricOverlap,
+    MetricPixelAccuracy,
+)
+from fuse.utils import NDict, set_seed
 
 
 def example_seg_0() -> Dict[str, Any]:

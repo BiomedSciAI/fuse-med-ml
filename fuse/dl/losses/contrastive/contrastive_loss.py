@@ -1,11 +1,11 @@
 from typing import Callable, Optional
 
-from fuse.dl.losses.loss_base import LossBase
-from fuse.utils.ndict import NDict
-
 import torch
 import torch.nn.functional as F
 from torch import Tensor
+
+from fuse.dl.losses.loss_base import LossBase
+from fuse.utils.ndict import NDict
 
 
 def softcrossentropyloss(target: Tensor, logits: Tensor) -> Tensor:

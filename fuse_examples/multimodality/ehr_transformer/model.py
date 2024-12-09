@@ -1,10 +1,11 @@
 from typing import Optional
+
 import numpy as np
 import torch
 import torch.nn as nn
+from transformers.models.bert.modeling_bert import BertConfig, BertEncoder, BertPooler
 
 from fuse.dl.models.backbones.backbone_transformer import Transformer
-from transformers.models.bert.modeling_bert import BertEncoder, BertPooler, BertConfig
 from fuse.utils.ndict import NDict
 
 

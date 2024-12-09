@@ -17,14 +17,15 @@ Created on June 30, 2021
 
 """
 import unittest
-
 from typing import List
-from fuse.data.ops.op_base import op_call, op_reverse
-from fuse.utils.ndict import NDict
+
+import numpy as np
 import pandas as pd
 import torch
-import numpy as np
+
+from fuse.data.ops.op_base import op_call, op_reverse
 from fuse.data.ops.ops_cast import OpToNumpy, OpToTensor
+from fuse.utils.ndict import NDict
 
 
 class TestOpsCast(unittest.TestCase):

@@ -18,14 +18,14 @@ Created on June 30, 2021
 """
 # FIXME: data_package
 import multiprocessing
-from fuse.utils import NDict
-import unittest
+import os
 import shutil
 import tempfile
-import os
+import unittest
+
+from fuse.utils import NDict
 from fuse.utils.gpu import choose_and_enable_multiple_gpus
 from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
-
 
 # os env variable CMMD_DATA_PATH is a path to the stored dataset location
 # dataset should be download from https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508
@@ -35,9 +35,9 @@ from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 # 2. folder named CMMD which is the downloaded data folder
 if "CMMD_DATA_PATH" in os.environ:
     from fuse_examples.imaging.classification.cmmd.runner import (
-        run_train,
         run_eval,
         run_infer,
+        run_train,
     )
 
 

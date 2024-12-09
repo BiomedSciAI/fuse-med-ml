@@ -1,6 +1,7 @@
-from lifelines.utils import concordance_index
-import numpy as np
 from typing import Sequence
+
+import numpy as np
+from lifelines.utils import concordance_index
 
 
 class MetricsSurvival:

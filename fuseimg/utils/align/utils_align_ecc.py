@@ -18,9 +18,10 @@ Created on June 30, 2021
 
 """
 
-from fuseimg.utils.align.utils_align_base import AlignMapBase
-import numpy as np
 import cv2
+import numpy as np
+
+from fuseimg.utils.align.utils_align_base import AlignMapBase
 
 
 class AlignMapECC(AlignMapBase):

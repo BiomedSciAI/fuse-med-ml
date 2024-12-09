@@ -16,11 +16,12 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from typing import Optional, Tuple, List, Dict
-from functools import partial
 from copy import copy
-import torch
+from functools import partial
+from typing import Dict, List, Optional, Tuple
+
 import numpy as np
+import torch
 
 from fuse.eval.metrics.metrics_common import MetricPerBatchDefault
 
@@ -71,7 +72,6 @@ class MetricCountSeqAndTokens(MetricPerBatchDefault):
         seq_num: List[np.ndarray],
         token_num: List[np.ndarray],
     ) -> dict:
-
         seq_num_total = sum(seq_num)
         token_num_total = sum(token_num)
         self._state["seq_num"] += seq_num_total

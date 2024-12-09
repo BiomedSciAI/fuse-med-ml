@@ -1,8 +1,9 @@
+from typing import Any, Tuple
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
-from typing import Tuple, Any
 
 
 def perform_softmax(output: Any) -> Tuple[Tensor, Tensor]:

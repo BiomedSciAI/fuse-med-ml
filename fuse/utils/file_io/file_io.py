@@ -1,18 +1,18 @@
-import errno
-from typing import Iterable, List, Dict, Optional, Tuple, Union, Any
-import pickle
 import bz2
-import gzip
-import socket
-import os
-import numpy as np
-import time
 import datetime
-
-import pandas as pd
+import errno
+import gzip
+import os
+import pickle
 import shutil
+import socket
+import time
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+
 import h5py
 import hdf5plugin
+import numpy as np
+import pandas as pd
 from scipy.io import arff
 
 from fuse.utils.misc.misc import Misc
@@ -150,8 +150,9 @@ def get_randomized_postfix_name(filename: str, **additional_rand_state: dict) ->
     @return:
     """
 
-    import numpy as np
     import hashlib
+
+    import numpy as np
 
     # out_dir = os.path.dirname(filename)
     str_for_hash = filename + str(additional_rand_state)

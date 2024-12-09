@@ -18,8 +18,10 @@ Created on June 30, 2021
 """
 
 from abc import abstractmethod
-from fuse.utils.ndict import NDict
+
 import torch
+
+from fuse.utils.ndict import NDict
 
 
 class LossBase(torch.nn.Module):

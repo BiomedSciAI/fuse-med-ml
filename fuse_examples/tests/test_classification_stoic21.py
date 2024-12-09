@@ -16,27 +16,26 @@ limitations under the License.
 Created on June 30, 2021
 """
 
+import os
 import shutil
 import tempfile
 import unittest
-import os
-from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 
-from fuse.utils.rand.seed import Seed
 import fuse.utils.gpu as GPU
-
 import fuse_examples.imaging.classification.stoic21.dataset as dataset
+from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
+from fuse.utils.rand.seed import Seed
 
 if "STOIC21_DATA_PATH" in os.environ:
     from fuse_examples.imaging.classification.stoic21.runner_stoic21 import (
+        DATASET_COMMON_PARAMS,
+        EVAL_COMMON_PARAMS,
+        INFER_COMMON_PARAMS,
         PATHS,
         TRAIN_COMMON_PARAMS,
-        run_train,
-        run_infer,
         run_eval,
-        INFER_COMMON_PARAMS,
-        EVAL_COMMON_PARAMS,
-        DATASET_COMMON_PARAMS,
+        run_infer,
+        run_train,
     )
 
 

@@ -21,24 +21,25 @@ Collection of useful functions to implement FuseMedML pytorch lightning based mo
 """
 import os
 import traceback
-from typing import Any, Dict, List, OrderedDict, Sequence, Union, Mapping, TypeVar
 from statistics import mean
-from fuse.data.utils.sample import get_sample_id_key
-from fuse.utils.data.collate import uncollate
+from typing import Any, Dict, List, Mapping, OrderedDict, Sequence, TypeVar, Union
+
 import pandas as pd
-
-import torch
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
-from .pl_epoch_summary import ModelEpochSummary
-
-from fuse.utils import NDict
-from fuse.dl.losses.loss_base import LossBase
-from fuse.eval import MetricBase
-from fuse.eval.metrics.utils import PerSampleData
+import torch
 
 # for clearml
 from clearml import Task
+from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
+
+from fuse.data.utils.sample import get_sample_id_key
+from fuse.dl.losses.loss_base import LossBase
+from fuse.eval import MetricBase
+from fuse.eval.metrics.utils import PerSampleData
+from fuse.utils import NDict
+from fuse.utils.data.collate import uncollate
+
+from .pl_epoch_summary import ModelEpochSummary
 
 TaskInstance = TypeVar("TaskInstance", bound="Task")
 

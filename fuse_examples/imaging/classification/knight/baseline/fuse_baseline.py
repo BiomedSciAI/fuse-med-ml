@@ -1,39 +1,39 @@
-from collections import OrderedDict
-import pathlib
-from fuse.utils.utils_logger import fuse_logger_start
+import copy
+import logging
 import os
-import yaml
+import pathlib
+import shutil
+import time
+from collections import OrderedDict
 
 import pandas as pd
+import pytorch_lightning as pl
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+import yaml
+from omegaconf import DictConfig
+from torch.utils.data.dataloader import DataLoader
+
+import fuse.utils.gpu as GPU
+from fuse.data.utils.collates import CollateDefault
+from fuse.data.utils.samplers import BatchSamplerDefault
+from fuse.dl.lightning.pl_module import LightningModuleDefault
+from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.models import ModelMultiHead
 from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
 from fuse.dl.models.heads.heads_3D import Head3D
-from fuseimg.datasets.knight import KNIGHT
-import torch.nn.functional as F
-import torch.nn as nn
-from torch.utils.data.dataloader import DataLoader
-from fuse.data.utils.collates import CollateDefault
-from fuse.data.utils.samplers import BatchSamplerDefault
-
 from fuse.eval.metrics.classification.metrics_classification_common import (
-    MetricAUCROC,
     MetricAccuracy,
+    MetricAUCROC,
     MetricConfusion,
 )
 from fuse.eval.metrics.classification.metrics_thresholding_common import (
     MetricApplyThresholds,
 )
-import torch.optim as optim
-import fuse.utils.gpu as GPU
 from fuse.utils.rand.seed import Seed
-import logging
-import time
-import copy
-import shutil
-from fuse.dl.losses.loss_default import LossDefault
-from fuse.dl.lightning.pl_module import LightningModuleDefault
-import pytorch_lightning as pl
-from omegaconf import DictConfig
+from fuse.utils.utils_logger import fuse_logger_start
+from fuseimg.datasets.knight import KNIGHT
 
 ## Parameters:
 ##############################################################################

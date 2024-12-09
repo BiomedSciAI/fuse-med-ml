@@ -17,11 +17,12 @@ Created on June 30, 2021
 
 """
 
+from typing import Dict, Optional, Sequence, Tuple
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from typing import Dict, Tuple, Sequence, Optional
 from fuse.dl.models.heads.common import ClassifierMLP
 
 

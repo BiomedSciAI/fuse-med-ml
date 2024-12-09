@@ -1,16 +1,16 @@
-from typing import Dict, Callable
-from fuse.utils import gpu as FuseUtilsGPU
-from sklearn.model_selection import KFold
-from functools import partial
-from multiprocessing import Process, Queue
-from typing import Sequence, Union
 import os
-from fuse.eval.metrics.classification.metrics_ensembling_common import MetricEnsemble
 from collections import OrderedDict
+from functools import partial
+from multiprocessing import Process, Queue, set_start_method
+from typing import Callable, Dict, Sequence, Union
+
+from sklearn.model_selection import KFold
+
 from fuse.eval.evaluator import EvaluatorDefault
+from fuse.eval.metrics.classification.metrics_ensembling_common import MetricEnsemble
+from fuse.utils import gpu as FuseUtilsGPU
 from fuse.utils.file_io.file_io import create_or_reset_dir
 from fuse.utils.rand.seed import Seed
-from multiprocessing import set_start_method
 
 set_start_method("spawn", force=True)
 

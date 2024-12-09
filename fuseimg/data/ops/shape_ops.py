@@ -1,16 +1,16 @@
-from typing import Tuple, List, Dict, Any
+from typing import Any, Dict, List, Tuple
+
 import numpy as np
-from torch import Tensor
 import skimage
 import torch
 import torchvision.transforms.functional as TTF
-
-from fuse.utils.ndict import NDict
+from skimage import measure
+from torch import Tensor
 
 from fuse.data.ops.op_base import OpBase
-from skimage import measure
-from fuseimg.utils.typing.key_types_imaging import DataTypeImaging
+from fuse.utils.ndict import NDict
 from fuseimg.data.ops.ops_common_imaging import OpApplyTypesImaging
+from fuseimg.utils.typing.key_types_imaging import DataTypeImaging
 
 
 def sanity_check_HWC(input_tensor: Tensor) -> None:

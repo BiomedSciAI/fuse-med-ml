@@ -18,15 +18,12 @@ Created on June 30, 2021
 """
 from typing import Dict, Optional, Sequence, Tuple, Union
 
-import pandas as pd
-import numpy as np
-
-from sklearn import metrics
-import sklearn
-from sklearn.utils.multiclass import type_of_target
-
-
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import sklearn
+from sklearn import metrics
+from sklearn.utils.multiclass import type_of_target
 
 
 class MetricsLibClass:

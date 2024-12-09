@@ -16,10 +16,10 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-import pandas as pd
-from distutils.log import warn
 import unittest
+from distutils.log import warn
 
+import pandas as pd
 
 from fuse.eval.examples.examples import (
     example_0,
@@ -39,7 +39,6 @@ from fuse.eval.examples.examples import (
     example_14,
     example_18,
 )
-
 from fuse.eval.examples.examples_segmentation import (
     example_seg_0,
     example_seg_1,
@@ -47,13 +46,11 @@ from fuse.eval.examples.examples_segmentation import (
     example_seg_3,
     example_seg_4,
 )
-
 from fuse.eval.examples.examples_seq_gen import (
     example_seq_gen_0,
     example_seq_gen_1,
     example_seq_gen_2,
 )
-
 from fuse.eval.examples.examples_stats import example_pearson_correlation
 
 
@@ -121,8 +118,9 @@ class TestEval(unittest.TestCase):
 
     def test_eval_example_9(self) -> None:
         try:
-            import fuse.data
             import torchvision
+
+            import fuse.data
         except ImportError:
             warn(
                 " test_eval_example_8: requires fuse-med-ml-data and torchvision packages"

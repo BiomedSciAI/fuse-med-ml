@@ -16,10 +16,11 @@ limitations under the License.
 Created on June 30, 2021
 """
 
-import pytorch_lightning as pl
-from typing import Optional, Union, Tuple, Callable
-from collections import OrderedDict
 import os
+from collections import OrderedDict
+from typing import Callable, Optional, Tuple, Union
+
+import pytorch_lightning as pl
 
 from fuse.dl.lightning.pl_funcs import *  # noqa
 from fuse.utils.file_io.file_io import create_dir

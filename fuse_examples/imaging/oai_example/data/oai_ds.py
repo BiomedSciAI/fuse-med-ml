@@ -1,27 +1,28 @@
-from fuse.data.datasets.dataset_default import DatasetDefault
-from fuse.data.datasets.caching.samples_cacher import SamplesCacher
-from fuse.data import PipelineDefault, OpToTensor
-from fuseimg.data.ops.aug.geometry import OpAugAffine2D
-from fuse.data.ops.ops_aug_common import OpSample, OpRandApply
-from fuse.data.ops.ops_read import OpReadDataframe
-
-from fuse.data.ops.ops_common import OpLambda, OpRepeat
 from functools import partial
-from typing import Hashable, Optional, Sequence, Union, List
-import torch
+from typing import Hashable, List, Optional, Sequence, Union
+
 import pandas as pd
-from fuse.utils.rand.param_sampler import Uniform, RandInt
+import torch
+from volumentations import Compose, Flip, GaussianNoise, RandomRotate90, Rotate
+
+from fuse.data import OpToTensor, PipelineDefault
+from fuse.data.datasets.caching.samples_cacher import SamplesCacher
+from fuse.data.datasets.dataset_default import DatasetDefault
+from fuse.data.ops.ops_aug_common import OpRandApply, OpSample
+from fuse.data.ops.ops_common import OpLambda, OpRepeat
+from fuse.data.ops.ops_read import OpReadDataframe
+from fuse.utils.rand.param_sampler import RandInt, Uniform
 from fuse_examples.imaging.oai_example.data.data_ops import (
-    OpLoadData,
-    OpNormalizeMRI,
-    OpResize3D,
-    OpVolumentation,
-    OpMask3D,
     OpDinoCrops,
+    OpLoadData,
+    OpMask3D,
+    OpNormalizeMRI,
     OpRandomCrop,
     OpRandomFlip,
+    OpResize3D,
+    OpVolumentation,
 )
-from volumentations import Compose, RandomRotate90, GaussianNoise, Flip, Rotate
+from fuseimg.data.ops.aug.geometry import OpAugAffine2D
 
 
 class OAI:

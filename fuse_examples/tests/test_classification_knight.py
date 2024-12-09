@@ -16,21 +16,23 @@ limitations under the License.
 Created on June 30, 2021
 
 """
+import os
 import pathlib
 import shutil
+import sys
 import tempfile
 import unittest
-import os
+
+import wget
+
 from fuse.utils.file_io.file_io import create_dir
 from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
-import sys
-import wget
 
 # add parent directory to path, so that 'knight' folder is treated as a module
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+import imaging.classification.knight.baseline.fuse_baseline as baseline
 from imaging.classification.knight.eval.eval import eval
 from imaging.classification.knight.make_targets_file import make_targets_file
-import imaging.classification.knight.baseline.fuse_baseline as baseline
 
 
 class KnightTestTestCase(unittest.TestCase):

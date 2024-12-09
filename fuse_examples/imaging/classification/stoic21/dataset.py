@@ -1,5 +1,6 @@
-from typing import Union, Sequence, Optional
-from fuse.data import DatasetDefault
+from typing import Optional, Sequence, Union
+
+from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.utils.split import dataset_balanced_division_to_folds
 from fuseimg.datasets.stoic21 import STOIC21
 

@@ -17,18 +17,16 @@ Created on June 30, 2021
 
 """
 
+import random
 import unittest
 
-
-import random
-
 from fuse.utils import (
-    Uniform,
     Choice,
-    RandInt,
     RandBool,
-    draw_samples_recursively,
+    RandInt,
     Seed,
+    Uniform,
+    draw_samples_recursively,
 )
 
 

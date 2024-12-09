@@ -17,12 +17,12 @@ Created on June 30, 2021
 
 """
 from typing import Optional, Sequence
+
 import pandas as pds
+from tqdm import tqdm
 
 from fuse.data.datasets.dataset_base import DatasetBase
-
 from fuse.utils.file_io.file_io import save_dataframe
-from tqdm import tqdm
 
 
 class ExportDataset:

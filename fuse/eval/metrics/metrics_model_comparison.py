@@ -16,13 +16,13 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from typing import Any, Callable, Dict, Optional, Sequence, Union, Hashable
+from typing import Any, Callable, Dict, Hashable, Optional, Sequence, Union
 
 import numpy as np
 import pandas as pd
 
-from fuse.eval.metrics.metrics_common import MetricBase, MetricWithCollectorBase
 from fuse.eval.metrics.libs.model_comparison import ModelComparison
+from fuse.eval.metrics.metrics_common import MetricBase, MetricWithCollectorBase
 
 
 class PairedBootstrap(MetricWithCollectorBase):

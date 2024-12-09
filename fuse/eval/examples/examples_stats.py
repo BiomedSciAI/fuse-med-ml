@@ -17,11 +17,13 @@ Created on Nov 30, 2023
 
 """
 
-from fuse.eval.metrics.regression.metrics import MetricPearsonCorrelation
+from collections import OrderedDict
+
 import numpy as np
 import pandas as pd
-from collections import OrderedDict
+
 from fuse.eval.evaluator import EvaluatorDefault
+from fuse.eval.metrics.regression.metrics import MetricPearsonCorrelation
 
 
 def example_pearson_correlation() -> float:
