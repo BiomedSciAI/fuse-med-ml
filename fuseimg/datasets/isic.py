@@ -8,8 +8,8 @@ import torch
 import wget
 from torch.utils.data import DataLoader
 
-from fuse.data import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
+from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.ops.op_base import OpBase
 from fuse.data.ops.ops_aug_common import OpRandApply, OpSample
 from fuse.data.ops.ops_aug_tabular import OpAugOneHot

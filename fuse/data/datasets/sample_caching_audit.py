@@ -3,7 +3,7 @@ from typing import Any, Optional
 
 from deepdiff import DeepDiff
 
-from fuse.data import get_sample_id
+from fuse.data.utils.sample import get_sample_id
 
 """
 By auditing the samples, "stale" caches can be found, which is very important to detect.

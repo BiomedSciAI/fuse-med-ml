@@ -22,7 +22,7 @@ from typing import Any, Callable, Dict, List, Sequence, Tuple
 import numpy as np
 import torch
 
-from fuse.utils import NDict
+from fuse.utils.ndict import NDict
 
 
 class CollateToBatchList(Callable):

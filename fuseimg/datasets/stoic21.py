@@ -26,8 +26,12 @@ import skimage
 import skimage.transform
 import torch
 
-from fuse.data import DatasetDefault, OpToTensor, PipelineDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
+from fuse.data.datasets.dataset_default import (
+    DatasetDefault,
+    OpToTensor,
+    PipelineDefault,
+)
 from fuse.data.ops.op_base import OpBase
 from fuse.data.ops.ops_aug_common import OpRandApply, OpSample
 from fuse.data.ops.ops_cast import OpToFloat, OpToInt, OpToNumpy
