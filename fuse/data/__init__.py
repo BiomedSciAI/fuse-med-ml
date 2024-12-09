@@ -7,8 +7,7 @@ from fuse.data.ops.ops_common import (
     OpApplyPatterns,
     OpFunc,
     OpKeepKeypaths,
-    OpLambda,
-    OpRepeat,
+    OpSet,
 )
 from fuse.data.ops.ops_read import OpReadDataframe
 from fuse.data.pipelines.pipeline_default import PipelineDefault
