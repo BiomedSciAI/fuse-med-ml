@@ -34,12 +34,19 @@ class InjectorToModularTokenizerLib:
     for text following <@TOKENIZER-TYPE=SCALARS_FROM_DICT> is expected to be a key to the sample NDict
         for example: "blah.boo.banana"  or "data.input.encoder_input"
 
+    for text following <@TOKENIZER-TYPE=EXTERNAL_EMBEDDINGS_FROM_DICT> is expected to be a key to the sample NDict
+        for example: "blah.boo.banana"  or "data.input.encoder_input"
+
     example usage:
 
     encoder_input:
     <@TOKENIZER-TYPE=AA><MOLECULAR_WEIGHT_IN_SOME_UNIT><@TOKENIZER-TYPE=SCALARS_LITERALS>0.3<@TOKENIZER-TYPE=AA><BINDING_AFFINITY_NANOMOLAR><MASK><@TOKENIZER-TYPE=AA><SEQUENCE_NATURAL_START>ISGGDAIYSSTGRCSLGFNVRSGSTYYFLTAGICTDGATTWWANSARTTVLGTTSGSSFPNNDYGIVRYTNTTIPKDGTVGGQDITSAANATVGMAVTRRGSTTGTISGSVTALNATVNYGGGDVVYGMIRTNVCAEPGDSGGPLYSGTRAIGLTSGGSGNCSSGGTTFFQPVTEALVAYGVSVY<SEQUENCE_NATURAL_END>
     labels:
     <@TOKENIZER-TYPE=AA><MOLECULAR_WEIGHT_IN_SOME_UNIT><@TOKENIZER-TYPE=SCALARS_LITERALS>0.3<@TOKENIZER-TYPE=AA><BINDING_AFFINITY_NANOMOLAR><@TOKENIZER-TYPE=SCALARS_LITERALS>12.4<@TOKENIZER-TYPE=AA><SEQUENCE_NATURAL_START>ISGGDAIYSSTGRCSLGFNVRSGSTYYFLTAGICTDGATTWWANSARTTVLGTTSGSSFPNNDYGIVRYTNTTIPKDGTVGGQDITSAANATVGMAVTRRGSTTGTISGSVTALNATVNYGGGDVVYGMIRTNVCAEPGDSGGPLYSGTRAIGLTSGGSGNCSSGGTTFFQPVTEALVAYGVSVY<SEQUENCE_NATURAL_END>
+
+    for embeddings from dict:
+    encoder_input:
+    <@TOKENIZER-TYPE=AA><BIOT5_TASK_ID><1><8><SENTINEL_ID_0><@TOKENIZER-TYPE=AA><MOLECULAR_ENTITY><MOLECULAR_ENTITY_GENERAL_PROTEIN><@TOKENIZER-TYPE=EXTERNAL_EMBEDDINGS_FROM_DICT>{protein1_key}<@TOKENIZER-TYPE=AA@MAX-LEN={max_len_1}><SEQUENCE_NATURAL_START>{protein_seq_1}<SEQUENCE_NATURAL_END><EOS>
 
     """
 
@@ -113,7 +120,11 @@ class InjectorToModularTokenizerLib:
                     raise Exception(f"tokenizer_type={tokenizer_type} is not supported")
 
                 with_placeholders.append(seq)
-
+            elif tokenizer_type.startswith("EXTERNAL_EMBEDDINGS_"):
+                with_placeholders.append(
+                    "<@TOKENIZER-TYPE=AA>"
+                )  # AA tokenizer selection is arbitrary, we only take the special token <SCALAR> from it
+                with_placeholders.append("<EMBEDDINGS>")
             elif tokenizer_type.startswith("VECTORS_"):
                 raise Exception("VECTOR_* are not supported yet")
             else:
@@ -123,7 +134,7 @@ class InjectorToModularTokenizerLib:
         return "".join(with_placeholders), hints_and_subseq
 
     @staticmethod
-    def build_scalars(
+    def build_scalars_and_embeddings(
         *,
         per_meta_tokenizer_data: List[str],
         per_meta_encoding_including_placeholders: List[Encoding],
@@ -155,6 +166,9 @@ class InjectorToModularTokenizerLib:
         # for each element, whether it's a scalar or not
         all_scalars_valid_mask = []
         scalar_default_unfound_value = -1000.0
+        external_embeddings_info = dict()  # a dict mapping location -> embedding input
+        num_tokens_token_so_far = 0
+        num_inputs_needing_embeddings = 0
 
         for tokenizer_name, curr_str_data, curr_placeholder_encoding in zip(
             per_meta_tokenizer_data[::2],
@@ -197,6 +211,30 @@ class InjectorToModularTokenizerLib:
                     raise Exception(
                         "Only supported SCALARS_* tokenizers are SCALARS_LITERALS and SCALARS_FROM_DICT"
                     )
+                num_tokens_token_so_far += len(curr_scalar_values)
+            elif tokenizer_name == "EXTERNAL_EMBEDDINGS_FROM_DICT":
+                if sample_dict is None:
+                    raise Exception(
+                        "EXTERNAL_EMBEDDINGS_FROM_DICT used but the provided sample_dict is None"
+                    )
+                embedding_input = sample_dict[curr_str_data]
+                external_embeddings_info[num_inputs_needing_embeddings] = (
+                    num_tokens_token_so_far,
+                    embedding_input,
+                )
+
+                curr_scalar_values = torch.full(
+                    (1,),
+                    fill_value=scalar_default_unfound_value,
+                )
+                all_scalars_values.append(curr_scalar_values)
+                all_scalars_valid_mask.append(
+                    torch.full_like(
+                        curr_scalar_values, fill_value=False, dtype=torch.bool
+                    )
+                )
+                num_tokens_token_so_far += 1
+                num_inputs_needing_embeddings += 1
 
             elif tokenizer_name.startswith("VECTORS_"):
                 raise NotImplementedError
@@ -212,6 +250,7 @@ class InjectorToModularTokenizerLib:
                         curr_scalar_values, fill_value=False, dtype=torch.bool
                     )
                 )
+                num_tokens_token_so_far += len(curr_placeholder_encoding.ids)
 
         all_scalars_values = torch.concat(all_scalars_values)
         all_scalars_valid_mask = torch.concat(all_scalars_valid_mask)
@@ -255,4 +294,5 @@ class InjectorToModularTokenizerLib:
         return {
             "scalars_values": all_scalars_values,  # 1d - its length is the number of actual scalars (provided) found
             "scalars_valid_mask": all_scalars_valid_mask,  # 1d - values of provided scalars
+            "external_embeddings_info": external_embeddings_info,  # dict - number of input needing embeddings -> (location in the query, embeddings input)
         }
