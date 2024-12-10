@@ -217,13 +217,9 @@ class InjectorToModularTokenizerLib:
                         num_tokens_token_so_far,
                         embedding_input,
                     )
-                    num_tokens_token_so_far += 1
                     num_inputs_needing_embeddings += 1
-
                 elif tokenizer_name.startswith("VECTORS_"):
                     raise NotImplementedError
-                else:
-                    num_tokens_token_so_far += len(curr_placeholder_encoding.ids)
 
                 curr_scalar_values = torch.full(
                     (len(curr_placeholder_encoding.ids),),
@@ -235,6 +231,7 @@ class InjectorToModularTokenizerLib:
                         curr_scalar_values, fill_value=False, dtype=torch.bool
                     )
                 )
+                num_tokens_token_so_far += len(curr_placeholder_encoding.ids)
 
         all_scalars_values = torch.concat(all_scalars_values)
         all_scalars_valid_mask = torch.concat(all_scalars_valid_mask)
