@@ -433,6 +433,9 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
             verbose=verbose,
             **kwargs,
         )
+        self.default_sub_tokenizer_name = next(
+            iter(self._tokenizer.tokenizers_info.values())
+        )["name"]
 
     def __call__(
         self,
@@ -481,7 +484,9 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
             with_placeholders_str,
             per_meta_orig,
         ) = InjectorToModularTokenizerLib.build_placeholder_meta_tokenization(
-            sequence=sample_dict[key_in], sample_dict=sample_dict
+            sequence=sample_dict[key_in],
+            sample_dict=sample_dict,
+            default_sub_tokenizer_name=self.default_sub_tokenizer_name,
         )
         sample_dict[key_in + ".with_placeholders"] = with_placeholders_str
 
