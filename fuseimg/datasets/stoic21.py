@@ -27,18 +27,15 @@ import skimage.transform
 import torch
 
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
-from fuse.data.datasets.dataset_default import (
-    DatasetDefault,
-    OpToTensor,
-    PipelineDefault,
-)
+from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.ops.op_base import OpBase
 from fuse.data.ops.ops_aug_common import OpRandApply, OpSample
-from fuse.data.ops.ops_cast import OpToFloat, OpToInt, OpToNumpy
+from fuse.data.ops.ops_cast import OpToFloat, OpToInt, OpToNumpy, OpToTensor
 from fuse.data.ops.ops_common import OpConcat, OpLambda, OpLookup, OpToOneHot
 from fuse.data.ops.ops_read import OpReadDataframe
+from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.utils.sample import get_sample_id
-from fuse.utils import NDict
+from fuse.utils.ndict import NDict
 from fuse.utils.rand.param_sampler import RandBool, RandInt, Uniform
 from fuseimg.data.ops.aug.geometry import OpAugAffine2D
 from fuseimg.data.ops.color import OpClip, OpToRange

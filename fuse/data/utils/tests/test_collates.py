@@ -25,12 +25,12 @@ import pandas as pds
 import torch
 from torch.utils.data.dataloader import DataLoader
 
-from fuse.data import get_sample_id
 from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.ops.op_base import OpBase
 from fuse.data.ops.ops_read import OpReadDataframe
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.utils.collates import CollateDefault
+from fuse.data.utils.sample import get_sample_id
 
 
 class OpCustomCollateDefTest(OpBase):

@@ -1,7 +1,6 @@
 import unittest
 from typing import Any, List, Optional, Union
 
-from fuse.data import OpRepeat, create_initial_sample
 from fuse.data.ops.op_base import OpBase, OpReversibleBase, op_call, op_reverse
 from fuse.data.ops.ops_aug_common import (
     OpRandApply,
@@ -9,6 +8,8 @@ from fuse.data.ops.ops_aug_common import (
     OpSample,
     OpSampleAndRepeat,
 )
+from fuse.data.ops.ops_common import OpRepeat
+from fuse.data.utils.sample import create_initial_sample
 from fuse.utils import Seed
 from fuse.utils.ndict import NDict
 from fuse.utils.rand.param_sampler import Choice, RandBool, RandInt, Uniform

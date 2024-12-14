@@ -1,13 +1,13 @@
 import unittest
 from typing import List, Union
 
-from fuse.data import create_initial_sample
 from fuse.data.key_types import DataTypeBasic
 from fuse.data.key_types_for_testing import (
     DataTypeForTesting,
     type_detector_for_testing,
 )
 from fuse.data.ops.op_base import OpBase, op_call
+from fuse.data.utils.sample import create_initial_sample
 from fuse.utils.ndict import NDict
 
 

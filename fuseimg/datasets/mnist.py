@@ -20,7 +20,7 @@ from typing import Optional, Sequence
 
 from torchvision import datasets, transforms
 
-from fuse.data import DatasetDefault
+from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.datasets.dataset_wrap_seq_to_dict import DatasetWrapSeqToDict
 
 

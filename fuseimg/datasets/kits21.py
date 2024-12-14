@@ -27,19 +27,15 @@ import torch
 import wget
 from tqdm import tqdm
 
-from fuse.data import (
-    DatasetDefault,
-    OpRepeat,
-    OpSampleAndRepeat,
-    OpToTensor,
-    PipelineDefault,
-)
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
+from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.ops.op_base import OpReversibleBase
-from fuse.data.ops.ops_aug_common import OpSample
-from fuse.data.ops.ops_common import OpLambda
+from fuse.data.ops.ops_aug_common import OpSample, OpSampleAndRepeat
+from fuse.data.ops.ops_cast import OpToTensor
+from fuse.data.ops.ops_common import OpLambda, OpRepeat
+from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.utils.sample import get_sample_id
-from fuse.utils import NDict
+from fuse.utils.ndict import NDict
 from fuse.utils.rand.param_sampler import RandBool, RandInt, Uniform
 from fuseimg.data.ops.aug.color import OpAugColor
 from fuseimg.data.ops.aug.geometry import OpAugAffine2D

@@ -23,7 +23,7 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data._utils.collate import default_collate
 
-from fuse.data import get_sample_id_key
+from fuse.data.utils.sample import get_sample_id_key
 from fuse.utils.data.collate import CollateToBatchList
 from fuse.utils.ndict import NDict
 

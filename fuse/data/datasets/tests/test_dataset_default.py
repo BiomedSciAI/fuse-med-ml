@@ -22,13 +22,13 @@ from typing import List, Optional, Union
 
 import numpy as np
 
-from fuse.data import create_initial_sample, get_sample_id
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.ops.op_base import OpBase
 
 # from fuse.utils.file_io.file_io import SAFE_save_hdf5, load_hdf5
 from fuse.data.pipelines.pipeline_default import PipelineDefault
+from fuse.data.utils.sample import create_initial_sample, get_sample_id
 from fuse.utils.ndict import NDict
 from fuse.utils.rand.seed import Seed
 

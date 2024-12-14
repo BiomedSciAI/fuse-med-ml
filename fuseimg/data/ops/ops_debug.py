@@ -11,8 +11,8 @@ import torch
 from fuse.data.ops.ops_cast import Cast
 from fuse.data.ops.ops_debug import OpDebugBase
 from fuse.data.utils.sample import get_sample_id
-from fuse.utils import NDict
 from fuse.utils.file_io.file_io import create_dir
+from fuse.utils.ndict import NDict
 
 
 class OpVis2DImage(OpDebugBase):

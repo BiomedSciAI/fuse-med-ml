@@ -22,17 +22,18 @@ from warnings import warn
 import numpy as np
 import psutil
 
-from fuse.data import (
-    create_initial_sample,
-    get_sample_id,
-    get_specific_sample_from_potentially_morphed,
-)
 from fuse.data.datasets.caching.object_caching_handlers import (
     _object_requires_hdf5_recurse,
 )
 from fuse.data.datasets.sample_caching_audit import SampleCachingAudit
 from fuse.data.pipelines.pipeline_default import PipelineDefault
-from fuse.data.utils.sample import get_initial_sample_id, set_initial_sample_id
+from fuse.data.utils.sample import (
+    create_initial_sample,
+    get_initial_sample_id,
+    get_sample_id,
+    get_specific_sample_from_potentially_morphed,
+    set_initial_sample_id,
+)
 from fuse.utils.file_io import delete_directory_tree
 from fuse.utils.file_io.file_io import (
     load_hdf5,
