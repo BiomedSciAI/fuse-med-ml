@@ -49,5 +49,6 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: "3.9"
+      - uses: isort/isort-action@master
         with:
           isort-version: 5.13.2
