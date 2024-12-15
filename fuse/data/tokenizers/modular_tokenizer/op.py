@@ -433,6 +433,7 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
             verbose=verbose,
             **kwargs,
         )
+        # default_sub_tokenizer_name is used as the tokenizer of special tokens such as scalars and external_embeddings tokens.
         self.default_sub_tokenizer_name = next(
             iter(self._tokenizer.tokenizers_info.values())
         )["name"]

@@ -61,6 +61,8 @@ class InjectorToModularTokenizerLib:
         In order to avoid modifying and rewriting the logic in modular tokenizer, especially regarding padding, limitation of max length of certain sub-parts,
          we put placeholders to make sure that the total size is known/fixed and respects the meta instructions to the modular tokenizer
 
+        default_sub_tokenizer_name: Specifies the name of the default sub-tokenizer. This tokenizer is used for handling special tokens, such as <SCALAR> and <EMBEDDINGS>.
+
          Returns: a tuple with 2 elements
          (
             a single string with the full query containing placeholder tokens for FLOAT and VECTOR meta tokenizer parts,
