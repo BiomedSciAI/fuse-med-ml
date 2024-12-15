@@ -433,6 +433,10 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
             verbose=verbose,
             **kwargs,
         )
+        # default_sub_tokenizer_name is used as the tokenizer of special tokens such as scalars and external_embeddings tokens.
+        self.default_sub_tokenizer_name = next(
+            iter(self._tokenizer.tokenizers_info.values())
+        )["name"]
 
     def __call__(
         self,
@@ -447,6 +451,7 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
         verbose: Optional[int] = 1,
         validate_ends_with_eos: Optional[bool] = None,
         key_out_scalars: Optional[str] = None,
+        key_out_external_embeddings_info: Optional[str] = None,
         additional_caller_info_text: Optional[str] = "",
     ) -> NDict:
         """_summary_
@@ -480,7 +485,9 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
             with_placeholders_str,
             per_meta_orig,
         ) = InjectorToModularTokenizerLib.build_placeholder_meta_tokenization(
-            sequence=sample_dict[key_in], sample_dict=sample_dict
+            sequence=sample_dict[key_in],
+            sample_dict=sample_dict,
+            default_sub_tokenizer_name=self.default_sub_tokenizer_name,
         )
         sample_dict[key_in + ".with_placeholders"] = with_placeholders_str
 
@@ -500,7 +507,7 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
             + ".per_meta_part_encoding",  # using the key_in as base for the name because key_out_* are optional
         )
 
-        prepared_data = InjectorToModularTokenizerLib.build_scalars(
+        prepared_data = InjectorToModularTokenizerLib.build_scalars_and_embeddings(
             per_meta_tokenizer_data=per_meta_orig,
             per_meta_encoding_including_placeholders=sample_dict[
                 key_in + ".per_meta_part_encoding"
@@ -513,6 +520,10 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
             sample_dict[key_out_scalars + ".values"] = prepared_data["scalars_values"]
             sample_dict[key_out_scalars + ".valid_mask"] = prepared_data[
                 "scalars_valid_mask"
+            ]
+        if key_out_external_embeddings_info is not None:
+            sample_dict[key_out_external_embeddings_info] = prepared_data[
+                "external_embeddings_info"
             ]
 
         return sample_dict
