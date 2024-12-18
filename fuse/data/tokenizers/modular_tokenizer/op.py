@@ -8,11 +8,12 @@ from warnings import warn
 from huggingface_hub import HfApi, snapshot_download
 from huggingface_hub.utils import SoftTemporaryDirectory, validate_hf_hub_args
 
-from fuse.data import OpBase, get_sample_id
+from fuse.data import OpBase
 from fuse.data.tokenizers.modular_tokenizer.inject_utils import (
     InjectorToModularTokenizerLib,
 )
 from fuse.data.tokenizers.modular_tokenizer.modular_tokenizer import ModularTokenizer
+from fuse.data.utils.sample import get_sample_id
 from fuse.utils import NDict
 
 
