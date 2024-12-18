@@ -1,13 +1,15 @@
-from typing import Optional, List, Tuple, Dict, Union
-from tokenizers import Encoding
-import torch
 import re
-from fuse.utils import NDict
+from typing import Dict, List, Optional, Tuple, Union
+from warnings import warn
+
+import torch
+from tokenizers import Encoding
+
 from fuse.data.tokenizers.modular_tokenizer.modular_tokenizer import (
     TypedInput,
     list_to_tokenizer_string,
 )
-from warnings import warn
+from fuse.utils import NDict
 
 
 class InjectorToModularTokenizerLib:

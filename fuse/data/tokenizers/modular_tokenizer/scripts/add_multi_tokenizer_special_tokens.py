@@ -1,5 +1,7 @@
+from typing import List, Union
+
 import click
-from typing import Union, List
+
 from fuse.data.tokenizers.modular_tokenizer.modular_tokenizer import ModularTokenizer
 
 

@@ -17,11 +17,11 @@ Created on June 30, 2021
 
 """
 from typing import Optional, Union
-import torch.nn as nn
 
-from torchvision.models import ResNet
-from torchvision.models.resnet import Bottleneck, BasicBlock, WeightsEnum
+import torch.nn as nn
 from torch import Tensor
+from torchvision.models import ResNet
+from torchvision.models.resnet import BasicBlock, Bottleneck, WeightsEnum
 
 
 class BackboneResnet(ResNet):

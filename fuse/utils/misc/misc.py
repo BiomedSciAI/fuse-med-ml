@@ -19,13 +19,12 @@ Created on June 30, 2021
 import logging
 import sys
 import time
-from IPython import get_ipython
 from threading import Lock
-
-from typing import List, Union, Sequence, Optional, Hashable, Any, Iterable
+from typing import Any, Hashable, Iterable, List, Optional, Sequence, Union
 
 import numpy as np
 import pandas as pd
+from IPython import get_ipython
 from torch import Tensor
 
 from fuse.utils.ndict import NDict

@@ -16,17 +16,16 @@ limitations under the License.
 """
 
 import os
-import unittest
-
 import random
+import tempfile
+import unittest
 
 import torchvision
 from torchvision import transforms
-from fuse.utils.rand.seed import Seed
-from fuse.utils.ndict import NDict
 
-import tempfile
 from fuse.data.datasets.dataset_wrap_seq_to_dict import DatasetWrapSeqToDict
+from fuse.utils.ndict import NDict
+from fuse.utils.rand.seed import Seed
 
 
 class TestDatasetWrapSeqToDict(unittest.TestCase):

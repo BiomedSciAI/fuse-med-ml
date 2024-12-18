@@ -15,14 +15,15 @@ limitations under the License.
 
 """
 
+import os
+import tempfile
 import unittest
 
-from fuse.utils.rand.seed import Seed
-from fuse.utils.file_io.file_io import save_hdf5_safe, load_hdf5
 import numpy as np
-import tempfile
-import os
+
 from fuse.utils.file_io import path
+from fuse.utils.file_io.file_io import load_hdf5, save_hdf5_safe
+from fuse.utils.rand.seed import Seed
 
 
 class TestPath(unittest.TestCase):
@@ -34,7 +35,6 @@ class TestPath(unittest.TestCase):
         pass
 
     def test_path_1(self) -> None:
-
         ans = path.add_base_prefix("/a/b/c/de/fg/banana.phone", "hohoho@")
         self.assertEqual(ans, "/a/b/c/de/fg/hohoho@banana.phone")
 

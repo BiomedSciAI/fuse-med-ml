@@ -13,11 +13,11 @@ limitations under the License.
 Created on June 30, 2021
 """
 
-from typing import Any, Callable, Optional, List, Sequence, Union
+import warnings
+from typing import Any, Callable, List, Optional, Sequence, Union
 
 import numpy
 import torch
-import warnings
 
 warnings.warn(
     "FuseUtilsHierarchicalDict is obsolete and soon will be deleted! Please consider transform to NDict."

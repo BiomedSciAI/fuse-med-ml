@@ -1,7 +1,9 @@
 from typing import Sequence
+
 import numpy as np
 import torch
-from torch import nn, Tensor
+from torch import Tensor, nn
+
 from fuse.dl.models.backbones.backbone_transformer import Transformer
 
 

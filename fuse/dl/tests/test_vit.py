@@ -18,6 +18,7 @@ Created on June 30, 2021
 """
 
 import unittest
+
 from fuse.dl.models.backbones.backbone_vit import usage_example
 
 

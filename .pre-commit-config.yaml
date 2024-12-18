@@ -6,10 +6,6 @@ repos:
       - id: end-of-file-fixer
       - id: mixed-line-ending
       - id: trailing-whitespace
-  - repo: https://github.com/psf/black
-    rev: 22.10.0
-    hooks:
-      - id: black
   - repo: https://github.com/PyCQA/flake8
     rev: 5.0.4
     hooks:
@@ -25,3 +21,11 @@ repos:
         args:
           - --remove-empty-cells
           - --preserve-cell-outputs
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+  - repo: https://github.com/psf/black
+    rev: 22.10.0
+    hooks:
+      - id: black

@@ -1,26 +1,24 @@
+import csv
+import os
 import pathlib
 import sys
-import os
-from typing import List, Tuple, Union
 from collections import OrderedDict
+from typing import List, Tuple, Union
 
-import csv
-from fuse.eval.metrics.classification.metrics_thresholding_common import (
-    MetricApplyThresholds,
-)
-from fuse.utils.ndict import NDict
-import pandas as pd
 import numpy as np
-
-from fuse.utils.file_io.file_io import create_or_reset_dir
+import pandas as pd
 
 from fuse.eval.evaluator import EvaluatorDefault
 from fuse.eval.metrics.classification.metrics_classification_common import (
     MetricBSS,
     MetricConfusion,
 )
+from fuse.eval.metrics.classification.metrics_thresholding_common import (
+    MetricApplyThresholds,
+)
 from fuse.eval.metrics.metrics_common import CI
-
+from fuse.utils.file_io.file_io import create_or_reset_dir
+from fuse.utils.ndict import NDict
 
 ## Constants
 # Constants that defines the expected format of the prediction and target files and list the classes for task 1 and task @

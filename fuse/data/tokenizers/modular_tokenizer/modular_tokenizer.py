@@ -1,20 +1,22 @@
-import random
-from torch import Tensor
-from collections.abc import Iterable
-from tokenizers import Tokenizer, Encoding
-import tokenizers
-from warnings import warn
-from typing import Optional, List, Set, Union, Tuple, Any, Iterator, Dict
-import json
-import transformers
-import os
-from omegaconf import OmegaConf
-import omegaconf
 import copy
-import traceback
+import json
+import os
+import random
 import re
-from fuse.data.tokenizers.modular_tokenizer.special_tokens import special_wrap_input
+import traceback
+from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Union
+from warnings import warn
+
+import omegaconf
+import tokenizers
+import transformers
+from omegaconf import OmegaConf
+from tokenizers import Encoding, Tokenizer
+from torch import Tensor
+
+from fuse.data.tokenizers.modular_tokenizer.special_tokens import special_wrap_input
 
 
 @dataclass
@@ -800,7 +802,6 @@ class ModularTokenizer(transformers.PreTrainedTokenizerFast):
         self,
         tokenizer_info: Dict,
     ) -> None:
-
         # first we load the new tokenizer
 
         # TODO: rename variable

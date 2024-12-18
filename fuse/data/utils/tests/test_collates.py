@@ -17,20 +17,20 @@ Created on June 30, 2021
 
 """
 
-from typing import List, Optional, Union
 import unittest
+from typing import List, Optional, Union
 
-import pandas as pds
 import numpy as np
+import pandas as pds
 import torch
 from torch.utils.data.dataloader import DataLoader
 
-from fuse.data.ops.ops_read import OpReadDataframe
 from fuse.data.datasets.dataset_default import DatasetDefault
-from fuse.data.utils.collates import CollateDefault
-from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.ops.op_base import OpBase
-from fuse.data import get_sample_id
+from fuse.data.ops.ops_read import OpReadDataframe
+from fuse.data.pipelines.pipeline_default import PipelineDefault
+from fuse.data.utils.collates import CollateDefault
+from fuse.data.utils.sample import get_sample_id
 
 
 class OpCustomCollateDefTest(OpBase):

@@ -1,16 +1,18 @@
 import os
-from typing import Callable, Optional, Tuple, Any, Dict
-from fuse.data.ops.ops_cast import Cast
-from fuse.data.utils.sample import get_sample_id
-from fuse.utils import NDict
-from fuse.utils.file_io.file_io import create_dir
-from fuse.data.ops.ops_debug import OpDebugBase
-import numpy
-import torch
+from typing import Any, Callable, Dict, Optional, Tuple
+
 import matplotlib.pyplot as plt
-import SimpleITK as sitk
-import plotly.graph_objects as go
+import numpy
 import numpy as np
+import plotly.graph_objects as go
+import SimpleITK as sitk
+import torch
+
+from fuse.data.ops.ops_cast import Cast
+from fuse.data.ops.ops_debug import OpDebugBase
+from fuse.data.utils.sample import get_sample_id
+from fuse.utils.file_io.file_io import create_dir
+from fuse.utils.ndict import NDict
 
 
 class OpVis2DImage(OpDebugBase):

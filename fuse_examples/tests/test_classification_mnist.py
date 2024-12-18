@@ -20,13 +20,11 @@ Created on June 30, 2021
 import shutil
 import tempfile
 import unittest
+
 from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
-
-from fuseimg.datasets.mnist import MNIST
-
 from fuse.utils.rand.seed import Seed
-
 from fuse_examples.imaging.classification.mnist.simple_mnist_starter import run_train
+from fuseimg.datasets.mnist import MNIST
 
 
 def run_mnist(root: str) -> None:

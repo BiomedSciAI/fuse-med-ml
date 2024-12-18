@@ -27,12 +27,12 @@ from collections import defaultdict
 from logging.handlers import RotatingFileHandler
 from multiprocessing import current_process
 from shutil import copyfile
-from typing import Dict, Optional, Any, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from termcolor import colored
 
 from fuse.utils.file_io.file_io import create_dir, create_or_reset_dir
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 
 class ProcessSafeHandler(logging.StreamHandler):

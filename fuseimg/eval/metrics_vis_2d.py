@@ -1,5 +1,6 @@
 from functools import partial
 from typing import Any, Callable, Dict, Hashable, Optional, Sequence
+
 from fuse.eval.metrics.metrics_common import MetricWithCollectorBase
 from fuseimg.data.ops.ops_debug import OpVis2DImage
 
