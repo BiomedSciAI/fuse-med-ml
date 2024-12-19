@@ -32,3 +32,4 @@ clearml
 x-transformers
 jsonargparse
 click
+huggingface_hub
