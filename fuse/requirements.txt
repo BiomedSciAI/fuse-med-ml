@@ -34,3 +34,4 @@ jsonargparse
 click
 huggingface_hub
 tokenizers
+transformers
