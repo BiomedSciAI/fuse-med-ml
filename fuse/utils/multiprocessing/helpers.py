@@ -1,10 +1,25 @@
 import os
 from typing import List, Tuple
-
+import traceback
 import numpy as np
 
 
 def num_available_cores(verbose: bool = True) -> int:
+    """
+    deduce number of available cores
+    """
+    if "LSB_MAX_NUM_PROCESSORS" in os.environ:
+        #TODO: check if using LSB_DJOB_NUMPROC is better
+        print('num_available_cores::spotted LSB_MAX_NUM_PROCESSORS')
+        try:
+            max_cores = os.environ["LSB_MAX_NUM_PROCESSORS"]
+            max_cores = int(max_cores)
+            print(f"num_available_cores: returning {max_cores} due to LSB_MAX_NUM_PROCESSORS")
+            return max_cores
+        except:
+            traceback.format_exc()
+            print("had an issue getting number of available cores from LSB_MAX_NUM_PROCESSORS.")
+    
     if hasattr(os, "sched_getaffinity"):
         try:
             ans = len(os.sched_getaffinity(0))
