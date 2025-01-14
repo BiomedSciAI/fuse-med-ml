@@ -1,4 +1,5 @@
 import re
+from collections import defaultdict
 from typing import Dict, List, Optional, Tuple, Union
 from warnings import warn
 
@@ -171,9 +172,11 @@ class InjectorToModularTokenizerLib:
         # for each element, whether it's a scalar or not
         all_scalars_valid_mask = []
         scalar_default_unfound_value = -1000.0
-        external_embeddings_info = dict()  # a dict mapping location -> embedding input
+        external_embeddings_info = defaultdict(
+            dict
+        )  # a dict of dicts mapping model name - > {location -> embedding input}
         num_tokens_token_so_far = 0
-        num_inputs_needing_embeddings = 0
+        num_inputs_needing_embeddings = defaultdict(int)
 
         for tokenizer_name, curr_str_data, curr_placeholder_encoding in zip(
             per_meta_tokenizer_data[::2],
@@ -216,12 +219,18 @@ class InjectorToModularTokenizerLib:
                         raise Exception(
                             "EXTERNAL_EMBEDDINGS_FROM_DICT used but the provided sample_dict is None"
                         )
-                    embedding_input = sample_dict[curr_str_data]
-                    external_embeddings_info[num_inputs_needing_embeddings] = (
+                    embedding_model_name, embeddings_key = curr_str_data.split(":")
+                    embedding_input = sample_dict[embeddings_key]
+                    embedding_input_num = num_inputs_needing_embeddings[
+                        embedding_model_name
+                    ]
+                    external_embeddings_info[embedding_model_name][
+                        embedding_input_num
+                    ] = (
                         num_tokens_token_so_far,
                         embedding_input,
                     )
-                    num_inputs_needing_embeddings += 1
+                    num_inputs_needing_embeddings[embedding_model_name] += 1
                 elif tokenizer_name.startswith("VECTORS_"):
                     raise NotImplementedError
 
