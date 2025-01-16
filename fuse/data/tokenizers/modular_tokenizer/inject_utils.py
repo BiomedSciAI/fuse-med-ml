@@ -1,4 +1,5 @@
 import re
+from collections import defaultdict
 from typing import Dict, List, Optional, Tuple, Union
 from warnings import warn
 
@@ -36,8 +37,10 @@ class InjectorToModularTokenizerLib:
     for text following <@TOKENIZER-TYPE=SCALARS_FROM_DICT> is expected to be a key to the sample NDict
         for example: "blah.boo.banana"  or "data.input.encoder_input"
 
-    for text following <@TOKENIZER-TYPE=EXTERNAL_EMBEDDINGS_FROM_DICT> is expected to be a key to the sample NDict
-        for example: "blah.boo.banana"  or "data.input.encoder_input"
+    for text following <@TOKENIZER-TYPE=EXTERNAL_EMBEDDINGS_FROM_DICT> Supported Format - "feature_extractor:key"
+        - "feature_extractor" is the name of the extractor used to generate embeddings.
+        - "key" is the corresponding key in the sample NDict.
+        for example: "ESM:blah.boo.banana"  or "Granite:data.input.encoder_input"
 
     example usage:
 
@@ -48,7 +51,7 @@ class InjectorToModularTokenizerLib:
 
     for embeddings from dict:
     encoder_input:
-    <@TOKENIZER-TYPE=AA><BIOT5_TASK_ID><1><8><SENTINEL_ID_0><@TOKENIZER-TYPE=AA><MOLECULAR_ENTITY><MOLECULAR_ENTITY_GENERAL_PROTEIN><@TOKENIZER-TYPE=EXTERNAL_EMBEDDINGS_FROM_DICT>{protein1_key}<@TOKENIZER-TYPE=AA@MAX-LEN={max_len_1}><SEQUENCE_NATURAL_START>{protein_seq_1}<SEQUENCE_NATURAL_END><EOS>
+    <@TOKENIZER-TYPE=AA><BIOT5_TASK_ID><1><8><SENTINEL_ID_0><@TOKENIZER-TYPE=AA><MOLECULAR_ENTITY><MOLECULAR_ENTITY_GENERAL_PROTEIN><@TOKENIZER-TYPE=EXTERNAL_EMBEDDINGS_FROM_DICT>ESM:{protein1_key}<@TOKENIZER-TYPE=AA@MAX-LEN={max_len_1}><SEQUENCE_NATURAL_START>{protein_seq_1}<SEQUENCE_NATURAL_END><EOS>
 
     """
 
@@ -171,9 +174,10 @@ class InjectorToModularTokenizerLib:
         # for each element, whether it's a scalar or not
         all_scalars_valid_mask = []
         scalar_default_unfound_value = -1000.0
-        external_embeddings_info = dict()  # a dict mapping location -> embedding input
+        external_embeddings_info = defaultdict(
+            list
+        )  # a dict mapping model name - > [(location, embedding input) for all embedding inputs]
         num_tokens_token_so_far = 0
-        num_inputs_needing_embeddings = 0
 
         for tokenizer_name, curr_str_data, curr_placeholder_encoding in zip(
             per_meta_tokenizer_data[::2],
@@ -216,12 +220,15 @@ class InjectorToModularTokenizerLib:
                         raise Exception(
                             "EXTERNAL_EMBEDDINGS_FROM_DICT used but the provided sample_dict is None"
                         )
-                    embedding_input = sample_dict[curr_str_data]
-                    external_embeddings_info[num_inputs_needing_embeddings] = (
-                        num_tokens_token_so_far,
-                        embedding_input,
+                    assert (
+                        curr_str_data.count(":") == 1
+                    ), f"The supported format is feature_extractor:key, {curr_str_data} must contain exactly one colon."
+                    embedding_model_name, embeddings_key = curr_str_data.split(":")
+
+                    embedding_input = sample_dict[embeddings_key]
+                    external_embeddings_info[embedding_model_name].append(
+                        (num_tokens_token_so_far, embedding_input)
                     )
-                    num_inputs_needing_embeddings += 1
                 elif tokenizer_name.startswith("VECTORS_"):
                     raise NotImplementedError
 
