@@ -1,6 +1,6 @@
 import re
 from collections import defaultdict
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, NamedTuple, Optional, Tuple, Union
 from warnings import warn
 
 import torch
@@ -11,6 +11,11 @@ from fuse.data.tokenizers.modular_tokenizer.modular_tokenizer import (
     list_to_tokenizer_string,
 )
 from fuse.utils import NDict
+
+
+class EmbeddingInfo(NamedTuple):
+    location: int
+    embedding_input: str
 
 
 class InjectorToModularTokenizerLib:
@@ -227,7 +232,10 @@ class InjectorToModularTokenizerLib:
 
                     embedding_input = sample_dict[embeddings_key]
                     external_embeddings_info[embedding_model_name].append(
-                        (num_tokens_token_so_far, embedding_input)
+                        EmbeddingInfo(
+                            location=num_tokens_token_so_far,
+                            embedding_input=embedding_input,
+                        )
                     )
                 elif tokenizer_name.startswith("VECTORS_"):
                     raise NotImplementedError
