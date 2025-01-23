@@ -7,7 +7,7 @@ import numpy as np
 def num_available_cores(verbose: bool = True) -> int:
     num_allocated_processors = os.getenv("LSB_DJOB_NUMPROC")
     if num_allocated_processors is not None:
-        return num_allocated_processors
+        return int(num_allocated_processors)
     if hasattr(os, "sched_getaffinity"):
         try:
             ans = len(os.sched_getaffinity(0))
