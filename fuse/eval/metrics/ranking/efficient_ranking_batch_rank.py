@@ -36,7 +36,9 @@ def aggregate_rankings(
     # Generate pairwise comparisons through random sampling
     for _ in trange(budget):
         # Randomly select a subset of items
-        sample_size = min(len(all_items), random.randint(2, ranking_model_rank_batch_size))
+        sample_size = min(
+            len(all_items), random.randint(2, ranking_model_rank_batch_size)
+        )
         sample = np.random.choice(all_items, size=sample_size)
 
         # Get model's ranking for this subset
@@ -110,19 +112,19 @@ if __name__ == "__main__":
             return np.random.random() < 0.5
         return a < b
 
-    def convert_pairwise_to_ranker(pairwise_model:Callable[[Any,Any],bool]):
-        '''
-        A helper function that converts a pairwise model to a subsample ranker of length 2, 
+    def convert_pairwise_to_ranker(pairwise_model: Callable[[Any, Any], bool]) -> Callable[[List],List]:
+        """
+        A helper function that converts a pairwise model to a subsample ranker of length 2,
         to support using pairwise model in `aggregate_rankings()`
 
         pairwise_model: a function that returns true if the item provided as first argument should be ranked higher than the item provided as the second argument
-        '''
-        
+        """
+
         def build_func(items: List) -> List:
             assert 2 == len(items)
             if pairwise_model(items[0], items[1]):
                 return items
-            #flip the order 
+            # flip the order
             return items[::-1]
 
         return build_func
@@ -136,15 +138,10 @@ if __name__ == "__main__":
     ranked_items = aggregate_rankings(
         to_be_ranked,
         ranker_func,
-        budget=budget*4,
+        budget=budget * 4,
         ranking_model_rank_batch_size=2,
     )
 
     # print(f"Total comparisons: {ranker.total_comparisons}")
     sr = spearmanr(ranked_items, true_scores)
     print(f"spearman r = {sr.statistic} p = {sr.pvalue}")
-
-
-
-
-
