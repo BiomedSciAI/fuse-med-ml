@@ -1,7 +1,8 @@
-from torch import nn
-from monai.networks.nets import UNet as UNetBase
-from fuse.utils.ndict import NDict
 import torch.nn.functional as F
+from monai.networks.nets import UNet as UNetBase
+from torch import nn
+
+from fuse.utils.ndict import NDict
 
 
 class UNet(nn.Module):

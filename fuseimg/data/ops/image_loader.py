@@ -1,13 +1,14 @@
 import os
-from fuse.data.ops.op_base import OpReversibleBase
 from typing import Optional
-import numpy as np
-import nibabel as nib
-from fuse.utils.ndict import NDict
 
-from torchvision.io import read_image
-from medpy.io import load
+import nibabel as nib
+import numpy as np
 import pydicom
+from medpy.io import load
+from torchvision.io import read_image
+
+from fuse.data.ops.op_base import OpReversibleBase
+from fuse.utils.ndict import NDict
 
 
 class OpLoadImage(OpReversibleBase):

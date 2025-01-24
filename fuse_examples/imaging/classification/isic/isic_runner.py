@@ -17,56 +17,49 @@ Created on June 30, 2021
 
 """
 
-import os
 import copy
 import logging
+import os
 from typing import OrderedDict, Sequence, Tuple
 
+import pytorch_lightning as pl
 import torch
-import torch.optim as optim
+import torch.nn as nn
 import torch.nn.functional as F
+import torch.optim as optim
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from torch.utils.data.dataloader import DataLoader
 from torchvision.models.resnet import ResNet18_Weights
 
+import fuse.utils.gpu as GPU
+from fuse.data.utils.collates import CollateDefault
+from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
+from fuse.dl.lightning.pl_module import LightningModuleDefault
+from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.models import ModelMultiHead
-from fuse.dl.models.backbones.backbone_resnet import BackboneResnet
-from fuse.dl.models.heads.head_global_pooling_classifier import (
-    HeadGlobalPoolingClassifier,
-)
 from fuse.dl.models.backbones.backbone_inception_resnet_v2 import (
     BackboneInceptionResnetV2,
 )
-
-from fuse.eval.metrics.classification.metrics_thresholding_common import (
-    MetricApplyThresholds,
+from fuse.dl.models.backbones.backbone_resnet import BackboneResnet
+from fuse.dl.models.backbones.backbone_vit import ViT
+from fuse.dl.models.heads.head_global_pooling_classifier import (
+    HeadGlobalPoolingClassifier,
 )
+from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
+from fuse.eval.evaluator import EvaluatorDefault
 from fuse.eval.metrics.classification.metrics_classification_common import (
     MetricAccuracy,
     MetricAUCROC,
     MetricROCCurve,
 )
-
+from fuse.eval.metrics.classification.metrics_thresholding_common import (
+    MetricApplyThresholds,
+)
+from fuse.utils.file_io.file_io import create_dir, load_pickle, save_dataframe
 from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.utils_logger import fuse_logger_start
-from fuse.utils.file_io.file_io import create_dir, save_dataframe, load_pickle
-import fuse.utils.gpu as GPU
-
-from fuse.eval.evaluator import EvaluatorDefault
-from fuse.dl.losses.loss_default import LossDefault
-from fuse.data.utils.collates import CollateDefault
-
-import pytorch_lightning as pl
-from fuse.dl.lightning.pl_module import LightningModuleDefault
-from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
-
-from fuseimg.datasets.isic import ISIC, ISICDataModule
 from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS
-
-import torch.nn as nn
-from fuse.dl.models.model_wrapper import ModelWrapSeqToDict
-from fuse.dl.models.backbones.backbone_vit import ViT
-
+from fuseimg.datasets.isic import ISIC, ISICDataModule
 
 ###########################################################################################################
 # Fuse

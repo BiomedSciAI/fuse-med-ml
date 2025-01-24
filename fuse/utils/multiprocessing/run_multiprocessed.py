@@ -1,12 +1,14 @@
 import functools
-from typing import Any, List, Optional, Union, Tuple, Callable
-from fuse.utils.utils_debug import FuseDebug
-import torch
-from tqdm import tqdm
 import multiprocessing as mp
-from termcolor import cprint
 import os
 import traceback
+from typing import Any, Callable, List, Optional, Tuple, Union
+
+import torch
+from termcolor import cprint
+from tqdm import tqdm
+
+from fuse.utils.utils_debug import FuseDebug
 
 """
 global dictionary that stores arguments to a new created process

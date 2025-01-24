@@ -17,46 +17,42 @@ Created on June 30, 2021
 
 """
 
+import copy
 import logging
 import os
 from typing import OrderedDict
-import copy
-from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
 
+import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from torch.utils.data.dataloader import DataLoader
-import pytorch_lightning as pl
 from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
+from torch.utils.data.dataloader import DataLoader
 
+import fuse.utils.gpu as GPU
+import fuse_examples.imaging.classification.stoic21.dataset as dataset
+from fuse.data.datasets.dataset_default import DatasetDefault
+from fuse.data.utils.collates import CollateDefault
+from fuse.data.utils.samplers import BatchSamplerDefault
+from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
+from fuse.dl.lightning.pl_module import LightningModuleDefault
+from fuse.dl.losses.loss_default import LossDefault
+from fuse.dl.models import ModelMultiHead
+from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
+from fuse.dl.models.heads.heads_3D import Head3D
 from fuse.eval.evaluator import EvaluatorDefault
-from fuse.eval.metrics.classification.metrics_thresholding_common import (
-    MetricApplyThresholds,
-)
 from fuse.eval.metrics.classification.metrics_classification_common import (
     MetricAccuracy,
     MetricAUCROC,
     MetricROCCurve,
 )
-
-from fuse.data.utils.samplers import BatchSamplerDefault
-from fuse.data.utils.collates import CollateDefault
-from fuse.data.datasets.dataset_default import DatasetDefault
-
-from fuse.dl.losses.loss_default import LossDefault
-from fuse.dl.models.backbones.backbone_resnet_3d import BackboneResnet3D
-from fuse.dl.models import ModelMultiHead
-from fuse.dl.models.heads.heads_3D import Head3D
-from fuse.dl.lightning.pl_module import LightningModuleDefault
-
+from fuse.eval.metrics.classification.metrics_thresholding_common import (
+    MetricApplyThresholds,
+)
+from fuse.utils.file_io.file_io import create_dir, save_dataframe
+from fuse.utils.ndict import NDict
 from fuse.utils.utils_debug import FuseDebug
 from fuse.utils.utils_logger import fuse_logger_start
-from fuse.utils.file_io.file_io import create_dir, save_dataframe
-import fuse.utils.gpu as GPU
-from fuse.utils.ndict import NDict
-
-import fuse_examples.imaging.classification.stoic21.dataset as dataset
 
 ###########################################################################################################
 # Fuse

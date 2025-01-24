@@ -1,10 +1,11 @@
 # type: ignore
 import cv2
 from torch import Tensor
+
 from fuse.data.ops.op_base import OpBase
-from fuseimg.utils.typing.key_types_imaging import DataTypeImaging
-from fuseimg.data.ops.ops_common_imaging import OpApplyTypesImaging
 from fuse.utils.ndict import NDict
+from fuseimg.data.ops.ops_common_imaging import OpApplyTypesImaging
+from fuseimg.utils.typing.key_types_imaging import DataTypeImaging
 
 
 def no_op(input_tensor: Tensor) -> Tensor:

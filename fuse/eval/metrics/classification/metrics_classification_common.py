@@ -17,15 +17,15 @@ Created on June 30, 2021
 
 """
 
-from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union, Hashable
 import traceback
+from functools import partial
+from typing import Any, Callable, Dict, Hashable, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
+from sklearn.metrics import balanced_accuracy_score, matthews_corrcoef
 
-from fuse.eval.metrics.metrics_common import MetricDefault, MetricWithCollectorBase
 from fuse.eval.metrics.libs.classification import MetricsLibClass
-from sklearn.metrics import matthews_corrcoef, balanced_accuracy_score
+from fuse.eval.metrics.metrics_common import MetricDefault, MetricWithCollectorBase
 
 
 class MetricMultiClassDefault(MetricWithCollectorBase):

@@ -1,4 +1,5 @@
-from typing import Dict, Hashable, Optional, Union, List
+from typing import Dict, Hashable, List, Optional, Union
+
 from fuse.utils.ndict import NDict
 
 """

@@ -1,6 +1,7 @@
-from typing import List, Union
-import torch
 import functools
+from typing import List, Union
+
+import torch
 
 
 def select(

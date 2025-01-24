@@ -1,6 +1,7 @@
 import unittest
-from fuse.utils.interface_validator import InterfaceValidator, validate_signature
 from typing import Dict
+
+from fuse.utils.interface_validator import InterfaceValidator, validate_signature
 
 
 class TestInterfaceValidator(unittest.TestCase):

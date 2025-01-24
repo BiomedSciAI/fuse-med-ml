@@ -17,7 +17,7 @@ Created on June 30, 2021
 
 """
 
-from typing import Sequence, Dict, Tuple, Union
+from typing import Dict, Sequence, Tuple, Union
 
 import torch
 

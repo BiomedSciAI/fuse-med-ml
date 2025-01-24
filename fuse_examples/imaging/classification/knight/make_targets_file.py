@@ -18,12 +18,12 @@ Created on June 30, 2021
 """
 import logging
 import os
-
 from typing import Union
+
 import pandas as pd
 
-from fuse.utils.utils_logger import fuse_logger_start
 from fuse.utils.file_io.file_io import save_dataframe
+from fuse.utils.utils_logger import fuse_logger_start
 
 
 def make_targets_file(

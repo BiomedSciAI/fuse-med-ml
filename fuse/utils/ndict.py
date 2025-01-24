@@ -17,23 +17,24 @@ Created on June 30, 2021
 
 """
 from __future__ import annotations
-from _collections_abc import dict_items, dict_keys
-import difflib
 
 import copy
+import difflib
 import types
-from numpy import ndarray
-from torch import Tensor
 from typing import (
     Any,
     Callable,
     Iterator,
+    List,
+    MutableMapping,
     Optional,
     Sequence,
     Union,
-    List,
-    MutableMapping,
 )
+
+from _collections_abc import dict_items, dict_keys
+from numpy import ndarray
+from torch import Tensor
 
 
 class NDict(dict):

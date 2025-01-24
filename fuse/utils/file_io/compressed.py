@@ -1,6 +1,7 @@
-import zipfile
-from tqdm import tqdm
 import os
+import zipfile
+
+from tqdm import tqdm
 
 
 def extract_zip_file(

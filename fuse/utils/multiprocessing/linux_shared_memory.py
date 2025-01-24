@@ -1,12 +1,13 @@
 import os
-from os.path import join, realpath, dirname
 import shutil
+from glob import glob
+from os.path import dirname, join, realpath
 from typing import List
+
+import psutil
 
 # from multiprocessing import Lock
 from filelock import FileLock
-from glob import glob
-import psutil
 
 SHARED_MEM_FILES_PREFIX = "OUR_SHARED_MEM_@"
 SHARED_MEM_ACTIVE_ENV_VAR = "ACTIVATE_OUR_SHARED_MEM"

@@ -12,47 +12,47 @@ limitations under the License.
 Created on June 30, 2021
 """
 
-import os
 import copy
-from pathlib import Path
-import pickle
-import pandas as pd
-import numpy as np
-from fuse.utils.utils_debug import FuseDebug
-from fuse.utils.gpu import choose_and_enable_multiple_gpus
-
 import logging
-import torch.optim as optim
-from torch.utils.data.dataloader import DataLoader
-
-from fuse.utils.utils_logger import fuse_logger_start
-from fuse.utils import NDict
-from fuse.data.utils.samplers import BatchSamplerDefault
-from fuse.data.utils.collates import CollateDefault
-from fuse.data.utils.split import dataset_balanced_division_to_folds
-from fuse.dl.losses.loss_default import LossDefault
-
-# from report_guided_annotation import extract_lesion_candidates
-from fuse_examples.imaging.segmentation.picai.unet import UNet
-from fuse.eval.metrics.segmentation.metrics_segmentation_common import MetricDice
+import os
+import pickle
 from collections import OrderedDict
-from fuse.dl.losses.segmentation.loss_dice import BinaryDiceLoss
+from pathlib import Path
 
-# from fuse.eval.metrics.detection.metrics_detection_common import MetricDetectionPICAI
-from fuseimg.datasets.picai import PICAI
-from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
-from pytorch_lightning import Trainer
-from fuse.dl.lightning.pl_module import LightningModuleDefault
-from fuse.utils.file_io.file_io import create_dir, load_pickle, save_dataframe
-from fuse.eval.evaluator import EvaluatorDefault
+import hydra
+import numpy as np
+import pandas as pd
 
 # from picai_baseline.unet.training_setup.default_hyperparam import \
 #     get_default_hyperparams
 # from picai_baseline.unet.training_setup.neural_network_selector import \
 #     neural_network_for_run
 import torch
-import hydra
+import torch.optim as optim
 from omegaconf import DictConfig, OmegaConf
+from pytorch_lightning import Trainer
+from torch.utils.data.dataloader import DataLoader
+
+from fuse.data.utils.collates import CollateDefault
+from fuse.data.utils.samplers import BatchSamplerDefault
+from fuse.data.utils.split import dataset_balanced_division_to_folds
+from fuse.dl.lightning.pl_funcs import convert_predictions_to_dataframe
+from fuse.dl.lightning.pl_module import LightningModuleDefault
+from fuse.dl.losses.loss_default import LossDefault
+from fuse.dl.losses.segmentation.loss_dice import BinaryDiceLoss
+from fuse.eval.evaluator import EvaluatorDefault
+from fuse.eval.metrics.segmentation.metrics_segmentation_common import MetricDice
+from fuse.utils import NDict
+from fuse.utils.file_io.file_io import create_dir, load_pickle, save_dataframe
+from fuse.utils.gpu import choose_and_enable_multiple_gpus
+from fuse.utils.utils_debug import FuseDebug
+from fuse.utils.utils_logger import fuse_logger_start
+
+# from report_guided_annotation import extract_lesion_candidates
+from fuse_examples.imaging.segmentation.picai.unet import UNet
+
+# from fuse.eval.metrics.detection.metrics_detection_common import MetricDetectionPICAI
+from fuseimg.datasets.picai import PICAI
 
 # from monai.losses import DiceFocalLoss
 

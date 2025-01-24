@@ -1,6 +1,7 @@
-from typing import Sequence, Optional, Hashable
-import numpy as np
 import copy
+from typing import Hashable, Optional, Sequence
+
+import numpy as np
 
 
 class PerSampleData:

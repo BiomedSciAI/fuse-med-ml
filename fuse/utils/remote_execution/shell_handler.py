@@ -1,7 +1,8 @@
-import paramiko
-from paramiko.channel import ChannelFile
 import re
 from typing import List, Tuple
+
+import paramiko
+from paramiko.channel import ChannelFile
 
 
 class ShellHandler:
