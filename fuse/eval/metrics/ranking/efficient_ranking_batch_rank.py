@@ -8,6 +8,7 @@ from collections import defaultdict
 def aggregate_rankings(
     all_items: List[Any],
     ranking_model: Callable[[List[Any]], List[Any]],
+    ranking_model_rank_batch_size: int = 8,
     budget: Optional[int] = None,
 ) -> List[Any]:
     """
@@ -35,7 +36,7 @@ def aggregate_rankings(
     # Generate pairwise comparisons through random sampling
     for _ in trange(budget):
         # Randomly select a subset of items
-        sample_size = min(len(all_items), random.randint(2, 10))
+        sample_size = min(len(all_items), random.randint(2, ranking_model_rank_batch_size))
         sample = np.random.choice(all_items, size=sample_size)
 
         # Get model's ranking for this subset
@@ -67,8 +68,6 @@ if __name__ == "__main__":
     from functools import partial
 
     def compare_fn(items: List, number_of_random_flipped: int = 0) -> List:
-        # Your comparison logic to rank the given list of items
-        # return sorted_items
         ans = sorted(items)
 
         if number_of_random_flipped > 0:
@@ -84,18 +83,68 @@ if __name__ == "__main__":
         return ans
 
     num_samples = 100000
+    budget = 100000
 
     true_scores = np.arange(0, num_samples, 1)
-
     to_be_ranked = true_scores.copy()
     np.random.shuffle(to_be_ranked)
 
     ranked_items = aggregate_rankings(
         to_be_ranked,
-        partial(compare_fn, number_of_random_flipped=10),
-        budget=1000000 * 3,
+        partial(compare_fn, number_of_random_flipped=20),
+        budget=budget,
     )
 
     # print(f"Total comparisons: {ranker.total_comparisons}")
     sr = spearmanr(ranked_items, true_scores)
     print(f"spearman r = {sr.statistic} p = {sr.pvalue}")
+
+    ##############
+
+    # an example that uses a pairwise compare function
+
+    def pairwise_compare_fn(a: Any, b: Any, noise_rate: float = 0.0) -> bool:
+        # Your comparison function
+        # return model.predict(a, b)
+        if np.random.random() < noise_rate:
+            return np.random.random() < 0.5
+        return a < b
+
+    def convert_pairwise_to_ranker(pairwise_model:Callable[[Any,Any],bool]):
+        '''
+        A helper function that converts a pairwise model to a subsample ranker of length 2, 
+        to support using pairwise model in `aggregate_rankings()`
+
+        pairwise_model: a function that returns true if the item provided as first argument should be ranked higher than the item provided as the second argument
+        '''
+        
+        def build_func(items: List) -> List:
+            assert 2 == len(items)
+            if pairwise_model(items[0], items[1]):
+                return items
+            #flip the order 
+            return items[::-1]
+
+        return build_func
+
+    ranker_func = convert_pairwise_to_ranker(pairwise_compare_fn)
+
+    true_scores = np.arange(0, num_samples, 1)
+    to_be_ranked = true_scores.copy()
+    np.random.shuffle(to_be_ranked)
+
+    ranked_items = aggregate_rankings(
+        to_be_ranked,
+        ranker_func,
+        budget=budget*4,
+        ranking_model_rank_batch_size=2,
+    )
+
+    # print(f"Total comparisons: {ranker.total_comparisons}")
+    sr = spearmanr(ranked_items, true_scores)
+    print(f"spearman r = {sr.statistic} p = {sr.pvalue}")
+
+
+
+
+

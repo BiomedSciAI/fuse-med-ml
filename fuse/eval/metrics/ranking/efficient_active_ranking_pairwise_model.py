@@ -16,7 +16,7 @@ class EfficientRanking:
     def __init__(
         self,
         items: List[Any],
-        compare_fn: Callable[[Any, Any], bool],
+        compare_pairwise_fn: Callable[[Any, Any], bool],
         confidence: float = 0.95,
         min_comparisons: int = 32,
     ):
