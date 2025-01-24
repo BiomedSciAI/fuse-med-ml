@@ -112,7 +112,9 @@ if __name__ == "__main__":
             return np.random.random() < 0.5
         return a < b
 
-    def convert_pairwise_to_ranker(pairwise_model: Callable[[Any, Any], bool]) -> Callable[[List],List]:
+    def convert_pairwise_to_ranker(
+        pairwise_model: Callable[[Any, Any], bool]
+    ) -> Callable[[List], List]:
         """
         A helper function that converts a pairwise model to a subsample ranker of length 2,
         to support using pairwise model in `aggregate_rankings()`
