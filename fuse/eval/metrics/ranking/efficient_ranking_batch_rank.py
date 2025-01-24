@@ -62,26 +62,11 @@ def aggregate_rankings(
     return global_ranking
 
 
-# Example usage
-def example_unreliable_model(items):
-    """
-    Simulate an inconsistent ranking model
-    Randomly ranks a subset of input items
-    """
-    return random.sample(items, len(items))
-
-
-# if __name__ == "__main__":
-#     items = ['apple', 'banana', 'cherry', 'date', 'elderberry']
-#     best_ranking = aggregate_rankings(example_unreliable_model, items)
-#     print("Aggregated Global Ranking:", best_ranking)
-
-
 if __name__ == "__main__":
     from scipy.stats import spearmanr
     from functools import partial
 
-    def compare_fn(items, number_of_random_flipped: int = 0):
+    def compare_fn(items: List, number_of_random_flipped: int = 0) -> List:
         # Your comparison logic to rank the given list of items
         # return sorted_items
         ans = sorted(items)

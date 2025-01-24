@@ -115,7 +115,7 @@ class EfficientRanking:
         items[i], items[end - 1] = items[end - 1], items[i]
         return i
 
-    def _adaptive_quicksort(self, items: List[Any], start: int, end: int):
+    def _adaptive_quicksort(self, items: List[Any], start: int, end: int) -> None:
         """Quicksort with adaptive sampling"""
         if end - start <= 1:
             return
@@ -141,7 +141,7 @@ if __name__ == "__main__":
     from scipy.stats import spearmanr
     from functools import partial
 
-    def compare_fn(a, b, noise_rate: float = 0.0):
+    def compare_fn(a: Any, b: Any, noise_rate: float = 0.0) -> bool:
         # Your comparison function
         # return model.predict(a, b)
         if np.random.random() < noise_rate:
