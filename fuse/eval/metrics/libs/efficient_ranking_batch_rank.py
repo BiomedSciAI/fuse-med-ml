@@ -17,6 +17,26 @@ def aggregate_rankings(
 
     Args:
     - ranking_model: Function that returns a subset ranking
+
+    for example:
+
+    def compare_fn(items: List, number_of_random_flipped: int = 0) -> List:
+        ## for simulating synthetic data with noise, in reality an AI model will be used
+        ans = sorted(items)
+
+        if number_of_random_flipped > 0:
+            length = len(items)
+            for _ in range(number_of_random_flipped):
+                i = np.random.randint(0, length)
+                val_i = items[i]
+                j = np.random.randint(0, length)
+                val_j = items[j]
+                items[i] = val_j
+                items[j] = val_i
+
+        return ans
+
+
     - all_items: Complete list of items to be ranked
     - num_samples: Number of random sampling iterations
 

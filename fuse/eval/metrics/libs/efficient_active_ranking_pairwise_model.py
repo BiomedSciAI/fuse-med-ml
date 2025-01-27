@@ -21,6 +21,19 @@ class EfficientRanking:
         confidence: float = 0.95,
         min_comparisons: int = 32,
     ):
+        """
+        items: items to be ranked
+        compare_pairwise_fn: a function like this:
+
+            def pairwise_compare(a:int, b:int) -> bool:
+                # return boolean - should have a lower ranking number than b?
+                # an AI model (or anything) that predicts it.
+                # note: for binding affinity the convention is that being ranked lower means stronger binding.
+                # for example, rank 0 is the strongest binder in the list.
+        confidence: confidence bounds that will be used in the method
+        min_comparison: the minimum amount of comparison each items must participate in before providing the global ranking on the total list.
+        """
+
         self.items = items
         self.compare = compare_pairwise_fn
         self.confidence = confidence
