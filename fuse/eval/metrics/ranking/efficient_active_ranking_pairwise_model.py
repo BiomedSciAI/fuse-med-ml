@@ -1,7 +1,8 @@
-import numpy as np
-from typing import Callable, List, Any
-from dataclasses import dataclass
 from collections import defaultdict
+from dataclasses import dataclass
+from typing import Any, Callable, List
+
+import numpy as np
 
 
 @dataclass
@@ -138,8 +139,9 @@ class EfficientRanking:
 
 
 if __name__ == "__main__":
-    from scipy.stats import spearmanr
     from functools import partial
+
+    from scipy.stats import spearmanr
 
     def compare_fn(a: Any, b: Any, noise_rate: float = 0.0) -> bool:
         # Your comparison function

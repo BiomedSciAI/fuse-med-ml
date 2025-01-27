@@ -1,8 +1,9 @@
 import random
-from typing import List, Callable, Any, Optional
+from collections import defaultdict
+from typing import Any, Callable, List, Optional
+
 import numpy as np
 from tqdm import trange
-from collections import defaultdict
 
 
 def aggregate_rankings(
@@ -66,8 +67,9 @@ def aggregate_rankings(
 
 
 if __name__ == "__main__":
-    from scipy.stats import spearmanr
     from functools import partial
+
+    from scipy.stats import spearmanr
 
     def compare_fn(items: List, number_of_random_flipped: int = 0) -> List:
         ans = sorted(items)
