@@ -22,7 +22,7 @@ class EfficientRanking:
         min_comparisons: int = 32,
     ):
         self.items = items
-        self.compare = compare_fn
+        self.compare = compare_pairwise_fn
         self.confidence = confidence
         self.min_comparisons = min_comparisons
         self.stats = defaultdict(ItemStats)
