@@ -31,10 +31,16 @@ from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 # add parent directory to path, so that 'knight' folder is treated as a module
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 import imaging.classification.knight.baseline.fuse_baseline as baseline
+import torch
 from imaging.classification.knight.eval.eval import eval
 from imaging.classification.knight.make_targets_file import make_targets_file
 
+from fuse.utils.tests.decorators import combined_skip
 
+
+@combined_skip(
+    unittest.skipIf(not torch.cuda.is_available(), "No GPU is available"),
+)
 class KnightTestTestCase(unittest.TestCase):
     def setUp(self) -> None:
         self.root = tempfile.mkdtemp()

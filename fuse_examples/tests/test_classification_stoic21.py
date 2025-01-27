@@ -21,10 +21,13 @@ import shutil
 import tempfile
 import unittest
 
+import torch
+
 import fuse.utils.gpu as GPU
 import fuse_examples.imaging.classification.stoic21.dataset as dataset
 from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 from fuse.utils.rand.seed import Seed
+from fuse.utils.tests.decorators import combined_skip
 
 if "STOIC21_DATA_PATH" in os.environ:
     from fuse_examples.imaging.classification.stoic21.runner_stoic21 import (
@@ -72,9 +75,12 @@ def run_stoic21(root: str) -> None:
     assert "metrics.auc" in results
 
 
-@unittest.skipIf(
-    "STOIC21_DATA_PATH" not in os.environ,
-    "define environment variable 'STOIC21_DATA_PATH' to run this test",
+@combined_skip(
+    unittest.skipIf(
+        "STOIC21_DATA_PATH" not in os.environ,
+        "define environment variable 'STOIC21_DATA_PATH' to run this test",
+    ),
+    unittest.skipIf(not torch.cuda.is_available(), "No GPU is available"),
 )
 class ClassificationStoic21TestCase(unittest.TestCase):
     def setUp(self) -> None:
