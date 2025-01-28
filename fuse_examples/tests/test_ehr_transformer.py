@@ -22,10 +22,12 @@ import shutil
 import tempfile
 import unittest
 
+import torch
 import yaml
 from omegaconf import DictConfig
 
 from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
+from fuse.utils.tests.decorators import skipIfMultiple
 from fuse_examples.multimodality.ehr_transformer.main_train import main as main_train
 
 if "CINC_TEST_DATA_PATH" in os.environ:
@@ -63,9 +65,12 @@ def run_ehr_transformer(cfg: DictConfig) -> None:
         raise Exception("Training EHR Transformer Failed.")
 
 
-@unittest.skipIf(
-    "CINC_TEST_DATA_PATH" not in os.environ,
-    "define environment variable 'CINC_TEST_DATA_PATH' to run this test",
+@skipIfMultiple(
+    (
+        "CINC_TEST_DATA_PATH" not in os.environ,
+        "define environment variable 'CINC_TEST_DATA_PATH' to run this test",
+    ),
+    (not torch.cuda.is_available(), "No GPU is available"),
 )
 class EHRTransformerTestCase(unittest.TestCase):
     def setUp(self) -> None:
