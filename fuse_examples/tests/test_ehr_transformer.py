@@ -66,11 +66,11 @@ def run_ehr_transformer(cfg: DictConfig) -> None:
 
 
 @skipIfMultiple(
-    unittest.skipIf(
+    (
         "CINC_TEST_DATA_PATH" not in os.environ,
         "define environment variable 'CINC_TEST_DATA_PATH' to run this test",
     ),
-    unittest.skipIf(not torch.cuda.is_available(), "No GPU is available"),
+    (not torch.cuda.is_available(), "No GPU is available"),
 )
 class EHRTransformerTestCase(unittest.TestCase):
     def setUp(self) -> None:
