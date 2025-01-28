@@ -25,6 +25,13 @@ import os
 
 from fuse_examples.imaging.classification.bright.eval.eval import eval
 
+import torch
+from fuse.utils.tests.decorators import skipIfMultiple
+
+
+@skipIfMultiple(
+    (not torch.cuda.is_available() , "No GPU is available"),
+)
 class BrightTestCase(unittest.TestCase):
 
     def setUp(self):
