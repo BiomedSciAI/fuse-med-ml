@@ -30,7 +30,7 @@ from hydra import compose, initialize
 from fuse.utils import NDict
 from fuse.utils.gpu import choose_and_enable_multiple_gpus
 from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
-from fuse.utils.tests.decorators import combined_skip
+from fuse.utils.tests.decorators import skipIfMultiple
 
 # os env variable PICAI_DATA_PATH is a path to the stored dataset location
 # dataset should be download from https://zenodo.org/record/6517398#.ZGEHVXZBxD8
@@ -65,12 +65,12 @@ def run_picai(root: str) -> None:
     print(results)
 
 
-@combined_skip(
-    unittest.skipIf(
+@skipIfMultiple(
+    (
         "PICAI_DATA_PATH" not in os.environ,
         "define environment variable 'PICAI_DATA_PATH' to run this test",
     ),
-    unittest.skipIf(not torch.cuda.is_available(), "No GPU is available"),
+    (not torch.cuda.is_available(), "No GPU is available"),
 )
 class SegmentationPICAITestCase(unittest.TestCase):
     def setUp(self) -> None:

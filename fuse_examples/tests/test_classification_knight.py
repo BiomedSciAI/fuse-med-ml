@@ -35,11 +35,11 @@ import torch
 from imaging.classification.knight.eval.eval import eval
 from imaging.classification.knight.make_targets_file import make_targets_file
 
-from fuse.utils.tests.decorators import combined_skip
+from fuse.utils.tests.decorators import skipIfMultiple
 
 
-@combined_skip(
-    unittest.skipIf(not torch.cuda.is_available(), "No GPU is available"),
+@skipIfMultiple(
+    (not torch.cuda.is_available(), "No GPU is available"),
 )
 class KnightTestTestCase(unittest.TestCase):
     def setUp(self) -> None:

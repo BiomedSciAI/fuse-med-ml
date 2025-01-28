@@ -27,7 +27,7 @@ import torch
 import fuse.utils.gpu as GPU
 from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 from fuse.utils.rand.seed import Seed
-from fuse.utils.tests.decorators import combined_skip
+from fuse.utils.tests.decorators import skipIfMultiple
 from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS
 from fuse_examples.imaging.classification.isic.isic_runner import (
     EVAL_COMMON_PARAMS,
@@ -74,8 +74,8 @@ def run_isic(
     assert "metrics.auc" in results
 
 
-@combined_skip(
-    unittest.skipIf(not torch.cuda.is_available(), "No GPU is available"),
+@skipIfMultiple(
+    (not torch.cuda.is_available(), "No GPU is available"),
 )
 class ClassificationISICTestCase(unittest.TestCase):
     def setUp(self) -> None:

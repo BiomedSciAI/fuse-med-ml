@@ -1,14 +1,25 @@
 import unittest
-from typing import Any, Callable, List
+from typing import Any, Callable, List, Tuple
 
 
-def combined_skip(*decorators: List[Callable]) -> Callable:
-    def should_skip() -> bool:
-        return any(d.condition for d in decorators)
+def _id(obj: Any) -> Any:
+    return obj
 
-    def decorator(test_item: Any) -> Callable:
-        # Combine skip messages
-        skip_messages = [d.reason for d in decorators]
-        return unittest.skipIf(should_skip(), " OR ".join(skip_messages))(test_item)
 
-    return decorator
+def skipIfMultiple(*skips: List[Tuple[bool, str]]) -> Callable:
+    """
+    similar to unittest.skipIf but allows to skip depending on multiple conditions
+
+    example usage:
+
+    @skipIfMultiple(
+        (banana>12, "banana is bigger than 12!"),
+        (apple<10, "apple is less than 10!"),
+    )
+
+    """
+
+    for condition, reason in skips:
+        if condition:
+            return unittest.skip("skipIfMultiple:: " + reason)
+    return _id  # passthrough

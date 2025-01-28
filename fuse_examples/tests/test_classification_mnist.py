@@ -25,7 +25,7 @@ import torch
 
 from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 from fuse.utils.rand.seed import Seed
-from fuse.utils.tests.decorators import combined_skip
+from fuse.utils.tests.decorators import skipIfMultiple
 from fuse_examples.imaging.classification.mnist.simple_mnist_starter import run_train
 from fuseimg.datasets.mnist import MNIST
 
@@ -40,8 +40,8 @@ def run_mnist(root: str) -> None:
         raise Exception("Training MNIST Failed.")
 
 
-@combined_skip(
-    unittest.skipIf(not torch.cuda.is_available(), "No GPU is available"),
+@skipIfMultiple(
+    (not torch.cuda.is_available(), "No GPU is available"),
 )
 class ClassificationMnistTestCase(unittest.TestCase):
     def setUp(self) -> None:

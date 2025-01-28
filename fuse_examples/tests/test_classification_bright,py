@@ -26,11 +26,11 @@ import os
 from fuse_examples.imaging.classification.bright.eval.eval import eval
 
 import torch
-from fuse.utils.tests.decorators import combined_skip
+from fuse.utils.tests.decorators import skipIfMultiple
 
 
-@combined_skip(
-    unittest.skipIf(not torch.cuda.is_available() , "No GPU is available"),
+@skipIfMultiple(
+    (not torch.cuda.is_available() , "No GPU is available"),
 )
 class BrightTestCase(unittest.TestCase):
 
