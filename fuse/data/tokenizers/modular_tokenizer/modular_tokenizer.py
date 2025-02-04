@@ -1137,7 +1137,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerFast):
             #   of input mapped to unk.
             if on_unknown == "raise":
                 raise RuntimeError(
-                    f"Encountered {unk_count} unknown tokens out of {len(merged_encoding.ids)} in input starting with {typed_input_list[0].input_string}"
+                    f"Encountered {unk_count} unknown tokens out of {len(merged_encoding.ids)} in input starting with {[typed_input.input_string for typed_input in typed_input_list]}"
                 )
             elif on_unknown == "warn":
                 if verbose == 0:
