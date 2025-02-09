@@ -25,6 +25,9 @@ from typing import Any, Callable, List
 import numpy as np
 from scipy.stats import spearmanr
 
+from fuse.eval.metrics.libs.complete_ranking_pairwise_model import (
+    CompletePairwiseRanking,
+)
 from fuse.eval.metrics.libs.efficient_active_ranking_pairwise_model import (
     EfficientRanking,
 )
@@ -79,6 +82,26 @@ def convert_pairwise_to_ranker(
 
 
 class TestRanking(unittest.TestCase):
+    def test_complete_ranking_pairwise_model(self) -> None:
+        """ """
+
+        num_samples = 200
+
+        true_scores = np.arange(0, num_samples, 1)
+
+        to_be_ranked = true_scores.copy()
+        np.random.shuffle(to_be_ranked)
+
+        ranker = CompletePairwiseRanking(
+            to_be_ranked,
+            partial(pairwise_compare_fn, noise_rate=0.1),
+        )
+        ranked_items = ranker.rank(method="BTM")
+        sr = spearmanr(ranked_items, true_scores)
+        print(f"spearman r = {sr.statistic} p = {sr.pvalue}")
+
+        self.assertTrue(sr.statistic > 0.95)
+
     def test_efficient_active_ranking_pairwise_model(self) -> None:
         """ """
 
