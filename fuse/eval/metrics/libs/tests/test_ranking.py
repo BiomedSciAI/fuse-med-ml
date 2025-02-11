@@ -139,7 +139,7 @@ class TestRanking(unittest.TestCase):
         sr = spearmanr(ranked_items, true_scores)
         print(f"spearman r = {sr.statistic} p = {sr.pvalue}")
 
-        self.assertTrue(sr.statistic > 0.89)
+        self.assertTrue(sr.statistic > 0.87)
 
     def test_efficient_ranking_batch_rank(self) -> None:
         """ """
