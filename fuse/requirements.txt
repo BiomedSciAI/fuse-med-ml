@@ -35,3 +35,4 @@ click
 huggingface_hub
 tokenizers
 transformers
+choix

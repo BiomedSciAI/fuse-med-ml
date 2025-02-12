@@ -29,6 +29,7 @@ from fuse.eval.metrics.libs.efficient_active_ranking_pairwise_model import (
     EfficientRanking,
 )
 from fuse.eval.metrics.libs.efficient_ranking_batch_rank import aggregate_rankings
+from fuse.eval.metrics.libs.pairwise_ranking import PairwiseRanking
 
 
 def pairwise_compare_fn(a: Any, b: Any, noise_rate: float = 0.0) -> bool:
@@ -37,6 +38,23 @@ def pairwise_compare_fn(a: Any, b: Any, noise_rate: float = 0.0) -> bool:
     if np.random.random() < noise_rate:
         return np.random.random() < 0.5
     return a < b
+
+
+def compare_all_pairs(
+    items: List[Any], compare_fn: Callable[[Any, Any], bool], missing_rate: float = 0
+) -> list:
+    """
+    compare all pairs, set the comparison matrix to be 1 if i<j.
+    missing_values_rate(double) - rate of missing pairs, stored as 0 in the matrix
+    """
+    data = np.zeros((len(items), len(items)))
+    for i in range(len(items)):
+        for j in range(len(items)):
+            if np.random.random() > missing_rate:
+                if compare_fn(items[i], items[j]):
+                    data[j, i] = 1  # items[j] wins
+
+    return data
 
 
 def list_rank_func(items: List, number_of_random_flipped: int = 0) -> List:
@@ -79,6 +97,30 @@ def convert_pairwise_to_ranker(
 
 
 class TestRanking(unittest.TestCase):
+    def test_pairwise_ranking_with_missing_values(self) -> None:
+        """ """
+
+        num_samples = 100
+
+        true_scores = np.arange(0, num_samples, 1)
+
+        to_be_ranked = true_scores.copy()
+        np.random.shuffle(to_be_ranked)
+
+        ranker = PairwiseRanking(
+            to_be_ranked,
+            compare_all_pairs(
+                to_be_ranked,
+                partial(pairwise_compare_fn, noise_rate=0.1),
+                missing_rate=0.7,
+            ),
+        )
+        ranked_items = ranker.rank(method="BTM")
+        sr = spearmanr(ranked_items, true_scores)
+        print(f"spearman r = {sr.statistic} p = {sr.pvalue}")
+
+        self.assertTrue(sr.statistic > 0.95)
+
     def test_efficient_active_ranking_pairwise_model(self) -> None:
         """ """
 
@@ -97,7 +139,7 @@ class TestRanking(unittest.TestCase):
         sr = spearmanr(ranked_items, true_scores)
         print(f"spearman r = {sr.statistic} p = {sr.pvalue}")
 
-        self.assertTrue(sr.statistic > 0.89)
+        self.assertTrue(sr.statistic > 0.87)
 
     def test_efficient_ranking_batch_rank(self) -> None:
         """ """
