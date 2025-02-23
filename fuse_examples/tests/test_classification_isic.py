@@ -17,24 +17,26 @@ Created on June 30, 2021
 
 """
 
-import unittest
 import os
-import tempfile
 import shutil
-from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
+import tempfile
+import unittest
 
-from fuse_examples.imaging.classification.isic.isic_runner import (
-    TRAIN_COMMON_PARAMS,
-    INFER_COMMON_PARAMS,
-    EVAL_COMMON_PARAMS,
-    run_train,
-    run_infer,
-    run_eval,
-)
-from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS
+import torch
 
 import fuse.utils.gpu as GPU
+from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 from fuse.utils.rand.seed import Seed
+from fuse.utils.tests.decorators import skipIfMultiple
+from fuse_examples.imaging.classification.isic.golden_members import FULL_GOLDEN_MEMBERS
+from fuse_examples.imaging.classification.isic.isic_runner import (
+    EVAL_COMMON_PARAMS,
+    INFER_COMMON_PARAMS,
+    TRAIN_COMMON_PARAMS,
+    run_eval,
+    run_infer,
+    run_train,
+)
 
 
 def run_isic(
@@ -72,6 +74,9 @@ def run_isic(
     assert "metrics.auc" in results
 
 
+@skipIfMultiple(
+    (not torch.cuda.is_available(), "No GPU is available"),
+)
 class ClassificationISICTestCase(unittest.TestCase):
     def setUp(self) -> None:
         self.root = tempfile.mkdtemp()

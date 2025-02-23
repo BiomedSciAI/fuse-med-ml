@@ -1,21 +1,22 @@
-from fuse.data.datasets.dataset_default import DatasetDefault
-from fuse.data.datasets.caching.samples_cacher import SamplesCacher
-from fuse.data import PipelineDefault, OpToTensor
-from fuse.data.ops.ops_common import OpLambda
-from fuseimg.data.ops.image_loader import OpLoadImage
-from fuse.data.ops.ops_read import OpReadDataframe
-
 from functools import partial
-from typing import Hashable, Optional, Sequence, Union, Tuple
-import torch
+from typing import Hashable, Optional, Sequence, Tuple, Union
+
 import pandas as pd
+import torch
+
+from fuse.data import OpToTensor, PipelineDefault
+from fuse.data.datasets.caching.samples_cacher import SamplesCacher
+from fuse.data.datasets.dataset_default import DatasetDefault
+from fuse.data.ops.ops_common import OpLambda
+from fuse.data.ops.ops_read import OpReadDataframe
 from fuse_examples.imaging.oai_example.data.data_ops import (
     OpNormalizeMRI,
-    OpResize3D,
-    OpRandomFlip,
-    OpSegToOneHot,
     OpRandomCrop,
+    OpRandomFlip,
+    OpResize3D,
+    OpSegToOneHot,
 )
+from fuseimg.data.ops.image_loader import OpLoadImage
 
 
 class SegOAI:

@@ -16,27 +16,29 @@ limitations under the License.
 Created on June 30, 2021
 """
 
+import os
 import shutil
 import tempfile
 import unittest
-import os
-from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 
-from fuse.utils.rand.seed import Seed
+import torch
+
 import fuse.utils.gpu as GPU
-
 import fuse_examples.imaging.classification.stoic21.dataset as dataset
+from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
+from fuse.utils.rand.seed import Seed
+from fuse.utils.tests.decorators import skipIfMultiple
 
 if "STOIC21_DATA_PATH" in os.environ:
     from fuse_examples.imaging.classification.stoic21.runner_stoic21 import (
+        DATASET_COMMON_PARAMS,
+        EVAL_COMMON_PARAMS,
+        INFER_COMMON_PARAMS,
         PATHS,
         TRAIN_COMMON_PARAMS,
-        run_train,
-        run_infer,
         run_eval,
-        INFER_COMMON_PARAMS,
-        EVAL_COMMON_PARAMS,
-        DATASET_COMMON_PARAMS,
+        run_infer,
+        run_train,
     )
 
 
@@ -73,9 +75,12 @@ def run_stoic21(root: str) -> None:
     assert "metrics.auc" in results
 
 
-@unittest.skipIf(
-    "STOIC21_DATA_PATH" not in os.environ,
-    "define environment variable 'STOIC21_DATA_PATH' to run this test",
+@skipIfMultiple(
+    (
+        "STOIC21_DATA_PATH" not in os.environ,
+        "define environment variable 'STOIC21_DATA_PATH' to run this test",
+    ),
+    (not torch.cuda.is_available(), "No GPU is available"),
 )
 class ClassificationStoic21TestCase(unittest.TestCase):
     def setUp(self) -> None:

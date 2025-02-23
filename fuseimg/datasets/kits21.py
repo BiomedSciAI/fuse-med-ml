@@ -16,33 +16,31 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from functools import partial
 import os
+from functools import partial
 from typing import Hashable, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
-import torch
-from tqdm import tqdm
 import skimage
 import skimage.transform
-
-from fuse.utils import NDict
-from fuse.utils.rand.param_sampler import RandBool, RandInt, Uniform
+import torch
 import wget
+from tqdm import tqdm
 
-from fuse.data import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
-from fuse.data import PipelineDefault, OpSampleAndRepeat, OpToTensor, OpRepeat
+from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.ops.op_base import OpReversibleBase
-from fuse.data.ops.ops_aug_common import OpSample
-from fuse.data.ops.ops_common import OpLambda
-
+from fuse.data.ops.ops_aug_common import OpSample, OpSampleAndRepeat
+from fuse.data.ops.ops_cast import OpToTensor
+from fuse.data.ops.ops_common import OpLambda, OpRepeat
+from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.utils.sample import get_sample_id
-
+from fuse.utils.ndict import NDict
+from fuse.utils.rand.param_sampler import RandBool, RandInt, Uniform
 from fuseimg.data.ops.aug.color import OpAugColor
 from fuseimg.data.ops.aug.geometry import OpAugAffine2D
-from fuseimg.data.ops.image_loader import OpLoadImage
 from fuseimg.data.ops.color import OpClip, OpToRange
+from fuseimg.data.ops.image_loader import OpLoadImage
 
 
 class OpKits21SampleIDDecode(OpReversibleBase):

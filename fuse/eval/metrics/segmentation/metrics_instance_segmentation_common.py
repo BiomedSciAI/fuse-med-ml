@@ -1,9 +1,9 @@
 from functools import partial
 from typing import List, Optional
-from fuse.eval.metrics.libs.instance_segmentation import MetricsInstanceSegmentaion
 
 import numpy as np
 
+from fuse.eval.metrics.libs.instance_segmentation import MetricsInstanceSegmentaion
 from fuse.eval.metrics.metrics_common import MetricPerSampleDefault
 
 

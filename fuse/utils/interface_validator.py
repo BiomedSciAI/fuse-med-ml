@@ -1,7 +1,5 @@
-from typing import List, Dict, Callable, Any  # , _UnionGenericAlias
-
-
 import inspect
+from typing import Any, Callable, Dict, List  # , _UnionGenericAlias
 
 # https://stackoverflow.com/questions/147816/preserving-signatures-of-decorated-functions
 # https://stackoverflow.com/questions/5929107/decorators-with-parameters

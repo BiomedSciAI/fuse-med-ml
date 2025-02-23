@@ -17,12 +17,13 @@ Created on June 30, 2021
 
 """
 
-from typing import Hashable, List, Optional, Dict, Union
-from fuse.utils.file_io.file_io import read_dataframe
-import pandas as pd
+from typing import Dict, Hashable, List, Optional, Union
+
 import h5py
+import pandas as pd
 
 from fuse.data import OpBase
+from fuse.utils.file_io.file_io import read_dataframe
 from fuse.utils.ndict import NDict
 
 
@@ -118,6 +119,71 @@ class OpReadDataframe(OpBase):
         return list(self.data.keys())
 
 
+class OpReadMultiFromDataframe(OpReadDataframe):
+    """
+    Read multiple entries from dataframe at once.
+    In that case the key expected a string that build from multiple dataframe indices separated by "@SEP@"
+    For example
+    df = pd.DataFrame({
+        "sample_id": [0, 1, 2, 3, 4]
+        "my_data": [10, 11, 12, 13, 14]
+    })
+    sample_dict = {
+        "data.sample_id": "3@SEP@4"
+    }
+    will read row 3 from dataframe into sample_dict[f"my_data.0"]=13
+    And  row 4 into sample_dict[f"my_data.1"]=14
+    """
+
+    def __init__(
+        self,
+        data: Optional[pd.DataFrame] = None,
+        data_filename: Optional[str] = None,
+        columns_to_extract: Optional[List[str]] = None,
+        rename_columns: Optional[Dict[str, str]] = None,
+        key_name: str = "data.sample_id",
+        key_column: str = "sample_id",
+        multi_key_sep: str = "@SEP@",
+    ):
+        super().__init__(
+            data,
+            data_filename,
+            columns_to_extract,
+            rename_columns,
+            key_name,
+            key_column,
+        )
+
+        self._multi_key_sep = multi_key_sep
+
+        # convert ids to strings to support simple split and concat
+        if not isinstance(next(iter(self._data.keys())), str):
+            self._data = {str(k): v for k, v in self._data.items()}
+
+    def __call__(self, sample_dict: NDict, prefix: Optional[str] = None) -> NDict:
+        multi_key = sample_dict[self._key_name]
+
+        assert isinstance(multi_key, str), "Error: only str sample ids are supported"
+
+        if self._multi_key_sep in multi_key:
+            keys = multi_key.split(self._multi_key_sep)
+        else:
+            keys = [multi_key]
+
+        for key_index, key in enumerate(keys):
+            # locate the required item
+            sample_data = self._data[key].copy()
+
+            # add values tp sample_dict
+            for name, value in sample_data.items():
+                if prefix is None:
+                    sample_dict[f"{name}.{key_index}"] = value
+                else:
+                    sample_dict[f"{prefix}.{name}.{key_index}"] = value
+
+        return sample_dict
+
+
 class OpReadHDF5(OpBase):
     """
     Op reading data from hd5f based dataset
@@ -157,7 +223,6 @@ class OpReadHDF5(OpBase):
         return self._num_samples
 
     def __call__(self, sample_dict: NDict) -> Union[None, dict, List[dict]]:
-
         index = sample_dict[self._key_index]
         for column in self._columns_to_extract:
             key_to_store = self._rename_columns.get(column, column)

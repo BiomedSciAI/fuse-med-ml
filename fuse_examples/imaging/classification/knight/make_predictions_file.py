@@ -19,26 +19,25 @@ Created on June 30, 2021
 
 import logging
 import os
-
 from typing import Optional, Union
+
 import pandas as pd
+import pytorch_lightning as pl
 import torch
 from torch.utils.data.dataloader import DataLoader
+
 from fuse.data.utils.collates import CollateDefault
-from fuseimg.datasets.knight import KNIGHT
-
-from fuse.utils.utils_logger import fuse_logger_start
+from fuse.dl.lightning.pl_module import LightningModuleDefault
 from fuse.utils.file_io.file_io import save_dataframe
-
+from fuse.utils.utils_logger import fuse_logger_start
+from fuse_examples.imaging.classification.knight.baseline.fuse_baseline import (
+    make_model,
+)
 from fuse_examples.imaging.classification.knight.eval.eval import (
     TASK1_CLASS_NAMES,
     TASK2_CLASS_NAMES,
 )
-from fuse.dl.lightning.pl_module import LightningModuleDefault
-import pytorch_lightning as pl
-from fuse_examples.imaging.classification.knight.baseline.fuse_baseline import (
-    make_model,
-)
+from fuseimg.datasets.knight import KNIGHT
 
 
 def make_predictions_file(

@@ -17,14 +17,14 @@ Created on June 30, 2021
 
 """
 
-from typing import Callable, Optional, Any, Dict, Tuple, Union
+import logging
+from typing import Any, Callable, Dict, Optional, Tuple, Union
+from urllib.error import URLError
 
 import torch
-from torch.hub import load_state_dict_from_url
 import torch.nn as nn
 from torch import Tensor
-from urllib.error import URLError
-import logging
+from torch.hub import load_state_dict_from_url
 
 
 def make_seq(

@@ -1,14 +1,16 @@
+import os
+
+from funcs import create_dataset
+
 from fuse.dl.cross_validation.pipeline import run
 from fuse_examples.imaging.classification.mnist.run_mnist import (
-    run_train,
-    run_infer,
-    run_eval,
-    TRAIN_COMMON_PARAMS,
-    INFER_COMMON_PARAMS,
     EVAL_COMMON_PARAMS,
+    INFER_COMMON_PARAMS,
+    TRAIN_COMMON_PARAMS,
+    run_eval,
+    run_infer,
+    run_train,
 )
-from funcs import create_dataset
-import os
 
 ##########################################
 # Required Parameters

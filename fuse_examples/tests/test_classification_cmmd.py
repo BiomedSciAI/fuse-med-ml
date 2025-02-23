@@ -18,14 +18,17 @@ Created on June 30, 2021
 """
 # FIXME: data_package
 import multiprocessing
-from fuse.utils import NDict
-import unittest
+import os
 import shutil
 import tempfile
-import os
+import unittest
+
+import torch
+
+from fuse.utils import NDict
 from fuse.utils.gpu import choose_and_enable_multiple_gpus
 from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
-
+from fuse.utils.tests.decorators import skipIfMultiple
 
 # os env variable CMMD_DATA_PATH is a path to the stored dataset location
 # dataset should be download from https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70230508
@@ -35,9 +38,9 @@ from fuse.utils.multiprocessing.run_multiprocessed import run_in_subprocess
 # 2. folder named CMMD which is the downloaded data folder
 if "CMMD_DATA_PATH" in os.environ:
     from fuse_examples.imaging.classification.cmmd.runner import (
-        run_train,
         run_eval,
         run_infer,
+        run_train,
     )
 
 
@@ -95,9 +98,12 @@ def run_cmmd(root: str) -> None:
     assert "metrics.auc" in results
 
 
-@unittest.skipIf(
-    "CMMD_DATA_PATH" not in os.environ,
-    "define environment variable 'CMMD_DATA_PATH' to run this test",
+@skipIfMultiple(
+    (
+        "CMMD_DATA_PATH" not in os.environ,
+        "define environment variable 'CMMD_DATA_PATH' to run this test",
+    ),
+    (not torch.cuda.is_available(), "No GPU is available"),
 )
 class ClassificationMGCmmdTestCase(unittest.TestCase):
     def setUp(self) -> None:

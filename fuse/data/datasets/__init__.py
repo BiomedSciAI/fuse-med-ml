@@ -1,1 +1,1 @@
-from .dataset_default import DatasetDefault
+from fuse.data.datasets.dataset_default import DatasetDefault

@@ -1,5 +1,6 @@
 # type: ignore
 import unittest
+
 from fuse.utils.cpu_profiling import Profiler
 
 
