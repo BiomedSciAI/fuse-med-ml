@@ -1,5 +1,6 @@
 import torch
 
+
 def _to_numeric_array(x):
     if isinstance(x, str):
         raise ValueError(f"Invalid input: Expected numeric values but got string '{x}'")
@@ -98,4 +99,3 @@ class CoxNLL(torch.nn.Module):
         loss = loss_per_sample.sum() / (n_events + self.epsilon)
 
         return loss
-    
