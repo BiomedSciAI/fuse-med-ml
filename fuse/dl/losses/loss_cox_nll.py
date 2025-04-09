@@ -98,3 +98,4 @@ class CoxNLL(torch.nn.Module):
         loss = loss_per_sample.sum() / (n_events + self.epsilon)
 
         return loss
+    
