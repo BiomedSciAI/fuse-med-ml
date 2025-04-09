@@ -1,5 +1,6 @@
+from typing import List, Tuple, Union
+
 import torch
-from typing import Union, List, Tuple
 
 
 def _to_numeric_array(
