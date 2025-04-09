@@ -1,7 +1,10 @@
 import torch
+from typing import Union, List, Tuple
 
 
-def _to_numeric_array(x):
+def _to_numeric_array(
+    x: Union[float, int, List[Union[float, int]], Tuple[Union[float, int]]]
+) -> Union[float, List[float]]:
     if isinstance(x, str):
         raise ValueError(f"Invalid input: Expected numeric values but got string '{x}'")
     if isinstance(x, list) or isinstance(x, tuple):
