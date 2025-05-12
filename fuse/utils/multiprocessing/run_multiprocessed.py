@@ -209,7 +209,7 @@ def _store_in_global_storage(store_me: dict) -> None:
     if store_me is None:
         return
 
-    global _multiprocess_global_storage
+    global _multiprocess_global_storage  # noqa
 
     # making sure there are no name conflicts
     for key, _ in store_me.items():
@@ -229,7 +229,7 @@ def _remove_from_global_storage(remove_me: List) -> None:
     if remove_me is None:
         return
 
-    global _multiprocess_global_storage
+    global _multiprocess_global_storage  # noqa
     for key in remove_me:
         del _multiprocess_global_storage[key]
 
@@ -238,7 +238,7 @@ def get_from_global_storage(key: str) -> Any:
     """
     Get args copied by run_multiprocessed
     """
-    global _multiprocess_global_storage
+    global _multiprocess_global_storage  # noqa
     return _multiprocess_global_storage[key]
 
 
