@@ -16,6 +16,7 @@ import transformers
 from omegaconf import OmegaConf
 from tokenizers import Encoding, Tokenizer
 from torch import Tensor
+from transformers import BatchEncoding
 
 from fuse.data.tokenizers.modular_tokenizer.special_tokens import special_wrap_input
 
@@ -2090,54 +2091,66 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
     def __call__(
         self,
-        sequence_list: Union[List[str], str],
-        return_tensors: Optional[str] = None,
-        padding: bool = False,
-        truncation: bool = False,
+        text: Union[str, List[str], List[List[str]]],
+        # text_pair: Optional[Union[str, List[str], List[List[str]]]] = None,
+        # add_special_tokens: bool = True,
+        padding: Union[
+            bool, str, transformers.tokenization_utils_base.PaddingStrategy
+        ] = False,
+        truncation: Union[
+            bool, str, transformers.tokenization_utils_base.TruncationStrategy
+        ] = False,
         max_length: Optional[int] = None,
-        return_attention_mask: bool = False,
+        stride: int = 0,
+        # is_pretokenized: bool = False,
+        # pad_to_multiple_of: Optional[int] = None,
+        return_tensors: Optional[
+            Union[str, transformers.tokenization_utils_base.TensorType]
+        ] = None,
+        # return_token_type_ids: Optional[bool] = None,
+        return_attention_mask: Optional[bool] = None,
+        # return_overflowing_tokens: bool = False,
+        # return_special_tokens_mask: bool = False,
+        # return_offsets_mapping: bool = False,
+        # return_length: bool = False,
+        verbose: bool = True,
         **kwargs: dict,
-    ) -> Dict[str, Any]:
+    ) -> BatchEncoding:
         """
-        encode batch
-        returns a dictionary with "input_ids" and if return_attention_mask set to true, also with "attention_mask"
+        Main method to tokenize and prepare for the model one or several sequence(s) sequences.
+        The method supports subeset of the arguments defined in PreTrainedTokenizerBase
         """
         assert return_tensors in [None, "pt"], f"Error: unsupported {return_tensors=}"
 
-        is_single_input = isinstance(sequence_list, str)
-        sequence_list = [sequence_list] if is_single_input else sequence_list
+        is_single_input = isinstance(text, str)
+        text = [text] if is_single_input else text
 
-        ids_batch = []
-        attention_mask_batch = []
-        for sequence in sequence_list:
+        encoding_list = []
+        for sequence in text:
             encoding = self.encode(sequence, **kwargs)
-            ids = encoding.ids
-            attention_mask = encoding.attention_mask
             if truncation and max_length is not None:
-                ids = ids[:max_length]
-                attention_mask = attention_mask[:max_length]
-            ids_batch.append(ids)
-            attention_mask_batch.append(attention_mask)
+                encoding.truncate(max_length=max_length, stride=stride)
+            encoding_list.append(encoding)
 
         # Padding
         if padding:
             max_len = (
-                max(len(ids) for ids in ids_batch) if max_length is None else max_length
+                max(len(encoding.ids) for encoding in encoding_list)
+                if max_length is None
+                else max_length
             )
-            pad_token_id = self.pad_token_id
-            encoded_batch = [
-                ids + [pad_token_id] * (max_len - len(ids)) for ids in ids_batch
-            ]
-            attention_mask_batch = [
-                attention_mask + [0.0] * (max_len - len(attention_mask))
-                for attention_mask in attention_mask_batch
-            ]
+            for encoding in encoding_list:
+                encoding.pad(
+                    length=max_len, pad_id=self.pad_token_id, pad_token=self.pad_token
+                )
 
         result = {
-            "input_ids": encoded_batch,
+            "input_ids": [encoding.ids for encoding in encoding_list],
         }
-        if return_attention_mask:
-            result["attention_mask"] = attention_mask_batch
+        if return_attention_mask is None or return_attention_mask:
+            result["attention_mask"] = [
+                encoding.attention_mask for encoding in encoding_list
+            ]
 
         if return_tensors == "pt":
             result = {k: torch.tensor(v, dtype=torch.long) for k, v in result.items()}
@@ -2148,4 +2161,5 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
                 k: v[0] if isinstance(v, list) and not isinstance(v[0], list) else v[0]
                 for k, v in result.items()
             }
-        return result
+
+        return BatchEncoding(result, tensor_type=return_tensors, encoding=encoding_list)
