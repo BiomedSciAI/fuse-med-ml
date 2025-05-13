@@ -11,10 +11,12 @@ from warnings import warn
 
 import omegaconf
 import tokenizers
+import torch
 import transformers
 from omegaconf import OmegaConf
 from tokenizers import Encoding, Tokenizer
 from torch import Tensor
+from transformers import BatchEncoding
 
 from fuse.data.tokenizers.modular_tokenizer.special_tokens import special_wrap_input
 
@@ -53,7 +55,7 @@ def list_to_tokenizer_string(lst: List[ModularTokenizerInput]) -> str:
     return out
 
 
-class ModularTokenizer(transformers.PreTrainedTokenizerFast):
+class ModularTokenizer(transformers.PreTrainedTokenizerBase):
     def __init__(
         self,
         tokenizers_info: Union[List, omegaconf.listconfig.ListConfig],
@@ -91,8 +93,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerFast):
                 If it is not set, new special tokens may be mapped to IDs higher that regular token IDs. If Defaults to None (i.e. no limit is set).
             seed: random generator seed - used for random truncation in random truncation mode (not the default mode)
         """
-        # ModularTokenizer inherits the interface of PreTrainedTokenizerBase, but not the underlying logic, therefore super.__init__() is not called
-
+        super().__init__()
         # If there is only one tokenizer, remapping it is not needed - if there's only one, we can just load its json using load_from_jsons.
         if isinstance(tokenizers_info, omegaconf.listconfig.ListConfig) or isinstance(
             tokenizers_info, omegaconf.dictconfig.DictConfig
@@ -1602,47 +1603,6 @@ class ModularTokenizer(transformers.PreTrainedTokenizerFast):
         assert direction == "right", "direction setting not implemented"
         self.max_len = max_length
 
-    def encode_batch(
-        self,
-        input: List,
-        is_pretokenized: Optional[bool] = False,
-        add_special_tokens: Optional[bool] = True,
-    ) -> List:
-        """
-        Encode the given batch of inputs. This method accept both raw text sequences
-        as well as already pre-tokenized sequences.
-
-        Example:
-            Here are some examples of the inputs that are accepted::
-
-                encode_batch([
-                    "A single sequence",
-                    ("A tuple with a sequence", "And its pair"),
-                    [ "A", "pre", "tokenized", "sequence" ],
-                    ([ "A", "pre", "tokenized", "sequence" ], "And its pair")
-                ])
-
-        Args:
-            input (A :obj:`List`/:obj:`Tuple` of :obj:`~tokenizers.EncodeInput`):
-                A list of single sequences or pair sequences to encode. Each sequence
-                can be either raw text or pre-tokenized, according to the ``is_pretokenized``
-                argument:
-
-                - If ``is_pretokenized=False``: :class:`~tokenizers.TextEncodeInput`
-                - If ``is_pretokenized=True``: :class:`~tokenizers.PreTokenizedEncodeInput`
-
-            is_pretokenized (:obj:`bool`, defaults to :obj:`False`):
-                Whether the input is already pre-tokenized
-
-            add_special_tokens (:obj:`bool`, defaults to :obj:`True`):
-                Whether to add the special tokens
-
-        Returns:
-            A :obj:`List` of :class:`~tokenizers.Encoding`: The encoded batch
-
-        """
-        raise Exception("Not implemented")
-
     @staticmethod
     def from_buffer(buffer: object) -> object:
         """
@@ -2098,3 +2058,108 @@ class ModularTokenizer(transformers.PreTrainedTokenizerFast):
                 A dict with the current truncation parameters if truncation is enabled
         """
         raise Exception("Not implemented")
+
+    def __repr__(self) -> str:
+        return (
+            f"{self.__class__.__name__},\n"
+            + f"Subtokenizer = {[subtokenizer for subtokenizer in self.tokenizers_info.keys()]}"  # " added_tokens_decoder={\n\t" + added_tokens_decoder_rep + "\n}\n)"
+        )
+
+    @property
+    def pad_token_id(self) -> Optional[int]:
+        """
+        `Optional[int]`: Id of the padding token in the vocabulary. Returns `None` if the token has not been set.
+        """
+        if self._pad_token is None:
+            return None
+        return self.token_to_id(self.pad_token)
+
+    def convert_tokens_to_ids(
+        self, *args: list, **kwargs: dict
+    ) -> Union[List[int], int]:
+        enc_ids = self.encode(*args, **kwargs).ids
+        if len(enc_ids) == 1:
+            return enc_ids[0]
+        return enc_ids
+
+    def convert_ids_to_tokens(
+        self, ids: Union[List[int], int], *args: list, **kwargs: dict
+    ) -> str:
+        if isinstance(ids, int):
+            ids = [ids]
+        return self.decode(ids=ids, *args, **kwargs)
+
+    def __call__(
+        self,
+        text: Union[str, List[str], List[List[str]]],
+        # text_pair: Optional[Union[str, List[str], List[List[str]]]] = None,
+        # add_special_tokens: bool = True,
+        padding: Union[
+            bool, str, transformers.tokenization_utils_base.PaddingStrategy
+        ] = False,
+        truncation: Union[
+            bool, str, transformers.tokenization_utils_base.TruncationStrategy
+        ] = False,
+        max_length: Optional[int] = None,
+        stride: int = 0,
+        # is_pretokenized: bool = False,
+        # pad_to_multiple_of: Optional[int] = None,
+        return_tensors: Optional[
+            Union[str, transformers.tokenization_utils_base.TensorType]
+        ] = None,
+        # return_token_type_ids: Optional[bool] = None,
+        return_attention_mask: Optional[bool] = None,
+        # return_overflowing_tokens: bool = False,
+        # return_special_tokens_mask: bool = False,
+        # return_offsets_mapping: bool = False,
+        # return_length: bool = False,
+        verbose: bool = True,
+        **kwargs: dict,
+    ) -> BatchEncoding:
+        """
+        Main method to tokenize and prepare for the model one or several sequence(s) sequences.
+        The method supports subeset of the arguments defined in PreTrainedTokenizerBase
+        """
+        assert return_tensors in [None, "pt"], f"Error: unsupported {return_tensors=}"
+
+        is_single_input = isinstance(text, str)
+        text = [text] if is_single_input else text
+
+        encoding_list = []
+        for sequence in text:
+            encoding = self.encode(sequence, **kwargs)
+            if truncation and max_length is not None:
+                encoding.truncate(max_length=max_length, stride=stride)
+            encoding_list.append(encoding)
+
+        # Padding
+        if padding:
+            max_len = (
+                max(len(encoding.ids) for encoding in encoding_list)
+                if max_length is None
+                else max_length
+            )
+            for encoding in encoding_list:
+                encoding.pad(
+                    length=max_len, pad_id=self.pad_token_id, pad_token=self.pad_token
+                )
+
+        result = {
+            "input_ids": [encoding.ids for encoding in encoding_list],
+        }
+        if return_attention_mask is None or return_attention_mask:
+            result["attention_mask"] = [
+                encoding.attention_mask for encoding in encoding_list
+            ]
+
+        if return_tensors == "pt":
+            result = {k: torch.tensor(v, dtype=torch.long) for k, v in result.items()}
+
+        # Return single sample if input was a string
+        if is_single_input:
+            result = {
+                k: v[0] if isinstance(v, list) and not isinstance(v[0], list) else v[0]
+                for k, v in result.items()
+            }
+
+        return BatchEncoding(result, tensor_type=return_tensors, encoding=encoding_list)

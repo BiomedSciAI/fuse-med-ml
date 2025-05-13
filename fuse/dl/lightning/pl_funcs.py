@@ -274,7 +274,8 @@ def epoch_end_compute_and_log_losses(
                 losses[key].append(value)
 
     for key in losses:
-        loss = mean(losses[key])
+        values = [x for x in losses[key] if x is not None]
+        loss = mean(values)
         pl_module.log(
             f"{mode}{sep}losses.{key}",
             loss,
