@@ -16,6 +16,7 @@ from fuse.utils import NDict
 class EmbeddingInfo(NamedTuple):
     location: int
     embedding_input: str
+    length: int
 
 
 class InjectorToModularTokenizerLib:
@@ -45,7 +46,8 @@ class InjectorToModularTokenizerLib:
     for text following <@TOKENIZER-TYPE=EXTERNAL_EMBEDDINGS_FROM_DICT> Supported Format - "feature_extractor:key"
         - "feature_extractor" is the name of the extractor used to generate embeddings.
         - "key" is the corresponding key in the sample NDict.
-        for example: "ESM:blah.boo.banana"  or "Granite:data.input.encoder_input"
+        - "length" optional - number of embedding tokens to be inserted to the query (if you want to inject more than one token)
+        for example: "ESM:blah.boo.banana"  or "Granite:data.input.encoder_input:25"
 
     example usage:
 
@@ -137,7 +139,12 @@ class InjectorToModularTokenizerLib:
                 with_placeholders.append(
                     f"<@TOKENIZER-TYPE={default_sub_tokenizer_name}>"
                 )  # tokenizer selection is arbitrary, we only take the special token <EMBEDDINGS> from it
-                with_placeholders.append("<EMBEDDINGS>")
+                embedding_parts = subseq.split(":")
+                num_tokens_to_add = (
+                    int(embedding_parts[2]) if len(embedding_parts) == 3 else 1
+                )
+                for _ in range(num_tokens_to_add):
+                    with_placeholders.append("<EMBEDDINGS>")
             elif tokenizer_type.startswith("VECTORS_"):
                 raise Exception("VECTOR_* are not supported yet")
             else:
@@ -226,15 +233,22 @@ class InjectorToModularTokenizerLib:
                             "EXTERNAL_EMBEDDINGS_FROM_DICT used but the provided sample_dict is None"
                         )
                     assert (
-                        curr_str_data.count(":") == 1
-                    ), f"The supported format is feature_extractor:key, {curr_str_data} must contain exactly one colon."
-                    embedding_model_name, embeddings_key = curr_str_data.split(":")
+                        curr_str_data.count(":") == 1 or curr_str_data.count(":") == 2
+                    ), f"The supported format is feature_extractor:key, or feature_extractor:key:length, {curr_str_data} must contains between 1 to 2 colons."
+                    data_str_parts = curr_str_data.split(":")
+                    embedding_model_name, embeddings_key = (
+                        data_str_parts[0],
+                        data_str_parts[1],
+                    )
+                    length = int(data_str_parts[2]) if len(data_str_parts) == 3 else 1
 
                     embedding_input = sample_dict[embeddings_key]
+
                     external_embeddings_info[embedding_model_name].append(
                         EmbeddingInfo(
                             location=num_tokens_token_so_far,
                             embedding_input=embedding_input,
+                            length=length,
                         )
                     )
                 elif tokenizer_name.startswith("VECTORS_"):
