@@ -2,7 +2,7 @@ import os
 import re
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 from warnings import warn
 
 from huggingface_hub import HfApi, snapshot_download
@@ -175,6 +175,15 @@ class ModularTokenizerWithoutInjectOp(OpBase):
         """
         ans = self._tokenizer.token_to_id(token_str, t_type)
         assert ans is not None, f"could not find token id for token:{token_str}!"
+        return ans
+
+    def decode(self, ids: Iterable) -> str:
+        """Receives a list of IDs and returns a string of tokens
+        Args:
+            ids (Iterable): _description_
+        """
+        ans = self._tokenizer.decode(ids=ids)
+        assert ans is not None, f"could not find tokens for ids: {ids}!"
         return ans
 
     def get_max_len(
