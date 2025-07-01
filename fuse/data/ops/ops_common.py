@@ -621,6 +621,20 @@ class OpSet(OpBase):
         return sample_dict
 
 
+class OpCopy(OpBase):
+    """copy value from one key to another"""
+
+    def __call__(
+        self, sample_dict: NDict, key_source: str, key_dest: Any
+    ) -> Union[None, dict, List[dict]]:
+        """
+        :param key_source: from where to copy
+        :param key_dest: where to copy to
+        """
+        sample_dict[key_dest] = sample_dict[key_source]
+        return sample_dict
+
+
 class OpSetRandomChoice(OpBase):
     """Choose random value from a list and add/override key-value pair into sample_dict"""
 
