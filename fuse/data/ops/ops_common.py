@@ -624,6 +624,21 @@ class OpSet(OpBase):
 class OpCopy(OpBase):
     """copy value from one key to another"""
 
+    def __init__(self, copy_mode: str = "reference"):
+        """
+        :param mode: Copy an object in one of three modes:
+            - 'reference': use the destination object
+            - 'shallow': shallow copy (copy.copy)
+            - 'deep': deep copy (copy.deepcopy)
+        """
+        super().__init__()
+        self.copy_mode = copy_mode
+        assert self.copy_mode in [
+            "reference",
+            "shallow",
+            "deep",
+        ], f"Unknown mode: {self.copy_mode}. Use 'reference', 'shallow', or 'deep'."
+
     def __call__(
         self, sample_dict: NDict, key_source: str, key_dest: Any
     ) -> Union[None, dict, List[dict]]:
@@ -631,7 +646,13 @@ class OpCopy(OpBase):
         :param key_source: from where to copy
         :param key_dest: where to copy to
         """
-        sample_dict[key_dest] = sample_dict[key_source]
+        if self.copy_mode == "reference":
+            sample_dict[key_dest] = sample_dict[key_source]
+        elif self.copy_mode == "shallow":
+            sample_dict[key_dest] = copy.copy(sample_dict[key_source])
+        else:  # "deep"
+            sample_dict[key_dest] = copy.deepcopy(sample_dict[key_source])
+
         return sample_dict
 
 
