@@ -277,15 +277,3 @@ class CollateDefault(CollateToBatchList):
         target_length = batch_dict[target_key].shape[1]
         for key in keys_to_match:
             batch_dict[key] = batch_dict[key][:, :target_length]
-
-
-class CollateSingle(Callable):
-    """
-    Collate function for DataLoader(batch_size=1).
-    """
-
-    def __call__(self, samples: List[Dict]) -> Dict:
-        if len(samples) != 1:
-            raise ValueError(f"CollateSingle expects batch size 1, got {len(samples)}.")
-
-        return samples[0]
