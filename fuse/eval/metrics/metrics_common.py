@@ -185,7 +185,7 @@ class MetricCollector(MetricBase):
                     if value.dtype == torch.bfloat16:
                         value = value.to(torch.float)
                     value = value.cpu().numpy()
-                
+
                 if isinstance(value, np.ndarray) and value.ndim == 0:
                     self._collected_data[name].append(value.item())
                 else:
