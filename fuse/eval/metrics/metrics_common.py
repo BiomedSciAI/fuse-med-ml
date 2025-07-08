@@ -185,7 +185,11 @@ class MetricCollector(MetricBase):
                     if value.dtype == torch.bfloat16:
                         value = value.to(torch.float)
                     value = value.cpu().numpy()
-                self._collected_data[name].extend(value)
+
+                if isinstance(value, np.ndarray) and value.ndim == 0:
+                    self._collected_data[name].append(value.item())
+                else:
+                    self._collected_data[name].extend(value)
 
         # extract ids and store it in self._collected_ids
         if self._to_collect_ids:
