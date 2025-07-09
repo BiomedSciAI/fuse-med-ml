@@ -249,7 +249,7 @@ def create_cnn_model(
     backbone_type: str = "Resnet18",
 ) -> torch.nn.Module:
     """
-    creates the model
+    Creates the model
 
     :param backbone_type: (str) "InceptionResnetV2" or "Resnet18"
     """

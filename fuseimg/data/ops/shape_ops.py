@@ -106,7 +106,7 @@ class OpResizeAndPad2D(OpBase):
         resize_to: tuple[int, int],
     ) -> np.ndarray:
         """
-        pads image to requested size ,
+        Pads image to requested size ,
         pads both side equally by the same input padding size (left = right = padding[1] , up = down= padding[0] )  ,
         padding default value is zero or minimum value in normalized target range
         :param inner_image: image of shape [H, W, C] of type numpy float32
@@ -163,7 +163,7 @@ class OpResizeAndPad2D(OpBase):
         self, inner_image: np.ndarray, resize_to: tuple[int, int]
     ) -> np.ndarray:
         """
-        resize image to the required resolution
+        Resize image to the required resolution
         :param inner_image: image of shape [H, W, C]
         :param resize_to: required resolution [height, width]
         :return: resized image
@@ -227,7 +227,7 @@ class OpFindBiggestNonEmptyBbox2D(OpBase):
 
     def find_biggest_non_emtpy_bbox(self, img: np.ndarray) -> tuple[int, int, int, int]:
         """
-        split the images into blocks, each block containing (1/30 x 1/30) of the image.
+        Split the images into blocks, each block containing (1/30 x 1/30) of the image.
         All blocks above a threshold (10) are considered non-empty.
         Then, the biggest connected component (at the blocks level) is extracted, and its axis-aligned bbox is returned.
         :param img: Image instance , expected 2d integer grayscale image where 0 is black background color
@@ -307,7 +307,7 @@ class OpFlipBrightSideOnLeft2D(OpBase):
 
     def check_bright_side_is_left(self, image: np.ndarray) -> bool:
         """
-        checks if the bright side is in the left of the image
+        Checks if the bright side is in the left of the image
         :param image: numpy image , expected 2d grayscale image
         :param max_pixel_value: maximum possible value in the image grayscale format
         :param dark_region_ratio: the raito of possible grayscale values which are considered dark

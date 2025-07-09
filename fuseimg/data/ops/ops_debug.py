@@ -218,7 +218,7 @@ class OpVis3DPlotly(OpDebugBase):
 
     def get_plotly_fig_from_vol(self, vol: np.ndarray) -> go.Figure:
         """
-        this function will return a plotly figure (which can later be saved) created from a 3d numpy-like matrix
+        This function will return a plotly figure (which can later be saved) created from a 3d numpy-like matrix
         :param vol: lxwxh numpy-like matrix
         returns: plotly.graph_objs._figure.Figure
         """

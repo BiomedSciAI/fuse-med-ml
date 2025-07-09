@@ -39,7 +39,7 @@ class MetricBase(ABC):
     @abstractmethod
     def collect(self, batch: Dict) -> None:
         """
-        aggregate data from batches
+        Aggregate data from batches
         :param batch: bath dict
         """
         raise NotImplementedError
@@ -47,7 +47,7 @@ class MetricBase(ABC):
     @abstractmethod
     def set(self, data: pd.DataFrame) -> None:
         """
-        set entire data at once
+        Set entire data at once
         :param data: dataframe representation of the data. Each line is a sample and each column is a value field.
         """
         raise NotImplementedError
@@ -55,7 +55,7 @@ class MetricBase(ABC):
     @abstractmethod
     def reset(self) -> None:
         """
-        reset state
+        Reset state
         """
         raise NotImplementedError
 
@@ -64,7 +64,7 @@ class MetricBase(ABC):
         self, results: Dict[str, Any] = None, ids: Sequence[Hashable] | None = None
     ) -> Dict[str, Any] | Any:
         """
-        evaluate the collected data
+        Evaluate the collected data
         :param results: results aggregated by the previous metrics
         :param ids: sequence of sample ids
         The evaluated results should be stored in results. (recommendation: store it under metrics namespace)
@@ -318,7 +318,7 @@ class MetricCollector(MetricBase):
 
     def set(self, data: pd.DataFrame) -> None:
         """
-        see super class
+        See super class
         """
         self.reset()
 
@@ -516,7 +516,7 @@ class MetricWithCollectorBase(MetricBase):
         self, results: Dict[str, Any] = None, ids: Sequence[Hashable] | None = None
     ) -> Dict:
         """
-        extract keyworded arguments and value arguments from collected data and results dict
+        Extract keyworded arguments and value arguments from collected data and results dict
         """
         if not isinstance(results, NDict):
             results = NDict(results)

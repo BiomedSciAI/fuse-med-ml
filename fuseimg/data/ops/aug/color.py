@@ -91,7 +91,7 @@ class OpAugColor(OpBase):
     @staticmethod
     def aug_op_mul_col(aug_input: Tensor, mul: float) -> Tensor:
         """
-        multiply each pixel
+        Multiply each pixel
         :param aug_input: the tensor to augment
         :param mul: the multiplication factor
         :return: the augmented tensor

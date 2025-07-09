@@ -39,7 +39,7 @@ class ExportDataset:
         **dataset_get_kwargs: dict
     ) -> pds.DataFrame:
         """
-        extract from dataset the specified and keys and create a dataframe.
+        Extract from dataset the specified and keys and create a dataframe.
         If output_filename will be specified, the dataframe will also be saved in a file.
         :param dataset: the dataset to extract the values from
         :param keys: keys to extract from sample_dict

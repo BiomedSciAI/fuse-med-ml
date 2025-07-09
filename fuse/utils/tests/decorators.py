@@ -8,7 +8,7 @@ def _id(obj: Any) -> Any:
 
 def skipIfMultiple(*skips: list[tuple[bool, str]]) -> Callable:
     """
-    similar to unittest.skipIf but allows to skip depending on multiple conditions
+    Similar to unittest.skipIf but allows to skip depending on multiple conditions
 
     example usage:
 

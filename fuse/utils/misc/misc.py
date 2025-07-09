@@ -152,7 +152,7 @@ def time_display(seconds: int, granularity: int = 3) -> str:
             seconds -= value * count
             if value == 1:
                 name = name.rstrip("s")
-            result.append("%d %s" % (value, name))
+            result.append(f"{value} {name}")
     return ", ".join(result[:granularity])
 
 

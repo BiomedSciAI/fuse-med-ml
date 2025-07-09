@@ -45,7 +45,7 @@ class CollateToBatchList(Callable):
 
     def __call__(self, samples: list[dict]) -> dict:
         """
-        collate list of samples into batch_dict
+        Collate list of samples into batch_dict
         :param samples: list of samples
         :return: batch_dict
         """
@@ -72,7 +72,7 @@ class CollateToBatchList(Callable):
 
     def _collect_all_keys(self, samples: list[dict]) -> list[Any]:
         """
-        collect list of keys used in any one of the samples
+        Collect list of keys used in any one of the samples
         :param samples: list of samples
         :return: list of keys
         """
@@ -87,7 +87,7 @@ class CollateToBatchList(Callable):
         self, samples: list[str], key: str
     ) -> tuple[list, bool]:
         """
-        collect values of given key into a list
+        Collect values of given key into a list
         :param samples: list of samples
         :param key: key to collect
         :return: list of values

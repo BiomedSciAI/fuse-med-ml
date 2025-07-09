@@ -13,7 +13,7 @@ class HashableClass:
 
     def __init__(self) -> None:
         """
-        when init is called, a string representation of the caller(s) init args are recorded.
+        When init is called, a string representation of the caller(s) init args are recorded.
         This is used in get_hashable_string_representation which is used later for hashing in caching related tools (for example, SamplesCacher)
         """
         # the following is used to extract callers args, for __init__ calls up the stack of classes inheirting from OpBase

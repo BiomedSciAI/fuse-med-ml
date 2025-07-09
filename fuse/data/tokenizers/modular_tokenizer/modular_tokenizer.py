@@ -338,7 +338,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
         enforce_special: bool | None = False,
     ) -> List:
         """
-        returns the special tokens from a tokenizer defined by json_inst.
+        Returns the special tokens from a tokenizer defined by json_inst.
             Note: An alternative would be to call tokenizer_inst.get_vocab(with_added_tokens), using with_added_tokens False and True, which
             should've given us just regular and regular+special tokens, but for some reason both these options return the same output,
             so we must resort to json parsing.
@@ -367,7 +367,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
         tokenizer_json_inst: Dict, enforce_special: bool | None = False
     ) -> Set:
         """
-        returns the regular tokens from tokenizer defined by json_inst.
+        Returns the regular tokens from tokenizer defined by json_inst.
             Note: An alternative would be to call tokenizer_inst.get_vocab(with_added_tokens), using with_added_tokens False and True, which
             should've given us just regular and regular+special tokens, but for some reason both these options return the same output,
             so we must resort to json parsing.
@@ -592,7 +592,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
             "ID duplicates in vocab",  # Regular token ID mappings of any given tokenizer do not collide with special token mappings
             "ID collisions across vocabs",  # Regular token ID mappings of any given tokenizer do not collide with ID mappings of other tokenizers
         ]
-        result = {t_name: True for t_name in tests}
+        result = dict.fromkeys(tests, True)
         result_details: Dict[str, Any] = {t_name: [] for t_name in tests}
         tokenizer_types = list(self.tokenizers_info.keys())
         # TODO: If there are multiple tokenizer files that were derived from the same file - use only one for diagnosis

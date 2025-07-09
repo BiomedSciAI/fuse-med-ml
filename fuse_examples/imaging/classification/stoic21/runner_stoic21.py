@@ -119,7 +119,7 @@ def create_model(
     imaging_dropout: float, clinical_dropout: float, fused_dropout: float
 ) -> torch.nn.Module:
     """
-    creates the model
+    Creates the model
     See Head3D for details about imaging_dropout, clinical_dropout, fused_dropout
     """
     model = ModelMultiHead(

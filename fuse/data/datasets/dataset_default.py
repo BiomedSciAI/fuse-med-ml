@@ -286,7 +286,7 @@ class DatasetDefault(DatasetBase):
     @staticmethod
     def _getitem_multiprocess(item: Hashable | int | np.integer) -> Any:
         """
-        getitem method used to optimize the running time in a multiprocess mode
+        Getitem method used to optimize the running time in a multiprocess mode
         """
         dataset = get_from_global_storage("dataset_default_get_multi_dataset")
         kwargs = get_from_global_storage("dataset_default_get_multi_kwargs")
@@ -415,7 +415,7 @@ class DatasetDefault(DatasetBase):
 
     def subset(self, indices: Sequence[int]) -> None:
         """
-        create a subset of the dataset by a given indices (inplace).
+        Create a subset of the dataset by a given indices (inplace).
 
         Example:
             For the dataset '[-2, 1, 5, 3, 8, 5, 6]' and the indices '[1, 2, 5]', the subset is [1, 5, 5]

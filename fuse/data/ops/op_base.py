@@ -37,7 +37,7 @@ class OpBase(HashableClass):
     @abstractmethod
     def __call__(self, sample_dict: NDict, **kwargs: dict) -> None | dict | List[dict]:
         """
-        call function that apply the operation
+        Call function that apply the operation
         :param sample_dict: the generated dictionary generated so far (generated be the previous ops in the pipeline)
                             The first op will typically get just the sample_id stored in sample_dict['data']['sample_id']
         :param kwargs: additional arguments defined per operation
@@ -81,7 +81,7 @@ class OpReversibleBase(OpBase):
         op_id: str | None,
     ) -> dict:
         """
-        reverse operation
+        Reverse operation
         If a reverse operation is not necessary (for example operator that reads an image),
         implement simple reverse method that returns sample_dict as is
 

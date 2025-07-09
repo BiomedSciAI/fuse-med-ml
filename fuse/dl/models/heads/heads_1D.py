@@ -41,7 +41,7 @@ class Head1D(nn.Module):
         dropout_rate: float = 0.1,
     ) -> None:
         """
-        head 1d.
+        Head 1d.
 
         Output of a forward pass for classification:
         'model.logits.head_name' and 'outputs.head_name', both in shape [batch_size, num_outputs]

@@ -58,7 +58,7 @@ TASK2_CLASS_NAMES = (
 
 def process(sample_dict: NDict) -> dict:
     """
-    post caching processing. Will group together to an array the per class scores and verify it sums up to 1.0
+    Post caching processing. Will group together to an array the per class scores and verify it sums up to 1.0
     :param sample_dict: a dictionary that contais all the extracted values of a single sample
     :return: a modified/alternative dictionary
     """

@@ -17,7 +17,7 @@ G_lock = FileLock(join(SHM_BASE_DIR, "our_shared_mem_file_lock"))  # Lock()
 
 def get_shared_mem_file_path(file_path: str) -> str:
     """
-    copies the file (if needed) to /dev/shm/[filename] which effectively make linux os to load it into RAM
+    Copies the file (if needed) to /dev/shm/[filename] which effectively make linux os to load it into RAM
     every following access to the file will actually be on RAM which is much faster
 
     note - it's up to us to clean up the files, otherwise they will continue to consume RAM until a reboot!

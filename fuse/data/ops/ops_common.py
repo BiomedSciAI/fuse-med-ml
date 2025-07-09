@@ -782,7 +782,7 @@ class OpReplaceAnyElements(OpBase):
             sample_dict[key_out] = output_obj
         elif isinstance(sample_dict[key_in], str):
             sample_dict[key_out] = input_obj.translate(
-                str.maketrans({x: replace_with_val for x in find_any_val})
+                str.maketrans(dict.fromkeys(find_any_val, replace_with_val))
             )
         elif isinstance(input_obj, (list, tuple)):
             sample_dict[key_out] = [

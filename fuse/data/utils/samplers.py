@@ -258,7 +258,7 @@ class BatchSamplerDefault(BatchSampler):
             self._num_batches = int(balanced_class_weighted_size)
 
         # pointers per class
-        self._cls_pointers = {cls_i: 0 for cls_i in self._balanced_class_values}
+        self._cls_pointers = dict.fromkeys(self._balanced_class_values, 0)
         self._sample_pointer = 0
 
     def __iter__(self) -> np.ndarray:
@@ -270,7 +270,7 @@ class BatchSamplerDefault(BatchSampler):
 
     def _get_sample(self, balanced_class: Any) -> int:
         """
-        sample index given balanced class value
+        Sample index given balanced class value
         :param balanced_class: integer representing balanced class value
         :return: sample index
         """

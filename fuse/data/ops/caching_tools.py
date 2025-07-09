@@ -89,7 +89,7 @@ def convert_func_call_into_kwargs_only(
     **kwargs: dict,
 ) -> dict:
     """
-    considers positional and kwargs (including their default values !)
+    Considers positional and kwargs (including their default values !)
     and converts into ONLY kwargs
     """
     signature = inspect.signature(func)
@@ -118,7 +118,7 @@ def get_callers_string_description(
     ignore_first_frames: int = 3,  # one for this function, one for HashableCallable, and one for OpBase
 ) -> str:
     """
-    iterates on the callstack, and accumulates a string representation of the callers args.
+    Iterates on the callstack, and accumulates a string representation of the callers args.
     Used in OpBase to "record" the __init__ args, to be used in the string representation of an Op,
     which is used for building a hash value for samples caching in SamplesCacher
 

@@ -37,7 +37,7 @@ special_tokens = {
 
 def seq_translate(tokens: list[str], translate_dict: dict) -> tuple[list[str]]:
     """
-    returns a list of tokens translated using translate_dict
+    Returns a list of tokens translated using translate_dict
     :param tokens:
     :param translate_dict:
     :return:
@@ -274,7 +274,7 @@ class WordVocab(Vocab):
         self, seq: Sequence, join: bool = False, with_pad: bool = False
     ) -> str:
         words = [
-            self.itos[idx] if idx < len(self.itos) else "<%d>" % idx
+            self.itos[idx] if idx < len(self.itos) else f"<{idx}>"
             for idx in seq
             if not with_pad or idx != self.pad_index
         ]

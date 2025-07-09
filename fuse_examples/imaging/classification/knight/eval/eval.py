@@ -55,7 +55,7 @@ TASK2_CLASS_NAMES = ("B", "LR", "IR", "HR", "VHR")  # must be aligned with task2
 
 def post_processing(sample_dict: NDict, task1: bool = True, task2: bool = True) -> dict:
     """
-    post caching processing. Will group together to an array the per class scores and verify it sums up to 1.0
+    Post caching processing. Will group together to an array the per class scores and verify it sums up to 1.0
     :param sample_dict: a dictionary that contais all the extracted values of a single sample
     :param task1: if true will evaluate task1
     :param task2: if true will evaluate task2

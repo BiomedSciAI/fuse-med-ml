@@ -154,7 +154,7 @@ class KITS21:
     @staticmethod
     def sample_ids() -> list[str]:
         """
-        get all the sample ids in trainset
+        Get all the sample ids in trainset
         sample_id is case_{id:05d} (for example case_00001 or case_00100)
         """
         return [f"case_{case_id:05d}" for case_id in range(300)]

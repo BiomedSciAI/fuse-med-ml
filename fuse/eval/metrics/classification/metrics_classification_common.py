@@ -374,7 +374,7 @@ class MetricMCC(MetricDefault):
         **kwargs: dict,
     ) -> float:
         """
-        for matching MetricDefault expected input format to that of sklearn
+        For matching MetricDefault expected input format to that of sklearn
         """
         res_dict = {"y_true": target, "y_pred": pred, "sample_weight": sample_weight}
         score = matthews_corrcoef(**res_dict)
@@ -415,7 +415,7 @@ class MetricBalAccuracy(MetricDefault):
         **kwargs: dict,
     ) -> float:
         """
-        for matching MetricDefault expected input format to that of sklearn
+        For matching MetricDefault expected input format to that of sklearn
         """
         res_dict = {"y_true": target, "y_pred": pred, "sample_weight": sample_weight}
         score = balanced_accuracy_score(**res_dict)

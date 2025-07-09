@@ -60,7 +60,7 @@ def save_pickle_safe(
     obj: Any, output_filename: str, compress: bool = False, verbose: bool = 0
 ) -> None:
     """
-    a multi-threading/multi-process safe version of save_pickle()
+    A multi-threading/multi-process safe version of save_pickle()
     """
     scrambed_filename = get_randomized_postfix_name(output_filename)
 

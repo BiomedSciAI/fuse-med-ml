@@ -79,7 +79,7 @@ class STOIC21:
     @staticmethod
     def sample_ids(path: str) -> list[str]:
         """
-        get all the sample ids in train-set
+        Get all the sample ids in train-set
         sample_id is *.mha file found in the specified path
         """
         files = [

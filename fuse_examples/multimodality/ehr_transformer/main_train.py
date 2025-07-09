@@ -45,7 +45,7 @@ def data(
     data_loader_valid: dict,
 ) -> tuple[Any, DataLoader, DataLoader]:
     """
-    return token to index mapper and train and validation dataloaders for MIMICC II
+    Return token to index mapper and train and validation dataloaders for MIMICC II
     :param dataset_cfg: PhysioNetCinC.dataset arguments
     :param target_key: will be used to balance the training dataset
     :param data_loader_train: arguments for train dataloader

@@ -164,7 +164,7 @@ class InjectorToModularTokenizerLib:
         crop_report: str = "warn",
     ) -> Dict:
         """
-        since we:
+        Since we:
         1. Need to use the model embedding layer (allowing gradients flow if needed)
         2. We prefer not to use the model during the data pipeline
 

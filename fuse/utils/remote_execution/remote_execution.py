@@ -45,7 +45,7 @@ class RemoteExecution:
 
     def run_remote_machine_command(self, machine: str, cmd: str) -> tuple[str, str]:
         """
-        connects to [machine] with ssh and runs [cmd].
+        Connects to [machine] with ssh and runs [cmd].
         For example:
         run_remote_machine_command('server12', 'nvidia-smi')
         """
@@ -70,7 +70,7 @@ class RemoteExecution:
         verbose: int = 0,
     ) -> tuple[str, str]:
         """
-        connects to [machine] with ssh and runs [cmd].
+        Connects to [machine] with ssh and runs [cmd].
         :param gpu: str that will be used directly as CUDA_VISIBLE_DEVICES
         For example:
         run_remote_python_command(

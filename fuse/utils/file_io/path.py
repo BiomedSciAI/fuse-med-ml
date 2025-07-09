@@ -19,7 +19,7 @@ def add_base_prefix(filepath: str, prefix: str) -> str:
 
 def change_extension(filepath: str, new_extension: str) -> str:
     """
-    modifies [filepath] extension to be [new_extension]
+    Modifies [filepath] extension to be [new_extension]
 
     for example _change_extension('/a/b/c.sdf/ew/some_file.zip', '7zip')
     will return '/a/b/c.sdf/ew/some_file.7zip'
@@ -62,7 +62,7 @@ def remove_extension(filepath: str) -> str:
 
 def get_valid_filename(s: str) -> str:
     """
-    modifies an input string into a string that is valid as a filename in linux
+    Modifies an input string into a string that is valid as a filename in linux
     """
     s = str(s).strip().replace(" ", "_")
     return re.sub(r"[\\:\"*?<>|]", "@", s)

@@ -71,7 +71,7 @@ class CollateDefault(CollateToBatchList):
 
     def __call__(self, samples: List[Dict]) -> Dict:
         """
-        collate list of samples into batch_dict
+        Collate list of samples into batch_dict
         :param samples: list of samples
         :return: batch_dict
         """
@@ -127,7 +127,7 @@ class CollateDefault(CollateToBatchList):
         collected_values: list,
     ) -> None:
         """
-        dispatch a key into collate function and save it into batch_dict
+        Dispatch a key into collate function and save it into batch_dict
         :param batch_dict: batch dictionary to update
         :param samples: list of samples
         :param key: key to collate
@@ -153,7 +153,7 @@ class CollateDefault(CollateToBatchList):
     @staticmethod
     def just_collect_to_list(values: List[Any]) -> List[Any]:
         """
-        special handler doing nothing - will just keep the collected list
+        Special handler doing nothing - will just keep the collected list
         """
         return values
 
@@ -164,7 +164,7 @@ class CollateDefault(CollateToBatchList):
         min_size_per_dim: Tuple | None = None,
     ) -> torch.Tensor:
         """
-        pad tensors and create a batch - the shape will be the max size per dim
+        Pad tensors and create a batch - the shape will be the max size per dim
         values: list of tensor - all should have the same number of dimensions
         pad_val: constant value for padding
         min_size_per_dim: defines, per dimension, the minimal size in the post-collated tensor (excluding the batch dimension, which you shouldn't provide)

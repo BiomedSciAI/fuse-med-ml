@@ -189,7 +189,7 @@ class CrossAttentionTransformerEncoder(nn.Module):
 
     def forward(self, xa: torch.Tensor, xb: torch.Tensor) -> torch.Tensor:
         """
-        assumes input sequences are already tokenized
+        Assumes input sequences are already tokenized
 
         :param xa: tensor with shape [batch_size, seq_len_a]
         :param xb: tensor with shape [batch_size, seq_len_b]

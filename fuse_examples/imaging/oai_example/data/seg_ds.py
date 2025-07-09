@@ -27,7 +27,7 @@ class SegOAI:
     @staticmethod
     def get_existing_sample_ids(df: pd.DataFrame) -> list:
         """
-        get all the sample ids that have a zip file in the specified path
+        Get all the sample ids that have a zip file in the specified path
         """
         existing_files = df["idx"].values
         return existing_files

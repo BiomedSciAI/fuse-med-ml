@@ -68,7 +68,7 @@ debug = FuseDebug(mode)
 
 def create_model(unet_kwargs: dict) -> torch.nn.Module:
     """
-    creates the model
+    Creates the model
     """
     model = UNet(
         input_name="data.input.img_t2w",

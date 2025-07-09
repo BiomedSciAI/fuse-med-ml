@@ -30,7 +30,7 @@ def create_initial_sample(
     initial_sample_id: Hashable, sample_id: Hashable | None = None
 ) -> NDict:
     """
-    creates an empty sample dict and sets both sample_id and initial_sample_id
+    Creates an empty sample dict and sets both sample_id and initial_sample_id
     :param sample_id:
     :param initial_sample_id: optional. If not provided, sample_id will be used for it as well
     """
@@ -50,14 +50,14 @@ def create_initial_sample(
 
 def get_sample_id_key() -> str:
     """
-    return sample id key
+    Return sample id key
     """
     return "data.sample_id"
 
 
 def get_sample_id(sample: Dict) -> Hashable:
     """
-    extracts sample_id from the sample dict
+    Extracts sample_id from the sample dict
     """
     if get_sample_id_key() not in sample:
         raise Exception
@@ -66,7 +66,7 @@ def get_sample_id(sample: Dict) -> Hashable:
 
 def set_sample_id(sample: Dict, sample_id: Hashable) -> None:
     """
-    sets sample_id in an existing sample dict
+    Sets sample_id in an existing sample dict
     """
     sample[get_sample_id_key()] = sample_id
 
@@ -76,21 +76,21 @@ def set_sample_id(sample: Dict, sample_id: Hashable) -> None:
 
 def get_initial_sample_id_key() -> str:
     """
-    return initial sample id key
+    Return initial sample id key
     """
     return "data.initial_sample_id"
 
 
 def set_initial_sample_id(sample: Dict, initial_sample_id: Hashable) -> None:
     """
-    sets initial_sample_id in an existing sample dict
+    Sets initial_sample_id in an existing sample dict
     """
     sample[get_initial_sample_id_key()] = initial_sample_id
 
 
 def get_initial_sample_id(sample: Dict) -> Hashable:
     """
-    extracts initial_sample_id from the sample dict
+    Extracts initial_sample_id from the sample dict
     """
     if get_initial_sample_id_key() not in sample:
         raise Exception

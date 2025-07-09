@@ -33,7 +33,7 @@ class OAI:
     @staticmethod
     def get_existing_sample_ids(df: pd.DataFrame) -> list:
         """
-        get all the sample ids that have a zip file in the specified path
+        Get all the sample ids that have a zip file in the specified path
         """
         existing_files = df["accession_number"].values
         return existing_files

@@ -33,7 +33,7 @@ from fuseimg.data.ops.image_loader import OpLoadImage
 class OpISICSampleIDDecode(OpBase):
     def __call__(self, sample_dict: NDict) -> NDict:
         """
-        decodes sample id into image file name
+        Decodes sample id into image file name
         """
         sid = get_sample_id(sample_dict)
 
@@ -465,7 +465,7 @@ class ISICDataModule(pl.LightningDataModule):
 
     def setup(self, stage: str) -> None:
         """
-        creates datasets by stage
+        Creates datasets by stage
         called on every process in DDP
 
         :param stage: trainer stage
@@ -499,7 +499,7 @@ class ISICDataModule(pl.LightningDataModule):
 
     def train_dataloader(self) -> DataLoader:
         """
-        returns train dataloader with class args
+        Returns train dataloader with class args
         """
         if self._use_batch_sampler:
             # Create a batch sampler for the dataloader
@@ -530,7 +530,7 @@ class ISICDataModule(pl.LightningDataModule):
 
     def val_dataloader(self) -> DataLoader:
         """
-        returns validation dataloader with class args
+        Returns validation dataloader with class args
         """
         # Create dataloader
         validation_dl = DataLoader(
@@ -544,7 +544,7 @@ class ISICDataModule(pl.LightningDataModule):
 
     def predict_dataloader(self) -> DataLoader:
         """
-        returns validation dataloader with class args
+        Returns validation dataloader with class args
         """
         # Create dataloader
         predict_dl = DataLoader(

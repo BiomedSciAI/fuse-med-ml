@@ -30,7 +30,7 @@ class TypeDetectorBase(ABC):
 class TypeDetectorPatternsBased(TypeDetectorBase):
     def __init__(self, patterns_dict: Dict[str, Enum]):
         """
-        type detection based on the key (NDict "style" - for example 'data.cc.img')
+        Type detection based on the key (NDict "style" - for example 'data.cc.img')
         get_type ignores the sample_dict completely.
         TODO: provide usage example
         """

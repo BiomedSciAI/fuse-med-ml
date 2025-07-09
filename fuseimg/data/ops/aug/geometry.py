@@ -421,7 +421,7 @@ class OpRotation3D(OpBase):
         x_rot: float = 0,
     ) -> NDict:
         """
-        rotates an input tensor around an axis, when for example z_rot is chosen,
+        Rotates an input tensor around an axis, when for example z_rot is chosen,
         the rotation is in the x-y plane.
         Note: rotation angles are in relation to the original axis (not the rotated one)
         rotation angles should be given in degrees

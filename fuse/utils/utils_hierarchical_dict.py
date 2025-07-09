@@ -179,7 +179,7 @@ class FuseUtilsHierarchicalDict:
     @classmethod
     def pop(cls, hierarchical_dict: dict, key: str):
         """
-        return the value hierarchical_dict[key] and remove the key from the dict.
+        Return the value hierarchical_dict[key] and remove the key from the dict.
         :param hierarchical_dict: the dictionary
         :param key: the key to return and remove
         """

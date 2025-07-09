@@ -52,7 +52,7 @@ class DatasetBase(Dataset):
     @abstractmethod
     def subset(self, indices: Sequence[int]) -> None:
         """
-        subset of a dataset at specified indices - inplace
+        Subset of a dataset at specified indices - inplace
         :param indices: indices of the samples that will remain in the subset
         """
         raise NotImplementedError

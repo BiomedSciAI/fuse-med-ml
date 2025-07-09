@@ -107,7 +107,7 @@ class ModularTokenizerWithoutInjectOp(OpBase):
 
     def get_max_token_id(self) -> Tuple[str, int]:
         """
-        scans the vocab for the max observed token id and returns a tuple for it
+        Scans the vocab for the max observed token id and returns a tuple for it
             [its token string (str), the token id (int)]
         """
         max_token_id = self._tokenizer.get_max_id()
@@ -128,7 +128,7 @@ class ModularTokenizerWithoutInjectOp(OpBase):
         integer_find_regex: str | None = r"\d{1,}",
     ) -> Tuple[int, int]:
         """
-        returns a Tuple [min encountered sentinel name, max encountered sentinel name]
+        Returns a Tuple [min encountered sentinel name, max encountered sentinel name]
 
         For example, if the vocab contains:
 
@@ -208,7 +208,7 @@ class ModularTokenizerWithoutInjectOp(OpBase):
 
     def add_new_special_tokens(self, new_special_tokens: list[str]) -> int:
         """
-        add new special tokens if they are not in the tokenizer.
+        Add new special tokens if they are not in the tokenizer.
         Skipps allready existing special tokens.
 
         Args:

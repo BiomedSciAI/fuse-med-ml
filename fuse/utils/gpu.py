@@ -77,8 +77,7 @@ def choose_and_enable_multiple_gpus(
             raise Exception("could not auto-detect available GPUs")
         elif len(available_gpu_ids) < num_gpus_needed:
             raise Exception(
-                "not enough GPUs available, requested %d GPUs but only IDs %s are available!"
-                % (num_gpus_needed, str(available_gpu_ids))
+                f"not enough GPUs available, requested {num_gpus_needed} GPUs but only IDs {available_gpu_ids} are available!"
             )
         else:
             selected_gpu_ids = sorted(available_gpu_ids, reverse=True)[:num_gpus_needed]

@@ -112,7 +112,7 @@ class InterfaceValidator:
         self, method_name: str, validate_args: dict[str, Any]
     ) -> None:
         """
-        raises an exception if a signature mismatch is found
+        Raises an exception if a signature mismatch is found
         """
         curr_method = getattr(self, method_name)
         actual_method = curr_method

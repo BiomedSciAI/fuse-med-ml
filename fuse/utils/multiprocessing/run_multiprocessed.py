@@ -91,7 +91,7 @@ def _run_multiprocessed_as_iterator_impl(
     maxtasksperchild: int | None = None,
 ) -> list[Any]:
     """
-    an iterator version of run_multiprocessed - useful when the accumulated answer is too large to fit in memory
+    An iterator version of run_multiprocessed - useful when the accumulated answer is too large to fit in memory
 
     Args:
         worker_func: a worker function, must accept only a single positional argument and no optional args.
@@ -223,7 +223,7 @@ def _store_in_global_storage(store_me: dict) -> None:
 
 def _remove_from_global_storage(remove_me: list) -> None:
     """
-    remove copied args for multiprocess
+    Remove copied args for multiprocess
     :param kwargs: list of tuples - each tuple is a key-value pair and will be added to the global dictionary
     :return: None
     """
