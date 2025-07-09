@@ -18,7 +18,8 @@ Created on June 30, 2021
 """
 
 import math
-from typing import Any, Dict, List, Optional, Sequence, Union
+from collections.abc import Sequence
+from typing import Any, Dict, List
 
 import numpy as np
 from torch.utils.data.sampler import BatchSampler, Sampler
@@ -34,15 +35,17 @@ class BatchSamplerDefault(BatchSampler):
     def __init__(
         self,
         dataset: DatasetBase,
-        balanced_class_name: Optional[str],
+        balanced_class_name: str | None,
         num_balanced_classes: int = None,
-        sampler: Optional[Sampler] = None,
-        batch_size: Optional[int] = None,
+        sampler: Sampler | None = None,
+        batch_size: int | None = None,
         mode: str = "exact",
-        balanced_class_weights: Union[
-            List[int], List[float], Dict[Any, int], Dict[Any, float], None
-        ] = None,
-        num_batches: Optional[int] = None,
+        balanced_class_weights: List[int]
+        | List[float]
+        | Dict[Any, int]
+        | Dict[Any, float]
+        | None = None,
+        num_batches: int | None = None,
         verbose: bool = False,
         **dataset_get_multi_kwargs: dict,
     ) -> None:
@@ -81,9 +84,7 @@ class BatchSamplerDefault(BatchSampler):
         self._batch_size = batch_size
         self._mode = mode
         if isinstance(balanced_class_weights, Sequence):
-            self._balanced_class_weights = {
-                i: w for i, w in enumerate(balanced_class_weights)
-            }
+            self._balanced_class_weights = dict(enumerate(balanced_class_weights))
         else:
             self._balanced_class_weights = balanced_class_weights
 
@@ -104,7 +105,7 @@ class BatchSamplerDefault(BatchSampler):
             # Get all samples that sampler posses.
             # In use in DDP strategy: each process runs on a different GPU with a different instance of 'DistributedSampler'.
             #   The DistributedSampler(s) make sure that each GPU posses a different subset of the samplers to avoid overlaps.
-            items = [i for i in self._sampler]  # get all samples that sampler posses
+            items = list(self._sampler)  # get all samples that sampler posses
         else:
             items = None  # equivalent to all samples in dataset
 

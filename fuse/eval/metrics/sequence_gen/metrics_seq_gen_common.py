@@ -18,7 +18,6 @@ Created on June 30, 2021
 """
 from copy import copy
 from functools import partial
-from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -34,9 +33,9 @@ class MetricCountSeqAndTokens(MetricPerBatchDefault):
     def __init__(
         self,
         encoder_input: str,
-        decoder_input: Optional[str] = None,
-        ignore_index: Optional[int] = None,
-        state: Optional[dict] = None,
+        decoder_input: str | None = None,
+        ignore_index: int | None = None,
+        state: dict | None = None,
         **kwargs: dict,
     ) -> None:
         """
@@ -69,8 +68,8 @@ class MetricCountSeqAndTokens(MetricPerBatchDefault):
 
     def _count_seq_and_tokens_compute(
         self,
-        seq_num: List[np.ndarray],
-        token_num: List[np.ndarray],
+        seq_num: list[np.ndarray],
+        token_num: list[np.ndarray],
     ) -> dict:
         seq_num_total = sum(seq_num)
         token_num_total = sum(token_num)
@@ -85,10 +84,11 @@ class MetricCountSeqAndTokens(MetricPerBatchDefault):
 def _count_seq_and_tokens_update(
     batch_dict: dict,
     encoder_input_key: str,
-    decoder_input_key: Optional[str] = None,
-    ignore_index: Optional[int] = None,
-) -> Dict[str, torch.Tensor]:
-    """Count number of sequences and tokens
+    decoder_input_key: str | None = None,
+    ignore_index: int | None = None,
+) -> dict[str, torch.Tensor]:
+    """
+    Count number of sequences and tokens
     Args:
         encoder_input_key:
             key to encoder_input
@@ -132,7 +132,7 @@ class MetricPerplexity(MetricPerBatchDefault):
         self,
         preds: str,
         target: str,
-        ignore_index: Optional[int] = None,
+        ignore_index: int | None = None,
         **kwargs: dict,
     ) -> None:
         super().__init__(
@@ -158,9 +158,11 @@ def _perplexity_update(
     batch_dict: dict,
     preds_key: str,
     targets_key: str,
-    ignore_index: Optional[int] = None,
-) -> Tuple[torch.Tensor, torch.Tensor]:
-    """Compute intermediate statistics for Perplexity.
+    ignore_index: int | None = None,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Compute intermediate statistics for Perplexity.
+
     Args:
         preds:
             Probabilities scores (after softmax) assigned to each token in a sequence with shape [batch_size, seq_len, vocab_size].
@@ -169,9 +171,11 @@ def _perplexity_update(
         ignore_index:
             Integer specifying a target class to ignore. If given, this class index does not contribute
             to the returned score.
+
     Returns:
         Log probabilities, summed over all samples
         Number of tokens
+
     """
     preds = batch_dict[preds_key]
     target = batch_dict[targets_key]
@@ -218,8 +222,8 @@ def _perplexity_update(
 
 
 def _perplexity_compute(
-    log_probs: List[np.ndarray],
-    token_num: List[np.ndarray],
+    log_probs: list[np.ndarray],
+    token_num: list[np.ndarray],
 ) -> float:
     # avoid from overflow on large epochs
     log_probs = [e.astype(np.float64) for e in log_probs]

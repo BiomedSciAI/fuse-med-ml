@@ -24,7 +24,6 @@ def change_extension(filepath: str, new_extension: str) -> str:
     for example _change_extension('/a/b/c.sdf/ew/some_file.zip', '7zip')
     will return '/a/b/c.sdf/ew/some_file.7zip'
     """
-
     _basename = basename(filepath)
     last_dot = _basename.rfind(".")
     if last_dot < 0:
@@ -51,7 +50,6 @@ def remove_extension(filepath: str) -> str:
     Returns the filename without the extension
     For example: remove_extension('/a/b/c/d/asdf.txt') with return '/a/b/c/d/asdf'
     """
-
     _dirname = dirname(filepath)
     _basename = basename(filepath)
     if "." not in _basename:

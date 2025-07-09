@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 import numpy as np
 import skimage
@@ -29,13 +29,13 @@ class OpAugAffine2D(OpBase):
         sample_dict: NDict,
         key: str,
         rotate: float = 0.0,
-        translate: Tuple[float, float] = (0.0, 0.0),
-        scale: Tuple[float, float] = 1.0,
-        flip: Tuple[bool, bool] = (False, False),
+        translate: tuple[float, float] = (0.0, 0.0),
+        scale: tuple[float, float] = 1.0,
+        flip: tuple[bool, bool] = (False, False),
         shear: float = 0.0,
-        channels: Optional[List[int]] = None,
+        channels: list[int] | None = None,
         interpolation: int = transforms.InterpolationMode.BILINEAR,
-    ) -> Union[None, dict, List[dict]]:
+    ) -> None | dict | list[dict]:
         """
         :param key: key to a tensor stored in sample_dict: 2D tensor representing an image to augment, shape [num_channels, height, width] or [height, width]
         :param rotate: angle [-360.0 - 360.0]
@@ -117,9 +117,9 @@ class OpAugCropAndResize2D(OpBase):
         self,
         sample_dict: NDict,
         key: str,
-        scale: Tuple[float, float],
-        channels: Optional[List[int]] = None,
-    ) -> Union[None, dict, List[dict]]:
+        scale: tuple[float, float],
+        channels: list[int] | None = None,
+    ) -> None | dict | list[dict]:
         """
         :param key: key to a tensor stored in sample_dict: 2D tensor representing an image to augment, shape [num_channels, height, width] or [height, width]
         :param scale: tuple of positive floats
@@ -298,7 +298,7 @@ class OpCrop3D(OpBase):
         self,
         sample_dict: NDict,
         key: str,
-        output_shape: Tuple[int, int, int],
+        output_shape: tuple[int, int, int],
         z_move: float = 0.5,
         x_move: float = 0.5,
         y_move: float = 0.5,
@@ -351,9 +351,9 @@ class OpResizeTo(OpBase):
     def __call__(
         self,
         sample_dict: NDict,
-        output_shape: Tuple[int],
+        output_shape: tuple[int],
         key: str,
-        **kwargs: Dict[str, Any],
+        **kwargs: dict[str, Any],
     ) -> NDict:
         """
         :param key: key to a numpy array or tensor stored in the sample_dict in a H x W x C format.
@@ -383,7 +383,7 @@ class OpResizeTo(OpBase):
 
         return sample_dict
 
-    def get_permutation(self, dim: int, channels_first: bool) -> List[int]:
+    def get_permutation(self, dim: int, channels_first: bool) -> list[int]:
         """
         :param dim: tensor's dimension
         :param channels_first: True iff the wanted permutation is: HxWxC -> CxHxW
@@ -394,18 +394,17 @@ class OpResizeTo(OpBase):
         channels_first is False -> converting from HxWxC to CxHxW
             i.e: (2, 3, ..., dim-2, dim-1, 0, 1)
         """
-
         if dim < 2:
             raise Exception(f"Error, dim ({dim}) must be greater or equal to 2.")
 
         if channels_first:
             channels = [0]
-            hw = [i for i in range(1, dim)]
+            hw = list(range(1, dim))
             perm = hw + channels
 
         else:
             channels = [dim - 1]
-            hw = [i for i in range(0, dim - 1)]
+            hw = list(range(0, dim - 1))
             perm = channels + hw
 
         perm = tuple(perm)

@@ -18,8 +18,9 @@ Created on June 30, 2021
 """
 
 import traceback
+from collections.abc import Hashable, Sequence
 from functools import partial
-from typing import Any, Callable, Dict, Hashable, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Tuple
 
 import numpy as np
 from sklearn.metrics import balanced_accuracy_score, matthews_corrcoef
@@ -39,8 +40,8 @@ class MetricMultiClassDefault(MetricWithCollectorBase):
         pred: str,
         target: str,
         metric_func: Callable,
-        class_names: Optional[Sequence[str]] = None,
-        class_weights: Optional[Sequence[float]] = None,
+        class_names: Sequence[str] | None = None,
+        class_weights: Sequence[float] | None = None,
         **kwargs: dict,
     ):
         """
@@ -58,8 +59,8 @@ class MetricMultiClassDefault(MetricWithCollectorBase):
         self._class_weights = class_weights
 
     def eval(
-        self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None
-    ) -> Union[Dict[str, Any], Any]:
+        self, results: Dict[str, Any] = None, ids: Sequence[Hashable] | None = None
+    ) -> Dict[str, Any] | Any:
         """
         See super class
         """
@@ -139,8 +140,8 @@ class MetricAUCROC(MetricMultiClassDefault):
         self,
         pred: str,
         target: str,
-        class_names: Optional[Sequence[str]] = None,
-        max_fpr: Optional[float] = None,
+        class_names: Sequence[str] | None = None,
+        max_fpr: float | None = None,
         **kwargs: dict,
     ):
         """
@@ -163,7 +164,7 @@ class MetricAUCROCMultLabel(MetricDefault):
         self,
         pred: str,
         target: str,
-        max_fpr: Optional[float] = None,
+        max_fpr: float | None = None,
         average: str = "micro",
         **kwargs: dict,
     ):
@@ -187,9 +188,9 @@ class MetricROCCurve(MetricDefault):
         self,
         pred: str,
         target: str,
-        output_filename: Optional[str] = None,
-        class_names: Optional[List[str]] = None,
-        sample_weight: Optional[str] = None,
+        output_filename: str | None = None,
+        class_names: List[str] | None = None,
+        sample_weight: str | None = None,
         **kwargs: dict,
     ) -> None:
         """
@@ -223,7 +224,7 @@ class MetricAUCPR(MetricMultiClassDefault):
         self,
         pred: str,
         target: str,
-        class_names: Optional[Sequence[str]] = None,
+        class_names: Sequence[str] | None = None,
         **kwargs: dict,
     ):
         super().__init__(
@@ -240,7 +241,7 @@ class MetricAccuracy(MetricDefault):
         self,
         pred: str,
         target: str,
-        sample_weight: Optional[str] = None,
+        sample_weight: str | None = None,
         **kwargs: dict,
     ):
         """
@@ -265,9 +266,9 @@ class MetricConfusion(MetricMultiClassDefault):
         self,
         pred: str,
         target: str,
-        class_names: Optional[Sequence[str]] = None,
+        class_names: Sequence[str] | None = None,
         metrics: Sequence[str] = ("sensitivity",),
-        operation_point: Union[float, Sequence[Tuple[int, float]], str, None] = tuple(),
+        operation_point: float | Sequence[Tuple[int, float]] | str | None = tuple(),
         **kwargs: dict,
     ):
         """
@@ -298,7 +299,7 @@ class MetricConfusionMatrix(MetricDefault):
         cls_pred: str,
         target: str,
         class_names: Sequence[str],
-        sample_weight: Optional[str] = None,
+        sample_weight: str | None = None,
         **kwargs: dict,
     ) -> None:
         """
@@ -346,9 +347,9 @@ class MetricMCC(MetricDefault):
 
     def __init__(
         self,
-        pred: Optional[str] = None,
-        target: Optional[str] = None,
-        sample_weight: Optional[str] = None,
+        pred: str | None = None,
+        target: str | None = None,
+        sample_weight: str | None = None,
         **kwargs: dict,
     ):
         """
@@ -367,9 +368,9 @@ class MetricMCC(MetricDefault):
 
     def mcc_wrapper(
         self,
-        pred: Union[List, np.ndarray],
-        target: Union[List, np.ndarray],
-        sample_weight: Optional[Union[List, np.ndarray, None]] = None,
+        pred: List | np.ndarray,
+        target: List | np.ndarray,
+        sample_weight: List | np.ndarray | None | None = None,
         **kwargs: dict,
     ) -> float:
         """
@@ -387,9 +388,9 @@ class MetricBalAccuracy(MetricDefault):
 
     def __init__(
         self,
-        pred: Optional[str] = None,
-        target: Optional[str] = None,
-        sample_weight: Optional[str] = None,
+        pred: str | None = None,
+        target: str | None = None,
+        sample_weight: str | None = None,
         **kwargs: dict,
     ):
         """
@@ -408,9 +409,9 @@ class MetricBalAccuracy(MetricDefault):
 
     def balanced_acc_wrapper(
         self,
-        pred: Union[List, np.ndarray],
-        target: Union[List, np.ndarray],
-        sample_weight: Optional[Union[List, np.ndarray, None]] = None,
+        pred: List | np.ndarray,
+        target: List | np.ndarray,
+        sample_weight: List | np.ndarray | None | None = None,
         **kwargs: dict,
     ) -> float:
         """

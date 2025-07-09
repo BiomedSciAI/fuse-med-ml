@@ -17,7 +17,8 @@ Created on June 30, 2021
 
 """
 
-from typing import Dict, Optional, Sequence, Tuple, Union
+from collections.abc import Sequence
+from typing import Dict, Tuple
 
 import torch
 import torch.nn as nn
@@ -33,11 +34,11 @@ class HeadDenseSegmentation(nn.Module):
         head_name: str = "head_0",
         conv_inputs: Sequence[Tuple[str, int]] = None,
         num_classes: int = 2,
-        post_concat_inputs: Optional[Sequence[Tuple[str, int]]] = None,
-        maxpool_kernel: Optional[Union[Tuple[int, int], int]] = None,
+        post_concat_inputs: Sequence[Tuple[str, int]] | None = None,
+        maxpool_kernel: Tuple[int, int] | int | None = None,
         layers_description: Sequence[int] = (256,),
         dropout_rate: float = 0.1,
-        shared_classifier_head: Optional[torch.nn.Module] = None,
+        shared_classifier_head: torch.nn.Module | None = None,
     ) -> None:
         """
         Dense segmentation head - predicts class scores for each location of input feature map ("conv_input").

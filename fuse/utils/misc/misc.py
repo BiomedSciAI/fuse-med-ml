@@ -19,8 +19,9 @@ Created on June 30, 2021
 import logging
 import sys
 import time
+from collections.abc import Hashable, Iterable, Sequence
 from threading import Lock
-from typing import Any, Hashable, Iterable, List, Optional, Sequence, Union
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -32,7 +33,7 @@ from fuse.utils.ndict import NDict
 
 class Misc:
     @classmethod
-    def flatten(cls, l: List[List]) -> List:
+    def flatten(cls, l: list[list]) -> list:
         """
         Flatten a list of lists, yielding a 1-d list of strings
         :param l: list of lists, possible irregular shapes
@@ -45,7 +46,7 @@ class Misc:
                 yield el
 
     @staticmethod
-    def query_yes_no(question: str, default: Optional[str] = None) -> bool:
+    def query_yes_no(question: str, default: str | None = None) -> bool:
         """
         Ask the user yes/no question
         :param question: string question
@@ -64,7 +65,7 @@ class Misc:
         elif default == "no":
             prompt = " [y/N] "
         else:
-            raise ValueError("invalid default answer: '%s'" % default)
+            raise ValueError(f"invalid default answer: '{default}'")
 
         while True:
             sys.stdout.write(question + prompt)
@@ -190,7 +191,7 @@ def get_time_delta(begin_time: float) -> str:
 
 
 def autodetect_input_source(
-    input_source: Union[str, pd.DataFrame, Sequence[Hashable]] = None
+    input_source: str | pd.DataFrame | Sequence[Hashable] = None,
 ) -> pd.DataFrame:
     """
     Loads sample descriptors from multiple auto-detectable possible sources:
@@ -200,7 +201,6 @@ def autodetect_input_source(
     :param input_source:
     :return:
     """
-
     df = None
 
     # DataFrame instance
@@ -221,7 +221,7 @@ def autodetect_input_source(
         # Text file
         # ---------
         if file_extension in ["text", "txt"]:
-            with open(input_source, "r") as f:
+            with open(input_source) as f:
                 lines = f.readlines()
                 sample_descs = [line.strip() for line in lines]
                 df = pd.DataFrame({"sample_desc": sample_descs})

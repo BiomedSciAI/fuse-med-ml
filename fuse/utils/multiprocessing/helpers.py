@@ -1,7 +1,7 @@
 import os
-from typing import List, Tuple
 
 import numpy as np
+import pytest
 
 
 def num_available_cores(verbose: bool = True) -> int:
@@ -27,7 +27,7 @@ def num_available_cores(verbose: bool = True) -> int:
 
 def get_chunks_ranges(
     total: int, *, chunk_size: int = None, parts: int = None
-) -> List[Tuple[int, int]]:
+) -> list[tuple[int, int]]:
     """
     Creates "chunks" of work, useful when creating worker functions for run_multiprocessed
      where each workers gets a range ("chunk") to work on.
@@ -40,8 +40,8 @@ def get_chunks_ranges(
 
     for example: get_chunks_ranges(10, chunk_size = 3,) would return [(0,3), (3,6), (6,9), (9,10)]
         and get_chunks_ranges(10, parts=2) would return [(0,5),(5,10)]
-    """
 
+    """
     assert (chunk_size is not None) ^ (
         parts is not None
     ), "Exactly one of chunk_size or parts must be provided"
@@ -61,7 +61,7 @@ def get_chunks_ranges(
         chunk_size = np.ceil(total / parts)
         return get_chunks_ranges(total, chunk_size=chunk_size)
 
-    assert False, "should not reach here"
+    pytest.fail("should not reach here")
 
 
 if __name__ == "__main__":

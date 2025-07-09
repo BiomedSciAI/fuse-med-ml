@@ -1,5 +1,4 @@
 from functools import partial
-from typing import List, Optional
 
 import numpy as np
 
@@ -7,7 +6,7 @@ from fuse.eval.metrics.libs.instance_segmentation import MetricsInstanceSegmenta
 from fuse.eval.metrics.metrics_common import MetricPerSampleDefault
 
 
-def average_sample_results(metric_result: List[float], threshold: float = 0.5) -> float:
+def average_sample_results(metric_result: list[float], threshold: float = 0.5) -> float:
     """
     Calculates average result per class and average result over classes on a specific metric
     metric_result assumed to have same type of keys as in class_weights which represents the different classes
@@ -39,7 +38,7 @@ class MetricInstanceIouJaccard(MetricPerSampleDefault):
         segmentation_target_type: str,
         height: str,
         width: str,
-        threshold: Optional[float] = 0.5,
+        threshold: float | None = 0.5,
         **kwargs: dict
     ):
         """

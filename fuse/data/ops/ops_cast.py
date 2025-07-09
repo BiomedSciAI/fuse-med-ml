@@ -17,7 +17,8 @@ Created on June 30, 2021
 
 """
 from abc import abstractmethod
-from typing import Any, List, Optional, Sequence, Union
+from collections.abc import Sequence
+from typing import Any, List
 
 import numpy as np
 import torch
@@ -36,8 +37,8 @@ class Cast:
     @staticmethod
     def to_tensor(
         value: Any,
-        dtype: Optional[torch.dtype] = None,
-        device: Optional[torch.device] = None,
+        dtype: torch.dtype | None = None,
+        device: torch.device | None = None,
         ignore_none: bool = False,
     ) -> Tensor:
         """
@@ -59,7 +60,7 @@ class Cast:
         return value
 
     @staticmethod
-    def to_numpy(value: Any, dtype: Optional[np.dtype] = None) -> np.ndarray:
+    def to_numpy(value: Any, dtype: np.dtype | None = None) -> np.ndarray:
         """
         Convert many types to numpy
         """
@@ -68,7 +69,7 @@ class Cast:
         elif isinstance(value, (torch.Tensor, int, float, list, np.ndarray)):
             value = np.array(value, dtype=dtype)
         elif isinstance(value, bytes):
-            value = np.array([e for e in value], dtype=dtype)
+            value = np.array(list(value), dtype=dtype)
         else:
             raise Exception(
                 f"Unsupported type {type(value)} - add here support for this type"
@@ -97,7 +98,6 @@ class Cast:
         """
         Convert many types to float
         """
-
         if isinstance(value, float):
             pass  # do nothing
         elif isinstance(value, (torch.Tensor, np.ndarray, int, str)):
@@ -114,7 +114,6 @@ class Cast:
         """
         Convert many types to list
         """
-
         if isinstance(value, list):
             pass  # do nothing
         elif isinstance(value, (torch.Tensor, np.ndarray)):
@@ -131,7 +130,6 @@ class Cast:
         """
         Convert any type to type specified in type_name
         """
-
         if type_name == "ndarray":
             return Cast.to_numpy(value, **kwargs)
         if type_name == "Tensor":
@@ -148,7 +146,6 @@ class Cast:
         """
         Convert any type to type specified in type_name
         """
-
         if isinstance(like_value, np.ndarray):
             return Cast.to_numpy(value, dtype=like_value.dtype)
         if isinstance(like_value, torch.Tensor):
@@ -167,10 +164,10 @@ class OpCast(OpReversibleBase):
     def __call__(
         self,
         sample_dict: NDict,
-        key: Union[str, Sequence[str]],
-        op_id: Optional[str] = None,
+        key: str | Sequence[str],
+        op_id: str | None = None,
         **kwargs: dict,
-    ) -> Union[None, dict, List[dict]]:
+    ) -> None | dict | List[dict]:
         """
         See super class
         :param key: single key or list of keys from sample_dict to convert
@@ -193,7 +190,7 @@ class OpCast(OpReversibleBase):
         sample_dict: NDict,
         key_to_reverse: str,
         key_to_follow: str,
-        op_id: Optional[str],
+        op_id: str | None,
     ) -> dict:
         type_name = sample_dict[f"{op_id}_{key_to_follow}"]
         value = sample_dict[key_to_reverse]
@@ -215,8 +212,8 @@ class OpToTensor(OpCast):
     def _cast(
         self,
         value: Any,
-        dtype: Optional[torch.dtype] = None,
-        device: Optional[torch.device] = None,
+        dtype: torch.dtype | None = None,
+        device: torch.device | None = None,
         ignore_none: bool = False,
     ) -> Tensor:
         return Cast.to_tensor(value, dtype, device, ignore_none=ignore_none)
@@ -228,9 +225,10 @@ class OpToNumpy(OpCast):
 
     Example:
         (OpToNumpy(), dict(key="data.input.img", dtype=np.float32)),
+
     """
 
-    def _cast(self, value: Any, dtype: Optional[np.dtype] = None) -> np.ndarray:
+    def _cast(self, value: Any, dtype: np.dtype | None = None) -> np.ndarray:
         return Cast.to_numpy(value, dtype)
 
 
@@ -271,7 +269,7 @@ class OpOneHotToNumber(OpBase):
 
     def __call__(
         self, sample_dict: NDict, key: str, **kwargs: dict
-    ) -> Union[None, dict, List[dict]]:
+    ) -> None | dict | List[dict]:
         """
         :param key: the sample_dict's key where the one-hot vector is located.
                     The corresponding number will be save in the same key (instead of the one-hot)
@@ -297,7 +295,6 @@ class OpOneHotToNumber(OpBase):
 
         :param vector:
         """
-
         max_value = vector.max()
         min_value = vector.min()
         sum_value = vector.sum()

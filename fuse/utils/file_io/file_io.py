@@ -7,7 +7,8 @@ import pickle
 import shutil
 import socket
 import time
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from collections.abc import Iterable
+from typing import Any
 
 import h5py
 import hdf5plugin
@@ -61,7 +62,6 @@ def save_pickle_safe(
     """
     a multi-threading/multi-process safe version of save_pickle()
     """
-
     scrambed_filename = get_randomized_postfix_name(output_filename)
 
     use_open = gzip.open if compress else open
@@ -83,7 +83,6 @@ def save_text_file_safe(filename: str, str_content: str) -> None:
     Saves str_content into a created text file.
     This function is multi-threading and multi-processing safe.
     """
-
     scrambed_filename = get_randomized_postfix_name(filename)
     save_text_file(scrambed_filename, str_content)
     os.rename(scrambed_filename, filename)
@@ -104,7 +103,7 @@ def read_simple_float_file(file_path: str) -> float:
     """
     Reads a float string from a file. File is expected to contain only the float number text.
     """
-    with open(file_path, "r") as fh:
+    with open(file_path) as fh:
         # printl('succesfully opened session num file.')
         data = fh.read()
         float_value = float(data)
@@ -115,7 +114,7 @@ def read_simple_int_file(file_path: str) -> int:
     """
     Reads an int string from a file. File is expected to contain only the int number text.
     """
-    with open(file_path, "r") as fh:
+    with open(file_path) as fh:
         # printl('succesfully opened session num file.')
         data = fh.read()
         int_value = int(data)
@@ -126,7 +125,7 @@ def read_text_file(file_path: str) -> str:
     """
     A simple helper function which loads text from a file
     """
-    with open(file_path, "r") as fh:
+    with open(file_path) as fh:
         # printl('succesfully opened session num file.')
         data = fh.read()
         return data
@@ -149,7 +148,6 @@ def get_randomized_postfix_name(filename: str, **additional_rand_state: dict) ->
     @param filename:
     @return:
     """
-
     import hashlib
 
     import numpy as np
@@ -165,7 +163,7 @@ def get_randomized_postfix_name(filename: str, **additional_rand_state: dict) ->
 
 
 def read_single_str_line_file(file_path: str) -> str:
-    with open(file_path, "r") as fh:
+    with open(file_path) as fh:
         data = fh.read()
         if data[-1] == "\n":
             data = data[:-1]
@@ -215,7 +213,7 @@ def save_hdf5_safe(filename: str, use_blosc: bool = True, **kwarrays: dict) -> s
 
 def load_hdf5(
     filename: str,
-    custom_extract: Optional[Dict[str, Union[int, List, Tuple]]] = None,
+    custom_extract: dict[str, int | list | tuple] | None = None,
 ) -> dict:
     """
 
@@ -421,7 +419,7 @@ def remove_dir_content(
                     elif os.path.isdir(file_path):
                         shutil.rmtree(file_path)
                 except Exception as e:
-                    print("Failed to delete %s. Reason: %s" % (file_path, e))
+                    print(f"Failed to delete {file_path}. Reason: {e}")
                     failure = True
 
         # in case remove wasn't approved or failed to delete some of the files

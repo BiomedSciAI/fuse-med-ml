@@ -1,5 +1,5 @@
+from collections.abc import Hashable, Sequence
 from functools import partial
-from typing import Hashable, List, Optional, Sequence, Union
 
 import pandas as pd
 import torch
@@ -27,11 +27,11 @@ from fuseimg.data.ops.aug.geometry import OpAugAffine2D
 
 class OAI:
     @staticmethod
-    def sample_ids(df: pd.DataFrame) -> List:
+    def sample_ids(df: pd.DataFrame) -> list:
         return OAI.get_existing_sample_ids(df)
 
     @staticmethod
-    def get_existing_sample_ids(df: pd.DataFrame) -> List:
+    def get_existing_sample_ids(df: pd.DataFrame) -> list:
         """
         get all the sample ids that have a zip file in the specified path
         """
@@ -248,11 +248,11 @@ class OAI:
 
     @staticmethod
     def dataset(
-        csv_path: Union[str, pd.DataFrame],
+        csv_path: str | pd.DataFrame,
         cache_dir: str = None,
         reset_cache: bool = True,
         num_workers: int = 10,
-        sample_ids: Optional[Sequence[Hashable]] = None,
+        sample_ids: Sequence[Hashable] | None = None,
         resize_to: tuple = (40, 224, 224),
         for_classification: bool = True,
         validation: bool = False,

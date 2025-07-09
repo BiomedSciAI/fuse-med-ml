@@ -27,7 +27,7 @@ from collections import defaultdict
 from logging.handlers import RotatingFileHandler
 from multiprocessing import current_process
 from shutil import copyfile
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from termcolor import colored
@@ -89,9 +89,9 @@ class ConsoleFormatter(logging.Formatter):
 
 @rank_zero_only  # in ddp should start the logger once - on the main process
 def fuse_logger_start(
-    output_path: Optional[str] = None,
+    output_path: str | None = None,
     console_verbose_level: int = logging.INFO,
-    list_of_source_files: Optional[List[str]] = None,
+    list_of_source_files: list[str] | None = None,
 ) -> None:
     """
     Start Fuse logger:
@@ -185,7 +185,7 @@ def fuse_logger_end() -> None:
         lgr.removeHandler(h)
 
 
-def convert_state_to_str(input_state: Any) -> Union[str, Tuple[str]]:
+def convert_state_to_str(input_state: Any) -> str | tuple[str]:
     """
     Convert a state built from a nested dictionaries, lists and tuples to a string
     :param input_state:
@@ -199,11 +199,11 @@ def convert_state_to_str(input_state: Any) -> Union[str, Tuple[str]]:
     if isinstance(input_state, list):
         return [convert_state_to_str(param) for param in input_state]
     if isinstance(input_state, tuple):
-        return tuple((convert_state_to_str(param) for param in input_state))
+        return tuple(convert_state_to_str(param) for param in input_state)
     return str(input_state)
 
 
-def log_object_input_state(obj: Any, input_state: Dict) -> None:
+def log_object_input_state(obj: Any, input_state: dict) -> None:
     """
     Log object creation: module name, address and input parameters
     :param obj: The object, typically set to 'self'.

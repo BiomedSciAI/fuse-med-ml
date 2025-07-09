@@ -1,7 +1,7 @@
 import os
+from collections.abc import Hashable, Sequence
 from functools import partial
 from glob import glob
-from typing import Hashable, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
@@ -29,7 +29,6 @@ class OpKnightSampleIDDecode(OpBase):
     """
 
     def __call__(self, sample_dict: NDict, test: bool = False) -> NDict:
-        """ """
 
         sid = get_sample_id(sample_dict)
         sample_dict["data.input.case_id"] = sid
@@ -198,7 +197,7 @@ class KNIGHT:
 
     @staticmethod
     def static_pipeline(
-        data_path: str, resize_to: Tuple, test: bool = False
+        data_path: str, resize_to: tuple, test: bool = False
     ) -> PipelineDefault:
         static_pipeline = PipelineDefault(
             "static",
@@ -295,10 +294,10 @@ class KNIGHT:
         data_path: str = "data",
         cache_dir: str = "cache",
         split: dict = None,
-        sample_ids: Optional[Sequence[Hashable]] = None,
+        sample_ids: Sequence[Hashable] | None = None,
         test: bool = False,
         reset_cache: bool = False,
-        resize_to: Tuple = (70, 256, 256),
+        resize_to: tuple = (70, 256, 256),
     ) -> DatasetDefault:
         """
         Get cached dataset

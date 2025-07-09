@@ -1,5 +1,3 @@
-from typing import Optional
-
 import torch
 from torch import nn
 from vit_pytorch.vit import Transformer as _Transformer
@@ -105,13 +103,13 @@ class CrossAttentionTransformerEncoder(nn.Module):
         depth_cross_attn: int = 6,
         heads_a: int = 9,
         heads_b: int = 9,
-        output_dim: Optional[int] = None,
+        output_dim: int | None = None,
         context: str = "seq_b",
-        kwargs_wrapper_a: Optional[dict] = None,
-        kwargs_wrapper_b: Optional[dict] = None,
-        kwargs_encoder_a: Optional[dict] = None,
-        kwargs_encoder_b: Optional[dict] = None,
-        kwargs_cross_attn: Optional[dict] = None,
+        kwargs_wrapper_a: dict | None = None,
+        kwargs_wrapper_b: dict | None = None,
+        kwargs_encoder_a: dict | None = None,
+        kwargs_encoder_b: dict | None = None,
+        kwargs_cross_attn: dict | None = None,
     ):
         """
         :param emb_dim: inner model dimension

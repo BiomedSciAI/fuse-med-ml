@@ -17,7 +17,8 @@ Created on June 30, 2021
 
 """
 import logging
-from typing import Any, Callable, Dict, List, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Any, Callable
 
 import numpy as np
 import torch
@@ -42,7 +43,7 @@ class CollateToBatchList(Callable):
         self._skip_keys = skip_keys
         self._raise_error_key_missing = raise_error_key_missing
 
-    def __call__(self, samples: List[Dict]) -> Dict:
+    def __call__(self, samples: list[dict]) -> dict:
         """
         collate list of samples into batch_dict
         :param samples: list of samples
@@ -69,7 +70,7 @@ class CollateToBatchList(Callable):
 
         return batch_dict
 
-    def _collect_all_keys(self, samples: List[Dict]) -> List[Any]:
+    def _collect_all_keys(self, samples: list[dict]) -> list[Any]:
         """
         collect list of keys used in any one of the samples
         :param samples: list of samples
@@ -83,8 +84,8 @@ class CollateToBatchList(Callable):
         return list(keys)
 
     def _collect_values_to_list(
-        self, samples: List[str], key: str
-    ) -> Tuple[List, bool]:
+        self, samples: list[str], key: str
+    ) -> tuple[list, bool]:
         """
         collect values of given key into a list
         :param samples: list of samples
@@ -111,7 +112,7 @@ class CollateToBatchList(Callable):
         return collected_values, has_error, has_missing_values
 
 
-def uncollate(batch: Dict) -> List[Dict]:
+def uncollate(batch: dict) -> list[dict]:
     """
     Reverse collate method
     Gets a batch_dict and convert it back to list of samples
@@ -146,7 +147,7 @@ def uncollate(batch: Dict) -> List[Dict]:
                     samples[sample_index][key] = values[sample_index]
                 except IndexError:
                     logging.error(
-                        f"Error - IndexError - key={key}, batch_size={batch_size}, type={type((batch[key]))}, len={len(batch[key])}"
+                        f"Error - IndexError - key={key}, batch_size={batch_size}, type={type(batch[key])}, len={len(batch[key])}"
                     )
                     raise
             else:

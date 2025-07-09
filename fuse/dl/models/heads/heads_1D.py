@@ -17,7 +17,8 @@ Created on June 30, 2021
 
 """
 
-from typing import Dict, Optional, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Dict, Tuple
 
 import torch
 import torch.nn as nn
@@ -33,7 +34,7 @@ class Head1D(nn.Module):
         mode: str = None,  # "classification" or "regression"
         conv_inputs: Sequence[Tuple[str, int]] = None,
         num_outputs: int = 2,
-        append_features: Optional[Sequence[Tuple[str, int]]] = None,
+        append_features: Sequence[Tuple[str, int]] | None = None,
         layers_description: Sequence[int] = (256,),
         append_layers_description: Sequence[int] = tuple(),
         append_dropout_rate: float = 0.0,

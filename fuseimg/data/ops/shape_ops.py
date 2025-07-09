@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import numpy as np
 import skimage
@@ -71,14 +71,13 @@ class OpSelectSlice(OpBase):
     from the first dimension of a >2 dimensional input
     """
 
-    def __init__(self, **kwargs: Dict[str, Any]):
+    def __init__(self, **kwargs: dict[str, Any]):
         super().__init__(**kwargs)
 
     def __call__(self, sample_dict: NDict, key: str, slice_idx: int) -> NDict:
         """
         :param slice_idx: the index of the selected slice from the 1st dimmention of an input tensor
         """
-
         img = sample_dict[key]
         if len(img.shape) < 3:
             return sample_dict
@@ -94,7 +93,7 @@ class OpResizeAndPad2D(OpBase):
     """
 
     def __init__(
-        self, number_of_channels: int = 1, pad_value: int = 0, **kwargs: Dict[str, Any]
+        self, number_of_channels: int = 1, pad_value: int = 0, **kwargs: dict[str, Any]
     ):
         super().__init__(**kwargs)
         self.number_of_channels = number_of_channels
@@ -103,8 +102,8 @@ class OpResizeAndPad2D(OpBase):
     def pad_image(
         self,
         inner_image: np.ndarray,
-        padding: Tuple[float, float],
-        resize_to: Tuple[int, int],
+        padding: tuple[float, float],
+        resize_to: tuple[int, int],
     ) -> np.ndarray:
         """
         pads image to requested size ,
@@ -161,7 +160,7 @@ class OpResizeAndPad2D(OpBase):
         return outer_image
 
     def resize_image(
-        self, inner_image: np.ndarray, resize_to: Tuple[int, int]
+        self, inner_image: np.ndarray, resize_to: tuple[int, int]
     ) -> np.ndarray:
         """
         resize image to the required resolution
@@ -196,13 +195,12 @@ class OpResizeAndPad2D(OpBase):
         return inner_image
 
     def __call__(
-        self, sample_dict: NDict, key: str, resize_to: Tuple, padding: Tuple
+        self, sample_dict: NDict, key: str, resize_to: tuple, padding: tuple
     ) -> NDict:
         """
         :param resize_to:               new size of input images, keeping proportions
         :param padding:                 required padding size [x,y]
         """
-
         img = sample_dict[key]
         # resize
         if resize_to is not None:
@@ -227,7 +225,7 @@ class OpFindBiggestNonEmptyBbox2D(OpBase):
         self.dark_area_threshold = dark_area_threshold
         self.blocks_num = blocks_num
 
-    def find_biggest_non_emtpy_bbox(self, img: np.ndarray) -> Tuple[int, int, int, int]:
+    def find_biggest_non_emtpy_bbox(self, img: np.ndarray) -> tuple[int, int, int, int]:
         """
         split the images into blocks, each block containing (1/30 x 1/30) of the image.
         All blocks above a threshold (10) are considered non-empty.
@@ -243,8 +241,8 @@ class OpFindBiggestNonEmptyBbox2D(OpBase):
         rows_starts = list(range(self.blocks_num))
         cols_starts = list(range(self.blocks_num))
 
-        rows_starts = list(map(lambda x: x * bl_rows, rows_starts))
-        cols_starts = list(map(lambda x: x * bl_cols, cols_starts))
+        rows_starts = [x * bl_rows for x in rows_starts]
+        cols_starts = [x * bl_cols for x in cols_starts]
 
         cells = np.zeros((self.blocks_num, self.blocks_num))
 
@@ -284,7 +282,6 @@ class OpFindBiggestNonEmptyBbox2D(OpBase):
         return minr, minc, maxr, maxc
 
     def __call__(self, sample_dict: NDict, key: str) -> NDict:
-        """ """
 
         img = sample_dict[key]
         aabb = self.find_biggest_non_emtpy_bbox(img)
@@ -329,7 +326,6 @@ class OpFlipBrightSideOnLeft2D(OpBase):
         :param image: numpy image , expected 2d grayscale image
         :return: image where the breast is in the left
         """
-
         image = sample_dict[key]
         if not self.check_bright_side_is_left(image):  # orig
             image = np.fliplr(image)
@@ -354,7 +350,7 @@ class OpPad(OpBase):
         self,
         sample_dict: NDict,
         key: str,
-        padding: List[int],
+        padding: list[int],
         fill: int = 0,
         mode: str = "constant",
         **kwargs: dict,
@@ -367,7 +363,6 @@ class OpPad(OpBase):
         :param padding_mode: see torch's & numpy's pad functions for more details.
         :param kwargs: numpy's pad function give supports to more arguments. See it's docs for more details.
         """
-
         img = sample_dict[key]
 
         if torch.is_tensor(img):

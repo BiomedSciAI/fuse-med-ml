@@ -16,7 +16,6 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from typing import Optional, Union
 
 import torch.nn as nn
 from torch import Tensor
@@ -33,10 +32,10 @@ class BackboneResnet(ResNet):
         self,
         *,
         pretrained: bool = False,
-        weights: Optional[Union[WeightsEnum, dict]] = None,
+        weights: WeightsEnum | dict | None = None,
         in_channels: int = 3,
         name: str = "resnet18",
-        pool: Optional[str] = None,
+        pool: str | None = None,
     ) -> None:
         """
         Create 2D Resnet

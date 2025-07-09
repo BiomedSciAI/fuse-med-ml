@@ -1,5 +1,5 @@
 import os
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable
 
 import matplotlib.pyplot as plt
 import numpy
@@ -36,7 +36,7 @@ class OpVis2DImage(OpDebugBase):
         show: bool = True,
         path: str = ".",
         image_format: str = "channels_first",
-        image_process_func: Optional[Callable] = None,
+        image_process_func: Callable | None = None,
         **kwargs: dict,
     ):
         """
@@ -56,10 +56,10 @@ class OpVis2DImage(OpDebugBase):
         self,
         sample_dict: NDict,
         key: str,
-        clip: Optional[Tuple] = None,
-        dtype: Optional[str] = None,
+        clip: tuple | None = None,
+        dtype: str | None = None,
         figure_kwargs: dict = {},
-        **imshow_kwargs: Dict[str, Any],
+        **imshow_kwargs: dict[str, Any],
     ) -> None:
         """
         :param key: sample_dict key to a 2D image. Either tensor or numpy array.
@@ -68,7 +68,6 @@ class OpVis2DImage(OpDebugBase):
         :param figure_kwargs: parameters to pass to plt.figure
         :params imshow_kwargs: extra parameters to pass to plt.imshow
         """
-
         img = sample_dict[key]
         if isinstance(img, torch.Tensor):
             img = img.detach().cpu().numpy()
@@ -154,7 +153,6 @@ class OpVisImageHist(OpDebugBase):
         :param figure_kwargs: parameters to pass to plt.figure
         :params hist_kwargs: extra parameters to pass to plt.hist
         """
-
         img = sample_dict[key]
         if isinstance(img, torch.Tensor):
             img = img.detach().cpu().numpy()
@@ -191,8 +189,8 @@ class OpVis3DPlotly(OpDebugBase):
     def __init__(
         self,
         path: str = ".",
-        callback: Optional[Callable] = None,
-        **kwargs: Dict[str, Any],
+        callback: Callable | None = None,
+        **kwargs: dict[str, Any],
     ):
         """
         :param path: location to save .html rendered volume files
@@ -211,7 +209,6 @@ class OpVis3DPlotly(OpDebugBase):
         Everything is hardcoded/constant except for duration.
         :param duration: length of animation once relevant button is activated
         """
-
         return {
             "frame": {"duration": duration},
             "mode": "immediate",
@@ -347,7 +344,6 @@ class OpVis3DPlotly(OpDebugBase):
         :param sample_dict: dict containing minibatch sample
         :param key: sample_dict key to a 3D image. Either tensor or numpy array.
         """
-
         # ensure vol is np.ndarray
         vol = sample_dict[key]
         if isinstance(vol, torch.Tensor):

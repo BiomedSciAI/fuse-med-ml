@@ -2,7 +2,7 @@ import functools
 import multiprocessing as mp
 import os
 import traceback
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable
 
 import torch
 from termcolor import cprint
@@ -25,13 +25,13 @@ def run_multiprocessed(
     args_list: list,
     workers: int = 0,
     verbose: int = 0,
-    copy_to_global_storage: Optional[dict] = None,
+    copy_to_global_storage: dict | None = None,
     keep_results_order: bool = True,
     as_iterator: bool = False,
-    mp_context: Optional[str] = None,
-    desc: Optional[str] = None,
-    maxtasksperchild: Optional[int] = None,
-) -> List[Any]:
+    mp_context: str | None = None,
+    desc: str | None = None,
+    maxtasksperchild: int | None = None,
+) -> list[Any]:
     """
     Args:
         worker_func: a worker function, must accept only a single positional argument and no optional args.
@@ -58,8 +58,8 @@ def run_multiprocessed(
     Returns:
         if as_iterator is set to True, returns an iterator.
         Otherwise, returns a list of results from calling func
-    """
 
+    """
     iter = _run_multiprocessed_as_iterator_impl(
         worker_func=worker_func,
         args_list=args_list,
@@ -75,7 +75,7 @@ def run_multiprocessed(
     if as_iterator:
         return iter
 
-    ans = [x for x in iter]
+    ans = list(iter)
     return ans
 
 
@@ -84,12 +84,12 @@ def _run_multiprocessed_as_iterator_impl(
     args_list: list,
     workers: int = 0,
     verbose: int = 0,
-    copy_to_global_storage: Optional[dict] = None,
+    copy_to_global_storage: dict | None = None,
     keep_results_order: bool = True,
-    mp_context: Optional[str] = None,
-    desc: Optional[str] = None,
-    maxtasksperchild: Optional[int] = None,
-) -> List[Any]:
+    mp_context: str | None = None,
+    desc: str | None = None,
+    maxtasksperchild: int | None = None,
+) -> list[Any]:
     """
     an iterator version of run_multiprocessed - useful when the accumulated answer is too large to fit in memory
 
@@ -111,6 +111,7 @@ def _run_multiprocessed_as_iterator_impl(
             if strict_answers_order is set to True, the answers will be provided at the same order as defined in the args_list
         :param mp_context: "fork", "spawn", "thread" or None for multiprocessing default
         :param maxtasksperchild: the maximum number of tasks that a worker process/thread is allowed to do before it is destroyed (and a new one is created instead of it)
+
     """
     if "DEBUG_SINGLE_PROCESS" in os.environ and os.environ["DEBUG_SINGLE_PROCESS"] in [
         "T",
@@ -220,7 +221,7 @@ def _store_in_global_storage(store_me: dict) -> None:
     _multiprocess_global_storage.update(store_me)
 
 
-def _remove_from_global_storage(remove_me: List) -> None:
+def _remove_from_global_storage(remove_me: list) -> None:
     """
     remove copied args for multiprocess
     :param kwargs: list of tuples - each tuple is a key-value pair and will be added to the global dictionary
@@ -261,7 +262,7 @@ class Process(ctx.Process):
             raise e  # You can still rise this exception if you need to
 
     @property
-    def results_and_error(self) -> Union[Any, Tuple[None, None]]:
+    def results_and_error(self) -> Any | tuple[None, None]:
         if self._pconn.poll():
             return self._pconn.recv()
         return (None, None)
@@ -270,12 +271,12 @@ class Process(ctx.Process):
 def run_in_subprocess(
     f: Callable, *args: list, timeout: int = 600, **kwargs: dict
 ) -> Any:
-    """A decorator that makes function run in a subprocess.
+    """
+    A decorator that makes function run in a subprocess.
     This can be useful when you want allocate GPU and memory and to release it when you're done.
     :param f: the function to run in a subprocess
     :param timeout: the maximum time to wait for the process to complete
     """
-
     if "FORCE_RUN_IN_MAIN_PROCESS" in os.environ:
         return f(*args, **kwargs)
 

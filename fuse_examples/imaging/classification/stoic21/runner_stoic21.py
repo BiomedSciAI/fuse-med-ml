@@ -20,7 +20,7 @@ Created on June 30, 2021
 import copy
 import logging
 import os
-from typing import OrderedDict
+from collections import OrderedDict
 
 import pytorch_lightning as pl
 import torch

@@ -20,7 +20,8 @@ Created on June 30, 2021
 import copy
 import logging
 import os
-from typing import OrderedDict, Sequence, Tuple
+from collections import OrderedDict
+from collections.abc import Sequence
 
 import pytorch_lightning as pl
 import torch
@@ -176,7 +177,7 @@ elif model_type == "Transformer":
 TRAIN_COMMON_PARAMS["model_type"] = model_type
 
 
-def perform_softmax(logits: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+def perform_softmax(logits: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
     cls_preds = F.softmax(logits, dim=1)
     return logits, cls_preds
 
@@ -243,7 +244,7 @@ def create_transformer_model(
 def create_cnn_model(
     dropout_rate: float,
     layers_description: Sequence[int],
-    tabular_data_inputs: Sequence[Tuple[str, int]],
+    tabular_data_inputs: Sequence[tuple[str, int]],
     tabular_layers_description: Sequence[int],
     backbone_type: str = "Resnet18",
 ) -> torch.nn.Module:

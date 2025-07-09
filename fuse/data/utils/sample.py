@@ -1,4 +1,7 @@
-from typing import Dict, Hashable, List, Optional, Union
+from collections.abc import Hashable
+from typing import Dict, List
+
+import pytest
 
 from fuse.utils.ndict import NDict
 
@@ -24,7 +27,7 @@ The bare minimum that a sample is required to contain are:
 
 
 def create_initial_sample(
-    initial_sample_id: Hashable, sample_id: Optional[Hashable] = None
+    initial_sample_id: Hashable, sample_id: Hashable | None = None
 ) -> NDict:
     """
     creates an empty sample dict and sets both sample_id and initial_sample_id
@@ -98,7 +101,7 @@ def get_initial_sample_id(sample: Dict) -> Hashable:
 
 
 def get_specific_sample_from_potentially_morphed(
-    sample: Union[NDict, List[NDict]], sample_id: Hashable
+    sample: NDict | List[NDict], sample_id: Hashable
 ) -> NDict:
     if isinstance(sample, dict):
         assert get_sample_id(sample) == sample_id
@@ -113,4 +116,4 @@ def get_specific_sample_from_potentially_morphed(
             "Expected the sample to be either a dict or a list of dicts. None does not make sense in this context."
         )
 
-    assert False  # should never reach here
+    pytest.fail("should never reach here")

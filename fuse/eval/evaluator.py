@@ -19,16 +19,9 @@ Created on June 30, 2021
 
 import os
 import pickle
-from typing import (
-    Dict,
-    Hashable,
-    Iterable,
-    List,
-    Optional,
-    OrderedDict,
-    Sequence,
-    Union,
-)
+from collections import OrderedDict
+from collections.abc import Hashable, Iterable, Sequence
+from typing import Dict, List
 
 import numpy as np
 import pandas as pd
@@ -50,18 +43,16 @@ class EvaluatorDefault:
     def eval(
         self,
         ids: List[Hashable],
-        data: Union[
-            str,
-            pd.DataFrame,
-            Sequence[str],
-            Sequence[pd.DataFrame],
-            Iterable,
-            Dict[str, Union[str, pd.DataFrame, Sequence[str], Sequence[pd.DataFrame]]],
-        ],
+        data: str
+        | pd.DataFrame
+        | Sequence[str]
+        | Sequence[pd.DataFrame]
+        | Iterable
+        | Dict[str, str | pd.DataFrame | Sequence[str] | Sequence[pd.DataFrame]],
         metrics: OrderedDict[str, MetricBase],
         id_key: str = "id",
-        batch_size: Optional[int] = None,
-        output_dir: Optional[str] = None,
+        batch_size: int | None = None,
+        output_dir: str | None = None,
         silent: bool = True,
         error_missing_ids: bool = True,
     ) -> NDict:
@@ -170,17 +161,12 @@ class EvaluatorDefault:
 
     def read_data(
         self,
-        data: Union[
-            str,
-            pd.DataFrame,
-            Sequence[str],
-            Sequence[pd.DataFrame],
-            Dict[
-                str,
-                Union[
-                    str, pd.DataFrame, Sequence[str], Sequence[pd.DataFrame], Iterable
-                ],
-            ],
+        data: str
+        | pd.DataFrame
+        | Sequence[str]
+        | Sequence[pd.DataFrame]
+        | Dict[
+            str, str | pd.DataFrame | Sequence[str] | Sequence[pd.DataFrame] | Iterable
         ],
         ids_df: pd.DataFrame,
         id_key: str,

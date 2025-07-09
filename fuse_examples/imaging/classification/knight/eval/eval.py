@@ -22,7 +22,6 @@ import pathlib
 import sys
 from collections import OrderedDict
 from functools import partial
-from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -100,7 +99,7 @@ def post_processing(sample_dict: NDict, task1: bool = True, task2: bool = True) 
 
 def decode_results(
     results: NDict, output_dir: str, task1: bool, task2: bool
-) -> Tuple[OrderedDict, str]:
+) -> tuple[OrderedDict, str]:
     """
     Gets the results computed by the dictionary and summarize it in a markdown text and dictionary.
     The dictionary will be saved in <output_dir>/results.csv and the markdown text in <output_dir>/results.md
@@ -191,8 +190,8 @@ def eval(
     task2_prediction_filename: str,
     target_filename: str,
     output_dir: str,
-    case_ids_source: Optional[Union[str, List[str]]] = "target",
-) -> Tuple[OrderedDict, str]:
+    case_ids_source: str | list[str] | None = "target",
+) -> tuple[OrderedDict, str]:
     """
     Load the prediction and target files, evaluate the predictions and save the results into files.
     :param task1_prediction_filename: path to a prediction csv file for task1. Expecting the columns listed in EXPECTED_TASK1_PRED_KEYS to exist (including the header).

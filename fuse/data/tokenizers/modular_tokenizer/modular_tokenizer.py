@@ -4,9 +4,9 @@ import os
 import random
 import re
 import traceback
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
-from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Set, Tuple
 from warnings import warn
 
 import omegaconf
@@ -25,10 +25,8 @@ from fuse.data.tokenizers.modular_tokenizer.special_tokens import special_wrap_i
 class ModularTokenizerInput:
     input_type: str  # sub tokenizer name
     input_string: str  # the string to tokenize
-    max_len: Optional[int] = None  # max length used for truncation only.
-    truncate_mode: Optional[
-        str
-    ] = None  # by defualt will truncate with right direction, setting to "RAND" will randomly crop a sub-sequence of length=max_len
+    max_len: int | None = None  # max length used for truncation only.
+    truncate_mode: str | None = None  # by defualt will truncate with right direction, setting to "RAND" will randomly crop a sub-sequence of length=max_len
 
 
 # for backward compatibility
@@ -58,15 +56,16 @@ def list_to_tokenizer_string(lst: List[ModularTokenizerInput]) -> str:
 class ModularTokenizer(transformers.PreTrainedTokenizerBase):
     def __init__(
         self,
-        tokenizers_info: Union[List, omegaconf.listconfig.ListConfig],
-        load_adjusted_jsons: Optional[bool] = False,
-        special_tokens_list: Optional[list] = None,
-        max_possible_token_id: Optional[int] = None,
-        max_special_token_id: Optional[int] = None,
+        tokenizers_info: List | omegaconf.listconfig.ListConfig,
+        load_adjusted_jsons: bool | None = False,
+        special_tokens_list: list | None = None,
+        max_possible_token_id: int | None = None,
+        max_special_token_id: int | None = None,
         seed: int = 1234,
         **kwargs: Any,
     ) -> None:
-        """Creates a modular tokenizer that combines multiple existing tokenizers, adjusting them so that:
+        """
+        Creates a modular tokenizer that combines multiple existing tokenizers, adjusting them so that:
         a. They all share the same special tokens (combined special tokens from all the source tokenizers),
         b. Each tokenizer retains its regular tokens, however their IDs are remapped to a single space, with no overlaps.
 
@@ -92,6 +91,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
                 (after which come regular token IDs). Once max_special_token_id is reached, no more special tokens may be added.
                 If it is not set, new special tokens may be mapped to IDs higher that regular token IDs. If Defaults to None (i.e. no limit is set).
             seed: random generator seed - used for random truncation in random truncation mode (not the default mode)
+
         """
         super().__init__()
         # If there is only one tokenizer, remapping it is not needed - if there's only one, we can just load its json using load_from_jsons.
@@ -191,13 +191,11 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
             self.tokenizers_info[t_type]["tokenizer_inst"] = tokenizer_inst
             self.tokenizers_info[t_type]["json_instance"] = t_json
 
-        self.max_len: Union[
-            int, None
-        ] = None  # determines the final length of the overall encoding (and therefore padding/truncation length)
-        self._pad_token_id: Union[int, None] = None
+        self.max_len: int | None = None  # determines the final length of the overall encoding (and therefore padding/truncation length)
+        self._pad_token_id: int | None = None
 
         self._pad_token_type_id = 0
-        self._pad_token: Union[str, None] = None
+        self._pad_token: str | None = None
 
         test_res, test_res_detail = self.diagnose()
         assert (
@@ -217,10 +215,11 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
     @staticmethod
     def remap_vocab(
         vocab: Dict,
-        special_token_structs: Optional[List] = None,
-        starting_index: Optional[int] = None,
+        special_token_structs: List | None = None,
+        starting_index: int | None = None,
     ) -> Tuple[Dict, int]:
-        """Receives a vocabulary, a list of special token structures and a starting index. Returns a new vocabulary that
+        """
+        Receives a vocabulary, a list of special token structures and a starting index. Returns a new vocabulary that
         a. contains all the special tokens with their IDs, as were given in special_token_structs.
         b. contains all the tokens in vocab (except special ones), numbered consecutively starting with starting_index.
         c. the order of the regular tokens remains unchanged (they are usually ordered by appearance frequency - we do not want to change that)
@@ -233,6 +232,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         Returns:
             Tuple[Dict,int]: Returns the updated vocabulary and the next starting index (its max ID + 1)
+
         """
         if special_token_structs is not None and len(special_token_structs) > 0:
             init_vocab = {t["content"]: t["id"] for t in special_token_structs}
@@ -266,11 +266,12 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
     @staticmethod
     def build_special_token_list(
-        special_tokens: Union[List, Set],
-        starting_index: Union[int, None] = None,
-        token_ids: Union[List, Set, None] = None,
+        special_tokens: List | Set,
+        starting_index: int | None = None,
+        token_ids: List | Set | None = None,
     ) -> List:
-        """Creates a list of special token structures with consecutive indices, according to the following template
+        """
+        Creates a list of special token structures with consecutive indices, according to the following template
             special token template:
             {
                 'id': int id value,
@@ -291,6 +292,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         Returns:
             List: _description_
+
         """
         if starting_index is None:
             starting_index_to_use = 0
@@ -333,9 +335,10 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
     @staticmethod
     def get_subtokenizer_added_tokens(
         tokenizer_json_inst: Dict,
-        enforce_special: Optional[bool] = False,
+        enforce_special: bool | None = False,
     ) -> List:
-        """returns the special tokens from a tokenizer defined by json_inst.
+        """
+        returns the special tokens from a tokenizer defined by json_inst.
             Note: An alternative would be to call tokenizer_inst.get_vocab(with_added_tokens), using with_added_tokens False and True, which
             should've given us just regular and regular+special tokens, but for some reason both these options return the same output,
             so we must resort to json parsing.
@@ -347,6 +350,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         Returns:
             Set: _description_
+
         """
         special_token_structs = tokenizer_json_inst["added_tokens"]
         if enforce_special:
@@ -360,9 +364,10 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
     @staticmethod
     def get_subtokenizer_regular_tokens(
-        tokenizer_json_inst: Dict, enforce_special: Optional[bool] = False
+        tokenizer_json_inst: Dict, enforce_special: bool | None = False
     ) -> Set:
-        """returns the regular tokens from tokenizer defined by json_inst.
+        """
+        returns the regular tokens from tokenizer defined by json_inst.
             Note: An alternative would be to call tokenizer_inst.get_vocab(with_added_tokens), using with_added_tokens False and True, which
             should've given us just regular and regular+special tokens, but for some reason both these options return the same output,
             so we must resort to json parsing.
@@ -375,6 +380,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         Returns:
             Set: _description_
+
         """
         special_tokens = ModularTokenizer.get_subtokenizer_added_tokens(
             tokenizer_json_inst=tokenizer_json_inst, enforce_special=enforce_special
@@ -384,9 +390,10 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
     @staticmethod
     def get_subtokenizer_vocab(
-        tokenizer_json_inst: Dict, token_list: Optional[List] = None
+        tokenizer_json_inst: Dict, token_list: List | None = None
     ) -> Dict:
-        """Returns a dictionary of {token:id} of tokenizer tokenizer_json_inst for all tokens in token_list
+        """
+        Returns a dictionary of {token:id} of tokenizer tokenizer_json_inst for all tokens in token_list
 
         Args:
             tokenizer_json_inst (Dict): json instance representation of a tokenizer
@@ -394,6 +401,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         Returns:
             Dict: _description_
+
         """
         all_vocab = tokenizer_json_inst["model"]["vocab"]
         if token_list is None:
@@ -403,7 +411,8 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
     @staticmethod
     def load_from_jsons(tokenizers_info: List) -> "ModularTokenizer":
-        """Reads a list of json paths (from tokenizer_info dictionary, as defined in the config), that were created by ModularTokenizer.save_jsons, and creates a modular tokenizer, keeping the ID mappings
+        """
+        Reads a list of json paths (from tokenizer_info dictionary, as defined in the config), that were created by ModularTokenizer.save_jsons, and creates a modular tokenizer, keeping the ID mappings
         of the jsons.
 
         Args:
@@ -417,6 +426,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         Returns:
             object: _description_
+
         """
         return ModularTokenizer(
             tokenizers_info=tokenizers_info, load_adjusted_jsons=True
@@ -424,7 +434,8 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
     @staticmethod
     def load(path: str) -> "ModularTokenizer":
-        """Reads all information that was saved by ModularTokenizer.save(), and creates a modular tokenizer based on it.
+        """
+        Reads all information that was saved by ModularTokenizer.save(), and creates a modular tokenizer based on it.
 
         Args:
             path: directory that contains a file named config.yaml which defines list of dictionaries containing the following:
@@ -437,20 +448,24 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         Returns:
             object: Loaded ModularTokenizer
+
         """
 
         def fix_json_paths(
             loaded_conf: omegaconf.listconfig.ListConfig,
             path: str,
         ) -> omegaconf.listconfig.ListConfig:
-            """Since the path passed to ModularTokenizer.load() must contain all of the modular jsons and the config that defines their relations, all json
+            """
+            Since the path passed to ModularTokenizer.load() must contain all of the modular jsons and the config that defines their relations, all json
             paths in the config must point to path. This function replaces any dirname of any json in the loaded config (found in path) with path.
+
             Args:
                 loaded_conf (Union[List, omegaconf.listconfig.ListConfig]): _description_
                 path (str): _description_
 
             Returns:
                 Union[omegaconf.listconfig.ListConfig]: _description_
+
             """
             for ind, t_conf in enumerate(loaded_conf):
                 if ("json_path" in t_conf) and (t_conf["json_path"] is not None):
@@ -472,14 +487,12 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
         tokenizers_info_fixed = fix_json_paths(loaded_conf["tokenizers_info"], path)
 
         if "max_possible_token_id" in loaded_conf:
-            max_possible_token_id: Union[int, None] = loaded_conf[
-                "max_possible_token_id"
-            ]
+            max_possible_token_id: int | None = loaded_conf["max_possible_token_id"]
         else:
             max_possible_token_id = None
 
         if "max_special_token_id" in loaded_conf:
-            max_special_token_id: Union[int, None] = loaded_conf["max_special_token_id"]
+            max_special_token_id: int | None = loaded_conf["max_special_token_id"]
         else:
             max_special_token_id = None
 
@@ -492,9 +505,10 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
     @staticmethod
     def update_id2token_mapping(
-        id2token: Dict[int, Dict], add_vocab: Dict, is_special: Optional[bool] = False
+        id2token: Dict[int, Dict], add_vocab: Dict, is_special: bool | None = False
     ) -> Dict[int, Dict]:
-        """Updates id2token mapping with tokens from add_vocab. Returns the updated id2token
+        """
+        Updates id2token mapping with tokens from add_vocab. Returns the updated id2token
 
         Args:
             id2token (Dict): A dictionary of int:{
@@ -506,8 +520,8 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         Returns:
             Dict: _description_
-        """
 
+        """
         for token in add_vocab:
             if add_vocab[token] in id2token:
                 print(
@@ -519,7 +533,8 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
         return id2token
 
     def build_inner_decoder(self) -> None:
-        """Goes over all the inner tokenizers and builds an id-to-token mapping with the following structure:
+        """
+        Goes over all the inner tokenizers and builds an id-to-token mapping with the following structure:
         self.decoder_dict = {id: {
                                     token:token_id,     #token corresponding to the id
                                     is_special:bool,    #whether the token is special or not
@@ -565,10 +580,12 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
             )
 
     def diagnose(self) -> Tuple[Dict, Dict]:
-        """_summary_
+        """
+        _summary_
 
         Returns:
             Tuple[Dict, Dict]: brief (pass/fail for each test) and detailed (which tokenizers failed) description of failed tests
+
         """
         tests = [
             "special token consistency",  # Special tokens are the same (and map to the same indices) across all the tokenizers
@@ -650,30 +667,35 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
         return result, result_details
 
     def is_consistent(self) -> bool:
-        """Returns True if the modular tokenizer is consistent, i.e.:
+        """
+        Returns True if the modular tokenizer is consistent, i.e.:
         a. Special tokens are the same (and map to the same indices) across all the tokenizers
         b. Regular token ID mappings of any given tokenizer do not collide with special token mappings, nor with ID mappings of other tokenizers
 
         Returns:
             bool: True is the tokenizer is consistent, False otherwise
+
         """
         test_res, test_res_detail = self.diagnose()
         return False not in test_res.values()
 
     @staticmethod
     def cfg_list_2_dict(dict_list: List) -> Dict[str, Any]:
-        """Receives a list of dicts, each containing a key "name" and changes it to
+        """
+        Receives a list of dicts, each containing a key "name" and changes it to
 
         Args:
             dict_list (List): _description_
 
         Returns:
             Dict[str, Any]: _description_
+
         """
         return {d["name"]: d for d in dict_list}
 
-    def save_jsons(self, tokenizers_info: Optional[List] = None) -> None:
-        """_summary_
+    def save_jsons(self, tokenizers_info: List | None = None) -> None:
+        """
+        _summary_
 
         Args:
             tokenizers_info_list (Optional[List], optional): A list of dictionaries containing the following:
@@ -687,6 +709,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
             In case of partial tokenizer_types, only those tokenizers will be saved
             Defaults to None.
             TODO: also save the config yaml there
+
         """
         if tokenizers_info is None:
             for t_type in self.tokenizers_info:
@@ -705,7 +728,8 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
                 tokenizer_inst.save(out_path)
 
     def save(self, path: str) -> None:
-        """Saves all information needed to reconstruct the modular tokenizer to path.
+        """
+        Saves all information needed to reconstruct the modular tokenizer to path.
         After saving, path will contain the following:
         - json files: modular json files (i.e. that have common special tokens, and that all map to consistent ID space)
         - config.yaml: a config file that contains the tokenizer_info list with information from self.tokenizer_info, defining the relations between the different tokenizers.
@@ -715,10 +739,12 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
         Args:
             path (str): a directory where the modular tokenizer info will be saved. For compatibility with huggingface format, this can also be a path to a json
             file, in which case its base directory will be used.
+
         """
 
-        def get_out_path(input_json_path: str, base_path: Optional[str] = None) -> str:
-            """_summary_
+        def get_out_path(input_json_path: str, base_path: str | None = None) -> str:
+            """
+            _summary_
 
             Args:
                 input_json_path (str): _description_
@@ -726,6 +752,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
             Returns:
                 str: _description_
+
             """
             fname: str = os.path.basename(input_json_path)
             if base_path is None:
@@ -851,9 +878,10 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
         ]["added_tokens"]
 
         # check if we are really adding any tokens from the new tokenizer
-        new_special_tokens = set(new_tokenize_special_tokens) - set(
-            [tok["content"] for tok in all_special_token_structs]
-        )
+        new_special_tokens = set(new_tokenize_special_tokens) - {
+            tok["content"] for tok in all_special_token_structs
+        }
+
         # in the begging of the list, with their id's
 
         t_json["model"]["vocab"] = {
@@ -900,10 +928,11 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
         self,
         data_str: str,
         input_type: str,
-        sequence_id: Optional[int] = None,
+        sequence_id: int | None = None,
         verbose: int = 1,
     ) -> Encoding:
-        """_summary_
+        """
+        _summary_
 
         Args:
             data_str (str): input string to be tokenized
@@ -918,6 +947,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         Returns:
             Encoding: _description_
+
         """
         assert isinstance(data_str, str)
         assert isinstance(input_type, str)
@@ -946,10 +976,9 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         return encoded
 
-    def get_expected_max_len(
-        self, override_max_len: Optional[int] = None
-    ) -> Optional[int]:
-        """Returns the expected max_len of any encoding. max_len is given by internal state (set during initialization of the tokenizer), or it can be overridden
+    def get_expected_max_len(self, override_max_len: int | None = None) -> int | None:
+        """
+        Returns the expected max_len of any encoding. max_len is given by internal state (set during initialization of the tokenizer), or it can be overridden
         during call to encode_list (applicable only to that specific encoding), or enable_padding/enable_truncation (applicable to all encodings produced
         following the call).
 
@@ -959,15 +988,17 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         Returns:
             Optional[int]: _description_
+
         """
         if override_max_len is not None:
             return override_max_len
         return self.max_len
 
     def count_unknowns(
-        self, encoding: Union[List, Encoding], unk_token: Optional[str] = None
+        self, encoding: List | Encoding, unk_token: str | None = None
     ) -> int:
-        """Counts the number of unknown tokens in the encoding
+        """
+        Counts the number of unknown tokens in the encoding
 
         Args:
             encoding (Union[List, Encoding]): Either a list of IDs or an Encoding. If it is an encoding, only encoding.ids is parsed. Overflowing
@@ -977,6 +1008,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         Returns:
             int: count of unknown tokens in the encoding
+
         """
         if isinstance(encoding, list):
             ids = encoding
@@ -994,21 +1026,19 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
     def encode_list(
         self,
         typed_input_list: List[ModularTokenizerInput],
-        max_len: Optional[int] = None,
-        padding_token_id: Optional[int] = None,
-        padding_token: Optional[str] = "<PAD>",
-        pad_type_id: Optional[int] = None,
-        return_overflow_info: Optional[bool] = False,
-        on_unknown: Optional[str] = "raise",
+        max_len: int | None = None,
+        padding_token_id: int | None = None,
+        padding_token: str | None = "<PAD>",
+        pad_type_id: int | None = None,
+        return_overflow_info: bool | None = False,
+        on_unknown: str | None = "raise",
         verbose: int = 1,
         also_return_split: bool = False,
-    ) -> Union[
-        Encoding,
-        Tuple[Encoding, str],
-        Tuple[Encoding, List[Encoding]],
-        Tuple[Encoding, str, List[Encoding]],
+    ) -> Encoding | Tuple[Encoding, str] | Tuple[Encoding, List[Encoding]] | Tuple[
+        Encoding, str, List[Encoding]
     ]:
-        """_summary_
+        """
+        _summary_
 
         Args:
             typed_input_list (List): list of ModularTokenizerInput.
@@ -1023,6 +1053,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
             also_return_split: defaults to False. If set to True, the return value will also contain a list that contains per meta-tokenizer-instruction element of Encoding
         Returns:
             Encoding: _description_
+
         """
         encoded_list = []
         # sequence_ids and sequence_names are an initial implementation of a currently broken huggingface
@@ -1167,15 +1198,18 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         return tuple(ans)
 
-    def decode(self, ids: Iterable, skip_special_tokens: Optional[bool] = False) -> str:
-        """Receives a list of IDs and returns a string of tokens
+    def decode(self, ids: Iterable, skip_special_tokens: bool | None = False) -> str:
+        """
+        Receives a list of IDs and returns a string of tokens
             TODO: possibly output also the type of token (AA, SMILES, etc)
+
         Args:
             ids (Iterable): _description_
             skip_special_tokens (Optional[bool], optional): _description_. Defaults to False.
 
         Returns:
             str: _description_
+
         """
         if isinstance(ids, Tensor):
             # Tokens in 'self.decoder_dict' are integers, and not tensors scalars
@@ -1199,17 +1233,18 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
     def encode(
         self,
         sequence: str,
-        max_len: Optional[int] = None,
-        padding_token_id: Optional[int] = 0,
-        padding_token: Optional[str] = "<PAD>",
-        pad_type_id: Optional[int] = 0,
-        return_overflow_info: Optional[bool] = False,
-        on_unknown: Optional[str] = "warn",
-        verbose: Optional[int] = 1,
+        max_len: int | None = None,
+        padding_token_id: int | None = 0,
+        padding_token: str | None = "<PAD>",
+        pad_type_id: int | None = 0,
+        return_overflow_info: bool | None = False,
+        on_unknown: str | None = "warn",
+        verbose: int | None = 1,
         also_return_split: bool = False,
     ) -> Encoding:
         # (self, sequence, pair=None, is_pretokenized=False, add_special_tokens=True)
-        """Receives a user-supplied string that contains, in addition to the text that is to be tokenized, special delimiters signifying the type
+        """
+        Receives a user-supplied string that contains, in addition to the text that is to be tokenized, special delimiters signifying the type
         of input within each span of text (e.g. <@TOKENIZER-TYPE=AA> sequence, <@TOKENIZER-TYPE=SMILES>, etc.). These determine the type of tokenizer to use on each span,
         and are not encoded.
         Optionaly, you may also describe maximum length per section, for example:
@@ -1231,6 +1266,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
         Returns:
             Encoding: _description_
             str: _description_ information on overflow, if return_overflow_info=True
+
         """
         # split sequence to token hints and the following sequence
 
@@ -1353,13 +1389,15 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         TODO: If we try to add special tokens and reach max_special ID, allow the option to add part of the tokens to the
         remaining buffer space, and the rest after max taken regular ID
+
         """
 
         def update_vocab(
             vocab: Dict,
             special_token_structs: List,
         ) -> Dict:
-            """Receives a vocabulary and a list of special token structures. Returns a new vocabulary that
+            """
+            Receives a vocabulary and a list of special token structures. Returns a new vocabulary that
             a. contains all the special tokens with their IDs, as were given in special_token_structs.
             b. contains all the tokens in vocab (except special ones), with their original IDs.
 
@@ -1370,6 +1408,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
             Returns:
                 Dict: Returns the updated vocabulary, sorted by value
+
             """
             if special_token_structs is not None and len(special_token_structs) > 0:
                 special_vocab = {t["content"]: t["id"] for t in special_token_structs}
@@ -1395,9 +1434,9 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
         # tokens <- new tokens, without existing special tokens, and, possibly, without existing regular tokens (depending on the above choice)
 
         # At this point tokens contain to existing special tokens, but may contain regular tokens
-        all_existing_tokens = set([x["token"] for x in self.decoder_dict.values()])
-        tokens_regular = sorted(list(set(tokens).intersection(all_existing_tokens)))
-        tokens = sorted(list(set(tokens) - set(tokens_regular)))
+        all_existing_tokens = {x["token"] for x in self.decoder_dict.values()}
+        tokens_regular = sorted(set(tokens).intersection(all_existing_tokens))
+        tokens = sorted(set(tokens) - set(tokens_regular))
         # At this point tokens contain no tokens that currently exist in the modular tokenizer, and tokens_regular contain
         # special tokens to be added that are currently regular tokens in the tokenizer
 
@@ -1464,7 +1503,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
         self.build_inner_decoder()
         return len(tokens)
 
-    def add_tokens(self, tokens: Union[List, str]) -> int:
+    def add_tokens(self, tokens: List | str) -> int:
         """
         Add the given tokens to the vocabulary
 
@@ -1478,6 +1517,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         Returns:
             :obj:`int`: The number of tokens that were created in the vocabulary
+
         """
         raise Exception("Not implemented")
         # self.build_inner_decoder()
@@ -1488,7 +1528,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
         #         )
 
     def decode_batch(
-        self, sequences: List, skip_special_tokens: Optional[bool] = True
+        self, sequences: List, skip_special_tokens: bool | None = True
     ) -> List:
         """
         Decode a batch of ids back to their corresponding string
@@ -1502,6 +1542,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         Returns:
             :obj:`List[str]`: A list of decoded strings
+
         """
         raise Exception("Not implemented")
 
@@ -1514,12 +1555,12 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
     def enable_padding(
         self,
-        direction: Optional[str] = "right",
-        pad_id: Optional[int] = None,
-        pad_type_id: Optional[int] = 0,
-        pad_token: Optional[str] = "<PAD>",
-        length: Optional[int] = None,
-        pad_to_multiple_of: Optional[int] = None,
+        direction: str | None = "right",
+        pad_id: int | None = None,
+        pad_type_id: int | None = 0,
+        pad_token: str | None = "<PAD>",
+        length: int | None = None,
+        pad_to_multiple_of: int | None = None,
     ) -> None:
         """
         Enable the padding. Note: Also enables truncation to the same max_len
@@ -1545,6 +1586,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
             length (:obj:`int`, `optional`):
                 If specified, the length at which to pad. If not specified we pad using the size of
                 the longest sequence in a batch.
+
         """
         assert direction == "right", "pad direction other than right is not implemented"
 
@@ -1576,9 +1618,9 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
     def enable_truncation(
         self,
         max_length: int,
-        stride: Optional[int] = 0,
-        strategy: Optional[str] = "longest_first",
-        direction: Optional[str] = "right",
+        stride: int | None = 0,
+        strategy: str | None = "longest_first",
+        direction: str | None = "right",
     ) -> None:
         """
         Enable truncation. Note: Also sets padding length to max_len, if padding is enabled.
@@ -1597,6 +1639,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
             direction (:obj:`str`, defaults to :obj:`right`):
                 Truncate direction
+
         """
         assert stride == 0, "stride not implemented"
         assert strategy == "longest_first", "strategy not implemented"
@@ -1614,6 +1657,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         Returns:
             :class:`~tokenizers.Tokenizer`: The new tokenizer
+
         """
         raise Exception("Not implemented")
 
@@ -1629,6 +1673,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         Returns:
             :class:`ModularTokenizer`: The new tokenizer
+
         """
         if os.path.isfile(path):
             path = os.path.dirname(path)
@@ -1637,8 +1682,8 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
     @staticmethod
     def from_pretrained(
         identifier: str,
-        revision: Optional[str] = "main",
-        auth_token: Optional[str] = None,
+        revision: str | None = "main",
+        auth_token: str | None = None,
     ) -> Any:
         """
         Instantiate a new :class:`~tokenizers.Tokenizer` from an existing file on the
@@ -1656,6 +1701,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         Returns:
             :class:`~tokenizers.Tokenizer`: The new tokenizer
+
         """
         if not os.path.isdir(identifier):
             raise Exception(
@@ -1682,10 +1728,11 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         Returns:
             :class:`~tokenizers.Tokenizer`: The new tokenizer
+
         """
         raise Exception("Not implemented")
 
-    def get_vocab(self, with_added_tokens: Optional[bool] = True) -> Dict:
+    def get_vocab(self, with_added_tokens: bool | None = True) -> Dict:
         """
         Get the underlying vocabulary
 
@@ -1697,6 +1744,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
             :obj:`Dict[str, int]`: The vocabulary
 
         Note: Irrelevant to ModularTokenizer, since it may not be possible to express with a single vocabulary
+
         """
         raise Exception(
             "Not implemented, because the functionality is not defined for ModularTokenizer. Use either get_added_vocab() or get_typed_vocab()"
@@ -1715,6 +1763,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
             :obj:`Dict[str, int]`: The vocabulary
 
         Note: Irrelevant to ModularTokenizer, since it may not be possible to express with a single vocabulary
+
         """
         t_types = self.get_tokenizer_types()
         assert len(t_types) >= 1
@@ -1742,7 +1791,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
         )
         return special_tokens_dict
 
-    def get_typed_vocab(self, with_added_tokens: Optional[bool] = True) -> Dict:
+    def get_typed_vocab(self, with_added_tokens: bool | None = True) -> Dict:
         """
         Get the underlying vocabulary, as (token type, token) to id dictionary
 
@@ -1760,10 +1809,11 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
             is present in several sub-tokenizers, but with different ids - all occurrences are present.
 
         Note: Irrelevant to ModularTokenizer, since it may not be possible to express with a single vocabulary
+
         """
         raise Exception("Not implemented")
 
-    def get_vocab_size(self, with_added_tokens: Optional[bool] = True) -> int:
+    def get_vocab_size(self, with_added_tokens: bool | None = True) -> int:
         """
         Get the size of the underlying vocabulary, in terms of number of tokens. This does NOT return max token id.
 
@@ -1773,6 +1823,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         Returns:
             :obj:`int`: The size of the vocabulary
+
         """
         # TODO: It may be possible to count all the unique IDs (i.e. sum of numbers of
         # regular tokens of each subtokenizer plus the number of special tokens, which
@@ -1782,7 +1833,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
         else:
             return len(list(self.decoder_dict.values()))
 
-    def _get_max_mapped_id(self, with_added_tokens: Optional[bool] = True) -> int:
+    def _get_max_mapped_id(self, with_added_tokens: bool | None = True) -> int:
         """
         Get value of the highest used ID of the underlying vocabulary (i.e. the highest ID that has a token mapped to it)
 
@@ -1792,15 +1843,14 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         Returns:
             :obj:`int`: The size of the vocabulary
+
         """
         if not with_added_tokens:
             raise Exception("Not implemented")
         else:
             return max(list(self.decoder_dict.keys()))
 
-    def _get_max_mapped_special_id(
-        self, with_added_tokens: Optional[bool] = True
-    ) -> int:
+    def _get_max_mapped_special_id(self, with_added_tokens: bool | None = True) -> int:
         """
         Get value of the highest used ID of the underlying vocabulary (i.e. the highest ID that has a token mapped to it)
 
@@ -1810,13 +1860,14 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         Returns:
             :obj:`int`: The size of the vocabulary
+
         """
         if not with_added_tokens:
             raise Exception("Not implemented")
         else:
             return max(list(self.decoder_dict.keys()))
 
-    def get_max_id(self, with_added_tokens: Optional[bool] = True) -> int:
+    def get_max_id(self, with_added_tokens: bool | None = True) -> int:
         """
         Get value of the highest ID of the underlying vocabulary. If there is an upper limit defined for the modular tokenizer, it is returned
 
@@ -1826,12 +1877,13 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         Returns:
             :obj:`int`: The size of the vocabulary
+
         """
         if self._max_possible_token_id is not None:
             return self._max_possible_token_id
         return self._get_max_mapped_id(with_added_tokens=with_added_tokens)
 
-    def id_to_token(self, id: int) -> Optional[str]:
+    def id_to_token(self, id: int) -> str | None:
         """
         Convert the given id to its corresponding token if it exists
         In general, id_to_token is undefined for MultiTokenizer bec
@@ -1841,6 +1893,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         Returns:
             :obj:`Optional[str]`: An optional token, :obj:`None` if out of vocabulary
+
         """
         if not isinstance(id, int):
             raise TypeError(
@@ -1887,7 +1940,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
         raise Exception("Not implemented")
 
     @property
-    def padding(self) -> Optional[Dict]:
+    def padding(self) -> Dict | None:
         """
         Get the current padding parameters
 
@@ -1896,14 +1949,15 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
         Returns:
             (:obj:`dict`, `optional`):
                 A dict with the current padding parameters if padding is enabled
+
         """
         raise Exception("Not implemented")
 
     def post_process(
         self,
         encoding: Encoding,
-        pair: Optional[Encoding] = None,
-        add_special_tokens: Optional[bool] = True,
+        pair: Encoding | None = None,
+        add_special_tokens: bool | None = True,
     ) -> Encoding:
         """
         Apply all the post-processing steps to the given encodings.
@@ -1928,6 +1982,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         Returns:
             :class:`~tokenizers.Encoding`: The final post-processed encoding
+
         """
         raise Exception("Not implemented")
 
@@ -1945,7 +2000,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
         """
         raise Exception("Not implemented")
 
-    def to_str(self, pretty: Optional[bool] = False) -> None:
+    def to_str(self, pretty: bool | None = False) -> None:
         """
         Gets a serialized string representing this :class:`~tokenizers.Tokenizer`.
 
@@ -1955,10 +2010,11 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         Returns:
             :obj:`str`: A string representing the serialized Tokenizer
+
         """
         raise Exception("Not implemented")
 
-    def token_to_id(self, token: str, t_type: Optional[str] = None) -> Union[int, None]:
+    def token_to_id(self, token: str, t_type: str | None = None) -> int | None:
         """
         Convert the given token to its corresponding id if it exists
         In general, token_to_id is undefined for MultiTokenizer because the same
@@ -1973,6 +2029,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
         Returns:
             :obj:`Optional[int]`: An optional id, :obj:`None` if out of vocabulary
+
         """
         if t_type is None:
             t_type_val = list(self.tokenizers_info.keys())[0]
@@ -1999,7 +2056,7 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
             return self.tokenizers_info[t_type_val]["tokenizer_inst"].token_to_id(token)
 
     def train(
-        self, files: List, trainer: Optional[tokenizers.trainers.Trainer] = None
+        self, files: List, trainer: tokenizers.trainers.Trainer | None = None
     ) -> None:
         """
         Train the Tokenizer using the given files.
@@ -2014,14 +2071,15 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
             trainer (:obj:`~tokenizers.trainers.Trainer`, `optional`):
                 An optional trainer that should be used to train our Model
+
         """
         raise Exception("Not implemented")
 
     def train_from_iterator(
         self,
         iterator: Iterator,
-        trainer: Optional[tokenizers.trainers.Trainer] = None,
-        length: Optional[int] = None,
+        trainer: tokenizers.trainers.Trainer | None = None,
+        length: int | None = None,
     ) -> None:
         """
         Train the Tokenizer using the provided iterator.
@@ -2043,11 +2101,12 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
             length (:obj:`int`, `optional`):
                 The total number of sequences in the iterator. This is used to
                 provide meaningful progress tracking
+
         """
         raise Exception("Not implemented")
 
     @property
-    def truncation(self) -> Optional[Dict]:
+    def truncation(self) -> Dict | None:
         """
         Get the currently set truncation parameters
 
@@ -2056,17 +2115,18 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
         Returns:
             (:obj:`dict`, `optional`):
                 A dict with the current truncation parameters if truncation is enabled
+
         """
         raise Exception("Not implemented")
 
     def __repr__(self) -> str:
         return (
             f"{self.__class__.__name__},\n"
-            + f"Subtokenizer = {[subtokenizer for subtokenizer in self.tokenizers_info.keys()]}"  # " added_tokens_decoder={\n\t" + added_tokens_decoder_rep + "\n}\n)"
+            + f"Subtokenizer = {list(self.tokenizers_info.keys())}"  # " added_tokens_decoder={\n\t" + added_tokens_decoder_rep + "\n}\n)"
         )
 
     @property
-    def pad_token_id(self) -> Optional[int]:
+    def pad_token_id(self) -> int | None:
         """
         `Optional[int]`: Id of the padding token in the vocabulary. Returns `None` if the token has not been set.
         """
@@ -2074,16 +2134,14 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
             return None
         return self.token_to_id(self.pad_token)
 
-    def convert_tokens_to_ids(
-        self, *args: list, **kwargs: dict
-    ) -> Union[List[int], int]:
+    def convert_tokens_to_ids(self, *args: list, **kwargs: dict) -> List[int] | int:
         enc_ids = self.encode(*args, **kwargs).ids
         if len(enc_ids) == 1:
             return enc_ids[0]
         return enc_ids
 
     def convert_ids_to_tokens(
-        self, ids: Union[List[int], int], *args: list, **kwargs: dict
+        self, ids: List[int] | int, *args: list, **kwargs: dict
     ) -> str:
         if isinstance(ids, int):
             ids = [ids]
@@ -2091,24 +2149,24 @@ class ModularTokenizer(transformers.PreTrainedTokenizerBase):
 
     def __call__(
         self,
-        text: Union[str, List[str], List[List[str]]],
+        text: str | List[str] | List[List[str]],
         # text_pair: Optional[Union[str, List[str], List[List[str]]]] = None,
         # add_special_tokens: bool = True,
-        padding: Union[
-            bool, str, transformers.tokenization_utils_base.PaddingStrategy
-        ] = False,
-        truncation: Union[
-            bool, str, transformers.tokenization_utils_base.TruncationStrategy
-        ] = False,
-        max_length: Optional[int] = None,
+        padding: bool
+        | str
+        | transformers.tokenization_utils_base.PaddingStrategy = False,
+        truncation: bool
+        | str
+        | transformers.tokenization_utils_base.TruncationStrategy = False,
+        max_length: int | None = None,
         stride: int = 0,
         # is_pretokenized: bool = False,
         # pad_to_multiple_of: Optional[int] = None,
-        return_tensors: Optional[
-            Union[str, transformers.tokenization_utils_base.TensorType]
-        ] = None,
+        return_tensors: str
+        | transformers.tokenization_utils_base.TensorType
+        | None = None,
         # return_token_type_ids: Optional[bool] = None,
-        return_attention_mask: Optional[bool] = None,
+        return_attention_mask: bool | None = None,
         # return_overflowing_tokens: bool = False,
         # return_special_tokens_mask: bool = False,
         # return_offsets_mapping: bool = False,

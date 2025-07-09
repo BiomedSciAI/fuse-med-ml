@@ -1,13 +1,13 @@
-from typing import Optional, Sequence, Union
+from collections.abc import Sequence
 
 from fuse.data import DatasetDefault
 from fuseimg.datasets.mnist import MNIST
 
 
 def create_dataset(
-    train_val_sample_ids: Union[Sequence, None] = None,
-    paths: Optional[dict] = None,
-    params: Optional[dict] = None,
+    train_val_sample_ids: Sequence | None = None,
+    paths: dict | None = None,
+    params: dict | None = None,
 ) -> Sequence[DatasetDefault]:
     train_val_dataset = MNIST.dataset(paths["cache_dir"], train=True)
     if train_val_sample_ids is None:

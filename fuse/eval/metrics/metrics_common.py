@@ -19,7 +19,8 @@ Created on June 30, 2021
 
 import copy
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Hashable, List, Optional, Sequence, Tuple, Union
+from collections.abc import Hashable, Sequence
+from typing import Any, Callable, Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -60,8 +61,8 @@ class MetricBase(ABC):
 
     @abstractmethod
     def eval(
-        self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None
-    ) -> Union[Dict[str, Any], Any]:
+        self, results: Dict[str, Any] = None, ids: Sequence[Hashable] | None = None
+    ) -> Dict[str, Any] | Any:
         """
         evaluate the collected data
         :param results: results aggregated by the previous metrics
@@ -80,11 +81,11 @@ class MetricCollector(MetricBase):
 
     def __init__(
         self,
-        pre_collect_process_func: Optional[Callable] = None,
-        post_collect_process_func: Optional[Callable] = None,
-        batch_pre_collect_process_func: Optional[Callable] = None,
-        batch_post_collect_process_func: Optional[Callable] = None,
-        post_keys_to_collect: Optional[List[str]] = None,
+        pre_collect_process_func: Callable | None = None,
+        post_collect_process_func: Callable | None = None,
+        batch_pre_collect_process_func: Callable | None = None,
+        batch_post_collect_process_func: Callable | None = None,
+        post_keys_to_collect: List[str] | None = None,
         collect_distributed: bool = True,
         collect_ids: bool = True,
         **keys_to_collect: Dict[str, str],
@@ -399,7 +400,7 @@ class MetricCollector(MetricBase):
         """
         return self._collected_ids
 
-    def get(self, ids: Optional[Sequence[Hashable]] = None) -> Tuple[Dict[str, Any]]:
+    def get(self, ids: Sequence[Hashable] | None = None) -> Tuple[Dict[str, Any]]:
         """
         Get collected data - collected data dictionary and collected ids.
         each element in the dictionary will be a list of values from all samples
@@ -419,7 +420,7 @@ class MetricCollector(MetricBase):
 
             return data
 
-    def eval(self, results: Dict[str, Any] = None) -> Union[Dict[str, Any], Any]:
+    def eval(self, results: Dict[str, Any] = None) -> Dict[str, Any] | Any:
         """
         Empty implementation - do nothing
         """
@@ -434,12 +435,12 @@ class MetricWithCollectorBase(MetricBase):
 
     def __init__(
         self,
-        pre_collect_process_func: Optional[Callable] = None,
-        post_collect_process_func: Optional[Callable] = None,
-        batch_pre_collect_process_func: Optional[Callable] = None,
-        batch_post_collect_process_func: Optional[Callable] = None,
-        post_keys_to_collect: Optional[Sequence[str]] = None,
-        external_data_collector: Optional[MetricCollector] = None,
+        pre_collect_process_func: Callable | None = None,
+        post_collect_process_func: Callable | None = None,
+        batch_pre_collect_process_func: Callable | None = None,
+        batch_post_collect_process_func: Callable | None = None,
+        post_keys_to_collect: Sequence[str] | None = None,
+        external_data_collector: MetricCollector | None = None,
         collect_ids: bool = True,
         extract_ids: bool = False,
         collect_distributed: bool = True,
@@ -512,7 +513,7 @@ class MetricWithCollectorBase(MetricBase):
             return self._collector.reset()
 
     def _extract_arguments(
-        self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None
+        self, results: Dict[str, Any] = None, ids: Sequence[Hashable] | None = None
     ) -> Dict:
         """
         extract keyworded arguments and value arguments from collected data and results dict
@@ -544,7 +545,7 @@ class MetricWithCollectorBase(MetricBase):
 
     @abstractmethod
     def eval(
-        self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None
+        self, results: Dict[str, Any] = None, ids: Sequence[Hashable] | None = None
     ) -> None:
         """
         See super class
@@ -561,8 +562,8 @@ class MetricDefault(MetricWithCollectorBase):
     def __init__(
         self,
         metric_func: Callable,
-        pred: Optional[str] = None,
-        target: Optional[str] = None,
+        pred: str | None = None,
+        target: str | None = None,
         **kwargs: Any,
     ):
         """
@@ -584,12 +585,11 @@ class MetricDefault(MetricWithCollectorBase):
         self._metric_func = metric_func
 
     def eval(
-        self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None
-    ) -> Union[Dict, Any]:
+        self, results: Dict[str, Any] = None, ids: Sequence[Hashable] | None = None
+    ) -> Dict | Any:
         """
         See super class
         """
-
         # extract values from collected data and results dict
         kwargs = self._extract_arguments(results, ids)
 
@@ -619,7 +619,6 @@ class MetricPerSampleDefault(MetricWithCollectorBase):
         :param result_aggregate_func: function that get the output of metric_per_sample_func and aggregates it over multiple samples
         :param kwargs: additional kw arguments for MetricWithCollectorBase
         """
-
         super().__init__(
             pred=pred,
             target=target,
@@ -629,12 +628,11 @@ class MetricPerSampleDefault(MetricWithCollectorBase):
         self._result_aggregate_func = result_aggregate_func
 
     def eval(
-        self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None
-    ) -> Union[Dict, Any]:
+        self, results: Dict[str, Any] = None, ids: Sequence[Hashable] | None = None
+    ) -> Dict | Any:
         """
         See super class
         """
-
         # extract values from collected data and results dict
         kwargs = self._extract_arguments(results, ids)
 
@@ -654,9 +652,9 @@ class MetricPerBatchDefault(MetricWithCollectorBase):
     def __init__(
         self,
         *,
-        metric_per_batch_func: Optional[Callable],
+        metric_per_batch_func: Callable | None,
         result_aggregate_func: Callable,
-        metric_per_batch_func_pre_collect: Optional[Callable] = None,
+        metric_per_batch_func_pre_collect: Callable | None = None,
         **kwargs: Any,
     ):
         """
@@ -667,7 +665,6 @@ class MetricPerBatchDefault(MetricWithCollectorBase):
         :param result_aggregate_func: function that get the output of metric_per_sample_func and aggregates it over multiple samples
         :param kwargs: additional kw arguments for MetricWithCollectorBase
         """
-
         super().__init__(
             batch_post_collect_process_func=metric_per_batch_func,
             batch_pre_collect_process_func=metric_per_batch_func_pre_collect,
@@ -676,12 +673,11 @@ class MetricPerBatchDefault(MetricWithCollectorBase):
         self._result_aggregate_func = result_aggregate_func
 
     def eval(
-        self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None
-    ) -> Union[Dict, Any]:
+        self, results: Dict[str, Any] = None, ids: Sequence[Hashable] | None = None
+    ) -> Dict | Any:
         """
         See super class
         """
-
         # extract values from collected data and results dict
         kwargs = self._extract_arguments(results, ids)
 
@@ -714,24 +710,24 @@ class GroupAnalysis(MetricWithCollectorBase):
         self._compute_group_stats = compute_group_stats
 
     def collect(self, batch: Dict) -> None:
-        "See super class"
+        """See super class"""
         self._metric.collect(batch)
         return super().collect(batch)
 
     def set(self, data: pd.DataFrame) -> None:
-        "See super class"
+        """See super class"""
         self._metric.set(data)
         return super().set(data)
 
     def reset(self) -> None:
-        "See super class"
+        """See super class"""
         self._metric.reset()
         return super().reset()
 
     def eval(
         self,
         results: Dict[str, Any] = None,
-        ids: Optional[Sequence[Hashable]] = None,
+        ids: Sequence[Hashable] | None = None,
     ) -> Dict[str, Any]:
         """
         See super class
@@ -778,7 +774,7 @@ class GroupAnalysis(MetricWithCollectorBase):
                         # do nothing
                         pass
             else:  # single value
-                values = [group_result for group_result in group_results_list]
+                values = list(group_results_list)
                 try:
                     group_analysis_results["mean"] = np.mean(values)
                     group_analysis_results["std"] = np.std(values)
@@ -799,7 +795,7 @@ class Filter(MetricWithCollectorBase):
         self,
         metric: MetricBase,
         filter: str,
-        cond: Optional[callable] = None,
+        cond: Callable | None = None,
         **super_kwargs: Any,
     ) -> None:
         """
@@ -813,22 +809,22 @@ class Filter(MetricWithCollectorBase):
         self._cond = cond
 
     def collect(self, batch: Dict) -> None:
-        "See super class"
+        """See super class"""
         self._metric.collect(batch)
         return super().collect(batch)
 
     def set(self, data: pd.DataFrame) -> None:
-        "See super class"
+        """See super class"""
         self._metric.set(data)
         return super().set(data)
 
     def reset(self) -> None:
-        "See super class"
+        """See super class"""
         self._metric.reset()
         return super().reset()
 
     def eval(
-        self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None
+        self, results: Dict[str, Any] = None, ids: Sequence[Hashable] | None = None
     ) -> Dict[str, Any]:
         """
         See super class
@@ -893,22 +889,22 @@ class CI(MetricWithCollectorBase):
         ], f"Error: unexpected confidence interval method: {ci_method}"
 
     def collect(self, batch: Dict) -> None:
-        "See super class"
+        """See super class"""
         self._metric.collect(batch)
         return super().collect(batch)
 
     def set(self, data: pd.DataFrame) -> None:
-        "See super class"
+        """See super class"""
         self._metric.set(data)
         return super().set(data)
 
     def reset(self) -> None:
-        "See super class"
+        """See super class"""
         self._metric.reset()
         return super().reset()
 
     def eval(
-        self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None
+        self, results: Dict[str, Any] = None, ids: Sequence[Hashable] | None = None
     ) -> Dict[str, Any]:
         """
         See super class
@@ -966,11 +962,11 @@ class CI(MetricWithCollectorBase):
     @staticmethod
     def _compute_stats(
         ci_method: str,
-        orig: Union[float, np.ndarray],
-        samples: Sequence[Union[float, np.ndarray]],
+        orig: float | np.ndarray,
+        samples: Sequence[float | np.ndarray],
         confidence: float,
-    ) -> Dict[str, Union[np.ndarray, float]]:
-        "Compute and package into dictionary CI results"
+    ) -> Dict[str, np.ndarray | float]:
+        """Compute and package into dictionary CI results"""
         confidence_lower, confidence_upper = CI.compute_confidence_interval(
             ci_method, orig, samples, confidence
         )
@@ -986,8 +982,8 @@ class CI(MetricWithCollectorBase):
     @staticmethod
     def compute_confidence_interval(
         method: str,
-        org_statistic: Union[float, np.ndarray],
-        bootstrap_statistics: Sequence[Union[float, np.ndarray]],
+        org_statistic: float | np.ndarray,
+        bootstrap_statistics: Sequence[float | np.ndarray],
         confidence: float,
     ) -> Tuple[float, float]:
         lower_confidence_ratio = (1 - confidence / 100.0) / 2.0

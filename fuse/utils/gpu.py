@@ -21,14 +21,14 @@ import logging
 import os
 import subprocess
 import traceback
-from typing import Any, List, Optional
+from typing import Any
 
 import torch
 
 from fuse.utils.utils_debug import FuseDebug
 
 
-def get_available_gpu_ids() -> List[int]:
+def get_available_gpu_ids() -> list[int]:
     nvidia_smi_output = run_nvidia_smi()
     if nvidia_smi_output is None:
         return None
@@ -37,7 +37,7 @@ def get_available_gpu_ids() -> List[int]:
     return available_gpu_ids
 
 
-def set_cuda_visible_devices(list_of_gpu_ids: List[int]) -> None:
+def set_cuda_visible_devices(list_of_gpu_ids: list[int]) -> None:
     devices = [str(x) for x in list_of_gpu_ids]
     allow_visible_gpus_str = ",".join(devices)
     os.environ["CUDA_VISIBLE_DEVICES"] = allow_visible_gpus_str
@@ -46,7 +46,7 @@ def set_cuda_visible_devices(list_of_gpu_ids: List[int]) -> None:
 
 def choose_and_enable_multiple_gpus(
     num_gpus_needed: int,
-    force_gpus: Optional[List[int]] = None,
+    force_gpus: list[int] | None = None,
     use_cpu_if_fail: bool = False,
 ) -> int:
     """
@@ -82,7 +82,7 @@ def choose_and_enable_multiple_gpus(
             )
         else:
             selected_gpu_ids = sorted(available_gpu_ids, reverse=True)[:num_gpus_needed]
-            logging.getLogger("Fuse").info("selecting GPUs %s" % str(selected_gpu_ids))
+            logging.getLogger("Fuse").info(f"selecting GPUs {selected_gpu_ids}")
             set_cuda_visible_devices(selected_gpu_ids)
 
         torch.backends.cudnn.benchmark = (
@@ -164,7 +164,7 @@ def run_nvidia_smi() -> str:
     return nvidia_smi_output
 
 
-def get_available_gpu_ids_from_nvidia_smi_output(raw_output: str) -> List[int]:
+def get_available_gpu_ids_from_nvidia_smi_output(raw_output: str) -> list[int]:
     """
     Parse 'nvidia-smi' table
     :param raw_output:

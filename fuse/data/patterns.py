@@ -1,6 +1,7 @@
 import re
 from collections import OrderedDict
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 
 class Patterns:
@@ -13,6 +14,7 @@ class Patterns:
         """
         :param patterns_dict: ordered dictionary, the key is a regex expression.
                         The value of the first matched key will be returned.
+
         Example:
         patterns = {
             r".*img$": DataType.IMAGE,
@@ -30,6 +32,7 @@ class Patterns:
         print(pp.get_type("a.bbox")) -> DataType.BBOX
 
         :param default_value: value to return in case there is not match
+
         """
         self._patterns = patterns_dict
         self._default_value = default_value

@@ -1,5 +1,3 @@
-from typing import Optional
-
 import numpy as np
 import torch
 import torch.nn as nn
@@ -42,7 +40,7 @@ class WordDropout(nn.Module):
         key_in: str,
         key_out: str,
         mask_value: int = 0,
-        p_word_dropout_eval: Optional[float] = None,
+        p_word_dropout_eval: float | None = None,
     ):
         super().__init__()
         self._p = p_word_dropout

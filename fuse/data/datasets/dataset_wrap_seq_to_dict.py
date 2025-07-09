@@ -17,7 +17,8 @@ Created on June 30, 2021
 
 """
 
-from typing import List, Optional, Sequence, Union
+from collections.abc import Sequence
+from typing import List
 
 from torch.utils.data import Dataset
 
@@ -45,7 +46,7 @@ class OpReadDataset(OpBase):
         self._sample_keys = sample_keys
         self._dataset = dataset
 
-    def __call__(self, sample_dict: NDict) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict) -> None | dict | List[dict]:
         """
         See super class
         """
@@ -81,15 +82,16 @@ class DatasetWrapSeqToDict(DatasetDefault):
 
         # get sample
         sample = train_dataset[index] # sample is a dict with keys: 'data.sample_id', 'data.image' and 'data.label'
+
     """
 
     def __init__(
         self,
         name: str,
         dataset: Dataset,
-        sample_keys: Union[Sequence[str], str],
-        cache_dir: Optional[str] = None,
-        sample_ids: Optional[Sequence] = None,
+        sample_keys: Sequence[str] | str,
+        cache_dir: str | None = None,
+        sample_ids: Sequence | None = None,
         **kwargs: dict,
     ):
         """

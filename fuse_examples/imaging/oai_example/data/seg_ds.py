@@ -1,5 +1,5 @@
+from collections.abc import Hashable, Sequence
 from functools import partial
-from typing import Hashable, Optional, Sequence, Tuple, Union
 
 import pandas as pd
 import torch
@@ -48,13 +48,12 @@ class SegOAI:
 
     @staticmethod
     def dynamic_pipeline(
-        validation: bool = False, resize_to: Tuple[int, int, int] = [40, 224, 224]
+        validation: bool = False, resize_to: tuple[int, int, int] = [40, 224, 224]
     ) -> PipelineDefault:
         """
         Get suggested dynamic pipeline. including pre-processing that might be modified and augmentation operations.
         :param train : True iff we request dataset for train purpouse
         """
-
         dynamic_pipeline = PipelineDefault("dynamic", [])
         # augmentation
 
@@ -94,11 +93,11 @@ class SegOAI:
 
     @staticmethod
     def dataset(
-        csv_path: Union[str, pd.DataFrame],
+        csv_path: str | pd.DataFrame,
         cache_dir: str = None,
         reset_cache: bool = True,
         num_workers: int = 10,
-        sample_ids: Optional[Sequence[Hashable]] = None,
+        sample_ids: Sequence[Hashable] | None = None,
         resize_to: tuple = (40, 224, 224),
         validation: bool = False,
     ) -> DatasetDefault:

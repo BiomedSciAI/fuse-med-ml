@@ -1,5 +1,5 @@
 import inspect
-from typing import Any, Callable, Dict, List  # , _UnionGenericAlias
+from typing import Any, Callable  # , _UnionGenericAlias
 
 # https://stackoverflow.com/questions/147816/preserving-signatures-of-decorated-functions
 # https://stackoverflow.com/questions/5929107/decorators-with-parameters
@@ -48,15 +48,15 @@ the API will be enforced and exceptions will be raised if requirements are not m
 """
 
 
-def validate_signature(*, args: List[str] = None) -> Callable:
+def validate_signature(*, args: list[str] = None) -> Callable:
     def wrapper(function: Callable) -> Any:
         return validate_signature_impl(function, args=args)
 
     return wrapper
 
 
-class validate_signature_impl(object):
-    def __init__(self, fn: Callable, args: List[str] = None) -> None:
+class validate_signature_impl:
+    def __init__(self, fn: Callable, args: list[str] = None) -> None:
         self.fn = fn
         self._args_to_validate = args
 
@@ -109,7 +109,7 @@ class InterfaceValidator:
             self._validate_signature(method_name, curr_validate_args)
 
     def _validate_signature(
-        self, method_name: str, validate_args: Dict[str, Any]
+        self, method_name: str, validate_args: dict[str, Any]
     ) -> None:
         """
         raises an exception if a signature mismatch is found
