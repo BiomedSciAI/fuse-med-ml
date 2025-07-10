@@ -101,7 +101,6 @@ def example_seq_gen_2() -> Dict[str, Any]:
     """
     Example/Test for perplexity metric - batch mode
     """
-
     encoder_input_tokens = torch.arange(5000).reshape(10, 500)
     data = {
         "encoder_input_tokens": list(encoder_input_tokens),

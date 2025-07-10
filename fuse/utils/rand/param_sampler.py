@@ -18,7 +18,8 @@ Created on June 30, 2021
 """
 import random
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Any
 
 import numpy as np
 
@@ -100,7 +101,7 @@ class RandBool(ParamSamplerBase):
 
 class Choice(ParamSamplerBase):
     def __init__(
-        self, seq: Sequence, probabilities: Optional[List[float]] = None, k: int = 0
+        self, seq: Sequence, probabilities: list[float] | None = None, k: int = 0
     ):
         """
         Random choice out of a sequence
@@ -132,7 +133,7 @@ class Gaussian(ParamSamplerBase):
     Gaussian noise
     """
 
-    def __init__(self, shape: Tuple[int, ...], mean: float, std: float):
+    def __init__(self, shape: tuple[int, ...], mean: float, std: float):
         """
         :param shape: patch size of the required noise
         :param mean: mean of the gauss noise
@@ -174,9 +175,9 @@ def draw_samples_recursively(data: Any) -> Any:
         return data_lst
 
     # if a tuple  return a copy of the tuple try to sample each element recursively
-    if isinstance(data, Tuple):
+    if isinstance(data, tuple):
         data_tuple = tuple(
-            (draw_samples_recursively(data[ii]) for ii in range(len(data)))
+            draw_samples_recursively(data[ii]) for ii in range(len(data))
         )
         return data_tuple
 

@@ -18,8 +18,9 @@ Created on June 30, 2021
 
 import copy
 from collections import OrderedDict
+from collections.abc import Hashable, Sequence
 from operator import itemgetter
-from typing import Any, Dict, Hashable, List, Optional, Sequence, Union
+from typing import Any, Dict, List
 from warnings import warn
 
 import numpy as np
@@ -43,10 +44,10 @@ from fuse.utils.ndict import NDict
 class DatasetDefault(DatasetBase):
     def __init__(
         self,
-        sample_ids: Union[int, Sequence[Hashable], None],
-        static_pipeline: Optional[PipelineDefault] = None,
-        dynamic_pipeline: Optional[PipelineDefault] = None,
-        cacher: Optional[SamplesCacher] = None,
+        sample_ids: int | Sequence[Hashable] | None,
+        static_pipeline: PipelineDefault | None = None,
+        dynamic_pipeline: PipelineDefault | None = None,
+        cacher: SamplesCacher | None = None,
         allow_uncached_sample_morphing: bool = False,
     ):
         """
@@ -125,14 +126,14 @@ class DatasetDefault(DatasetBase):
         self._created = False
 
     @property
-    def static_pipeline(self) -> Union[PipelineDefault, None]:
+    def static_pipeline(self) -> PipelineDefault | None:
         return self._static_pipeline
 
     @property
-    def dynamic_pipeline(self) -> Union[PipelineDefault, None]:
+    def dynamic_pipeline(self) -> PipelineDefault | None:
         return self._dynamic_pipeline
 
-    def create(self, num_workers: int = 0, mp_context: Optional[str] = None) -> None:
+    def create(self, num_workers: int = 0, mp_context: str | None = None) -> None:
         """
         Create the data set, including caching
         :param num_workers: number of workers. used only when caching is disabled and allow_uncached_sample_morphing is enabled
@@ -141,7 +142,6 @@ class DatasetDefault(DatasetBase):
         :param mp_context: "fork", "spawn", "thread" or None for multiprocessing default
         :return: None
         """
-
         self._output_sample_ids_info = None
         if self._cacher is not None:
             self._output_sample_ids_info = self._cacher.cache_samples(
@@ -201,7 +201,7 @@ class DatasetDefault(DatasetBase):
         self._created = False
         self.create(**kwargs)
 
-    def __getitem__(self, item: Union[int, Hashable]) -> NDict:
+    def __getitem__(self, item: int | Hashable) -> NDict:
         """
         Get sample, read from cache if possible
         :param item: either int representing sample index or sample_id
@@ -211,9 +211,9 @@ class DatasetDefault(DatasetBase):
 
     def getitem(
         self,
-        item: Union[int, Hashable],
-        collect_marker_name: Optional[str] = None,
-        keys: Optional[Sequence[str]] = None,
+        item: int | Hashable,
+        collect_marker_name: str | None = None,
+        keys: Sequence[str] | None = None,
     ) -> NDict:
         """
         Get sample, read from cache if possible
@@ -284,9 +284,9 @@ class DatasetDefault(DatasetBase):
         return self.getitem(sid, **kwargs)
 
     @staticmethod
-    def _getitem_multiprocess(item: Union[Hashable, int, np.integer]) -> Any:
+    def _getitem_multiprocess(item: Hashable | int | np.integer) -> Any:
         """
-        getitem method used to optimize the running time in a multiprocess mode
+        Getitem method used to optimize the running time in a multiprocess mode
         """
         dataset = get_from_global_storage("dataset_default_get_multi_dataset")
         kwargs = get_from_global_storage("dataset_default_get_multi_kwargs")
@@ -294,10 +294,10 @@ class DatasetDefault(DatasetBase):
 
     def get_multi(
         self,
-        items: Optional[Sequence[Union[int, Hashable]]] = None,
+        items: Sequence[int | Hashable] | None = None,
         workers: int = 10,
         verbose: int = 1,
-        mp_context: Optional[str] = None,
+        mp_context: str | None = None,
         desc: str = "dataset_default.get_multi",
         **kwargs: Any,
     ) -> List[Dict]:
@@ -415,12 +415,13 @@ class DatasetDefault(DatasetBase):
 
     def subset(self, indices: Sequence[int]) -> None:
         """
-        create a subset of the dataset by a given indices (inplace).
+        Create a subset of the dataset by a given indices (inplace).
 
         Example:
             For the dataset '[-2, 1, 5, 3, 8, 5, 6]' and the indices '[1, 2, 5]', the subset is [1, 5, 5]
 
         :param items: indices of the subset - if None, the subset is the whole set.
+
         """
         if indices is None:
             # Do nothing, the subset is the whole dataset

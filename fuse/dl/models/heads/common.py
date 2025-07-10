@@ -17,7 +17,8 @@ Created on June 30, 2021
 
 """
 
-from typing import List, Optional, Sequence
+from collections.abc import Sequence
+from typing import List
 
 import torch
 import torch.nn as nn
@@ -32,7 +33,7 @@ class ClassifierFCN(nn.Module):
     def __init__(
         self,
         in_ch: int,
-        num_classes: Optional[int],
+        num_classes: int | None,
         layers_description: Sequence[int] = (256,),
         dropout_rate: float = 0.1,
     ):
@@ -76,7 +77,7 @@ class ClassifierFCN3D(nn.Module):
     def __init__(
         self,
         in_ch: int,
-        num_classes: Optional[int],
+        num_classes: int | None,
         layers_description: Sequence[int] = (256,),
         dropout_rate: float = 0.1,
     ):
@@ -119,7 +120,7 @@ class ClassifierMLP(nn.Module):
     def __init__(
         self,
         in_ch: int,
-        num_classes: Optional[int] = None,
+        num_classes: int | None = None,
         layers_description: Sequence[int] = (256,),
         dropout_rate: float = 0.1,
         bias: bool = True,
@@ -168,11 +169,13 @@ class EncoderEmbeddingOutputHead(nn.Module):
 
         This class applies a multi-layer MLP to an input and allows to apply a pooling operation to the sequence dimension - prior to applying the MLP.
         This is usefull for extracting a single representation for embeddings of an entire sequence.
+
         Args:
             embedding_size: MLP input dimension.
             layers: List[int], specifies the output dimension of the MLP in each layer.
             dropout: dropout rate, applied to every layer in the MLP
             pooling: str (optional) type of pooling to be used, currently available are ["mean", "last"]. Pooling operations ignore pad tokens - a padding mask should be supplied in the forward pass.
+
         """
         super().__init__()
         self.embedding_size = embedding_size
@@ -204,8 +207,8 @@ class EncoderEmbeddingOutputHead(nn.Module):
         Args:
             padding_mask: a mask that indicates which positions are for valid tokens (1) and which are padding tokens (0) - typically this is similar to an attention mask.
             keep_pool_dim: if True an output of shape (B, L, D) will be returned as (B, 1, D) otherwise returns (B, D)
-        """
 
+        """
         if self.pooling is not None:
             assert (
                 padding_mask is not None
@@ -222,9 +225,11 @@ class EncoderEmbeddingOutputHead(nn.Module):
 class ModularPooling1D(nn.Module):
     """
     A wrapper around multiple pooling methods.
+
     Args:
         pooling: str, type of pooling to apply, available methods are: ["mean", "last"] TODO: add max?
         pool_dim: dimension to apply pooling
+
     """
 
     def __init__(self, pooling: str, pool_dim: int = 1, **kwargs: dict):
@@ -293,8 +298,10 @@ def get_last_non_pad_token(padding_mask: Tensor) -> Tensor:
     """
     Returns the positions of last non-pad token, for every element in the batch.
     Expected input shape is (B, L), B is the batch size, L is the sequence dimension.
+
     Args:
         padding_mask: a boolean tensor with True values for none-padded positions and False values for padded positions (usually same as the attention mask input to an encoder model)
+
     """
     non_pad_pos = padding_mask.cumsum(dim=-1)  # starts from 1
     non_pad_last_pos = non_pad_pos[:, -1] - 1

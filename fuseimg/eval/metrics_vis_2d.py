@@ -1,5 +1,6 @@
+from collections.abc import Hashable, Sequence
 from functools import partial
-from typing import Any, Callable, Dict, Hashable, Optional, Sequence
+from typing import Any, Callable
 
 from fuse.eval.metrics.metrics_common import MetricWithCollectorBase
 from fuseimg.data.ops.ops_debug import OpVis2DImage
@@ -13,12 +14,12 @@ class MetricVis2DImage(MetricWithCollectorBase):
 
     def __init__(
         self,
-        sample_ids: Optional[Sequence[Hashable]] = None,
-        num_samples: Optional[int] = None,
+        sample_ids: Sequence[Hashable] | None = None,
+        num_samples: int | None = None,
         show: bool = True,
         path: str = ".",
         image_format: str = "channels_first",
-        image_process_func: Optional[Callable] = None,
+        image_process_func: Callable | None = None,
         **kwargs: dict,
     ) -> None:
         """
@@ -49,7 +50,7 @@ class MetricVis2DImage(MetricWithCollectorBase):
         self._op_vis.reset(f"epoch_{self._epoch}")
 
     def eval(
-        self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None
+        self, results: dict[str, Any] = None, ids: Sequence[Hashable] | None = None
     ) -> None:
         # Do nothing - the logic run pre sample in pre_collect_process func
         pass

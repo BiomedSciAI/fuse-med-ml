@@ -17,7 +17,7 @@ Created on June 30, 2021
 
 """
 
-from typing import Callable, Optional
+from typing import Callable
 
 import torch
 
@@ -74,11 +74,12 @@ class LossDefault(LossBase):
         pred: str = None,
         target: str = None,
         callable: Callable = None,
-        weight: Optional[float] = None,
-        preprocess_func: Optional[Callable] = None,
+        weight: float | None = None,
+        preprocess_func: Callable | None = None,
     ) -> None:
         """
         This class wraps a PyTorch loss function with a Fuse api.
+
         Args:
         :param pred:               batch_dict key for prediction (e.g., network output)
         :param target:             batch_dict key for target (e.g., ground truth label)
@@ -87,6 +88,7 @@ class LossDefault(LossBase):
         :param preprocess_func:             function that filters batch_dict/ The function gets an input batch_dict and returns filtered batch_dict
             the expected function signature is:
                 foo(batch_dict: NDict) -> NDict:
+
         """
         super().__init__()
         self.pred = pred

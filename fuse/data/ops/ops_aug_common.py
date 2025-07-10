@@ -1,5 +1,6 @@
 import random
-from typing import List, Optional, Sequence, Union
+from collections.abc import Sequence
+from typing import List
 
 from fuse.data.ops.op_base import OpBase, OpReversibleBase, op_call, op_reverse
 from fuse.data.ops.ops_common import OpRepeat
@@ -18,8 +19,8 @@ class OpRandApply(OpReversibleBase):
         self._param_sampler = RandBool(probability=probability)
 
     def __call__(
-        self, sample_dict: NDict, op_id: Optional[str], **kwargs: dict
-    ) -> Union[None, dict, List[dict]]:
+        self, sample_dict: NDict, op_id: str | None, **kwargs: dict
+    ) -> None | dict | List[dict]:
         """
         See super class
         """
@@ -34,7 +35,7 @@ class OpRandApply(OpReversibleBase):
         sample_dict: NDict,
         key_to_reverse: str,
         key_to_follow: str,
-        op_id: Optional[str],
+        op_id: str | None,
     ) -> dict:
         """
         See super class
@@ -72,8 +73,8 @@ class OpSample(OpReversibleBase):
         self._op = op
 
     def __call__(
-        self, sample_dict: NDict, op_id: Optional[str], **kwargs: dict
-    ) -> Union[None, dict, List[dict]]:
+        self, sample_dict: NDict, op_id: str | None, **kwargs: dict
+    ) -> None | dict | List[dict]:
         """
         See super class
         """
@@ -85,7 +86,7 @@ class OpSample(OpReversibleBase):
         sample_dict: NDict,
         key_to_reverse: str,
         key_to_follow: str,
-        op_id: Optional[str],
+        op_id: str | None,
     ) -> dict:
         """
         See super class

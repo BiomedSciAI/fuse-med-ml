@@ -2,8 +2,9 @@ import glob
 import os
 import pickle
 from collections import OrderedDict
+from collections.abc import Sequence
 from random import randrange
-from typing import Any, List, Sequence, Tuple
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -44,7 +45,6 @@ STATIC_FIELDS = ["Age", "Gender", "Height", "ICUType", "Weight"]
 
 
 class OpAddBMI(OpBase):
-
     """
     Apply BMI calculation using static patient's fields. Names of the fields
     are provided as parameters as well as output field name.
@@ -53,6 +53,7 @@ class OpAddBMI(OpBase):
 
     Example:
     OpAddBMI(key_in_height="Height", key_in_weight="Weight", key_out_bmi="BMI")
+
     """
 
     def __init__(self, key_in_height: str, key_in_weight: str, key_out_bmi: str):
@@ -224,7 +225,7 @@ class OpMapToCategorical(OpBase):
 
 class PhysioNetCinC:
     @staticmethod
-    def _read_raw_data(raw_data_path: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    def _read_raw_data(raw_data_path: str) -> tuple[pd.DataFrame, pd.DataFrame]:
         """
         Loads raw data from the provided directory path.
          It includes clinical patients data and outcomes
@@ -246,7 +247,7 @@ class PhysioNetCinC:
                 ).reset_index(drop=True)
                 df_file["PatientId"] = patient_id
                 df = pd.concat([df, df_file], axis=0)
-        df.reset_index(inplace=True, drop=True)
+        df = df.reset_index(drop=True)
         patient_ids = np.unique(df["PatientId"].values)
 
         # read outcomes
@@ -259,7 +260,7 @@ class PhysioNetCinC:
             ).reset_index(drop=True)
 
         df_outcomes["RecordID"] = df_outcomes["RecordID"].astype(str)
-        df_outcomes.rename(columns={"RecordID": "PatientId"}, inplace=True)
+        df_outcomes = df_outcomes.rename(columns={"RecordID": "PatientId"})
 
         # synchronize with patients data
         df_outcomes = df_outcomes[df_outcomes["PatientId"].isin(patient_ids)]
@@ -308,20 +309,19 @@ class PhysioNetCinC:
         visits (observations taking events)
         :return: updated data frame of patients' observation records
         """
-
         df_fixed = df.copy()
         count_dropped_short_time = 0
         count_dropped_min_visits = 0
         for pat_id, df_pat_records in df.groupby("PatientId"):
             hours = df_pat_records["Time"].str.split(":", n=1, expand=True)[0].values
             if max(hours.astype(int)) < min_hours:
-                df_fixed.drop(df_pat_records.index, inplace=True)
+                df_fixed = df_fixed.drop(df_pat_records.index)
                 count_dropped_short_time += 1
                 continue
 
             num_visits = len(np.unique(df_pat_records["Time"].values))
             if num_visits < min_num_of_visits:
-                df_fixed.drop(df_pat_records.index, inplace=True)
+                df_fixed = df_fixed.drop(df_pat_records.index)
                 count_dropped_min_visits += 1
 
         return df_fixed
@@ -337,7 +337,6 @@ class PhysioNetCinC:
         :param df_outcomes: date frame of patients' outcomes
         :return: combined data frame of patients
         """
-
         static_fields = ["Age", "Height", "Weight", "Gender", "ICUType"]
 
         patient_ids = []
@@ -385,7 +384,6 @@ class PhysioNetCinC:
         of unique values.
         :return: dictionary of calculated percentiles (bins)
         """
-
         df = ExportDataset.export_to_dataframe(
             dataset, keys=["StaticDetails", "Visits"], workers=1
         )
@@ -438,7 +436,6 @@ class PhysioNetCinC:
         percentiles (bins) for each observation type
         :return: corpus of words
         """
-
         corpus = list(special_tokens.values())
 
         for k in dict_percentiles.keys():
@@ -456,7 +453,7 @@ class PhysioNetCinC:
         raw_data_pkl: str,
         min_hours_in_hospital: int,
         min_number_of_visits: int,
-    ) -> Tuple[pd.DataFrame, list]:
+    ) -> tuple[pd.DataFrame, list]:
         """
         Applies all stages for generation patients' data frame.
         Manages generated data frame in pickle file.
@@ -502,7 +499,7 @@ class PhysioNetCinC:
         embed_static_in_all_visits: Any,
         token2idx: Any,
         max_len: int,
-    ) -> List[OpBase]:
+    ) -> list[OpBase]:
         """
         Generates dynamic pipeline by stacking a list of Operators.
         :param dict_percentiles: percentiles of observations
@@ -551,7 +548,7 @@ class PhysioNetCinC:
         static_variables_to_embed: Sequence[str],
         embed_static_in_all_visits: int,
         max_len_seq: int,
-    ) -> Tuple[Any, DatasetDefault, DatasetDefault, DatasetDefault]:
+    ) -> tuple[Any, DatasetDefault, DatasetDefault, DatasetDefault]:
         """
         This is the main methods for dataset generation. It includes the stages
          - raw data loading and processing for generation data frame with

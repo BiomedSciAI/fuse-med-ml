@@ -17,7 +17,8 @@ Created on June 30, 2021
 
 """
 
-from typing import Any, Callable, Dict, Sequence, Union
+from collections.abc import Sequence
+from typing import Any, Callable, Dict
 
 import torch
 import torch.nn as nn
@@ -35,7 +36,7 @@ class ModelWrapSeqToDict(nn.Module):
         self,
         *,  # preventing positional args
         model: torch.nn.Module = None,
-        model_inputs: Union[Sequence[str], Dict[str, str]] = None,
+        model_inputs: Sequence[str] | Dict[str, str] = None,
         model_outputs: Sequence[str] = None,
         pre_forward_processing_function: Callable = None,
         post_forward_processing_function: Callable = None,
@@ -113,7 +114,7 @@ class ModelWrapSeqToDict(nn.Module):
 
         return batch_dict
 
-    def __getattr__(self, name: str) -> Union[Tensor, nn.Module]:
+    def __getattr__(self, name: str) -> Tensor | nn.Module:
         try:
             return super().__getattr__(name)
         except:

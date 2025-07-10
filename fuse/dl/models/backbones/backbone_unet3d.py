@@ -11,7 +11,7 @@ torch.use_deterministic_algorithms(False)
 class ContBatchNorm3d(nn.modules.batchnorm._BatchNorm):
     def _check_input_dim(self, input: torch.Tensor) -> None:
         if input.dim() != 5:
-            raise ValueError("expected 5D input (got {}D input)".format(input.dim()))
+            raise ValueError(f"expected 5D input (got {input.dim()}D input)")
         # super(ContBatchNorm3d, self)._check_input_dim(input)
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
@@ -30,7 +30,7 @@ class ContBatchNorm3d(nn.modules.batchnorm._BatchNorm):
 
 class LUConv(nn.Module):
     def __init__(self, in_chan: int, out_chan: int, act: str):
-        super(LUConv, self).__init__()
+        super().__init__()
         self.conv1 = nn.Conv3d(in_chan, out_chan, kernel_size=3, padding=1)
         self.bn1 = ContBatchNorm3d(out_chan)
 
@@ -80,7 +80,7 @@ def _make_nConv(
 
 class DownTransition(nn.Module):
     def __init__(self, in_channel: int, depth: int, act: str):
-        super(DownTransition, self).__init__()
+        super().__init__()
         self.ops = _make_nConv(in_channel, depth, act)
         self.maxpool = nn.MaxPool3d(2)
         self.current_depth = depth
@@ -97,7 +97,7 @@ class DownTransition(nn.Module):
 
 class UpTransition(nn.Module):
     def __init__(self, inChans: int, outChans: int, depth: int, act: str):
-        super(UpTransition, self).__init__()
+        super().__init__()
         self.depth = depth
         self.up_conv = nn.ConvTranspose3d(inChans, outChans, kernel_size=2, stride=2)
         self.ops = _make_nConv(inChans + outChans // 2, depth, act, double_chnnel=True)
@@ -111,7 +111,7 @@ class UpTransition(nn.Module):
 
 class OutputTransition(nn.Module):
     def __init__(self, inChans: int, n_labels: int):
-        super(OutputTransition, self).__init__()
+        super().__init__()
         self.final_conv = nn.Conv3d(inChans, n_labels, kernel_size=1)
         self.sigmoid = nn.Sigmoid()
 
@@ -124,7 +124,7 @@ class UNet3D(nn.Module):
     # the number of convolutions in each layer corresponds
     # to what is in the actual prototxt, not the intent
     def __init__(self, n_class: int = 1, act: str = "relu", for_cls: bool = False):
-        super(UNet3D, self).__init__()
+        super().__init__()
         self.for_cls = for_cls
         self.down_tr64 = DownTransition(1, 0, act)
         self.down_tr128 = DownTransition(64, 1, act)

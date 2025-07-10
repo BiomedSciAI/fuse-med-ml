@@ -17,7 +17,7 @@ Created on June 30, 2021
 
 """
 
-from typing import Dict, List
+from typing import Dict
 
 import torch
 import torch.nn as nn
@@ -29,7 +29,7 @@ class BackboneMViT(nn.Module):
     def __init__(
         self,
         in_channels: int = 3,  # can be 1
-        input_dim: List[int] = [16, 224, 224],
+        input_dim: list[int] = [16, 224, 224],
         pretrained: bool = False,
     ) -> None:
         """
@@ -41,8 +41,8 @@ class BackboneMViT(nn.Module):
 
         :param pretrained: if True loads the pretrained video mvit_v2 model.
         """
-        super(BackboneMViT, self).__init__()
-        config: Dict[str, List] = {
+        super().__init__()
+        config: Dict[str, list] = {
             "num_heads": [1, 2, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 8, 8],
             "input_channels": [
                 96,

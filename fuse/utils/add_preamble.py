@@ -21,7 +21,6 @@ import fileinput
 import os
 import os.path as path
 import sys
-from typing import List
 
 src_extensions = [".py"]
 preamble_signature = "(C) Copyright 2021 IBM Corp."
@@ -62,7 +61,7 @@ def is_header_missing(f: str) -> bool:
         return True
 
 
-def get_src_files(dirname: str) -> List[str]:
+def get_src_files(dirname: str) -> list[str]:
     src_files = []
     for cur, _dirs, files in os.walk(dirname):
         [
@@ -74,7 +73,7 @@ def get_src_files(dirname: str) -> List[str]:
     return [f for f in src_files if is_header_missing(f)]
 
 
-def add_preamble(files: List[str], header: str) -> None:
+def add_preamble(files: list[str], header: str) -> None:
     for line in fileinput.input(files, inplace=True):
         if fileinput.isfirstline():
             [print(h) for h in header.splitlines()]
@@ -92,7 +91,7 @@ if __name__ == "__main__":
     """
 
     if len(sys.argv) < 2:
-        print("usage: %s <root dir>" % sys.argv[0])
+        print(f"usage: {sys.argv[0]} <root dir>")
         exit()
 
     args = [path.abspath(arg) for arg in sys.argv]
@@ -101,7 +100,7 @@ if __name__ == "__main__":
     files = get_src_files(root_path)
 
     print("Files with missing preamble:")
-    [print("  - %s" % f) for f in files]
+    [print(f"  - {f}") for f in files]
 
     if len(files) > 0:
         confirm = input("proceed ? [y/N] ")

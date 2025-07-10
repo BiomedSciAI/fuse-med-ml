@@ -33,6 +33,7 @@ class AlignMapBase(ABC):
         """
         Learn mapping between two images. This may be a computationally heavy step.
         Mapping is unidirectional, from coordinates in img1 to coordinates in img2.
+
         Examples:
             For feature-based methods, calculate local features
             For deep learning methods, forward pass images
@@ -40,6 +41,7 @@ class AlignMapBase(ABC):
         :param img1: ndarray, float32
         :param img2: ndarray, float32
         :return: None
+
         """
         pass
 

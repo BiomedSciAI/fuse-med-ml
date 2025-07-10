@@ -1,6 +1,5 @@
 from collections import defaultdict
 from functools import partial
-from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -9,9 +8,9 @@ from fuse.eval.metrics.metrics_common import MetricPerSampleDefault
 
 
 def average_sample_results(
-    metric_result: List[Dict[int, float]],
-    class_weights: Optional[Dict[int, float]] = None,
-) -> Dict[str, float]:
+    metric_result: list[dict[int, float]],
+    class_weights: dict[int, float] | None = None,
+) -> dict[str, float]:
     """
     Calculates average result per class and average result over classes on a specific metric
     metric_result assumed to have same type of keys as in class_weights which represents the different classes
@@ -46,8 +45,8 @@ class MetricDice(MetricPerSampleDefault):
         self,
         pred: str,
         target: str,
-        pixel_weight: Optional[str] = None,
-        class_weights: Optional[Dict[int, float]] = None,
+        pixel_weight: str | None = None,
+        class_weights: dict[int, float] | None = None,
         **kwargs: dict
     ):
         """
@@ -77,8 +76,8 @@ class MetricIouJaccard(MetricPerSampleDefault):
         self,
         pred: str,
         target: str,
-        pixel_weight: Optional[str] = None,
-        class_weights: Optional[Dict[int, float]] = None,
+        pixel_weight: str | None = None,
+        class_weights: dict[int, float] | None = None,
         **kwargs: dict
     ):
         """
@@ -107,8 +106,8 @@ class MetricOverlap(MetricPerSampleDefault):
         self,
         pred: str,
         target: str,
-        pixel_weight: Optional[str] = None,
-        class_weights: Optional[Dict[int, float]] = None,
+        pixel_weight: str | None = None,
+        class_weights: dict[int, float] | None = None,
         **kwargs: dict
     ):
         """
@@ -137,7 +136,7 @@ class Metric2DHausdorff(MetricPerSampleDefault):
         self,
         pred: str,
         target: str,
-        class_weights: Optional[Dict[int, float]] = None,
+        class_weights: dict[int, float] | None = None,
         **kwargs: dict
     ):
         """
@@ -164,8 +163,8 @@ class MetricPixelAccuracy(MetricPerSampleDefault):
         self,
         pred: str,
         target: str,
-        pixel_weight: Optional[str] = None,
-        class_weights: Optional[Dict[int, float]] = None,
+        pixel_weight: str | None = None,
+        class_weights: dict[int, float] | None = None,
         **kwargs: dict
     ):
         """

@@ -17,7 +17,7 @@ Created on June 30, 2021
 
 """
 
-from typing import Callable, Tuple, Union
+from typing import Callable
 
 import cv2
 import numpy as np
@@ -55,8 +55,8 @@ def pad_ndimage(
     ndimage: np.ndarray,
     outer_height: int,
     outer_width: int,
-    pad_value: Union[float, int],
-) -> Tuple[np.ndarray, int, int]:
+    pad_value: float | int,
+) -> tuple[np.ndarray, int, int]:
     """
     Pastes input ndimage in the middle of a larger one
     :param ndimage:         2-dim ndimage
@@ -76,7 +76,7 @@ def pad_ndimage(
 
 
 def block_reduce_resize(
-    img: np.ndarray, target_shape: Tuple[int, int] = (10, 5), func: Callable = np.max
+    img: np.ndarray, target_shape: tuple[int, int] = (10, 5), func: Callable = np.max
 ) -> np.ndarray:
     """
     Reduces an image by applying 'func' param on blocks, to yield a target shape.
@@ -105,7 +105,7 @@ def block_reduce_resize(
 
 
 def preserve_range_resize(
-    img: np.ndarray, target_shape: Tuple[int, int] = (10, 5)
+    img: np.ndarray, target_shape: tuple[int, int] = (10, 5)
 ) -> np.ndarray:
     """
     Resizes a 2D ndarray without anti-aliasing and while preserving dtype and range
@@ -145,7 +145,6 @@ def align_ecc(
     The implementation was moved to a separate class; see AlignMapECC. This function serves for backward
     compatibility
     """
-
     try:
         import cv2
 
@@ -169,14 +168,13 @@ def align_ecc(
         return img2
 
 
-def resize_image(image: np.ndarray, resize_to: Tuple[int, int]) -> np.ndarray:
+def resize_image(image: np.ndarray, resize_to: tuple[int, int]) -> np.ndarray:
     """
     Resizes image to resize_to dimensions
     :param image: ndarray of shape [height, width]
     :param resize_to: (expected_height, expected_width)
     :return: image resized to resize_to
     """
-
     import cv2
 
     image_original_h = image.shape[0]

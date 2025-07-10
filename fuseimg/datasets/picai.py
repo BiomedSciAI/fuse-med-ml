@@ -1,6 +1,6 @@
 import os
+from collections.abc import Hashable, Sequence
 from functools import partial
-from typing import Hashable, Optional, Sequence
 
 import nibabel as nib
 import numpy as np
@@ -34,7 +34,7 @@ class OpPICAISampleIDDecode(OpBase):
     """
 
     def __call__(self, sample_dict: NDict) -> NDict:
-        """ """
+
         sid = get_sample_id(sample_dict)
 
         img_filename_key = "data.input.img_path"
@@ -180,8 +180,6 @@ class OpLoadPICAISegmentationWholeGland(OpBase):
 
 
 class PICAI:
-    """ """
-
     @staticmethod
     def static_pipeline(
         data_source: pd.DataFrame,
@@ -363,7 +361,7 @@ class PICAI:
         paths: NDict,
         cfg: NDict,
         reset_cache: bool = True,
-        sample_ids: Optional[Sequence[Hashable]] = None,
+        sample_ids: Sequence[Hashable] | None = None,
         train: bool = False,
         run_sample: int = 0,
     ) -> DatasetDefault:
@@ -377,7 +375,6 @@ class PICAI:
         :param run_sample:                  if > 0 it samples from all the samples #run_sample examples ( used for testing), if =0 then it takes all samples
         :return: DatasetDefault object
         """
-
         input_source_gt = pd.read_csv(paths["clinical_file"])
         input_source_gt["index"] = (
             input_source_gt["patient_id"].astype(str)

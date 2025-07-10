@@ -3,7 +3,6 @@ import os
 import pathlib
 import sys
 from collections import OrderedDict
-from typing import List, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -59,7 +58,7 @@ TASK2_CLASS_NAMES = (
 
 def process(sample_dict: NDict) -> dict:
     """
-    post caching processing. Will group together to an array the per class scores and verify it sums up to 1.0
+    Post caching processing. Will group together to an array the per class scores and verify it sums up to 1.0
     :param sample_dict: a dictionary that contais all the extracted values of a single sample
     :return: a modified/alternative dictionary
     """
@@ -95,7 +94,7 @@ def process(sample_dict: NDict) -> dict:
     return sample_dict
 
 
-def decode_results(results: dict, output_dir: str) -> Tuple[OrderedDict, str]:
+def decode_results(results: dict, output_dir: str) -> tuple[OrderedDict, str]:
     """
     Gets the results computed by the dictionary and summarize it in a markdown text and dictionary.
     The dictionary will be saved in <output_dir>/results.csv and the markdown text in <output_dir>/results.md
@@ -205,8 +204,8 @@ def eval(
     task2_prediction_filename: str,
     target_filename: str,
     output_dir: str,
-    samples_descr_source: Union[str, List[str]] = "task1_pred",
-) -> Tuple[OrderedDict, str]:
+    samples_descr_source: str | list[str] = "task1_pred",
+) -> tuple[OrderedDict, str]:
     """
     Load the prediction and target files, evaluate the predictions and save the results into files.
     :param task1_prediction_filename: path to a prediction csv file for task1. Expecting the columns listed in EXPECTED_TASK1_PRED_KEYS to exist (including the header)

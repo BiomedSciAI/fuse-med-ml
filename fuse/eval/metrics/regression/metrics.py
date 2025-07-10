@@ -1,4 +1,4 @@
-from typing import List, Optional, Sequence, Union
+from collections.abc import Sequence
 
 import numpy as np
 from sklearn.metrics import (
@@ -14,7 +14,7 @@ from fuse.eval.metrics.metrics_common import MetricDefault
 
 class MetricPearsonCorrelation(MetricDefault):
     def __init__(
-        self, pred: str, target: str, mask: Optional[str] = None, **kwargs: dict
+        self, pred: str, target: str, mask: str | None = None, **kwargs: dict
     ) -> None:
         super().__init__(
             pred=pred,
@@ -27,7 +27,7 @@ class MetricPearsonCorrelation(MetricDefault):
 
 class MetricSpearmanCorrelation(MetricDefault):
     def __init__(
-        self, pred: str, target: str, mask: Optional[str] = None, **kwargs: dict
+        self, pred: str, target: str, mask: str | None = None, **kwargs: dict
     ) -> None:
         super().__init__(
             pred=pred,
@@ -43,7 +43,7 @@ class MetricMAE(MetricDefault):
         self,
         pred: str,
         target: str,
-        mask: Optional[str] = None,
+        mask: str | None = None,
         **kwargs: dict,
     ) -> None:
         """
@@ -63,9 +63,9 @@ class MetricMAE(MetricDefault):
 
     def mae(
         self,
-        pred: Union[List, np.ndarray],
-        target: Union[List, np.ndarray],
-        mask: Optional[np.ndarray] = None,
+        pred: list | np.ndarray,
+        target: list | np.ndarray,
+        mask: np.ndarray | None = None,
         **kwargs: dict,
     ) -> float:
         if mask is not None:
@@ -96,7 +96,7 @@ class MetricMSE(MetricDefault):
         self,
         pred: str,
         target: str,
-        mask: Optional[str] = None,
+        mask: str | None = None,
         **kwargs: dict,
     ) -> None:
         """
@@ -117,9 +117,9 @@ class MetricMSE(MetricDefault):
 
     def mse(
         self,
-        pred: Union[List, np.ndarray],
-        target: Union[List, np.ndarray],
-        mask: Optional[np.ndarray] = None,
+        pred: list | np.ndarray,
+        target: list | np.ndarray,
+        mask: np.ndarray | None = None,
         **kwargs: dict,
     ) -> float:
         if mask is not None:
@@ -150,7 +150,7 @@ class MetricRMSE(MetricDefault):
         self,
         pred: str,
         target: str,
-        mask: Optional[str] = None,
+        mask: str | None = None,
         **kwargs: dict,
     ) -> None:
         """
@@ -168,9 +168,9 @@ class MetricRMSE(MetricDefault):
 
     def rmse(
         self,
-        pred: Union[List, np.ndarray],
-        target: Union[List, np.ndarray],
-        mask: Optional[np.ndarray] = None,
+        pred: list | np.ndarray,
+        target: list | np.ndarray,
+        mask: np.ndarray | None = None,
         **kwargs: dict,
     ) -> float:
         if mask is not None:
@@ -224,8 +224,8 @@ class MetricR2(MetricDefault):
 
     def r2(
         self,
-        pred: Union[List, np.ndarray],
-        target: Union[List, np.ndarray],
+        pred: list | np.ndarray,
+        target: list | np.ndarray,
         **kwargs: dict,
     ) -> float:
         pred = np.array(pred).flatten()

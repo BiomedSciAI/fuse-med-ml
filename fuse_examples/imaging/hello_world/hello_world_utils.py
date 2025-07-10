@@ -1,4 +1,4 @@
-from typing import Any, Tuple
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch import Tensor
 
 
-def perform_softmax(output: Any) -> Tuple[Tensor, Tensor]:
+def perform_softmax(output: Any) -> tuple[Tensor, Tensor]:
     if isinstance(output, Tensor):  # validation
         logits = output
     else:  # train
@@ -17,7 +17,7 @@ def perform_softmax(output: Any) -> Tuple[Tensor, Tensor]:
 
 class LeNet(nn.Module):
     def __init__(self) -> None:
-        super(LeNet, self).__init__()
+        super().__init__()
         self.conv1 = nn.Conv2d(1, 32, 3, 1)
         self.conv2 = nn.Conv2d(32, 64, 3, 1)
         self.dropout1 = nn.Dropout(0.25)

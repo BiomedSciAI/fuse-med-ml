@@ -2,7 +2,6 @@ import os
 import shutil
 from glob import glob
 from os.path import dirname, join, realpath
-from typing import List
 
 import psutil
 
@@ -18,7 +17,7 @@ G_lock = FileLock(join(SHM_BASE_DIR, "our_shared_mem_file_lock"))  # Lock()
 
 def get_shared_mem_file_path(file_path: str) -> str:
     """
-    copies the file (if needed) to /dev/shm/[filename] which effectively make linux os to load it into RAM
+    Copies the file (if needed) to /dev/shm/[filename] which effectively make linux os to load it into RAM
     every following access to the file will actually be on RAM which is much faster
 
     note - it's up to us to clean up the files, otherwise they will continue to consume RAM until a reboot!
@@ -26,7 +25,6 @@ def get_shared_mem_file_path(file_path: str) -> str:
     a nice guide about this topic: https://datawookie.dev/blog/2021/11/shared-memory-docker/
 
     """
-
     if SHARED_MEM_ACTIVE_ENV_VAR not in os.environ:
         return file_path
 
@@ -66,7 +64,7 @@ def get_shared_mem_file_path(file_path: str) -> str:
         return dest
 
 
-def get_all_shared_mem_files() -> List[str]:
+def get_all_shared_mem_files() -> list[str]:
     found = glob(f"{SHM_BASE_DIR}/{SHARED_MEM_FILES_PREFIX}/**/*", recursive=True)
     found = [x for x in found if os.path.isfile(x)]
     return found

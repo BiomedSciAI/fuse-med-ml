@@ -1,7 +1,6 @@
 import os
 import random
 from copy import deepcopy
-from typing import List, Tuple, Union
 
 import numpy as np
 import pydicom
@@ -23,10 +22,10 @@ class OpLoadData(OpBase):
         super().__init__()
         self.path_key = path_key
 
-    def __call__(self, sample_dict: NDict) -> Union[None, dict, List[dict]]:
-        """ """
+    def __call__(self, sample_dict: NDict) -> None | dict | list[dict]:
+
         folder_path = sample_dict[self.path_key]
-        dicom_files = [f for f in os.listdir(folder_path)]
+        dicom_files = list(os.listdir(folder_path))
 
         # Sort the DICOM files based on their file names (assuming they are numbered in order)
         dicom_files.sort()
@@ -55,8 +54,8 @@ class OpNormalizeMRI(OpBase):
         self,
         sample_dict: NDict,
         key: str,
-        to_range: Tuple[float, float],
-    ) -> Union[None, dict, List[dict]]:
+        to_range: tuple[float, float],
+    ) -> None | dict | list[dict]:
         img = sample_dict[key]
         img = np.clip(
             img, *(np.percentile(img, [0, 95]))
@@ -87,9 +86,9 @@ class OpResize3D(OpBase):
         self,
         sample_dict: NDict,
         key: str,
-        shape: Tuple[int, int, int],
+        shape: tuple[int, int, int],
         segmentation: bool = False,
-    ) -> Union[None, dict, List[dict]]:
+    ) -> None | dict | list[dict]:
         depth, height, width = sample_dict[key].shape
         depth_factor = shape[0] / depth
         height_factor = shape[1] / height
@@ -112,19 +111,22 @@ class OpDinoCrops(OpBase):
     """
     This function takes in a dictionary containing an image and a key, and returns a new dictionary with multiple crops of the original image.
 
-    Parameters:
+    Parameters
+    ----------
         sample_dict (NDict): A dictionary containing an image and a key.
         key (str): The key of the image in the dictionary.
         n_crops (int): The number of crops to create.
 
-    Returns:
+    Returns
+    -------
         NDict: A new dictionary with multiple crops of the original image.
+
     """
 
     def __call__(
         self, sample_dict: NDict, key: str, n_crops: int
-    ) -> Union[None, dict, List[dict]]:
-        """ """
+    ) -> None | dict | list[dict]:
+
         img = sample_dict[key]
         for i in range(n_crops):
             sample_dict[f"crop_{i}"] = deepcopy(img)
@@ -148,17 +150,18 @@ class OpRandomCrop(OpBase):
 
     Returns:
         NDict: A dictionary containing the resized image or volume.
+
     """
 
     def __call__(
         self,
         sample_dict: NDict,
         key: str,
-        scale: Tuple[float, float] = (0.4, 1.0),
+        scale: tuple[float, float] = (0.4, 1.0),
         on_depth: bool = True,
-        res_shape: List = None,
-    ) -> Union[None, dict, List[dict]]:
-        """ """
+        res_shape: list = None,
+    ) -> None | dict | list[dict]:
+
         if isinstance(key, str):
             key = [key]
         shape = sample_dict[key[0]].shape
@@ -187,7 +190,7 @@ class OpRandomCrop(OpBase):
 
 
 class OpRandomFlip(OpBase):
-    def __call__(self, sample_dict: NDict, key: str) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, key: str) -> None | dict | list[dict]:
         """ """
         if isinstance(key, str):
             key = [key]
@@ -210,7 +213,7 @@ class OpVolumentation(OpBase):
         super().__init__()
         self.compose = compose
 
-    def __call__(self, sample_dict: NDict, key: str) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, key: str) -> None | dict | list[dict]:
         img = {"image": sample_dict[key]}
         sample_dict[key] = self.compose(**img)["image"]
         return sample_dict
@@ -220,8 +223,8 @@ class OpMask3D(OpBase):
     def __init__(
         self,
         mask_percentage: float = 0.3,
-        cuboid_size: Tuple[int, int, int] = [2, 2, 2],
-    ) -> Union[None, dict, List[dict]]:
+        cuboid_size: tuple[int, int, int] = [2, 2, 2],
+    ) -> None | dict | list[dict]:
         super().__init__()
         self.mask_percentage = mask_percentage
         self.cuboid_size = cuboid_size
@@ -261,7 +264,7 @@ class OpSegToOneHot(OpBase):
         super().__init__()
         self.n_classes = n_classes
 
-    def __call__(self, sample_dict: NDict, key: str) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, key: str) -> None | dict | list[dict]:
         seg_tensor = sample_dict[key]
         seg_tensor = seg_tensor.squeeze(0).long()
         one_hot = F.one_hot(seg_tensor, num_classes=self.n_classes)

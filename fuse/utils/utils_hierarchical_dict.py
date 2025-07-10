@@ -14,7 +14,8 @@ Created on June 30, 2021
 """
 
 import warnings
-from typing import Any, Callable, List, Optional, Sequence, Union
+from collections.abc import Sequence
+from typing import Any, Callable
 
 import numpy
 import torch
@@ -27,9 +28,9 @@ warnings.warn(
 class FuseUtilsHierarchicalDict:
     @classmethod
     def get(cls, hierarchical_dict: dict, key: str):
-        """
-        get(dict, 'x.y.z') <==> dict['x']['y']['z']
-        """
+
+        # get(dict, 'x.y.z') <==> dict['x']['y']['z']
+
         # split according to '.'
         hierarchical_key = key.split(".")
 
@@ -51,8 +52,14 @@ class FuseUtilsHierarchicalDict:
     @classmethod
     def set(cls, hierarchical_dict: dict, key: str, value: Any) -> None:
         """
+        Set a value in a nested dictionary using a hierarchical key.
+
+        For example:
+
         set(dict, 'x.y.z', value) <==> dict['x']['y']['z'] = value
-        If either 'x', 'y' or 'z' nodes do not exist, this function will create them
+
+        If any of the keys in the hierarchy ('x', 'y', 'z') do not exist,
+        this function will create them.
         """
         # split according to '.'
         hierarchical_key = key.split(".")
@@ -70,7 +77,7 @@ class FuseUtilsHierarchicalDict:
     @classmethod
     def get_all_keys(
         cls, hierarchical_dict: dict, include_values: bool = False
-    ) -> Union[List[str], dict]:
+    ) -> list[str] | dict:
         """
         Get all hierarchical keys in  hierarchical_dict
         """
@@ -93,7 +100,7 @@ class FuseUtilsHierarchicalDict:
             return list(all_keys.keys())
 
     @classmethod
-    def subkey(cls, key: str, start: int, end: Optional[int]) -> Optional[str]:
+    def subkey(cls, key: str, start: int, end: int | None) -> str | None:
         """
         Sub string of hierarchical key.
         Example: subkey('a.b.c.d.f', 1, 3) -> 'b.c'
@@ -134,7 +141,7 @@ class FuseUtilsHierarchicalDict:
         return cls.get_all_keys(hierarchical_dict, include_values=True)
 
     @classmethod
-    def indices(cls, hierarchical_dict: dict, indices: List[int]) -> dict:
+    def indices(cls, hierarchical_dict: dict, indices: list[int]) -> dict:
         """
         Extract the specified indices from each element in the dictionary (if possible)
         :param hierarchical_dict: input dict
@@ -172,7 +179,7 @@ class FuseUtilsHierarchicalDict:
     @classmethod
     def pop(cls, hierarchical_dict: dict, key: str):
         """
-        return the value hierarchical_dict[key] and remove the key from the dict.
+        Return the value hierarchical_dict[key] and remove the key from the dict.
         :param hierarchical_dict: the dictionary
         :param key: the key to return and remove
         """

@@ -25,9 +25,9 @@ def grep_value_from_setup(key: str) -> str:
     setup_file = os.path.normpath(
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "setup.py")
     )
-    with open(setup_file, "r") as setup_file:
+    with open(setup_file) as setup_file:
         for line in setup_file.readlines():
-            value = re.search(".*{key}=(.*),*".format(key=key), line)
+            value = re.search(f".*{key}=(.*),*", line)
             if value:
                 value = value.group(1)
                 value = re.sub(r"^\W+", "", value)  # lstrip non alphanumeric
@@ -140,9 +140,9 @@ def add_modules_readme() -> str:
     def get_edited_rast_file(
         rst_source_path: str, include_text: str, remove_original_header: bool = True
     ) -> str:
-        with open(rst_source_path, "r") as fh:
+        with open(rst_source_path) as fh:
             rst_source_lines = fh.read().splitlines()
-        if not any([include_text in line for line in rst_source_lines]):
+        if not any(include_text in line for line in rst_source_lines):
             # Add link to readme only if not already exists
             rst_source_lines.insert(3, include_text)
             if remove_original_header:
@@ -177,10 +177,10 @@ def add_modules_readme() -> str:
 
                 with open(rst_source_file, "w") as f:
                     for line in content:
-                        f.write("{}\n".format(line))
+                        f.write(f"{line}\n")
 
             except FileNotFoundError:
-                print("Could not find file {}".format(rst_source_file))
+                print(f"Could not find file {rst_source_file}")
 
 
 add_modules_readme()

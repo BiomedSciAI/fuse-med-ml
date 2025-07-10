@@ -1,5 +1,6 @@
 from collections import Counter
-from typing import Any, Dict, Hashable, Optional, Sequence
+from collections.abc import Hashable, Sequence
+from typing import Any
 
 from fuse.eval.metrics.metrics_common import MetricWithCollectorBase
 from fuse.eval.metrics.regression.metrics import MetricPearsonCorrelation  # noqa: F401
@@ -15,7 +16,7 @@ class MetricUniqueValues(MetricWithCollectorBase):
         super().__init__(key=key, **kwargs)
 
     def eval(
-        self, results: Dict[str, Any] = None, ids: Optional[Sequence[Hashable]] = None
+        self, results: dict[str, Any] = None, ids: Sequence[Hashable] | None = None
     ) -> None:
         values = self._extract_arguments(results, ids)["key"]
         counter = Counter(values)

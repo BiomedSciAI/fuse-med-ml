@@ -13,7 +13,7 @@ Created on June 30, 2021
 """
 
 import os
-from typing import Hashable, Sequence
+from collections.abc import Hashable, Sequence
 
 import numpy as np
 import pandas as pd
@@ -84,7 +84,7 @@ def balanced_division(
             record_labels.append(record_key)
 
     # drop duplicate id records
-    samples_col = [no_mixture_id] + [col for col in id_level_labels]
+    samples_col = [no_mixture_id] + list(id_level_labels)
     df_samples = df[samples_col].drop_duplicates()
 
     # generates a new label for each id based on sample_id value, using id's which are not in excluded_samples
@@ -123,7 +123,7 @@ def balanced_division(
         print_folds_stat(folds, nfolds, keys_to_balance)
     # remove labels used for creating the partition to folds
     if not debug_mode:
-        folds.drop(id_level_labels + record_labels, axis=1, inplace=True)
+        folds = folds.drop(id_level_labels + record_labels, axis=1)
     return folds
 
 

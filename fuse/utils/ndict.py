@@ -21,18 +21,10 @@ from __future__ import annotations
 import copy
 import difflib
 import types
-from typing import (
-    Any,
-    Callable,
-    Iterator,
-    List,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Union,
-)
-
 from _collections_abc import dict_items, dict_keys
+from collections.abc import Iterator, MutableMapping, Sequence
+from typing import Any, Callable
+
 from numpy import ndarray
 from torch import Tensor
 
@@ -60,7 +52,7 @@ class NDict(dict):
 
     def __init__(
         self,
-        dict_like: Union[dict, tuple, types.GeneratorType, NDict, None] = None,
+        dict_like: dict | tuple | types.GeneratorType | NDict | None = None,
         already_flat: bool = False,
     ):
         """
@@ -68,7 +60,6 @@ class NDict(dict):
             otherwise we just set all the keys and values using the setitem function
         :param already_flat: optimization option. set to True only if you are sure that the input "dict_like" is a dict without nested dictionaries.
         """
-
         if dict_like is None:
             self._stored = dict()
 
@@ -90,13 +81,13 @@ class NDict(dict):
 
     def to_dict(self) -> dict:
         """
-        converts to standard python dict
+        Converts to standard python dict
         """
         return self._stored
 
     def clone(self, deepcopy: bool = True) -> NDict:
         """
-        does a deep or a shallow copy, shallow copy means only top level keys are copied and the values are only referenced.
+        Does a deep or a shallow copy, shallow copy means only top level keys are copied and the values are only referenced.
         in deep copy, all values are copied recursively
 
         :param deepcopy: if true, does deep copy, otherwise does a shallow copy
@@ -113,7 +104,7 @@ class NDict(dict):
         """
         return self
 
-    def keypaths(self) -> List[str]:
+    def keypaths(self) -> list[str]:
         """
         :return: a list of keypaths (i.e. "a.b.c.d") to all values in the nested dict
         """
@@ -121,13 +112,13 @@ class NDict(dict):
 
     def keys(self) -> dict_keys:
         """
-        returns keypaths (threat as a "flat" dictionary)
+        Returns keypaths (threat as a "flat" dictionary)
         """
         return self._stored.keys()
 
-    def top_level_keys(self) -> List[str]:
+    def top_level_keys(self) -> list[str]:
         """
-        return top-level keys.
+        Return top-level keys.
 
         Example:
             >>> ndict = NDict()
@@ -135,6 +126,7 @@ class NDict(dict):
             >>> ndict["a2.b.h"] = 23
             >>> ndict.top_level_keys()
             ['a1', 'a2']
+
         """
         top_level_keys = {key.split(".")[0] for key in self.keys()}
         return list(top_level_keys)
@@ -147,7 +139,7 @@ class NDict(dict):
 
     def merge(self, other: MutableMapping) -> None:
         """
-        inplace merge between self and other.
+        Inplace merge between self and other.
         """
         for k, v in other.items():
             self[k] = v
@@ -161,7 +153,6 @@ class NDict(dict):
 
         :param key: dot delimited keypath into the nested dict
         """
-
         try:
             # the key is a full key for a value
             return self._stored[key]
@@ -175,9 +166,9 @@ class NDict(dict):
             else:
                 raise NestedKeyError(key, self)
 
-    def get_sub_dict(self, key: str) -> Union[NDict, None]:
+    def get_sub_dict(self, key: str) -> NDict | None:
         """
-        returns a copy of the "sub-dict" give a sub-key.
+        Returns a copy of the "sub-dict" give a sub-key.
         if a sub-dict wasn't found, returns None
 
         Example:
@@ -187,6 +178,7 @@ class NDict(dict):
             >>> ndict["a.b.e"] = "z"
             >>> ndict.get_sub_dict("a.b")
             {'c': 'x', 'd': 'y', 'e': 'z'}
+
         """
         res = NDict()
         prefix_key = key + "."
@@ -203,7 +195,7 @@ class NDict(dict):
 
     def __setitem__(self, key: str, value: Any) -> None:
         """
-        sets item in the dictionary.
+        Sets item in the dictionary.
         if the item is a dict like object, it will parse the values using the delimiter "."
 
         Example:
@@ -214,6 +206,7 @@ class NDict(dict):
 
         :param key: the keypath
         :param value: value to set
+
         """
         # if value is dictionary add to self key by key to avoid from keys with delimiter "."
         if isinstance(value, MutableMapping):
@@ -224,7 +217,7 @@ class NDict(dict):
 
     def __delitem__(self, key: str) -> None:
         """
-        deletes self[key] item(s).
+        Deletes self[key] item(s).
         if key is a prefix to a sub-dict, deletes the entire sub-dict.
         if key is a key for a value AND a sub-dict, deletes BOTH
         """
@@ -244,7 +237,7 @@ class NDict(dict):
         if not deleted:
             raise NestedKeyError(key, self)
 
-    def get_closest_keys(self, key: str, n: int = 1) -> List[str]:
+    def get_closest_keys(self, key: str, n: int = 1) -> list[str]:
         """
         For a given keypath, returns the closest key(s) in the current nested dict.
         if key exists in the dictionary
@@ -266,7 +259,7 @@ class NDict(dict):
 
     def pop(self, key: str) -> Any:
         """
-        returns the value self[key] and removes the key from the dict.
+        Returns the value self[key] and removes the key from the dict.
 
         :param key: the key to return and remove
         """
@@ -311,7 +304,7 @@ class NDict(dict):
             new_value = apply_func(self[key], *args)
             self[key] = new_value
 
-    def __reduce__(self) -> Union[str, tuple]:
+    def __reduce__(self) -> str | tuple:
         return super().__reduce__()
 
     def __iter__(self) -> Iterator:
@@ -344,9 +337,9 @@ class NDict(dict):
             return default_value
         return self[key]
 
-    def get_multi(self, keys: Optional[List[str]] = None) -> NDict:
+    def get_multi(self, keys: list[str] | None = None) -> NDict:
         """
-        returns a subset of the dict with the specified keys
+        Returns a subset of the dict with the specified keys
 
         :param keys: keys to keep in the returned ndict
         """
@@ -362,15 +355,14 @@ class NDict(dict):
 
     def unflatten(self) -> dict:
         """
-        returns a nested dictionaries
+        Returns a nested dictionaries
 
         Example:
-
         >>> ndict = NDict({"a.b.c":42, "a.b.d": 23})
         >>> ndict.unflatten()
         {'a': {'b': {'d': 23, 'c': 42}}}
-        """
 
+        """
         return NDict._unflatten_static(data_dict=self)
 
     @staticmethod
@@ -390,13 +382,12 @@ class NDict(dict):
 
     def print_tree(self, print_values: bool = False) -> None:
         """
-        print the inner structure of the nested dict with a tree-like structure.
+        Print the inner structure of the nested dict with a tree-like structure.
 
         :param print_values: set to True in order to also print ndict's stored values
 
 
         Example:
-
             >>> ndict = NDict()
             >>> ndict["data.input.drug"] = "this_is_a_drug_seq"
             >>> ndict["data.input.target"] = "this_is_a_target_seq"
@@ -418,7 +409,7 @@ class NDict(dict):
 
     def get_tree(self, print_values: bool = False) -> str:
         """
-        returns a string of the NDict object in a tree-like structure. See 'print_tree'.
+        Returns a string of the NDict object in a tree-like structure. See 'print_tree'.
         """
         unflatten_dict = self.unflatten()
         tree = self._get_tree_str_static(unflatten_dict, print_values=print_values)

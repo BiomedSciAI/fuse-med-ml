@@ -1,5 +1,5 @@
 import os
-from typing import Hashable, List, Optional, Sequence, Tuple
+from collections.abc import Hashable, Sequence
 from zipfile import ZipFile
 
 import numpy as np
@@ -33,7 +33,7 @@ from fuseimg.data.ops.image_loader import OpLoadImage
 class OpISICSampleIDDecode(OpBase):
     def __call__(self, sample_dict: NDict) -> NDict:
         """
-        decodes sample id into image file name
+        Decodes sample id into image file name
         """
         sid = get_sample_id(sample_dict)
 
@@ -88,7 +88,7 @@ class ISIC:
 
     @staticmethod
     def download(
-        data_path: str, sample_ids_to_download: Optional[Sequence[str]] = None
+        data_path: str, sample_ids_to_download: Sequence[str] | None = None
     ) -> None:
         """
         Download images and metadata from ISIC challenge.
@@ -154,7 +154,7 @@ class ISIC:
             print("Extracting ISIC-2019 metadata: done")
 
     @staticmethod
-    def sample_ids(data_path: str) -> List[str]:
+    def sample_ids(data_path: str) -> list[str]:
         """
         Gets the samples ids in trainset.
         """
@@ -254,14 +254,13 @@ class ISIC:
 
     @staticmethod
     def dynamic_pipeline(
-        train: bool = False, append: Optional[Sequence[Tuple[OpBase, dict]]] = None
+        train: bool = False, append: Sequence[tuple[OpBase, dict]] | None = None
     ) -> PipelineDefault:
         """
         Get suggested dynamic pipeline. including pre-processing that might be modified and augmentation operations.
         :param train: add augmentation if True
         :param append: pipeline steps to append at the end of the suggested pipeline
         """
-
         dynamic_pipeline = [
             # Resize images to 300x300x3
             (
@@ -350,8 +349,8 @@ class ISIC:
         train: bool = False,
         reset_cache: bool = False,
         num_workers: int = 10,
-        append_dyn_pipeline: Optional[Sequence[Tuple[OpBase, dict]]] = None,
-        samples_ids: Optional[Sequence[Hashable]] = None,
+        append_dyn_pipeline: Sequence[tuple[OpBase, dict]] | None = None,
+        samples_ids: Sequence[Hashable] | None = None,
     ) -> DatasetDefault:
         """
         Get cached dataset
@@ -400,11 +399,11 @@ class ISICDataModule(pl.LightningDataModule):
         cache_dir: str,
         num_workers: int,
         batch_size: int,
-        train_folds: List[int],
-        validation_folds: List[int],
-        infer_folds: List[int],
+        train_folds: list[int],
+        validation_folds: list[int],
+        infer_folds: list[int],
         split_filename: str,
-        sample_ids: Optional[Sequence[Hashable]] = None,
+        sample_ids: Sequence[Hashable] | None = None,
         reset_cache: bool = False,
         reset_split: bool = False,
         use_batch_sampler: bool = True,
@@ -466,7 +465,7 @@ class ISICDataModule(pl.LightningDataModule):
 
     def setup(self, stage: str) -> None:
         """
-        creates datasets by stage
+        Creates datasets by stage
         called on every process in DDP
 
         :param stage: trainer stage
@@ -500,7 +499,7 @@ class ISICDataModule(pl.LightningDataModule):
 
     def train_dataloader(self) -> DataLoader:
         """
-        returns train dataloader with class args
+        Returns train dataloader with class args
         """
         if self._use_batch_sampler:
             # Create a batch sampler for the dataloader
@@ -531,7 +530,7 @@ class ISICDataModule(pl.LightningDataModule):
 
     def val_dataloader(self) -> DataLoader:
         """
-        returns validation dataloader with class args
+        Returns validation dataloader with class args
         """
         # Create dataloader
         validation_dl = DataLoader(
@@ -545,7 +544,7 @@ class ISICDataModule(pl.LightningDataModule):
 
     def predict_dataloader(self) -> DataLoader:
         """
-        returns validation dataloader with class args
+        Returns validation dataloader with class args
         """
         # Create dataloader
         predict_dl = DataLoader(
@@ -562,7 +561,7 @@ class OpEncodeMetaData(OpBase):
     Encode ISIC 2019 meta-data
     """
 
-    def __init__(self, items_to_encode: List[str] = ["site", "sex", "age"]):
+    def __init__(self, items_to_encode: list[str] = ["site", "sex", "age"]):
         """
         :param  items_to_encode: which items will be encoded. by default takes all the options.
         """
@@ -584,7 +583,6 @@ class OpEncodeMetaData(OpBase):
         :param key_age: sample_dict's key for patient's age data
         :param out_prefix: the encoded data will be located in sample_dict[f"{out_prefix}.{data_type}"]
         """
-
         # Encode anatom site into a one-hot vector of length 9
         # 8 anatom sites and 1 for N/A
         if "site" in self._items_to_encode:

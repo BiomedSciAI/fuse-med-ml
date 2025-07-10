@@ -16,7 +16,8 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from typing import Any, Callable, Dict, Hashable, Optional, Sequence, Union
+from collections.abc import Hashable, Sequence
+from typing import Any, Callable, Dict
 
 import numpy as np
 import pandas as pd
@@ -40,7 +41,7 @@ class PairedBootstrap(MetricWithCollectorBase):
         metric_test: MetricBase,
         metric_reference: MetricBase,
         stratum: str,
-        metric_keys_to_compare: Optional[Sequence[str]] = None,
+        metric_keys_to_compare: Sequence[str] | None = None,
         compare_method: Callable = ModelComparison.bootstrap_margin_superiority,
         num_of_bootstraps: int = 10000,
         rnd_seed: int = 1234,
@@ -60,7 +61,6 @@ class PairedBootstrap(MetricWithCollectorBase):
                                Required prototype: func(name: str, test_values: Sequence[float], reference_values: Sequence[float]) -> Union[Dict[str, float], float]
                                See example: ModelComparison.bootstrap_margin_superiority , ModelComparison.bootstrap_margin_non_inferiority , ModelComparison.bootstrap_margin_equality
         """
-
         super().__init__(stratum=stratum, **super_kwargs)
 
         # store arguments
@@ -73,19 +73,19 @@ class PairedBootstrap(MetricWithCollectorBase):
         self._margin = margin
 
     def collect(self, batch: Dict) -> None:
-        "See super class"
+        """See super class"""
         self._metric_test.collect(batch)
         self._metric_reference.collect(batch)
         return super().collect(batch)
 
-    def set(self, data: Union[Dict, Sequence[Dict], pd.DataFrame]) -> None:
-        "See super class"
+    def set(self, data: Dict | Sequence[Dict] | pd.DataFrame) -> None:
+        """See super class"""
         self._metric_test.set(data)
         self._metric_reference.set(data)
         return super().set(data)
 
     def reset(self) -> None:
-        "See super class"
+        """See super class"""
         self._metric_test.reset()
         self._metric_reference.reset()
         return super().reset()

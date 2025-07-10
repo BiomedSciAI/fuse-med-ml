@@ -17,7 +17,8 @@ Created on June 30, 2021
 
 """
 
-from typing import Dict, Optional, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Dict, Tuple
 
 import torch
 import torch.nn as nn
@@ -39,7 +40,7 @@ class Head3D(nn.Module):
         conv_inputs: Sequence[Tuple[str, int]] = None,
         dropout_rate: float = 0.1,
         num_outputs: int = 3,  # num classes in case of classification
-        append_features: Optional[Tuple[str, int]] = None,
+        append_features: Tuple[str, int] | None = None,
         layers_description: Sequence[int] = (256,),
         append_layers_description: Sequence[int] = tuple(),
         append_dropout_rate: float = 0.0,

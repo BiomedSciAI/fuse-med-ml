@@ -16,7 +16,7 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 import pandas as pds
 from tqdm import tqdm
@@ -34,12 +34,12 @@ class ExportDataset:
     def export_to_dataframe(
         dataset: DatasetBase,
         keys: Sequence[str],
-        output_filename: Optional[str] = None,
+        output_filename: str | None = None,
         sample_id_key: str = "data.sample_id",
         **dataset_get_kwargs: dict
     ) -> pds.DataFrame:
         """
-        extract from dataset the specified and keys and create a dataframe.
+        Extract from dataset the specified and keys and create a dataframe.
         If output_filename will be specified, the dataframe will also be saved in a file.
         :param dataset: the dataset to extract the values from
         :param keys: keys to extract from sample_dict

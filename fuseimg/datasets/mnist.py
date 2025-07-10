@@ -16,7 +16,7 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 from torchvision import datasets, transforms
 
@@ -34,7 +34,7 @@ class MNIST:
 
     @staticmethod
     def dataset(
-        cache_dir: Optional[str] = None, train: bool = True, sample_ids: Sequence = None
+        cache_dir: str | None = None, train: bool = True, sample_ids: Sequence = None
     ) -> DatasetDefault:
         """
         Get mnist dataset - each sample includes: 'data.image', 'data.label' and 'data.sample_id'
@@ -43,7 +43,6 @@ class MNIST:
             otherwise from ``t10k-images-idx3-ubyte``.
         :param sample_ids: Optional list of sample ids. If None, then all data is used.
         """
-
         transform = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         )

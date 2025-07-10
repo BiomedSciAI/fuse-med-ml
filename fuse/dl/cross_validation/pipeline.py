@@ -1,8 +1,9 @@
 import os
 from collections import OrderedDict
+from collections.abc import Sequence
 from functools import partial
 from multiprocessing import Process, Queue, set_start_method
-from typing import Callable, Dict, Sequence, Union
+from typing import Callable, Dict
 
 from sklearn.model_selection import KFold
 
@@ -52,7 +53,7 @@ def runner_wrapper(
     q_resources: Queue,
     rep_index: int,
     deterministic_mode: bool,
-    fs: Union[Sequence[Callable], Callable],
+    fs: Sequence[Callable] | Callable,
     *f_args: tuple,
     **f_kwargs: dict,
 ) -> None:
@@ -249,7 +250,7 @@ def run(
         dataset, test_dataset = dataset_func(paths=paths, params=dataset_params)
         # the split decision should be the same regardless of repetition index
         kfold = KFold(n_splits=num_folds, shuffle=True, random_state=1234)
-        sample_ids_per_fold = [item for item in kfold.split(dataset)]
+        sample_ids_per_fold = list(kfold.split(dataset))
     else:
         assert num_folds == len(sample_ids_per_fold)
 

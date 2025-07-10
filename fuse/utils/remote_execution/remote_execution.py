@@ -3,7 +3,6 @@ import os
 from collections import namedtuple
 from glob import glob
 from os.path import abspath, dirname, join
-from typing import List, Optional, Tuple
 
 from .shell_handler import ShellHandler
 
@@ -24,7 +23,7 @@ class RemoteExecution:
         self,
         conda_env: str,
         password: str,
-        user: Optional[str] = None,
+        user: str | None = None,
         allow_manual_password_typing: bool = True,
         verbose: int = 0,
     ):
@@ -44,9 +43,9 @@ class RemoteExecution:
         self._user = user
         self._verbose = verbose
 
-    def run_remote_machine_command(self, machine: str, cmd: str) -> Tuple[str, str]:
+    def run_remote_machine_command(self, machine: str, cmd: str) -> tuple[str, str]:
         """
-        connects to [machine] with ssh and runs [cmd].
+        Connects to [machine] with ssh and runs [cmd].
         For example:
         run_remote_machine_command('server12', 'nvidia-smi')
         """
@@ -69,9 +68,9 @@ class RemoteExecution:
         log_output: str = None,
         auto_add_repo_root_dirs_to_PYTHONPATH: bool = False,
         verbose: int = 0,
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         """
-        connects to [machine] with ssh and runs [cmd].
+        Connects to [machine] with ssh and runs [cmd].
         :param gpu: str that will be used directly as CUDA_VISIBLE_DEVICES
         For example:
         run_remote_python_command(
@@ -90,7 +89,6 @@ class RemoteExecution:
         It will run it on machine 'server12', enabling gpus 1 and 4,
         and logging stdout+stderr to 'my_log1.txt'
         """
-
         print(f"total of {len(python_args)} python args")
         for a in python_args:
             print(a)
@@ -132,7 +130,7 @@ class RemoteExecution:
         return shout, sherr
 
     def run_multi_machines_commands(
-        self, commands: List[RemoteCommand], verbose: int = 0
+        self, commands: list[RemoteCommand], verbose: int = 0
     ) -> None:
         """
         Execute a list of RemoteCommand-s on remote machines
@@ -144,7 +142,6 @@ class RemoteExecution:
         ]
         run_multi_machines_commands(cmds)
         """
-
         _ERR_TEXT = '"commands" is expected to be a list of RemoteCommand instances'
 
         if not isinstance(commands, list):

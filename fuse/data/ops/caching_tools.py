@@ -2,8 +2,9 @@ import hashlib
 import inspect
 import os
 import warnings
+from collections.abc import Sequence
 from inspect import stack
-from typing import Any, Callable, List, Optional, Sequence, Type
+from typing import Any, Callable, List, Type
 
 from fuse.utils.cpu_profiling import Timer
 from fuse.utils.file_io.file_io import load_pickle, save_pickle_safe
@@ -18,7 +19,8 @@ def get_function_call_str(
 ) -> str:
     """
     Converts a function and its kwargs into a hash value which can be used for caching.
-    NOTE:
+
+    Note:
     1. This is far from being bulletproof, the op might call another function which is not covered and is changed,
     which will make the caching processing be unaware.
     2. This is a mechanism that helps to spot SOME of such issues, NOT ALL
@@ -46,7 +48,7 @@ def get_function_call_str(
     use_keys = [k for k in sorted(kwargs.keys()) if k not in _ignore_kwargs_names]
     # ignore_kwargs_names
     args_flat_str += "@".join(
-        ["{}@{}".format(str(k), value_to_string(kwargs[k])) for k in use_keys]
+        [f"{str(k)}@{value_to_string(kwargs[k])}" for k in use_keys]
     )
 
     module_str = str(
@@ -64,14 +66,14 @@ def get_function_call_str(
     return args_flat_str
 
 
-def value_to_string(val: Any, warn_on_types: Optional[Sequence] = None) -> str:
+def value_to_string(val: Any, warn_on_types: Sequence | None = None) -> str:
     """
     Used by default in several caching related hash builders.
     Ignores <...> string as they usually change between different runs
     (for example, due to pointing to a specific memory address)
     """
     if warn_on_types is not None:
-        if isinstance(val, tuple(list(warn_on_types))):
+        if isinstance(val, tuple(warn_on_types)):
             warnings.warn(
                 f"type {type(val)} is possibly participating in hashing, this is usually not optimal performance wise."
             )
@@ -87,7 +89,7 @@ def convert_func_call_into_kwargs_only(
     **kwargs: dict,
 ) -> dict:
     """
-    considers positional and kwargs (including their default values !)
+    Considers positional and kwargs (including their default values !)
     and converts into ONLY kwargs
     """
     signature = inspect.signature(func)
@@ -116,7 +118,7 @@ def get_callers_string_description(
     ignore_first_frames: int = 3,  # one for this function, one for HashableCallable, and one for OpBase
 ) -> str:
     """
-    iterates on the callstack, and accumulates a string representation of the callers args.
+    Iterates on the callstack, and accumulates a string representation of the callers args.
     Used in OpBase to "record" the __init__ args, to be used in the string representation of an Op,
     which is used for building a hash value for samples caching in SamplesCacher
 
@@ -143,7 +145,6 @@ def get_callers_string_description(
     :param value_to_string_func: allows to provide a custom function for converting values to strings
     :param
     """
-
     str_desc = ""
     try:
         curr_stack = stack()
@@ -200,7 +201,6 @@ def run_cached_func(cache_dir: str, func: Callable, *args: list, **kwargs: dict)
     The cache hash value will be based on the function name, the args, and the code of the function.
 
     Args:
-
     :param cache_dir: the directory into which caches will be stored/loaded
     :param func: the function to run
     :param *args: positional args to provide to the function

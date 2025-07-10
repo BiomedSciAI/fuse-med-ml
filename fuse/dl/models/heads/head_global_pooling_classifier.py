@@ -17,7 +17,8 @@ Created on June 30, 2021
 
 """
 
-from typing import Dict, Optional, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Dict, Tuple
 
 import torch
 import torch.nn as nn
@@ -33,13 +34,13 @@ class HeadGlobalPoolingClassifier(nn.Module):
         head_name: str = "head_0",
         conv_inputs: Sequence[Tuple[str, int]] = None,
         num_classes: int = 2,
-        tabular_data_inputs: Optional[Sequence[Tuple[str, int]]] = None,
+        tabular_data_inputs: Sequence[Tuple[str, int]] | None = None,
         pooling: str = "max",
         layers_description: Sequence[int] = (256,),
         tabular_layers_description: Sequence[int] = tuple(),
         dropout_rate: float = 0.1,
         tabular_dropout_rate: float = 0.0,
-        shared_classifier_head: Optional[torch.nn.Module] = None,
+        shared_classifier_head: torch.nn.Module | None = None,
     ) -> None:
         """
         Classifier head with a global pooling operator.

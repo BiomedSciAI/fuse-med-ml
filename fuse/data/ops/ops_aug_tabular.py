@@ -1,5 +1,5 @@
 import random
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 import numpy as np
 
@@ -38,7 +38,7 @@ class OpAugOneHot(OpBase):
         self,
         sample_dict: NDict,
         key: str,
-        idx: Optional[int] = None,
+        idx: int | None = None,
         freeze_indices: Sequence[int] = [],
         mode: str = "default",
     ) -> NDict:
@@ -48,7 +48,6 @@ class OpAugOneHot(OpBase):
         :param freeze_indices: in "ranking" mode: sequence of indices such that if one-hot vector has a '1' in one of those indices, the augmentation won't be executed.
         :param mode: see class desc
         """
-
         supported_modes = ["default", "ranking"]
         if mode not in supported_modes:
             raise Exception(

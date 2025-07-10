@@ -178,13 +178,13 @@ Note - in general, we find it helpful to follow the same directory structure sho
 
 # Installation
 
-FuseMedML is tested on Python >= 3.9 and PyTorch >= 2.0
+FuseMedML is tested on Python >= 3.10 and PyTorch >= 2.0
 
 ## We recommend using a Conda environment
 
 Create a conda environment using the following command (you can replace FUSEMEDML with your preferred enviornment name)
 ```bash
-conda create -n FUSEMEDML python=3.9
+conda create -n FUSEMEDML python=3.10
 conda activate FUSEMEDML
 ```
 

@@ -1,12 +1,12 @@
 import runpy
-from typing import Any, Callable, Dict, List, Union
+from typing import Any, Callable
 
 
 class Config:
     def __init__(self) -> None:
         pass
 
-    def load(self, *configs: List[Union[Dict, str, Callable]]) -> Dict:
+    def load(self, *configs: list[dict | str | Callable]) -> dict:
         """
         loads, in order, configs
         each item can be either:

@@ -19,7 +19,7 @@ Created on June 30, 2021
 import copy
 import os
 import threading
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, List, Tuple
 
 from fuse.data.ops.op_base import OpBase, OpReversibleBase, op_call, op_reverse
 from fuse.utils.cpu_profiling.timer import Timer
@@ -38,7 +38,7 @@ class PipelineDefault(OpReversibleBase):
         self,
         name: str,
         ops_and_kwargs: List[Tuple[OpBase, dict]],
-        op_ids: Optional[List[str]] = None,
+        op_ids: List[str] | None = None,
         verbose: bool = False,
     ):
         """
@@ -78,7 +78,7 @@ class PipelineDefault(OpReversibleBase):
     def extend(
         self,
         ops_and_kwargs: List[Tuple[OpBase, dict]],
-        op_ids: Optional[List[str]] = None,
+        op_ids: List[str] | None = None,
     ) -> None:
         """
         Extends pipeline
@@ -123,9 +123,9 @@ class PipelineDefault(OpReversibleBase):
     def __call__(
         self,
         sample_dict: NDict,
-        op_id: Optional[str] = None,
-        until_op_id: Optional[str] = None,
-    ) -> Union[None, dict, List[dict]]:
+        op_id: str | None = None,
+        until_op_id: str | None = None,
+    ) -> None | dict | List[dict]:
         """
         See super class
         plus
@@ -182,7 +182,7 @@ class PipelineDefault(OpReversibleBase):
         sample_dict: NDict,
         key_to_reverse: str,
         key_to_follow: str,
-        op_id: Optional[str] = None,
+        op_id: str | None = None,
     ) -> dict:
         """
         See super class

@@ -23,7 +23,9 @@ This example shows how to directly train a model using custom (your own) pytorch
 import copy
 import logging
 import os
-from typing import Any, List, OrderedDict, Sequence, Tuple
+from collections import OrderedDict
+from collections.abc import Sequence
+from typing import Any
 
 import pytorch_lightning as pl
 import torch
@@ -223,7 +225,7 @@ class LightningModuleMnist(pl.LightningModule):
         )
         return dict(optimizer=optimizer, lr_scheduler=lr_sch_config)
 
-    def set_predictions_keys(self, keys: List[str]) -> None:
+    def set_predictions_keys(self, keys: list[str]) -> None:
         """Define which keys to extract from batch_dict  on prediction mode"""
         self._prediction_keys = keys
 
@@ -274,7 +276,7 @@ TRAIN_COMMON_PARAMS["pl_module.opt_lr"] = 1e-4
 TRAIN_COMMON_PARAMS["pl_module.opt_weight_decay"] = 0.001
 
 
-def perform_softmax(logits: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+def perform_softmax(logits: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
     cls_preds = F.softmax(logits, dim=1)
     return logits, cls_preds
 

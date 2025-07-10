@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Union
+from collections.abc import Sequence
 
 from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.utils.split import dataset_balanced_division_to_folds
@@ -6,7 +6,7 @@ from fuseimg.datasets.stoic21 import STOIC21
 
 
 def train_val_test_splits(
-    paths: Optional[dict] = None, params: Optional[dict] = None
+    paths: dict | None = None, params: dict | None = None
 ) -> Sequence[Sequence]:
     # split to folds randomly - temp
     dataset_all = STOIC21.dataset(
@@ -34,9 +34,9 @@ def train_val_test_splits(
 
 
 def create_dataset(
-    train_val_sample_ids: Union[Sequence, None] = None,
-    paths: Optional[dict] = None,
-    params: Optional[dict] = None,
+    train_val_sample_ids: Sequence | None = None,
+    paths: dict | None = None,
+    params: dict | None = None,
 ) -> Sequence[DatasetDefault]:
     if train_val_sample_ids is None:
         splits = train_val_test_splits(paths, params)

@@ -17,7 +17,7 @@ Created on June 30, 2021
 
 """
 
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 from fuse.eval.metrics.libs.model_comparison import ModelComparison
 from fuse.eval.metrics.metrics_common import MetricDefault
@@ -31,7 +31,7 @@ class MetricDelongsTest(MetricMultiClassDefault):
         pred1: str,
         pred2: str,
         target: str,
-        class_names: Optional[Sequence[str]] = None,
+        class_names: Sequence[str] | None = None,
         **kwargs: dict
     ):
         # :param pred1: key name for the predictions of model 1
@@ -72,8 +72,8 @@ class MetricMcnemarsTest(MetricMultiClassDefault):
         self,
         pred1: str,
         pred2: str,
-        target: Optional[str] = None,
-        exact: Optional[bool] = True,
+        target: str | None = None,
+        exact: bool | None = True,
         **kwargs: dict
     ):
         """

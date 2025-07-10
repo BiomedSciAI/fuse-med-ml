@@ -17,9 +17,9 @@ Created on June 30, 2021
 
 """
 import os
+from collections.abc import Hashable, Sequence
 from functools import partial
 from glob import glob
-from typing import Hashable, List, Optional, Sequence, Tuple
 
 import numpy as np
 import skimage
@@ -48,7 +48,7 @@ class OpSTOIC21SampleIDDecode(OpBase):
     """
 
     def __call__(self, sample_dict: NDict) -> NDict:
-        """ """
+
         sid = get_sample_id(sample_dict)
 
         img_filename_key = "data.input.img_path"
@@ -77,9 +77,9 @@ class STOIC21:
         ), "automatic download is not supported, please follow instructions in STOIC21 class header to download"
 
     @staticmethod
-    def sample_ids(path: str) -> List[str]:
+    def sample_ids(path: str) -> list[str]:
         """
-        get all the sample ids in train-set
+        Get all the sample ids in train-set
         sample_id is *.mha file found in the specified path
         """
         files = [
@@ -93,7 +93,7 @@ class STOIC21:
 
     @staticmethod
     def static_pipeline(
-        data_path: str, output_shape: Tuple[int, int, int]
+        data_path: str, output_shape: tuple[int, int, int]
     ) -> PipelineDefault:
         """
         Get suggested static pipeline (which will be cached), typically loading the data plus design choices that we won't experiment with.
@@ -156,7 +156,7 @@ class STOIC21:
 
     @staticmethod
     def dynamic_pipeline(
-        train: bool, clip_range: Tuple[float, float]
+        train: bool, clip_range: tuple[float, float]
     ) -> PipelineDefault:
         """
         Get suggested dynamic pipeline. including pre-processing that might be modified and augmentation operations.
@@ -258,10 +258,10 @@ class STOIC21:
         cache_dir: str,
         reset_cache: bool = False,
         num_workers: int = 10,
-        sample_ids: Optional[Sequence[Hashable]] = None,
+        sample_ids: Sequence[Hashable] | None = None,
         train: bool = False,
-        output_shape: Tuple[int, int, int] = (32, 256, 256),
-        clip_range: Tuple[float, float] = (-200, 800),
+        output_shape: tuple[int, int, int] = (32, 256, 256),
+        clip_range: tuple[float, float] = (-200, 800),
     ) -> DatasetDefault:
         """
         Get cached dataset
@@ -274,7 +274,6 @@ class STOIC21:
         :param output_shape: fixed shape to resize the image to
         :param clip_range: clip the original voxels values to fit this range
         """
-
         if sample_ids is None:
             sample_ids = STOIC21.sample_ids(data_path)
 

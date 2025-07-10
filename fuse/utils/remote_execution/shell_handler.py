@@ -1,5 +1,4 @@
 import re
-from typing import List, Tuple
 
 import paramiko
 from paramiko.channel import ChannelFile
@@ -18,7 +17,7 @@ class ShellHandler:
     def __del__(self) -> None:
         self.ssh.close()
 
-    def execute(self, cmd: str) -> Tuple[ChannelFile, List[str], List[str]]:
+    def execute(self, cmd: str) -> tuple[ChannelFile, list[str], list[str]]:
         """
 
         @param cmd: the command to be executed on the remote computer
@@ -29,7 +28,7 @@ class ShellHandler:
         cmd = cmd.strip("\n")
         self.stdin.write(cmd + "\n")
         finish = "end of stdOUT buffer. finished with exit status"
-        echo_cmd = "echo {} $?".format(finish)
+        echo_cmd = f"echo {finish} $?"
         self.stdin.write(echo_cmd + "\n")
         shin = self.stdin
         self.stdin.flush()

@@ -18,7 +18,8 @@ Created on June 30, 2021
 """
 
 from abc import abstractmethod
-from typing import Dict, Hashable, List, Optional, Sequence, Union
+from collections.abc import Hashable, Sequence
+from typing import Dict, List
 
 from torch.utils.data.dataset import Dataset
 
@@ -40,10 +41,7 @@ class DatasetBase(Dataset):
 
     @abstractmethod
     def get_multi(
-        self,
-        items: Optional[Sequence[Union[int, Hashable]]] = None,
-        *args: list,
-        **kwargs: dict
+        self, items: Sequence[int | Hashable] | None = None, *args: list, **kwargs: dict
     ) -> List[Dict]:
         """
         Get multiple items, optionally just some of the keys
@@ -54,7 +52,7 @@ class DatasetBase(Dataset):
     @abstractmethod
     def subset(self, indices: Sequence[int]) -> None:
         """
-        subset of a dataset at specified indices - inplace
+        Subset of a dataset at specified indices - inplace
         :param indices: indices of the samples that will remain in the subset
         """
         raise NotImplementedError

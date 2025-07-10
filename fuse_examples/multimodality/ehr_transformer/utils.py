@@ -20,7 +20,7 @@ Created on Jan 09, 2023
 
 import pickle
 from collections import Counter, defaultdict
-from typing import List, Optional, Sequence, Tuple, Union
+from collections.abc import Sequence
 
 import tqdm
 
@@ -35,9 +35,9 @@ special_tokens = {
 }
 
 
-def seq_translate(tokens: List[str], translate_dict: dict) -> Tuple[List[str]]:
+def seq_translate(tokens: list[str], translate_dict: dict) -> tuple[list[str]]:
     """
-    returns a list of tokens translated using translate_dict
+    Returns a list of tokens translated using translate_dict
     :param tokens:
     :param translate_dict:
     :return:
@@ -52,7 +52,7 @@ def seq_translate(tokens: List[str], translate_dict: dict) -> Tuple[List[str]]:
 
 def position_idx(
     tokens: Sequence[str], symbol: str = special_tokens["separator"]
-) -> List[int]:
+) -> list[int]:
     """
     Given a sequence of codes divided into groups (visits)
      by symbol ('SEP') tokens, returns a sequence of the same
@@ -72,7 +72,7 @@ def position_idx(
 
 def seq_pad(
     tokens: Sequence[str], max_len: int, symbol: str = special_tokens["padding"]
-) -> List[str]:
+) -> list[str]:
     """
     Returns a list of tokens padded by symbol to length max_len.
     :param tokens:
@@ -88,27 +88,32 @@ def seq_pad(
         return tokens[:max_len]
 
 
-class TorchVocab(object):
-    """Defines a vocabulary object that will be used to numericalize a field.
+class TorchVocab:
+    """
+    Defines a vocabulary object that will be used to numericalize a field.
+
     Attributes:
         freqs: A collections.Counter object holding the frequencies of tokens
             in the data used to build the Vocab.
         stoi: A collections.defaultdict instance mapping token strings to
             numerical identifiers.
         itos: A list of token strings indexed by their numerical identifiers.
+
     """
 
     def __init__(
         self,
         counter: Counter,
-        max_size: Optional[int] = None,
+        max_size: int | None = None,
         min_freq: int = 1,
         specials: Sequence[str] = ["<pad>", "<oov>"],
         vectors=None,
         unk_init=None,
         vectors_cache=None,
     ) -> None:
-        """Create a Vocab object from a collections.Counter.
+        """
+        Create a Vocab object from a collections.Counter.
+
         Arguments:
             counter: collections.Counter object holding the frequencies of
                 each value found in the data.
@@ -127,6 +132,7 @@ class TorchVocab(object):
                 in a Tensor and returns a Tensor of the same size.
                 Default: torch.Tensor.zero_vectors_cache: directory for cached
                 vectors. Default: '.vector_cache'
+
         """
         self.freqs = counter
         counter = counter.copy()
@@ -185,7 +191,7 @@ class TorchVocab(object):
 
 class Vocab(TorchVocab):
     def __init__(
-        self, counter: Counter, max_size: Optional[int] = None, min_freq: int = 1
+        self, counter: Counter, max_size: int | None = None, min_freq: int = 1
     ):
         self.pad_index = 0
         self.unk_index = 1
@@ -219,8 +225,8 @@ class Vocab(TorchVocab):
 class WordVocab(Vocab):
     def __init__(
         self,
-        texts: List[Union[List[str], str]],
-        max_size: Optional[int] = None,
+        texts: list[list[str] | str],
+        max_size: int | None = None,
         min_freq: int = 1,
     ):
         print("Building Vocab")
@@ -237,12 +243,12 @@ class WordVocab(Vocab):
 
     def to_seq(
         self,
-        sentence: Union[str, List[str]],
-        seq_len: Optional[int] = None,
+        sentence: str | list[str],
+        seq_len: int | None = None,
         with_eos: bool = False,
         with_sos: bool = False,
         with_len: bool = False,
-    ) -> Union[str, Tuple[str, int]]:
+    ) -> str | tuple[str, int]:
         if isinstance(sentence, str):
             sentence = sentence.split()
 
@@ -268,7 +274,7 @@ class WordVocab(Vocab):
         self, seq: Sequence, join: bool = False, with_pad: bool = False
     ) -> str:
         words = [
-            self.itos[idx] if idx < len(self.itos) else "<%d>" % idx
+            self.itos[idx] if idx < len(self.itos) else f"<{idx}>"
             for idx in seq
             if not with_pad or idx != self.pad_index
         ]
@@ -278,7 +284,7 @@ class WordVocab(Vocab):
     def get_stoi(self) -> defaultdict:
         return self.stoi
 
-    def get_itos(self) -> List[str]:
+    def get_itos(self) -> list[str]:
         return self.itos
 
     @staticmethod

@@ -18,8 +18,6 @@ Created on June 30, 2021
 """
 
 
-from typing import Optional
-
 from fuse.eval.metrics.libs.survival import MetricsSurvival
 from fuse.eval.metrics.metrics_common import MetricDefault
 
@@ -34,8 +32,8 @@ class MetricCIndex(MetricDefault):
         pred: str,
         event_times: str,
         event_observed: str,
-        time_unit: Optional[int] = 1,
-        time_followup: Optional[int] = None,
+        time_unit: int | None = 1,
+        time_followup: int | None = None,
         **kwargs: dict,
     ):
         """

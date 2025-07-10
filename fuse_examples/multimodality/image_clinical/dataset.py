@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Tuple
+from collections.abc import Sequence
 
 from torch.utils.data.dataloader import DataLoader
 
@@ -14,9 +14,9 @@ def isic_2019_dataloaders(
     cache_path: str,
     reset_cache: bool = False,
     reset_split_file: bool = False,
-    append_dyn_pipeline: Optional[Sequence[Tuple[OpBase, dict]]] = None,
-    sample_ids: Optional[Sequence[str]] = None,
-) -> Tuple[DataLoader, DataLoader]:
+    append_dyn_pipeline: Sequence[tuple[OpBase, dict]] | None = None,
+    sample_ids: Sequence[str] | None = None,
+) -> tuple[DataLoader, DataLoader]:
     """
     Create train_dataloader and validation_dataloadr with specific parameters for image_clinical_multimodality tutorial
     :param data_path: path to download the data to

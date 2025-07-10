@@ -1,4 +1,4 @@
-from typing import Any, Dict, Tuple, Union
+from typing import Any
 
 import numpy as np
 import torch
@@ -14,21 +14,20 @@ class OpClip(OpBase):
     Clip values - support both torch tensor and numpy array
     """
 
-    def __init__(self, **kwargs: Dict[str, Any]):
+    def __init__(self, **kwargs: dict[str, Any]):
         super().__init__(**kwargs)
 
     def __call__(
         self,
         sample_dict: NDict,
         key: str,
-        clip: Tuple[float, float] = (0.0, 1.0),
+        clip: tuple[float, float] = (0.0, 1.0),
     ) -> NDict:
         """
         Clip  values
         :param key: key to an image in sample_dict: either torch tensor or numpy array and any dimension
         :param clip: values for clipping from both sides
         """
-
         img = sample_dict[key]
 
         processed_img = self.clip(img, clip)
@@ -38,8 +37,8 @@ class OpClip(OpBase):
 
     @staticmethod
     def clip(
-        img: Union[np.ndarray, torch.Tensor], clip: Tuple[float, float] = (0.0, 1.0)
-    ) -> Union[np.ndarray, torch.Tensor]:
+        img: np.ndarray | torch.Tensor, clip: tuple[float, float] = (0.0, 1.0)
+    ) -> np.ndarray | torch.Tensor:
         if isinstance(img, np.ndarray):
             processed_img = np.clip(img, clip[0], clip[1])
         elif isinstance(img, torch.Tensor):
@@ -111,8 +110,8 @@ class OpToRange(OpBase):
         self,
         sample_dict: NDict,
         key: str,
-        from_range: Tuple[float, float],
-        to_range: Tuple[float, float],
+        from_range: tuple[float, float],
+        to_range: tuple[float, float],
     ) -> NDict:
         from_range_start = from_range[0]
         from_range_end = from_range[1]

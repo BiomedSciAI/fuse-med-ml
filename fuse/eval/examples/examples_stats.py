@@ -30,16 +30,15 @@ def example_pearson_correlation() -> float:
     """
     Pearson correlation coefficient
     """
-
     # define data
     sz = 1000
     data = {
         "id": range(sz),
     }
     np.random.seed(0)
-    rand_vec = np.random.randn((sz))
-    data["x1"] = 100 * np.ones((sz)) + 10 * rand_vec
-    data["x2"] = -10 * np.ones((sz)) + 3 * rand_vec
+    rand_vec = np.random.randn(sz)
+    data["x1"] = 100 * np.ones(sz) + 10 * rand_vec
+    data["x2"] = -10 * np.ones(sz) + 3 * rand_vec
 
     data_df = pd.DataFrame(data)
 
