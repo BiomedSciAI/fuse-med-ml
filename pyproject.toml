@@ -14,10 +14,13 @@ requires-python = ">=3.10, <3.13"
 license = { text = "Apache License 2.0" }
 dynamic = ["version", "dependencies", "optional-dependencies"]
 classifiers = [
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11"
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
+
+[project.urls]
+repository = "https://github.com/BiomedSciAI/fuse-med-ml"
 
 [tool.setuptools]
 packages = { find = { include = ["fuse*", "fuseimg*", "fuse_examples*"] } }
@@ -37,9 +40,6 @@ file = ["fuse_examples/requirements.txt"]
 
 [tool.setuptools.dynamic.optional-dependencies.all]
 file = ["fuse/requirements_all.txt"]
-
-[project.urls]
-repository = "https://github.com/BiomedSciAI/fuse-med-ml"
 
 [tool.ruff]
 line-length = 120
