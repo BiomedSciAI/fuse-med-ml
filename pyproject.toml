@@ -39,7 +39,7 @@ file = ["fuseimg/requirements.txt"]
 file = ["fuse_examples/requirements.txt"]
 
 [tool.setuptools.dynamic.optional-dependencies.all]
-file = ["fuse/requirements_all.txt"]
+file = ["fuse/requirements_dev.txt", "fuseimg/requirements.txt"]
 
 [tool.ruff]
 line-length = 120

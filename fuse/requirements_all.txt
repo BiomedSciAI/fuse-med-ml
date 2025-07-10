@@ -1,2 +1,0 @@
--r ../fuseimg/requirements.txt
--r requirements_dev.txt
