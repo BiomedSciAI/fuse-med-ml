@@ -19,7 +19,6 @@ Created on June 30, 2021
 
 import logging
 import os
-from typing import Optional, Union
 
 import pandas as pd
 import pytorch_lightning as pl
@@ -45,8 +44,8 @@ def make_predictions_file(
     model: torch.nn.Module,
     checkpoint: str,
     data_path: str,
-    cache_path: Optional[str],
-    split: Union[str, dict],
+    cache_path: str | None,
+    split: str | dict,
     output_filename: str,
     predictions_key_name: str,
     task_num: int,
@@ -130,8 +129,8 @@ def make_predictions_file(
             data.append(list(prediction["model.output.head_0"][i]))
 
     predictions_df = pd.DataFrame(data, columns=list(predictions_score_names))
-    predictions_df.reset_index(inplace=True)
-    predictions_df.rename({"index": "case_id"}, axis=1, inplace=True)
+    predictions_df = predictions_df.reset_index()
+    predictions_df = predictions_df.rename({"index": "case_id"}, axis=1)
 
     # save file
     save_dataframe(predictions_df, output_filename, index=False)

@@ -34,7 +34,6 @@ def draw_grid_3d_op(
     :param pxstep:
     :return:
     """
-
     # grid = sitk.GridSource(outputPixelType=sitk.sitkUInt16, size=input_tensor.shape, sigma=(0.5, 0.5,0.5), gridSpacing=(100.0, 100.0, 100.0), gridOffset=(0.0, 0.0, 0.0), spacing=(0.2, 0.2, 0.2))
     # grid = sitk.GetArrayFromImage(grid)
 

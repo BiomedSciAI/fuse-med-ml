@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Any, Optional, Tuple
+from typing import Any
 
 import hydra
 import pytorch_lightning as pl
@@ -43,15 +43,14 @@ def data(
     batch_size: int,
     data_loader_train: dict,
     data_loader_valid: dict,
-) -> Tuple[Any, DataLoader, DataLoader]:
+) -> tuple[Any, DataLoader, DataLoader]:
     """
-    return token to index mapper and train and validation dataloaders for MIMICC II
+    Return token to index mapper and train and validation dataloaders for MIMICC II
     :param dataset_cfg: PhysioNetCinC.dataset arguments
     :param target_key: will be used to balance the training dataset
     :param data_loader_train: arguments for train dataloader
     :param data_loader_train: arguments for validation dataloader
     """
-
     token2idx, ds_train, ds_valid, _ = PhysioNetCinC.dataset(**dataset_cfg)
 
     dl_train = DataLoader(
@@ -181,7 +180,7 @@ def train(
     aux_next_vis_classification: bool,
     next_vis_loss_weight: float,
     lr_scheduler: callable = None,
-    track_clearml: Optional[dict] = None,
+    track_clearml: dict | None = None,
 ) -> None:
     """
     Run training process
@@ -200,7 +199,6 @@ def train(
     :param lr_scheduler: callable that given optimizer returns torch lr scheduler
     :param track_clearml: optional - to track with clearml provide arguments to start_clearml_logger()
     """
-
     if track_clearml is not None:
         from fuse.dl.lightning.pl_funcs import start_clearml_logger
 

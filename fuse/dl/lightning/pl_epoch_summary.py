@@ -18,7 +18,7 @@ Created on June 30, 2021
 
 import os
 from copy import deepcopy
-from typing import Dict, Optional, Union
+from typing import Dict
 
 import pandas as pd
 import pytorch_lightning as pl
@@ -36,7 +36,7 @@ class ModelEpochSummary(Checkpoint):
 
         Automatically display (print to screen and log to a file) best vs current epoch metrics and losses.
 
-        Example:
+    Example:
     Stats for epoch: 9 (best epoch is 7 for source validation.metrics.accuracy!)
     ------------------------------------------------------------------------------------------
     |                             | Best Epoch (7)              | Current Epoch (9)           |
@@ -58,9 +58,9 @@ class ModelEpochSummary(Checkpoint):
 
     def __init__(
         self,
-        dirpath: Optional[str] = None,
-        filename: Optional[str] = None,
-        monitor: Optional[str] = None,
+        dirpath: str | None = None,
+        filename: str | None = None,
+        monitor: str | None = None,
         mode: str = "min",
     ):
         """
@@ -92,12 +92,12 @@ class ModelEpochSummary(Checkpoint):
         """
 
         def get_value_as_float_str(
-            dict: Dict[str, Union[float, int]], key: str
-        ) -> Union[None, str]:
+            dict: Dict[str, float | int], key: str
+        ) -> None | str:
             val_as_str = "N/A"
             try:
                 value = dict[key]
-                val_as_str = "%.4f" % float(value)
+                val_as_str = f"{float(value):.4f}"
             except:
                 pass
             return val_as_str

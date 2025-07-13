@@ -14,13 +14,15 @@ Created on June 30, 2021
 import hashlib
 import os
 from collections import OrderedDict
+from collections.abc import Hashable, Sequence
 from functools import partial
 from glob import glob
-from typing import Any, Callable, Dict, Hashable, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Tuple
 from warnings import warn
 
 import numpy as np
 import psutil
+import pytest
 
 from fuse.data.datasets.caching.object_caching_handlers import (
     _object_requires_hdf5_recurse,
@@ -53,13 +55,13 @@ class SamplesCacher:
         self,
         unique_name: str,
         pipeline: PipelineDefault,
-        cache_dirs: Union[str, List[str]],
-        custom_write_dir_callable: Optional[Callable] = None,
-        custom_read_dirs_callable: Optional[Callable] = None,
+        cache_dirs: str | List[str],
+        custom_write_dir_callable: Callable | None = None,
+        custom_read_dirs_callable: Callable | None = None,
         restart_cache: bool = False,
         workers: int = 0,
         verbose: int = 1,
-        use_pipeline_hash: Optional[bool] = True,
+        use_pipeline_hash: bool | None = True,
         **audit_kwargs: dict,
     ) -> None:
         """
@@ -150,7 +152,7 @@ class SamplesCacher:
                     new_file = os.path.join(
                         found_dir, f"pipeline_{self._pipeline_desc_hash}_desc.txt"
                     )
-                    with open(new_file, "wt") as f:
+                    with open(new_file, "w") as f:
                         f.write(new_desc)
 
                     pipeline_desc_file = os.path.join(
@@ -201,7 +203,7 @@ class SamplesCacher:
 
     def cache_samples(
         self, orig_sample_ids: List[Any]
-    ) -> List[Tuple[str, Union[None, List[str]], str]]:
+    ) -> List[Tuple[str, None | List[str], str]]:
         """
         Go over all of orig_sample_ids, and cache resulting samples
         returns information that helps to map from original sample id to the resulting sample id
@@ -252,7 +254,7 @@ class SamplesCacher:
             write_dir, f"pipeline_{self._pipeline_desc_hash}_desc.txt"
         )
         if not os.path.exists(pipeline_desc_file):
-            with open(pipeline_desc_file, "wt") as f:
+            with open(pipeline_desc_file, "w") as f:
                 f.write(self._pipeline_desc_text)
             print("======== wrote", pipeline_desc_file)
 
@@ -291,14 +293,13 @@ class SamplesCacher:
         return ans
 
     def load_sample(
-        self, sample_id: Hashable, keys: Optional[Sequence[str]] = None
+        self, sample_id: Hashable, keys: Sequence[str] | None = None
     ) -> NDict:
         """
         :param sample_id: the sample_id of the sample to load
         :param keys: optionally, provide a subset of the keys to load in this sample.
         This is useful for speeding up loading.
         """
-
         sample_from_cache = self._load_sample_from_cache(sample_id, keys)
         audit_required = self._audit.update()
 
@@ -316,7 +317,7 @@ class SamplesCacher:
     def _load_sample_using_pipeline(
         self,
         sample_id: Hashable,
-        keys: Optional[Sequence[str]] = None,  # FIXME: noticed that keys is ignored !
+        keys: Sequence[str] | None = None,  # FIXME: noticed that keys is ignored !
     ) -> NDict:
         sample_dict = create_initial_sample(sample_id)
         result_sample = self._pipeline(sample_dict)
@@ -325,7 +326,7 @@ class SamplesCacher:
     def _load_sample_from_cache(
         self,
         sample_id: Hashable,
-        keys: Optional[Sequence[str]] = None,  # FIXME: noticed that keys is ignored !
+        keys: Sequence[str] | None = None,  # FIXME: noticed that keys is ignored !
     ) -> NDict:
         """
         TODO: add comments
@@ -379,7 +380,6 @@ class SamplesCacher:
         :param sample: the result of the pipeline - can be None if it was dropped, a dictionary in the typical standard case,
          and a list of dictionaries in case the sample was split into multiple samples (ops are allowed to do that during the static part of the processing)
         """
-
         write_dir = self._get_write_dir()
         os.makedirs(write_dir, exist_ok=True)
         read_dirs = self._get_read_dirs()
@@ -465,7 +465,7 @@ def _convert_to_sequence_for_hdf5_if_needed(key: str, data: Any) -> Dict:
                 [len(data)]
             )  # to mark that this case is a tuple, and its length
         else:
-            assert False  # should not get here
+            pytest.fail()  # should not get here
 
         for i, elem in enumerate(data):
             ans[key + f"@RESERVED_ELEM@{i}"] = elem
@@ -476,7 +476,7 @@ def _convert_to_sequence_for_hdf5_if_needed(key: str, data: Any) -> Dict:
 
 
 def _get_available_write_location(
-    cache_dirs: List[str], max_allowed_used_space: Optional[float] = None
+    cache_dirs: List[str], max_allowed_used_space: float | None = None
 ) -> str:
     """
     :param cache_dirs: write directories. Directories are checked in order that they are provided.
@@ -484,7 +484,6 @@ def _get_available_write_location(
     a value of 0.95 means that once the available space is greater or equal to 95% of the the disk capacity,
     it will be considered full, and the next directory will be attempted.
     """
-
     for curr_loc in cache_dirs:
         if max_allowed_used_space is None:
             return curr_loc

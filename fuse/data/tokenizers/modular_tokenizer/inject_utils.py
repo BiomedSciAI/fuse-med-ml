@@ -1,8 +1,9 @@
 import re
 from collections import defaultdict
-from typing import Dict, List, NamedTuple, Optional, Tuple, Union
+from typing import Dict, List, NamedTuple, Tuple
 from warnings import warn
 
+import pytest
 import torch
 from tokenizers import Encoding
 
@@ -65,8 +66,8 @@ class InjectorToModularTokenizerLib:
     @staticmethod
     def build_placeholder_meta_tokenization(
         *,
-        sequence: Union[str, list, tuple],
-        sample_dict: Optional[NDict] = None,
+        sequence: str | list | tuple,
+        sample_dict: NDict | None = None,
         default_sub_tokenizer_name: str = "AA",
     ) -> Tuple[str, List[str]]:
         """
@@ -159,11 +160,11 @@ class InjectorToModularTokenizerLib:
         per_meta_tokenizer_data: List[str],
         per_meta_encoding_including_placeholders: List[Encoding],
         token_ids: List[int],
-        sample_dict: Optional[NDict] = None,
+        sample_dict: NDict | None = None,
         crop_report: str = "warn",
     ) -> Dict:
         """
-        since we:
+        Since we:
         1. Need to use the model embedding layer (allowing gradients flow if needed)
         2. We prefer not to use the model during the data pipeline
 
@@ -301,7 +302,7 @@ class InjectorToModularTokenizerLib:
                 elif crop_report == "raise":
                     raise Exception(_msg)
                 else:
-                    assert False, "should not get here"
+                    pytest.fail("should not get here")
             all_scalars_values = all_scalars_values[:full_query_len]
             all_scalars_valid_mask = all_scalars_valid_mask[:full_query_len]
 

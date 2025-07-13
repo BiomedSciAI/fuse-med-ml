@@ -1,5 +1,6 @@
 from abc import abstractmethod
-from typing import Hashable, List, Optional, Sequence
+from collections.abc import Hashable, Sequence
+from typing import List
 
 import numpy
 import torch
@@ -18,8 +19,8 @@ class OpDebugBase(OpBase):
 
     def __init__(
         self,
-        name: Optional[str] = None,
-        sample_ids: Optional[List[Hashable]] = None,
+        name: str | None = None,
+        sample_ids: List[Hashable] | None = None,
         num_samples: int = 0,
     ):
         """
@@ -33,7 +34,7 @@ class OpDebugBase(OpBase):
         self._num_samples = num_samples
         self._num_samples_done = 0
 
-    def reset(self, name: Optional[str] = None) -> None:
+    def reset(self, name: str | None = None) -> None:
         """Reset operation state"""
         self._num_samples_done = 0
         self._name = name
@@ -74,6 +75,7 @@ class OpPrintKeys(OpDebugBase):
     ```
     (OpPrintKeys(num_samples=1), dict()),
     ```
+
     """
 
     def call_debug(self, sample_dict: NDict) -> None:

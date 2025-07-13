@@ -20,7 +20,7 @@ Created on June 30, 2021
 import copy
 import logging
 import os
-from typing import OrderedDict
+from collections import OrderedDict
 
 import pytorch_lightning as pl
 import torch
@@ -119,7 +119,7 @@ def create_model(
     imaging_dropout: float, clinical_dropout: float, fused_dropout: float
 ) -> torch.nn.Module:
     """
-    creates the model
+    Creates the model
     See Head3D for details about imaging_dropout, clinical_dropout, fused_dropout
     """
     model = ModelMultiHead(

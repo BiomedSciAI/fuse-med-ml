@@ -12,16 +12,19 @@ jobs:
           options: "--check --verbose --diff --color"
           src: "."
           version: "22.3.0"
-  flake8:
+  ruff:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
           python-version: "3.9"
-      - uses: py-actions/flake8@v2
-        with:
-          path: "."
+
+      - name: Install dependencies
+        run: pip install ruff
+
+      - name: Run Ruff
+        run: ruff check .
   mypy:
     runs-on: ubuntu-latest
     steps:
@@ -42,13 +45,3 @@ jobs:
       - run: pip install --upgrade pip
       - run: pip install nb-clean
       - run: nb-clean check .
-  isort:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: "3.9"
-      - uses: isort/isort-action@master
-        with:
-          isort-version: 5.13.2

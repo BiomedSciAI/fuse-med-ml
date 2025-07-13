@@ -18,7 +18,6 @@ Created on June 30, 2021
 """
 import logging
 import os
-from typing import Union
 
 import pandas as pd
 
@@ -26,9 +25,7 @@ from fuse.utils.file_io.file_io import save_dataframe
 from fuse.utils.utils_logger import fuse_logger_start
 
 
-def make_targets_file(
-    data_path: str, split: Union[str, dict], output_filename: str
-) -> None:
+def make_targets_file(data_path: str, split: str | dict, output_filename: str) -> None:
     """
     Automatically make targets file in the requested format
     :param data_path: path to the original data downloaded from https://github.com/neheller/KNIGHT
@@ -77,9 +74,9 @@ def make_targets_file(
     levels = ["benign", "low_risk", "intermediate_risk", "high_risk", "very_high_risk"]
     labels["Task2-target"] = labels["target"].apply(lambda x: levels.index(x))
     labels.insert(1, "Task1-target", labels["Task2-target"].apply(lambda x: int(x > 3)))
-    labels.reset_index(inplace=True)
-    labels.rename({"index": "case_id"}, axis=1, inplace=True)
-    labels.drop(["target"], axis=1, inplace=True)
+    labels = labels.reset_index()
+    labels = labels.rename({"index": "case_id"}, axis=1)
+    labels = labels.drop(["target"], axis=1)
     save_dataframe(labels, output_filename, index=False)
     return
 

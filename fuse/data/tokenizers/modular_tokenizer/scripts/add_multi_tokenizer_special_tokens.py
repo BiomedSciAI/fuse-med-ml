@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List
 
 import click
 
@@ -24,9 +24,7 @@ from fuse.data.tokenizers.modular_tokenizer.modular_tokenizer import ModularToke
     help="path to write tokenizer in",
 )
 # # this needs to be run on all the related modular tokenizers
-def main(
-    tokenizer_path: str, output_path: Union[str, None], added_tokens: List[str]
-) -> None:
+def main(tokenizer_path: str, output_path: str | None, added_tokens: List[str]) -> None:
     print(f"adding special tokens to {tokenizer_path}")
     if output_path is None:
         output_path = tokenizer_path

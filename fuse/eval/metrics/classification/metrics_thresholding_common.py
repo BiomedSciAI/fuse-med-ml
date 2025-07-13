@@ -1,4 +1,5 @@
-from typing import Any, Dict, Hashable, Optional, Sequence, Tuple, Union
+from collections.abc import Hashable, Sequence
+from typing import Any, Dict, Tuple
 
 import numpy as np
 
@@ -12,8 +13,8 @@ class MetricApplyThresholds(MetricMultiClassDefault):
     def __init__(
         self,
         pred: str,
-        class_names: Optional[Sequence[str]] = None,
-        operation_point: Union[float, Sequence[Tuple[int, float]], str, None] = None,
+        class_names: Sequence[str] | None = None,
+        operation_point: float | Sequence[Tuple[int, float]] | str | None = None,
         **kwargs: dict
     ):
         """
@@ -41,7 +42,7 @@ class MetricApplyThresholds(MetricMultiClassDefault):
         self,
         pred: Sequence[np.ndarray],
         ids: Sequence[Hashable],
-        operation_point: Union[float, Sequence[Tuple[int, float]], str, None] = None,
+        operation_point: float | Sequence[Tuple[int, float]] | str | None = None,
     ) -> Dict[str, Any]:
         pred_thresholded = Thresholding.apply_thresholds(
             pred=pred, operation_point=operation_point

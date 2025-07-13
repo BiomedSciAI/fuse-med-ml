@@ -1,5 +1,5 @@
 from functools import partial
-from typing import List, Optional
+from typing import List
 
 import numpy as np
 
@@ -56,7 +56,7 @@ class MetricDetectionPrecision(MetricPerSampleDefault):
         segmentation_target_type: str,
         height: str,
         width: str,
-        threshold: Optional[float] = 0.5,
+        threshold: float | None = 0.5,
         **kwargs: dict
     ):
         """
@@ -98,7 +98,7 @@ class MetricDetectionRecall(MetricPerSampleDefault):
         segmentation_target_type: str,
         height: str,
         width: str,
-        threshold: Optional[float] = 0.5,
+        threshold: float | None = 0.5,
         **kwargs: dict
     ):
         """

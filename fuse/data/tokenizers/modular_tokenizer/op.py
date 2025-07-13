@@ -1,8 +1,9 @@
 import os
 import re
 from collections import defaultdict
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Tuple
 from warnings import warn
 
 from huggingface_hub import HfApi, snapshot_download
@@ -25,12 +26,12 @@ class ModularTokenizerWithoutInjectOp(OpBase):
     def __init__(
         self,
         tokenizer_path: str,
-        max_size: Union[int, None] = None,
-        pad_token: Union[str, None] = None,
-        pad_type_id: Union[int, None] = None,
-        validate_ends_with_eos: Optional[bool] = True,
-        eos: Optional[str] = "<EOS>",
-        verbose: Optional[bool] = False,
+        max_size: int | None = None,
+        pad_token: str | None = None,
+        pad_type_id: int | None = None,
+        validate_ends_with_eos: bool | None = True,
+        eos: str | None = "<EOS>",
+        verbose: bool | None = False,
         on_unknown_default_value: str = "warn",
         **kwargs: Any,
     ) -> None:
@@ -44,6 +45,7 @@ class ModularTokenizerWithoutInjectOp(OpBase):
                 having an eos (end of sentence) token in the end is useful for multiple scenarios, for example in a generative transformer (like T5 encoder-decoder)
             verbose:
             on_unknown_default_value: User can define the default behavior of unknown token here in the constructor. In addition, this value can be overwritten in the __call__
+
         """
         super().__init__(**kwargs)
 
@@ -105,7 +107,7 @@ class ModularTokenizerWithoutInjectOp(OpBase):
 
     def get_max_token_id(self) -> Tuple[str, int]:
         """
-        scans the vocab for the max observed token id and returns a tuple for it
+        Scans the vocab for the max observed token id and returns a tuple for it
             [its token string (str), the token id (int)]
         """
         max_token_id = self._tokenizer.get_max_id()
@@ -122,11 +124,11 @@ class ModularTokenizerWithoutInjectOp(OpBase):
 
     def get_min_max_sentinels(
         self,
-        sentinel_prefix: Optional[str] = "<SENTINEL_ID_",
-        integer_find_regex: Optional[str] = r"\d{1,}",
+        sentinel_prefix: str | None = "<SENTINEL_ID_",
+        integer_find_regex: str | None = r"\d{1,}",
     ) -> Tuple[int, int]:
         """
-        returns a Tuple [min encountered sentinel name, max encountered sentinel name]
+        Returns a Tuple [min encountered sentinel name, max encountered sentinel name]
 
         For example, if the vocab contains:
 
@@ -162,7 +164,7 @@ class ModularTokenizerWithoutInjectOp(OpBase):
 
         return (min_token, max_token)
 
-    def get_token_id(self, token_str: str, t_type: Optional[str] = None) -> int:
+    def get_token_id(self, token_str: str, t_type: str | None = None) -> int:
         """
         Args:
             token_str (:obj:`str`):
@@ -172,13 +174,15 @@ class ModularTokenizerWithoutInjectOp(OpBase):
 
         Returns:
             :obj:`int`: The token's id under the tokenizer type (if given)
+
         """
         ans = self._tokenizer.token_to_id(token_str, t_type)
         assert ans is not None, f"could not find token id for token:{token_str}!"
         return ans
 
     def decode(self, ids: Iterable) -> str:
-        """Receives a list of IDs and returns a string of tokens
+        """
+        Receives a list of IDs and returns a string of tokens
         Args:
             ids (Iterable): _description_
         """
@@ -186,10 +190,9 @@ class ModularTokenizerWithoutInjectOp(OpBase):
         assert ans is not None, f"could not find tokens for ids: {ids}!"
         return ans
 
-    def get_max_len(
-        self, override_max_len: Union[int, None] = None
-    ) -> Union[int, None]:
-        """Returns the expected max_len of any encoding. max_len is given by internal state (set during initialization of the tokenizer), or it can be overridden
+    def get_max_len(self, override_max_len: int | None = None) -> int | None:
+        """
+        Returns the expected max_len of any encoding. max_len is given by internal state (set during initialization of the tokenizer), or it can be overridden
         during call to encode_list (applicable only to that specific encoding), or enable_padding/enable_truncation (applicable to all encodings produced
         following the call).
 
@@ -199,11 +202,13 @@ class ModularTokenizerWithoutInjectOp(OpBase):
 
         Returns:
             Optional[int]: _description_
+
         """
         return self._tokenizer.get_expected_max_len(override_max_len=override_max_len)
 
     def add_new_special_tokens(self, new_special_tokens: list[str]) -> int:
-        """add new special tokens if they are not in the tokenizer.
+        """
+        Add new special tokens if they are not in the tokenizer.
         Skipps allready existing special tokens.
 
         Args:
@@ -212,8 +217,8 @@ class ModularTokenizerWithoutInjectOp(OpBase):
             `int`: The number of tokens that were created in the vocabulary
 
         Will raise an exception if any of the tokens are allready in the tokenizer as _regular_ tokens.
-        """
 
+        """
         tokenizer = self._tokenizer
         num_new_tokens = tokenizer.add_special_tokens(new_special_tokens)
         return num_new_tokens
@@ -222,18 +227,19 @@ class ModularTokenizerWithoutInjectOp(OpBase):
         self,
         sample_dict: NDict,
         key_in: str,
-        key_out_tokenized_object: Optional[str] = None,
-        key_out_tokens_ids: Optional[str] = None,
-        key_out_attention_mask: Optional[str] = None,
-        convert_attention_mask_to_bool: Optional[bool] = True,
-        max_seq_len: Optional[int] = None,
-        on_unknown: Optional[str] = None,
-        verbose: Optional[int] = 1,
-        validate_ends_with_eos: Optional[bool] = None,
-        additional_caller_info_text: Optional[str] = "",
-        key_out_encoding_per_meta: Optional[str] = None,
+        key_out_tokenized_object: str | None = None,
+        key_out_tokens_ids: str | None = None,
+        key_out_attention_mask: str | None = None,
+        convert_attention_mask_to_bool: bool | None = True,
+        max_seq_len: int | None = None,
+        on_unknown: str | None = None,
+        verbose: int | None = 1,
+        validate_ends_with_eos: bool | None = None,
+        additional_caller_info_text: str | None = "",
+        key_out_encoding_per_meta: str | None = None,
     ) -> NDict:
-        """_summary_
+        """
+        _summary_
 
         Args:
             sample_dict (NDict): _description_
@@ -259,6 +265,7 @@ class ModularTokenizerWithoutInjectOp(OpBase):
 
         Returns:
             NDict: _description_
+
         """
         data = sample_dict[key_in]
         if not isinstance(data, (list, str)):
@@ -409,12 +416,12 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
     def __init__(
         self,
         tokenizer_path: str,
-        max_size: Union[int, None] = None,
-        pad_token: Union[str, None] = None,
-        pad_type_id: Union[int, None] = None,
-        validate_ends_with_eos: Optional[bool] = True,
-        eos: Optional[str] = "<EOS>",
-        verbose: Optional[bool] = False,
+        max_size: int | None = None,
+        pad_token: str | None = None,
+        pad_type_id: int | None = None,
+        validate_ends_with_eos: bool | None = True,
+        eos: str | None = "<EOS>",
+        verbose: bool | None = False,
         **kwargs: Any,
     ) -> None:
         """
@@ -427,6 +434,7 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
             validate_ends_with_eos: during encoder request (a _call_ to the op) will make sure that it ends with the provided eos token, and raise exception otherwise.
                 having an eos (end of sentence) token in the end is useful for multiple scenarios, for example in a generative transformer (like T5 encoder-decoder)
             verbose:
+
         """
         if verbose:
             print(
@@ -452,19 +460,20 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
         self,
         sample_dict: NDict,
         key_in: str,
-        key_out_tokenized_object: Optional[str] = None,
-        key_out_tokens_ids: Optional[str] = None,
-        key_out_attention_mask: Optional[str] = None,
-        convert_attention_mask_to_bool: Optional[bool] = True,
-        max_seq_len: Optional[int] = None,
-        on_unknown: Optional[str] = "warn",
-        verbose: Optional[int] = 1,
-        validate_ends_with_eos: Optional[bool] = None,
-        key_out_scalars: Optional[str] = None,
-        key_out_external_embeddings_info: Optional[str] = None,
-        additional_caller_info_text: Optional[str] = "",
+        key_out_tokenized_object: str | None = None,
+        key_out_tokens_ids: str | None = None,
+        key_out_attention_mask: str | None = None,
+        convert_attention_mask_to_bool: bool | None = True,
+        max_seq_len: int | None = None,
+        on_unknown: str | None = "warn",
+        verbose: int | None = 1,
+        validate_ends_with_eos: bool | None = None,
+        key_out_scalars: str | None = None,
+        key_out_external_embeddings_info: str | None = None,
+        additional_caller_info_text: str | None = "",
     ) -> NDict:
-        """_summary_
+        """
+        _summary_
 
         Args:
             sample_dict (NDict): _description_
@@ -489,8 +498,8 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
 
         Returns:
             NDict: _description_
-        """
 
+        """
         (
             with_placeholders_str,
             per_meta_orig,
@@ -543,23 +552,25 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
         cls,
         identifier: str,
         pad_token: str = "<PAD>",
-        max_size: Optional[int] = None,
+        max_size: int | None = None,
         on_unknown_default_value: str = "warn",
         force_download: bool = False,
-        resume_download: Optional[bool] = None,
-        proxies: Optional[Dict] = None,
-        token: Optional[Union[str, bool]] = None,
-        cache_dir: Optional[Union[str, Path]] = None,
+        resume_download: bool | None = None,
+        proxies: Dict | None = None,
+        token: str | bool | None = None,
+        cache_dir: str | Path | None = None,
         local_files_only: bool = False,
-        revision: Optional[str] = None,
+        revision: str | None = None,
     ) -> "ModularTokenizerOp":
-        """Load pre-trained tokenizer from HF repo_id or a local dirpath.
+        """
+        Load pre-trained tokenizer from HF repo_id or a local dirpath.
 
         Args:
             identifier (str): A repo_id or local dirpath.
             pad_token (str, optional): A string of the pad token. Defaults to "<PAD>".
             max_size (Optional[int], optional): Sequences below this size will be padded, and above this size will be truncated. Defaults to None.
             * For other args see `snapshot_download()`
+
         """
         if not os.path.isdir(identifier):
             # Try to download from hub
@@ -591,7 +602,7 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
         )
         return tokenizer_op
 
-    def save_pretrained(self, save_directory: Union[str, Path]) -> None:
+    def save_pretrained(self, save_directory: str | Path) -> None:
         print(f"Saving @ {save_directory=}")
         self._tokenizer.save(path=str(save_directory))
 
@@ -602,12 +613,12 @@ class ModularTokenizerOp(ModularTokenizerWithoutInjectOp):
         *,
         commit_message: str = "Push model using huggingface_hub.",
         private: bool = False,
-        token: Optional[str] = None,
-        branch: Optional[str] = None,
-        create_pr: Optional[bool] = None,
-        allow_patterns: Optional[Union[List[str], str]] = None,
-        ignore_patterns: Optional[Union[List[str], str]] = None,
-        delete_patterns: Optional[Union[List[str], str]] = None,
+        token: str | None = None,
+        branch: str | None = None,
+        create_pr: bool | None = None,
+        allow_patterns: List[str] | str | None = None,
+        ignore_patterns: List[str] | str | None = None,
+        delete_patterns: List[str] | str | None = None,
     ) -> None:
         api = HfApi(token=token)
         repo_id = api.create_repo(

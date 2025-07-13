@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Callable
 
 import torch
 import torch.nn.functional as F
@@ -74,11 +74,12 @@ class SupervisedContrastiveLoss(LossBase):
         alpha: float = 0.5,
         symmetrical: bool = False,
         callable: Callable = None,
-        weight: Optional[float] = None,
-        preprocess_func: Optional[Callable] = None,
+        weight: float | None = None,
+        preprocess_func: Callable | None = None,
     ) -> None:
         """
         This class wraps a PyTorch loss function with a Fuse api.
+
         Args:
         :param feat_i:               batch_dict key for feat i (e.g., network feature output)
         :param feat_j:               batch_dict key for feat_j (e.g., other network feature output to contrast with)
@@ -93,6 +94,7 @@ class SupervisedContrastiveLoss(LossBase):
         :param preprocess_func:             function that filters batch_dict/ The function gets an input batch_dict and returns filtered batch_dict
             the expected function signature is:
                 foo(batch_dict: NDict) -> NDict:
+
         """
         super().__init__()
         self.feat_i = feat_i

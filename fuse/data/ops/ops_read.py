@@ -17,7 +17,8 @@ Created on June 30, 2021
 
 """
 
-from typing import Dict, Hashable, List, Optional, Union
+from collections.abc import Hashable
+from typing import Dict, List
 
 import h5py
 import pandas as pd
@@ -35,10 +36,10 @@ class OpReadDataframe(OpBase):
 
     def __init__(
         self,
-        data: Optional[pd.DataFrame] = None,
-        data_filename: Optional[str] = None,
-        columns_to_extract: Optional[List[str]] = None,
-        rename_columns: Optional[Dict[str, str]] = None,
+        data: pd.DataFrame | None = None,
+        data_filename: str | None = None,
+        columns_to_extract: List[str] | None = None,
+        rename_columns: Dict[str, str] | None = None,
         key_name: str = "data.sample_id",
         key_column: str = "sample_id",
     ):
@@ -86,8 +87,8 @@ class OpReadDataframe(OpBase):
         self._data = df.to_dict(orient="index")
 
     def __call__(
-        self, sample_dict: NDict, prefix: Optional[str] = None
-    ) -> Union[None, dict, List[dict]]:
+        self, sample_dict: NDict, prefix: str | None = None
+    ) -> None | dict | List[dict]:
         """
         See base class
 
@@ -95,7 +96,6 @@ class OpReadDataframe(OpBase):
                        For example, with prefix 'data.features' and a df with the columns ['height', 'weight', 'sex'],
                        the matching keys will be: 'data.features.height', 'data.features.weight', 'data.features.sex'.
         """
-
         key = sample_dict[self._key_name]
 
         # locate the required item
@@ -135,10 +135,10 @@ class OpReadMultiFromDataframe(OpReadDataframe):
 
     def __init__(
         self,
-        data: Optional[pd.DataFrame] = None,
-        data_filename: Optional[str] = None,
-        columns_to_extract: Optional[List[str]] = None,
-        rename_columns: Optional[Dict[str, str]] = None,
+        data: pd.DataFrame | None = None,
+        data_filename: str | None = None,
+        columns_to_extract: List[str] | None = None,
+        rename_columns: Dict[str, str] | None = None,
         key_name: str = "data.sample_id",
         key_column: str = "sample_id",
         multi_key_sep: str = "@SEP@",
@@ -158,7 +158,7 @@ class OpReadMultiFromDataframe(OpReadDataframe):
         if not isinstance(next(iter(self._data.keys())), str):
             self._data = {str(k): v for k, v in self._data.items()}
 
-    def __call__(self, sample_dict: NDict, prefix: Optional[str] = None) -> NDict:
+    def __call__(self, sample_dict: NDict, prefix: str | None = None) -> NDict:
         multi_key = sample_dict[self._key_name]
 
         assert isinstance(multi_key, str), "Error: only str sample ids are supported"
@@ -189,9 +189,9 @@ class OpReadHDF5(OpBase):
 
     def __init__(
         self,
-        data_filename: Optional[str] = None,
-        columns_to_extract: Optional[List[str]] = None,
-        rename_columns: Optional[Dict[str, str]] = None,
+        data_filename: str | None = None,
+        columns_to_extract: List[str] | None = None,
+        rename_columns: Dict[str, str] | None = None,
         key_index: str = "data.sample_id",
         key_column: str = "sample_id",
     ):
@@ -220,7 +220,7 @@ class OpReadHDF5(OpBase):
     def num_samples(self) -> int:
         return self._num_samples
 
-    def __call__(self, sample_dict: NDict) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict) -> None | dict | List[dict]:
         index = sample_dict[self._key_index]
         for column in self._columns_to_extract:
             key_to_store = self._rename_columns.get(column, column)

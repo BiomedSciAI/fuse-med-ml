@@ -47,7 +47,7 @@ class FuseDebug(metaclass=Singleton):
         # defined the supported modes
         self._modes = {}
         # normal mode
-        default_settings = {key: "default" for key in self._settings_supported_values}
+        default_settings = dict.fromkeys(self._settings_supported_values, "default")
         self._modes["default"] = default_settings
         # debug mode
         debug_settings = {
@@ -63,7 +63,7 @@ class FuseDebug(metaclass=Singleton):
 
     def set_mode(self, mode: str) -> None:
         """
-        set debug mode
+        Set debug mode
         :param mode: see __init__{} for available modes
         """
         self._settings = self._modes["default"]

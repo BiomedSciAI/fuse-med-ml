@@ -1,5 +1,6 @@
+from collections.abc import Hashable, Sequence
 from functools import partial
-from typing import Any, Callable, Dict, Hashable, List, Optional, Sequence
+from typing import Any, Callable, Dict, List
 
 import numpy as np
 import pandas as pd
@@ -13,13 +14,13 @@ class MetricEnsemble(MetricDefault):
     def __init__(
         self,
         pred_keys: Sequence[str],
-        target: Optional[str] = None,
-        method: Optional[str] = "average",
-        output_file: Optional[str] = None,
-        output_pred_key: Optional[str] = "preds",
-        output_target_key: Optional[str] = "target",
-        rename_in_output: Optional[Dict[str, str]] = None,
-        scores_normalize_func: Optional[Callable] = None,
+        target: str | None = None,
+        method: str | None = "average",
+        output_file: str | None = None,
+        output_pred_key: str | None = "preds",
+        output_target_key: str | None = "target",
+        rename_in_output: Dict[str, str] | None = None,
+        scores_normalize_func: Callable | None = None,
         dropna: bool = False,
         **kwargs: dict,
     ):
@@ -62,13 +63,13 @@ class MetricEnsemble(MetricDefault):
     def _ensemble(
         self,
         ids: Sequence[Hashable],
-        target: Optional[Sequence[np.ndarray]] = None,
-        method: Optional[str] = "average",
-        output_file: Optional[str] = None,
-        output_pred_key: Optional[str] = "preds",
-        output_target_key: Optional[str] = "target",
-        keys_for_output: Optional[List[str]] = None,
-        rename_in_output: Optional[Dict[str, str]] = None,
+        target: Sequence[np.ndarray] | None = None,
+        method: str | None = "average",
+        output_file: str | None = None,
+        output_pred_key: str | None = "preds",
+        output_target_key: str | None = "target",
+        keys_for_output: List[str] | None = None,
+        rename_in_output: Dict[str, str] | None = None,
         scores_normalize_func: Callable = None,
         dropna: bool = False,
         **kwargs: dict,
