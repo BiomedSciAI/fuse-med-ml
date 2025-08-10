@@ -217,6 +217,9 @@ class MetricCollector(MetricBase):
             data, torch.Tensor
         ), f"ERROR, Fuse Metrics only supports gathering of torch.Tensor at this time. You tried gathering {type(data)}"
 
+        if not data.is_contiguous():
+            data = data.contiguous()
+
         # if data is 1d, torch.vstack will add another dimension which we do not want
         is_1d = len(data.shape) == 1
         if is_1d:
