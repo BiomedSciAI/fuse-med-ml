@@ -446,3 +446,26 @@ class OpRotation3D(OpBase):
 
         sample_dict[key] = aug_input
         return sample_dict
+
+
+class OpTranspose(OpBase):
+    """
+    Wrapper for torch.transpose: https://pytorch.org/docs/stable/generated/torch.transpose.html
+    Returns a tensor that is a transposed version of input. The given dimensions dim0 and dim1 are swapped.
+
+    Stores the resized image in sample_dict[key]
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def __call__(self, sample_dict: NDict, dim0: int, dim1: int, key: str) -> NDict:
+        """
+        :param dim0: the first dimension to be transposed
+        :param dim1: the second dimension to be transposed
+        :param key: key to a numpy array or tensor stored in the sample_dict in a H x W x C format.
+        """
+        aug_input = sample_dict[key]
+        aug_output = torch.transpose(aug_input, dim0, dim1)
+        sample_dict[key] = aug_output
+        return sample_dict
