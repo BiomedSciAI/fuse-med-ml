@@ -560,7 +560,6 @@ def example_10() -> NDict:
     """
     Test of McNemar's test implementation
     """
-
     # Toy example:
 
     # The correct target (class) labels (optional)
@@ -940,7 +939,6 @@ def example_17() -> NDict:
     """
     Test of C-Index test implementation
     """
-
     # Toy example:
 
     # An indicator whether the event was observed [optional: if not supplied all events are assumed to be observed]

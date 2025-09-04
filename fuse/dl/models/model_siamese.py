@@ -17,7 +17,8 @@ Created on June 30, 2021
 
 """
 
-from typing import Dict, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Dict, Tuple
 
 import torch
 

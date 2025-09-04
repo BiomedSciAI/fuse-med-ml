@@ -1,5 +1,3 @@
-from typing import List, Optional
-
 import torch
 from torch import Tensor
 
@@ -26,11 +24,11 @@ class OpAugColor(OpBase):
         self,
         sample_dict: NDict,
         key: str,
-        add: Optional[float] = None,
-        mul: Optional[float] = None,
-        gamma: Optional[float] = None,
-        contrast: Optional[float] = None,
-        channels: Optional[List[int]] = None,
+        add: float | None = None,
+        mul: float | None = None,
+        gamma: float | None = None,
+        contrast: float | None = None,
+        channels: list[int] | None = None,
     ) -> NDict:
         """
         :param key: key to a image stored in sample_dict: torch tensor of range [0, 1] representing an image to ,
@@ -93,7 +91,7 @@ class OpAugColor(OpBase):
     @staticmethod
     def aug_op_mul_col(aug_input: Tensor, mul: float) -> Tensor:
         """
-        multiply each pixel
+        Multiply each pixel
         :param aug_input: the tensor to augment
         :param mul: the multiplication factor
         :return: the augmented tensor
@@ -140,7 +138,7 @@ class OpAugGaussian(OpBase):
         key: str,
         mean: float = 0.0,
         std: float = 0.03,
-        channels: Optional[List[int]] = None,
+        channels: list[int] | None = None,
     ) -> Tensor:
         """
         :param key: key to a tensor or numpy array stored in sample_dict: any dimension and any range

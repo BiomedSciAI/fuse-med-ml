@@ -12,7 +12,8 @@ from fuse.data.tokenizers.modular_tokenizer.modular_tokenizer import ModularToke
     version_base=None,
 )
 def main(cfg: DictConfig) -> None:
-    """script to add a tokenizer (and all special tokens from it and special_tokens.py) to an existing tokenizer.
+    """
+    Script to add a tokenizer (and all special tokens from it and special_tokens.py) to an existing tokenizer.
     The old tokenizer is read from the in_path, tokenizer to add is taken from the tokenizer_to_add variable.
     max_possible_token_id will be updated if the new max is larger then the old one.
     Add the tokenizer_info of the new tokenizer, as usual.
@@ -20,8 +21,8 @@ def main(cfg: DictConfig) -> None:
 
     Args:
         cfg (DictConfig): the config file.
-    """
 
+    """
     cfg = hydra.utils.instantiate(cfg)
     tmp = OmegaConf.to_object(cfg)
     cfg_raw: Dict[str, Any] = tmp

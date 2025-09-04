@@ -1,8 +1,8 @@
 import glob
 import os
+from collections.abc import Hashable, Sequence
 from functools import partial
 from pathlib import Path
-from typing import Hashable, Optional, Sequence
 
 import numpy as np
 import pandas as pd
@@ -37,7 +37,7 @@ class OpCMMDSampleIDDecode(OpBase):
     """
 
     def __call__(self, sample_dict: NDict) -> NDict:
-        """ """
+
         sid = get_sample_id(sample_dict)
 
         img_filename_key = "data.input.img_path"
@@ -225,7 +225,7 @@ class CMMD:
         cache_dir: str = None,
         reset_cache: bool = True,
         num_workers: int = 10,
-        sample_ids: Optional[Sequence[Hashable]] = None,
+        sample_ids: Sequence[Hashable] | None = None,
         train: bool = False,
     ) -> DatasetDefault:
         """
@@ -240,7 +240,6 @@ class CMMD:
         :param train: True if used for training  - adds augmentation operations to the pipeline
         :return: DatasetDefault object
         """
-
         input_source_gt, all_sample_ids = CMMD.merge_clinical_data_with_dicom_tags(
             data_dir, data_misc_dir, target
         )

@@ -1,5 +1,4 @@
 import os
-from typing import Optional
 
 import nibabel as nib
 import numpy as np
@@ -24,10 +23,10 @@ class OpLoadImage(OpReversibleBase):
     def __call__(
         self,
         sample_dict: NDict,
-        op_id: Optional[str],
+        op_id: str | None,
         key_in: str,
         key_out: str,
-        key_metadata_out: Optional[str] = None,
+        key_metadata_out: str | None = None,
         format: str = "infer",
     ) -> NDict:
         """
@@ -85,6 +84,6 @@ class OpLoadImage(OpReversibleBase):
         sample_dict: dict,
         key_to_reverse: str,
         key_to_follow: str,
-        op_id: Optional[str],
+        op_id: str | None,
     ) -> dict:
         return sample_dict

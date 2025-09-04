@@ -21,8 +21,10 @@ Collection of useful functions to implement FuseMedML pytorch lightning based mo
 """
 import os
 import traceback
+from collections import OrderedDict
+from collections.abc import Mapping, Sequence
 from statistics import mean
-from typing import Any, Dict, List, Mapping, OrderedDict, Sequence, TypeVar, Union
+from typing import Any, Dict, List, TypeVar
 
 import pandas as pd
 import pytorch_lightning as pl
@@ -45,16 +47,16 @@ TaskInstance = TypeVar("TaskInstance", bound="Task")
 
 
 def start_clearml_logger(
-    project_name: Union[str, None],
-    task_name: Union[str, None],
-    tags: Union[Sequence[str], None] = None,
-    reuse_last_task_id: Union[bool, str] = True,
-    continue_last_task: Union[bool, str, int] = False,
-    output_uri: Union[str, bool, None] = None,
-    auto_connect_arg_parser: Union[bool, Mapping[str, bool]] = True,
-    auto_connect_frameworks: Union[bool, Mapping[str, bool]] = True,
+    project_name: str | None,
+    task_name: str | None,
+    tags: Sequence[str] | None = None,
+    reuse_last_task_id: bool | str = True,
+    continue_last_task: bool | str | int = False,
+    output_uri: str | bool | None = None,
+    auto_connect_arg_parser: bool | Mapping[str, bool] = True,
+    auto_connect_frameworks: bool | Mapping[str, bool] = True,
     auto_resource_monitoring: bool = True,
-    auto_connect_streams: Union[bool, Mapping[str, bool]] = True,
+    auto_connect_streams: bool | Mapping[str, bool] = True,
     deferred_init: bool = False,
     offline_mode: bool = False,
 ) -> TaskInstance:
@@ -110,7 +112,7 @@ def start_clearml_logger(
 
 def model_default_callbacks(
     model_dir: str,
-    best_epoch_source: Union[Dict, List[Dict], None],
+    best_epoch_source: Dict | List[Dict] | None,
     log_lr: bool = True,
 ) -> List[pl.Callback]:
     """
@@ -154,7 +156,7 @@ def model_default_callbacks(
 
 
 def convert_predictions_to_dataframe(predictions: List[NDict]) -> pd.DataFrame:
-    """list of batch_dict to a dataframe"""
+    """List of batch_dict to a dataframe"""
     assert len(predictions) > 0
 
     values = {}
@@ -269,7 +271,12 @@ def epoch_end_compute_and_log_losses(
                 if value.dtype == torch.bfloat16:
                     value = value.to(torch.float)
                 value = value.cpu()
-                losses[key].extend(value.tolist())
+
+                value = value.tolist()
+                if isinstance(value, list):
+                    losses[key].extend(value)
+                else:
+                    losses[key].append(value)
             else:
                 losses[key].append(value)
 

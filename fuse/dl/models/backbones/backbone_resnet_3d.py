@@ -17,7 +17,8 @@ Created on June 30, 2021
 
 """
 
-from typing import Callable, List, Optional, Sequence, Tuple, Type
+from collections.abc import Sequence
+from typing import Callable, List, Tuple, Type
 
 import torch.nn as nn
 from torch import Tensor
@@ -28,7 +29,7 @@ class Conv3DSimple(nn.Conv3d):
         self,
         in_planes: int,
         out_planes: int,
-        midplanes: Optional[int] = None,
+        midplanes: int | None = None,
         stride: int = 1,
         padding: int = 1,
     ) -> None:
@@ -55,7 +56,7 @@ class BasicBlock(nn.Module):
         planes: int,
         conv_builder: Callable[..., nn.Module],
         stride: int = 1,
-        downsample: Optional[nn.Module] = None,
+        downsample: nn.Module | None = None,
     ) -> None:
         midplanes = (inplanes * planes * 3 * 3 * 3) // (inplanes * 3 * 3 + 3 * planes)
 

@@ -18,7 +18,7 @@ Created on June 30, 2021
 
 import os
 from collections import OrderedDict
-from typing import Callable, Optional, Tuple, Union
+from typing import Callable, Tuple
 
 import pytorch_lightning as pl
 
@@ -34,27 +34,21 @@ class LightningModuleDefault(pl.LightningModule):
 
     def __init__(
         self,
-        model_dir: Optional[str],
+        model_dir: str | None,
         model: torch.nn.Module,
-        losses: Optional[Dict[str, LossBase]] = None,
-        validation_losses: Optional[List[Tuple[str, Dict[str, LossBase]]]] = None,
-        train_metrics: Optional[OrderedDict[str, MetricBase]] = None,
-        validation_metrics: Optional[
-            Union[
-                OrderedDict[str, MetricBase],
-                List[Tuple[str, OrderedDict[str, MetricBase]]],
-            ]
-        ] = None,
-        test_metrics: Optional[
-            Union[
-                OrderedDict[str, MetricBase],
-                List[Tuple[str, OrderedDict[str, MetricBase]]],
-            ]
-        ] = None,
-        optimizers_and_lr_schs: Union[dict, Callable] = None,
-        callbacks: Optional[Sequence[pl.Callback]] = None,
-        best_epoch_source: Optional[Union[Dict, List[Dict]]] = None,
-        save_hyperparameters_kwargs: Optional[dict] = None,
+        losses: Dict[str, LossBase] | None = None,
+        validation_losses: List[Tuple[str, Dict[str, LossBase]]] | None = None,
+        train_metrics: OrderedDict[str, MetricBase] | None = None,
+        validation_metrics: OrderedDict[str, MetricBase]
+        | List[Tuple[str, OrderedDict[str, MetricBase]]]
+        | None = None,
+        test_metrics: OrderedDict[str, MetricBase]
+        | List[Tuple[str, OrderedDict[str, MetricBase]]]
+        | None = None,
+        optimizers_and_lr_schs: dict | Callable = None,
+        callbacks: Sequence[pl.Callback] | None = None,
+        best_epoch_source: Dict | List[Dict] | None = None,
+        save_hyperparameters_kwargs: dict | None = None,
         save_model: bool = False,
         save_arguments: bool = False,
         tensorboard_sep: str = ".",
@@ -326,7 +320,7 @@ class LightningModuleDefault(pl.LightningModule):
 
     # configuration
     def configure_callbacks(self) -> Sequence[pl.Callback]:
-        """train loop callbacks"""
+        """Train loop callbacks"""
         return self._callbacks
 
     def configure_optimizers(self) -> torch.optim.Optimizer:

@@ -17,8 +17,8 @@ Created on June 30, 2021
 
 """
 import os
+from collections.abc import Hashable, Sequence
 from functools import partial
-from typing import Hashable, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import skimage
@@ -48,8 +48,8 @@ class OpKits21SampleIDDecode(OpReversibleBase):
     decodes sample id into image and segmentation filename
     """
 
-    def __call__(self, sample_dict: NDict, op_id: Optional[str]) -> NDict:
-        """ """
+    def __call__(self, sample_dict: NDict, op_id: str | None) -> NDict:
+
         sid = get_sample_id(sample_dict)
 
         img_filename_key = "data.input.img_path"
@@ -65,18 +65,17 @@ class OpKits21SampleIDDecode(OpReversibleBase):
         sample_dict: dict,
         key_to_reverse: str,
         key_to_follow: str,
-        op_id: Optional[str],
+        op_id: str | None,
     ) -> dict:
         return sample_dict
 
 
 def my_resize(
-    input_tensor: torch.Tensor, resize_to: Tuple[int, int, int]
+    input_tensor: torch.Tensor, resize_to: tuple[int, int, int]
 ) -> torch.Tensor:
     """
     Custom resize operation for the CT image
     """
-
     inner_image_height = input_tensor.shape[0]
     inner_image_width = input_tensor.shape[1]
     inner_image_depth = input_tensor.shape[2]
@@ -114,7 +113,7 @@ class KITS21:
     KITS21_DATASET_VER = 0
 
     @staticmethod
-    def download(path: str, cases: Optional[Union[int, List[int]]] = None) -> None:
+    def download(path: str, cases: int | list[int] | None = None) -> None:
         """
         :param cases: pass None (default) to download all 300 cases. OR
         pass a list of integers with cases num in the range [0,299]. OR
@@ -153,9 +152,9 @@ class KITS21:
                 print(f"{seg_file} number {i} was found")
 
     @staticmethod
-    def sample_ids() -> List[str]:
+    def sample_ids() -> list[str]:
         """
-        get all the sample ids in trainset
+        Get all the sample ids in trainset
         sample_id is case_{id:05d} (for example case_00001 or case_00100)
         """
         return [f"case_{case_id:05d}" for case_id in range(300)]
@@ -261,7 +260,7 @@ class KITS21:
         cache_dir: str,
         reset_cache: bool = False,
         num_workers: int = 10,
-        sample_ids: Optional[Sequence[Hashable]] = None,
+        sample_ids: Sequence[Hashable] | None = None,
     ) -> DatasetDefault:
         """
         Get cached dataset
@@ -271,7 +270,6 @@ class KITS21:
         :param num_workers: number of processes used for caching
         :param sample_ids: dataset including the specified sample_ids or None for all the samples. sample_id is case_{id:05d} (for example case_00001 or case_00100).
         """
-
         if sample_ids is None:
             sample_ids = KITS21.sample_ids()
 

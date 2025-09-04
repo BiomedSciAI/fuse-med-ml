@@ -1,5 +1,4 @@
 from functools import partial
-from typing import Optional, Union
 
 from fuse.eval.metrics.libs.calibration import Calibration
 
@@ -17,9 +16,9 @@ class MetricReliabilityDiagram(MetricMultiClassDefault):
         self,
         pred: str,
         target: str,
-        num_bins: Optional[int] = 10,
-        num_quantiles: Optional[int] = None,
-        output_filename: Optional[str] = None,
+        num_bins: int | None = 10,
+        num_quantiles: int | None = None,
+        output_filename: str | None = None,
         **kwargs: dict
     ) -> None:
         """
@@ -29,7 +28,6 @@ class MetricReliabilityDiagram(MetricMultiClassDefault):
         :param num_quantiles: alternatively, number of equal number of samples quantiles in the diagram's x-axis.
         :param output_filename: output filename to save the figure. if None, will just save the arguments to create the figure in results dictionary.
         """
-
         reliability_diagram = partial(
             Calibration.reliability_diagram,
             num_bins=num_bins,
@@ -52,8 +50,8 @@ class MetricECE(MetricMultiClassDefault):
         self,
         pred: str,
         target: str,
-        num_bins: Optional[int] = 10,
-        num_quantiles: Optional[int] = None,
+        num_bins: int | None = 10,
+        num_quantiles: int | None = None,
         **kwargs: dict
     ):
         """
@@ -90,7 +88,7 @@ class MetricApplyTemperature(MetricMultiClassDefault):
     """
 
     def __init__(
-        self, pred: str, temperature: Union[float, str, None] = None, **kwargs: dict
+        self, pred: str, temperature: float | str | None = None, **kwargs: dict
     ):
         super().__init__(
             pred=pred,

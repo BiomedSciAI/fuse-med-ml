@@ -17,16 +17,13 @@ Created on June 30, 2021
 
 """
 
-from typing import Union
 
 import torch
 import torch.nn as nn
 
 
 class Checkpoint:
-    def __init__(
-        self, net: Union[nn.Module, dict], epoch_idx: int, learning_rate: float
-    ):
+    def __init__(self, net: nn.Module | dict, epoch_idx: int, learning_rate: float):
         if isinstance(net, nn.Module):
             self.net_state_dict = net.state_dict()
         else:

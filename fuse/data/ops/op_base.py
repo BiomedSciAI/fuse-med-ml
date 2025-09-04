@@ -19,7 +19,7 @@ Created on June 30, 2021
 import inspect
 import traceback
 from abc import abstractmethod
-from typing import List, Optional, Union
+from typing import List
 
 from fuse.data.ops.hashable_class import HashableClass
 from fuse.data.utils.sample import get_sample_id
@@ -35,11 +35,9 @@ class OpBase(HashableClass):
     """
 
     @abstractmethod
-    def __call__(
-        self, sample_dict: NDict, **kwargs: dict
-    ) -> Union[None, dict, List[dict]]:
+    def __call__(self, sample_dict: NDict, **kwargs: dict) -> None | dict | List[dict]:
         """
-        call function that apply the operation
+        Call function that apply the operation
         :param sample_dict: the generated dictionary generated so far (generated be the previous ops in the pipeline)
                             The first op will typically get just the sample_id stored in sample_dict['data']['sample_id']
         :param kwargs: additional arguments defined per operation
@@ -64,8 +62,8 @@ class OpReversibleBase(OpBase):
 
     @abstractmethod
     def __call__(
-        self, sample_dict: NDict, op_id: Optional[str], **kwargs: dict
-    ) -> Union[None, dict, List[dict]]:
+        self, sample_dict: NDict, op_id: str | None, **kwargs: dict
+    ) -> None | dict | List[dict]:
         """
         See OpBase.__call__ for more information. The only difference is the extra argument that can be used to "record" the information required to reverse the operation.
         :param op_id: unique identifier for an operation.
@@ -80,10 +78,10 @@ class OpReversibleBase(OpBase):
         sample_dict: NDict,
         key_to_reverse: str,
         key_to_follow: str,
-        op_id: Optional[str],
+        op_id: str | None,
     ) -> dict:
         """
-        reverse operation
+        Reverse operation
         If a reverse operation is not necessary (for example operator that reads an image),
         implement simple reverse method that returns sample_dict as is
 
@@ -107,7 +105,7 @@ class OpReversibleBase(OpBase):
 
 def op_call(
     op: OpBase, sample_dict: NDict, op_id: str, **kwargs: dict
-) -> Union[None, dict, List[dict]]:
+) -> None | dict | List[dict]:
     if inspect.isclass(op):
         raise Exception(
             f"Error: expected an instance object, not a class object for {op}\n"
@@ -145,7 +143,7 @@ def op_reverse(
     sample_dict: NDict,
     key_to_reverse: str,
     key_to_follow: str,
-    op_id: Optional[str],
+    op_id: str | None,
 ) -> dict:
     if isinstance(op, OpReversibleBase):
         try:

@@ -1,14 +1,14 @@
 import unittest
-from typing import Any, Callable, List, Tuple
+from typing import Any, Callable
 
 
 def _id(obj: Any) -> Any:
     return obj
 
 
-def skipIfMultiple(*skips: List[Tuple[bool, str]]) -> Callable:
+def skipIfMultiple(*skips: list[tuple[bool, str]]) -> Callable:
     """
-    similar to unittest.skipIf but allows to skip depending on multiple conditions
+    Similar to unittest.skipIf but allows to skip depending on multiple conditions
 
     example usage:
 
@@ -18,7 +18,6 @@ def skipIfMultiple(*skips: List[Tuple[bool, str]]) -> Callable:
     )
 
     """
-
     for condition, reason in skips:
         if condition:
             return unittest.skip("skipIfMultiple:: " + reason)

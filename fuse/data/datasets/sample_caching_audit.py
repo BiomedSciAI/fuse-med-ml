@@ -1,6 +1,7 @@
 from time import time
-from typing import Any, Optional
+from typing import Any
 
+import pytest
 from deepdiff import DeepDiff
 
 from fuse.data.utils.sample import get_sample_id
@@ -25,9 +26,9 @@ class SampleCachingAudit:
     def __init__(
         self,
         audit_first_sample: bool = True,
-        audit_rate: Optional[int] = 30,
+        audit_rate: int | None = 30,
         audit_units: str = "minutes",
-        **audit_diff_kwargs: Optional[dict],
+        **audit_diff_kwargs: dict | None,
     ):
         """
         :param audit_rate: how frequently, a sample will be both loaded from cache AND loaded fully without using cache.
@@ -46,7 +47,6 @@ class SampleCachingAudit:
         You can use ignore_nan_inequality=False if you prefer the original default behavior (which considers NaN to not be equal NaN)
 
         """
-
         if "ignore_nan_inequality" not in audit_diff_kwargs:
             audit_diff_kwargs["ignore_nan_inequality"] = True
         _audit_unit_options = ["minutes", "samples", None]
@@ -80,7 +80,7 @@ class SampleCachingAudit:
             elif self._audit_units == "samples":
                 self._audit_units_passed_since_last_audit += 1
             else:
-                assert False
+                pytest.fail()
 
             # check if we need an audit now
             if self._audit_units_passed_since_last_audit >= self._audit_rate:

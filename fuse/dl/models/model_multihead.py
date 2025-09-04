@@ -17,7 +17,8 @@ Created on June 30, 2021
 
 """
 
-from typing import Dict, Sequence, Tuple, Union
+from collections.abc import Sequence
+from typing import Dict, Tuple
 
 import torch
 
@@ -33,8 +34,8 @@ class ModelMultiHead(torch.nn.Module):
         self,
         backbone: torch.nn.Module,
         heads: Sequence[torch.nn.Module],
-        conv_inputs: Union[Sequence[str], Sequence[Tuple[str, int]]] = None,
-        backbone_args: Union[Sequence[str], Sequence[Tuple[str, int]]] = None,
+        conv_inputs: Sequence[str] | Sequence[Tuple[str, int]] = None,
+        backbone_args: Sequence[str] | Sequence[Tuple[str, int]] = None,
         key_out_features: str = "model.backbone_features",
     ) -> None:
         """

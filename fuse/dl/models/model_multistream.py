@@ -17,7 +17,8 @@ Created on June 30, 2021
 
 """
 
-from typing import Callable, Dict, Optional, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Callable, Dict, Tuple
 
 import torch
 
@@ -34,8 +35,8 @@ class ModelMultistream(torch.nn.Module):
         conv_inputs: Tuple[str, int],
         backbone_streams: Sequence[torch.nn.Module],
         heads: Sequence[torch.nn.Module],
-        split_logic: Optional[Callable] = None,
-        join_logic: Optional[Callable] = None,
+        split_logic: Callable | None = None,
+        join_logic: Callable | None = None,
     ) -> None:
         """
         Multi-stream Fuse model - convolutional neural network with multiple processing streams and multiple heads

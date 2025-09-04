@@ -1,5 +1,5 @@
 import copy
-from typing import Hashable, Optional, Sequence
+from collections.abc import Hashable, Sequence
 
 import numpy as np
 
@@ -16,9 +16,7 @@ class PerSampleData:
         self._data = data
         self._ids = ids
 
-    def __call__(
-        self, ids: Optional[Sequence[Hashable]] = None
-    ) -> Sequence[np.ndarray]:
+    def __call__(self, ids: Sequence[Hashable] | None = None) -> Sequence[np.ndarray]:
         if ids is None:
             return copy.copy(self._data)
         else:

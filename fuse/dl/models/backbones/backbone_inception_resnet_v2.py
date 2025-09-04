@@ -18,7 +18,7 @@ Created on June 30, 2021
 """
 
 import logging
-from typing import Any, Callable, Dict, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Tuple
 from urllib.error import URLError
 
 import torch
@@ -54,11 +54,11 @@ class BasicConv2d(nn.Module):
         self,
         in_planes: int,
         out_planes: int,
-        kernel_size: Union[int, Tuple[int]],
-        stride: Union[int, Tuple[int]],
+        kernel_size: int | Tuple[int],
+        stride: int | Tuple[int],
         padding: int = 0,
     ):
-        super(BasicConv2d, self).__init__()
+        super().__init__()
         self.conv = nn.Conv2d(
             in_planes,
             out_planes,
@@ -81,7 +81,7 @@ class BasicConv2d(nn.Module):
 
 class Mixed_5b(nn.Module):
     def __init__(self) -> None:
-        super(Mixed_5b, self).__init__()
+        super().__init__()
 
         self.branch0 = BasicConv2d(192, 96, kernel_size=1, stride=1)
 
@@ -112,7 +112,7 @@ class Mixed_5b(nn.Module):
 
 class Block35(nn.Module):
     def __init__(self, scale: float = 1.0):
-        super(Block35, self).__init__()
+        super().__init__()
 
         self.scale = scale
 
@@ -145,7 +145,7 @@ class Block35(nn.Module):
 
 class Mixed_6a(nn.Module):
     def __init__(self) -> None:
-        super(Mixed_6a, self).__init__()
+        super().__init__()
 
         self.branch0 = BasicConv2d(320, 384, kernel_size=3, stride=2)
 
@@ -172,7 +172,7 @@ class Block17(nn.Module):
         final_block: bool = False,
         intra_block_cut_level: int = 384,
     ):
-        super(Block17, self).__init__()
+        super().__init__()
 
         self.scale = scale
         self.final_block = final_block
@@ -206,7 +206,7 @@ class Block17(nn.Module):
 
 class Mixed_7a(nn.Module):
     def __init__(self) -> None:
-        super(Mixed_7a, self).__init__()
+        super().__init__()
 
         self.branch0 = nn.Sequential(
             BasicConv2d(1088, 256, kernel_size=1, stride=1),
@@ -237,7 +237,7 @@ class Mixed_7a(nn.Module):
 
 class Block8(nn.Module):
     def __init__(self, scale: float = 1.0, noReLU: bool = False):
-        super(Block8, self).__init__()
+        super().__init__()
 
         self.scale = scale
         self.noReLU = noReLU
@@ -271,9 +271,8 @@ class BackboneInceptionResnetV2(nn.Module):
         logical_units_num: int = 14,
         intra_block_cut_level: int = 384,
         input_channels_num: int = 3,
-        pretrained_weights_url: Optional[
-            str
-        ] = "http://data.lip6.fr/cadene/pretrainedmodels/inceptionresnetv2-520b38e4.pth",
+        pretrained_weights_url: str
+        | None = "http://data.lip6.fr/cadene/pretrainedmodels/inceptionresnetv2-520b38e4.pth",
     ) -> None:
         super().__init__()
         self.logical_units_num = logical_units_num

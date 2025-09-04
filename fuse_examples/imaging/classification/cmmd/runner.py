@@ -68,7 +68,7 @@ debug = FuseDebug(mode)
 
 def create_model(train: NDict, paths: NDict) -> torch.nn.Module:
     """
-    creates the model
+    Creates the model
     See HeadGlobalPoolingClassifier for details
     """
     if train["target"] == "classification":

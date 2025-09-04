@@ -1,0 +1,172 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fuse-med-ml"
+description = "A python framework accelerating ML based discovery in the medical field by encouraging code reuse. Batteries included :)"
+authors = [
+{name = "IBM Research Israel Labs - Machine Learning for Healthcare and Life Sciences"},
+{name = "Moshiko Raboh", email = "Moshiko.Raboh@ibm.com"},
+]
+readme = "README.md"
+requires-python = ">=3.10, <3.13"
+license = { text = "Apache License 2.0" }
+dynamic = ["version", "dependencies", "optional-dependencies"]
+classifiers = [
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+[project.urls]
+repository = "https://github.com/BiomedSciAI/fuse-med-ml"
+
+[tool.setuptools]
+packages = { find = { include = ["fuse*", "fuseimg*", "fuse_examples*"] } }
+
+[tool.setuptools.dynamic]
+version = {attr = "fuse.version.__version__"}
+dependencies = { file = ["fuse/requirements.txt"] }
+
+[tool.setuptools.dynamic.optional-dependencies.dev]
+file = ["fuse/requirements_dev.txt"]
+
+[tool.setuptools.dynamic.optional-dependencies.fuseimg]
+file = ["fuseimg/requirements.txt"]
+
+[tool.setuptools.dynamic.optional-dependencies.examples]
+file = ["fuse_examples/requirements.txt"]
+
+[tool.setuptools.dynamic.optional-dependencies.all]
+file = ["fuse/requirements_dev.txt", "fuseimg/requirements.txt"]
+
+[tool.ruff]
+line-length = 120
+exclude = [
+  "_examples",
+  "test_*",
+  "__init__.py",
+  "run_all_unit_tests.py",
+  "setup.py",
+  ".cache",
+  ".dvc",
+  ".git",
+  ".github",
+  ".idea",
+  ".mypy_cache",
+  ".pytest_cache",
+  ".venv",
+  ".vscode",
+  "__pycache__",
+  "algos",
+  "build",
+  "dist",
+  "ext_deps",
+  "libs",
+  "releases",
+]
+lint.select = [
+    "UP",   # pyupgrade
+    "D",    # pydocstyle
+    "PT",   # pytest style checking
+    "C4",   # comprehensions style checking
+    "PD",   # pandas style checking
+    "F",    # pyflakes: is-literal
+    "W605", # pycodestyle: invalid-escape-sequence
+    "I",    # isort
+    #"E", "F", "W",    # flake8 base
+    #"I",              # isort
+    #"UP",             # pyupgrade
+    #"B",              # bugbear
+    #"N",              # pep8-naming
+]
+lint.ignore = [
+    "PD901", # df is a bad variable name
+    "PT009", # Forces use of a regular `assert` instead of unittest-style
+    "PT016", # No message passed to `pytest.fail()`
+    "PT018", # Assertion should be broken down into multiple parts
+    "PT027", # Use `pytest.raises` instead of unittest-style `assertRaises`
+    "UP006", # Use `dict` instead of `Dict` for type annotation
+    "UP035", # `typing.Dict` is deprecated, use `dict` instead
+    "UP038", # Use `X | Y` in `isinstance` call instead of `(X, Y)`
+    "D100",  # pydocstyle: Missing module docstring
+    "C408",  # Unnecessary `dict` call (rewrite as a literal)
+    "D101",  # pydocstyle: Missing module-level docstring
+    "D102",  # pydocstyle: Missing docstring in public module
+    "D103",  # pydocstyle: Missing class docstring
+    "D105",  # pydocstyle: Missing docstring in magic method
+    "D107",  # pydocstyle: Missing parameter descriptions in the docstring
+    "D200",  # One-line docstring should fit on one line
+    "D203",  # pydocstyle: 1 blank line required before class docstring
+    "D205",  # pydocstyle: 1 blank line required between summary line and description
+    "D212",  # pydocstyle: Multi-line docstring summary should start at the first line
+    "D400",  # First line should end with a period
+    "D401",  # pydocstyle: First line should be in imperative mood
+    "D404",  # First word of the docstring should not be "This"
+    "D415",  # First line should end with a period, question mark, or exclamation point
+    "D417",  # pydocstyle: Missing argument descriptions in the docstring
+    "D419",  # Docstring is empty
+    "PD011", # pandas do not use .values (false positives causing bugs in torch code)
+    "PD015", # Use .merge method instead of pd.merge function. They have equivalent functionality.
+    "E501",  # line too long
+    "E203",  # whitespace before ','
+    "E265",  # block comment should start with ‘# ’
+    "E266",  # too many leading ‘#’ for block comment
+    "E722",  # bare 'except'
+    "E741",  # variables named ‘l’, ‘O’, or ‘I’
+    "E731",  # assign a lambda expression
+    "W605",  # invalid escape sequence
+    "F405",  # undefined from star imports
+    "N812",  # Lowercase imported as non-lowercase
+
+]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+show_column_numbers = true
+check_untyped_defs = true
+follow_imports = "skip"
+
+exclude = '''(?x)(
+    ^(
+      ##### local examples runs
+      _examples/
+    )
+)'''
+
+disable_error_code = [
+    "assignment",
+    "operator",
+    "no-any-return",
+    "index",
+    "call-arg",
+    "import",
+    "misc",
+    "var-annotated",
+    "arg-type",
+    "return",
+    "list-item",
+    "union-attr",
+    "has-type",
+    "call-overload",
+    "dict-item",
+    "attr-defined",
+    "override",
+    "return-value",
+    "func-returns-value",
+    "name-defined",
+    "valid-type",
+    "type-var",
+]
+
+enable_error_code = [
+    "no-untyped-def",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["I001"]

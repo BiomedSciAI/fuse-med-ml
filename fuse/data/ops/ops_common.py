@@ -2,18 +2,10 @@ import copy
 import math
 import numbers
 import random
+from collections import OrderedDict
+from collections.abc import Sequence
 from enum import Enum
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    OrderedDict,
-    Sequence,
-    Tuple,
-    Union,
-)
+from typing import Any, Callable, Dict, List, Tuple
 
 import numpy as np
 import torch
@@ -61,12 +53,11 @@ class OpRepeat(OpReversibleBase):
         self._kwargs_per_step_to_add = kwargs_per_step_to_add
 
     def __call__(
-        self, sample_dict: NDict, op_id: Optional[str], **kwargs: Any
-    ) -> Union[None, dict, List[dict]]:
+        self, sample_dict: NDict, op_id: str | None, **kwargs: Any
+    ) -> None | dict | List[dict]:
         """
         See super class
         """
-
         for step_index, step_kwargs_to_add in enumerate(self._kwargs_per_step_to_add):
             step_kwargs = copy.copy(kwargs)
             step_kwargs.update(step_kwargs_to_add)
@@ -92,7 +83,7 @@ class OpRepeat(OpReversibleBase):
         sample_dict: NDict,
         key_to_reverse: str,
         key_to_follow: str,
-        op_id: Optional[str],
+        op_id: str | None,
     ) -> dict:
         """
         See super class
@@ -113,12 +104,14 @@ class OpLambda(OpReversibleBase):
     """
     Apply simple lambda function / function to transform single value from sample_dict (or the all dictionary)
     Optionally add reverse method if required.
+
     Example:
     OpLambda(func=lambda x: torch.tensor(x))
+
     """
 
     def __init__(
-        self, func: Callable, func_reverse: Optional[Callable] = None, **kwargs: Any
+        self, func: Callable, func_reverse: Callable | None = None, **kwargs: Any
     ):
         super().__init__(**kwargs)
         self._func = func
@@ -127,10 +120,10 @@ class OpLambda(OpReversibleBase):
     def __call__(
         self,
         sample_dict: NDict,
-        op_id: Optional[str],
-        key: Optional[str] = None,
+        op_id: str | None,
+        key: str | None = None,
         **kwargs: Any,
-    ) -> Union[None, dict, List[dict]]:
+    ) -> None | dict | List[dict]:
         """
         More details in super class
         :param key: apply lambda func on sample_dict[key]. If none the input and output of the lambda function are the entire sample_dict
@@ -150,7 +143,7 @@ class OpLambda(OpReversibleBase):
         sample_dict: NDict,
         key_to_reverse: str,
         key_to_follow: str,
-        op_id: Optional[str],
+        op_id: str | None,
     ) -> dict:
         """
         See super class
@@ -178,7 +171,6 @@ class OpFunc(OpReversibleBase):
 
 
     Example:
-
     def add_separator(text:str, sep=' '):
         return sep.join(text)
 
@@ -202,11 +194,11 @@ class OpFunc(OpReversibleBase):
     def __call__(
         self,
         sample_dict: NDict,
-        op_id: Optional[str],
+        op_id: str | None,
         inputs: Dict[str, str],
-        outputs: Union[Sequence[str], str],
+        outputs: Sequence[str] | str,
         **kwargs: Any,
-    ) -> Union[None, dict, List[dict]]:
+    ) -> None | dict | List[dict]:
         """
         See super class
         :param inputs: dictionary that map between the key_name of a value stored in sample_dict the the input argument name in func. use None for the entire sample_dict
@@ -254,7 +246,7 @@ class OpApplyPatterns(OpReversibleBase):
     op_apply_pat = OpApplyPatterns(patterns_dict)
     """
 
-    def __init__(self, patterns_dict: Optional[OrderedDict] = None):
+    def __init__(self, patterns_dict: OrderedDict | None = None):
         """
         :param patterns_dict: map a regex pattern to a pair of op and arguments (will be added/override the arguments provided in __call__() function).
                              For given value in a sample dict, it will look for the first match in the order dict and will apply the op on this specific key.
@@ -264,12 +256,11 @@ class OpApplyPatterns(OpReversibleBase):
         self._patterns_dict = Patterns(patterns_dict, (None, None))
 
     def __call__(
-        self, sample_dict: NDict, op_id: Optional[str], **kwargs: Any
-    ) -> Union[None, dict, List[dict]]:
+        self, sample_dict: NDict, op_id: str | None, **kwargs: Any
+    ) -> None | dict | List[dict]:
         """
         See super class
         """
-
         for key in sample_dict.keypaths():
             op, op_kwargs_to_add = self._patterns_dict.get_value(key)
             if op is None:
@@ -297,7 +288,7 @@ class OpApplyPatterns(OpReversibleBase):
         sample_dict: NDict,
         key_to_reverse: str,
         key_to_follow: str,
-        op_id: Optional[str],
+        op_id: str | None,
     ) -> dict:
         """
         See super class
@@ -338,8 +329,8 @@ class OpApplyTypes(OpReversibleBase):
         self._type_detector = type_detector
 
     def __call__(
-        self, sample_dict: NDict, op_id: Optional[str], **kwargs: Any
-    ) -> Union[None, dict, List[dict]]:
+        self, sample_dict: NDict, op_id: str | None, **kwargs: Any
+    ) -> None | dict | List[dict]:
         """
         See super class
         """
@@ -377,7 +368,7 @@ class OpApplyTypes(OpReversibleBase):
         sample_dict: NDict,
         key_to_reverse: str,
         key_to_follow: str,
-        op_id: Optional[str],
+        op_id: str | None,
     ) -> dict:
         """
         See super class
@@ -416,6 +407,7 @@ class OpCollectMarker(OpReversibleBase):
     OpCollectMarker(name="sampler", static_kets_deps=["data.metadata"])
 
     In both cases the sampler can now read subset of the sample using: dataset.get_multi(collect_marker_name="sampler", ..)
+
     """
 
     def __init__(self, name: str, static_key_deps: Sequence[str]):
@@ -430,8 +422,8 @@ class OpCollectMarker(OpReversibleBase):
         return {"name": self._name, "static_keys_deps": self._static_keys_deps}
 
     def __call__(
-        self, sample_dict: dict, op_id: Optional[str], **kwargs: Any
-    ) -> Union[None, dict, List[dict]]:
+        self, sample_dict: dict, op_id: str | None, **kwargs: Any
+    ) -> None | dict | List[dict]:
         return sample_dict
 
     def reverse(
@@ -439,7 +431,7 @@ class OpCollectMarker(OpReversibleBase):
         sample_dict: dict,
         key_to_reverse: str,
         key_to_follow: str,
-        op_id: Optional[str],
+        op_id: str | None,
     ) -> dict:
         return sample_dict
 
@@ -456,7 +448,7 @@ class OpKeepKeypaths(OpBase):
 
     def __call__(
         self, sample_dict: NDict, keep_keypaths: List[str]
-    ) -> Union[None, dict, List[dict]]:
+    ) -> None | dict | List[dict]:
         prev_sample_dict = sample_dict
         sample_dict = NDict()
         for k in keep_keypaths:
@@ -473,7 +465,7 @@ class OpDeleteKeypaths(OpBase):
 
     def __call__(
         self, sample_dict: NDict, keypaths: List[str]
-    ) -> Union[None, dict, List[dict]]:
+    ) -> None | dict | List[dict]:
         for k in keypaths:
             del sample_dict[k]
 
@@ -498,7 +490,7 @@ class OpLookup(OpBase):
 
     def __call__(
         self, sample_dict: NDict, key_in: str, key_out: str
-    ) -> Union[None, dict, List[dict]]:
+    ) -> None | dict | List[dict]:
         """
         :param key_in: key to a value
         :param key_out: key to store the converted value
@@ -526,7 +518,7 @@ class OpToOneHot(OpBase):
 
     def __call__(
         self, sample_dict: NDict, key_in: str, key_out: str
-    ) -> Union[None, dict, List[dict]]:
+    ) -> None | dict | List[dict]:
         """
         :param key_in: key to a class number (int)
         :param key_out: key to store the one hot vector
@@ -548,7 +540,7 @@ class OpConcat(OpBase):
 
     def __call__(
         self, sample_dict: NDict, keys_in: Sequence[str], key_out: str, axis: int = 0
-    ) -> Union[None, dict, List[dict]]:
+    ) -> None | dict | List[dict]:
         """
         :param keys_in: sequence of keys to numpy arrays we want to concatenate
         :param key_out: the key to store the concatenated vector
@@ -594,8 +586,8 @@ class OpCond(OpBase):
         self._op = op
 
     def __call__(
-        self, sample_dict: NDict, condition: Union[str, bool], **kwargs: Any
-    ) -> Union[None, dict, List[dict]]:
+        self, sample_dict: NDict, condition: str | bool, **kwargs: Any
+    ) -> None | dict | List[dict]:
         """
         :param condition:instruct if to call the inner op. Can either a boolean or a key to sample_dict used to extract the boolean
         """
@@ -612,12 +604,47 @@ class OpSet(OpBase):
 
     def __call__(
         self, sample_dict: NDict, key: str, value: Any
-    ) -> Union[None, dict, List[dict]]:
+    ) -> None | dict | List[dict]:
         """
         :param key: where to store the value
         :param value: the value to store
         """
         sample_dict[key] = value
+        return sample_dict
+
+
+class OpCopy(OpBase):
+    """copy value from one key to another"""
+
+    def __init__(self, copy_mode: str = "reference"):
+        """
+        :param mode: Copy an object in one of three modes:
+            - 'reference': use the destination object
+            - 'shallow': shallow copy (copy.copy)
+            - 'deep': deep copy (copy.deepcopy)
+        """
+        super().__init__()
+        self.copy_mode = copy_mode
+        assert self.copy_mode in [
+            "reference",
+            "shallow",
+            "deep",
+        ], f"Unknown mode: {self.copy_mode}. Use 'reference', 'shallow', or 'deep'."
+
+    def __call__(
+        self, sample_dict: NDict, key_source: str, key_dest: Any
+    ) -> None | dict | List[dict]:
+        """
+        :param key_source: from where to copy
+        :param key_dest: where to copy to
+        """
+        if self.copy_mode == "reference":
+            sample_dict[key_dest] = sample_dict[key_source]
+        elif self.copy_mode == "shallow":
+            sample_dict[key_dest] = copy.copy(sample_dict[key_source])
+        else:  # "deep"
+            sample_dict[key_dest] = copy.deepcopy(sample_dict[key_source])
+
         return sample_dict
 
 
@@ -630,7 +657,7 @@ class OpSetRandomChoice(OpBase):
 
     def __call__(
         self, sample_dict: NDict, key: str, values: List[Any]
-    ) -> Union[None, dict, List[dict]]:
+    ) -> None | dict | List[dict]:
         """
         :param key: where to store the value
         :param values: list of possible values
@@ -644,7 +671,7 @@ class OpSetIfNotExist(OpBase):
 
     def __call__(
         self, sample_dict: NDict, key: str, value: Any
-    ) -> Union[None, dict, List[dict]]:
+    ) -> None | dict | List[dict]:
         """
         :param key: where to store the value
         :param value: the value to store
@@ -677,6 +704,7 @@ class OpReplaceElements(OpBase):
         find_val: the value that will be replaces
         replace_with_val: the value that will be used to replace "find_val" elements
         key_out: if None, the modification will be inplace in "key_in" (faster), other wise, the name of the key to write to
+
         """
         assert (
             key_in in sample_dict
@@ -721,7 +749,7 @@ class OpReplaceAnyElements(OpBase):
         key_in: str,
         find_any_val: List[Any],
         replace_with_val: Any,
-        key_out: Optional[str] = None,
+        key_out: str | None = None,
     ) -> NDict:
         """
         Args:
@@ -729,6 +757,7 @@ class OpReplaceAnyElements(OpBase):
         find_any_val: a list of values to will be replaces
         replace_with_val: the value that will be used to replace "find_any_val" elements
         key_out: if None, the modification will be inplace in "key_in" (faster), other wise, the name of the key to write to
+
         """
         assert (
             key_in in sample_dict
@@ -753,7 +782,7 @@ class OpReplaceAnyElements(OpBase):
             sample_dict[key_out] = output_obj
         elif isinstance(sample_dict[key_in], str):
             sample_dict[key_out] = input_obj.translate(
-                str.maketrans({x: replace_with_val for x in find_any_val})
+                str.maketrans(dict.fromkeys(find_any_val, replace_with_val))
             )
         elif isinstance(input_obj, (list, tuple)):
             sample_dict[key_out] = [

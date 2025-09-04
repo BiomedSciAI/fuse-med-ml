@@ -24,7 +24,8 @@ trained "fuse" style. Meaning it accesses data using keys to a batch_dict. It al
 load datasets from fuse.
 """
 import copy
-from typing import Any, Optional, OrderedDict, Tuple
+from collections import OrderedDict
+from typing import Any
 
 import pytorch_lightning as pl
 import torch
@@ -49,7 +50,7 @@ from fuse_examples.imaging.classification.mnist import lenet
 from fuseimg.datasets.mnist import MNIST
 
 
-def perform_softmax(logits: Any) -> Tuple[torch.Tensor, torch.Tensor]:
+def perform_softmax(logits: Any) -> tuple[torch.Tensor, torch.Tensor]:
     cls_preds = F.softmax(logits, dim=1)
     return logits, cls_preds
 
@@ -57,7 +58,7 @@ def perform_softmax(logits: Any) -> Tuple[torch.Tensor, torch.Tensor]:
 ## Model Definition #####################################################
 class FuseLitLenet(LightningModuleDefault):
     def __init__(
-        self, model_dir: Optional[str], save_model: bool, lr: float, weight_decay: float
+        self, model_dir: str | None, save_model: bool, lr: float, weight_decay: float
     ):
         """
         Initialize the model. We inheret from LightningModuleDefault to get functions necessary for lightning trainer.
@@ -67,7 +68,6 @@ class FuseLitLenet(LightningModuleDefault):
         :param lr: learning rate for optimizer
         :param weight_decay: weight decay for Adam optimizer. This is a form of regularization that penalizes for learning large weights.
         """
-
         # wrap basic torch model to automatically read inputs from batch_dict and save its outputs to batch_dict
         model = ModelWrapSeqToDict(
             model=lenet.LeNet(),
@@ -182,7 +182,7 @@ def run_train(
     num_devices: int = 1,
     num_nodes: int = 1,
     accelerator: str = "gpu",
-    ckpt_path: Optional[str] = None,
+    ckpt_path: str | None = None,
     lr: float = 1e-4,
     weight_decay: float = 0.001,
 ) -> None:

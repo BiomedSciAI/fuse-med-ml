@@ -16,7 +16,8 @@ limitations under the License.
 Created on June 30, 2021
 
 """
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Any, Callable, Dict, List, Tuple
 
 import numpy as np
 import torch
@@ -42,9 +43,9 @@ class CollateDefault(CollateToBatchList):
         skip_keys: Sequence[str] = tuple(),
         keep_keys: Sequence[str] = tuple(),
         raise_error_key_missing: bool = True,
-        special_handlers_keys: Optional[Dict[str, Callable]] = None,
-        post_collate_special_handlers_keys: Optional[List[Callable]] = None,
-        add_to_batch_dict: Optional[Dict[str, Any]] = None,
+        special_handlers_keys: Dict[str, Callable] | None = None,
+        post_collate_special_handlers_keys: List[Callable] | None = None,
+        add_to_batch_dict: Dict[str, Any] | None = None,
     ):
         """
         :param skip_keys: do not collect the listed keys
@@ -70,7 +71,7 @@ class CollateDefault(CollateToBatchList):
 
     def __call__(self, samples: List[Dict]) -> Dict:
         """
-        collate list of samples into batch_dict
+        Collate list of samples into batch_dict
         :param samples: list of samples
         :return: batch_dict
         """
@@ -126,7 +127,7 @@ class CollateDefault(CollateToBatchList):
         collected_values: list,
     ) -> None:
         """
-        dispatch a key into collate function and save it into batch_dict
+        Dispatch a key into collate function and save it into batch_dict
         :param batch_dict: batch dictionary to update
         :param samples: list of samples
         :param key: key to collate
@@ -152,7 +153,7 @@ class CollateDefault(CollateToBatchList):
     @staticmethod
     def just_collect_to_list(values: List[Any]) -> List[Any]:
         """
-        special handler doing nothing - will just keep the collected list
+        Special handler doing nothing - will just keep the collected list
         """
         return values
 
@@ -160,10 +161,10 @@ class CollateDefault(CollateToBatchList):
     def pad_all_tensors_to_same_size(
         values: List[torch.Tensor],
         pad_val: float = 0.0,
-        min_size_per_dim: Optional[Tuple] = None,
+        min_size_per_dim: Tuple | None = None,
     ) -> torch.Tensor:
         """
-        pad tensors and create a batch - the shape will be the max size per dim
+        Pad tensors and create a batch - the shape will be the max size per dim
         values: list of tensor - all should have the same number of dimensions
         pad_val: constant value for padding
         min_size_per_dim: defines, per dimension, the minimal size in the post-collated tensor (excluding the batch dimension, which you shouldn't provide)
@@ -172,7 +173,6 @@ class CollateDefault(CollateToBatchList):
 
         :return: torch.stack of padded tensors
         """
-
         # verify all are tensor and that they have the same dim size
         assert isinstance(
             values[0], torch.Tensor
@@ -197,7 +197,7 @@ class CollateDefault(CollateToBatchList):
                     f" length for min_size_per_dim={min_size_per_dim} expected to be >= max_per_dim={max_per_dim} but found length {len(min_size_per_dim)} and {len(max_per_dim)} respectively ! "
                 )
             assert all(
-                [(x > 0) or (x == -1) for x in min_size_per_dim]
+                (x > 0) or (x == -1) for x in min_size_per_dim
             ), "allowed values for elements in min_size_per_dim are only positive integer or -1"
             max_per_dim = [
                 max(actual, minimal_requested) if minimal_requested != -1 else actual
@@ -251,6 +251,7 @@ class CollateDefault(CollateToBatchList):
         Note:
             This function assumes that the input_ids tensors are already padded, and it crops the sequences
             to the minimum length by removing trailing padding tokens.
+
         """
         min_length = max(
             len(ids) - (ids == pad_token_id).sum().item() for ids in input_ids_list
@@ -273,6 +274,7 @@ class CollateDefault(CollateToBatchList):
 
         Returns:
             None, elements are modified in the batch_dict.
+
         """
         target_length = batch_dict[target_key].shape[1]
         for key in keys_to_match:
