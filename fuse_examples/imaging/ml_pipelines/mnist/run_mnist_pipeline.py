@@ -1,6 +1,5 @@
 import os
 
-from fuse.dl.cross_validation.pipeline import run
 from fuse_examples.imaging.classification.mnist.run_mnist import (
     EVAL_COMMON_PARAMS,
     INFER_COMMON_PARAMS,
@@ -9,6 +8,8 @@ from fuse_examples.imaging.classification.mnist.run_mnist import (
     run_infer,
     run_train,
 )
+
+from fuse.dl.cross_validation.pipeline import run
 from fuse_examples.imaging.ml_pipelines.mnist.funcs import create_dataset
 
 ##########################################
