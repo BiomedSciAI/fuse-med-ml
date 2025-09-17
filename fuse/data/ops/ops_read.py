@@ -42,6 +42,7 @@ class OpReadDataframe(OpBase):
         rename_columns: Dict[str, str] | None = None,
         key_name: str = "data.sample_id",
         key_column: str = "sample_id",
+        drop_key_column: bool = True,
     ):
         """
         :param data:  input DataFrame
@@ -50,6 +51,7 @@ class OpReadDataframe(OpBase):
         :param rename_columns: rename columns from dataframe, when None (default) column names are kept
         :param key_name: name of value in sample_dict which will be used as the key/index
         :param key_column: name of the column which use as key/index. In case of None, the original dataframe index will be used to extract the values for a single sample.
+        :param drop_key_column: whether to drop the key_column from the dataframe. default: True
         """
         super().__init__()
 
@@ -83,7 +85,7 @@ class OpReadDataframe(OpBase):
 
         # convert to dictionary: {index -> {column -> value}}
         if self._key_column is not None:
-            df = df.set_index(self._key_column)
+            df = df.set_index(self._key_column, drop=drop_key_column)
         self._data = df.to_dict(orient="index")
 
     def __call__(
