@@ -18,10 +18,13 @@ Created on June 30, 2021
 """
 import copy
 import os
+import random
 import threading
+import traceback
 from typing import Any, List, Tuple
 
 from fuse.data.ops.op_base import OpBase, OpReversibleBase, op_call, op_reverse
+from fuse.data.utils.sample import create_initial_sample, get_sample_id
 from fuse.utils.cpu_profiling.timer import Timer
 from fuse.utils.misc.context import DummyContext
 from fuse.utils.ndict import NDict
@@ -199,3 +202,42 @@ class PipelineDefault(OpReversibleBase):
             )
 
         return sample_dict
+
+
+class PipelineDefaultRetryAnySample(PipelineDefault):
+    def __init__(
+        self,
+        name: str,
+        ops_and_kwargs: List[Tuple[OpBase, dict]],
+        op_ids: List[str] | None = None,
+        verbose: bool = False,
+        max_retry_attempts: int = 5,
+        sample_ids: List[Any] = None,
+    ):
+        super().__init__(name, ops_and_kwargs, op_ids, verbose)
+        assert sample_ids is not None
+        self.max_retry_attempts = max_retry_attempts
+        self.sample_ids = sample_ids
+
+    def __call__(
+        self,
+        sample_dict: dict,
+        op_id: str | None = None,
+        until_op_id: str | None = None,
+    ) -> dict:
+
+        for retry_attempt in range(self.max_retry_attempts):
+            if retry_attempt > 0:
+                new_sample_id = random.choice(self.sample_ids)
+                sample_dict = create_initial_sample(new_sample_id)
+                print(f"Retry attempt {retry_attempt} with sample {new_sample_id}")
+            try:
+                return super().__call__(sample_dict, op_id, until_op_id)
+            except Exception as e:
+                traceback.print_exc()
+                print(e)
+                print(f"Error: failed to process sample {get_sample_id(sample_dict)}")
+
+        raise Exception(
+            f"Error: failed to process sample {get_sample_id(sample_dict)} after retrying."
+        )

@@ -215,7 +215,7 @@ class MetricCollector(MetricBase):
         """
         assert isinstance(
             data, torch.Tensor
-        ), f"ERROR, Fuse Metrics only supports gathering of torch.Tensor at this time. You tried gathering {type(data)}"
+        ), f"ERROR, Fuse Metrics {type(data)=} only supports gathering of torch.Tensor at this time. You tried gathering {type(data)}"
 
         if not data.is_contiguous():
             data = data.contiguous()
