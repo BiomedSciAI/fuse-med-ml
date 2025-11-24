@@ -147,6 +147,7 @@ class CollateDefault(CollateToBatchList):
         ):
             # batch with default PyTorch implementation
             batch_dict[key] = default_collate(collected_values)
+
         else:
             batch_dict[key] = collected_values
 
