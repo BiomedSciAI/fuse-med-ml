@@ -190,7 +190,10 @@ class MetricCollector(MetricBase):
                 if isinstance(value, np.ndarray) and value.ndim == 0:
                     self._collected_data[name].append(value.item())
                 else:
-                    self._collected_data[name].extend(value)
+                    if isinstance(value, np.ndarray):
+                        self._collected_data[name].extend(value.tolist())
+                    else:
+                        self._collected_data[name].extend(value)
 
         # extract ids and store it in self._collected_ids
         if self._to_collect_ids:
