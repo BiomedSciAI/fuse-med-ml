@@ -152,10 +152,10 @@ def main(cfg: DictConfig) -> None:
         dfs[_set] = df_all[df_all.fold.isin(cfg[f"{_set}_folds"])]
 
     train_ds = SegOAI.dataset(
-        dfs["train"], validation=(not cfg.aug), resize_to=cfg.resize_to
+        dfs["train"], validation=(not cfg.aug), resize_to=cfg.resize_to, num_classes=cfg.num_classes
     )
-    val_ds = SegOAI.dataset(dfs["val"], validation=True, resize_to=cfg.resize_to)
-    test_ds = SegOAI.dataset(dfs["test"], validation=True, resize_to=cfg.resize_to)
+    val_ds = SegOAI.dataset(dfs["val"], validation=True, resize_to=cfg.resize_to, num_classes=cfg.num_classes)
+    test_ds = SegOAI.dataset(dfs["test"], validation=True, resize_to=cfg.resize_to, num_classes=cfg.num_classes)
     ## Create dataloader
 
     train_dl = DataLoader(
