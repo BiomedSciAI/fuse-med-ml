@@ -1,6 +1,7 @@
 from fuse.utils.utils_logger import fuse_logger_start
 import os
-import subprocess
+
+# import subprocess
 from glob import glob
 import pandas as pd
 from fuse.dl.models import ModelMultiHead
@@ -30,7 +31,7 @@ torch.use_deterministic_algorithms(False)
 
 
 @hydra.main(version_base="1.2", config_path=".", config_name="mae_config")
-def main(cfg: DictConfig):
+def main(cfg: DictConfig) -> None:
     cfg = hydra.utils.instantiate(cfg)
     os.environ["CUDA_VISIBLE_DEVICES"] = ",".join([str(x) for x in cfg.cuda_devices])
     results_path = cfg.results_dir

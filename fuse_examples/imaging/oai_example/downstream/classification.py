@@ -148,7 +148,7 @@ def main(cfg: DictConfig) -> None:
     train_ds = OAI.dataset(
         train_df,
         for_classification=True,
-        validation=True,
+        validation=False,
         resize_to=cfg.resize_to,
     )
     val_ds = OAI.dataset(

@@ -1,34 +1,20 @@
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
-from fuse.data import PipelineDefault, OpToTensor
-from fuse.data.ops.ops_common import OpLambda
-from fuseimg.data.ops.color import OpToRange, OpClip
-from fuseimg.data.ops.color import OpNormalizeAgainstSelf as selfRange
-from fuseimg.data.ops.aug.color import OpAugGaussian
-from fuseimg.data.ops.aug.geometry import (
-    OpAugAffine2D,
-    OpRotation3D,
-    OpResizeTo,
-    OpCrop3D,
-)
+from fuse.data import OpToTensor
+from fuse.data.ops.ops_common import OpLambda, OpRepeat
+from fuseimg.data.ops.aug.geometry import OpAugAffine2D, OpResizeTo
 from fuse.data.ops.ops_aug_common import OpSample, OpRandApply
 from fuse.data.ops.ops_cast import OpToNumpy
 from fuse.data.ops.ops_read import OpReadDataframe
-from torchvision import transforms
 
-from fuse.data.ops.ops_common import OpLambda, OpZScoreNorm, OpRepeat
-from fuse.utils import NDict
 from functools import partial
-from typing import Hashable, List, Optional, Sequence, Union
+from typing import Hashable, Optional, Sequence, Union  # , List
 import torch
 import pandas as pd
-import numpy as np
-import os
-from fuse.data.utils.sample import get_sample_id
 
 # from fuseimg.data.ops import ops_mri
-from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
+from fuse.utils.rand.param_sampler import Uniform, RandInt  # , RandBool
 
 
 from fuse_examples.imaging.oai_example.data.data_ops import (
@@ -46,11 +32,11 @@ from volumentations import Compose, GaussianNoise, Flip, Rotate
 
 class OAI:
     @staticmethod
-    def sample_ids(df):
+    def sample_ids(df: pd.DataFrame) -> Sequence:
         return OAI.get_existing_sample_ids(df)
 
     @staticmethod
-    def get_existing_sample_ids(df):
+    def get_existing_sample_ids(df: pd.DataFrame) -> Sequence:
         """
         get all the sample ids that have a zip file in the specified path
         """
@@ -58,7 +44,7 @@ class OAI:
         return existing_files
 
     @staticmethod
-    def static_pipeline(df: pd.DataFrame, im2D=False) -> PipelineDefault:
+    def static_pipeline(df: pd.DataFrame, im2D: bool = False) -> PipelineDefault:
         max_key = "max_val" if im2D else None
         static_pipeline = PipelineDefault(
             "static",
@@ -80,13 +66,13 @@ class OAI:
 
     @staticmethod
     def dynamic_pipeline(
-        n_crops=2,
-        mae_cfg=None,
+        n_crops: int = 2,
+        mae_cfg: bool = None,
         for_classification: bool = True,
         validation: bool = False,
         resize_to: Sequence = [40, 224, 224],
-        im2D=False,
-    ):
+        im2D: bool = False,
+    ) -> PipelineDefault:
         """
         Get suggested dynamic pipeline. including pre-processing that might be modified and augmentation operations.
         :param train : True iff we request dataset for train purpouse
@@ -331,7 +317,7 @@ class OAI:
         n_crops: int = 4,
         mae_cfg: dict = None,
         im2D: bool = False,
-    ):
+    ) -> DatasetDefault:
         """
         Creates Fuse Dataset single object (either for training, validation and test or user defined set)
 

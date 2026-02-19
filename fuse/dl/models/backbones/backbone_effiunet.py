@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import List, Any, Tuple
+from typing import List, Any, Tuple, Optional
 import torch.utils.model_zoo as model_zoo
 from efficientnet_pytorch import EfficientNet
 from efficientnet_pytorch.utils import get_model_params, url_map
@@ -67,12 +67,12 @@ class SCSEModule(nn.Module):
         )
         self.sSE = nn.Sequential(nn.Conv2d(in_channels, 1, 1), nn.Sigmoid())
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return x * self.cSE(x) + x * self.sSE(x)
 
 
 class Activation(nn.Module):
-    def __init__(self, name: str, **params):
+    def __init__(self, name: str, **params: Any):
 
         super().__init__()
 
@@ -95,12 +95,12 @@ class Activation(nn.Module):
                 )
             )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.activation(x)
 
 
 class Attention(nn.Module):
-    def __init__(self, name: str, **params):
+    def __init__(self, name: str, **params: Any):
         super().__init__()
 
         if name is None:
@@ -110,16 +110,16 @@ class Attention(nn.Module):
         else:
             raise ValueError("Attention {} is not implemented".format(name))
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.attention(x)
 
 
 class Flatten(nn.Module):
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return x.view(x.shape[0], -1)
 
 
-def initialize_decoder(module: nn.Module):
+def initialize_decoder(module: nn.Module) -> None:
     for m in module.modules():
 
         if isinstance(m, nn.Conv2d):
@@ -166,7 +166,9 @@ class DecoderBlock(nn.Module):
         )
         self.attention2 = Attention(attention_type, in_channels=out_channels)
 
-    def forward(self, x, skip=None):
+    def forward(
+        self, x: torch.Tensor, skip: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         x = F.interpolate(x, scale_factor=2, mode="nearest")
         if skip is not None:
             x = torch.cat([x, skip], dim=1)
@@ -178,7 +180,7 @@ class DecoderBlock(nn.Module):
 
 
 class CenterBlock(nn.Sequential):
-    def __init__(self, in_channels, out_channels, use_batchnorm=True):
+    def __init__(self, in_channels: int, out_channels: int, use_batchnorm: bool = True):
         conv1 = Conv2dReLU(
             in_channels,
             out_channels,
@@ -243,7 +245,7 @@ class UnetDecoder(nn.Module):
         ]
         self.blocks = nn.ModuleList(blocks)
 
-    def forward(self, *features):
+    def forward(self, *features: torch.Tensor) -> torch.Tensor:
 
         features = features[1:]  # remove first skip with same spatial resolution
         features = features[::-1]  # reverse channels to start from head of encoder
@@ -270,7 +272,7 @@ class EncoderMixin:
         """Return channels dimensions for each tensor of forward output of encoder"""
         return self._out_channels[: self._depth + 1]
 
-    def set_in_channels(self, in_channels):
+    def set_in_channels(self, in_channels: int) -> None:
         """Change first convolution chennels"""
         if in_channels == 3:
             return
@@ -282,7 +284,7 @@ class EncoderMixin:
         patch_first_conv(model=self, in_channels=in_channels)
 
 
-def patch_first_conv(model, in_channels):
+def patch_first_conv(model: nn.Module, in_channels: int) -> None:
     """Change first convolution layer input channels.
     In case:
         in_channels == 1 or in_channels == 2 -> reuse original weights
@@ -317,7 +319,13 @@ def patch_first_conv(model, in_channels):
 
 
 class EfficientNetEncoder(EfficientNet, EncoderMixin):
-    def __init__(self, stage_idxs, out_channels, model_name, depth=5):
+    def __init__(
+        self,
+        stage_idxs: Tuple[int, ...],
+        out_channels: Tuple[int, ...],
+        model_name: str,
+        depth: int = 5,
+    ) -> None:
 
         blocks_args, global_params = get_model_params(model_name, override_params=None)
         super().__init__(blocks_args, global_params)
@@ -329,7 +337,7 @@ class EfficientNetEncoder(EfficientNet, EncoderMixin):
 
         del self._fc
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> List[torch.Tensor]:
 
         features = [x]
 
@@ -351,13 +359,13 @@ class EfficientNetEncoder(EfficientNet, EncoderMixin):
                         break
         return features
 
-    def load_state_dict(self, state_dict, **kwargs):
+    def load_state_dict(self, state_dict: dict, **kwargs: Any) -> None:
         state_dict.pop("_fc.bias")
         state_dict.pop("_fc.weight")
         super().load_state_dict(state_dict, **kwargs)
 
 
-def _get_pretrained_settings(encoder: nn.Module):
+def _get_pretrained_settings(encoder: nn.Module) -> dict:
     pretrained_settings = {
         "imagenet": {
             "mean": [0.485, 0.456, 0.406],
@@ -449,7 +457,9 @@ encoders = {}
 encoders.update(efficient_net_encoders)
 
 
-def get_encoder(name, in_channels=3, depth=5, weights=None):
+def get_encoder(
+    name: str, in_channels: int = 3, depth: int = 5, weights: Optional[str] = None
+) -> nn.Module:
     Encoder = encoders[name]["encoder"]
     params = encoders[name]["params"]
     params.update(depth=depth)
@@ -507,10 +517,10 @@ class Effi_UNet(nn.Module):
         encoder_weights: str = "imagenet",
         decoder_use_batchnorm: bool = True,
         decoder_channels: any = (256, 128, 64, 32, 16),
-        decoder_attention_type=None,
+        decoder_attention_type: str = None,
         in_channels: int = 3,
         classes: int = 1,
-        activation: str = None,
+        activation: Optional[str] = None,
     ):
         super().__init__()
 
@@ -533,7 +543,7 @@ class Effi_UNet(nn.Module):
         self.classifier = nn.Conv2d(decoder_channels[-1], classes, 1)
         self.activation = nn.Sigmoid() if activation == "sigmoid" else nn.Identity()
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Sequentially pass `x` trough model`s encoder, decoder and heads"""
         features = self.encoder(x)
         decoder_output = self.decoder(*features)
