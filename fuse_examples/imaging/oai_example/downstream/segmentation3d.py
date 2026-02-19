@@ -29,6 +29,7 @@ from clearml import Task
 from fuse_examples.imaging.oai_example.data.seg_ds import SegOAI
 from fuse.dl.models.backbones.backbone_unet3d import UNet3D
 
+from typing import Any, Dict
 
 torch.set_float32_matmul_precision("medium")
 
@@ -152,10 +153,23 @@ def main(cfg: DictConfig) -> None:
         dfs[_set] = df_all[df_all.fold.isin(cfg[f"{_set}_folds"])]
 
     train_ds = SegOAI.dataset(
-        dfs["train"], validation=(not cfg.aug), resize_to=cfg.resize_to, num_classes=cfg.num_classes
+        dfs["train"],
+        validation=(not cfg.aug),
+        resize_to=cfg.resize_to,
+        num_classes=cfg.num_classes,
     )
-    val_ds = SegOAI.dataset(dfs["val"], validation=True, resize_to=cfg.resize_to, num_classes=cfg.num_classes)
-    test_ds = SegOAI.dataset(dfs["test"], validation=True, resize_to=cfg.resize_to, num_classes=cfg.num_classes)
+    val_ds = SegOAI.dataset(
+        dfs["val"],
+        validation=True,
+        resize_to=cfg.resize_to,
+        num_classes=cfg.num_classes,
+    )
+    test_ds = SegOAI.dataset(
+        dfs["test"],
+        validation=True,
+        resize_to=cfg.resize_to,
+        num_classes=cfg.num_classes,
+    )
     ## Create dataloader
 
     train_dl = DataLoader(
@@ -290,7 +304,9 @@ def main(cfg: DictConfig) -> None:
         pl_trainer.validate(pl_module, test_dl, ckpt_path=cfg.test_ckpt)
         if cfg.save_test_results:
 
-            def predict_step(self, batch_dict: dict, batch_idx: int) -> dict:
+            def predict_step(
+                self: Any, batch_dict: dict, batch_idx: int
+            ) -> Dict[str, Any]:
                 batch_dict = self.forward(batch_dict)
                 batch_dict["model.logits.head_seg"] = (
                     batch_dict["model.logits.head_seg"].argmax(axis=0).to(torch.uint8)

@@ -4,7 +4,7 @@ import dill
 from glob import glob
 import pandas as pd
 from fuse.dl.models import ModelMultiHead
-
+from typing import Any, Dict
 
 from monai.losses import DiceLoss
 import torch
@@ -34,13 +34,13 @@ torch.set_float32_matmul_precision("medium")
 torch.use_deterministic_algorithms(False)
 
 
-def remove_blobs(pred_tensor):
+def remove_blobs(pred_tensor: torch.Tensor) -> torch.Tensor:
     # FILL with post-processing algorithm on the predicted segmentation
     return pred_tensor
 
 
 @hydra.main(version_base="1.2", config_path=".", config_name="segmentation_config")
-def main(cfg: DictConfig):
+def main(cfg: DictConfig) -> None:
     cfg = hydra.utils.instantiate(cfg)
     results_path = cfg.results_dir
     os.environ["CUDA_VISIBLE_DEVICES"] = ",".join([str(x) for x in cfg.cuda_devices])
@@ -243,7 +243,7 @@ def main(cfg: DictConfig):
 
     # Metrics definition:
     ##############################################################################
-    def pre_process_for_dice(sample: dict):
+    def pre_process_for_dice(sample: dict) -> dict:
         sample["model.backbone_features"] = sample["model.backbone_features"].argmax(
             axis=0
         )
@@ -313,7 +313,7 @@ def main(cfg: DictConfig):
     )
 
     def validation_step(
-        self, batch_dict, batch_idx: int, dataloader_idx: int = 0
+        self: Any, batch_dict: dict, batch_idx: int, dataloader_idx: int = 0
     ) -> None:
         # add step number to batch_dict
         batch_dict["global_step"] = self.global_step
@@ -325,7 +325,9 @@ def main(cfg: DictConfig):
         batch_dict["model.backbone_features"] = (
             batch_dict["model.backbone_features"].permute(1, 0, 2, 3).unsqueeze(0)
         )
-        batch_dict["model.backbone_features"] = remove_blobs(batch_dict["model.backbone_features"])
+        batch_dict["model.backbone_features"] = remove_blobs(
+            batch_dict["model.backbone_features"]
+        )
         if self._validation_losses is not None:
             losses = self._validation_losses[dataloader_idx][1]
         else:
@@ -364,7 +366,9 @@ def main(cfg: DictConfig):
         pl_trainer.validate(pl_module, test_dl, ckpt_path=cfg.test_ckpt)
         if cfg.save_test_results:
 
-            def predict_step(self, batch_dict: dict, batch_idx: int) -> dict:
+            def predict_step(
+                self: Any, batch_dict: dict, batch_idx: int
+            ) -> Dict[str, Any]:
                 batch_dict["img"] = (
                     batch_dict["img"].squeeze(0).permute(1, 0, 2, 3)
                 )  # [160,1,384,384]

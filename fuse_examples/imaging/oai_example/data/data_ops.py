@@ -10,6 +10,7 @@ import torch.nn.functional as F
 from typing import Tuple, Union, List
 from volumentations import Compose
 from functools import reduce
+from typing import Any, Optional
 
 
 class OpLoadData(OpBase):
@@ -18,7 +19,7 @@ class OpLoadData(OpBase):
     Folder should have only dicom files and they should be names in the order of the sequence.
     """
 
-    def __init__(self, im2D: bool = False, path_key: str = None, **kwargs):
+    def __init__(self, im2D: bool = False, path_key: str = None, **kwargs: Any):
         super().__init__(**kwargs)
         self.im2D = im2D
         self.path_key = path_key
@@ -57,7 +58,7 @@ class OpLoadData(OpBase):
 
 
 class OpNormalizeMRI(OpBase):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
 
     def __call__(
@@ -65,8 +66,8 @@ class OpNormalizeMRI(OpBase):
         sample_dict: NDict,
         key: str,
         to_range: Tuple[float, float],
-        max_key: str = None,
-    ):
+        max_key: Optional[str] = None,
+    ) -> NDict:
 
         img = sample_dict[key]
         img = np.clip(
@@ -131,7 +132,7 @@ class OpPickSlice(OpBase):
         seg_key: str = "seg",
         slice_key: str = "slice",
         drop_blank: bool = False,
-        **kwargs,
+        **kwargs: Any,
     ):
         super().__init__(**kwargs)
         self.img_key = img_key
@@ -359,7 +360,7 @@ class OpSegToOneHot(OpBase):
         super().__init__()
         self.n_classes = n_classes
 
-    def __call__(self, sample_dict: NDict, key) -> NDict:
+    def __call__(self, sample_dict: NDict, key: str) -> NDict:
         seg_tensor = sample_dict[key]
         seg_tensor = seg_tensor.squeeze(0).long()
         one_hot = F.one_hot(seg_tensor, num_classes=self.n_classes)

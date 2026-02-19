@@ -1,31 +1,26 @@
 from fuse.data.pipelines.pipeline_default import PipelineDefault
 from fuse.data.datasets.dataset_default import DatasetDefault
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
-from fuse.data import PipelineDefault, OpToTensor
+from fuse.data import OpToTensor
 from fuse.data.ops.ops_common import OpLambda
-from fuseimg.data.ops.color import OpToRange, OpClip
-from fuseimg.data.ops.color import OpNormalizeAgainstSelf as selfRange
-from fuseimg.data.ops.aug.color import OpAugGaussian
 from fuseimg.data.ops.image_loader import OpLoadImage
 from fuseimg.data.ops.aug.geometry import (
     OpAugAffine2D,
 )
 from fuse.data.ops.ops_aug_common import OpSample, OpRandApply
-from fuse.data.ops.ops_cast import OpToNumpy
 from fuse.data.ops.ops_read import OpReadDataframe
 
-from fuse.data.ops.ops_common import OpLambda, OpZScoreNorm, OpRepeat
-from fuse.utils import NDict
+# from fuse.utils import NDict
 from functools import partial
-from typing import Hashable, List, Optional, Sequence, Union
+from typing import Hashable, Optional, Sequence, Union  # , List
 import torch
 import pandas as pd
 import numpy as np
-import os
-from fuse.data.utils.sample import get_sample_id
+
+# from fuse.data.utils.sample import get_sample_id
 
 # from fuseimg.data.ops import ops_mri
-from fuse.utils.rand.param_sampler import Uniform, RandInt, RandBool
+from fuse.utils.rand.param_sampler import Uniform  # , RandInt, RandBool
 
 
 from fuse_examples.imaging.oai_example.data.data_ops import (
@@ -36,7 +31,8 @@ from fuse_examples.imaging.oai_example.data.data_ops import (
     OpRandomCrop,
     OpPickSlice,
 )
-from volumentations import *
+
+# from volumentations import *
 
 
 class SegOAI:
@@ -79,7 +75,7 @@ class SegOAI:
         validation: bool = False,
         resize_to: Sequence = [40, 224, 224],
         num_classes: int = 7,
-    ):
+    ) -> PipelineDefault:
         """
         Get suggested dynamic pipeline. including pre-processing that might be modified and augmentation operations.
         :param train : True iff we request dataset for train purpouse
@@ -89,7 +85,7 @@ class SegOAI:
         # augmentation
 
         if validation:
-            if resize_to != None:
+            if resize_to is not None:
                 if len(resize_to) == 1:
                     print(f"resize take every {resize_to} on the depth dim")
                     dynamic_pipeline.extend(
@@ -123,7 +119,7 @@ class SegOAI:
                 ]
             )
         else:
-            if resize_to != None:
+            if resize_to is not None:
                 if len(resize_to) == 1:
                     starting_idx = np.random.randint(0, 4)
                     dynamic_pipeline.extend(
@@ -193,7 +189,7 @@ class SegOAI:
         num_classes: int = 7,
         im2D: bool = False,
         drop_blank_slices: bool = False,
-    ):
+    ) -> DatasetDefault:
         """
         Creates Fuse Dataset single object (either for training, validation and test or user defined set)
 
