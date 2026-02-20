@@ -18,7 +18,6 @@ h5py
 hdf5plugin
 deepdiff
 statsmodels
-xmlrunner
 paramiko
 tables
 psutil
