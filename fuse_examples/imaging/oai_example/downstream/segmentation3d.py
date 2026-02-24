@@ -1,7 +1,9 @@
 import logging
 import os
 from glob import glob
+from typing import Any
 
+import dill
 import hydra
 import pandas as pd
 import pytorch_lightning as pl
@@ -15,6 +17,7 @@ from pytorch_lightning.callbacks import LearningRateMonitor
 from torch.utils.data.dataloader import DataLoader
 
 from fuse.data.utils.collates import CollateDefault
+from fuse.dl.lightning.pl_funcs import step_extract_predictions
 from fuse.dl.lightning.pl_module import LightningModuleDefault
 from fuse.dl.losses.loss_default import LossDefault
 from fuse.dl.models import ModelMultiHead
@@ -28,6 +31,10 @@ from fuse_examples.imaging.oai_example.data.seg_ds import SegOAI
 
 torch.set_float32_matmul_precision("medium")
 
+# def remove_blobs(batch_dict):
+#     # FILL with post-processing algorithm on the predicted segmentation
+#     return pred_tensor
+
 
 @hydra.main(version_base="1.2", config_path=".", config_name="segmentation_config")
 def main(cfg: DictConfig) -> None:
@@ -39,8 +46,9 @@ def main(cfg: DictConfig) -> None:
         sum(
             cfg[weights] is not None
             for weights in [
-                "suprem_weights",
+                "baseline_weights",
                 "dino_weights",
+                "mae_weights",
                 "resume_training_from",
                 "test_ckpt",
             ]
@@ -88,13 +96,19 @@ def main(cfg: DictConfig) -> None:
                 for k, v in state_dict["state_dict"].items()
                 if "teacher_backbone." in k
             }
-        elif cfg.suprem_weights is not None:
+        elif cfg.baseline_weights is not None:
             state_dict = torch.load(
-                cfg.suprem_weights, map_location=torch.device("cpu")
+                cfg.baseline_weights, map_location=torch.device("cpu")
             )
             state_dict = {
                 k.replace("module.backbone.", ""): v
                 for k, v in state_dict["net"].items()
+            }
+        elif cfg.mae_weights is not None:
+            state_dict = torch.load(cfg.mae_weights, map_location=torch.device("cpu"))
+            state_dict = {
+                k.replace("_model.backbone.", ""): v
+                for k, v in state_dict["state_dict"].items()
             }
         else:
             state_dict = backbone.state_dict()
@@ -137,10 +151,23 @@ def main(cfg: DictConfig) -> None:
         dfs[_set] = df_all[df_all.fold.isin(cfg[f"{_set}_folds"])]
 
     train_ds = SegOAI.dataset(
-        dfs["train"], validation=(not cfg.aug), resize_to=cfg.resize_to
+        dfs["train"],
+        validation=(not cfg.aug),
+        resize_to=cfg.resize_to,
+        num_classes=cfg.num_classes,
     )
-    val_ds = SegOAI.dataset(dfs["val"], validation=True, resize_to=cfg.resize_to)
-    test_ds = SegOAI.dataset(dfs["test"], validation=True, resize_to=cfg.resize_to)
+    val_ds = SegOAI.dataset(
+        dfs["val"],
+        validation=True,
+        resize_to=cfg.resize_to,
+        num_classes=cfg.num_classes,
+    )
+    test_ds = SegOAI.dataset(
+        dfs["test"],
+        validation=True,
+        resize_to=cfg.resize_to,
+        num_classes=cfg.num_classes,
+    )
     ## Create dataloader
 
     train_dl = DataLoader(
@@ -203,6 +230,7 @@ def main(cfg: DictConfig) -> None:
             pred="model.logits.head_seg",
             target="seg",
             pre_collect_process_func=pre_process_for_dice,
+            # post_collect_process_func=remove_blobs,
         )
     }
 
@@ -272,6 +300,20 @@ def main(cfg: DictConfig) -> None:
     if cfg.test_ckpt is not None:
         print(f"Test using ckpt: {cfg.test_ckpt}")
         pl_trainer.validate(pl_module, test_dl, ckpt_path=cfg.test_ckpt)
+        if cfg.save_test_results:
+
+            def predict_step(self: Any, batch_dict: dict, batch_idx: int) -> dict:
+                batch_dict = self.forward(batch_dict)
+                batch_dict["model.logits.head_seg"] = (
+                    batch_dict["model.logits.head_seg"].argmax(axis=0).to(torch.uint8)
+                )
+                return step_extract_predictions(self._prediction_keys, batch_dict)
+
+            pl_module.predict_step = predict_step.__get__(pl_module)
+            pl_module.set_predictions_keys(["model.logits.head_seg", "seg"])
+            output = pl_trainer.predict(pl_module, test_dl, ckpt_path=cfg.test_ckpt)
+            with open(f"{model_dir}/output.pkl", "wb") as f:
+                dill.dump(output, f, protocol=4)
     else:
         # print(f"Training using ckpt: {ckpt_path}")
         pl_trainer.fit(pl_module, train_dl, val_dl, ckpt_path=ckpt_path)
