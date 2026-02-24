@@ -10,6 +10,7 @@ torch.use_deterministic_algorithms(False)
 
 class ContBatchNorm3d(nn.modules.batchnorm._BatchNorm):
     def _check_input_dim(self, input: torch.Tensor) -> None:
+
         if input.dim() != 5:
             raise ValueError(f"expected 5D input (got {input.dim()}D input)")
         # super(ContBatchNorm3d, self)._check_input_dim(input)
@@ -111,6 +112,7 @@ class UpTransition(nn.Module):
 
 class OutputTransition(nn.Module):
     def __init__(self, inChans: int, n_labels: int):
+
         super().__init__()
         self.final_conv = nn.Conv3d(inChans, n_labels, kernel_size=1)
         self.sigmoid = nn.Sigmoid()

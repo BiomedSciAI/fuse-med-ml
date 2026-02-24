@@ -71,7 +71,9 @@ class DINO(pl.LightningModule):
         deactivate_requires_grad(self.teacher_backbone)
         deactivate_requires_grad(self.teacher_head)
 
-        self.criterion = DINOLoss(output_dim=2048, warmup_teacher_temp_epochs=5)
+        self.criterion = DINOLoss(
+            output_dim=2048, warmup_teacher_temp_epochs=cfg.warmup_teacher_temp_epochs
+        )
 
         self.cfg = cfg
         self.learning_rate = cfg.learning_rate
