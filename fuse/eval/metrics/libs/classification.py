@@ -50,11 +50,10 @@ class MetricsLibClass:
         target = np.asarray(target)
         if sample_weight is not None:
             sample_weight = np.asarray(sample_weight)
-        single_pred = pred[0]  # should be either a scalar or 1d numpy.ndarray
+        single_pred = np.array(pred[0])  # should be either a scalar or 1d numpy.ndarray
         if (
-            not isinstance(single_pred, np.ndarray)
-            or (len(single_pred.shape) == 0)
-            or (single_pred.shape[0] == 1)
+            (len(single_pred.shape) == 0) or 
+            (single_pred.shape[0] == 1)
         ):
             # case 1: single prediction
             # pred = [np.array(p) for p in pred] # is needed ??
