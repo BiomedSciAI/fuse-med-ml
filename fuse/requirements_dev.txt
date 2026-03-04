@@ -10,3 +10,4 @@ pytest
 coverage
 nb-clean
 ruff
+xmlrunner

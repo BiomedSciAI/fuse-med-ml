@@ -186,7 +186,7 @@ class MetricsLibClass:
             y_score = np.asarray(pred)[:, pos_class_index]
 
         precision, recall, _ = metrics.precision_recall_curve(
-            probas_pred=y_score,
+            y_score=y_score,
             y_true=np.asarray(target) == pos_class_index,
             sample_weight=sample_weight,
         )
