@@ -46,6 +46,7 @@ def main(cfg: DictConfig) -> None:
             for weights in [
                 "suprem_weights",
                 "dino_weights",
+                "mae_weights",
                 "resume_training_from",
                 "test_ckpt",
             ]
@@ -105,6 +106,12 @@ def main(cfg: DictConfig) -> None:
                 k.replace("module.backbone.", ""): v
                 for k, v in state_dict["net"].items()
             }
+        elif cfg.mae_weights is not None:
+            state_dict = torch.load(cfg.mae_weights, map_location=torch.device("cpu"))
+            state_dict = {
+                k.replace("_model.backbone.", ""): v
+                for k, v in state_dict["state_dict"].items()
+            }
         else:
             state_dict = backbone.state_dict()
 
@@ -140,7 +147,7 @@ def main(cfg: DictConfig) -> None:
     train_ds = OAI.dataset(
         train_df,
         for_classification=True,
-        validation=True,
+        validation=False,
         resize_to=cfg.resize_to,
     )
     val_ds = OAI.dataset(
@@ -290,7 +297,7 @@ def main(cfg: DictConfig) -> None:
     ##############################################################################
     ckpt_path = None
     if cfg.resume_training_from is not None:
-        ckpt_path = cfg.ckpt_path
+        ckpt_path = cfg.resume_training_from
 
     # create instance of PL module - FuseMedML generic version
     pl_module = LightningModuleDefault(

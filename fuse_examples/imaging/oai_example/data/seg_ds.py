@@ -1,20 +1,30 @@
-from collections.abc import Hashable, Sequence
 from functools import partial
+from typing import Hashable, Sequence
 
+import numpy as np
 import pandas as pd
 import torch
 
-from fuse.data import OpToTensor, PipelineDefault
+from fuse.data import OpToTensor
 from fuse.data.datasets.caching.samples_cacher import SamplesCacher
 from fuse.data.datasets.dataset_default import DatasetDefault
+from fuse.data.ops.ops_aug_common import OpRandApply, OpSample
 from fuse.data.ops.ops_common import OpLambda
 from fuse.data.ops.ops_read import OpReadDataframe
+from fuse.data.pipelines.pipeline_default import PipelineDefault
+
+# from fuseimg.data.ops import ops_mri
+from fuse.utils.rand.param_sampler import Uniform
 from fuse_examples.imaging.oai_example.data.data_ops import (
     OpNormalizeMRI,
+    OpPickSlice,
     OpRandomCrop,
     OpRandomFlip,
     OpResize3D,
     OpSegToOneHot,
+)
+from fuseimg.data.ops.aug.geometry import (
+    OpAugAffine2D,
 )
 from fuseimg.data.ops.image_loader import OpLoadImage
 
@@ -33,7 +43,9 @@ class SegOAI:
         return existing_files
 
     @staticmethod
-    def static_pipeline(df: pd.DataFrame) -> PipelineDefault:
+    def static_pipeline(
+        df: pd.DataFrame, im2D: bool = False, drop_blank_slices: bool = False
+    ) -> PipelineDefault:
         static_pipeline = PipelineDefault(
             "static",
             [
@@ -44,11 +56,19 @@ class SegOAI:
                 (OpNormalizeMRI(), dict(key="img", to_range=[0, 1])),
             ],
         )
+        if im2D:
+            static_pipeline.extend(
+                [
+                    (OpPickSlice("img", "seg", "slice", drop_blank_slices), dict()),
+                ]
+            )
         return static_pipeline
 
     @staticmethod
     def dynamic_pipeline(
-        validation: bool = False, resize_to: tuple[int, int, int] = [40, 224, 224]
+        validation: bool = False,
+        resize_to: Sequence = [40, 224, 224],
+        num_classes: int = 7,
     ) -> PipelineDefault:
         """
         Get suggested dynamic pipeline. including pre-processing that might be modified and augmentation operations.
@@ -58,34 +78,93 @@ class SegOAI:
         # augmentation
 
         if validation:
-            if resize_to is not None:
-                dynamic_pipeline.extend(
-                    [
-                        (OpResize3D(), dict(key="img", shape=resize_to)),
-                        (
-                            OpResize3D(),
-                            dict(key="seg", shape=resize_to, segmentation=True),
-                        ),
-                    ]
-                )
+            if resize_to != None:
+                if len(resize_to) == 1:
+                    print(f"resize take every {resize_to} on the depth dim")
+                    dynamic_pipeline.extend(
+                        [
+                            (
+                                OpLambda(lambda x: x[:: resize_to[0], :, :]),
+                                dict(key="img"),
+                            ),
+                            (
+                                OpLambda(lambda x: x[:: resize_to[0], :, :]),
+                                dict(key="seg"),
+                            ),
+                        ]
+                    )
+                else:
+                    dynamic_pipeline.extend(
+                        [
+                            (OpResize3D(), dict(key="img", shape=resize_to)),
+                            (
+                                OpResize3D(),
+                                dict(key="seg", shape=resize_to, segmentation=True),
+                            ),
+                        ]
+                    )
             else:
                 print("no Resize")
-        else:
             dynamic_pipeline.extend(
                 [
-                    (OpRandomCrop(), dict(key=["img", "seg"], scale=[0.7, 1.0])),
-                    (OpResize3D(), dict(key="img", shape=resize_to)),
-                    (OpResize3D(), dict(key="seg", shape=resize_to, segmentation=True)),
+                    (OpToTensor(), dict(key="img", dtype=torch.float32)),
+                    (OpToTensor(), dict(key="seg", dtype=torch.int8)),
+                ]
+            )
+        else:
+            if resize_to != None:
+                if len(resize_to) == 1:
+                    starting_idx = np.random.randint(0, 4)
+                    dynamic_pipeline.extend(
+                        [
+                            (
+                                OpLambda(
+                                    lambda x: x[starting_idx :: resize_to[0], :, :]
+                                ),
+                                dict(key="img"),
+                            ),
+                            (
+                                OpLambda(
+                                    lambda x: x[starting_idx :: resize_to[0], :, :]
+                                ),
+                                dict(key="seg"),
+                            ),
+                        ]
+                    )
+                else:
+                    dynamic_pipeline.extend(
+                        [
+                            (
+                                OpRandomCrop(),
+                                dict(key=["img", "seg"], scale=[0.9, 1.0]),
+                            ),
+                            (OpResize3D(), dict(key="img", shape=resize_to)),
+                            (
+                                OpResize3D(),
+                                dict(key="seg", shape=resize_to, segmentation=True),
+                            ),
+                        ]
+                    )
+            dynamic_pipeline.extend(
+                [
                     (OpRandomFlip(), dict(key=["img", "seg"])),
+                    (OpToTensor(), dict(key="img", dtype=torch.float32)),
+                    (OpToTensor(), dict(key="seg", dtype=torch.int8)),
+                    (
+                        OpRandApply(OpSample(OpAugAffine2D()), 0.5),
+                        dict(
+                            key="img",
+                            scale=Uniform(0.8, 1.2),
+                        ),
+                    ),
+                    # (OpRandApply(OpAugGaussian(),0.1), dict(key="img"))
                 ]
             )
         dynamic_pipeline.extend(
             [
-                (OpToTensor(), dict(key="img", dtype=torch.float32)),
-                (OpToTensor(), dict(key="seg", dtype=torch.int8)),
                 (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="img")),
                 (OpLambda(partial(torch.unsqueeze, dim=0)), dict(key="seg")),
-                (OpSegToOneHot(n_classes=7), dict(key="seg")),
+                (OpSegToOneHot(n_classes=num_classes), dict(key="seg")),
             ]
         )
 
@@ -95,11 +174,14 @@ class SegOAI:
     def dataset(
         csv_path: str | pd.DataFrame,
         cache_dir: str = None,
-        reset_cache: bool = True,
+        reset_cache: bool = False,
         num_workers: int = 10,
         sample_ids: Sequence[Hashable] | None = None,
         resize_to: tuple = (40, 224, 224),
         validation: bool = False,
+        num_classes: int = 7,
+        im2D: bool = False,
+        drop_blank_slices: bool = False,
     ) -> DatasetDefault:
         """
         Creates Fuse Dataset single object (either for training, validation and test or user defined set)
@@ -122,9 +204,11 @@ class SegOAI:
         if sample_ids is None:
             sample_ids = SegOAI.sample_ids(df)
 
-        static_pipeline = SegOAI.static_pipeline(df)
+        static_pipeline = SegOAI.static_pipeline(
+            df, im2D=im2D, drop_blank_slices=drop_blank_slices
+        )
         dynamic_pipeline = SegOAI.dynamic_pipeline(
-            validation=validation, resize_to=resize_to
+            validation=validation, resize_to=resize_to, num_classes=num_classes
         )
 
         if cache_dir is not None:
