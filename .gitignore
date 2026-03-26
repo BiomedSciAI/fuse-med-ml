@@ -45,6 +45,8 @@ fuse/eval/examples/tmp_outputs/
 fuse_examples/imaging/classification/mnist/_examples/
 fuse_examples/imaging/classification/stoic21/_examples/
 fuse_examples/imaging/ml_pipelines/stoic21/results/
+fuse_examples/imaging/oai_example/results/
+fuse_examples/imaging/oai_example/outputs/
 _examples
 run_script.py
 lightning_logs/

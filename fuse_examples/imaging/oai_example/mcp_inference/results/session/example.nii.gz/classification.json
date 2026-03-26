@@ -1,0 +1,25 @@
+{
+  "case_id": "example.nii.gz",
+  "input_path": "fuse_examples/imaging/oai_example/data/example.nii.gz",
+  "predicted_label": "1",
+  "predicted_probability": 0.9999701976776123,
+  "primary_target": "V00COHORT",
+  "targets": {
+    "V00COHORT": {
+      "class_labels": [
+        "0",
+        "1"
+      ],
+      "logits": [
+        -4.799355506896973,
+        5.6227240562438965
+      ],
+      "predicted_index": 1,
+      "predicted_label": "1",
+      "probabilities": [
+        2.9767035812255926e-05,
+        0.9999701976776123
+      ]
+    }
+  }
+}

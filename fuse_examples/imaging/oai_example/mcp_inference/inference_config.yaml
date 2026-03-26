@@ -1,0 +1,19 @@
+input_mode: single
+task: all
+input_format: nifti
+qc_visualization: true
+csv_logging: true
+device: auto
+
+output_dir: fuse_examples/imaging/oai_example/mcp_inference/results
+
+preprocessing_resize_to: [40, 224, 224]
+
+classification_model_name: unet3d_classification
+classification_weights_path: fuse_examples/imaging/oai_example/weights/classification_model.ckpt
+classification_cls_targets: [V00COHORT]
+classification_class_labels: {}
+
+segmentation_model_name: unet3d_segmentation
+segmentation_weights_path: fuse_examples/imaging/oai_example/weights/segmentation_model.ckpt
+segmentation_num_classes: 7

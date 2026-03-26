@@ -122,3 +122,111 @@ You can track the progress of your training/testing using one of the following m
     If ClearML is installed and enabled in your config file (`clearml : True`), you can use it to monitor your results.
 
     Choose the method that best suits your workflow and preferences.
+
+## MCP Inference for Segmentation and Classification
+
+The current inference workflow supports downstream segmentation, downstream classification, or both in one run. It can be used as:
+
+- a persistent interactive CLI session backed by a background MCP HTTP server
+- a protocol-level MCP server using the official MCP Python SDK
+
+In this example, the workflow is organized as a set of callable tools with clear inputs and outputs:
+
+- preprocessing
+- segmentation
+- classification
+- QC visualization
+- result logging
+
+The workflow uses the official MCP Python SDK and serves tool-based inference over Streamable HTTP.
+
+### Required Packages
+
+From the repository root, install the project and example dependencies with:
+
+```bash
+pip install -e .[examples]
+pip install "mcp[cli]"
+```
+
+For this workflow specifically:
+
+- `pip install -e .[examples]` makes the local `fuse-med-ml` package importable and installs the example runtime dependencies used here, including `torch`, `numpy`, `pandas`, `matplotlib`, `nibabel`, and `monai`
+- `pip install "mcp[cli]"` adds the MCP server/client SDK used by the interactive CLI and Streamable HTTP server
+- `pydicom` is only needed when your input is a DICOM folder instead of a `.nii` / `.nii.gz` volume, and it is already included in `.[examples]`
+
+Launch it with:
+
+```bash
+python fuse_examples/imaging/oai_example/mcp_inference/inference_cli.py
+```
+
+By default, this starts a background MCP server and then opens the interactive terminal workflow against that same server. While the session is open, other MCP clients can connect to the same host, port, and path.
+
+The default output root is `fuse_examples/imaging/oai_example/outputs/mcp_inference/`. Each run creates a `session_<timestamp>/` folder, and cases are written to neutral subfolders such as `case_0001/`, `case_0002/`, and so on. The original input-derived `case_id` is still preserved inside the CSV/JSON metadata for traceability.
+
+You can optionally point to a different config or device:
+
+```bash
+python fuse_examples/imaging/oai_example/mcp_inference/inference_cli.py \
+  --inference-config fuse_examples/imaging/oai_example/mcp_inference/inference_config.yaml \
+  --device auto
+```
+
+Under the hood, the workflow exposes these MCP tools over Streamable HTTP:
+
+- `get_inference_settings`
+- `process_case`
+- `process_batch`
+
+Typical MCP inputs:
+
+- `path` for `process_case`
+- `batch_path` for `process_batch`
+- `task`: one of `segmentation`, `classification`, or `all`
+- `qc_visualization`: optional boolean
+- `output_dir`: optional output root
+- `log_to_csv`: optional boolean
+
+At startup the session shows the current defaults and offers:
+
+1. Process input
+2. Change settings
+3. Reset to defaults
+4. View current settings
+5. Exit
+
+The interactive terminal view looks like this:
+
+```text
+Background MCP server ready at http://127.0.0.1:8000/mcp
+
+Interactive inference workflow
+Defaults: mode=single, task=all, input=nifti, qc=on, logging=on
+1. Process input
+2. Change settings
+3. Reset to defaults
+4. View current settings
+5. Exit
+Choose an option [1]:
+```
+
+Input handling:
+
+- single mode accepts one `.nii` / `.nii.gz` volume path, and also supports a DICOM folder if needed
+- batch mode accepts either a folder of cases or a `.csv`, `.tsv`, `.txt`, or `.jsonl` manifest with a `path`, `input_path`, or `img_path` column
+- batch processing continues if one case fails and records the failure in the run log
+
+Supported tasks:
+
+- segmentation only
+- classification only
+- all tasks in sequence
+
+Outputs:
+
+- `segmentation_mask.nii.gz` when segmentation is enabled
+- `segmentation_qc.png` when QC is enabled
+- `classification.json` when classification is enabled
+- `inference_metadata.json` with input and preprocessing metadata
+- `inference_log.csv` with per-case status and output paths

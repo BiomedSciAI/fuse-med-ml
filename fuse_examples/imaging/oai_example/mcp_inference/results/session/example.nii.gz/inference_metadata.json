@@ -1,0 +1,17 @@
+{
+  "case_directory_name": "example.nii.gz",
+  "case_id": "example.nii.gz",
+  "input_path": "fuse_examples/imaging/oai_example/data/example.nii.gz",
+  "original_shape": [
+    160,
+    384,
+    384
+  ],
+  "resized_shape": [
+    40,
+    224,
+    224
+  ],
+  "source_type": "nifti_file",
+  "task": "all"
+}
