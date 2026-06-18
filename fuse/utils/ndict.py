@@ -210,6 +210,12 @@ class NDict(dict):
         """
         # if value is dictionary add to self key by key to avoid from keys with delimiter "."
         if isinstance(value, MutableMapping):
+            # Delete existing sub-keys so that assigning a new dict fully replaces
+            # the previous content rather than merging into it (Fixes #397)
+            prefix = key + "."
+            for kk in list(self._stored.keys()):
+                if kk.startswith(prefix):
+                    del self._stored[kk]
             for sub_key in value:
                 self[f"{key}.{sub_key}"] = value[sub_key]
             return
