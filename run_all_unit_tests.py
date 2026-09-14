@@ -6,10 +6,9 @@ In the case that it's a Jenkins job, it should delete any created cache (not imp
 import logging
 import os
 import sys
-import unittest
 
+import pytest
 import termcolor
-import xmlrunner
 
 print(os.path.dirname(os.path.realpath(__file__)))
 
@@ -55,22 +54,19 @@ if __name__ == "__main__":
     else:
         raise Exception(f"Error: unexpected mode {mode}")
 
-    suite = None
-    for curr_subsection, top_dir in sub_sections:
-        curr_subsuite = unittest.TestLoader().discover(
-            f"{search_base}/{curr_subsection}", "test*.py", top_level_dir=top_dir
-        )
-        if suite is None:
-            suite = curr_subsuite
-        else:
-            suite.addTest(curr_subsuite)
-
     # enable fuse logger and avoid colors format
     lgr = logging.getLogger("Fuse")
     lgr.setLevel(logging.INFO)
 
-    test_results = xmlrunner.XMLTestRunner(
-        output=output, verbosity=2, stream=sys.stdout
-    ).run(
-        suite,
+    # let pytest discover and run the tests - it natively collects
+    # unittest.TestCase-based tests, so the existing tests are unaffected -
+    # and produce the same kind of JUnit XML report that xmlrunner used to.
+    os.makedirs(output, exist_ok=True)
+    junit_report = os.path.join(output, "junit.xml")
+
+    search_paths = [f"{search_base}/{curr_subsection}" for curr_subsection, _ in sub_sections]
+
+    exit_code = pytest.main(
+        [*search_paths, "-v", f"--junitxml={junit_report}"],
     )
+    sys.exit(exit_code)
