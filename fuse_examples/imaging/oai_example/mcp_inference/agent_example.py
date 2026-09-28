@@ -1,5 +1,6 @@
 # mypy: python_version=3.10
-"""Runnable MCP agent example for the OAI inference workflow.
+"""
+Runnable MCP agent example for the OAI inference workflow.
 
 The agent is deliberately deterministic: it observes the MCP tool catalogue and
 settings, plans a single-case or batch action, invokes the selected tool, and
@@ -203,9 +204,7 @@ class MCPInferenceAgent:
             summary["classification"] = {
                 "primary_target": classification.get("primary_target"),
                 "predicted_label": classification.get("predicted_label"),
-                "predicted_probability": classification.get(
-                    "predicted_probability"
-                ),
+                "predicted_probability": classification.get("predicted_probability"),
                 "targets": classification.get("targets", {}),
             }
 
@@ -216,8 +215,7 @@ class MCPInferenceAgent:
             summary["segmentation"] = {
                 "shape": [int(value) for value in mask.shape],
                 "label_voxel_counts": {
-                    str(int(label)): int(count)
-                    for label, count in zip(labels, counts)
+                    str(int(label)): int(count) for label, count in zip(labels, counts)
                 },
             }
 
@@ -311,9 +309,7 @@ class MCPInferenceAgent:
                     "tool": "process_batch",
                     "arguments": {**arguments, "inputs": list(inputs)},
                 }
-                self._record(
-                    "plan", f"selected process_batch for {len(inputs)} cases"
-                )
+                self._record("plan", f"selected process_batch for {len(inputs)} cases")
                 self._record("action", "calling process_batch")
                 result = await self._call_tool("process_batch", arguments)
 
