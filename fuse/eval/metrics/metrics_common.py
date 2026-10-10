@@ -906,6 +906,23 @@ class CI(MetricWithCollectorBase):
         self._metric.reset()
         return super().reset()
 
+    @staticmethod
+    def _convert_tuples(ids: List[Tuple[Any, ...]]) -> np.ndarray:
+
+        sample_tuple = ids[0]
+        dtype_tuple = []
+
+        for i, tuple_elem in enumerate(sample_tuple):
+            if isinstance(tuple_elem, str):
+                max_len = max(len(str(el[i])) for el in ids)
+                dtype_tuple.append((f"field{i}", f"U{max_len}"))
+            else:
+                dtype_tuple.append((f"field{i}", type(tuple_elem)))
+
+        ids = np.array(ids, dtype=dtype_tuple)
+        ids = [tuple(x) for x in ids]
+        return ids
+
     def eval(
         self, results: Dict[str, Any] = None, ids: Sequence[Hashable] | None = None
     ) -> Dict[str, Any]:
@@ -921,7 +938,11 @@ class CI(MetricWithCollectorBase):
             raise Exception(
                 "Error: confidence interval is supported only when a unique identifier is specified. Add key 'id' to your data"
             )
-        ids = np.array(ids)
+
+        if isinstance(ids[0], tuple):
+            ids = self._convert_tuples(ids)
+        else:
+            ids = np.array(ids)
 
         rnd = np.random.RandomState(self._rnd_seed)
         original_sample_results = self._metric.eval(results, ids=ids)
@@ -939,7 +960,11 @@ class CI(MetricWithCollectorBase):
                 stratum_filter = stratum_id == stratum
                 n_stratum = sum(stratum_filter)
                 random_sample = rnd.randint(0, n_stratum, size=n_stratum)
-                sampled_ids[stratum_filter] = ids[stratum_filter][random_sample]
+
+                flt_indx = np.where(stratum_filter)[0]
+                for i, idx in enumerate(random_sample):
+                    sampled_ids[flt_indx[i]] = ids[flt_indx[idx]]
+
             boot_results.append(self._metric.eval(results, sampled_ids))
 
         # results can be either a list of floats or a list of dictionaries
